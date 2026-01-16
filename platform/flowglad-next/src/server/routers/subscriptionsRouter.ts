@@ -1,5 +1,6 @@
 import { runs } from '@trigger.dev/sdk/v3'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -78,7 +79,6 @@ import {
   SubscriptionAdjustmentTiming,
   SubscriptionStatus,
 } from '@/types'
-import { CacheDependency } from '@/utils/cache'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 import { protectedProcedure, router } from '../trpc'
@@ -314,13 +314,13 @@ const adjustSubscriptionProcedure = protectedProcedure
     const adjustmentResult =
       await comprehensiveAuthenticatedTransaction(
         async (transactionCtx) => {
-          return {
-            result: await adjustSubscription(
+          return Result.ok(
+            await adjustSubscription(
               input,
               ctx.organization!,
               transactionCtx
-            ),
-          }
+            )
+          )
         },
         {
           apiKey: ctx.apiKey,
@@ -724,23 +724,21 @@ const createSubscriptionProcedure = protectedProcedure
             enqueueLedgerCommand,
           }
         )
+        const outputValue = output.unwrap()
         const finalResult = {
           subscription: {
-            ...output.result.subscription,
+            ...outputValue.subscription,
             current: isSubscriptionCurrent(
-              output.result.subscription.status,
-              output.result.subscription.cancellationReason
+              outputValue.subscription.status,
+              outputValue.subscription.cancellationReason
             ),
           },
         }
 
-        return {
-          ...output,
-          result: {
-            ...output.result,
-            ...finalResult,
-          },
-        }
+        return Result.ok({
+          ...outputValue,
+          ...finalResult,
+        })
       }
     )
   )
@@ -750,7 +748,7 @@ const getCountsByStatusProcedure = protectedProcedure
   .output(
     z.array(
       z.object({
-        status: z.nativeEnum(SubscriptionStatus),
+        status: z.enum(SubscriptionStatus),
         count: z.number(),
       })
     )
@@ -770,7 +768,7 @@ const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
-        status: z.nativeEnum(SubscriptionStatus).optional(),
+        status: z.enum(SubscriptionStatus).optional(),
         customerId: z.string().optional(),
         organizationId: z.string().optional(),
         productName: z.string().optional(),
@@ -801,9 +799,9 @@ const updatePaymentMethodProcedure = protectedProcedure
     })
   )
   .mutation(
-    authenticatedProcedureComprehensiveTransaction(
+    authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
+        const { transaction } = transactionCtx
         const subscription = await selectSubscriptionById(
           input.id,
           transaction
@@ -833,22 +831,13 @@ const updatePaymentMethodProcedure = protectedProcedure
           transaction
         )
 
-        // Invalidate cache for customer subscriptions
-        invalidateCache(
-          CacheDependency.customerSubscriptions(
-            subscription.customerId
-          )
-        )
-
         return {
-          result: {
-            subscription: {
-              ...updatedSubscription,
-              current: isSubscriptionCurrent(
-                updatedSubscription.status,
-                updatedSubscription.cancellationReason
-              ),
-            },
+          subscription: {
+            ...updatedSubscription,
+            current: isSubscriptionCurrent(
+              updatedSubscription.status,
+              updatedSubscription.cancellationReason
+            ),
           },
         }
       }

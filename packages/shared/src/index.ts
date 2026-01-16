@@ -11,8 +11,10 @@ export type {
   CreateUsageEventParams,
   FlowgladActionValidatorMap,
   GetResourcesParams,
+  GetResourceUsageParams,
   ListResourceClaimsParams,
   ReleaseResourceParams,
+  SubscriptionAdjustmentTiming,
   TerseSubscriptionItem,
   UncancelSubscriptionParams,
 } from './actions'
@@ -32,6 +34,7 @@ export {
   listResourceClaimsSchema,
   releaseResourceSchema,
   subscriptionAdjustmentTiming,
+  subscriptionAdjustmentTimingSchema,
   terseSubscriptionItemSchema,
   uncancelSubscriptionSchema,
   updateCustomerSchema,
@@ -45,6 +48,7 @@ export * from './types/payment'
 export * from './types/paymentMethod'
 export {
   type ResourceClaim,
+  type ResourceIdentifier,
   type ResourceUsage,
 } from './types/resource'
 export {

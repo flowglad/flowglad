@@ -8,6 +8,24 @@ llm-prompts/patches/{project-name}/patch-{N}.md
 ```
 This structure is required for compatibility with `fan-patches.sh`, which spins up parallel Claude Code sessions.
 
+## Retrieving Gameplans from Notion
+
+**IMPORTANT:** If the user provides a Notion URL or a reference prefixed with `GP-` (e.g., `GP-123`), you MUST use the Notion skill to retrieve the gameplan contents. Simply fetching the URL will not work.
+
+**Step 1: Verify Notion Authentication**
+
+Before attempting to fetch from Notion, first run a simple Notion query (e.g., `/notion-find` with a basic search) to verify you're authenticated. If the query fails with an authentication error, prompt the user:
+
+> "I need to access Notion to retrieve the gameplan, but I'm not authenticated. Please ensure the Notion MCP server is configured and authenticated, then try again."
+
+**Step 2: Retrieve the Gameplan**
+
+Once authenticated:
+- **Notion URL** (e.g., `https://www.notion.so/...`): Use `/notion-find` or `/notion-search` to locate and retrieve the page contents.
+- **GP- prefix** (e.g., `GP-42`): This refers to a Notion database entry. Use `/notion-database-query` or `/notion-find` to search for entries matching the GP identifier.
+
+Do NOT attempt to use `WebFetch` or `curl` for Notion URLs—Notion requires authentication and the MCP Notion tools handle this automatically.
+
 ## Your Task
 
 1. Extract the **Project Name** from the gameplan (e.g., `subscription-adjustments`)

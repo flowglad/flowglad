@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
@@ -344,7 +345,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // - no database transaction should be started
       await expect(
         comprehensiveAuthenticatedTransaction(
-          async () => ({ result: 'should not reach here' }),
+          async () => Result.ok('should not reach here'),
           { apiKey: 'invalid_key_that_does_not_exist' }
         )
       ).rejects.toThrow()
@@ -362,7 +363,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
         async ({ organizationId, userId }) => {
           expect(organizationId).toBe(testOrg1.id)
           expect(userId).toBe(userA.id)
-          return { result: 'comprehensive_success' }
+          return Result.ok('comprehensive_success')
         },
         { apiKey: apiKeyA.token }
       )
@@ -371,41 +372,39 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   })
 
   describe('Transaction Output Processing', () => {
-    it('should process events when eventsToInsert is provided', async () => {
+    it('should process events emitted via callback', async () => {
       // setup:
       // - use valid API key
-      // - create transaction function that returns TransactionOutput with eventsToInsert array
+      // - create transaction function that emits events via emitEvent callback
 
       // expects:
-      // - bulkInsertOrDoNothingEventsByHash should be called with the events array
+      // - events should be processed
       // - transaction should complete successfully
       // - result should be returned from output.result
-      const mockEvents: Event.Insert[] = [
-        {
-          type: FlowgladEventType.PaymentSucceeded,
-          livemode: true,
-          payload: {
-            object: EventNoun.Payment,
-            id: 'test_event_1',
-            customer: {
-              id: 'test_customer_id',
-              externalId: 'test_external_id',
-            },
+      const mockEvent: Event.Insert = {
+        type: FlowgladEventType.PaymentSucceeded,
+        livemode: true,
+        payload: {
+          object: EventNoun.Payment,
+          id: 'test_event_1',
+          customer: {
+            id: 'test_customer_id',
+            externalId: 'test_external_id',
           },
-          organizationId: testOrg1.id,
-          metadata: {},
-          hash: hashData(testOrg1.id),
-          occurredAt: Date.now(),
-          submittedAt: Date.now(),
-          processedAt: null,
         },
-      ]
+        organizationId: testOrg1.id,
+        metadata: {},
+        hash: hashData(testOrg1.id),
+        occurredAt: Date.now(),
+        submittedAt: Date.now(),
+        processedAt: null,
+      }
 
       const result = await comprehensiveAuthenticatedTransaction(
-        async () => ({
-          result: 'events_processed',
-          eventsToInsert: mockEvents,
-        }),
+        async ({ emitEvent }) => {
+          emitEvent(mockEvent)
+          return Result.ok('events_processed')
+        },
         { apiKey: apiKeyA.token }
       )
       expect(result).toBe('events_processed')
@@ -420,9 +419,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // - transaction should complete successfully
       // - result should be returned from output.result
       const result = await comprehensiveAuthenticatedTransaction(
-        async () => ({
-          result: 'simple_result',
-        }),
+        async () => Result.ok('simple_result'),
         { apiKey: apiKeyA.token }
       )
       expect(result).toBe('simple_result')
@@ -838,7 +835,7 @@ describe('Error Handling Tests', () => {
         // Also verify comprehensiveAuthenticatedTransaction has the same check
         await expect(
           comprehensiveAuthenticatedTransaction(
-            async () => ({ result: 'should not reach here' }),
+            async () => Result.ok('should not reach here'),
             { __testOnlyOrganizationId: testOrg1.id }
           )
         ).rejects.toThrow(
@@ -1001,9 +998,7 @@ describe('Procedure Wrapper Functions', () => {
               'function'
             )
 
-            return {
-              result: 'comprehensive_procedure_success',
-            }
+            return Result.ok('comprehensive_procedure_success')
           }
         )
 

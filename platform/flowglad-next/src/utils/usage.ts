@@ -3,10 +3,7 @@ import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { safelyInsertPrice } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
-import type {
-  AuthenticatedTransactionParams,
-  TransactionEffectsContext,
-} from '@/db/types'
+import type { AuthenticatedTransactionParams } from '@/db/types'
 import { IntervalUnit, PriceType } from '@/types'
 
 /** Price fields used in usage meter creation/updates */
@@ -33,7 +30,9 @@ export const createUsageMeterTransaction = async (
     livemode,
     organizationId,
     userId,
-  }: Omit<AuthenticatedTransactionParams, 'invalidateCache'>
+    invalidateCache,
+  }: AuthenticatedTransactionParams &
+    Required<Pick<AuthenticatedTransactionParams, 'invalidateCache'>>
 ): Promise<{
   usageMeter: UsageMeter.Record
   price: Price.Record

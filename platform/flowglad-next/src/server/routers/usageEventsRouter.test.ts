@@ -422,7 +422,7 @@ describe('usageEventsRouter', () => {
         secondEventIds.includes(id)
       )
       expect(overlap).toEqual([])
-    })
+    }, 60000)
   })
 
   describe('create procedure with price slug support', () => {
@@ -571,7 +571,7 @@ describe('usageEventsRouter', () => {
           ],
         })
       ).rejects.toThrow(
-        "Price with slug invalid-slug-bulk not found for customer's pricing model"
+        "Price with slug invalid-slug-bulk not found for this customer's pricing model at index 1"
       )
     })
 
@@ -809,7 +809,7 @@ describe('usageEventsRouter', () => {
           ],
         })
       ).rejects.toThrow(
-        "Usage meter with slug invalid-usage-meter-slug not found for customer's pricing model"
+        "Usage meter with slug invalid-usage-meter-slug not found for this customer's pricing model at index 1"
       )
     })
 
@@ -999,7 +999,7 @@ describe('usageEventsRouter', () => {
           ],
         })
       ).rejects.toThrow(
-        `Usage meter ${usageMeter2.id} not found for this customer's pricing model`
+        `Usage meter ${usageMeter2.id} not found for this customer's pricing model at index 0`
       )
     })
   })

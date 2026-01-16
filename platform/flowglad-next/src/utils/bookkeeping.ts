@@ -1,7 +1,7 @@
+import { Result } from 'better-result'
 import * as R from 'ramda'
 import { createDefaultPriceConfig } from '@/constants/defaultPlanConfig'
 import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
 import type { Payment } from '@/db/schema/payments'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
@@ -35,10 +35,10 @@ import {
   selectPurchaseById,
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
   AuthenticatedTransactionParams,
   DbTransaction,
+  TransactionEffectsContext,
 } from '@/db/types'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import {
@@ -240,21 +240,23 @@ export const createCustomerBookkeeping = async (
       pricingModelId?: string
     }
   },
-  {
+  ctx: TransactionEffectsContext & {
+    organizationId: string
+    livemode: boolean
+  }
+): Promise<{
+  customer: Customer.Record
+  subscription?: Subscription.Record
+  subscriptionItems?: SubscriptionItem.Record[]
+}> => {
+  const {
     transaction,
     organizationId,
     livemode,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
-  }: Omit<AuthenticatedTransactionParams, 'userId'>
-): Promise<
-  TransactionOutput<{
-    customer: Customer.Record
-    subscription?: Subscription.Record
-    subscriptionItems?: SubscriptionItem.Record[]
-  }>
-> => {
+  } = ctx
   // Security: Validate that customer organizationId matches auth context
   if (
     payload.customer.organizationId &&
@@ -306,10 +308,9 @@ export const createCustomerBookkeeping = async (
   }
 
   const timestamp = Date.now()
-  const eventsToInsert: Event.Insert[] = []
 
-  // Create customer created event
-  eventsToInsert.push({
+  // Emit customer created event via callback
+  emitEvent({
     type: FlowgladEventType.CustomerCreated,
     occurredAt: timestamp,
     organizationId: customer.organizationId,
@@ -352,62 +353,50 @@ export const createCustomerBookkeeping = async (
           transaction
         )
 
-        // Create capturing callbacks to collect events locally while also calling provided callbacks
-        const capturingEmitEvent = (...events: Event.Insert[]) => {
-          eventsToInsert.push(...events)
-          emitEvent?.(...events)
-        }
-
-        // Create the subscription
-        const subscriptionResult = await createSubscriptionWorkflow(
-          {
-            organization,
-            customer: {
-              id: customer.id,
-              stripeCustomerId: customer.stripeCustomerId,
+        // Create the subscription - pass callbacks directly
+        const subscriptionResult = (
+          await createSubscriptionWorkflow(
+            {
+              organization,
+              customer: {
+                id: customer.id,
+                stripeCustomerId: customer.stripeCustomerId,
+                livemode: customer.livemode,
+                organizationId: customer.organizationId,
+              },
+              product: defaultProduct,
+              price: defaultPrice,
+              quantity: 1,
               livemode: customer.livemode,
-              organizationId: customer.organizationId,
+              startDate: new Date(),
+              interval: defaultPrice.intervalUnit,
+              intervalCount: defaultPrice.intervalCount,
+              trialEnd: defaultPrice.trialPeriodDays
+                ? new Date(
+                    Date.now() +
+                      defaultPrice.trialPeriodDays *
+                        24 *
+                        60 *
+                        60 *
+                        1000
+                  )
+                : undefined,
+              autoStart: true,
+              name: `${defaultProduct.name} Subscription`,
             },
-            product: defaultProduct,
-            price: defaultPrice,
-            quantity: 1,
-            livemode: customer.livemode,
-            startDate: new Date(),
-            interval: defaultPrice.intervalUnit,
-            intervalCount: defaultPrice.intervalCount,
-            trialEnd: defaultPrice.trialPeriodDays
-              ? new Date(
-                  Date.now() +
-                    defaultPrice.trialPeriodDays * 24 * 60 * 60 * 1000
-                )
-              : undefined,
-            autoStart: true,
-            name: `${defaultProduct.name} Subscription`,
-          },
-          {
-            transaction,
-            invalidateCache: invalidateCache ?? (() => {}),
-            emitEvent: capturingEmitEvent,
-            enqueueLedgerCommand: enqueueLedgerCommand ?? (() => {}),
-          }
-        )
+            {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
+        ).unwrap()
 
-        // Events from subscription creation are already captured via capturingEmitEvent
-        // Also merge any events returned in the result for backwards compatibility
-        if (subscriptionResult.eventsToInsert) {
-          eventsToInsert.push(...subscriptionResult.eventsToInsert)
-        }
-
-        // Return combined result with all events and ledger commands
         return {
-          result: {
-            customer,
-            subscription: subscriptionResult.result.subscription,
-            subscriptionItems:
-              subscriptionResult.result.subscriptionItems,
-          },
-          eventsToInsert,
-          ledgerCommand: subscriptionResult.ledgerCommand,
+          customer,
+          subscription: subscriptionResult.subscription,
+          subscriptionItems: subscriptionResult.subscriptionItems,
         }
       }
     }
@@ -419,11 +408,8 @@ export const createCustomerBookkeeping = async (
     )
   }
 
-  // Return just the customer with events
-  return {
-    result: { customer },
-    eventsToInsert,
-  }
+  // Return just the customer
+  return { customer }
 }
 
 /**
@@ -443,11 +429,14 @@ export const createPricingModelBookkeeping = async (
     livemode,
   }: Omit<AuthenticatedTransactionParams, 'userId'>
 ): Promise<
-  TransactionOutput<{
-    pricingModel: PricingModel.Record
-    defaultProduct: Product.Record
-    defaultPrice: Price.Record
-  }>
+  Result<
+    {
+      pricingModel: PricingModel.Record
+      defaultProduct: Product.Record
+      defaultPrice: Price.Record
+    },
+    Error
+  >
 > => {
   // 1. Create the pricing model
   const pricingModel = await safelyInsertPricingModel(
@@ -481,16 +470,9 @@ export const createPricingModelBookkeeping = async (
     transaction
   )
 
-  // 5. Create events
-  const timestamp = new Date()
-  const eventsToInsert: Event.Insert[] = []
-
-  return {
-    result: {
-      pricingModel,
-      defaultProduct,
-      defaultPrice,
-    },
-    eventsToInsert,
-  }
+  return Result.ok({
+    pricingModel,
+    defaultProduct,
+    defaultPrice,
+  })
 }

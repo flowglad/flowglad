@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import type Stripe from 'stripe'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -1400,7 +1401,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         })
       ).rejects.toThrow(/No metadata found/)
     })
@@ -1423,7 +1424,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         })
       ).rejects.toThrow(/No latest charge/)
     })
@@ -1514,7 +1515,7 @@ describe('Process payment intent status updated', async () => {
               fakePI,
               ctx
             )
-            return { result: res }
+            return Result.ok(res)
           }
         )
         expect(payment).toMatchObject({})
@@ -1571,7 +1572,7 @@ describe('Process payment intent status updated', async () => {
               fakePI,
               ctx
             )
-            return { result: res }
+            return Result.ok(res)
           })
         ).rejects.toThrow('No billing runs found with id: br_err')
       })
@@ -1632,7 +1633,7 @@ describe('Process payment intent status updated', async () => {
               fakePI,
               ctx
             )
-            return { result: res }
+            return Result.ok(res)
           }
         )
         expect(typeof payment).toBe('object')
@@ -1777,7 +1778,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         }
       )
       expect(typeof payment).toBe('object')
@@ -1850,7 +1851,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         })
       const { payment: payment2 } =
         await comprehensiveAdminTransaction(async (ctx) => {
@@ -1859,7 +1860,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         })
       expect(payment1.id).toEqual(payment2.id)
     })
@@ -2001,7 +2002,7 @@ describe('Process payment intent status updated', async () => {
             paymentIntent,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         }
       )
 
@@ -2147,7 +2148,7 @@ describe('Process payment intent status updated', async () => {
             paymentIntent,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         }
       )
 
@@ -2235,7 +2236,7 @@ describe('Process payment intent status updated', async () => {
             paymentIntent,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         }
       )
 
@@ -2321,7 +2322,7 @@ describe('Process payment intent status updated', async () => {
             paymentIntent,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         }
       )
 
@@ -2436,7 +2437,7 @@ describe('Process payment intent status updated', async () => {
             mockPaymentIntent,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         }
       )
 
@@ -2522,7 +2523,7 @@ describe('Process payment intent status updated', async () => {
           mockPaymentIntent,
           ctx
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       // Query events after transaction completes
@@ -2566,7 +2567,7 @@ describe('Process payment intent status updated', async () => {
           mockPaymentIntent,
           ctx
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       // Query events after transaction completes
@@ -2641,7 +2642,7 @@ describe('Process payment intent status updated', async () => {
             mockPaymentIntent,
             ctx
           )
-          return { result: res }
+          return Result.ok(res)
         }
       )
 
@@ -2764,7 +2765,7 @@ describe('Process payment intent status updated', async () => {
           mockPaymentIntent,
           ctx
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       // Query events after transaction completes
@@ -2925,7 +2926,7 @@ describe('Process payment intent status updated', async () => {
               invalidateCache,
             }
           )
-          return { result: res }
+          return Result.ok(res)
         }
       )
 

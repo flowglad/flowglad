@@ -413,17 +413,12 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
         transaction,
         organizationId: product.organizationId,
         livemode: checkoutSession.livemode,
+        invalidateCache: ctx.invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
       }
     )
-    customer = customerResult.result.customer
-
-    // Emit events and ledger commands from customer creation
-    if (customerResult.eventsToInsert?.length) {
-      emitEvent(...customerResult.eventsToInsert)
-    }
-    if (customerResult.ledgerCommand) {
-      enqueueLedgerCommand(customerResult.ledgerCommand)
-    }
+    customer = customerResult.customer
   }
   if (!purchase) {
     const corePurchaseFields = {

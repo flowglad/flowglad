@@ -232,6 +232,15 @@ function InnerDiscountDetailsPage({
             <SectionLabel>ID</SectionLabel>
             <CopyableField value={discount.id} label="ID" />
           </ContentSection>
+
+          {/* Pricing Model ID */}
+          <ContentSection>
+            <SectionLabel>Pricing Model ID</SectionLabel>
+            <CopyableField
+              value={discount.pricingModelId}
+              label="Pricing Model ID"
+            />
+          </ContentSection>
         </div>
       </div>
 

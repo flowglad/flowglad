@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
@@ -582,7 +583,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -727,7 +728,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -893,7 +894,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1091,7 +1092,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1129,7 +1130,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1219,7 +1220,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1247,7 +1248,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1384,7 +1385,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 

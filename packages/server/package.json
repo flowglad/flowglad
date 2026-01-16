@@ -27,14 +27,15 @@
     "build:declarations": "tsc -p tsconfig.declarations.json",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "check": "biome check . && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check . && bun run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
-    "@flowglad/node": "0.27.0",
+    "@flowglad/node": "0.28.0",
     "nanoid": "^3.3.11",
     "zod": "4.1.5"
   },

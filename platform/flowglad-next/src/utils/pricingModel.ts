@@ -226,9 +226,11 @@ export const createProductTransaction = async (
   transactionParams: Omit<
     AuthenticatedTransactionParams,
     'invalidateCache'
-  >
+  > &
+    Pick<TransactionEffectsContext, 'invalidateCache'>
 ) => {
-  const { userId, transaction, livemode } = transactionParams
+  const { userId, transaction, livemode, invalidateCache } =
+    transactionParams
   // Validate that usage prices are not created with featureIds
   if (payload.featureIds && payload.featureIds.length > 0) {
     const hasUsagePrice = payload.prices.some(
@@ -284,7 +286,7 @@ export const createProductTransaction = async (
         product: createdProduct,
         desiredFeatureIds: payload.featureIds,
       },
-      { transaction }
+      { transaction, invalidateCache }
     )
   }
   const pricesWithSafelyDefaultPrice = payload.prices.some(
@@ -333,9 +335,11 @@ export const editProductTransaction = async (
   transactionParams: Omit<
     AuthenticatedTransactionParams,
     'invalidateCache'
-  >
+  > &
+    Pick<TransactionEffectsContext, 'invalidateCache'>
 ) => {
-  const { transaction, livemode, organizationId } = transactionParams
+  const { transaction, livemode, organizationId, invalidateCache } =
+    transactionParams
   const { product, featureIds, price } = payload
 
   // Fetch the existing product to check if it's a default product
@@ -398,7 +402,7 @@ export const editProductTransaction = async (
         product: updatedProduct,
         desiredFeatureIds: featureIds,
       },
-      { transaction }
+      { transaction, invalidateCache }
     )
   }
   /**

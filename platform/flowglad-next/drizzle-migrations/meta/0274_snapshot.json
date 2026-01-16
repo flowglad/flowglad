@@ -1,5 +1,5 @@
 {
-  "id": "e029b83b-0e1b-4d68-8f5f-166672c14baf",
+  "id": "2598978f-f812-4d93-8c86-a8ffa5fca1f7",
   "prevId": "79a359e8-3dec-4c38-ba39-ab0e3a36a143",
   "version": "7",
   "dialect": "postgresql",
@@ -2347,6 +2347,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "pricing_model_id": {
+          "name": "pricing_model_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -2409,6 +2415,21 @@
           "method": "btree",
           "with": {}
         },
+        "discounts_pricing_model_id_idx": {
+          "name": "discounts_pricing_model_id_idx",
+          "columns": [
+            {
+              "expression": "pricing_model_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "discounts_code_idx": {
           "name": "discounts_code_idx",
           "columns": [
@@ -2424,8 +2445,8 @@
           "method": "btree",
           "with": {}
         },
-        "discounts_code_organization_id_livemode_unique_idx": {
-          "name": "discounts_code_organization_id_livemode_unique_idx",
+        "discounts_code_pricing_model_id_unique_idx": {
+          "name": "discounts_code_pricing_model_id_unique_idx",
           "columns": [
             {
               "expression": "code",
@@ -2434,13 +2455,7 @@
               "nulls": "last"
             },
             {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "livemode",
+              "expression": "pricing_model_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -2458,6 +2473,15 @@
           "tableFrom": "discounts",
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "discounts_pricing_model_id_pricing_models_id_fk": {
+          "name": "discounts_pricing_model_id_pricing_models_id_fk",
+          "tableFrom": "discounts",
+          "tableTo": "pricing_models",
+          "columnsFrom": ["pricing_model_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -6591,7 +6615,7 @@
           "name": "product_id",
           "type": "text",
           "primaryKey": false,
-          "notNull": false
+          "notNull": true
         },
         "active": {
           "name": "active",
@@ -6680,29 +6704,6 @@
             }
           ],
           "isUnique": true,
-          "where": "\"prices\".\"type\" != 'usage'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "prices_external_id_usage_meter_id_unique_idx": {
-          "name": "prices_external_id_usage_meter_id_unique_idx",
-          "columns": [
-            {
-              "expression": "external_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "usage_meter_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"prices\".\"type\" = 'usage'",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -6718,23 +6719,7 @@
             }
           ],
           "isUnique": true,
-          "where": "\"prices\".\"is_default\" AND \"prices\".\"type\" != 'usage'",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "prices_usage_meter_is_default_unique_idx": {
-          "name": "prices_usage_meter_is_default_unique_idx",
-          "columns": [
-            {
-              "expression": "usage_meter_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"prices\".\"is_default\" AND \"prices\".\"type\" = 'usage'",
+          "where": "\"prices\".\"is_default\"",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -6813,15 +6798,21 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": ["customer"],
-          "using": "\"active\" = true AND (\n            \"product_id\" IN (SELECT \"id\" FROM \"products\")\n            OR (\"product_id\" IS NULL AND \"usage_meter_id\" IN (SELECT \"id\" FROM \"usage_meters\"))\n          )"
+          "using": "\"product_id\" in (select \"id\" from \"products\") and \"active\" = true"
         },
-        "Merchant access via product or usage meter FK": {
-          "name": "Merchant access via product or usage meter FK",
+        "On update, ensure usage meter belongs to same organization as product": {
+          "name": "On update, ensure usage meter belongs to same organization as product",
+          "as": "PERMISSIVE",
+          "for": "UPDATE",
+          "to": ["merchant"],
+          "withCheck": "\"usage_meter_id\" IS NULL OR \"usage_meter_id\" IN (\n  SELECT \"id\" FROM \"usage_meters\"\n  WHERE \"usage_meters\".\"organization_id\" = (\n    SELECT \"organization_id\" FROM \"products\" \n    WHERE \"products\".\"id\" = \"prices\".\"product_id\"\n  )\n)"
+        },
+        "Ensure organization integrity with products parent table": {
+          "name": "Ensure organization integrity with products parent table",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": ["merchant"],
-          "using": "(\n            (\"type\" = 'usage' AND \"usage_meter_id\" IN (SELECT \"id\" FROM \"usage_meters\"))\n            OR (\"type\" != 'usage' AND \"product_id\" IN (SELECT \"id\" FROM \"products\"))\n          )",
-          "withCheck": "(\n            (\"type\" = 'usage' AND \"usage_meter_id\" IN (\n              SELECT \"id\" FROM \"usage_meters\"\n              WHERE \"usage_meters\".\"pricing_model_id\" = \"prices\".\"pricing_model_id\"\n            ))\n            OR (\"type\" != 'usage' AND \"product_id\" IN (\n              SELECT \"id\" FROM \"products\"\n              WHERE \"products\".\"pricing_model_id\" = \"prices\".\"pricing_model_id\"\n            ))\n          )"
+          "using": "\"product_id\" in (select \"id\" from \"products\")"
         },
         "Check mode (prices)": {
           "name": "Check mode (prices)",

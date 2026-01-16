@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { describe, expect, it } from 'vitest'
 import {
   setupOrg,
@@ -143,7 +144,7 @@ describe('Pay as You Go Workflow E2E', () => {
           emitEvent,
           enqueueLedgerCommand,
         }) => {
-          return await createCustomerBookkeeping(
+          const result = await createCustomerBookkeeping(
             {
               customer: {
                 organizationId: organization.id,
@@ -162,6 +163,7 @@ describe('Pay as You Go Workflow E2E', () => {
               enqueueLedgerCommand,
             }
           )
+          return Result.ok(result)
         }
       )
 
@@ -229,7 +231,7 @@ describe('Pay as You Go Workflow E2E', () => {
         },
         ctx
       )
-      return { result: usageEvent }
+      return Result.ok(usageEvent)
     })
 
     // 3. Call @customerBillingTransaction again and assert final state
@@ -269,7 +271,7 @@ describe('Pay as You Go Workflow E2E', () => {
         },
         ctx
       )
-      return { result: usageEvent }
+      return Result.ok(usageEvent)
     })
 
     // 5. Call @customerBillingTransaction again and assert final state
@@ -355,7 +357,7 @@ describe('Pay as You Go Workflow E2E', () => {
           transaction
         )
         expect(feeCalculations).toHaveLength(1)
-        return { result: checkoutSession }
+        return Result.ok(checkoutSession)
       }
     )
 
@@ -375,7 +377,7 @@ describe('Pay as You Go Workflow E2E', () => {
         paymentIntent,
         ctx
       )
-      return { result }
+      return Result.ok(result)
     })
 
     await comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -402,7 +404,7 @@ describe('Pay as You Go Workflow E2E', () => {
         activatedSubscription?.experimental?.usageMeterBalances?.[0]
           .availableBalance
       ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
-      return { result: null }
+      return Result.ok(null)
     })
 
     // 6. Create a usage event after payment
@@ -425,7 +427,7 @@ describe('Pay as You Go Workflow E2E', () => {
         },
         ctx
       )
-      return { result: usageEvent }
+      return Result.ok(usageEvent)
     })
 
     // 7. Call @customerBillingTransaction again and assert final state after new usage
@@ -445,7 +447,7 @@ describe('Pay as You Go Workflow E2E', () => {
         activatedSubscriptionAfterUsage?.experimental
           ?.usageMeterBalances?.[0].availableBalance
       ).toBe(900) // 1000 - 100 (new usage) = 900
-      return { result: null }
+      return Result.ok(null)
     })
   }, 120000)
 })

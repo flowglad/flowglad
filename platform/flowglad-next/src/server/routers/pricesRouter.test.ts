@@ -66,7 +66,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           singularQuantityLabel: null,
           pluralQuantityLabel: null,
           externalId: null,
-          pricingModelId: bookkeepingResult.result.pricingModel.id,
+          pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
           organizationId: organization.id,
           livemode,
           active: true,
@@ -97,9 +97,10 @@ describe('pricesRouter - Default Price Constraints', () => {
 
       return {
         organizationId: organization.id,
-        pricingModelId: bookkeepingResult.result.pricingModel.id,
-        defaultProductId: bookkeepingResult.result.defaultProduct.id,
-        defaultPriceId: bookkeepingResult.result.defaultPrice.id,
+        pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
+        defaultProductId:
+          bookkeepingResult.unwrap().defaultProduct.id,
+        defaultPriceId: bookkeepingResult.unwrap().defaultPrice.id,
         regularProductId: regularProduct.id,
         regularPriceId: regularPrice.id,
       }
@@ -578,7 +579,7 @@ describe('pricesRouter - Default Price Constraints', () => {
               singularQuantityLabel: null,
               pluralQuantityLabel: null,
               externalId: null,
-              pricingModelId: pricingModel.result.pricingModel.id,
+              pricingModelId: pricingModel.unwrap().pricingModel.id,
               organizationId,
               livemode,
               active: true,
@@ -718,7 +719,8 @@ describe('prices.getTableRows (usage-meter filters)', () => {
         }
       )
 
-      const pricingModelId = bookkeepingResult.result.pricingModel.id
+      const pricingModelId =
+        bookkeepingResult.unwrap().pricingModel.id
 
       // Create two usage meters
       const usageMeterA = await insertUsageMeter(
@@ -1091,7 +1093,8 @@ describe('pricesRouter - API Contract Updates', () => {
         }
       )
 
-      const pricingModelId = bookkeepingResult.result.pricingModel.id
+      const pricingModelId =
+        bookkeepingResult.unwrap().pricingModel.id
 
       // Create a usage meter
       const usageMeter = await insertUsageMeter(
@@ -1314,7 +1317,8 @@ describe('pricesRouter.replaceUsagePrice', () => {
         }
       )
 
-      const pricingModelId = bookkeepingResult.result.pricingModel.id
+      const pricingModelId =
+        bookkeepingResult.unwrap().pricingModel.id
 
       // Create a usage meter
       const usageMeter = await insertUsageMeter(

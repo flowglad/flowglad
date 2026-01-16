@@ -7197,7 +7197,7 @@
         }
       }
     },
-    "/api/v1/product-feature/{id}/expire": {
+    "/api/v1/product-features/{id}/expire": {
       "post": {
         "operationId": "productFeatures-expire",
         "summary": "Expire Product Feature",
@@ -9999,6 +9999,9 @@
       "DefaultDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -10038,6 +10041,9 @@
       "NumberOfPaymentsDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -10081,6 +10087,9 @@
       "ForeverDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -18688,6 +18697,9 @@
           "organizationId": {
             "type": "string"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -18724,6 +18736,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "code",
           "amount",
@@ -18755,6 +18768,9 @@
             "type": "boolean"
           },
           "organizationId": {
+            "type": "string"
+          },
+          "pricingModelId": {
             "type": "string"
           },
           "name": {
@@ -18796,6 +18812,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "code",
           "amount",
@@ -18828,6 +18845,9 @@
             "type": "boolean"
           },
           "organizationId": {
+            "type": "string"
+          },
+          "pricingModelId": {
             "type": "string"
           },
           "name": {
@@ -18866,6 +18886,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "code",
           "amount",

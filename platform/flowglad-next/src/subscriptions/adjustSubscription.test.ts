@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 // These seed methods (and the clearDatabase helper) come from our test support code.
@@ -322,7 +323,7 @@ describe('adjustSubscription Integration Tests', async () => {
             ctx
           )
         ).rejects.toThrow('Subscription is in terminal state')
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -370,7 +371,7 @@ describe('adjustSubscription Integration Tests', async () => {
         ).rejects.toThrow(
           'Non-renewing subscriptions cannot be adjusted'
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -407,7 +408,7 @@ describe('adjustSubscription Integration Tests', async () => {
         ).rejects.toThrow(
           'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -480,7 +481,7 @@ describe('adjustSubscription Integration Tests', async () => {
         ).rejects.toThrow(
           /Only recurring prices can be used in subscriptions\. Price .+ is of type usage/
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -501,7 +502,7 @@ describe('adjustSubscription Integration Tests', async () => {
             ctx
           )
         ).rejects.toThrow()
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -548,7 +549,7 @@ describe('adjustSubscription Integration Tests', async () => {
         ).rejects.toThrow(
           'Subscription item quantity must be greater than zero'
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -590,7 +591,7 @@ describe('adjustSubscription Integration Tests', async () => {
         ).rejects.toThrow(
           'Subscription item quantity must be greater than zero'
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -632,7 +633,7 @@ describe('adjustSubscription Integration Tests', async () => {
         ).rejects.toThrow(
           'Subscription item unit price cannot be negative'
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -682,7 +683,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(bpItems.length).toBe(0)
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -738,7 +739,7 @@ describe('adjustSubscription Integration Tests', async () => {
         ).rejects.toThrow(
           'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -819,7 +820,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(result.subscriptionItems[0].name).toBe(
           'Item 1 Updated'
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -889,7 +890,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).not.toHaveBeenCalled()
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -984,7 +985,7 @@ describe('adjustSubscription Integration Tests', async () => {
           (item) => item.name === 'Item 3'
         )
         expect(typeof item3Result).toBe('object')
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1045,7 +1046,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(result.subscription.name).toBe(originalName)
         expect(result.subscriptionItems.length).toBe(0)
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -1119,7 +1120,7 @@ describe('adjustSubscription Integration Tests', async () => {
             adjustmentDate: expect.any(Number),
           }),
         })
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1171,7 +1172,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(result.subscriptionItems.length).toBe(1)
         expect(result.subscriptionItems[0].name).toBe('Item 1')
         expect(result.subscriptionItems[0].unitPrice).toBe(100)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1235,7 +1236,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(netChargeItems.length).toBe(1)
         expect(netChargeItems[0].unitPrice).toBeGreaterThan(0)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1310,7 +1311,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems.length
         ).toBe(2)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1408,7 +1409,7 @@ describe('adjustSubscription Integration Tests', async () => {
         } else {
           expect(mockTrigger).toHaveBeenCalled()
         }
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -1476,7 +1477,7 @@ describe('adjustSubscription Integration Tests', async () => {
           item.name?.includes('Proration')
         )
         expect(prorationItems.length).toBeGreaterThan(0)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1542,7 +1543,7 @@ describe('adjustSubscription Integration Tests', async () => {
         } else {
           expect(bpItems.length).toEqual(bpItemsBefore.length)
         }
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -1643,7 +1644,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(typeof futureItem).toBe('object')
         expect(toMs(futureItem!.addedDate)!).toBe(newEndDate)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1725,7 +1726,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(result.subscription.name).toBe('Current Plan')
         expect(result.subscription.priceId).toBe(price.id)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1837,7 +1838,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(toMs(newItem!.addedDate)!).toEqual(
           toMs(currentBillingPeriod!.endDate)!
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -1906,7 +1907,7 @@ describe('adjustSubscription Integration Tests', async () => {
             newItems.length
           )
         }
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1956,7 +1957,7 @@ describe('adjustSubscription Integration Tests', async () => {
           expect(result.subscriptionItems.length).toBe(0)
           expect(result.subscription.name).toBe(originalName)
         }
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2008,7 +2009,7 @@ describe('adjustSubscription Integration Tests', async () => {
             ctx
           )
         ).rejects.toThrow()
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2096,7 +2097,7 @@ describe('adjustSubscription Integration Tests', async () => {
             ctx
           )
         ).rejects.toThrow()
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -2145,7 +2146,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(synced.name).toBe('Current Plan')
         expect(synced.priceId).toBe(currentItem.priceId)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2195,7 +2196,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('Premium Feature')
         expect(synced.priceId).toBe(premiumItem.priceId)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2234,7 +2235,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('Enterprise Plan')
         expect(synced.priceId).toBe(expensiveItem.priceId)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2300,7 +2301,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(syncedAfter.name).toBe('Standard Plan')
         expect(syncedAfter.priceId).toBe(secondaryItem.priceId)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2358,7 +2359,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(synced.name).toBe('New Premium')
         expect(synced.priceId).toBe(newPremiumItem.priceId)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2407,7 +2408,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(syncedAfterExpiry.name).toBe('Active Plan')
         expect(syncedAfterExpiry.priceId).toBe(price.id)
         expect(syncedAfterExpiry.id).toBe(subscription.id)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2446,7 +2447,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('High Quantity')
         expect(synced.priceId).toBe(highQuantityItem.priceId)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2485,7 +2486,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         expect(synced.name).toBe('Newer Item')
         expect(synced.priceId).toBe(newerItem.priceId)
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -2595,7 +2596,7 @@ describe('adjustSubscription Integration Tests', async () => {
             )
           })
         ).rejects.toThrow()
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -2693,7 +2694,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(orgPayload.adjustmentType).toBe('downgrade')
         expect(typeof orgPayload.currency).toBe('string')
         expect(orgPayload.currency.length).toBeGreaterThan(0)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2751,7 +2752,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // But billing run should be triggered
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -2830,7 +2831,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Billing run should be triggered for upgrades
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2920,7 +2921,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Billing run should NOT be triggered for downgrades
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).not.toHaveBeenCalled()
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -2994,7 +2995,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(result.resolvedTiming).toBe(
           SubscriptionAdjustmentTiming.Immediately
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -3073,7 +3074,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].name
         ).toBe('Premium via Slug')
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -3118,7 +3119,7 @@ describe('adjustSubscription Integration Tests', async () => {
             ctx
           )
         ).rejects.toThrow(/Price "nonexistent-slug" not found/)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -3196,7 +3197,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].name
         ).toBe(testPrice.name)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -3312,7 +3313,7 @@ describe('adjustSubscription Integration Tests', async () => {
         ).find((i) => i.priceId === idPrice.id)
         expect(idItem).toMatchObject({ quantity: 2 })
         expect(idItem!.quantity).toBe(2)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -3389,7 +3390,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems[0].name
         ).toBe(uuidPrice.name)
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -3469,7 +3470,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(bpItemsAfter.length).toBe(bpItemsBefore.length)
-        return { result: null }
+        return Result.ok(null)
       })
     })
 
@@ -3527,7 +3528,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(result.resolvedTiming).toBe(
           SubscriptionAdjustmentTiming.Immediately
         )
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -3592,7 +3593,7 @@ describe('adjustSubscription Integration Tests', async () => {
             ctx
           )
         ).rejects.toThrow(/free/i)
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -3911,7 +3912,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Since no billing run was triggered (downgrade protection),
         // the subscription should be synced immediately
         expect(result.subscription.name).toBe('Basic Plan')
-        return { result: null }
+        return Result.ok(null)
       })
     })
   })

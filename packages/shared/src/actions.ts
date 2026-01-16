@@ -91,19 +91,29 @@ export const uncancelSubscriptionSchema = z.object({
 })
 
 /**
- * Subscription adjustment timing options for the terse SDK API.
+ * Subscription adjustment timing options.
  * - 'immediately': Apply change now with proration
- * - 'at_end_of_period': Apply change at next billing period
+ * - 'at_end_of_current_billing_period': Apply change at next billing period
  * - 'auto': Upgrades happen immediately, downgrades at end of period
  */
 export const subscriptionAdjustmentTiming = {
   Immediately: 'immediately',
-  AtEndOfCurrentBillingPeriod: 'at_end_of_period',
+  AtEndOfCurrentBillingPeriod: 'at_end_of_current_billing_period',
   Auto: 'auto',
 } as const
 
 export type SubscriptionAdjustmentTiming =
   (typeof subscriptionAdjustmentTiming)[keyof typeof subscriptionAdjustmentTiming]
+
+/**
+ * Zod schema for subscription adjustment timing.
+ * Use this schema to validate timing values consistently across SDK and backend.
+ */
+export const subscriptionAdjustmentTimingSchema = z.enum([
+  subscriptionAdjustmentTiming.Immediately,
+  subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+  subscriptionAdjustmentTiming.Auto,
+])
 
 /**
  * Terse subscription item for multi-item adjustments.
@@ -135,12 +145,7 @@ export type TerseSubscriptionItem = z.input<
  */
 const adjustmentCommonOptions = {
   subscriptionId: z.string().optional(),
-  timing: z
-    .enum([
-      subscriptionAdjustmentTiming.Immediately,
-      subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-      subscriptionAdjustmentTiming.Auto,
-    ])
+  timing: subscriptionAdjustmentTimingSchema
     .optional()
     .default(subscriptionAdjustmentTiming.Auto),
   prorate: z.boolean().optional(),
@@ -548,6 +553,21 @@ export const listResourceClaimsSchema = z.object({
   resourceSlug: z.string().optional(),
 })
 
+export const getResourceUsageSchema = z
+  .object({
+    subscriptionId: z.string().optional(),
+  })
+  .and(
+    z.union([
+      z.object({ resourceSlug: z.string() }),
+      z.object({ resourceId: z.string() }),
+    ])
+  )
+
+export type GetResourceUsageParams = z.infer<
+  typeof getResourceUsageSchema
+>
+
 export type ListResourceClaimsParams = z.infer<
   typeof listResourceClaimsSchema
 >
@@ -601,7 +621,7 @@ export const flowgladActionValidators = {
     method: HTTPMethod.POST,
     inputValidator: clientCreateUsageEventSchema,
   },
-  [FlowgladActionKey.GetResources]: {
+  [FlowgladActionKey.GetResourceUsages]: {
     method: HTTPMethod.POST,
     inputValidator: getResourcesSchema,
   },
@@ -616,5 +636,9 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.ListResourceClaims]: {
     method: HTTPMethod.POST,
     inputValidator: listResourceClaimsSchema,
+  },
+  [FlowgladActionKey.GetResourceUsage]: {
+    method: HTTPMethod.POST,
+    inputValidator: getResourceUsageSchema,
   },
 } as const satisfies FlowgladActionValidatorMap
