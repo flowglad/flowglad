@@ -29,10 +29,12 @@ import type { SubscriptionStatus } from '@/types'
 import {
   CacheDependency,
   cachedBulkLookup,
-  cachedRecomputable,
+  type TransactionContext,
 } from '@/utils/cache'
+import { cachedRecomputable } from '@/utils/cache-recomputable'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
+import { getCurrentTransactionContext } from '@/utils/transactionContext'
 import {
   type Price,
   prices,
@@ -332,6 +334,11 @@ type SelectSubscriptionItemsParams = {
   livemode: boolean
 }
 
+const selectSubscriptionItemsParamsSchema = z.object({
+  subscriptionId: z.string(),
+  livemode: z.boolean(),
+})
+
 /**
  * Internal cached implementation for single subscription lookup with automatic recomputation.
  * Cache key includes livemode to prevent mixing live/test data.
@@ -346,6 +353,7 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
   >(
     {
       namespace: RedisKeyNamespace.ItemsBySubscription,
+      paramsSchema: selectSubscriptionItemsParamsSchema,
       keyFn: (params) =>
         `${params.subscriptionId}:${params.livemode}`,
       schema: subscriptionItemWithPriceSchema.array(),
@@ -353,7 +361,7 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
         CacheDependency.subscriptionItems(params.subscriptionId),
       ],
     },
-    async (params, transaction) => {
+    async (params, transaction, _transactionContext) => {
       return selectSubscriptionItemsWithPricesInternal(
         [params.subscriptionId],
         transaction
@@ -368,6 +376,7 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
  * @param subscriptionId - The subscription ID to fetch items for
  * @param transaction - Database transaction
  * @param livemode - Required for cache key scoping to prevent mixing live/test data
+ * @param transactionContext - Transaction context for cache recomputation
  * @param options.ignoreCache - If true, bypasses cache and fetches directly from database
  * @returns Array of subscription items with their prices
  */
@@ -376,6 +385,7 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
     subscriptionId: string,
     transaction: DbTransaction,
     livemode: boolean,
+    transactionContext: TransactionContext,
     options: { ignoreCache?: boolean } = {}
   ) => {
     if (options.ignoreCache) {
@@ -386,7 +396,8 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
     }
     return selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal(
       { subscriptionId, livemode },
-      transaction
+      transaction,
+      transactionContext
     )
   }
 
@@ -541,10 +552,21 @@ export const selectRichSubscriptionsAndActiveItems = async (
     Object.keys(whereConditions).length === 1
 
   if (isSimpleCustomerIdQuery) {
-    subscriptionRecords = await selectSubscriptionsByCustomerId(
-      { customerId, livemode },
-      transaction
-    )
+    // Get transaction context for cache recomputation
+    const transactionContext = getCurrentTransactionContext()
+    if (!transactionContext) {
+      // Fallback to uncached query if no transaction context available
+      subscriptionRecords = await selectSubscriptions(
+        whereConditions,
+        transaction
+      )
+    } else {
+      subscriptionRecords = await selectSubscriptionsByCustomerId(
+        { customerId, livemode },
+        transaction,
+        transactionContext
+      )
+    }
   } else {
     subscriptionRecords = await selectSubscriptions(
       whereConditions,

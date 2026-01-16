@@ -12,6 +12,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   nonRenewingStatusSchema,
   type Subscription,
@@ -37,7 +38,8 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason, SubscriptionStatus } from '@/types'
-import { CacheDependency, cachedRecomputable } from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
+import { cachedRecomputable } from '@/utils/cache-recomputable'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
   customerClientSelectSchema,
@@ -144,19 +146,25 @@ type SelectSubscriptionsByCustomerParams = {
  * filters subscriptions by livemode and the same customer could have different
  * subscriptions in live vs test mode.
  */
+const selectSubscriptionsByCustomerParamsSchema = z.object({
+  customerId: z.string(),
+  livemode: z.boolean(),
+})
+
 export const selectSubscriptionsByCustomerId = cachedRecomputable<
   SelectSubscriptionsByCustomerParams,
   Subscription.Record[]
 >(
   {
     namespace: RedisKeyNamespace.SubscriptionsByCustomer,
+    paramsSchema: selectSubscriptionsByCustomerParamsSchema,
     keyFn: (params) => `${params.customerId}:${params.livemode}`,
     schema: subscriptionsSelectSchema.array(),
     dependenciesFn: (params) => [
       CacheDependency.customerSubscriptions(params.customerId),
     ],
   },
-  async (params, transaction) => {
+  async (params, transaction, _transactionContext) => {
     return selectSubscriptions(
       { customerId: params.customerId },
       transaction

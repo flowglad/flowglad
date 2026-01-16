@@ -103,12 +103,18 @@ describeIfRedisKey(
       const registryKey = `cacheDeps:${dependencyKey}`
 
       await adminTransaction(async ({ transaction, livemode }) => {
+        const transactionContext = {
+          type: 'admin' as const,
+          livemode,
+        }
+
         // First call - should populate cache
         const result1 =
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction,
-            livemode
+            livemode,
+            transactionContext
           )
 
         // Verify correct data returned
@@ -139,7 +145,8 @@ describeIfRedisKey(
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction,
-            livemode
+            livemode,
+            transactionContext
           )
 
         expect(result2.length).toBe(1)
@@ -155,12 +162,18 @@ describeIfRedisKey(
       const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}:true`
 
       await adminTransaction(async ({ transaction, livemode }) => {
+        const transactionContext = {
+          type: 'admin' as const,
+          livemode,
+        }
+
         // First call - populate cache with 1 item
         const result1 =
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction,
-            livemode
+            livemode,
+            transactionContext
           )
         expect(result1.length).toBe(1)
 
@@ -192,7 +205,8 @@ describeIfRedisKey(
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             subscription.id,
             transaction,
-            livemode
+            livemode,
+            transactionContext
           )
         expect(result2.length).toBe(2)
       })
@@ -208,11 +222,16 @@ describeIfRedisKey(
       keysToCleanup.push(cacheKey, registryKey)
 
       await adminTransaction(async ({ transaction, livemode }) => {
+        const transactionContext = {
+          type: 'admin' as const,
+          livemode,
+        }
         const result =
           await selectSubscriptionItemsWithPricesBySubscriptionId(
             nonExistentId,
             transaction,
-            livemode
+            livemode,
+            transactionContext
           )
         expect(result).toEqual([])
       })
@@ -334,10 +353,15 @@ describeIfRedisKey(
 
       // Pre-populate cache for subscription1 using the single function
       await adminTransaction(async ({ transaction, livemode }) => {
+        const transactionContext = {
+          type: 'admin' as const,
+          livemode,
+        }
         await selectSubscriptionItemsWithPricesBySubscriptionId(
           subscription1.id,
           transaction,
-          livemode
+          livemode,
+          transactionContext
         )
       })
 

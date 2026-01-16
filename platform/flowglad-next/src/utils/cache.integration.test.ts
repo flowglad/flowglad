@@ -763,9 +763,14 @@ describeIfRedisKey(
       // First call - should cache the result
       const result1 = await adminTransaction(
         async ({ transaction, livemode }) => {
+          const transactionContext = {
+            type: 'admin' as const,
+            livemode,
+          }
           return selectSubscriptionsByCustomerId(
             { customerId: customer.id, livemode },
-            transaction
+            transaction,
+            transactionContext
           )
         }
       )
@@ -781,9 +786,14 @@ describeIfRedisKey(
       // Second call - should return cached result
       const result2 = await adminTransaction(
         async ({ transaction, livemode }) => {
+          const transactionContext = {
+            type: 'admin' as const,
+            livemode,
+          }
           return selectSubscriptionsByCustomerId(
             { customerId: customer.id, livemode },
-            transaction
+            transaction,
+            transactionContext
           )
         }
       )
@@ -812,9 +822,14 @@ describeIfRedisKey(
       // First call - should cache the empty result
       const result = await adminTransaction(
         async ({ transaction, livemode }) => {
+          const transactionContext = {
+            type: 'admin' as const,
+            livemode,
+          }
           return selectSubscriptionsByCustomerId(
             { customerId: customerWithNoSubs.id, livemode },
-            transaction
+            transaction,
+            transactionContext
           )
         }
       )
@@ -871,9 +886,14 @@ describeIfRedisKey(
 
       // Populate cache
       await adminTransaction(async ({ transaction, livemode }) => {
+        const transactionContext = {
+          type: 'admin' as const,
+          livemode,
+        }
         return selectSubscriptionsByCustomerId(
           { customerId: customer.id, livemode },
-          transaction
+          transaction,
+          transactionContext
         )
       })
 
@@ -1731,9 +1751,14 @@ describeIfRedisKey(
 
       // Populate cache by calling the function
       await adminTransaction(async ({ transaction, livemode }) => {
+        const transactionContext = {
+          type: 'admin' as const,
+          livemode,
+        }
         return selectSubscriptionsByCustomerId(
           { customerId: customer.id, livemode },
-          transaction
+          transaction,
+          transactionContext
         )
       })
 
@@ -1805,9 +1830,14 @@ describeIfRedisKey(
       // Populate cache
       const initialResult = await adminTransaction(
         async ({ transaction, livemode }) => {
+          const transactionContext = {
+            type: 'admin' as const,
+            livemode,
+          }
           return selectSubscriptionsByCustomerId(
             { customerId: customer.id, livemode },
-            transaction
+            transaction,
+            transactionContext
           )
         }
       )
@@ -1910,11 +1940,16 @@ describeIfRedisKey(
       keysToCleanup.push(cacheKey, metadataKey, registryKey)
 
       // Populate cache by calling the function
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
+        const transactionContext = {
+          type: 'admin' as const,
+          livemode,
+        }
         return selectSubscriptionItemsWithPricesBySubscriptionId(
           subscription.id,
           transaction,
-          true // livemode
+          true, // livemode
+          transactionContext
         )
       })
 
