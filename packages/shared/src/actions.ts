@@ -553,6 +553,23 @@ export const listResourceClaimsSchema = z.object({
   resourceSlug: z.string().optional(),
 })
 
+const subscriptionIdObject = z.object({
+  subscriptionId: z.string(),
+})
+
+export const getResourceUsageSchema = z.union([
+  subscriptionIdObject.extend({
+    resourceSlug: z.string(),
+  }),
+  subscriptionIdObject.extend({
+    resourceId: z.string(),
+  }),
+])
+
+export type GetResourceUsageParams = z.infer<
+  typeof getResourceUsageSchema
+>
+
 export type ListResourceClaimsParams = z.infer<
   typeof listResourceClaimsSchema
 >
@@ -606,8 +623,8 @@ export const flowgladActionValidators = {
     method: HTTPMethod.POST,
     inputValidator: clientCreateUsageEventSchema,
   },
-  [FlowgladActionKey.GetResources]: {
-    method: HTTPMethod.POST,
+  [FlowgladActionKey.GetResourceUsages]: {
+    method: HTTPMethod.GET,
     inputValidator: getResourcesSchema,
   },
   [FlowgladActionKey.ClaimResource]: {
@@ -619,7 +636,11 @@ export const flowgladActionValidators = {
     inputValidator: releaseResourceSchema,
   },
   [FlowgladActionKey.ListResourceClaims]: {
-    method: HTTPMethod.POST,
+    method: HTTPMethod.GET,
     inputValidator: listResourceClaimsSchema,
+  },
+  [FlowgladActionKey.GetResourceUsage]: {
+    method: HTTPMethod.GET,
+    inputValidator: getResourceUsageSchema,
   },
 } as const satisfies FlowgladActionValidatorMap

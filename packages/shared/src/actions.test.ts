@@ -1354,7 +1354,7 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.CreateSubscription,
       FlowgladActionKey.UpdateCustomer,
       FlowgladActionKey.CreateUsageEvent,
-      FlowgladActionKey.GetResources,
+      FlowgladActionKey.GetResourceUsages,
       FlowgladActionKey.ClaimResource,
       FlowgladActionKey.ReleaseResource,
       FlowgladActionKey.ListResourceClaims,
@@ -1372,17 +1372,34 @@ describe('flowgladActionValidators', () => {
       )
     }
   })
-
-  it('all validators use POST method', () => {
+  const getMethodKeys = [
+    FlowgladActionKey.GetResourceUsage,
+    FlowgladActionKey.GetResourceUsages,
+    FlowgladActionKey.ListResourceClaims,
+  ]
+  it('all validators not starting with "get" use POST method', () => {
     for (const key of Object.keys(
       flowgladActionValidators
     ) as FlowgladActionKey[]) {
-      expect(flowgladActionValidators[key].method).toBe(
-        HTTPMethod.POST
-      )
+      // Only check keys that do not start with "Get"
+      if (!getMethodKeys.includes(key)) {
+        expect(flowgladActionValidators[key].method).toBe(
+          HTTPMethod.POST
+        )
+      }
     }
   })
-
+  it('all validators starting with "get" or "list" use GET method', () => {
+    for (const key of Object.keys(
+      flowgladActionValidators
+    ) as FlowgladActionKey[]) {
+      if (getMethodKeys.includes(key)) {
+        expect(flowgladActionValidators[key].method).toBe(
+          HTTPMethod.GET
+        )
+      }
+    }
+  })
   it('GetCustomerBilling validator accepts externalId', () => {
     const validator =
       flowgladActionValidators[FlowgladActionKey.GetCustomerBilling]

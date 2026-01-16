@@ -2,6 +2,7 @@
 import {
   type ClaimResourceParams,
   FlowgladActionKey,
+  flowgladActionValidators,
   type ReleaseResourceParams,
   type ResourceClaim,
   type ResourceUsage,
@@ -191,14 +192,20 @@ export const useResources = (): UseResourcesResult => {
         betterAuthBasePath
       )
       const response = await fetch(
-        `${flowgladRoute}/${FlowgladActionKey.GetResources}`,
+        `${flowgladRoute}/${FlowgladActionKey.GetResourceUsages}`,
         {
-          method: 'POST',
+          // Better Auth endpoints are POST-only (they proxy internally to the correct action method),
+          // while the standalone route handler uses the action's declared method (GET here).
+          method: betterAuthBasePath
+            ? 'POST'
+            : flowgladActionValidators[
+                FlowgladActionKey.GetResourceUsages
+              ].method,
           headers: {
             'Content-Type': 'application/json',
             ...requestConfig?.headers,
           },
-          body: JSON.stringify({}),
+          ...(betterAuthBasePath ? { body: JSON.stringify({}) } : {}),
         }
       )
 

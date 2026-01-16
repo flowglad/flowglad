@@ -4,6 +4,7 @@ import type { FlowgladServer } from '../FlowgladServer'
 import {
   claimResource,
   getResources,
+  getResourceUsage,
   listResourceClaims,
   releaseResource,
 } from './resourceHandlers'
@@ -38,13 +39,15 @@ const mockResourceClaim = {
  * Creates a mock FlowgladServer for testing handlers
  */
 const createMockFlowgladServer = () => {
-  const mockGetResources = vi.fn()
+  const mockGetResourceUsages = vi.fn()
+  const mockGetResourceUsage = vi.fn()
   const mockClaimResource = vi.fn()
   const mockReleaseResource = vi.fn()
   const mockListResourceClaims = vi.fn()
 
   const server = {
-    getResources: mockGetResources,
+    getResourceUsages: mockGetResourceUsages,
+    getResourceUsage: mockGetResourceUsage,
     claimResource: mockClaimResource,
     releaseResource: mockReleaseResource,
     listResourceClaims: mockListResourceClaims,
@@ -53,7 +56,8 @@ const createMockFlowgladServer = () => {
   return {
     server,
     mocks: {
-      getResources: mockGetResources,
+      getResourceUsages: mockGetResourceUsages,
+      getResourceUsage: mockGetResourceUsage,
       claimResource: mockClaimResource,
       releaseResource: mockReleaseResource,
       listResourceClaims: mockListResourceClaims,
@@ -63,13 +67,13 @@ const createMockFlowgladServer = () => {
 
 describe('Resource subroute handlers', () => {
   describe('getResources handler', () => {
-    it('returns { status: 405, error: { code: "Method not allowed" } } for GET request', async () => {
+    it('returns { status: 405, error: { code: "Method not allowed" } } for POST request', async () => {
       const { server } = createMockFlowgladServer()
 
-      // Use type assertion to test non-POST method handling
+      // Use type assertion to test non-GET method handling
       const result = await getResources(
         {
-          method: HTTPMethod.GET as HTTPMethod.POST,
+          method: HTTPMethod.POST as HTTPMethod.GET,
           data: {},
         },
         server
@@ -86,10 +90,10 @@ describe('Resource subroute handlers', () => {
     it('returns { status: 405, error } for PUT request', async () => {
       const { server } = createMockFlowgladServer()
 
-      // Use type assertion to test non-POST method handling
+      // Use type assertion to test non-GET method handling
       const result = await getResources(
         {
-          method: HTTPMethod.PUT as HTTPMethod.POST,
+          method: HTTPMethod.PUT as HTTPMethod.GET,
           data: {},
         },
         server
@@ -102,10 +106,10 @@ describe('Resource subroute handlers', () => {
     it('returns { status: 405, error } for DELETE request', async () => {
       const { server } = createMockFlowgladServer()
 
-      // Use type assertion to test non-POST method handling
+      // Use type assertion to test non-GET method handling
       const result = await getResources(
         {
-          method: HTTPMethod.DELETE as HTTPMethod.POST,
+          method: HTTPMethod.DELETE as HTTPMethod.GET,
           data: {},
         },
         server
@@ -115,16 +119,16 @@ describe('Resource subroute handlers', () => {
       expect(result.error?.code).toBe('Method not allowed')
     })
 
-    it('returns { status: 200, data: { resources } } for valid POST request', async () => {
+    it('returns { status: 200, data: { resources } } for valid GET request', async () => {
       const { server, mocks } = createMockFlowgladServer()
       const mockResources = [mockResourceUsage]
-      mocks.getResources.mockResolvedValue({
+      mocks.getResourceUsages.mockResolvedValue({
         resources: mockResources,
       })
 
       const result = await getResources(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: {},
         },
         server
@@ -133,19 +137,19 @@ describe('Resource subroute handlers', () => {
       expect(result.status).toBe(200)
       expect(result.data).toEqual({ resources: mockResources })
       expect(result.error).toBeUndefined()
-      expect(mocks.getResources).toHaveBeenCalledWith({})
+      expect(mocks.getResourceUsages).toHaveBeenCalledWith({})
     })
 
     it('returns { status: 200, data: { resources } } when subscriptionId is provided', async () => {
       const { server, mocks } = createMockFlowgladServer()
       const mockResources = [mockResourceUsage]
-      mocks.getResources.mockResolvedValue({
+      mocks.getResourceUsages.mockResolvedValue({
         resources: mockResources,
       })
 
       const result = await getResources(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: { subscriptionId: 'sub_123' },
         },
         server
@@ -153,20 +157,20 @@ describe('Resource subroute handlers', () => {
 
       expect(result.status).toBe(200)
       expect(result.data).toEqual({ resources: mockResources })
-      expect(mocks.getResources).toHaveBeenCalledWith({
+      expect(mocks.getResourceUsages).toHaveBeenCalledWith({
         subscriptionId: 'sub_123',
       })
     })
 
     it('returns { status: 500, error: { code: "get_resources_failed", json: { message } } } when FlowgladServer throws', async () => {
       const { server, mocks } = createMockFlowgladServer()
-      mocks.getResources.mockRejectedValue(
+      mocks.getResourceUsages.mockRejectedValue(
         new Error('No active subscription found for this customer')
       )
 
       const result = await getResources(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: {},
         },
         server
@@ -184,13 +188,13 @@ describe('Resource subroute handlers', () => {
 
     it('returns { status: 500, error } when server throws ownership error', async () => {
       const { server, mocks } = createMockFlowgladServer()
-      mocks.getResources.mockRejectedValue(
+      mocks.getResourceUsages.mockRejectedValue(
         new Error('Subscription is not owned by the current user')
       )
 
       const result = await getResources(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: { subscriptionId: 'sub_wrong' },
         },
         server
@@ -582,13 +586,13 @@ describe('Resource subroute handlers', () => {
   })
 
   describe('listResourceClaims handler', () => {
-    it('returns { status: 405 } for GET request', async () => {
+    it('returns { status: 405 } for POST request', async () => {
       const { server } = createMockFlowgladServer()
 
-      // Use type assertion to test non-POST method handling
+      // Use type assertion to test non-GET method handling
       const result = await listResourceClaims(
         {
-          method: HTTPMethod.GET as HTTPMethod.POST,
+          method: HTTPMethod.POST as HTTPMethod.GET,
           data: {},
         },
         server
@@ -601,10 +605,10 @@ describe('Resource subroute handlers', () => {
     it('returns { status: 405 } for PATCH request', async () => {
       const { server } = createMockFlowgladServer()
 
-      // Use type assertion to test non-POST method handling
+      // Use type assertion to test non-GET method handling
       const result = await listResourceClaims(
         {
-          method: HTTPMethod.PATCH as HTTPMethod.POST,
+          method: HTTPMethod.PATCH as HTTPMethod.GET,
           data: {},
         },
         server
@@ -613,7 +617,7 @@ describe('Resource subroute handlers', () => {
       expect(result.status).toBe(405)
     })
 
-    it('returns { status: 200, data: { claims } } for valid POST request', async () => {
+    it('returns { status: 200, data: { claims } } for valid GET request', async () => {
       const { server, mocks } = createMockFlowgladServer()
       const mockClaims = [mockResourceClaim]
       mocks.listResourceClaims.mockResolvedValue({
@@ -622,7 +626,7 @@ describe('Resource subroute handlers', () => {
 
       const result = await listResourceClaims(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: {},
         },
         server
@@ -643,7 +647,7 @@ describe('Resource subroute handlers', () => {
 
       const result = await listResourceClaims(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: { resourceSlug: 'seats' },
         },
         server
@@ -665,7 +669,7 @@ describe('Resource subroute handlers', () => {
 
       const result = await listResourceClaims(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: { subscriptionId: 'sub_123' },
         },
         server
@@ -687,7 +691,7 @@ describe('Resource subroute handlers', () => {
 
       const result = await listResourceClaims(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: { subscriptionId: 'sub_123', resourceSlug: 'seats' },
         },
         server
@@ -708,7 +712,7 @@ describe('Resource subroute handlers', () => {
 
       const result = await listResourceClaims(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: {},
         },
         server
@@ -726,7 +730,7 @@ describe('Resource subroute handlers', () => {
 
       const result = await listResourceClaims(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: {},
         },
         server
@@ -752,7 +756,7 @@ describe('Resource subroute handlers', () => {
 
       const result = await listResourceClaims(
         {
-          method: HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: {},
         },
         server
