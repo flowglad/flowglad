@@ -228,7 +228,14 @@ describe('checkoutHelpers', () => {
         quantity: 1,
         livemode: true,
       })
-      return { organization, product, price, customer, session }
+      return {
+        organization,
+        product,
+        price,
+        customer,
+        session,
+        pricingModel,
+      }
     }
 
     it('valid session with customer → includes product/price/org and customer', async () => {
@@ -282,9 +289,11 @@ describe('checkoutHelpers', () => {
     })
 
     it('includes discount when discount is applied to checkout', async () => {
-      const { organization, session } = await makeSession()
+      const { organization, pricingModel, session } =
+        await makeSession()
       const discount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'Test Discount',
         amount: 10,
         code: 'SAVE10',
