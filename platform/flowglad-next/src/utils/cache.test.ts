@@ -33,10 +33,12 @@ import {
 function createMockRedisClient() {
   const store: Record<string, string> = {}
   const sets: Record<string, Set<string>> = {}
+  const zsets: Record<string, Map<string, number>> = {}
 
   return {
     store,
     sets,
+    zsets,
     client: {
       get: (key: string) => store[key] ?? null,
       getdel: (key: string) => {
@@ -85,11 +87,93 @@ function createMockRedisClient() {
         const set = sets[key]
         return set ? Array.from(set) : []
       },
+      srem: (key: string, ...members: string[]) => {
+        const set = sets[key]
+        if (!set) return 0
+        let removed = 0
+        for (const member of members) {
+          if (set.has(member)) {
+            set.delete(member)
+            removed++
+          }
+        }
+        return removed
+      },
+      // ZSET operations for LRU tracking
+      zadd: (key: string, score: number, member: string) => {
+        if (!zsets[key]) {
+          zsets[key] = new Map()
+        }
+        const isNew = !zsets[key].has(member)
+        zsets[key].set(member, score)
+        return isNew ? 1 : 0
+      },
+      zcard: (key: string) => {
+        return zsets[key]?.size ?? 0
+      },
+      zrange: (key: string, start: number, stop: number) => {
+        const zset = zsets[key]
+        if (!zset) return []
+        // Sort by score and return members in range
+        const sorted = [...zset.entries()].sort((a, b) => a[1] - b[1])
+        return sorted.slice(start, stop + 1).map(([member]) => member)
+      },
+      zrem: (key: string, ...members: string[]) => {
+        const zset = zsets[key]
+        if (!zset) return 0
+        let removed = 0
+        for (const member of members) {
+          if (zset.has(member)) {
+            zset.delete(member)
+            removed++
+          }
+        }
+        return removed
+      },
+      // Lua script execution - simplified mock that handles LRU eviction script
+      eval: (
+        _script: string,
+        keys: string[],
+        args: (string | number)[]
+      ) => {
+        const zsetKey = keys[0]
+        const cacheKey = keys[1]
+        const timestamp = Number(args[0])
+        const maxSize = Number(args[1])
+
+        // ZADD
+        if (!zsets[zsetKey]) {
+          zsets[zsetKey] = new Map()
+        }
+        zsets[zsetKey].set(cacheKey, timestamp)
+
+        // Check size and evict
+        const size = zsets[zsetKey].size
+        if (size > maxSize) {
+          const toEvictCount = size - maxSize
+          const sorted = [...zsets[zsetKey].entries()].sort(
+            (a, b) => a[1] - b[1]
+          )
+          const toEvict = sorted
+            .slice(0, toEvictCount)
+            .map(([m]) => m)
+          for (const m of toEvict) {
+            delete store[m]
+            zsets[zsetKey].delete(m)
+          }
+          return toEvict.length
+        }
+        return 0
+      },
       expire: () => 1,
       exists: (...keys: string[]) => {
         let count = 0
         for (const key of keys) {
-          if (store[key] !== undefined || sets[key] !== undefined) {
+          if (
+            store[key] !== undefined ||
+            sets[key] !== undefined ||
+            zsets[key] !== undefined
+          ) {
             count++
           }
         }
@@ -102,6 +186,9 @@ function createMockRedisClient() {
       }
       for (const key of Object.keys(sets)) {
         delete sets[key]
+      }
+      for (const key of Object.keys(zsets)) {
+        delete zsets[key]
       }
     },
   }

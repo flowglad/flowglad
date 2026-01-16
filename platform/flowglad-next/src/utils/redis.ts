@@ -413,3 +413,133 @@ export const resetDismissedBanners = async (
     throw error
   }
 }
+
+/**
+ * Lua script for atomic LRU cache eviction.
+ *
+ * This script:
+ * 1. Adds the cache key to a namespace's sorted set (score = timestamp)
+ * 2. Checks if the set size exceeds the max
+ * 3. If so, evicts the oldest entries (lowest scores)
+ *
+ * KEYS[1] = ZSET key (namespace:lru)
+ * KEYS[2] = cache key to add
+ * ARGV[1] = current timestamp
+ * ARGV[2] = max size
+ *
+ * Returns: number of entries evicted
+ */
+const LRU_EVICTION_SCRIPT = `
+local zsetKey = KEYS[1]
+local cacheKey = KEYS[2]
+local timestamp = tonumber(ARGV[1])
+local maxSize = tonumber(ARGV[2])
+
+-- Add the cache key with current timestamp as score
+redis.call('ZADD', zsetKey, timestamp, cacheKey)
+
+-- Check current size
+local size = redis.call('ZCARD', zsetKey)
+
+if size > maxSize then
+  -- Calculate how many to evict
+  local toEvictCount = size - maxSize
+  -- Get the oldest entries (lowest scores)
+  local toEvict = redis.call('ZRANGE', zsetKey, 0, toEvictCount - 1)
+  if #toEvict > 0 then
+    -- Delete the cache entries
+    redis.call('DEL', unpack(toEvict))
+    -- Remove from the ZSET
+    redis.call('ZREM', zsetKey, unpack(toEvict))
+  end
+  return #toEvict
+end
+
+return 0
+`
+
+/**
+ * Get the max size for a namespace from the eviction policy.
+ */
+export function getMaxSizeForNamespace(
+  namespace: RedisKeyNamespace
+): number {
+  return evictionPolicy[namespace]?.max ?? 10000
+}
+
+/**
+ * Track a cache key in the namespace's LRU set and evict oldest entries if over limit.
+ *
+ * This function atomically:
+ * 1. Adds the cache key to a sorted set (score = current timestamp)
+ * 2. Checks if the set exceeds max size
+ * 3. Evicts oldest entries (by score) if needed
+ *
+ * Uses a Lua script for atomicity - no race conditions between size check and eviction.
+ *
+ * @param namespace - The cache namespace
+ * @param cacheKey - The full cache key being written
+ * @returns Number of entries evicted (0 if none)
+ */
+export async function trackAndEvictLRU(
+  namespace: RedisKeyNamespace,
+  cacheKey: string
+): Promise<number> {
+  try {
+    const redisClient = redis()
+    const zsetKey = `${namespace}:lru`
+    const maxSize = getMaxSizeForNamespace(namespace)
+    const timestamp = Date.now()
+
+    // Execute the Lua script atomically
+    const evicted = await redisClient.eval(
+      LRU_EVICTION_SCRIPT,
+      [zsetKey, cacheKey],
+      [timestamp, maxSize]
+    )
+
+    const evictedCount =
+      typeof evicted === 'number' ? evicted : Number(evicted) || 0
+
+    if (evictedCount > 0) {
+      logger.debug('LRU eviction performed', {
+        namespace,
+        evictedCount,
+        maxSize,
+      })
+    }
+
+    return evictedCount
+  } catch (error) {
+    // Fail open - log but don't throw
+    // Cache write should still succeed even if LRU tracking fails
+    logger.warn('LRU tracking failed', {
+      namespace,
+      cacheKey,
+      error: error instanceof Error ? error.message : String(error),
+    })
+    return 0
+  }
+}
+
+/**
+ * Remove a cache key from the LRU tracking set.
+ * Called when a cache entry is explicitly invalidated.
+ */
+export async function removeFromLRU(
+  namespace: RedisKeyNamespace,
+  cacheKey: string
+): Promise<void> {
+  try {
+    const redisClient = redis()
+    const zsetKey = `${namespace}:lru`
+    await redisClient.zrem(zsetKey, cacheKey)
+  } catch (error) {
+    // Fail open - log but don't throw
+    logger.warn('Failed to remove from LRU', {
+      namespace,
+      cacheKey,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}

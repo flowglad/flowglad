@@ -3,7 +3,12 @@ import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
 import core from './core'
 import { logger } from './logger'
-import { RedisKeyNamespace, redis } from './redis'
+import {
+  RedisKeyNamespace,
+  redis,
+  removeFromLRU,
+  trackAndEvictLRU,
+} from './redis'
 import { traced } from './tracing'
 import { getCurrentTransactionContext } from './transactionContext'
 
@@ -411,6 +416,9 @@ export function cached<TArgs extends unknown[], TResult>(
         // Register dependencies in Redis
         await registerDependencies(fullKey, dependencies)
 
+        // Track in LRU and evict oldest entries if over limit
+        await trackAndEvictLRU(config.namespace, fullKey)
+
         span?.setAttribute('cache.ttl', ttl)
         span?.setAttribute('cache.dependencies', dependencies)
 
@@ -663,6 +671,8 @@ async function cachedBulkLookupImpl<TKey, TResult>(
             ex: ttl,
           })
           await registerDependencies(fullKey, dependencies)
+          // Track in LRU and evict oldest entries if over limit
+          await trackAndEvictLRU(config.namespace, fullKey)
         } catch (writeError) {
           // Log but don't fail
           logger.error('Bulk cache write error', {
@@ -735,6 +745,26 @@ export async function invalidateDependencies(
         // Delete all the cache keys (but NOT the registry Set - it expires via TTL
         // and is needed by recomputeDependencies if called afterward)
         await client.del(...cacheKeys)
+
+        // Remove invalidated keys from LRU tracking
+        // Cache key format is "namespace:suffix", so extract namespace
+        for (const cacheKey of cacheKeys) {
+          const colonIndex = cacheKey.indexOf(':')
+          if (colonIndex > 0) {
+            const namespace = cacheKey.slice(0, colonIndex)
+            // Only remove if it's a known namespace (avoid removing dependency registry keys)
+            if (
+              Object.values(RedisKeyNamespace).includes(
+                namespace as RedisKeyNamespace
+              )
+            ) {
+              await removeFromLRU(
+                namespace as RedisKeyNamespace,
+                cacheKey
+              )
+            }
+          }
+        }
       } else {
         logger.debug('No cache keys to invalidate for dependency', {
           dependency: dep,
@@ -1158,6 +1188,9 @@ export function cachedRecomputable<
 
         // Register dependencies in Redis
         await registerDependencies(fullKey, dependencies)
+
+        // Track in LRU and evict oldest entries if over limit
+        await trackAndEvictLRU(config.namespace, fullKey)
 
         span?.setAttribute('cache.ttl', ttl)
         span?.setAttribute('cache.dependencies', dependencies)
