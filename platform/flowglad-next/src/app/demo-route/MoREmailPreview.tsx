@@ -37,7 +37,7 @@ export const MoREmailPreview = ({
     >
       <OrderReceiptEmail
         invoiceNumber="INV-2024-001"
-        orderDate={PREVIEW_REFERENCE_DATE.toLocaleDateString()}
+        orderDate={PREVIEW_REFERENCE_DATE.toISOString().slice(0, 10)}
         invoice={{
           subtotal,
           taxAmount,
