@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'bun:test'
 import type Stripe from 'stripe'
-import { describe, expect, it } from 'vitest'
 import { PaymentMethodType } from '@/types'
 import { paymentMethodInsertFromStripeCardPaymentMethod } from './paymentMethodHelpers'
 

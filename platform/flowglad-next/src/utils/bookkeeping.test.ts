@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
   setupPrice,
@@ -858,10 +858,10 @@ describe('createCustomerBookkeeping', () => {
       )
       expect(billingPeriods).toHaveLength(1)
       expect(billingPeriods[0].startDate).toEqual(
-        subscription.currentBillingPeriodStart
+        subscription.currentBillingPeriodStart!
       )
       expect(billingPeriods[0].endDate).toEqual(
-        subscription.currentBillingPeriodEnd
+        subscription.currentBillingPeriodEnd!
       )
     })
 

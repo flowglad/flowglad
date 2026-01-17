@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import * as core from 'nanoid'
-import { beforeEach, describe, expect, it } from 'vitest'
 // Setup helpers from seedDatabase.ts
 import {
   setupBillingPeriod,
@@ -152,7 +152,7 @@ describe('usageEventHelpers', () => {
         )
 
       expect(createdUsageEvent.usageMeterId).toBe(
-        usagePrice.usageMeterId
+        usagePrice.usageMeterId!
       )
       expect(createdUsageEvent.billingPeriodId).toBe(
         mainBillingPeriod.id
@@ -164,7 +164,7 @@ describe('usageEventHelpers', () => {
       )
       expect(
         new Date(createdUsageEvent.usageDate!).getTime()
-      ).toEqual(usageEventDetails.usageDate)
+      ).toEqual(usageEventDetails.usageDate!)
 
       let ledgerTransactions: LedgerTransaction.Record[] = []
       await adminTransaction(async ({ transaction }) => {

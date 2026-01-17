@@ -1,5 +1,5 @@
+import { afterEach, describe, expect, it } from 'bun:test'
 import Stripe from 'stripe'
-import { afterEach, describe, expect, it } from 'vitest'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
@@ -1969,7 +1969,7 @@ describeIfStripeKey('Stripe Utility Functions', () => {
         const charge = await getStripeCharge(chargeId!)
 
         // Expectations
-        expect(charge.id).toBe(chargeId)
+        expect(charge.id).toBe(chargeId!)
         expect(charge.amount).toBe(2500)
         expect(charge.currency).toBe('usd')
         expect(charge.payment_method_details?.type).toBe('card')

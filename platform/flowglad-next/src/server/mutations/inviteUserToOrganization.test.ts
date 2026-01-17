@@ -4,8 +4,8 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
 import {
   setupOrg,
   setupUserAndApiKey,
@@ -23,8 +23,8 @@ import { selectUsers } from '@/db/tableMethods/userMethods'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
 import { innerInviteUserToOrganizationHandler } from './inviteUserToOrganization'
 
-vi.mock('@/utils/email', () => ({
-  sendOrganizationInvitationEmail: vi.fn(),
+mock.module('@/utils/email', () => ({
+  sendOrganizationInvitationEmail: mock(() => undefined),
 }))
 
 describe('innerInviteUserToOrganizationHandler', () => {
@@ -36,7 +36,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
   }
 
   beforeEach(async () => {
-    vi.resetAllMocks()
     const { organization: org } = await setupOrg()
     organization = org
 

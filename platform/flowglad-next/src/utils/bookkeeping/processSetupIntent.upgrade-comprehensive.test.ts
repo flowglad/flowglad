@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupCheckoutSession,
@@ -277,7 +277,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(
           canceledFreeSubscription.replacedBySubscriptionId
-        ).toBe(newSubscriptionId)
+        ).toBe(newSubscriptionId!)
         expect(typeof canceledFreeSubscription.canceledAt).toBe(
           'number'
         )
@@ -512,7 +512,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           CancellationReason.UpgradedToPaid
         )
         expect(canceledSubscription.replacedBySubscriptionId).toBe(
-          newSubscriptionId
+          newSubscriptionId!
         )
 
         // The older free subscription should remain canceled with original reason
@@ -615,7 +615,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(activePaidSubscriptions.length).toBe(1)
         expect(activePaidSubscriptions[0].id).toBe(
-          firstPaidSubscriptionId
+          firstPaidSubscriptionId!
         )
       })
     })
@@ -687,7 +687,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(
           canceledFreeSubscription.replacedBySubscriptionId
-        ).toBe(newSubscriptionId)
+        ).toBe(newSubscriptionId!)
 
         // Existing paid subscription should remain active and unchanged
         const existingPaidSub = await selectSubscriptionById(
@@ -842,7 +842,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(activePaidSubscriptions.length).toBe(1)
         expect(activePaidSubscriptions[0].id).toBe(
-          firstSubscriptionId
+          firstSubscriptionId!
         )
       })
     })
@@ -929,7 +929,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(activePaidSubscriptions.length).toBe(1)
         expect(activePaidSubscriptions[0].id).toBe(
-          firstSubscriptionId
+          firstSubscriptionId!
         )
       })
     })
@@ -1249,7 +1249,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
         // Should only return the new paid subscription, not the canceled free one
         expect(activeSubscriptions.length).toBe(1)
-        expect(activeSubscriptions[0].id).toBe(newSubscriptionId)
+        expect(activeSubscriptions[0].id).toBe(newSubscriptionId!)
         expect(activeSubscriptions[0].isFreePlan).toBe(false)
 
         // The canceled free subscription should not be in the results
@@ -1303,7 +1303,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(currentSubscription).toMatchObject({
           id: paidSubscriptionId,
         })
-        expect(currentSubscription!.id).toBe(paidSubscriptionId)
+        expect(currentSubscription!.id).toBe(paidSubscriptionId!)
         expect(currentSubscription!.isFreePlan).toBe(false)
 
         // Verify the chain is set up correctly
@@ -1312,7 +1312,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           transaction
         )
         expect(freeSubscriptionRecord.replacedBySubscriptionId).toBe(
-          paidSubscriptionId
+          paidSubscriptionId!
         )
       })
     })

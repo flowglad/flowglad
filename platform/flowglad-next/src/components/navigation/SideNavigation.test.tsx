@@ -177,11 +177,6 @@ mock.module('./SidebarBannerCarousel', () => ({
 import { SideNavigation } from './SideNavigation'
 
 describe('SideNavigation', () => {
-  beforeEach(() => {
-    mockToggleSidebar.mockClear()
-    mockSignOut.mockClear()
-  })
-
   it('should call toggleSidebar when logo button is clicked', () => {
     render(<SideNavigation />)
 

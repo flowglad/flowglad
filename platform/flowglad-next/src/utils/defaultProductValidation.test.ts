@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 import { PriceType } from '@/types'
 import { validateDefaultProductSchema } from './defaultProductValidation'

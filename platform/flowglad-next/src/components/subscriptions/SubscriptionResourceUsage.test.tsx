@@ -3,7 +3,6 @@ import { fireEvent, render, screen } from '@testing-library/react'
 import { SubscriptionResourceUsage } from './SubscriptionResourceUsage'
 
 // Create mock function that we can control
-const mockUseQuery = mock(() => ({}))
 
 // Mock tRPC
 mock.module('@/app/_trpc/client', () => ({
@@ -17,10 +16,6 @@ mock.module('@/app/_trpc/client', () => ({
 }))
 
 describe('SubscriptionResourceUsage', () => {
-  beforeEach(() => {
-    mockUseQuery.mockClear()
-  })
-
   describe('resource usage display', () => {
     it('displays ratio format for capacity less than 100 and uses ChartPie icon', async () => {
       mockUseQuery.mockReturnValue({

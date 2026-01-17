@@ -1,5 +1,12 @@
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  type Mock,
+  mock,
+} from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 // Test database setup functions
 import {
   setupBillingPeriod,
@@ -43,10 +50,10 @@ import { adjustSubscription } from './adjustSubscription'
 // Mock the trigger task - we test that it's called with correct parameters
 // The actual billing run execution is tested in billingRunHelpers.test.ts
 // Create the mock function inside the factory to avoid hoisting issues
-vi.mock('@/trigger/attempt-billing-run', () => {
-  const mockTriggerFn = vi
-    .fn()
-    .mockResolvedValue({ id: 'mock-billing-run-handle-id' })
+mock.module('@/trigger/attempt-billing-run', () => {
+  const mockTriggerFn = mock(() =>
+    Promise.resolve({ id: 'mock-billing-run-handle-id' })
+  )
   // Store reference so we can access it in tests
   ;(globalThis as any).__mockAttemptBillingRunTrigger = mockTriggerFn
   return {
@@ -58,8 +65,9 @@ vi.mock('@/trigger/attempt-billing-run', () => {
 
 // Get the mock function for use in tests
 const getMockTrigger = () => {
-  return (globalThis as any)
-    .__mockAttemptBillingRunTrigger as ReturnType<typeof vi.fn>
+  return (globalThis as any).__mockAttemptBillingRunTrigger as Mock<
+    () => Promise<{ id: string }>
+  >
 }
 
 describe('Proration Logic - Payment Status Scenarios', () => {

@@ -1,4 +1,4 @@
-import { afterAll, expect, it } from 'vitest'
+import { afterAll, expect, it } from 'bun:test'
 import {
   cleanupStripeTestData,
   createTestPaymentMethod,

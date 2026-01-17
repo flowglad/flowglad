@@ -2,8 +2,6 @@ import { describe, expect, it, mock } from 'bun:test'
 import { render, screen, within } from '@testing-library/react'
 import Breadcrumb from './Breadcrumb'
 
-const usePathname = mock(() => '')
-
 mock.module('next/navigation', () => ({
   usePathname: () => usePathname(),
 }))

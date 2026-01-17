@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CreateOrganizationInput } from '@/db/schema/organizations'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'

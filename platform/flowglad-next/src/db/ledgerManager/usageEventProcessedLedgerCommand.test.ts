@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { and, eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupCreditLedgerEntry,
@@ -719,7 +719,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           `Usage event ${sampleUsageEvent.id} processed.`
         )
         expect(usageCostEntry.billingPeriodId).toBe(
-          sampleUsageEvent.billingPeriodId
+          sampleUsageEvent.billingPeriodId!
         )
         expect(usageCostEntry.usageMeterId).toBe(
           sampleUsageEvent.usageMeterId
@@ -1238,7 +1238,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         expect(usageCostEntry.organizationId).toBe(organization.id)
         expect(usageCostEntry.livemode).toBe(TEST_LIVEMODE)
         expect(usageCostEntry.billingPeriodId).toBe(
-          newUsageEvent.billingPeriodId
+          newUsageEvent.billingPeriodId!
         )
         expect(usageCostEntry.usageMeterId).toBe(
           newUsageEvent.usageMeterId
@@ -1340,7 +1340,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           `Usage event ${sampleUsageEvent.id} processed.`
         )
         expect(usageCostEntry.billingPeriodId).toBe(
-          sampleUsageEvent.billingPeriodId
+          sampleUsageEvent.billingPeriodId!
         )
         expect(usageCostEntry.usageMeterId).toBe(
           sampleUsageEvent.usageMeterId

@@ -1,5 +1,5 @@
+import { describe } from 'bun:test'
 import { Redis } from '@upstash/redis'
-import { describe } from 'vitest'
 
 /**
  * Redis integration test helpers.

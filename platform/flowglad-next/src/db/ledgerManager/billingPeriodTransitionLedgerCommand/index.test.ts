@@ -1,12 +1,12 @@
-import { and, eq } from 'drizzle-orm'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
+import { and, eq } from 'drizzle-orm'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -254,7 +254,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(creditEntry.entryType).toBe(
             LedgerEntryType.CreditGrantRecognized
           )
-          expect(creditEntry.amount).toBe(feature.amount)
+          expect(creditEntry.amount).toBe(feature.amount!)
           expect(creditEntry.ledgerAccountId).toBe(ledgerAccount.id)
           expect(typeof creditEntry.sourceUsageCreditId).toBe(
             'string'
@@ -273,7 +273,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           if (!usageCredit) {
             throw new Error('Usage credit not found')
           }
-          expect(usageCredit.issuedAmount).toBe(feature.amount)
+          expect(usageCredit.issuedAmount).toBe(feature.amount!)
           expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
         })
       })

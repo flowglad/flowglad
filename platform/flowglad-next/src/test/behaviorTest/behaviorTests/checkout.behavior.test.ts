@@ -18,7 +18,7 @@
  * 3. **MoR Tax Jurisdictions** - Tax behavior varies by customer location
  */
 
-import { expect } from 'vitest'
+import { expect } from 'bun:test'
 import {
   CheckoutSessionStatus,
   CurrencyCode,
