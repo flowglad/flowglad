@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import {
   CurrencyCode,
   FeatureType,
@@ -35,7 +35,7 @@ import type {
   SetupUsageMeterPriceInput,
 } from './setupSchemas'
 
-type SlugAndName = SluggedResource<{ name: string }>
+type SlugAndName = { slug: string; name: string }
 
 describe('diffSluggedResources', () => {
   it('should identify resources to remove when slug exists only in existing', () => {

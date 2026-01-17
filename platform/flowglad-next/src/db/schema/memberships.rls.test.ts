@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupMemberships,
   setupOrg,
@@ -59,7 +59,7 @@ import {
  * - https://github.com/drizzle-team/drizzle-orm/discussions/2450
  * - https://github.com/drizzle-team/drizzle-orm/issues/4313
  */
-describe.sequential('memberships RLS - notificationPreferences', () => {
+describe('memberships RLS - notificationPreferences', () => {
   // Organization 1 setup
   let org1: Organization.Record
   let org1User: User.Record

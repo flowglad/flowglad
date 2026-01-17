@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -569,7 +569,7 @@ describe('selectUsageEventsTableRowData', () => {
       ) {
         expect(enrichedEvent.price?.id).toBe(price1.id)
         expect(enrichedEvent.price?.id).toBe(
-          enrichedEvent.usageEvent.priceId
+          enrichedEvent.usageEvent.priceId!
         )
       } else {
         expect(enrichedEvent.usageEvent.priceId).toBeNull()

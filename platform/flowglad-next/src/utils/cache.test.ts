@@ -4,8 +4,8 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
 import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
 import {
@@ -225,9 +225,9 @@ describe('cached combinator', () => {
   })
 
   it('calls wrapped function on cache miss and returns result', async () => {
-    const wrappedFn = vi
-      .fn()
-      .mockResolvedValue({ id: 'test-123', name: 'Test' })
+    const wrappedFn = mock(() =>
+      Promise.resolve({ id: 'test-123', name: 'Test' })
+    )
     const testSchema = z.object({ id: z.string(), name: z.string() })
 
     const cachedFn = cached(
@@ -249,7 +249,7 @@ describe('cached combinator', () => {
   })
 
   it('constructs cache key from namespace and keyFn', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ value: 42 })
+    const wrappedFn = mock(() => Promise.resolve({ value: 42 }))
     const testSchema = z.object({ value: z.number() })
 
     const cachedFn = cached(
@@ -272,7 +272,9 @@ describe('cached combinator', () => {
   })
 
   it('fails open when Redis set throws error', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ result: 'success' })
+    const wrappedFn = mock(() =>
+      Promise.resolve({ result: 'success' })
+    )
     const testSchema = z.object({ result: z.string() })
 
     const cachedFn = cached(
@@ -292,9 +294,9 @@ describe('cached combinator', () => {
   })
 
   it('treats schema validation failure as cache miss', async () => {
-    const wrappedFn = vi
-      .fn()
-      .mockResolvedValue({ validField: 'correct', count: 10 })
+    const wrappedFn = mock(() =>
+      Promise.resolve({ validField: 'correct', count: 10 })
+    )
     const testSchema = z.object({
       validField: z.string(),
       count: z.number(),
@@ -328,7 +330,6 @@ describe('getTtlForNamespace', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
-    vi.resetModules()
     process.env = { ...originalEnv }
   })
 
@@ -390,7 +391,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 
   it('registers dependencies in Redis Sets when cache is populated', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ id: 1 })
+    const wrappedFn = mock(() => Promise.resolve({ id: 1 }))
     const testSchema = z.object({ id: z.number() })
 
     const cachedFn = cached(
@@ -418,9 +419,9 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 
   it('invalidates correct cache keys when dependency is invalidated', async () => {
-    const wrappedFn1 = vi.fn().mockResolvedValue({ entry: 1 })
-    const wrappedFn2 = vi.fn().mockResolvedValue({ entry: 2 })
-    const wrappedFn3 = vi.fn().mockResolvedValue({ entry: 3 })
+    const wrappedFn1 = mock(() => Promise.resolve({ entry: 1 }))
+    const wrappedFn2 = mock(() => Promise.resolve({ entry: 2 }))
+    const wrappedFn3 = mock(() => Promise.resolve({ entry: 3 }))
     const testSchema = z.object({ entry: z.number() })
 
     // Create cached functions that share dep:A
@@ -732,9 +733,9 @@ describe('CacheDependency helpers', () => {
 
 describe('recompute registry', () => {
   it('registerRecomputeHandler stores handler and getRecomputeHandler retrieves it', () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock(() =>
+      Promise.resolve()
+    ) as unknown as RecomputeHandler
 
     registerRecomputeHandler(
       RedisKeyNamespace.SubscriptionsByCustomer,
@@ -770,9 +771,9 @@ describe('recomputeCacheEntry', () => {
   })
 
   it('calls handler with params and transactionContext from metadata', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock(() =>
+      Promise.resolve()
+    ) as unknown as RecomputeHandler
     registerRecomputeHandler(
       RedisKeyNamespace.ItemsBySubscription,
       mockHandler
@@ -807,9 +808,9 @@ describe('recomputeCacheEntry', () => {
   })
 
   it('does nothing when metadata key does not exist', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock(() =>
+      Promise.resolve()
+    ) as unknown as RecomputeHandler
     registerRecomputeHandler(
       RedisKeyNamespace.FeaturesBySubscriptionItem,
       mockHandler
@@ -850,9 +851,9 @@ describe('recomputeCacheEntry', () => {
   })
 
   it('logs warning when handler throws error and does not propagate', async () => {
-    const throwingHandler: RecomputeHandler = vi
-      .fn()
-      .mockRejectedValue(new Error('Handler error'))
+    const throwingHandler: RecomputeHandler = mock(() =>
+      Promise.reject(new Error('Handler error'))
+    ) as unknown as RecomputeHandler
     registerRecomputeHandler(
       RedisKeyNamespace.StripeOAuthCsrfToken,
       throwingHandler
@@ -890,9 +891,9 @@ describe('recomputeDependencies', () => {
   })
 
   it('recomputes all cache entries associated with dependencies', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock(() =>
+      Promise.resolve()
+    ) as unknown as RecomputeHandler
     registerRecomputeHandler(
       RedisKeyNamespace.CacheDependencyRegistry,
       mockHandler
@@ -940,9 +941,9 @@ describe('recomputeDependencies', () => {
   })
 
   it('deduplicates cache keys across dependencies', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock(() =>
+      Promise.resolve()
+    ) as unknown as RecomputeHandler
     registerRecomputeHandler(RedisKeyNamespace.Telemetry, mockHandler)
 
     // Same cache key appears under two different dependencies
@@ -979,7 +980,7 @@ describe('recomputeDependencies', () => {
 /**
  * Creates a trackable async function for testing.
  * Returns the function and a tracker object to check call count.
- * This avoids using vi.fn() which should only be used for network calls.
+ * This avoids using mock(() => undefined) which should only be used for network calls.
  */
 function createTrackableFn<TParams, TResult>(
   result: TResult

@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, mock } from 'bun:test'
 import {
   type CreateDiscountFormSchema,
   createDiscountInputSchema,
@@ -16,8 +16,8 @@ import {
   toEditDiscountInput,
 } from './discountFormHelpers'
 
-vi.mock('@/utils/stripe', () => ({
-  rawStringAmountToCountableCurrencyAmount: vi.fn(
+mock.module('@/utils/stripe', () => ({
+  rawStringAmountToCountableCurrencyAmount: mock(
     (currency: string, amt: string) =>
       Math.round(parseFloat(amt) * 100)
   ),

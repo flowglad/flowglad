@@ -2,15 +2,30 @@
  * @vitest-environment jsdom
  */
 
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SubscriptionResourceUsage } from './SubscriptionResourceUsage'
 
 // Create mock function that we can control
-const mockUseQuery = vi.fn()
+const mockUseQuery = mock(() => ({
+  data: undefined as
+    | {
+        usage: {
+          resourceSlug: string
+          resourceId: string
+          capacity: number
+          claimed: number
+          available: number
+        }
+        claims: unknown[]
+      }[]
+    | undefined,
+  isLoading: false,
+  error: null as { message: string } | null,
+}))
 
 // Mock tRPC
-vi.mock('@/app/_trpc/client', () => ({
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     resourceClaims: {
       listResourceUsages: {
@@ -21,9 +36,7 @@ vi.mock('@/app/_trpc/client', () => ({
 }))
 
 describe('SubscriptionResourceUsage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
+  beforeEach(() => {})
 
   describe('resource usage display', () => {
     it('displays ratio format for capacity less than 100 and uses ChartPie icon', async () => {

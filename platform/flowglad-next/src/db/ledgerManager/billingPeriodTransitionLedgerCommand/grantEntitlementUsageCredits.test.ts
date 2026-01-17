@@ -1,4 +1,3 @@
-import { and, eq } from 'drizzle-orm'
 import {
   afterEach,
   beforeEach,
@@ -6,8 +5,9 @@ import {
   expect,
   it,
   Mock,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
+import { and, eq } from 'drizzle-orm'
 import {
   setupBillingPeriod,
   // setupProduct is included via setupOrg

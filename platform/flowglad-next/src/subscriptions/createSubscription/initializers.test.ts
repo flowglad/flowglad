@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -17,6 +17,7 @@ import {
   CurrencyCode,
   IntervalUnit,
   PriceType,
+  SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
 import { insertSubscriptionAndItems } from './initializers'
@@ -178,7 +179,9 @@ describe('insertSubscriptionAndItems', () => {
       expect(subscription.status).toBe(SubscriptionStatus.Active)
       // - The returned subscription item should have type 'static'
       // as usage meters do not attach to the credit trial subscription items
-      expect(subscriptionItems[0].type).toBe('static')
+      expect(subscriptionItems[0].type).toBe(
+        SubscriptionItemType.Static
+      )
     })
 
     it('should route to createStandardSubscriptionAndItems when price is a standard subscription price', async () => {
@@ -207,7 +210,9 @@ describe('insertSubscriptionAndItems', () => {
         SubscriptionStatus.Active,
       ])
       // - The returned subscription item should have type 'static'.
-      expect(subscriptionItems[0].type).toBe('static')
+      expect(subscriptionItems[0].type).toBe(
+        SubscriptionItemType.Static
+      )
     })
 
     it('should correctly calculate the billing period for a standard subscription with a trial', async () => {
@@ -492,7 +497,9 @@ describe('insertSubscriptionAndItems', () => {
       expect(subscription.interval).toBeNull()
       // - The subscription item should be of type 'static'
       // as usage meters do not attach to the credit trial subscription items
-      expect(subscriptionItems[0].type).toBe('static')
+      expect(subscriptionItems[0].type).toBe(
+        SubscriptionItemType.Static
+      )
     })
   })
 })
