@@ -1,30 +1,33 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { trpc } from '@/app/_trpc/client'
 import DeleteApiKeyModal from '@/components/forms/DeleteApiKeyModal'
 
+// Create mock outside so we can use it in tests
+const mockMutateAsync = mock((_params: { id: string }) =>
+  Promise.resolve(undefined)
+)
+const mockUseMutation = mock(() => ({
+  mutateAsync: mockMutateAsync,
+}))
+
 // Mock tRPC
-vi.mock('@/app/_trpc/client', () => ({
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     apiKeys: {
       delete: {
-        useMutation: vi.fn(),
+        useMutation: mockUseMutation,
       },
     },
   },
 }))
 
 // Mock FormModal to provide a simpler test interface
-vi.mock('@/components/forms/FormModal', async () => {
+mock.module('@/components/forms/FormModal', async () => {
   // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const React = await import('react')
   function FormModalMock({
@@ -70,16 +73,12 @@ vi.mock('@/components/forms/FormModal', async () => {
 })
 
 describe('DeleteApiKeyModal', () => {
-  const mockMutateAsync = vi.fn()
-  const mockSetIsOpen = vi.fn()
+  const mockSetIsOpen = mock((_open: boolean) => undefined)
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    vi.mocked(trpc.apiKeys.delete.useMutation).mockReturnValue({
-      mutateAsync: mockMutateAsync,
-    } as unknown as ReturnType<
-      typeof trpc.apiKeys.delete.useMutation
-    >)
+    mockMutateAsync.mockClear()
+    mockSetIsOpen.mockClear()
+    mockUseMutation.mockClear()
   })
 
   it('should render delete confirmation message when open', () => {
@@ -120,8 +119,6 @@ describe('DeleteApiKeyModal', () => {
   })
 
   it('should call delete mutation with correct id on confirm', async () => {
-    mockMutateAsync.mockResolvedValue(undefined)
-
     render(
       <DeleteApiKeyModal
         isOpen={true}
@@ -141,8 +138,6 @@ describe('DeleteApiKeyModal', () => {
   })
 
   it('should close modal after successful deletion', async () => {
-    mockMutateAsync.mockResolvedValue(undefined)
-
     render(
       <DeleteApiKeyModal
         isOpen={true}

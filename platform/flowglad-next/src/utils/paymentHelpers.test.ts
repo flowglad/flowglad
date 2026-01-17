@@ -56,6 +56,7 @@ const makeStripeRefundResponse = ({
     },
   }
 }
+
 // Mock the stripe utils
 mock.module('./stripe', () => ({
   ...stripeUtilsActual,

@@ -1,5 +1,5 @@
 /**
- * @vitest-environment jsdom
+ * @happy-dom
  */
 
 import { describe, expect, it, mock } from 'bun:test'
@@ -229,7 +229,7 @@ describe('CurrencyInput Component', () => {
       expect(onValueChange).toHaveBeenCalled()
       const lastCall =
         onValueChange.mock.calls[onValueChange.mock.calls.length - 1]
-      expect(lastCall[0]).not.toMatch(/\./)
+      expect(lastCall?.[0]).not.toMatch(/\./)
     })
   })
 })
