@@ -29,6 +29,7 @@ import { logger } from '@/utils/logger'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
 import {
+  determineSubscriptionNotifications,
   ledgerCommandPayload,
   maybeCreateInitialBillingPeriodAndRun,
   maybeDefaultPaymentMethodForSubscription,
@@ -277,45 +278,47 @@ export const createSubscriptionWorkflow = async (
     },
     ctx
   )
-  // Don't send notifications for free subscriptions
-  // A subscription is considered free if unitPrice is 0, not based on slug
-  if (price.unitPrice !== 0) {
-    // Send organization notification
+  // Determine notification decisions using the pure helper function
+  const notificationDecision = determineSubscriptionNotifications({
+    priceUnitPrice: price.unitPrice,
+    subscriptionStatus: updatedSubscription.status,
+    hasDefaultPaymentMethod: Boolean(
+      updatedSubscription.defaultPaymentMethodId ||
+        defaultPaymentMethod
+    ),
+    hasBackupPaymentMethod: Boolean(
+      updatedSubscription.backupPaymentMethodId
+    ),
+    canceledFreeSubscription: Boolean(canceledFreeSubscription),
+  })
+
+  // Send organization notification if determined
+  if (notificationDecision.sendOrganizationNotification) {
     await idempotentSendOrganizationSubscriptionCreatedNotification(
       updatedSubscription
     )
+  }
 
-    // Check if this is a trial subscription without a payment method
-    // Don't send "Subscription Confirmed" email for trials without payment
-    // since no billing commitment exists yet
-    const hasPaymentMethod =
-      updatedSubscription.defaultPaymentMethodId ||
-      updatedSubscription.backupPaymentMethodId ||
-      defaultPaymentMethod
-
-    const isTrialWithoutPayment =
-      updatedSubscription.status === SubscriptionStatus.Trialing &&
-      !hasPaymentMethod
-
-    // Send customer notification - choose based on whether this is an upgrade
-    // Skip customer notification for trials without payment method
-    if (!isTrialWithoutPayment) {
-      if (canceledFreeSubscription) {
-        // This is an upgrade from free to paid
-        await idempotentSendCustomerSubscriptionUpgradedNotification({
-          customerId: updatedSubscription.customerId,
-          newSubscriptionId: updatedSubscription.id,
-          previousSubscriptionId: canceledFreeSubscription.id,
-          organizationId: updatedSubscription.organizationId,
-        })
-      } else {
-        // This is a new paid subscription
-        await idempotentSendCustomerSubscriptionCreatedNotification({
-          customerId: updatedSubscription.customerId,
-          subscriptionId: updatedSubscription.id,
-          organizationId: updatedSubscription.organizationId,
-        })
-      }
+  // Send customer notification if determined
+  if (notificationDecision.sendCustomerNotification) {
+    if (
+      notificationDecision.customerNotificationType === 'upgraded' &&
+      canceledFreeSubscription
+    ) {
+      // This is an upgrade from free to paid
+      await idempotentSendCustomerSubscriptionUpgradedNotification({
+        customerId: updatedSubscription.customerId,
+        newSubscriptionId: updatedSubscription.id,
+        previousSubscriptionId: canceledFreeSubscription.id,
+        organizationId: updatedSubscription.organizationId,
+      })
+    } else {
+      // This is a new paid subscription
+      await idempotentSendCustomerSubscriptionCreatedNotification({
+        customerId: updatedSubscription.customerId,
+        subscriptionId: updatedSubscription.id,
+        organizationId: updatedSubscription.organizationId,
+      })
     }
   }
 

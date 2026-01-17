@@ -51,7 +51,9 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
       )
 
       expect(
-        getByText("You've successfully subscribed to the following plan:")
+        getByText(
+          "You've successfully subscribed to the following plan:"
+        )
       ).toBeInTheDocument()
       expect(getByTestId('email-title')).toHaveTextContent(
         'Subscription Confirmed'

@@ -39,7 +39,9 @@ describe('CustomerSubscriptionCreatedEmail', () => {
 
     // Check that key text content is present
     expect(
-      getByText("You've successfully subscribed to the following plan:")
+      getByText(
+        "You've successfully subscribed to the following plan:"
+      )
     ).toBeInTheDocument()
   })
 

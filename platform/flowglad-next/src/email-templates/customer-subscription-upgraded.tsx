@@ -100,7 +100,9 @@ export const CustomerSubscriptionUpgradedEmail = ({
 
       <Paragraph>Hi {customerName},</Paragraph>
 
-      <Paragraph>You've successfully subscribed to the following plan:</Paragraph>
+      <Paragraph>
+        You've successfully subscribed to the following plan:
+      </Paragraph>
 
       <DetailTable>
         {/* Only show Previous Plan if it was a paid plan (not free) */}

@@ -1,5 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { and, eq, gte, lte } from 'drizzle-orm'
+import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
@@ -7,6 +8,7 @@ import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
+import { safeZodDate } from '@/utils/core'
 import { idempotentSendCustomerTrialEndingReminderNotification } from './notifications/send-customer-trial-ending-reminder-notification'
 
 /**
@@ -15,21 +17,37 @@ import { idempotentSendCustomerTrialEndingReminderNotification } from './notific
  */
 const DEFAULT_REMINDER_DAYS = 3
 
+/**
+ * Zod schema to validate and transform the task payload.
+ * - timestamp: Coerced to Date (handles string/number/Date from JSON serialization)
+ * - reminderDays: Optional positive integer, defaults to DEFAULT_REMINDER_DAYS
+ */
+const payloadSchema = z.object({
+  timestamp: safeZodDate,
+  reminderDays: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(DEFAULT_REMINDER_DAYS),
+})
+
 export const sendTrialEndingRemindersTask = task({
   id: 'send-trial-ending-reminders',
   maxDuration: 300, // 5 minutes
   queue: { concurrencyLimit: 1 },
   run: async (
     payload: {
-      timestamp: Date
+      timestamp: Date | string | number
       reminderDays?: number
     },
     { ctx }
   ) => {
-    const reminderDays = payload.reminderDays ?? DEFAULT_REMINDER_DAYS
+    const parsed = payloadSchema.parse(payload)
+    const { timestamp, reminderDays } = parsed
 
     logger.log('Starting trial ending reminders task', {
-      timestamp: payload.timestamp,
+      timestamp,
       reminderDays,
       attempt: ctx.attempt,
     })
@@ -37,7 +55,7 @@ export const sendTrialEndingRemindersTask = task({
     // Calculate the window for trials ending soon
     // We want trials ending between `reminderDays` from now and `reminderDays - 1` from now
     // This ensures we only send one reminder per trial
-    const now = payload.timestamp.getTime()
+    const now = timestamp.getTime()
     const windowStart = now + (reminderDays - 1) * 24 * 60 * 60 * 1000
     const windowEnd = now + reminderDays * 24 * 60 * 60 * 1000
 

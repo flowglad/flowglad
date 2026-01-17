@@ -1,5 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { and, eq, gte, isNotNull, lte } from 'drizzle-orm'
+import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { subscriptions } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
@@ -7,6 +8,7 @@ import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
+import { safeZodDate } from '@/utils/core'
 import { idempotentSendCustomerSubscriptionRenewalReminderNotification } from './notifications/send-customer-subscription-renewal-reminder-notification'
 
 /**
@@ -15,21 +17,37 @@ import { idempotentSendCustomerSubscriptionRenewalReminderNotification } from '.
  */
 const DEFAULT_REMINDER_DAYS = 7
 
+/**
+ * Zod schema to validate and transform the task payload.
+ * - timestamp: Coerced to Date (handles string/number/Date from JSON serialization)
+ * - reminderDays: Optional positive integer, defaults to DEFAULT_REMINDER_DAYS
+ */
+const payloadSchema = z.object({
+  timestamp: safeZodDate,
+  reminderDays: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .default(DEFAULT_REMINDER_DAYS),
+})
+
 export const sendSubscriptionRenewalRemindersTask = task({
   id: 'send-subscription-renewal-reminders',
   maxDuration: 300, // 5 minutes
   queue: { concurrencyLimit: 1 },
   run: async (
     payload: {
-      timestamp: Date
+      timestamp: Date | string | number
       reminderDays?: number
     },
     { ctx }
   ) => {
-    const reminderDays = payload.reminderDays ?? DEFAULT_REMINDER_DAYS
+    const parsed = payloadSchema.parse(payload)
+    const { timestamp, reminderDays } = parsed
 
     logger.log('Starting subscription renewal reminders task', {
-      timestamp: payload.timestamp,
+      timestamp,
       reminderDays,
       attempt: ctx.attempt,
     })
@@ -37,7 +55,7 @@ export const sendSubscriptionRenewalRemindersTask = task({
     // Calculate the window for subscriptions renewing soon
     // We want subscriptions renewing between `reminderDays` from now and `reminderDays - 1` from now
     // This ensures we only send one reminder per subscription per renewal cycle
-    const now = payload.timestamp.getTime()
+    const now = timestamp.getTime()
     const windowStart = now + (reminderDays - 1) * 24 * 60 * 60 * 1000
     const windowEnd = now + reminderDays * 24 * 60 * 60 * 1000
 

@@ -90,7 +90,9 @@ export const CustomerSubscriptionCreatedEmail = ({
 
       <Paragraph>Hi {customerName},</Paragraph>
 
-      <Paragraph>You've successfully subscribed to the following plan:</Paragraph>
+      <Paragraph>
+        You've successfully subscribed to the following plan:
+      </Paragraph>
 
       <DetailTable>
         <DetailRow

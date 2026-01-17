@@ -1,460 +1,224 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  setupCustomer,
-  setupOrg,
-  setupPaymentMethod,
-  setupPrice,
-  setupProduct,
-} from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
-import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
-import {
-  createDiscardingEffectsContext,
-  noopEmitEvent,
-  noopInvalidateCache,
-} from '@/test-utils/transactionCallbacks'
-import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
-import { core } from '@/utils/core'
-import type { CreateSubscriptionParams } from './types'
-import { createSubscriptionWorkflow } from './workflow'
+import { describe, expect, it } from 'vitest'
+import { SubscriptionStatus } from '@/types'
+import { determineSubscriptionNotifications } from './helpers'
 
-// Mock the notification functions
-vi.mock(
-  '@/trigger/notifications/send-organization-subscription-created-notification',
-  () => ({
-    idempotentSendOrganizationSubscriptionCreatedNotification:
-      vi.fn(),
-  })
-)
-
-vi.mock(
-  '@/trigger/notifications/send-customer-subscription-created-notification',
-  () => ({
-    idempotentSendCustomerSubscriptionCreatedNotification: vi.fn(),
-  })
-)
-
-vi.mock(
-  '@/trigger/notifications/send-customer-subscription-upgraded-notification',
-  () => ({
-    idempotentSendCustomerSubscriptionUpgradedNotification: vi.fn(),
-  })
-)
-
-describe('Free Subscription Notification Behavior', () => {
-  let organization: Organization.Record
-  let customer: Customer.Record
-  let freePrice: Price.Record
-  let paidPrice: Price.Record
-  let freeProduct: Product.Record
-  let paidProduct: Product.Record
-
-  beforeEach(async () => {
-    vi.clearAllMocks()
-
-    // Set up organization and products
-    const orgData = await setupOrg()
-    organization = orgData.organization
-
-    // Create customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-      livemode: true,
-    })
-
-    // Create free product and price
-    freeProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: orgData.pricingModel.id,
-      name: 'Free Plan',
-      livemode: true,
-    })
-
-    freePrice = await setupPrice({
-      productId: freeProduct.id,
-      name: 'Free Tier',
-      type: PriceType.Subscription,
-      unitPrice: 0, // Free tier
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      livemode: true,
-      isDefault: true,
-    })
-
-    // Create paid product and price
-    paidProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: orgData.pricingModel.id,
-      name: 'Pro Plan',
-      livemode: true,
-    })
-
-    paidPrice = await setupPrice({
-      productId: paidProduct.id,
-      name: 'Pro Tier',
-      type: PriceType.Subscription,
-      unitPrice: 5000, // $50
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      livemode: true,
-      isDefault: false,
-    })
-  })
-
-  it('should NOT send notification when creating a free subscription (unitPrice = 0)', async () => {
-    const {
-      idempotentSendOrganizationSubscriptionCreatedNotification,
-      // biome-ignore lint/plugin: dynamic import required to access mocked module
-    } = await import(
-      '@/trigger/notifications/send-organization-subscription-created-notification'
-    )
-
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: freePrice,
-      product: freeProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      discountRedemption: null,
-      metadata: {},
-      name: 'Free Subscription',
-    }
-
-    await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
-
-    // Verify notification was NOT sent for free subscription
-    expect(
-      idempotentSendOrganizationSubscriptionCreatedNotification
-    ).not.toHaveBeenCalled()
-  })
-
-  it('should send notification when creating a paid subscription (unitPrice > 0)', async () => {
-    const {
-      idempotentSendOrganizationSubscriptionCreatedNotification,
-      // biome-ignore lint/plugin: dynamic import required to access mocked module
-    } = await import(
-      '@/trigger/notifications/send-organization-subscription-created-notification'
-    )
-
-    // Create payment method for paid subscription
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
-
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPrice,
-      product: paidProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      metadata: {},
-      name: 'Paid Subscription',
-    }
-
-    await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
-
-    // Verify notification WAS sent for paid subscription
-    expect(
-      idempotentSendOrganizationSubscriptionCreatedNotification
-    ).toHaveBeenCalledTimes(1)
-  })
-
-  it('should NOT send notification for free subscription regardless of slug name', async () => {
-    const {
-      idempotentSendOrganizationSubscriptionCreatedNotification,
-      // biome-ignore lint/plugin: dynamic import required to access mocked module
-    } = await import(
-      '@/trigger/notifications/send-organization-subscription-created-notification'
-    )
-
-    // Create a free price with a different slug (not 'free')
-    const freePriceWithDifferentSlug = await setupPrice({
-      productId: freeProduct.id,
-      name: 'Trial Tier',
-      slug: 'trial', // Different slug, but still free
-      type: PriceType.Subscription,
-      unitPrice: 0, // Still free
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      livemode: true,
-      isDefault: false,
-    })
-
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: freePriceWithDifferentSlug,
-      product: freeProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      discountRedemption: null,
-      metadata: {},
-      name: 'Trial Subscription',
-    }
-
-    await adminTransaction(async ({ transaction }) => {
-      await createSubscriptionWorkflow(
-        params,
-        createDiscardingEffectsContext(transaction)
-      )
-    })
-
-    // Verify notification was NOT sent even though slug is not 'free'
-    expect(
-      idempotentSendOrganizationSubscriptionCreatedNotification
-    ).not.toHaveBeenCalled()
-  })
-})
-
-describe('Trial Subscription Notification Behavior', () => {
-  let organization: Organization.Record
-  let customer: Customer.Record
-  let trialPrice: Price.Record
-  let trialProduct: Product.Record
-
-  beforeEach(async () => {
-    vi.clearAllMocks()
-
-    // Set up organization and products
-    const orgData = await setupOrg()
-    organization = orgData.organization
-
-    // Create customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-      livemode: true,
-    })
-
-    // Create trial product and price
-    trialProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: orgData.pricingModel.id,
-      name: 'Pro Plan with Trial',
-      livemode: true,
-    })
-
-    trialPrice = await setupPrice({
-      productId: trialProduct.id,
-      name: 'Pro Plan with Trial',
-      type: PriceType.Subscription,
-      unitPrice: 5000, // $50
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      trialPeriodDays: 14,
-      livemode: true,
-      isDefault: true,
-    })
-  })
-
-  it('should send customer notification when creating a trial subscription WITH payment method', async () => {
-    const {
-      idempotentSendCustomerSubscriptionCreatedNotification,
-      // biome-ignore lint/plugin: dynamic import required to access mocked module
-    } = await import(
-      '@/trigger/notifications/send-customer-subscription-created-notification'
-    )
-
-    const {
-      idempotentSendOrganizationSubscriptionCreatedNotification,
-      // biome-ignore lint/plugin: dynamic import required to access mocked module
-    } = await import(
-      '@/trigger/notifications/send-organization-subscription-created-notification'
-    )
-
-    // Create payment method for the subscription
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
-
-    const trialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000 // 14 days from now
-
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: trialPrice,
-      product: trialProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      defaultPaymentMethod: paymentMethod,
-      trialEnd,
-      metadata: {},
-      name: 'Trial Subscription with Payment',
-    }
-
-    const { subscription } = (
-      await adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(
-          params,
-          createDiscardingEffectsContext(transaction)
-        )
+/**
+ * Tests for the determineSubscriptionNotifications helper function.
+ *
+ * These tests verify the notification decision logic without mocks,
+ * testing the pure function directly with different input combinations.
+ */
+describe('determineSubscriptionNotifications', () => {
+  describe('Free Subscription Notification Behavior', () => {
+    it('should NOT send any notifications when creating a free subscription (unitPrice = 0)', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 0,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
       })
-    ).unwrap()
 
-    // Verify subscription is in trialing status
-    expect(subscription.status).toBe(SubscriptionStatus.Trialing)
-
-    // Verify customer notification WAS sent (trial with payment method)
-    expect(
-      idempotentSendCustomerSubscriptionCreatedNotification
-    ).toHaveBeenCalledTimes(1)
-
-    // Verify organization notification was also sent
-    expect(
-      idempotentSendOrganizationSubscriptionCreatedNotification
-    ).toHaveBeenCalledTimes(1)
-  })
-
-  it('should NOT send customer notification when creating a trial subscription WITHOUT payment method', async () => {
-    const {
-      idempotentSendCustomerSubscriptionCreatedNotification,
-      // biome-ignore lint/plugin: dynamic import required to access mocked module
-    } = await import(
-      '@/trigger/notifications/send-customer-subscription-created-notification'
-    )
-
-    const {
-      idempotentSendOrganizationSubscriptionCreatedNotification,
-      // biome-ignore lint/plugin: dynamic import required to access mocked module
-    } = await import(
-      '@/trigger/notifications/send-organization-subscription-created-notification'
-    )
-
-    const trialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000 // 14 days from now
-
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: trialPrice,
-      product: trialProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      // NO defaultPaymentMethod - trial started without payment details
-      trialEnd,
-      metadata: {},
-      name: 'Trial Subscription without Payment',
-    }
-
-    const { subscription } = (
-      await adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(
-          params,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
-    ).unwrap()
-
-    // Verify subscription is in trialing status
-    expect(subscription.status).toBe(SubscriptionStatus.Trialing)
-
-    // Verify customer notification was NOT sent (trial without payment method)
-    // This is the critical fix: no billing commitment exists, so don't send "Subscription Confirmed"
-    expect(
-      idempotentSendCustomerSubscriptionCreatedNotification
-    ).not.toHaveBeenCalled()
-
-    // Organization notification SHOULD still be sent (internal awareness)
-    expect(
-      idempotentSendOrganizationSubscriptionCreatedNotification
-    ).toHaveBeenCalledTimes(1)
-  })
-
-  it('should send customer notification for non-trial paid subscription without payment method', async () => {
-    const {
-      idempotentSendCustomerSubscriptionCreatedNotification,
-      // biome-ignore lint/plugin: dynamic import required to access mocked module
-    } = await import(
-      '@/trigger/notifications/send-customer-subscription-created-notification'
-    )
-
-    // Create a paid price WITHOUT trial period
-    const paidPriceNoTrial = await setupPrice({
-      productId: trialProduct.id,
-      name: 'Pro Plan No Trial',
-      type: PriceType.Subscription,
-      unitPrice: 5000, // $50
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      trialPeriodDays: 0, // No trial
-      livemode: true,
-      isDefault: false,
+      expect(decision.sendOrganizationNotification).toBe(false)
+      expect(decision.sendCustomerNotification).toBe(false)
+      expect(decision.customerNotificationType).toBeNull()
     })
 
-    const params: CreateSubscriptionParams = {
-      customer,
-      price: paidPriceNoTrial,
-      product: trialProduct,
-      organization,
-      quantity: 1,
-      livemode: true,
-      startDate: new Date(),
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      autoStart: true,
-      // NO defaultPaymentMethod
-      metadata: {},
-      name: 'Paid Subscription No Trial',
-    }
-
-    const { subscription } = (
-      await adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(
-          params,
-          createDiscardingEffectsContext(transaction)
-        )
+    it('should NOT send notifications for free subscription even with payment method', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 0,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
       })
-    ).unwrap()
 
-    // Verify subscription is NOT trialing (status will be Incomplete without payment method)
-    expect(subscription.status).not.toBe(SubscriptionStatus.Trialing)
+      expect(decision.sendOrganizationNotification).toBe(false)
+      expect(decision.sendCustomerNotification).toBe(false)
+      expect(decision.customerNotificationType).toBeNull()
+    })
 
-    // Verify customer notification WAS sent (non-trial paid subscription)
-    // Even without payment method, we notify for non-trial subscriptions
-    expect(
-      idempotentSendCustomerSubscriptionCreatedNotification
-    ).toHaveBeenCalledTimes(1)
+    it('should NOT send notifications for free subscription regardless of status', () => {
+      // Test with Trialing status
+      const trialingDecision = determineSubscriptionNotifications({
+        priceUnitPrice: 0,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(trialingDecision.sendOrganizationNotification).toBe(
+        false
+      )
+      expect(trialingDecision.sendCustomerNotification).toBe(false)
+
+      // Test with Incomplete status
+      const incompleteDecision = determineSubscriptionNotifications({
+        priceUnitPrice: 0,
+        subscriptionStatus: SubscriptionStatus.Incomplete,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(incompleteDecision.sendOrganizationNotification).toBe(
+        false
+      )
+      expect(incompleteDecision.sendCustomerNotification).toBe(false)
+    })
+  })
+
+  describe('Paid Subscription Notification Behavior', () => {
+    it('should send both notifications when creating a paid subscription (unitPrice > 0)', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 5000, // $50
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(decision.sendOrganizationNotification).toBe(true)
+      expect(decision.sendCustomerNotification).toBe(true)
+      expect(decision.customerNotificationType).toBe('created')
+    })
+
+    it('should send customer notification for non-trial paid subscription without payment method', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 5000,
+        subscriptionStatus: SubscriptionStatus.Incomplete,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      // Organization notification always sent for paid subscriptions
+      expect(decision.sendOrganizationNotification).toBe(true)
+      // Customer notification sent for non-trial (even without payment method)
+      expect(decision.sendCustomerNotification).toBe(true)
+      expect(decision.customerNotificationType).toBe('created')
+    })
+  })
+
+  describe('Trial Subscription Notification Behavior', () => {
+    it('should send customer notification when creating a trial subscription WITH payment method', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 5000, // $50
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(decision.sendOrganizationNotification).toBe(true)
+      expect(decision.sendCustomerNotification).toBe(true)
+      expect(decision.customerNotificationType).toBe('created')
+    })
+
+    it('should send customer notification when trial has backup payment method only', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 5000,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: true,
+        canceledFreeSubscription: false,
+      })
+
+      expect(decision.sendOrganizationNotification).toBe(true)
+      expect(decision.sendCustomerNotification).toBe(true)
+      expect(decision.customerNotificationType).toBe('created')
+    })
+
+    it('should NOT send customer notification when creating a trial subscription WITHOUT payment method', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 5000, // $50
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      // Organization notification SHOULD still be sent (internal awareness)
+      expect(decision.sendOrganizationNotification).toBe(true)
+      // Customer notification should NOT be sent (trial without payment = no billing commitment)
+      expect(decision.sendCustomerNotification).toBe(false)
+      expect(decision.customerNotificationType).toBeNull()
+    })
+  })
+
+  describe('Upgrade from Free Subscription Notification Behavior', () => {
+    it('should send upgrade notification when upgrading from free to paid', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 5000,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: true,
+      })
+
+      expect(decision.sendOrganizationNotification).toBe(true)
+      expect(decision.sendCustomerNotification).toBe(true)
+      expect(decision.customerNotificationType).toBe('upgraded')
+    })
+
+    it('should send upgrade notification for trial upgrade with payment method', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 5000,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: true,
+      })
+
+      expect(decision.sendOrganizationNotification).toBe(true)
+      expect(decision.sendCustomerNotification).toBe(true)
+      expect(decision.customerNotificationType).toBe('upgraded')
+    })
+
+    it('should NOT send customer notification for trial upgrade without payment method', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 5000,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: true,
+      })
+
+      expect(decision.sendOrganizationNotification).toBe(true)
+      // Even though it's an upgrade, no customer notification for trial without payment
+      expect(decision.sendCustomerNotification).toBe(false)
+      expect(decision.customerNotificationType).toBeNull()
+    })
+  })
+
+  describe('Edge Cases', () => {
+    it('should handle small paid amounts (e.g., $0.01)', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 1, // $0.01
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(decision.sendOrganizationNotification).toBe(true)
+      expect(decision.sendCustomerNotification).toBe(true)
+      expect(decision.customerNotificationType).toBe('created')
+    })
+
+    it('should handle very large prices', () => {
+      const decision = determineSubscriptionNotifications({
+        priceUnitPrice: 999999999, // Large amount
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(decision.sendOrganizationNotification).toBe(true)
+      expect(decision.sendCustomerNotification).toBe(true)
+      expect(decision.customerNotificationType).toBe('created')
+    })
   })
 })

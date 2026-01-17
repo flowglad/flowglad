@@ -18,85 +18,51 @@ describe('CustomerTrialExpiredNoPaymentEmail', () => {
     livemode: true,
   }
 
-  it('displays correct header', () => {
-    const { getByTestId } = render(
+  it('renders email with all expected content', () => {
+    const { getByTestId, getByText } = render(
       <CustomerTrialExpiredNoPaymentEmail {...baseProps} />
     )
 
+    // Header
     expect(getByTestId('email-title')).toHaveTextContent(
       'Update Your Payment Method'
     )
-  })
 
-  it('shows customer greeting', () => {
-    const { getByText } = render(
-      <CustomerTrialExpiredNoPaymentEmail {...baseProps} />
-    )
-
+    // Customer greeting
     expect(
       getByText(`Hi ${baseProps.customerName},`)
     ).toBeInTheDocument()
-  })
 
-  it('shows trial ended message with plan name', () => {
-    const { getByText } = render(
-      <CustomerTrialExpiredNoPaymentEmail {...baseProps} />
-    )
-
+    // Trial ended message with plan name
     expect(
       getByText(
         `Your free trial for ${baseProps.planName} has ended.`
       )
     ).toBeInTheDocument()
-  })
 
-  it('shows plan name in details', () => {
-    const { getByTestId } = render(
-      <CustomerTrialExpiredNoPaymentEmail {...baseProps} />
-    )
-
+    // Plan name in details
     expect(getByTestId('plan-name')).toHaveTextContent(
       `Plan: ${baseProps.planName}`
     )
-  })
 
-  it('shows status as trial ended', () => {
-    const { getByTestId } = render(
-      <CustomerTrialExpiredNoPaymentEmail {...baseProps} />
-    )
-
+    // Status as trial ended
     expect(getByTestId('status')).toHaveTextContent(
       'Status: Trial ended - Payment required'
     )
-  })
 
-  it('shows add payment method instructions', () => {
-    const { getByText } = render(
-      <CustomerTrialExpiredNoPaymentEmail {...baseProps} />
-    )
-
+    // Add payment method instructions
     expect(
       getByText(
         `To continue using ${baseProps.planName}, please add a payment method.`
       )
     ).toBeInTheDocument()
-  })
 
-  it('shows inactive subscription warning', () => {
-    const { getByText } = render(
-      <CustomerTrialExpiredNoPaymentEmail {...baseProps} />
-    )
-
+    // Inactive subscription warning
     expect(
       getByText(/your subscription will remain inactive/)
     ).toBeInTheDocument()
-  })
 
-  it('shows add payment method button with correct link', () => {
-    const { getByTestId } = render(
-      <CustomerTrialExpiredNoPaymentEmail {...baseProps} />
-    )
-
+    // Add payment method button with correct link
     const button = getByTestId('add-payment-method-button')
     expect(button).toHaveTextContent('Add Payment Method →')
     expect(button).toHaveAttribute(
@@ -106,13 +72,8 @@ describe('CustomerTrialExpiredNoPaymentEmail', () => {
         customerId: baseProps.customerId,
       })
     )
-  })
 
-  it('shows organization signature', () => {
-    const { getByTestId } = render(
-      <CustomerTrialExpiredNoPaymentEmail {...baseProps} />
-    )
-
+    // Organization signature
     expect(getByTestId('signature-thanks')).toHaveTextContent(
       'Thanks,'
     )
