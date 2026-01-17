@@ -23,6 +23,10 @@ const flowgladConfig: FlowgladBetterAuthPluginOptions = {
 
 const auth = betterAuth({
   // ... Better Auth config
+  advanced: {
+    // Use unique cookie prefix to avoid conflicts with platform on localhost
+    cookiePrefix: 'pg-gen',
+  },
   secret: betterAuthSecret,
   emailAndPassword: {
     enabled: true,
