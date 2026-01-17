@@ -1,3 +1,4 @@
+import { spyOn } from 'bun:test'
 import {
   afterEach,
   beforeEach,
@@ -978,7 +979,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     })
 
     // Mock the requestingCustomerAndUser to return our test data
-    vi.spyOn(
+    spyOn(
       databaseAuthentication,
       'requestingCustomerAndUser'
     ).mockResolvedValue([
@@ -989,19 +990,19 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     ])
 
     // Mock the organization ID retrieval for customer billing portal
-    vi.spyOn(
+    spyOn(
       customerBillingPortalState,
       'getCustomerBillingPortalOrganizationId'
     ).mockResolvedValue(organization.id)
 
     // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
-    vi.spyOn(
+    spyOn(
       customerBillingPortalState,
       'setCustomerBillingPortalOrganizationId'
     ).mockResolvedValue(undefined)
 
     // Mock selectBetterAuthUserById to always return a valid user
-    vi.spyOn(
+    spyOn(
       betterAuthSchemaMethods,
       'selectBetterAuthUserById'
     ).mockResolvedValue({
@@ -1013,7 +1014,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     } as any)
 
     // Mock getDatabaseAuthenticationInfo to return proper auth info for customer
-    vi.spyOn(
+    spyOn(
       databaseAuthentication,
       'getDatabaseAuthenticationInfo'
     ).mockResolvedValue({

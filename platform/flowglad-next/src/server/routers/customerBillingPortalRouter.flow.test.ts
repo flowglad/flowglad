@@ -3,6 +3,7 @@
  * Tests all procedures with real database interactions
  */
 
+import { spyOn } from 'bun:test'
 import { TRPCError } from '@trpc/server'
 import {
   afterEach,
@@ -187,7 +188,7 @@ beforeEach(async () => {
   })
 
   // Mock the requestingCustomerAndUser to return our test data
-  vi.spyOn(
+  spyOn(
     databaseAuthentication,
     'requestingCustomerAndUser'
   ).mockResolvedValue([
@@ -198,19 +199,19 @@ beforeEach(async () => {
   ])
 
   // Mock the organization ID retrieval for customer billing portal
-  vi.spyOn(
+  spyOn(
     customerBillingPortalState,
     'getCustomerBillingPortalOrganizationId'
   ).mockResolvedValue(organization.id)
 
   // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
-  vi.spyOn(
+  spyOn(
     customerBillingPortalState,
     'setCustomerBillingPortalOrganizationId'
   ).mockResolvedValue(undefined)
 
   // Mock selectBetterAuthUserById to always return a valid user
-  vi.spyOn(
+  spyOn(
     betterAuthSchemaMethods,
     'selectBetterAuthUserById'
   ).mockResolvedValue({
@@ -341,7 +342,7 @@ describe('Customer Billing Portal Router', () => {
           Date.now() + 15 * 24 * 60 * 60 * 1000,
       })
 
-      vi.spyOn(
+      spyOn(
         databaseAuthentication,
         'requestingCustomerAndUser'
       ).mockResolvedValue([
@@ -695,7 +696,7 @@ describe('Customer Billing Portal Router', () => {
       const createCheckoutSessionModule = await import(
         '@/utils/bookkeeping/createCheckoutSession'
       )
-      vi.spyOn(
+      spyOn(
         createCheckoutSessionModule,
         'createCheckoutSessionTransaction'
       ).mockResolvedValue({
