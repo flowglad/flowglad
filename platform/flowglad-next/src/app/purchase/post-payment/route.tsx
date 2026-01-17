@@ -302,23 +302,28 @@ export const GET = async (request: NextRequest) => {
       const priceId = purchase.priceId
       const { product } = await adminTransaction(
         async ({ transaction }) => {
-          const [{ product }] =
+          // Usage prices have null productId, causing innerJoin to return empty array
+          const results =
             await selectPriceProductAndOrganizationByPriceWhere(
               {
                 id: priceId,
               },
               transaction
             )
-          return { product }
+          return {
+            product: results.length > 0 ? results[0].product : null,
+          }
         }
       )
 
       /**
        * As the purchase session cookie is no longer needed, delete it.
+       * For usage prices, product is null so only purchase cookie gets deleted.
+       * The deleteCheckoutSessionCookie helper handles undefined productId.
        */
       await deleteCheckoutSessionCookie({
         purchaseId: purchase.id,
-        productId: product.id,
+        productId: product?.id,
       })
     }
 

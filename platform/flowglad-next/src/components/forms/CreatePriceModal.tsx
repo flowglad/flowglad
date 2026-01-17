@@ -21,32 +21,41 @@ interface CreatePriceModalProps {
 const getDefaultValues = (
   previousPrice: Price.ClientRecord
 ): { price: Price.ClientInsert; __rawPriceString: string } => {
-  const coreValues = {
-    productId: previousPrice.productId,
+  const __rawPriceString = countableCurrencyAmountToRawStringAmount(
+    previousPrice.currency,
+    previousPrice.unitPrice
+  )
+
+  const baseCoreValues = {
     isDefault: previousPrice.isDefault,
     unitPrice: previousPrice.unitPrice,
     slug: previousPrice.slug,
     active: true,
   }
 
-  const __rawPriceString = countableCurrencyAmountToRawStringAmount(
-    previousPrice.currency,
-    previousPrice.unitPrice
-  )
-
   if (previousPrice.type === PriceType.SinglePayment) {
+    // Single payment prices require productId
+    if (!Price.clientHasProductId(previousPrice)) {
+      throw new Error('Single payment prices must have a productId')
+    }
     return {
       price: {
-        ...coreValues,
+        ...baseCoreValues,
+        productId: previousPrice.productId,
         type: PriceType.SinglePayment,
       },
       __rawPriceString,
     }
   }
   if (previousPrice.type === PriceType.Subscription) {
+    // Subscription prices require productId
+    if (!Price.clientHasProductId(previousPrice)) {
+      throw new Error('Subscription prices must have a productId')
+    }
     return {
       price: {
-        ...coreValues,
+        ...baseCoreValues,
+        productId: previousPrice.productId,
         type: PriceType.Subscription,
         intervalUnit: previousPrice.intervalUnit,
         intervalCount: previousPrice.intervalCount,
@@ -58,9 +67,11 @@ const getDefaultValues = (
     }
   }
   if (previousPrice.type === PriceType.Usage) {
+    // Usage prices don't have productId
     return {
       price: {
-        ...coreValues,
+        ...baseCoreValues,
+        productId: null,
         intervalCount: previousPrice.intervalCount,
         intervalUnit: previousPrice.intervalUnit,
         trialPeriodDays: previousPrice.trialPeriodDays,

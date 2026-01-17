@@ -2,7 +2,7 @@ import { and, eq, isNull } from 'drizzle-orm'
 import * as R from 'ramda'
 import { Customer } from '@/db/schema/customers'
 import type { Feature } from '@/db/schema/features'
-import type { Price } from '@/db/schema/prices'
+import { Price } from '@/db/schema/prices'
 import type { ProductFeature } from '@/db/schema/productFeatures'
 import type {
   AddFeatureToSubscriptionInput,
@@ -85,8 +85,14 @@ const getFeaturesByPriceId = async (
     result.set(price.id, [])
   })
 
+  // Filter to only product prices (subscription and single_payment).
+  // Usage prices don't have productId, so they can't have features.
+  const productPrices = pricesToFetchFeaturesFor.filter(
+    Price.hasProductId
+  )
+
   const uniqueProductIds: string[] = R.uniq(
-    pricesToFetchFeaturesFor.map((p) => p.productId)
+    productPrices.map((p) => p.productId)
   )
 
   if (R.isEmpty(uniqueProductIds)) {
@@ -122,7 +128,7 @@ const getFeaturesByPriceId = async (
     })
   }
 
-  for (const price of pricesToFetchFeaturesFor) {
+  for (const price of productPrices) {
     const dataForProduct = productIdToDataMap.get(price.productId)
     if (dataForProduct) {
       result.set(price.id, dataForProduct)

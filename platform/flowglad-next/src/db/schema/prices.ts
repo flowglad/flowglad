@@ -71,14 +71,6 @@ const hiddenColumns = {
 
 const TABLE_NAME = 'prices'
 
-const usageMeterBelongsToSameOrganization = sql`"usage_meter_id" IS NULL OR "usage_meter_id" IN (
-  SELECT "id" FROM "usage_meters"
-  WHERE "usage_meters"."organization_id" = (
-    SELECT "organization_id" FROM "products" 
-    WHERE "products"."id" = "prices"."product_id"
-  )
-)`
-
 export const prices = pgTable(
   TABLE_NAME,
   {
@@ -106,7 +98,7 @@ export const prices = pgTable(
     // includeTaxInPrice: boolean('includeTaxInPrice')
     //   .notNull()
     //   .default(false),
-    productId: notNullStringForeignKey('product_id', products),
+    productId: nullableStringForeignKey('product_id', products),
     active: boolean('active').notNull().default(true),
     currency: pgEnumColumn({
       enumName: 'CurrencyCode',
@@ -131,34 +123,59 @@ export const prices = pgTable(
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.type]),
     constructIndex(TABLE_NAME, [table.productId]),
-    constructUniqueIndex(TABLE_NAME, [
-      table.externalId,
-      table.productId,
-    ]),
+    // externalId unique per product for non-usage prices
+    uniqueIndex('prices_external_id_product_id_unique_idx')
+      .on(table.externalId, table.productId)
+      .where(sql`${table.type} != 'usage'`),
+    // externalId unique per usage meter for usage prices
+    uniqueIndex('prices_external_id_usage_meter_id_unique_idx')
+      .on(table.externalId, table.usageMeterId)
+      .where(sql`${table.type} = 'usage'`),
+    // isDefault unique per product for non-usage prices
     uniqueIndex('prices_product_id_is_default_unique_idx')
       .on(table.productId)
-      .where(sql`${table.isDefault}`),
+      .where(sql`${table.isDefault} AND ${table.type} != 'usage'`),
+    // isDefault unique per usage meter for usage prices
+    uniqueIndex('prices_usage_meter_is_default_unique_idx')
+      .on(table.usageMeterId)
+      .where(sql`${table.isDefault} AND ${table.type} = 'usage'`),
     constructIndex(TABLE_NAME, [table.usageMeterId]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
+    // Customer read access: handle both product prices and usage prices
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {
-        using: sql`"product_id" in (select "id" from "products") and "active" = true`,
+        using: sql`"active" = true AND (
+            "product_id" IN (SELECT "id" FROM "products")
+            OR ("product_id" IS NULL AND "usage_meter_id" IN (SELECT "id" FROM "usage_meters"))
+          )`,
       }
     ),
-    merchantPolicy(
-      'On update, ensure usage meter belongs to same organization as product',
-      {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'update',
-        withCheck: usageMeterBelongsToSameOrganization,
-      }
-    ),
-    parentForeignKeyIntegrityCheckPolicy({
-      parentTableName: 'products',
-      parentIdColumnInCurrentTable: 'product_id',
-      currentTableName: TABLE_NAME,
+    // Merchant access policy for prices.
+    // Prices don't have an organization_id column - they're scoped to orgs
+    // through their productId (for subscription/single_payment) or usageMeterId (for usage).
+    // For usage prices: must have a visible usage_meter (RLS-scoped by org)
+    // For non-usage prices: must have a visible product (RLS-scoped by org)
+    // The withCheck also enforces pricing_model_id consistency on INSERT/UPDATE:
+    // the price's pricing_model_id must match the parent (product or usage meter).
+    merchantPolicy('Merchant access via product or usage meter FK', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'all',
+      using: sql`(
+            ("type" = 'usage' AND "usage_meter_id" IN (SELECT "id" FROM "usage_meters"))
+            OR ("type" != 'usage' AND "product_id" IN (SELECT "id" FROM "products"))
+          )`,
+      withCheck: sql`(
+            ("type" = 'usage' AND "usage_meter_id" IN (
+              SELECT "id" FROM "usage_meters"
+              WHERE "usage_meters"."pricing_model_id" = "prices"."pricing_model_id"
+            ))
+            OR ("type" != 'usage' AND "product_id" IN (
+              SELECT "id" FROM "products"
+              WHERE "products"."pricing_model_id" = "prices"."pricing_model_id"
+            ))
+          )`,
     }),
   ])
 ).enableRLS()
@@ -178,7 +195,7 @@ const basePriceColumns = {
   isDefault: z
     .boolean()
     .describe(
-      'Whether or not this price is the default price for the product.'
+      'Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.'
     ),
   unitPrice: core.safeZodPositiveIntegerOrZero.describe(
     'The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.'
@@ -211,8 +228,20 @@ const subscriptionPriceColumns = {
     ),
   usageEventsPerUnit: core.safeZodNullOrUndefined,
   usageMeterId: core.safeZodNullOrUndefined,
+  productId: z
+    .string()
+    .describe(
+      'The product this price belongs to. Required for subscription prices.'
+    ),
 }
 
+/**
+ * Usage price columns.
+ * Note: productId is handled differently for insert vs select schemas:
+ * - Insert: accepts null/undefined via safeZodNullOrUndefined
+ * - Select (v1): coerces any existing productId value to null via z.any().transform(() => null)
+ * This allows migration of existing records while enforcing null for new records.
+ */
 const usagePriceColumns = {
   ...subscriptionPriceColumns,
   trialPeriodDays: core.safeZodNullOrUndefined,
@@ -225,6 +254,22 @@ const usagePriceColumns = {
     'The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.'
   ),
   type: z.literal(PriceType.Usage),
+  // Override productId: usage prices don't have a productId (it's null)
+  // v1: coerce to null regardless of input (for migration compatibility)
+  // Uses z.unknown() to accept any input type, then transforms to null
+  // .pipe(z.null()) is required for OpenAPI schema generation compatibility
+  productId: z
+    .unknown()
+    .transform(() => null as null)
+    .pipe(z.null()),
+}
+
+/**
+ * Usage price insert-specific columns.
+ * productId accepts null/undefined and always outputs null.
+ */
+const usagePriceInsertColumns = {
+  productId: core.safeZodNullOrUndefined,
 }
 
 const USAGE_PRICE_DESCRIPTION =
@@ -242,6 +287,11 @@ const singlePaymentPriceColumns = {
   trialPeriodDays: core.safeZodNullOrUndefined.optional(),
   usageMeterId: core.safeZodNullOrUndefined.optional(),
   usageEventsPerUnit: core.safeZodNullOrUndefined.optional(),
+  productId: z
+    .string()
+    .describe(
+      'The product this price belongs to. Required for single payment prices.'
+    ),
 }
 
 // subtype schemas are built via buildSchemas below
@@ -340,6 +390,8 @@ export const {
   refine: usageRefine,
   insertRefine: {
     pricingModelId: z.string().optional(),
+    // For insert, usage prices should have null productId
+    ...usagePriceInsertColumns,
   },
   client: {
     hiddenColumns,
@@ -497,6 +549,65 @@ export namespace Price {
   >
 
   export type Where = SelectConditions<typeof prices>
+
+  /**
+   * Type alias for prices that have a productId (subscription and single payment prices).
+   * These prices are directly purchasable and can carry features.
+   */
+  export type ProductPrice = SubscriptionRecord | SinglePaymentRecord
+
+  /**
+   * Type alias for prices that belong to usage meters (usage prices).
+   * These prices have productId = null and usageMeterId set.
+   */
+  export type UsageMeterPrice = UsageRecord
+
+  /**
+   * Type guard to check if a price has a productId.
+   * Returns true for subscription and single payment prices.
+   * Returns false for usage prices.
+   *
+   * @example
+   * ```ts
+   * if (Price.hasProductId(price)) {
+   *   // price.productId is narrowed to string
+   *   console.log(price.productId)
+   * } else {
+   *   // price.productId is null (usage price)
+   * }
+   * ```
+   */
+  export const hasProductId = (
+    price: Record
+  ): price is ProductPrice => {
+    return price.type !== PriceType.Usage
+  }
+
+  /**
+   * Type guard to check if a client price record has a productId.
+   * Returns true for subscription and single payment prices.
+   * Returns false for usage prices.
+   */
+  export const clientHasProductId = (
+    price: ClientRecord
+  ): price is
+    | ClientSubscriptionRecord
+    | ClientSinglePaymentRecord => {
+    return price.type !== PriceType.Usage
+  }
+
+  /**
+   * Type guard to check if a client price insert has a productId.
+   * Returns true for subscription and single payment prices.
+   * Returns false for usage prices.
+   */
+  export const clientInsertHasProductId = (
+    price: ClientInsert
+  ): price is
+    | ClientSubscriptionInsert
+    | ClientSinglePaymentInsert => {
+    return price.type !== PriceType.Usage
+  }
 }
 
 export const editPriceSchema = z.object({
@@ -626,12 +737,18 @@ export type PricingModelWithProductsAndUsageMeters = z.infer<
   typeof pricingModelWithProductsAndUsageMetersSchema
 >
 
+/**
+ * Schema for price table row data.
+ * Product is nullable because usage prices don't have a productId.
+ */
 export const pricesTableRowDataSchema = z.object({
   price: pricesClientSelectSchema,
-  product: z.object({
-    id: z.string(),
-    name: z.string(),
-  }),
+  product: z
+    .object({
+      id: z.string(),
+      name: z.string(),
+    })
+    .nullable(),
 })
 
 export const productsTableRowDataSchema = z.object({
@@ -646,6 +763,10 @@ export type ProductsTableRowData = z.infer<
   typeof productsTableRowDataSchema
 >
 
+/**
+ * Default columns for subscription prices.
+ * productId is set to empty string as a placeholder - the actual value must be provided.
+ */
 export const subscriptionPriceDefaultColumns: Pick<
   Price.SubscriptionInsert,
   keyof typeof subscriptionPriceColumns
@@ -655,25 +776,38 @@ export const subscriptionPriceDefaultColumns: Pick<
   intervalUnit: IntervalUnit.Month,
   trialPeriodDays: 0,
   type: PriceType.Subscription,
+  productId: '', // Must be provided when creating price
 }
 
+/**
+ * Default columns for usage prices.
+ * productId is null for usage prices - they belong to usage meters, not products.
+ */
 export const usagePriceDefaultColumns: Pick<
   Price.UsageInsert,
   keyof typeof usagePriceColumns
 > = {
-  ...subscriptionPriceDefaultColumns,
+  ...nulledPriceColumns,
+  intervalCount: 1,
+  intervalUnit: IntervalUnit.Month,
   trialPeriodDays: null,
   type: PriceType.Usage,
   usageMeterId: '',
   usageEventsPerUnit: 1,
+  productId: null, // Usage prices don't have productId
 }
 
+/**
+ * Default columns for single payment prices.
+ * productId is set to empty string as a placeholder - the actual value must be provided.
+ */
 export const singlePaymentPriceDefaultColumns: Pick<
   Price.SinglePaymentInsert,
   keyof typeof singlePaymentPriceColumns
 > = {
   ...nulledPriceColumns,
   type: PriceType.SinglePayment,
+  productId: '', // Must be provided when creating price
 }
 
 /**

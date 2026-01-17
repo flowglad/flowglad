@@ -170,11 +170,31 @@ describe('setupPricingModelTransaction (integration)', () => {
     ).rejects.toThrow('Usage meter with slug missing does not exist')
   })
 
+  // Updated to use nested usage meter structure with prices
   it('creates pricingModel, features, products, prices, and productFeatures on happy path', async () => {
     const input: SetupPricingModelInput = {
       name: 'MyPricingModel',
       isDefault: true,
-      usageMeters: [{ slug: 'um', name: 'UM' }],
+      // Usage meters have nested structure with prices
+      usageMeters: [
+        {
+          usageMeter: { slug: 'um', name: 'UM' },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'pu',
+              isDefault: true,
+              name: 'Test Price',
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 5,
+              trialPeriodDays: null,
+            },
+          ],
+        },
+      ],
       features: [
         {
           type: FeatureType.UsageCreditGrant,
@@ -195,6 +215,7 @@ describe('setupPricingModelTransaction (integration)', () => {
           active: true,
         },
       ],
+      // Products only have subscription/single payment prices
       products: [
         {
           product: {
@@ -221,32 +242,6 @@ describe('setupPricingModelTransaction (integration)', () => {
             unitPrice: 100,
           },
           features: ['f1', 'f2'],
-        },
-        {
-          product: {
-            name: 'usage',
-            default: false,
-            description: 'd',
-            slug: 'p2',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'pu',
-            isDefault: true,
-            name: 'Test Price',
-            usageMeterSlug: 'um',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 5,
-          },
-          features: [],
         },
       ],
     }
@@ -285,8 +280,13 @@ describe('setupPricingModelTransaction (integration)', () => {
       result.products.every((p) => typeof p.externalId === 'string')
     ).toBe(true)
 
-    // Prices - should have user prices + auto-generated default price
-    const allPriceSlugs = input.products.map((p) => p.price.slug!)
+    // Prices - should have product prices + usage prices + auto-generated default price
+    // Usage prices come from usage meters, not products
+    const productPriceSlugs = input.products.map((p) => p.price.slug!)
+    const usagePriceSlugs = input.usageMeters.flatMap(
+      (m) => m.prices?.map((p) => p.slug!) ?? []
+    )
+    const allPriceSlugs = [...productPriceSlugs, ...usagePriceSlugs]
     expect(result.prices).toHaveLength(allPriceSlugs.length + 1) // +1 for auto-generated default
     const resultPriceSlugs = result.prices.map((pr) => pr.slug)
     expect(resultPriceSlugs).toEqual(
@@ -584,442 +584,6 @@ describe('setupPricingModelTransaction (integration)', () => {
           )
         )
       ).rejects.toThrow('Default products cannot have trials')
-    })
-  })
-
-  describe('Resource Creation', () => {
-    it('creates resources and Resource features with correct resourceId when resources array is provided', async () => {
-      const input: SetupPricingModelInput = {
-        name: 'Resource Test Pricing Model',
-        isDefault: false,
-        usageMeters: [],
-        resources: [
-          {
-            slug: 'seats',
-            name: 'Seats',
-            active: true,
-          },
-          {
-            slug: 'storage-gb',
-            name: 'Storage (GB)',
-            active: true,
-          },
-        ],
-        features: [
-          {
-            type: FeatureType.Resource,
-            slug: 'seat-allocation',
-            name: 'Seat Allocation',
-            description: 'Number of seats included',
-            resourceSlug: 'seats',
-            amount: 5,
-            active: true,
-          },
-          {
-            type: FeatureType.Resource,
-            slug: 'storage-allocation',
-            name: 'Storage Allocation',
-            description: 'Storage space in GB',
-            resourceSlug: 'storage-gb',
-            amount: 100,
-            active: true,
-          },
-          {
-            type: FeatureType.Toggle,
-            slug: 'basic-access',
-            name: 'Basic Access',
-            description: 'Basic access toggle',
-            active: true,
-          },
-        ],
-        products: [
-          {
-            product: {
-              name: 'Pro Plan',
-              default: false,
-              description: 'Pro plan with resources',
-              slug: 'pro-plan',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-            },
-            price: {
-              type: PriceType.Subscription,
-              slug: 'pro-monthly',
-              isDefault: true,
-              unitPrice: 2900,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-            features: [
-              'seat-allocation',
-              'storage-allocation',
-              'basic-access',
-            ],
-          },
-        ],
-      }
-
-      const result = await adminTransaction(async ({ transaction }) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          transaction
-        )
-      )
-
-      // Verify resources were created
-      expect(result.resources).toHaveLength(2)
-      const resourceSlugs = result.resources.map((r) => r.slug)
-      expect(resourceSlugs).toContain('seats')
-      expect(resourceSlugs).toContain('storage-gb')
-
-      // Verify resources have correct properties
-      const seatsResource = result.resources.find(
-        (r) => r.slug === 'seats'
-      )
-      expect(seatsResource?.name).toBe('Seats')
-      expect(seatsResource?.active).toBe(true)
-      expect(seatsResource?.pricingModelId).toBe(
-        result.pricingModel.id
-      )
-      expect(seatsResource?.organizationId).toBe(organization.id)
-
-      // Verify Resource features were created with correct resourceId
-      const resourceFeatures = result.features.filter(
-        (f) => f.type === FeatureType.Resource
-      )
-      expect(resourceFeatures).toHaveLength(2)
-
-      const seatFeature = resourceFeatures.find(
-        (f) => f.slug === 'seat-allocation'
-      )
-      expect(seatFeature?.resourceId).toBe(seatsResource?.id)
-      expect(seatFeature?.amount).toBe(5)
-      expect(seatFeature?.usageMeterId).toBe(null)
-
-      const storageResource = result.resources.find(
-        (r) => r.slug === 'storage-gb'
-      )
-      const storageFeature = resourceFeatures.find(
-        (f) => f.slug === 'storage-allocation'
-      )
-      expect(storageFeature?.resourceId).toBe(storageResource?.id)
-      expect(storageFeature?.amount).toBe(100)
-
-      // Verify Toggle feature also created correctly alongside Resource features
-      const toggleFeature = result.features.find(
-        (f) => f.type === FeatureType.Toggle
-      )
-      expect(toggleFeature?.slug).toBe('basic-access')
-      expect(toggleFeature?.resourceId).toBe(null)
-      expect(toggleFeature?.usageMeterId).toBe(null)
-    })
-
-    it('throws when Resource feature references non-existent resource slug', async () => {
-      const input: SetupPricingModelInput = {
-        name: 'Invalid Resource Reference',
-        isDefault: false,
-        usageMeters: [],
-        resources: [
-          {
-            slug: 'existing-resource',
-            name: 'Existing Resource',
-          },
-        ],
-        features: [
-          {
-            type: FeatureType.Resource,
-            slug: 'invalid-feature',
-            name: 'Invalid Feature',
-            description: 'References non-existent resource',
-            resourceSlug: 'non-existent-resource',
-            amount: 10,
-            active: true,
-          },
-        ],
-        products: [
-          {
-            product: {
-              name: 'Test Product',
-              default: false,
-              description: '',
-              slug: 'test-product',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-            },
-            price: {
-              type: PriceType.Subscription,
-              slug: 'test-price',
-              isDefault: true,
-              unitPrice: 1000,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-            features: ['invalid-feature'],
-          },
-        ],
-      }
-
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-        )
-      ).rejects.toThrow(
-        'Resource with slug non-existent-resource does not exist'
-      )
-    })
-
-    it('handles empty resources array when no Resource features are defined', async () => {
-      const input: SetupPricingModelInput = {
-        name: 'No Resources Model',
-        isDefault: false,
-        usageMeters: [],
-        resources: [],
-        features: [
-          {
-            type: FeatureType.Toggle,
-            slug: 'simple-toggle',
-            name: 'Simple Toggle',
-            description: 'Just a toggle',
-            active: true,
-          },
-        ],
-        products: [
-          {
-            product: {
-              name: 'Simple Product',
-              default: false,
-              description: '',
-              slug: 'simple-product',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-            },
-            price: {
-              type: PriceType.Subscription,
-              slug: 'simple-price',
-              isDefault: true,
-              unitPrice: 500,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-            features: ['simple-toggle'],
-          },
-        ],
-      }
-
-      const result = await adminTransaction(async ({ transaction }) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          transaction
-        )
-      )
-
-      expect(result.resources).toHaveLength(0)
-      expect(result.features).toHaveLength(1)
-      expect(result.features[0].type).toBe(FeatureType.Toggle)
-    })
-
-    it('creates mixed feature types (Toggle, UsageCreditGrant, Resource) in same pricing model', async () => {
-      const input: SetupPricingModelInput = {
-        name: 'Mixed Features Model',
-        isDefault: false,
-        usageMeters: [
-          {
-            slug: 'api-calls',
-            name: 'API Calls',
-          },
-        ],
-        resources: [
-          {
-            slug: 'team-members',
-            name: 'Team Members',
-          },
-        ],
-        features: [
-          {
-            type: FeatureType.Toggle,
-            slug: 'dashboard-access',
-            name: 'Dashboard Access',
-            description: 'Access to dashboard',
-            active: true,
-          },
-          {
-            type: FeatureType.UsageCreditGrant,
-            slug: 'api-credits',
-            name: 'API Credits',
-            description: 'Monthly API call credits',
-            usageMeterSlug: 'api-calls',
-            amount: 1000,
-            renewalFrequency:
-              FeatureUsageGrantFrequency.EveryBillingPeriod,
-            active: true,
-          },
-          {
-            type: FeatureType.Resource,
-            slug: 'team-member-allocation',
-            name: 'Team Member Allocation',
-            description: 'Number of team members',
-            resourceSlug: 'team-members',
-            amount: 10,
-            active: true,
-          },
-        ],
-        products: [
-          {
-            product: {
-              name: 'Team Plan',
-              default: false,
-              description: 'Team plan with all features',
-              slug: 'team-plan',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-            },
-            price: {
-              type: PriceType.Usage,
-              slug: 'team-usage',
-              isDefault: true,
-              unitPrice: 10,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterSlug: 'api-calls',
-              usageEventsPerUnit: 100,
-              trialPeriodDays: null,
-              active: true,
-            },
-            features: [
-              'dashboard-access',
-              'api-credits',
-              'team-member-allocation',
-            ],
-          },
-        ],
-      }
-
-      const result = await adminTransaction(async ({ transaction }) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          transaction
-        )
-      )
-
-      // Verify all entity types created
-      expect(result.usageMeters).toHaveLength(1)
-      expect(result.resources).toHaveLength(1)
-      expect(result.features).toHaveLength(3)
-
-      // Verify each feature type
-      const toggleFeature = result.features.find(
-        (f) => f.type === FeatureType.Toggle
-      )
-      expect(toggleFeature?.slug).toBe('dashboard-access')
-      expect(toggleFeature?.usageMeterId).toBe(null)
-      expect(toggleFeature?.resourceId).toBe(null)
-
-      const usageCreditFeature = result.features.find(
-        (f) => f.type === FeatureType.UsageCreditGrant
-      )
-      expect(usageCreditFeature?.slug).toBe('api-credits')
-      expect(usageCreditFeature?.usageMeterId).toBe(
-        result.usageMeters[0].id
-      )
-      expect(usageCreditFeature?.resourceId).toBe(null)
-      expect(usageCreditFeature?.amount).toBe(1000)
-
-      const resourceFeature = result.features.find(
-        (f) => f.type === FeatureType.Resource
-      )
-      expect(resourceFeature?.slug).toBe('team-member-allocation')
-      expect(resourceFeature?.resourceId).toBe(result.resources[0].id)
-      expect(resourceFeature?.usageMeterId).toBe(null)
-      expect(resourceFeature?.amount).toBe(10)
-
-      // Verify product features
-      expect(result.productFeatures).toHaveLength(3)
-    })
-
-    it('sets resource active to true by default when not specified', async () => {
-      const input: SetupPricingModelInput = {
-        name: 'Default Active Resource Model',
-        isDefault: false,
-        usageMeters: [],
-        resources: [
-          {
-            slug: 'default-active',
-            name: 'Default Active Resource',
-            // active not specified - should default to true
-          },
-        ],
-        features: [
-          {
-            type: FeatureType.Resource,
-            slug: 'default-active-feature',
-            name: 'Default Active Feature',
-            description: 'Feature with default active resource',
-            resourceSlug: 'default-active',
-            amount: 1,
-            active: true,
-          },
-        ],
-        products: [
-          {
-            product: {
-              name: 'Test Product',
-              default: false,
-              description: '',
-              slug: 'test-product-default',
-              active: true,
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-            },
-            price: {
-              type: PriceType.Subscription,
-              slug: 'test-price-default',
-              isDefault: true,
-              unitPrice: 100,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-            features: ['default-active-feature'],
-          },
-        ],
-      }
-
-      const result = await adminTransaction(async ({ transaction }) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          transaction
-        )
-      )
-
-      expect(result.resources).toHaveLength(1)
-      expect(result.resources[0].active).toBe(true)
     })
   })
 

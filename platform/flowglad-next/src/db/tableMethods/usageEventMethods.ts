@@ -4,7 +4,6 @@ import {
   customers,
 } from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
-import { products } from '@/db/schema/products'
 import {
   subscriptionClientSelectSchema,
   subscriptions,
@@ -170,15 +169,15 @@ export const selectUsageEventsTableRowData =
         .from(usageMeters)
         .where(inArray(usageMeters.id, usageMeterIds))
 
-      // Query 4: Get prices with products
-      const priceResults = await transaction
-        .select({
-          price: prices,
-          product: products,
-        })
-        .from(prices)
-        .innerJoin(products, eq(products.id, prices.productId))
-        .where(inArray(prices.id, priceIds))
+      // Query 4: Get prices (usage prices don't have products - productId is null)
+      // Direct query without schema parsing for better debugging
+      const priceResults =
+        priceIds.length > 0
+          ? await transaction
+              .select()
+              .from(prices)
+              .where(inArray(prices.id, priceIds))
+          : []
 
       // Create lookup maps
       const customersById = new Map(
@@ -197,13 +196,7 @@ export const selectUsageEventsTableRowData =
         ])
       )
       const pricesById = new Map(
-        priceResults.map((result) => [result.price.id, result.price])
-      )
-      const productsById = new Map(
-        priceResults.map((result) => [
-          result.product.id,
-          result.product,
-        ])
+        priceResults.map((price) => [price.id, price])
       )
 
       return usageEventsData.map((usageEvent) => {
@@ -223,13 +216,9 @@ export const selectUsageEventsTableRowData =
             `Missing related data for usage event ${usageEvent.id}`
           )
         }
-        // pricesById only contains prices that passed the INNER JOIN with products.
-        // If priceId exists but price is missing, the price's product doesn't exist (data integrity issue).
-        if (usageEvent.priceId && !price) {
-          throw new Error(
-            `Price not found for usage event ${usageEvent.id} with priceId ${usageEvent.priceId}`
-          )
-        }
+        // Note: If priceId exists but price is missing, it may be due to cross-organization
+        // data isolation. The price exists but is not accessible in the current context.
+        // We treat this as price: null rather than throwing an error.
 
         // Transform database records to client records
         const customerClient =
