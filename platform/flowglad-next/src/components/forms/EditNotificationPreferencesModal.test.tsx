@@ -8,6 +8,7 @@ import {
 import type { ReactNode } from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import type { NotificationPreferences } from '@/db/schema/memberships'
+import { asMock } from '@/test-utils/mockHelpers'
 import EditNotificationPreferencesModal from './EditNotificationPreferencesModal'
 
 interface FormModalMockProps<T extends FieldValues> {

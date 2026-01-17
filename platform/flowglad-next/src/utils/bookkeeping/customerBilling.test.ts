@@ -1,12 +1,12 @@
-import { spyOn } from 'bun:test'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -63,24 +63,24 @@ import {
 } from './customerBilling'
 
 // Mock next/headers to avoid Next.js context errors
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(() => undefined),
+    get: mock(() => undefined),
+    delete: mock(() => undefined),
   })),
 }))
 
 // Mock auth with factory function to avoid hoisting issues
-vi.mock('@/utils/auth', () => ({
+mock.module('@/utils/auth', () => ({
   auth: {
     api: {
-      signInMagicLink: vi.fn(),
-      createUser: vi.fn(),
+      signInMagicLink: mock(() => undefined),
+      createUser: mock(() => undefined),
     },
   },
-  getSession: vi.fn().mockResolvedValue(null),
+  getSession: mock(() => Promise.resolve(null)),
 }))
 
 describe('setDefaultPaymentMethodForCustomer', () => {
@@ -937,9 +937,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   let user: User.Record
 
   beforeEach(async () => {
-    // Reset all mocks
-    vi.clearAllMocks()
-
     // Set up first organization with pricing model and product
     const orgData = await setupOrg()
     organization = orgData.organization
@@ -1040,10 +1037,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         aud: 'stub',
       } as any,
     } as any)
-  })
-
-  afterEach(() => {
-    vi.clearAllMocks()
   })
 
   it('should fail when price is not accessible to customer (from different organization)', async () => {

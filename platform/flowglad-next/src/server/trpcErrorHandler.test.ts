@@ -1,6 +1,5 @@
-import { spyOn } from 'bun:test'
+import { beforeEach, describe, expect, it, spyOn } from 'bun:test'
 import { TRPCError } from '@trpc/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   errorHandlers,
   extractErrorDetails,
@@ -9,7 +8,6 @@ import {
 
 describe('trpcErrorHandler', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
     spyOn(console, 'error').mockImplementation(() => {})
   })
 

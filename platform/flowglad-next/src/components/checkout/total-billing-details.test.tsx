@@ -252,10 +252,6 @@ describe('calculateTotalBillingDetails', () => {
 })
 
 describe('price flow', () => {
-  beforeEach(() => {
-    // Mocks are automatically reset between tests in bun:test
-  })
-
   it('should handle basic no discount, no feeCalculation', async () => {
     // Arrange: type: 'price', price with non-usage type, purchase optional/undefined
     const params = {
@@ -443,10 +439,6 @@ describe('price flow', () => {
 })
 
 describe('invoice flow', () => {
-  beforeEach(() => {
-    // Mocks are automatically reset between tests in bun:test
-  })
-
   it('should handle basic no discount, no feeCalculation', async () => {
     // Arrange: type: 'invoice', invoice provided, invoiceLineItems provided
     const params = {
@@ -518,10 +510,6 @@ describe('invoice flow', () => {
 })
 
 describe('TotalBillingDetails', () => {
-  beforeEach(async () => {
-    // Mocks are automatically reset between tests in bun:test
-  })
-
   describe('component rendering', () => {
     it('should hide component entirely for Add Payment Method flow', () => {
       // Arrange: flowType = AddPaymentMethod

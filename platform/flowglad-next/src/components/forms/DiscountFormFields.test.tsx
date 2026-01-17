@@ -7,6 +7,7 @@ import {
 } from '@testing-library/react'
 import { FormProvider, useForm } from 'react-hook-form'
 import type { CreateDiscountFormSchema } from '@/db/schema/discounts'
+import { asMock } from '@/test-utils/mockHelpers'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import DiscountFormFields from './DiscountFormFields'
 

@@ -48,6 +48,7 @@ import {
 import { insertUser } from './tableMethods/userMethods'
 import type { DbTransaction } from './types'
 
+// Module-level mock state (replaces vi.hoisted)
 let mockedSession: { user: { id: string; email: string } } | null =
   null
 

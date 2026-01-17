@@ -213,7 +213,8 @@ describe('refundPaymentTransaction', () => {
   let payment: Payment.Record
 
   beforeEach(async () => {
-    // Mocks are automatically reset between tests in bun:test
+    asMock(stripeUtils.refundPayment).mockClear()
+    asMock(stripeUtils.reverseStripeTaxTransaction).mockClear()
 
     const setup = await setupOrg()
     organization = setup.organization

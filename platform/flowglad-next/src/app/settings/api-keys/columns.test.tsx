@@ -5,7 +5,9 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
+import { trpc } from '@/app/_trpc/client'
 import DeleteApiKeyModal from '@/components/forms/DeleteApiKeyModal'
+import { asMock } from '@/test-utils/mockHelpers'
 
 // Create mock outside so we can use it in tests
 const mockMutateAsync = mock((_params: { id: string }) =>

@@ -9,6 +9,7 @@ import React from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { FormProvider, useForm } from 'react-hook-form'
 import type { ModalInterfaceProps } from '@/components/forms/FormModal'
+import { asMock } from '@/test-utils/mockHelpers'
 import { PriceType } from '@/types'
 import { CreateSubscriptionFormModal } from './CreateSubscriptionFormModal'
 
@@ -418,10 +419,13 @@ describe('CreateSubscriptionFormModal', () => {
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledTimes(1)
-        const callArgs = mockMutateAsync.mock.calls[0]
-        expect(callArgs[0].doNotCharge).toBe(false)
+        const callArgs = mockMutateAsync.mock.calls[0][0] as {
+          doNotCharge: boolean
+          defaultPaymentMethodId?: string
+        }
+        expect(callArgs.doNotCharge).toBe(false)
         // Payment method should be set (defaults to first available payment method)
-        expect(callArgs[0].defaultPaymentMethodId).toBe('pm_123')
+        expect(callArgs.defaultPaymentMethodId).toBe('pm_123')
       })
     })
 
@@ -449,10 +453,13 @@ describe('CreateSubscriptionFormModal', () => {
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledTimes(1)
-        const callArgs = mockMutateAsync.mock.calls[0]
-        expect(callArgs[0].doNotCharge).toBe(true)
+        const callArgs = mockMutateAsync.mock.calls[0][0] as {
+          doNotCharge: boolean
+          defaultPaymentMethodId?: string
+        }
+        expect(callArgs.doNotCharge).toBe(true)
         // Even though payment method was selected before, it should be undefined
-        expect(callArgs[0].defaultPaymentMethodId).toBeUndefined()
+        expect(callArgs.defaultPaymentMethodId).toBeUndefined()
       })
     })
   })
