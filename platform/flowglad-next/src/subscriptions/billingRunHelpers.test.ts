@@ -4,8 +4,8 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -94,6 +94,7 @@ import {
   createMockConfirmationResult,
   createMockPaymentIntentResponse,
 } from '@/test/helpers/stripeMocks'
+import { asMock } from '@/test-utils/mockHelpers'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -115,6 +116,7 @@ import {
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
+import * as stripeUtilsActual from '@/utils/stripe'
 import {
   confirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
@@ -135,15 +137,11 @@ import {
 } from './billingRunHelpers'
 
 // Mock Stripe functions
-vi.mock('@/utils/stripe', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/utils/stripe')>()
-  return {
-    ...actual,
-    createPaymentIntentForBillingRun: vi.fn(),
-    confirmPaymentIntentForBillingRun: vi.fn(),
-  }
-})
+mock.module('@/utils/stripe', () => ({
+  ...stripeUtilsActual,
+  createPaymentIntentForBillingRun: mock(() => undefined),
+  confirmPaymentIntentForBillingRun: mock(() => undefined),
+}))
 
 describe('billingRunHelpers', async () => {
   let organization: Organization.Record
@@ -1080,13 +1078,13 @@ describe('billingRunHelpers', async () => {
         await setupOverpaymentScenario()
 
         // Mock Stripe to ensure no API calls are made
-        vi.mocked(createPaymentIntentForBillingRun).mockClear()
+        asMock(createPaymentIntentForBillingRun).mockClear()
 
         await executeBillingRun(billingRun.id)
 
         // Verify no Stripe calls were made
         expect(
-          vi.mocked(createPaymentIntentForBillingRun)
+          asMock(createPaymentIntentForBillingRun)
         ).not.toHaveBeenCalled()
 
         // Verify database state is correct
@@ -1117,7 +1115,7 @@ describe('billingRunHelpers', async () => {
     describe('Stripe API Failures', () => {
       it('should rollback when payment intent creation fails', async () => {
         // Mock Stripe function to fail
-        vi.mocked(
+        asMock(
           createPaymentIntentForBillingRun
         ).mockRejectedValueOnce(new Error('Stripe API failure'))
 
@@ -1155,12 +1153,12 @@ describe('billingRunHelpers', async () => {
           },
         })
 
-        vi.mocked(
+        asMock(
           createPaymentIntentForBillingRun
         ).mockResolvedValueOnce(mockPaymentIntent)
 
         // Mock confirmation to fail (card declined scenario)
-        vi.mocked(
+        asMock(
           confirmPaymentIntentForBillingRun
         ).mockRejectedValueOnce(new Error('Your card was declined.'))
 
@@ -1213,12 +1211,12 @@ describe('billingRunHelpers', async () => {
           },
         })
 
-        vi.mocked(
+        asMock(
           createPaymentIntentForBillingRun
         ).mockResolvedValueOnce(mockPaymentIntent)
 
         // Mock confirmation API to fail (network error, Stripe API down, etc.)
-        vi.mocked(
+        asMock(
           confirmPaymentIntentForBillingRun
         ).mockRejectedValueOnce(
           new Error('Stripe API temporarily unavailable')
@@ -1292,7 +1290,7 @@ describe('billingRunHelpers', async () => {
 
         // Verify no Stripe calls were made
         expect(
-          vi.mocked(createPaymentIntentForBillingRun)
+          asMock(createPaymentIntentForBillingRun)
         ).not.toHaveBeenCalled()
       })
 
@@ -1329,7 +1327,7 @@ describe('billingRunHelpers', async () => {
 
         // Verify no Stripe calls were made
         expect(
-          vi.mocked(createPaymentIntentForBillingRun)
+          asMock(createPaymentIntentForBillingRun)
         ).not.toHaveBeenCalled()
       })
     })
@@ -1351,10 +1349,10 @@ describe('billingRunHelpers', async () => {
           { metadata: mockPaymentIntent.metadata }
         )
 
-        vi.mocked(
+        asMock(
           createPaymentIntentForBillingRun
         ).mockResolvedValueOnce(mockPaymentIntent)
-        vi.mocked(
+        asMock(
           confirmPaymentIntentForBillingRun
         ).mockResolvedValueOnce(mockConfirmationResult)
 
@@ -1411,7 +1409,7 @@ describe('billingRunHelpers', async () => {
 
         // Verify Stripe was called with correct parameters
         expect(
-          vi.mocked(createPaymentIntentForBillingRun)
+          asMock(createPaymentIntentForBillingRun)
         ).toHaveBeenCalledWith(
           expect.objectContaining({
             amount: staticBillingPeriodItem.unitPrice,
@@ -1429,7 +1427,7 @@ describe('billingRunHelpers', async () => {
         )
 
         expect(
-          vi.mocked(confirmPaymentIntentForBillingRun)
+          asMock(confirmPaymentIntentForBillingRun)
         ).toHaveBeenCalledWith(
           mockPaymentIntent.id,
           billingRun.livemode
@@ -1526,10 +1524,10 @@ describe('billingRunHelpers', async () => {
           }
         )
 
-        vi.mocked(
+        asMock(
           createPaymentIntentForBillingRun
         ).mockResolvedValueOnce(mockPaymentIntent)
-        vi.mocked(
+        asMock(
           confirmPaymentIntentForBillingRun
         ).mockResolvedValueOnce(mockConfirmationResult)
 

@@ -4,8 +4,8 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -44,6 +44,7 @@ import {
   createMockConfirmationResult,
   createMockPaymentIntentResponse,
 } from '@/test/helpers/stripeMocks'
+import { asMock } from '@/test-utils/mockHelpers'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -54,6 +55,7 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
+import * as stripeUtilsActual from '@/utils/stripe'
 import {
   confirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
@@ -61,15 +63,11 @@ import {
 import { executeBillingRun } from './billingRunHelpers'
 
 // Mock Stripe functions
-vi.mock('@/utils/stripe', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/utils/stripe')>()
-  return {
-    ...actual,
-    createPaymentIntentForBillingRun: vi.fn(),
-    confirmPaymentIntentForBillingRun: vi.fn(),
-  }
-})
+mock.module('@/utils/stripe', () => ({
+  ...stripeUtilsActual,
+  createPaymentIntentForBillingRun: mock(() => undefined),
+  confirmPaymentIntentForBillingRun: mock(() => undefined),
+}))
 
 describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
   let organization: Organization.Record
@@ -205,12 +203,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+    asMock(createPaymentIntentForBillingRun).mockResolvedValueOnce(
       mockPaymentIntent
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    asMock(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -280,12 +278,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+    asMock(createPaymentIntentForBillingRun).mockResolvedValueOnce(
       mockPaymentIntent
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    asMock(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     // Get subscription items before adjustment
     const itemsBefore = await adminTransaction(({ transaction }) =>
@@ -383,7 +381,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       },
     })
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+    asMock(createPaymentIntentForBillingRun).mockResolvedValueOnce(
       mockPaymentIntent
     )
 
@@ -395,9 +393,9 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
         metadata: mockPaymentIntent.metadata,
       }
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    asMock(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     // Get items before
     const itemsBefore = await adminTransaction(({ transaction }) =>
@@ -536,12 +534,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+    asMock(createPaymentIntentForBillingRun).mockResolvedValueOnce(
       mockPaymentIntent
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    asMock(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -550,7 +548,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     // Verify the payment intent was created (amount will be calculated from billing period items)
     expect(
-      vi.mocked(createPaymentIntentForBillingRun)
+      asMock(createPaymentIntentForBillingRun)
     ).toHaveBeenCalled()
 
     const updatedBillingRun = await adminTransaction(
@@ -648,12 +646,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+    asMock(createPaymentIntentForBillingRun).mockResolvedValueOnce(
       mockPaymentIntent
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    asMock(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -747,12 +745,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+    asMock(createPaymentIntentForBillingRun).mockResolvedValueOnce(
       mockPaymentIntent
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    asMock(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -877,12 +875,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+    asMock(createPaymentIntentForBillingRun).mockResolvedValueOnce(
       mockPaymentIntent
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    asMock(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -891,7 +889,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     // Verify payment intent was created (amount calculated from billing period items)
     expect(
-      vi.mocked(createPaymentIntentForBillingRun)
+      asMock(createPaymentIntentForBillingRun)
     ).toHaveBeenCalled()
 
     const updatedBillingRun = await adminTransaction(
@@ -950,12 +948,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+    asMock(createPaymentIntentForBillingRun).mockResolvedValueOnce(
       mockPaymentIntent
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    asMock(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -1030,12 +1028,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
+    asMock(createPaymentIntentForBillingRun).mockResolvedValueOnce(
       mockPaymentIntent
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    asMock(confirmPaymentIntentForBillingRun).mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,

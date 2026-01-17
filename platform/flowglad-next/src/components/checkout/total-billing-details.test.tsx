@@ -1,17 +1,15 @@
-/**
- * @vitest-environment jsdom
- */
-
 // @ts-nocheck
-import { render } from '@testing-library/react'
+
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
+import { render } from '@testing-library/react'
+import * as checkoutPageContextActual from '@/contexts/checkoutPageContext'
 import CheckoutPageProvider, {
   type CheckoutPageContextValues,
   subscriptionDetailsFromCheckoutInfoCore,
@@ -27,6 +25,7 @@ import { dummyOrganization } from '@/stubs/organizationStubs'
 import { subscriptionDummyPrice } from '@/stubs/priceStubs'
 import { dummyProduct } from '@/stubs/productStubs'
 import { subscriptionWithTrialDummyPurchase } from '@/stubs/purchaseStubs'
+import { asMock } from '@/test-utils/mockHelpers'
 import {
   CheckoutFlowType,
   CurrencyCode,
@@ -101,16 +100,10 @@ const mockCheckoutPageContext = (): CheckoutPageContextValues => {
 }
 
 // Mock the checkout page context
-vi.mock('@/contexts/checkoutPageContext', async (importOriginal) => {
-  const actual =
-    await importOriginal<
-      typeof import('@/contexts/checkoutPageContext')
-    >()
-  return {
-    ...actual,
-    useCheckoutPageContext: vi.fn(),
-  }
-})
+mock.module('@/contexts/checkoutPageContext', () => ({
+  ...checkoutPageContextActual,
+  useCheckoutPageContext: mock(() => undefined),
+}))
 
 // Test data setup - shared across all tests
 const mockPrice = {
@@ -260,7 +253,7 @@ describe('calculateTotalBillingDetails', () => {
 
 describe('price flow', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    // Mocks are automatically reset between tests in bun:test
   })
 
   it('should handle basic no discount, no feeCalculation', async () => {
@@ -451,7 +444,7 @@ describe('price flow', () => {
 
 describe('invoice flow', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    // Mocks are automatically reset between tests in bun:test
   })
 
   it('should handle basic no discount, no feeCalculation', async () => {
@@ -526,7 +519,7 @@ describe('invoice flow', () => {
 
 describe('TotalBillingDetails', () => {
   beforeEach(async () => {
-    vi.clearAllMocks()
+    // Mocks are automatically reset between tests in bun:test
   })
 
   describe('component rendering', () => {
@@ -573,7 +566,7 @@ describe('TotalBillingDetails', () => {
         clientSecret: '123',
       }
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { container } = render(<TotalBillingDetails />)
@@ -595,7 +588,7 @@ describe('TotalBillingDetails', () => {
         },
       })
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText, getByTestId } = render(
@@ -627,7 +620,7 @@ describe('TotalBillingDetails', () => {
         },
       })
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -653,7 +646,7 @@ describe('TotalBillingDetails', () => {
         },
       })
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -683,7 +676,7 @@ describe('TotalBillingDetails', () => {
         },
       })
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText, getByTestId } = render(
@@ -744,7 +737,7 @@ describe('TotalBillingDetails', () => {
         subscriptionDetails,
       })
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { queryByText, getByTestId } = render(
@@ -774,7 +767,7 @@ describe('TotalBillingDetails', () => {
         },
       })
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText, getByTestId } = render(
@@ -813,7 +806,7 @@ describe('TotalBillingDetails', () => {
         },
       }
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { queryByText } = render(<TotalBillingDetails />)
@@ -840,7 +833,7 @@ describe('TotalBillingDetails', () => {
         subscriptionDetails: undefined,
       }
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -873,7 +866,7 @@ describe('TotalBillingDetails', () => {
         subscriptionDetails: undefined,
       }
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -910,7 +903,7 @@ describe('TotalBillingDetails', () => {
         },
       }
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { container, queryByText } = render(
@@ -944,7 +937,7 @@ describe('TotalBillingDetails', () => {
         },
       }
 
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      asMock(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText, getAllByText } = render(
