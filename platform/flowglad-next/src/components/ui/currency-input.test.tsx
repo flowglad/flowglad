@@ -209,17 +209,7 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should handle allowDecimals prop', () => {
-      const onValueChange = mock(
-        (
-          _value?: string,
-          _name?: string,
-          _values?: {
-            float: number | null
-            formatted: string
-            value: string
-          }
-        ) => undefined
-      )
+      const onValueChange = mock(() => undefined)
       render(
         <CurrencyInput
           allowDecimals={false}
