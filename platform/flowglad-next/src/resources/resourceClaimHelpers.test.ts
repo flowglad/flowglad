@@ -33,9 +33,7 @@ import {
   getResourceUsage,
   getResourceUsageInputSchema,
   releaseAllResourceClaimsForSubscription,
-  releaseAllResourceClaimsForSubscriptionItemFeature,
   releaseResourceTransaction,
-  validateResourceCapacityForDowngrade,
 } from './resourceClaimHelpers'
 
 describe('resourceClaimHelpers', () => {
@@ -176,7 +174,6 @@ describe('resourceClaimHelpers', () => {
       for (let i = 0; i < 5; i++) {
         await setupResourceClaim({
           organizationId: organization.id,
-          subscriptionItemFeatureId: subscriptionItemFeature.id,
           resourceId: resource.id,
           subscriptionId: subscription.id,
           pricingModelId: pricingModel.id,
@@ -439,7 +436,10 @@ describe('resourceClaimHelpers', () => {
       const activeClaims = await adminTransaction(
         async ({ transaction }) => {
           return selectActiveResourceClaims(
-            { subscriptionItemFeatureId: subscriptionItemFeature.id },
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
             transaction
           )
         }
@@ -625,77 +625,6 @@ describe('resourceClaimHelpers', () => {
     })
   })
 
-  describe('validateResourceCapacityForDowngrade', () => {
-    it('when active claims are less than or equal to new capacity, passes validation without error', async () => {
-      // Create 2 claims
-      await adminTransaction(async ({ transaction }) => {
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
-            },
-          },
-          transaction
-        )
-      })
-
-      // Validate downgrade to capacity of 3 (greater than 2 claims) - should pass
-      await adminTransaction(async ({ transaction }) => {
-        await validateResourceCapacityForDowngrade(
-          subscription.id,
-          subscriptionItemFeature.id,
-          3,
-          transaction
-        )
-      })
-
-      // Validate downgrade to capacity of 2 (equal to claims) - should pass
-      await adminTransaction(async ({ transaction }) => {
-        await validateResourceCapacityForDowngrade(
-          subscription.id,
-          subscriptionItemFeature.id,
-          2,
-          transaction
-        )
-      })
-      // If we reach here without throwing, validation passed
-    })
-
-    it('when active claims exceed new capacity, throws an error with release instructions', async () => {
-      // Create 5 claims
-      await adminTransaction(async ({ transaction }) => {
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 5,
-            },
-          },
-          transaction
-        )
-      })
-
-      // Try to downgrade to capacity of 3
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return validateResourceCapacityForDowngrade(
-            subscription.id,
-            subscriptionItemFeature.id,
-            3,
-            transaction
-          )
-        })
-      ).rejects.toThrow('Cannot reduce capacity to 3')
-    })
-  })
-
   describe('releaseAllResourceClaimsForSubscription', () => {
     it('releases all active claims for a subscription with the given reason, including both anonymous and named claims', async () => {
       // Create mixed claims: 3 anonymous + 2 named = 5 total
@@ -769,81 +698,6 @@ describe('resourceClaimHelpers', () => {
     })
   })
 
-  describe('releaseAllResourceClaimsForSubscriptionItemFeature', () => {
-    it('releases all active claims for a subscription item feature with the given reason and returns accurate count', async () => {
-      // Create mixed claims: 2 anonymous + 2 named = 4 total
-      await adminTransaction(async ({ transaction }) => {
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
-            },
-          },
-          transaction
-        )
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalIds: ['feature_user_1', 'feature_user_2'],
-            },
-          },
-          transaction
-        )
-      })
-
-      // Release all claims for the subscription item feature
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return releaseAllResourceClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'feature_removed',
-            transaction
-          )
-        }
-      )
-
-      expect(result.releasedCount).toBe(4)
-
-      // Verify all claims are released
-      const activeClaims = await adminTransaction(
-        async ({ transaction }) => {
-          return selectActiveResourceClaims(
-            {
-              subscriptionItemFeatureId: subscriptionItemFeature.id,
-            },
-            transaction
-          )
-        }
-      )
-      expect(activeClaims.length).toBe(0)
-    })
-
-    it('when there are no active claims, returns releasedCount of 0', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return releaseAllResourceClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'feature_removed',
-            transaction
-          )
-        }
-      )
-
-      expect(result.releasedCount).toBe(0)
-    })
-  })
-
   describe('getResourceUsage', () => {
     it('returns accurate capacity, claimed count, and available slots', async () => {
       // Create 3 claims
@@ -866,7 +720,7 @@ describe('resourceClaimHelpers', () => {
         async ({ transaction }) => {
           return getResourceUsage(
             subscription.id,
-            subscriptionItemFeature.id,
+            resource.id,
             transaction
           )
         }
@@ -884,7 +738,7 @@ describe('resourceClaimHelpers', () => {
         async ({ transaction }) => {
           return getResourceUsage(
             subscription.id,
-            subscriptionItemFeature.id,
+            resource.id,
             transaction
           )
         }
@@ -1113,7 +967,10 @@ describe('resourceClaimHelpers', () => {
       const activeClaims = await adminTransaction(
         async ({ transaction }) => {
           return selectActiveResourceClaims(
-            { subscriptionItemFeatureId: subscriptionItemFeature.id },
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
             transaction
           )
         }

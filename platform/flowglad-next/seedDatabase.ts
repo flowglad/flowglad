@@ -2776,7 +2776,6 @@ export const setupResource = async (params: {
 
 export const setupResourceClaim = async (params: {
   organizationId: string
-  subscriptionItemFeatureId: string
   resourceId: string
   subscriptionId: string
   pricingModelId: string
@@ -2787,7 +2786,6 @@ export const setupResourceClaim = async (params: {
     return insertResourceClaim(
       {
         organizationId: params.organizationId,
-        subscriptionItemFeatureId: params.subscriptionItemFeatureId,
         resourceId: params.resourceId,
         subscriptionId: params.subscriptionId,
         pricingModelId: params.pricingModelId,
