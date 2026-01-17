@@ -1,12 +1,12 @@
-import Stripe from 'stripe'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
+import Stripe from 'stripe'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -743,12 +743,11 @@ describe('Process setup intent', async () => {
       const mockDate = new Date(2024, 0, 1, 12, 0, 0) // Jan 1, 2024, 12:00:00
 
       beforeEach(() => {
-        vi.useFakeTimers()
-        vi.setSystemTime(mockDate)
+        mock.setSystemTime(mockDate)
       })
 
       afterEach(() => {
-        vi.useRealTimers()
+        mock.setSystemTime() // restores real time
       })
 
       it('should return a future date for trialPeriodDays = 7', () => {
