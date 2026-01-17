@@ -292,8 +292,24 @@ export async function getPricingModelSetupData(
 
   // Transform products with prices (products only have subscription/single payment prices)
   // Usage prices now belong to usage meters, not products
-  const transformedProducts = productsWithPrices.map(
-    ({ prices, ...product }) => {
+  // Filter out:
+  // 1. Inactive products
+  // 2. Products that only have usage prices (legacy artifacts after migration 0266)
+  //
+  // FIXME: This filter for usage-only products can be removed after running a data
+  // migration to either delete or set inactive the legacy "usage products" that were
+  // created before migration 0266 (which moved usage prices to belong to usage meters
+  // instead of products). These products now serve no purpose and cause export failures.
+  const transformedProducts = productsWithPrices
+    .filter((p) => {
+      if (!p.active) return false
+      // Skip products that only have usage prices - these are legacy artifacts
+      const hasNonUsagePrice = p.prices.some(
+        (price) => price.type !== PriceType.Usage
+      )
+      return hasNonUsagePrice
+    })
+    .map(({ prices, ...product }) => {
       // Find the single active default price (should be subscription or single payment)
       const activeDefaultPrice = prices.find(
         (price) => price.active && price.isDefault
@@ -366,8 +382,7 @@ export async function getPricingModelSetupData(
         price: transformedPrice,
         features: featureSlugsByProductId.get(product.id) || [],
       }
-    }
-  )
+    })
 
   // Usage prices are nested under their meters in transformedUsageMeters
   // No need for virtualProductsForUsagePrices - that pattern is deprecated
