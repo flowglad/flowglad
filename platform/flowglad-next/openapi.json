@@ -18657,7 +18657,7 @@
             }
           },
           "defaultPrice": {
-            "description": "The default price for the usage meter. If no price is explicitly set as default, will return undefined.",
+            "description": "The default price for the usage meter. If no price is explicitly set as default, will return the first price.",
             "$ref": "#/components/schemas/UsagePriceClientSelectSchema"
           }
         },

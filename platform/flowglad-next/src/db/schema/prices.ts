@@ -729,7 +729,7 @@ export const usageMeterWithPricesSchema =
       defaultPrice: usagePriceClientSelectSchema
         .optional()
         .describe(
-          'The default price for the usage meter. If no price is explicitly set as default, will return undefined.'
+          'The default price for the usage meter. If no price is explicitly set as default, will return the first price.'
         ),
     })
     .meta({

@@ -132,7 +132,7 @@ export const constructGetPrice = (
 
   // Collect prices from usage meters (usage prices)
   // Usage prices are now nested under usageMeters[].prices instead of products
-  // Cast to handle the new schema shape where usageMeters have prices
+  // Cast needed until @flowglad/node types are regenerated from updated OpenAPI spec
   type UsageMeterWithPrices = {
     prices?: Price[]
   }
