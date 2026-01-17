@@ -55,16 +55,16 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
-// Mock Stripe functions
-import * as stripeActual from '@/utils/stripe'
+import * as stripeUtilsActual from '@/utils/stripe'
 import {
   confirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
 } from '@/utils/stripe'
 import { executeBillingRun } from './billingRunHelpers'
 
+// Mock Stripe functions
 mock.module('@/utils/stripe', () => ({
-  ...stripeActual,
+  ...stripeUtilsActual,
   createPaymentIntentForBillingRun: mock(() => undefined),
   confirmPaymentIntentForBillingRun: mock(() => undefined),
 }))

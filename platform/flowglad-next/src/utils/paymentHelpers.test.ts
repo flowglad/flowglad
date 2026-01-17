@@ -23,6 +23,7 @@ import {
   sumNetTotalSettledPaymentsForPaymentSet,
 } from './paymentHelpers'
 import * as stripeUtils from './stripe'
+import * as stripeUtilsActual from './stripe'
 
 const makeStripeRefundResponse = ({
   amount,
@@ -57,10 +58,8 @@ const makeStripeRefundResponse = ({
 }
 
 // Mock the stripe utils
-import * as stripeActual from './stripe'
-
 mock.module('./stripe', () => ({
-  ...stripeActual,
+  ...stripeUtilsActual,
   refundPayment: mock(() => undefined),
   getPaymentIntent: mock(() => undefined),
   getStripeCharge: mock(() => undefined),
@@ -214,8 +213,7 @@ describe('refundPaymentTransaction', () => {
   let payment: Payment.Record
 
   beforeEach(async () => {
-    asMock(stripeUtils.refundPayment).mockClear()
-    asMock(stripeUtils.reverseStripeTaxTransaction).mockClear()
+    // Mocks are automatically reset between tests in bun:test
 
     const setup = await setupOrg()
     organization = setup.organization

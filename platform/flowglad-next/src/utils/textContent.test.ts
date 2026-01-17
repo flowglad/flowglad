@@ -12,7 +12,6 @@ import {
   updatePricingModel,
 } from '@/db/tableMethods/pricingModelMethods'
 import { asMock } from '@/test-utils/mockHelpers'
-// Mock Cloudflare functions
 import * as cloudflareActual from './cloudflare'
 import {
   generateContentHash,
@@ -26,6 +25,7 @@ import {
   savePricingModelIntegrationMarkdown,
 } from './textContent'
 
+// Mock Cloudflare functions
 mock.module('./cloudflare', () => ({
   ...cloudflareActual,
   putMarkdownFile: mock(() => undefined),

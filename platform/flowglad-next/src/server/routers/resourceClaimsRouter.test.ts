@@ -1,14 +1,12 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { TRPCError } from '@trpc/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as coreActual from '@/utils/core'
 
 // Mock IS_DEV to true since resourceClaimsRouter uses devOnlyProcedure
-vi.mock('@/utils/core', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/utils/core')>()
-  return {
-    ...actual,
-    IS_DEV: true,
-  }
-})
+mock.module('@/utils/core', () => ({
+  ...coreActual,
+  IS_DEV: true,
+}))
 
 import {
   setupCustomer,
