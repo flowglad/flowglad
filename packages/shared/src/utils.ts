@@ -121,12 +121,35 @@ export const constructGetProduct = (
 export const constructGetPrice = (
   catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog']
 ) => {
-  const pricesBySlug = new Map(
+  type Price =
+    FlowgladNode.CustomerRetrieveBillingResponse['catalog']['products'][number]['prices'][number]
+
+  // Collect prices from products (subscription and single payment prices)
+  const productPrices: Array<readonly [string | null, Price]> =
     catalog.products.flatMap((product) =>
-      product.prices.map((price) => [price.slug, price])
+      product.prices.map((price) => [price.slug, price] as const)
+    )
+
+  // Collect prices from usage meters (usage prices)
+  // Usage prices are now nested under usageMeters[].prices instead of products
+  // Cast to handle the new schema shape where usageMeters have prices
+  type UsageMeterWithPrices = {
+    prices?: Price[]
+  }
+  const usageMeterPrices: Array<readonly [string | null, Price]> = (
+    catalog.usageMeters as UsageMeterWithPrices[]
+  ).flatMap((usageMeter) =>
+    (usageMeter.prices ?? []).map(
+      (price) => [price.slug, price] as const
     )
   )
-  const getPrice = (priceSlug: string) => {
+
+  const pricesBySlug = new Map<string | null, Price>([
+    ...productPrices,
+    ...usageMeterPrices,
+  ])
+
+  const getPrice = (priceSlug: string): Price | null => {
     return pricesBySlug.get(priceSlug) ?? null
   }
   return getPrice

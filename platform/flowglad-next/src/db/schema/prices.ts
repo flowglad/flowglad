@@ -718,11 +718,33 @@ export type ProductWithPrices = z.infer<
   typeof productWithPricesSchema
 >
 
+/**
+ * Schema for usage meters with their associated prices.
+ * Usage prices are now directly associated with usage meters (productId = null).
+ */
+export const usageMeterWithPricesSchema =
+  usageMetersClientSelectSchema
+    .extend({
+      prices: z.array(usagePriceClientSelectSchema),
+      defaultPrice: usagePriceClientSelectSchema
+        .optional()
+        .describe(
+          'The default price for the usage meter. If no price is explicitly set as default, will return undefined.'
+        ),
+    })
+    .meta({
+      id: 'UsageMeterWithPricesRecord',
+    })
+
+export type UsageMeterWithPrices = z.infer<
+  typeof usageMeterWithPricesSchema
+>
+
 export const pricingModelWithProductsAndUsageMetersSchema =
   pricingModelsClientSelectSchema
     .extend({
       products: z.array(productWithPricesSchema),
-      usageMeters: z.array(usageMetersClientSelectSchema),
+      usageMeters: z.array(usageMeterWithPricesSchema),
       defaultProduct: productWithPricesSchema
         .optional()
         .describe(
