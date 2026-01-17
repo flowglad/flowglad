@@ -67,13 +67,10 @@ export const CustomerSubscriptionCreatedEmail = ({
     ? `${formattedPrice}/${getIntervalText(interval)}`
     : formattedPrice
 
-  // Determine header title and preview text based on whether this is a trial
-  const headerTitle = trial
-    ? 'Subscription Confirmed'
-    : 'Payment method confirmed'
-  const previewText = trial
-    ? 'Your Subscription is Confirmed'
-    : 'Payment method confirmed - Subscription active'
+  // Both trial and non-trial use unified "Subscription Confirmed" messaging
+  // per Apple-inspired patterns in subscription-email-improvements.md
+  const headerTitle = 'Subscription Confirmed'
+  const previewText = 'Your Subscription is Confirmed'
 
   return (
     <EmailLayout previewText={previewText}>

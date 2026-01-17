@@ -149,10 +149,9 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
       }
     }
 
-    // Determine subject line based on whether this is a trial
-    const subjectLine = isTrialWithPaymentMethod
-      ? 'Your Subscription is Confirmed'
-      : 'Payment method confirmed - Subscription active'
+    // Unified subject line for all subscription confirmations (trial and non-trial)
+    // per Apple-inspired patterns in subscription-email-improvements.md
+    const subjectLine = 'Your Subscription is Confirmed'
 
     const result = await safeSend({
       from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,

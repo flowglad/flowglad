@@ -76,7 +76,7 @@ const sendCustomerTrialExpiredNotificationTask = task({
       bcc: getBccForLivemode(subscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(
-        'Your Trial Has Ended - Add Payment to Continue',
+        'Action Required: Update Your Payment Method',
         subscription.livemode
       ),
       react: await CustomerTrialExpiredNoPaymentEmail({

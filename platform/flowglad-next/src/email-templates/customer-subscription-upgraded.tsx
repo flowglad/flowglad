@@ -80,18 +80,18 @@ export const CustomerSubscriptionUpgradedEmail = ({
     ? `${formattedPrice}/${getIntervalText(interval)}`
     : formattedPrice
 
+  // Use "Subscription Confirmed" for Free → Paid upgrades (first-time paid subscription)
+  // per Apple-inspired patterns in subscription-email-improvements.md
   return (
-    <EmailLayout previewText="Payment method confirmed - Subscription upgraded">
+    <EmailLayout previewText="Your Subscription is Confirmed">
       <Header
-        title="Subscription upgraded"
+        title="Subscription Confirmed"
         organizationLogoUrl={organizationLogoUrl}
       />
 
       <Paragraph>Hi {customerName},</Paragraph>
 
-      <Paragraph>
-        Your subscription has been successfully upgraded.
-      </Paragraph>
+      <Paragraph>You've subscribed to the following:</Paragraph>
 
       <DetailSection>
         <DetailItem dataTestId="previous-plan">
@@ -116,15 +116,38 @@ export const CustomerSubscriptionUpgradedEmail = ({
         )}
       </DetailSection>
 
-      {nextBillingDate && (
-        <Paragraph style={{ marginTop: '24px' }}>
-          Your {trialing ? 'first charge' : 'next charge'} of{' '}
-          {formattedPrice} will be processed on{' '}
-          {formatDate(nextBillingDate)}.
-          {paymentMethodLast4 &&
-            ` The payment method ending in ${paymentMethodLast4} will be used.`}
-        </Paragraph>
+      {trialing && nextBillingDate ? (
+        <div data-testid="trial-auto-renew-notice">
+          <Paragraph style={{ marginTop: '24px' }}>
+            Your subscription automatically renews until canceled. To
+            avoid being charged, you must cancel at least a day before{' '}
+            {formatDate(nextBillingDate)}.
+          </Paragraph>
+          <Paragraph style={{ marginTop: '16px' }}>
+            The payment method
+            {paymentMethodLast4
+              ? ` ending in ${paymentMethodLast4}`
+              : ''}{' '}
+            will be used when your trial ends.
+          </Paragraph>
+        </div>
+      ) : (
+        nextBillingDate && (
+          <Paragraph style={{ marginTop: '24px' }}>
+            Your {trialing ? 'first charge' : 'next charge'} of{' '}
+            {formattedPrice} will be processed on{' '}
+            {formatDate(nextBillingDate)}.
+            {paymentMethodLast4 &&
+              ` The payment method ending in ${paymentMethodLast4} will be used.`}
+          </Paragraph>
+        )
       )}
+
+      <Paragraph
+        style={{ marginTop: '16px', color: '#666', fontSize: '14px' }}
+      >
+        Your subscription automatically renews until canceled.
+      </Paragraph>
 
       <Paragraph style={{ marginTop: '16px' }}>
         You can manage your subscription and payment methods at any

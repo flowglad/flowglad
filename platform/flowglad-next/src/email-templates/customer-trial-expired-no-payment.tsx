@@ -31,10 +31,10 @@ export const CustomerTrialExpiredNoPaymentEmail = ({
   livemode,
 }: CustomerTrialExpiredNoPaymentEmailProps) => {
   return (
-    <EmailLayout previewText="Your Trial Has Ended - Add Payment to Continue">
+    <EmailLayout previewText="Action Required: Update Your Payment Method">
       <TestModeBanner livemode={livemode} />
       <Header
-        title="Trial Ended"
+        title="Update Your Payment Method"
         organizationLogoUrl={organizationLogoUrl}
       />
 

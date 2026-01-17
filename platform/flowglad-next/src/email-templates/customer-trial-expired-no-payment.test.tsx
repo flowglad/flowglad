@@ -24,7 +24,7 @@ describe('CustomerTrialExpiredNoPaymentEmail', () => {
     )
 
     expect(getByTestId('email-title')).toHaveTextContent(
-      'Trial Ended'
+      'Update Your Payment Method'
     )
   })
 

@@ -150,7 +150,7 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     )
 
     expect(getByTestId('email-title')).toHaveTextContent(
-      'Payment method confirmed'
+      'Subscription Confirmed'
     )
     expect(getByAltText('Logo')).toHaveAttribute(
       'src',

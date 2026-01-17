@@ -90,9 +90,6 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
       }
     }
 
-    const isUpgrade = payload.adjustmentType === 'upgrade'
-    const subjectAction = isUpgrade ? 'upgraded' : 'updated'
-
     // Calculate totals from items
     const previousTotalPrice = payload.previousItems.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
@@ -108,12 +105,14 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
       ? new Date(subscription.currentBillingPeriodEnd)
       : undefined
 
+    // Unified subject line for all Paid → Paid adjustments (regardless of direction)
+    // per Apple-inspired patterns in subscription-email-improvements.md
     const result = await safeSend({
       from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
       bcc: getBccForLivemode(subscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(
-        `Your subscription has been ${subjectAction}`,
+        'Your Subscription has been Updated',
         subscription.livemode
       ),
       react: await CustomerSubscriptionAdjustedEmail({

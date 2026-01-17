@@ -502,8 +502,8 @@ export const TrialEndingSoonPreview = ({
   livemode = true,
 }: TrialEndingSoonPreviewProps) => {
   const scenario = hasPaymentMethod
-    ? `Trial ending (${daysRemaining} days, with payment method)`
-    : `Trial ending (${daysRemaining} days, no payment method)`
+    ? `Trial ending in ${daysRemaining} days - payment method on file, will auto-convert to paid subscription`
+    : `Trial ending in ${daysRemaining} days - no payment method, prompts customer to add one`
 
   return (
     <EmailPreviewWrapper
@@ -553,7 +553,7 @@ export const TrialExpiredNoPaymentPreview = ({
   return (
     <EmailPreviewWrapper
       templateName="customer-trial-expired-no-payment"
-      scenario="Trial expired without payment method"
+      scenario="Trial has expired and no payment method was added - subscription is now inactive"
       subject="Your Trial Has Ended - Add Payment to Continue"
       previewText="Your Trial Has Ended - Add Payment to Continue"
       livemode={livemode}

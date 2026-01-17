@@ -714,7 +714,8 @@ export const TRIGGER_DOCS: Record<EmailType, TriggerInfo> = {
       'Customer has not yet been notified for this trial period',
     ],
     relatedEvents: ['subscription.updated', 'subscription.canceled'],
-    docsUrl: 'https://docs.flowglad.com/webhooks/subscription-trial-will-end',
+    docsUrl:
+      'https://docs.flowglad.com/webhooks/subscription-trial-will-end',
     samplePayload: JSON.stringify(
       {
         id: 'evt_6tuv678',
@@ -751,8 +752,12 @@ export const TRIGGER_DOCS: Record<EmailType, TriggerInfo> = {
       'No payment method is attached to the subscription',
       'Subscription status changes to inactive or past_due',
     ],
-    relatedEvents: ['subscription.canceled', 'customer.subscription.paused'],
-    docsUrl: 'https://docs.flowglad.com/webhooks/subscription-trial-expired',
+    relatedEvents: [
+      'subscription.canceled',
+      'customer.subscription.paused',
+    ],
+    docsUrl:
+      'https://docs.flowglad.com/webhooks/subscription-trial-expired',
     samplePayload: JSON.stringify(
       {
         id: 'evt_7wxy901',

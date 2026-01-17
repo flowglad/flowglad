@@ -32,17 +32,18 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     trialing: true,
   }
 
-  it('renders upgrade-specific subject line', () => {
+  it('renders subscription confirmed title and message', () => {
     const { getByText, getByTestId } = render(
       <CustomerSubscriptionUpgradedEmail {...baseProps} />
     )
 
-    // Check that key text content is present
+    // Check that key text content is present - now uses "Subscription Confirmed" messaging
+    // per Apple-inspired patterns in subscription-email-improvements.md
     expect(
-      getByText('Your subscription has been successfully upgraded.')
+      getByText("You've subscribed to the following:")
     ).toBeInTheDocument()
     expect(getByTestId('email-title')).toHaveTextContent(
-      'Subscription upgraded'
+      'Subscription Confirmed'
     )
   })
 
@@ -220,58 +221,50 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     expect(button).toHaveTextContent('Manage Subscription →')
   })
 
-  it('displays upgrade-specific header title', () => {
+  it('displays subscription confirmed header title', () => {
     const { getByTestId } = render(
       <CustomerSubscriptionUpgradedEmail {...baseProps} />
     )
 
+    // Now uses "Subscription Confirmed" per Apple-inspired patterns
     expect(getByTestId('email-title')).toHaveTextContent(
-      'Subscription upgraded'
+      'Subscription Confirmed'
     )
   })
 
-  it('shows clear message about the upgrade in body', () => {
+  it('shows clear message about subscription in body', () => {
     const { getByText } = render(
       <CustomerSubscriptionUpgradedEmail {...baseProps} />
     )
 
+    // Now uses "You've subscribed to the following:" messaging
     expect(
-      getByText('Your subscription has been successfully upgraded.')
+      getByText("You've subscribed to the following:")
     ).toBeInTheDocument()
   })
 
-  it('includes next charge information in body text if not trialing', () => {
+  it('includes auto-renewal notice', () => {
     const { getByText } = render(
       <CustomerSubscriptionUpgradedEmail {...baseProps} />
     )
 
-    // Check for the charge text - the date formatting may vary
-    const chargeText = getByText((content, element) => {
-      return (
-        element?.tagName === 'P' &&
-        content.includes(
-          'Your next charge of $49.00 will be processed'
-        )
-      )
-    })
-    expect(chargeText).toBeInTheDocument()
+    // Should include auto-renewal transparency notice
+    expect(
+      getByText('Your subscription automatically renews until canceled.')
+    ).toBeInTheDocument()
   })
 
-  it('includes first charge information in body text if trialing', () => {
-    const { getByText } = render(
+  it('includes trial auto-renewal notice when trialing', () => {
+    const { getByTestId } = render(
       <CustomerSubscriptionUpgradedEmail {...trialingProps} />
     )
 
-    // Check for the charge text - the date formatting may vary
-    const chargeText = getByText((content, element) => {
-      return (
-        element?.tagName === 'P' &&
-        content.includes(
-          'Your first charge of $49.00 will be processed'
-        )
-      )
-    })
-    expect(chargeText).toBeInTheDocument()
+    // Should include trial-specific auto-renewal notice with cancel deadline
+    const autoRenewNotice = getByTestId('trial-auto-renew-notice')
+    expect(autoRenewNotice).toBeInTheDocument()
+    expect(autoRenewNotice.textContent).toContain(
+      'Your subscription automatically renews until canceled'
+    )
   })
 
   it('handles missing payment method gracefully', () => {
@@ -284,16 +277,10 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     )
 
     expect(queryByTestId('payment-method')).not.toBeInTheDocument()
-    // Should still show first charge date without payment method details
-    const chargeText = getByText((content, element) => {
-      return (
-        element?.tagName === 'P' &&
-        content.includes(
-          'Your next charge of $49.00 will be processed'
-        )
-      )
-    })
-    expect(chargeText).toBeInTheDocument()
+    // Should still show auto-renewal notice
+    expect(
+      getByText('Your subscription automatically renews until canceled.')
+    ).toBeInTheDocument()
   })
 
   it('displays customer greeting correctly', () => {

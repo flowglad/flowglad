@@ -23,6 +23,8 @@ import {
   SubscriptionCancellationScheduledPreview,
   SubscriptionCreatedPreview,
   SubscriptionUpgradedPreview,
+  TrialEndingSoonPreview,
+  TrialExpiredNoPaymentPreview,
 } from './SubscriptionEmailPreviews'
 
 // ============================================================================
@@ -36,6 +38,7 @@ interface SearchParams {
   testMode?: string
   hasRetry?: string
   view?: string
+  hasPayment?: string
 }
 
 // ============================================================================
@@ -106,6 +109,16 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
   'purchase-access-token': ({ livemode }) => (
     <PurchaseAccessTokenPreview livemode={livemode} />
   ),
+  // Trial-related emails
+  'trial-ending-soon': ({ hasPaymentMethod, livemode }) => (
+    <TrialEndingSoonPreview
+      hasPaymentMethod={hasPaymentMethod}
+      livemode={livemode}
+    />
+  ),
+  'trial-expired-no-payment': ({ livemode }) => (
+    <TrialExpiredNoPaymentPreview livemode={livemode} />
+  ),
 }
 
 // ============================================================================
@@ -119,6 +132,7 @@ const parseSearchParams = (params: SearchParams): ParsedParams => ({
   livemode: params.testMode !== 'true', // Invert once at source
   hasRetry: params.hasRetry !== 'false', // default to true
   viewType: getViewType(params.view),
+  hasPaymentMethod: params.hasPayment !== 'false', // default to true
 })
 
 // ============================================================================
