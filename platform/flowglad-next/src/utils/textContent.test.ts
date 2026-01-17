@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { setupOrg, setupPricingModel } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -11,6 +11,9 @@ import {
   selectPricingModelById,
   updatePricingModel,
 } from '@/db/tableMethods/pricingModelMethods'
+import { asMock } from '@/test-utils/mockHelpers'
+// Mock Cloudflare functions
+import * as cloudflareActual from './cloudflare'
 import {
   generateContentHash,
   getMarkdownFile,
@@ -23,15 +26,11 @@ import {
   savePricingModelIntegrationMarkdown,
 } from './textContent'
 
-// Mock Cloudflare functions
-vi.mock('./cloudflare', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('./cloudflare')>()
-  return {
-    ...actual,
-    putMarkdownFile: vi.fn(),
-    getMarkdownFile: vi.fn(),
-  }
-})
+mock.module('./cloudflare', () => ({
+  ...cloudflareActual,
+  putMarkdownFile: mock(() => undefined),
+  getMarkdownFile: mock(() => undefined),
+}))
 
 describe('saveOrganizationCodebaseMarkdown', () => {
   let organization: Organization.Record
@@ -43,7 +42,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
   it('should successfully save markdown and update organization codebaseMarkdownHash', async () => {
     const markdown =
       '# Test Codebase Documentation\n\nThis is test content.'
-    vi.mocked(putMarkdownFile).mockResolvedValue(undefined)
+    asMock(putMarkdownFile).mockResolvedValue(undefined)
 
     await saveOrganizationCodebaseMarkdown({
       organizationId: organization.id,
@@ -52,7 +51,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
     // Verify putMarkdownFile was called with correct parameters
     expect(putMarkdownFile).toHaveBeenCalledTimes(1)
-    const putCall = vi.mocked(putMarkdownFile).mock.calls[0][0]
+    const putCall = asMock(putMarkdownFile).mock.calls[0][0]
     expect(putCall.organizationId).toBe(organization.id)
     expect(putCall.markdown).toBe(markdown)
     expect(putCall.key).toMatch(/^codebase-[a-f0-9]{64}\.md$/)
@@ -70,7 +69,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
   it('should throw an error when organization is not found', async () => {
     const nonExistentOrgId = 'org_nonexistent'
-    vi.mocked(putMarkdownFile).mockClear()
+    asMock(putMarkdownFile).mockClear()
 
     await expect(
       saveOrganizationCodebaseMarkdown({
@@ -85,7 +84,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
   it('should generate a hash based on the organization securitySalt and the markdown content', async () => {
     const markdown = '# Test Content'
-    vi.mocked(putMarkdownFile).mockResolvedValue(undefined)
+    asMock(putMarkdownFile).mockResolvedValue(undefined)
 
     await saveOrganizationCodebaseMarkdown({
       organizationId: organization.id,
@@ -109,7 +108,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
   it('should call putMarkdownFile before updateOrganization', async () => {
     const markdown = '# Test Content'
     let putMarkdownFileCalled = false
-    vi.mocked(putMarkdownFile).mockImplementation(async () => {
+    asMock(putMarkdownFile).mockImplementation(async () => {
       putMarkdownFileCalled = true
       return Promise.resolve()
     })
@@ -138,7 +137,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
   it('should generate different hashes for different markdown content', async () => {
     const markdown1 = '# First Content'
     const markdown2 = '# Second Content'
-    vi.mocked(putMarkdownFile).mockResolvedValue(undefined)
+    asMock(putMarkdownFile).mockResolvedValue(undefined)
 
     // First save
     await saveOrganizationCodebaseMarkdown({
@@ -154,11 +153,11 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     const firstHash = orgAfterFirst?.codebaseMarkdownHash
     expect(typeof firstHash).toBe('string')
 
-    const firstPutCall = vi.mocked(putMarkdownFile).mock.calls[0][0]
+    const firstPutCall = asMock(putMarkdownFile).mock.calls[0][0]
     expect(firstPutCall.key).toBe(`codebase-${firstHash}.md`)
 
     // Second save with different content
-    vi.mocked(putMarkdownFile).mockClear()
+    asMock(putMarkdownFile).mockClear()
     await saveOrganizationCodebaseMarkdown({
       organizationId: organization.id,
       markdown: markdown2,
@@ -173,7 +172,7 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     expect(typeof secondHash).toBe('string')
     expect(secondHash).not.toBe(firstHash)
 
-    const secondPutCall = vi.mocked(putMarkdownFile).mock.calls[0][0]
+    const secondPutCall = asMock(putMarkdownFile).mock.calls[0][0]
     expect(secondPutCall.key).toBe(`codebase-${secondHash}.md`)
     expect(secondPutCall.key).not.toBe(firstPutCall.key)
   })
@@ -202,7 +201,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
       )
     })
 
-    vi.mocked(getMarkdownFile).mockResolvedValue(expectedContent)
+    asMock(getMarkdownFile).mockResolvedValue(expectedContent)
 
     const result = await getOrganizationCodebaseMarkdown(
       organization.id
@@ -210,14 +209,14 @@ describe('getOrganizationCodebaseMarkdown', () => {
 
     expect(result).toBe(expectedContent)
     expect(getMarkdownFile).toHaveBeenCalledTimes(1)
-    const getCall = vi.mocked(getMarkdownFile).mock.calls[0][0]
+    const getCall = asMock(getMarkdownFile).mock.calls[0][0]
     expect(getCall.organizationId).toBe(organization.id)
     expect(getCall.key).toBe(`codebase-${testHash}.md`)
   })
 
   it('should throw an error when organization is not found', async () => {
     const nonExistentOrgId = 'org_nonexistent'
-    vi.mocked(getMarkdownFile).mockClear()
+    asMock(getMarkdownFile).mockClear()
 
     await expect(
       getOrganizationCodebaseMarkdown(nonExistentOrgId)
@@ -236,7 +235,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
       )
     })
 
-    vi.mocked(getMarkdownFile).mockClear()
+    asMock(getMarkdownFile).mockClear()
 
     const result = await getOrganizationCodebaseMarkdown(
       organization.id
@@ -254,7 +253,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
     })
     expect(org?.codebaseMarkdownHash).toBeNull()
 
-    vi.mocked(getMarkdownFile).mockClear()
+    asMock(getMarkdownFile).mockClear()
 
     const result = await getOrganizationCodebaseMarkdown(
       organization.id
@@ -277,7 +276,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
       )
     })
 
-    vi.mocked(getMarkdownFile).mockResolvedValue(null)
+    asMock(getMarkdownFile).mockResolvedValue(null)
 
     const result = await getOrganizationCodebaseMarkdown(
       organization.id
@@ -285,7 +284,7 @@ describe('getOrganizationCodebaseMarkdown', () => {
 
     expect(result).toBeNull()
     expect(getMarkdownFile).toHaveBeenCalledTimes(1)
-    const getCall = vi.mocked(getMarkdownFile).mock.calls[0][0]
+    const getCall = asMock(getMarkdownFile).mock.calls[0][0]
     expect(getCall.organizationId).toBe(organization.id)
     expect(getCall.key).toBe(`codebase-${testHash}.md`)
   })
@@ -304,7 +303,7 @@ describe('savePricingModelIntegrationMarkdown', () => {
   })
   it('should successfully save markdown and update pricing model integrationGuideHash', async () => {
     const markdown = '# Integration Guide\n\nThis is test content.'
-    vi.mocked(putMarkdownFile).mockResolvedValue(undefined)
+    asMock(putMarkdownFile).mockResolvedValue(undefined)
 
     await savePricingModelIntegrationMarkdown({
       organizationId: organization.id,
@@ -314,7 +313,7 @@ describe('savePricingModelIntegrationMarkdown', () => {
 
     // Verify putMarkdownFile was called with correct parameters
     expect(putMarkdownFile).toHaveBeenCalledTimes(1)
-    const putCall = vi.mocked(putMarkdownFile).mock.calls[0][0]
+    const putCall = asMock(putMarkdownFile).mock.calls[0][0]
     expect(putCall.organizationId).toBe(organization.id)
     expect(putCall.markdown).toBe(markdown)
     expect(putCall.key).toMatch(
@@ -345,7 +344,7 @@ describe('savePricingModelIntegrationMarkdown', () => {
 
   it('should throw an error when organization is not found', async () => {
     const nonExistentOrgId = 'org_nonexistent'
-    vi.mocked(putMarkdownFile).mockClear()
+    asMock(putMarkdownFile).mockClear()
 
     await expect(
       savePricingModelIntegrationMarkdown({
@@ -387,7 +386,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
       )
     })
 
-    vi.mocked(getMarkdownFile).mockResolvedValue(expectedContent)
+    asMock(getMarkdownFile).mockResolvedValue(expectedContent)
 
     const result = await getPricingModelIntegrationMarkdown({
       organizationId: organization.id,
@@ -396,7 +395,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
 
     expect(result).toBe(expectedContent)
     expect(getMarkdownFile).toHaveBeenCalledTimes(1)
-    const getCall = vi.mocked(getMarkdownFile).mock.calls[0][0]
+    const getCall = asMock(getMarkdownFile).mock.calls[0][0]
     expect(getCall.organizationId).toBe(organization.id)
     expect(getCall.key).toBe(
       `pricing-models/${pricingModel.id}/integration-guide-${testHash}.md`
@@ -405,7 +404,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
 
   it('should throw an error when pricing model is not found', async () => {
     const nonExistentPricingModelId = 'pm_nonexistent'
-    vi.mocked(getMarkdownFile).mockClear()
+    asMock(getMarkdownFile).mockClear()
 
     await expect(
       getPricingModelIntegrationMarkdown({
@@ -427,7 +426,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
       )
     })
 
-    vi.mocked(getMarkdownFile).mockClear()
+    asMock(getMarkdownFile).mockClear()
 
     const result = await getPricingModelIntegrationMarkdown({
       organizationId: organization.id,
@@ -446,7 +445,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
     })
     expect(pm?.integrationGuideHash).toBeNull()
 
-    vi.mocked(getMarkdownFile).mockClear()
+    asMock(getMarkdownFile).mockClear()
 
     const result = await getPricingModelIntegrationMarkdown({
       organizationId: organization.id,
@@ -470,7 +469,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
       )
     })
 
-    vi.mocked(getMarkdownFile).mockResolvedValue(null)
+    asMock(getMarkdownFile).mockResolvedValue(null)
 
     const result = await getPricingModelIntegrationMarkdown({
       organizationId: organization.id,
@@ -479,7 +478,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
 
     expect(result).toBeNull()
     expect(getMarkdownFile).toHaveBeenCalledTimes(1)
-    const getCall = vi.mocked(getMarkdownFile).mock.calls[0][0]
+    const getCall = asMock(getMarkdownFile).mock.calls[0][0]
     expect(getCall.organizationId).toBe(organization.id)
     expect(getCall.key).toBe(
       `pricing-models/${pricingModel.id}/integration-guide-${testHash}.md`

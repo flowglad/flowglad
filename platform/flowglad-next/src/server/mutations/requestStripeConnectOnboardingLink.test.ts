@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -8,27 +8,28 @@ import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
 import { organizationsRouter } from '@/server/routers/organizationsRouter'
 import type { TRPCContext } from '@/server/trpcContext'
+import { asMock } from '@/test-utils/mockHelpers'
 import { CountryCode, StripeConnectContractType } from '@/types'
 import { getSession } from '@/utils/auth'
 import core from '@/utils/core'
 import { server } from '../../../mocks/server'
 
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(() => undefined),
+    get: mock(() => undefined),
+    delete: mock(() => undefined),
   })),
 }))
 
-vi.mock('@/utils/auth', () => ({
+mock.module('@/utils/auth', () => ({
   auth: {
     api: {
-      getSession: vi.fn(),
+      getSession: mock(() => undefined),
     },
   },
-  getSession: vi.fn(),
+  getSession: mock(() => undefined),
 }))
 
 const createAuthedContext = async (params: {
@@ -65,7 +66,7 @@ const createAuthedContext = async (params: {
     return insertedUser
   })
 
-  vi.mocked(getSession).mockResolvedValue({
+  asMock(getSession).mockResolvedValue({
     user: {
       id: betterAuthId,
       email,
@@ -88,7 +89,7 @@ const createAuthedContext = async (params: {
 
 describe('requestStripeConnectOnboardingLink mutation', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    asMock(getSession).mockClear()
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.flowglad.com'
   })
 
