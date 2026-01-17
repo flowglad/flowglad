@@ -213,7 +213,9 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should handle allowDecimals prop', () => {
-      const onValueChange = mock(() => undefined)
+      const onValueChange = mock<(value: string | undefined) => void>(
+        () => undefined
+      )
       render(
         <CurrencyInput
           allowDecimals={false}
@@ -228,7 +230,7 @@ describe('CurrencyInput Component', () => {
 
       expect(onValueChange).toHaveBeenCalled()
       const lastCall =
-        onValueChange.mock.calls[onValueChange.mock.calls.length - 1]
+        onValueChange.mock.calls[onValueChange.mock.calls.length - 1]!
       expect(lastCall[0]).not.toMatch(/\./)
     })
   })

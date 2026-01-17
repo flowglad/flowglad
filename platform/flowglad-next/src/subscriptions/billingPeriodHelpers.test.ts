@@ -313,7 +313,7 @@ describe('Subscription Billing Period Transition', async () => {
       // And a billing run was created with scheduledFor equal to the new period's start date
       expect(typeof newBillingRun).toBe('object')
       expect(newBillingRun?.scheduledFor).toEqual(
-        updatedSub.currentBillingPeriodStart
+        updatedSub.currentBillingPeriodStart!
       )
     })
   })

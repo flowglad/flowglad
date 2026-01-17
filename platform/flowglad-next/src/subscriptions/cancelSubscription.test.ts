@@ -1,4 +1,11 @@
-import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import {
@@ -790,7 +797,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           BillingPeriodStatus.Completed
         )
         expect(updatedActiveBP.endDate).toBe(
-          updatedSubscription.canceledAt
+          updatedSubscription.canceledAt!
         )
         expect(updatedFutureBP.status).toBe(
           BillingPeriodStatus.Canceled
@@ -1694,12 +1701,10 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
-      const notificationSpy = vi
-        .spyOn(
-          subscriptionCancellationNotifications,
-          'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
-        )
-        .mockResolvedValue(undefined)
+      const notificationSpy = spyOn(
+        subscriptionCancellationNotifications,
+        'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
+      ).mockResolvedValue(undefined)
       try {
         await adminTransaction(async ({ transaction }) => {
           const subscription = await setupSubscription({
