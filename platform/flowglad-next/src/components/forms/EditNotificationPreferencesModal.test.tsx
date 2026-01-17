@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
@@ -11,9 +7,7 @@ import {
 } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
-import { trpc } from '@/app/_trpc/client'
 import type { NotificationPreferences } from '@/db/schema/memberships'
-import { asMock } from '@/test-utils/mockHelpers'
 import EditNotificationPreferencesModal from './EditNotificationPreferencesModal'
 
 interface FormModalMockProps<T extends FieldValues> {
@@ -27,15 +21,35 @@ interface EditNotificationPreferencesInput {
   preferences: Partial<NotificationPreferences>
 }
 
+// Create mock functions outside mock.module so they can be accessed in tests
+const mockMutateAsync = mock((_data: unknown) =>
+  Promise.resolve({ success: true })
+)
+const mockInvalidate = mock(() => undefined)
+const mockUseMutation = mock(
+  (_options?: {
+    onSuccess?: (...args: unknown[]) => void
+  }): unknown => ({
+    mutateAsync: mockMutateAsync,
+  })
+)
+const mockUseUtils = mock((): unknown => ({
+  organizations: {
+    getNotificationPreferences: {
+      invalidate: mockInvalidate,
+    },
+  },
+}))
+
 // Mock tRPC - network calls need to be mocked per testing guidelines
 mock.module('@/app/_trpc/client', () => ({
   trpc: {
     organizations: {
       updateNotificationPreferences: {
-        useMutation: mock(() => undefined),
+        useMutation: mockUseMutation,
       },
     },
-    useUtils: mock(() => undefined),
+    useUtils: mockUseUtils,
   },
 }))
 
@@ -115,45 +129,31 @@ describe('EditNotificationPreferencesModal', () => {
     paymentSuccessful: true,
   }
 
-  // Using any return type to allow flexible mock values in different tests
-  const mockMutateAsync = mock(async (_data: unknown) => ({}) as any)
-  const mockInvalidate = mock(() => undefined)
-  const mockUtils = {
-    organizations: {
-      getNotificationPreferences: {
-        invalidate: mockInvalidate,
-      },
-    },
-  }
-
   beforeEach(() => {
     mockMutateAsync.mockClear()
     mockInvalidate.mockClear()
-    asMock(trpc.useUtils).mockReturnValue(
-      mockUtils as unknown as ReturnType<typeof trpc.useUtils>
-    )
+    mockUseMutation.mockClear()
+
     // Mock useMutation to capture the onSuccess callback and call it when mutateAsync resolves
-    ;(
-      asMock(
-        trpc.organizations.updateNotificationPreferences.useMutation
-      ) as any
-    ).mockImplementation((options: any) => {
-      const onSuccess = options?.onSuccess
-      const mutateAsyncWithCallback = mock(async (data: unknown) => {
-        const result = await mockMutateAsync(data)
-        if (onSuccess) {
-          // onSuccess signature: (data, variables, context, mutation)
-          // We pass undefined for context and mutation since we don't use them
-          onSuccess(result, data, undefined, undefined)
+    mockUseMutation.mockImplementation(
+      (options?: { onSuccess?: (...args: unknown[]) => void }) => {
+        const onSuccess = options?.onSuccess
+        const mutateAsyncWithCallback = mock(
+          async (data: unknown) => {
+            const result = await mockMutateAsync(data)
+            if (onSuccess) {
+              // onSuccess signature: (data, variables, context, mutation)
+              // We pass undefined for context and mutation since we don't use them
+              onSuccess(result, data, undefined, undefined)
+            }
+            return result
+          }
+        )
+        return {
+          mutateAsync: mutateAsyncWithCallback,
         }
-        return result
-      })
-      return {
-        mutateAsync: mutateAsyncWithCallback,
-      } as unknown as ReturnType<
-        typeof trpc.organizations.updateNotificationPreferences.useMutation
-      >
-    })
+      }
+    )
   })
 
   describe('Modal Rendering', () => {
@@ -375,9 +375,7 @@ describe('EditNotificationPreferencesModal', () => {
         />
       )
 
-      expect(
-        trpc.organizations.updateNotificationPreferences.useMutation
-      ).toHaveBeenCalled()
+      expect(mockUseMutation).toHaveBeenCalled()
     })
 
     it('configures mutation with onSuccess callback that invalidates preferences query', () => {
@@ -389,12 +387,12 @@ describe('EditNotificationPreferencesModal', () => {
         />
       )
 
-      const mutationCalls = asMock(
-        trpc.organizations.updateNotificationPreferences.useMutation
-      ).mock.calls
+      const mutationCalls = mockUseMutation.mock.calls
       expect(mutationCalls.length).toBeGreaterThan(0)
 
-      const firstCallArgs = mutationCalls[0]?.[0]
+      const firstCallArgs = mutationCalls[0]?.[0] as {
+        onSuccess?: (...args: unknown[]) => void
+      }
       expect(firstCallArgs).toHaveProperty('onSuccess')
       expect(typeof firstCallArgs?.onSuccess).toBe('function')
     })

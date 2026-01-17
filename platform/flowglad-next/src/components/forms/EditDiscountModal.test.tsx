@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
@@ -9,15 +5,16 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { trpc } from '@/app/_trpc/client'
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import { asMock } from '@/test-utils/mockHelpers'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import EditDiscountModal from './EditDiscountModal'
 
+// Create mock functions outside mock.module so they can be accessed in tests
+const mockUseAuthenticatedContext = mock(() => undefined)
+const mockUseMutation = mock(() => undefined)
+
 // Mock the auth context
 mock.module('@/contexts/authContext', () => ({
-  useAuthenticatedContext: mock(() => undefined),
+  useAuthenticatedContext: mockUseAuthenticatedContext,
 }))
 
 // Mock tRPC
@@ -25,7 +22,7 @@ mock.module('@/app/_trpc/client', () => ({
   trpc: {
     discounts: {
       update: {
-        useMutation: mock(() => undefined),
+        useMutation: mockUseMutation,
       },
     },
   },
@@ -178,21 +175,21 @@ describe('EditDiscountModal', () => {
     organizationId: 'org_123',
   } as any
 
-  const mockMutateAsync = mock(async (_args: unknown) => undefined)
+  const mockMutateAsync = mock((_params: unknown) =>
+    Promise.resolve(undefined)
+  )
   const mockEditDiscount = {
     mutateAsync: mockMutateAsync,
   }
 
   beforeEach(() => {
     mockMutateAsync.mockClear()
-    asMock(useAuthenticatedContext).mockReturnValue({
+    mockUseAuthenticatedContext.mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,
     } as any)
-    asMock(trpc.discounts.update.useMutation).mockReturnValue(
-      mockEditDiscount as any
-    )
+    mockUseMutation.mockReturnValue(mockEditDiscount as any)
   })
 
   describe('Modal Rendering', () => {
@@ -277,10 +274,8 @@ describe('EditDiscountModal', () => {
         amount: 25,
       }
 
-      const mutateSpy = mock(async (_args: unknown) => ({
-        success: true,
-      }))
-      asMock(trpc.discounts.update.useMutation).mockReturnValue({
+      const mutateSpy = mock(() => Promise.resolve({ success: true }))
+      mockUseMutation.mockReturnValue({
         mutateAsync: mutateSpy,
       } as any)
 

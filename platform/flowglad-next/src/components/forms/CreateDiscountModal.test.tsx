@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
@@ -9,15 +5,55 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react'
-import { trpc } from '@/app/_trpc/client'
-import { useAuthenticatedContext } from '@/contexts/authContext'
-import { asMock } from '@/test-utils/mockHelpers'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import CreateDiscountModal from './CreateDiscountModal'
 
+const mockOrganization = {
+  id: 'org_123',
+  name: 'Test Org',
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  domain: null,
+  countryId: 'US',
+  logoURL: null,
+  tagline: null,
+  subdomainSlug: null,
+  defaultCurrency: 'USD',
+  hasCompletedStripeConnectOnboarding: false,
+  stripeAccountId: null,
+  stripeConnectContractType: 'platform',
+  clerkOrganizationId: 'org_123',
+  payoutsEnabled: false,
+  tld: 'com',
+  autoAcceptUsersFromEmailDomain: false,
+  passkeyAuthEnabled: false,
+  duesEnabled: false,
+  feePercentage: '0',
+  delayDays: 0,
+  enableSubscriptions: true,
+  emailsEnabled: false,
+  displayName: 'Test Org',
+  contactEmail: null,
+}
+
+// Create mock functions outside mock.module so they can be accessed in tests
+const mockUseAuthenticatedContext = mock(() => ({
+  organization: mockOrganization,
+  user: undefined,
+  apiKey: undefined,
+}))
+
+const mockMutateAsync = mock((_params: unknown) =>
+  Promise.resolve(undefined)
+)
+
+const mockUseMutation = mock(() => ({
+  mutateAsync: mockMutateAsync,
+}))
+
 // Mock the auth context
 mock.module('@/contexts/authContext', () => ({
-  useAuthenticatedContext: mock(() => undefined),
+  useAuthenticatedContext: mockUseAuthenticatedContext,
 }))
 
 // Mock tRPC
@@ -25,7 +61,7 @@ mock.module('@/app/_trpc/client', () => ({
   trpc: {
     discounts: {
       create: {
-        useMutation: mock(() => undefined),
+        useMutation: mockUseMutation,
       },
     },
   },
@@ -93,49 +129,10 @@ mock.module('./DiscountFormFields', () => ({
 }))
 
 describe('CreateDiscountModal', () => {
-  const mockOrganization = {
-    id: 'org_123',
-    name: 'Test Org',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    domain: null,
-    countryId: 'US',
-    logoURL: null,
-    tagline: null,
-    subdomainSlug: null,
-    defaultCurrency: 'USD',
-    hasCompletedStripeConnectOnboarding: false,
-    stripeAccountId: null,
-    stripeConnectContractType: 'platform',
-    clerkOrganizationId: 'org_123',
-    payoutsEnabled: false,
-    tld: 'com',
-    autoAcceptUsersFromEmailDomain: false,
-    passkeyAuthEnabled: false,
-    duesEnabled: false,
-    feePercentage: '0',
-    delayDays: 0,
-    enableSubscriptions: true,
-    emailsEnabled: false,
-    displayName: 'Test Org',
-    contactEmail: null,
-  }
-
-  const mockMutateAsync = mock(async () => undefined)
-  const mockCreateDiscount = {
-    mutateAsync: mockMutateAsync,
-  }
-
   beforeEach(() => {
     mockMutateAsync.mockClear()
-    asMock(useAuthenticatedContext).mockReturnValue({
-      organization: mockOrganization as any,
-      user: undefined as any,
-      apiKey: undefined as any,
-    } as any)
-    asMock(trpc.discounts.create.useMutation).mockReturnValue(
-      mockCreateDiscount as any
-    )
+    mockUseAuthenticatedContext.mockClear()
+    mockUseMutation.mockClear()
   })
 
   describe('Modal Rendering', () => {

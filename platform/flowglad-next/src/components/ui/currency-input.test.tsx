@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import { describe, expect, it, mock } from 'bun:test'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { CurrencyInput } from './currency-input'
@@ -213,7 +209,17 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should handle allowDecimals prop', () => {
-      const onValueChange = mock(() => undefined)
+      const onValueChange = mock(
+        (
+          _value?: string,
+          _name?: string,
+          _values?: {
+            float: number | null
+            formatted: string
+            value: string
+          }
+        ) => undefined
+      )
       render(
         <CurrencyInput
           allowDecimals={false}
@@ -229,7 +235,7 @@ describe('CurrencyInput Component', () => {
       expect(onValueChange).toHaveBeenCalled()
       const lastCall =
         onValueChange.mock.calls[onValueChange.mock.calls.length - 1]
-      expect(lastCall[0]).not.toMatch(/\./)
+      expect(lastCall?.[0]).not.toMatch(/\./)
     })
   })
 })
