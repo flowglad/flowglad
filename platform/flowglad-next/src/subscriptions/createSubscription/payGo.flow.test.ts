@@ -28,6 +28,7 @@ import {
   PaymentMethodType,
   PriceType,
   SubscriptionStatus,
+  UsageCreditStatus,
 } from '@/types'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
@@ -185,7 +186,7 @@ describe('Pay as You Go Workflow E2E', () => {
       // For non-renewing subscriptions, Once credits are granted initially
       expect(usageCredits).toHaveLength(1)
       expect(usageCredits[0].usageMeterId).toBe(usageMeter.id)
-      expect(usageCredits[0].status).toBe('posted')
+      expect(usageCredits[0].status).toBe(UsageCreditStatus.Posted)
 
       // Total should be 100 (Once)
       const totalIssuedAmount = usageCredits.reduce(

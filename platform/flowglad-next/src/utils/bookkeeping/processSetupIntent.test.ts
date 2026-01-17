@@ -747,7 +747,7 @@ describe('Process setup intent', async () => {
       })
 
       afterEach(() => {
-        mock.setSystemTime() // No arguments restores real time
+        mock.setSystemTime() // restores real time
       })
 
       it('should return a future date for trialPeriodDays = 7', () => {

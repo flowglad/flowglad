@@ -116,7 +116,7 @@ import {
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
-import * as stripeActual from '@/utils/stripe'
+import * as stripeUtilsActual from '@/utils/stripe'
 import {
   confirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
@@ -138,7 +138,7 @@ import {
 
 // Mock Stripe functions
 mock.module('@/utils/stripe', () => ({
-  ...stripeActual,
+  ...stripeUtilsActual,
   createPaymentIntentForBillingRun: mock(() => undefined),
   confirmPaymentIntentForBillingRun: mock(() => undefined),
 }))

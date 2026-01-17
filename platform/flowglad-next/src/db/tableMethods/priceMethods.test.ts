@@ -355,7 +355,7 @@ describe('priceMethods.ts', () => {
       })
 
       // Attempt to update the second price to be default
-      // This should succeed - simply await the call (if it throws, the test will fail)
+      // This should succeed - if it throws, the test will fail
       await adminTransaction(async ({ transaction }) => {
         await updatePrice(
           {

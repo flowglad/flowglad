@@ -8,37 +8,77 @@ import {
 import React from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { FormProvider, useForm } from 'react-hook-form'
-import { trpc } from '@/app/_trpc/client'
 import type { ModalInterfaceProps } from '@/components/forms/FormModal'
 import { asMock } from '@/test-utils/mockHelpers'
 import { PriceType } from '@/types'
 import { CreateSubscriptionFormModal } from './CreateSubscriptionFormModal'
+
+// Create mock functions outside mock.module so they can be accessed in tests
+const mockUseUtils = mock((): unknown => ({
+  subscriptions: {
+    getTableRows: {
+      invalidate: mock(() => undefined),
+    },
+  },
+}))
+
+const mockCustomerGetByIdUseQuery = mock((): unknown => ({
+  data: undefined,
+  isLoading: false,
+  error: null,
+}))
+
+const mockGetPricingModelUseQuery = mock((): unknown => ({
+  data: undefined,
+  isLoading: false,
+  error: null,
+}))
+
+const mockPaymentMethodsListUseQuery = mock((): unknown => ({
+  data: undefined,
+  isLoading: false,
+  error: null,
+}))
+
+const mockMutateAsync = mock(
+  (_params: {
+    customerId: string
+    priceId: string
+    doNotCharge: boolean
+    defaultPaymentMethodId?: string
+  }) => Promise.resolve({})
+)
+
+const mockCreateSubscriptionUseMutation = mock(() => ({
+  mutateAsync: mockMutateAsync,
+  isPending: false,
+}))
 
 // Mock tRPC
 mock.module('@/app/_trpc/client', () => ({
   trpc: {
     customers: {
       internal__getById: {
-        useQuery: mock(() => undefined),
+        useQuery: mockCustomerGetByIdUseQuery,
       },
       getPricingModelForCustomer: {
-        useQuery: mock(() => undefined),
+        useQuery: mockGetPricingModelUseQuery,
       },
     },
     paymentMethods: {
       list: {
-        useQuery: mock(() => undefined),
+        useQuery: mockPaymentMethodsListUseQuery,
       },
     },
     subscriptions: {
       create: {
-        useMutation: mock(() => undefined),
+        useMutation: mockCreateSubscriptionUseMutation,
       },
       getTableRows: {
         invalidate: mock(() => undefined),
       },
     },
-    useUtils: mock(() => undefined),
+    useUtils: mockUseUtils,
   },
 }))
 
@@ -117,40 +157,21 @@ describe('CreateSubscriptionFormModal', () => {
     },
   }
 
-  const mockMutateAsync = mock((_args: unknown) =>
-    Promise.resolve({})
-  )
-  const mockCreateSubscription = {
-    mutateAsync: mockMutateAsync,
-    isPending: false,
-  }
-
-  const mockUtils = {
-    subscriptions: {
-      getTableRows: {
-        invalidate: mock(() => undefined),
-      },
-    },
-  }
-
   beforeEach(() => {
     mockMutateAsync.mockClear()
-    // Cast through unknown to avoid complex tRPC type requirements
-    asMock(trpc.useUtils).mockReturnValue(
-      mockUtils as unknown as ReturnType<typeof trpc.useUtils>
-    )
-    asMock(trpc.customers.internal__getById.useQuery).mockReturnValue(
-      {
-        data: { customer: mockCustomer },
-        isLoading: false,
-        error: null,
-      } as unknown as ReturnType<
-        typeof trpc.customers.internal__getById.useQuery
-      >
-    )
-    asMock(
-      trpc.customers.getPricingModelForCustomer.useQuery
-    ).mockReturnValue({
+    mockUseUtils.mockReturnValue({
+      subscriptions: {
+        getTableRows: {
+          invalidate: mock(() => undefined),
+        },
+      },
+    })
+    mockCustomerGetByIdUseQuery.mockReturnValue({
+      data: { customer: mockCustomer },
+      isLoading: false,
+      error: null,
+    })
+    mockGetPricingModelUseQuery.mockReturnValue({
       data: {
         pricingModel: {
           products: [mockProduct],
@@ -158,21 +179,16 @@ describe('CreateSubscriptionFormModal', () => {
       },
       isLoading: false,
       error: null,
-    } as unknown as ReturnType<
-      typeof trpc.customers.getPricingModelForCustomer.useQuery
-    >)
-    asMock(trpc.paymentMethods.list.useQuery).mockReturnValue({
+    })
+    mockPaymentMethodsListUseQuery.mockReturnValue({
       data: { data: [mockPaymentMethod] },
       isLoading: false,
       error: null,
-    } as unknown as ReturnType<
-      typeof trpc.paymentMethods.list.useQuery
-    >)
-    asMock(trpc.subscriptions.create.useMutation).mockReturnValue(
-      mockCreateSubscription as unknown as ReturnType<
-        typeof trpc.subscriptions.create.useMutation
-      >
-    )
+    })
+    mockCreateSubscriptionUseMutation.mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      isPending: false,
+    })
   })
 
   // Helper function to render the modal with default props
@@ -326,15 +342,11 @@ describe('CreateSubscriptionFormModal', () => {
 
   describe('Loading States', () => {
     it('should show loading skeletons when data is loading', () => {
-      asMock(
-        trpc.customers.getPricingModelForCustomer.useQuery
-      ).mockReturnValue({
+      mockGetPricingModelUseQuery.mockReturnValue({
         data: undefined,
         isLoading: true,
         error: null,
-      } as unknown as ReturnType<
-        typeof trpc.customers.getPricingModelForCustomer.useQuery
-      >)
+      })
 
       renderModal()
 
@@ -347,15 +359,11 @@ describe('CreateSubscriptionFormModal', () => {
 
   describe('Error States', () => {
     it('should show error message when pricing model fails to load', () => {
-      asMock(
-        trpc.customers.getPricingModelForCustomer.useQuery
-      ).mockReturnValue({
+      mockGetPricingModelUseQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         error: new Error('Failed to load'),
-      } as unknown as ReturnType<
-        typeof trpc.customers.getPricingModelForCustomer.useQuery
-      >)
+      })
 
       renderModal()
 
@@ -365,9 +373,7 @@ describe('CreateSubscriptionFormModal', () => {
     })
 
     it('should show message when no products are available', () => {
-      asMock(
-        trpc.customers.getPricingModelForCustomer.useQuery
-      ).mockReturnValue({
+      mockGetPricingModelUseQuery.mockReturnValue({
         data: {
           pricingModel: {
             products: [],
@@ -375,9 +381,7 @@ describe('CreateSubscriptionFormModal', () => {
         },
         isLoading: false,
         error: null,
-      } as unknown as ReturnType<
-        typeof trpc.customers.getPricingModelForCustomer.useQuery
-      >)
+      })
 
       renderModal()
 

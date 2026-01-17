@@ -49,15 +49,12 @@ import { insertUser } from './tableMethods/userMethods'
 import type { DbTransaction } from './types'
 
 // Module-level mock state (replaces vi.hoisted)
-const mockedAuth: {
-  session: null | { user: { id: string; email: string } }
-} = { session: null }
+let mockedSession: { user: { id: string; email: string } } | null =
+  null
 
-mock.module('@/utils/auth', () => {
-  return {
-    getSession: async () => mockedAuth.session,
-  }
-})
+mock.module('@/utils/auth', () => ({
+  getSession: async () => mockedSession,
+}))
 
 const currentOrganizationIdQueryResultSchema = z
   .object({ organization_id: z.string() })
@@ -94,7 +91,7 @@ describe('authenticatedTransaction', () => {
   let membershipB2: Membership.Record // userB in testOrg2
 
   beforeEach(async () => {
-    mockedAuth.session = null
+    mockedSession = null
 
     // Setup two test organizations
     const org1Setup = await setupOrg()
@@ -289,7 +286,7 @@ describe('authenticatedTransaction', () => {
         )
       })
 
-      mockedAuth.session = {
+      mockedSession = {
         user: {
           id: betterAuthId,
           email,

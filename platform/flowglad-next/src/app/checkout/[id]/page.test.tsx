@@ -5,7 +5,6 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
-import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 import Page from './page'
 
 // Mock next/navigation redirect
@@ -18,13 +17,14 @@ mock.module('next/navigation', () => ({
 // Mock checkoutInfo schema parsing to bypass strict Zod requirements in unit tests
 mock.module('@/db/tableMethods/purchaseMethods', () => ({
   checkoutInfoSchema: {
-    parse: (x: any) => x,
+    parse: (x: unknown) => x,
   },
 }))
 
 // Mock server utilities used by the page
 mock.module('@/db/adminTransaction', () => ({
-  adminTransaction: (fn: any) => fn({ transaction: {} }),
+  adminTransaction: (fn: (ctx: { transaction: object }) => unknown) =>
+    fn({ transaction: {} }),
 }))
 
 mock.module('@/utils/stripe', () => ({
@@ -36,28 +36,29 @@ mock.module('@/utils/stripe', () => ({
   })),
 }))
 
+// Create mock outside so we can use it in tests
+const checkoutInfoForCheckoutSession = mock(async (_id: string) => ({
+  checkoutSession: {
+    id: 'cs_default',
+    status: 'open',
+    stripePaymentIntentId: null,
+    stripeSetupIntentId: 'seti_123',
+    successUrl: null,
+  },
+  product: { id: 'prod_1' },
+  price: { id: 'price_1', type: 'subscription' },
+  sellerOrganization: {
+    id: 'org_1',
+    allowMultipleSubscriptionsPerCustomer: false,
+  },
+  feeCalculation: null,
+  maybeCustomer: { id: 'cust_1', email: 'a@b.com' },
+  maybeCurrentSubscriptions: [{ status: 'active', isFreePlan: true }],
+  discount: null,
+}))
+
 mock.module('@/utils/checkoutHelpers', () => ({
-  checkoutInfoForCheckoutSession: mock(async (id: string) => ({
-    checkoutSession: {
-      id,
-      status: 'open',
-      stripePaymentIntentId: null,
-      stripeSetupIntentId: 'seti_123',
-      successUrl: null,
-    },
-    product: { id: 'prod_1' },
-    price: { id: 'price_1', type: 'subscription' },
-    sellerOrganization: {
-      id: 'org_1',
-      allowMultipleSubscriptionsPerCustomer: false,
-    },
-    feeCalculation: null,
-    maybeCustomer: { id: 'cust_1', email: 'a@b.com' },
-    maybeCurrentSubscriptions: [
-      { status: 'active', isFreePlan: true },
-    ],
-    discount: null,
-  })),
+  checkoutInfoForCheckoutSession,
   getClientSecretsForCheckoutSession: mock(async () => ({
     clientSecret: 'pi_secret_test',
     customerSessionClientSecret: null,
@@ -66,13 +67,14 @@ mock.module('@/utils/checkoutHelpers', () => ({
 
 describe('CheckoutSessionPage', () => {
   beforeEach(() => {
-    redirect.mockReset()
+    redirect.mockClear()
+    checkoutInfoForCheckoutSession.mockClear()
   })
 
   it('renders when only free subscription exists (no block)', async () => {
     const ui = await Page({
       params: Promise.resolve({ id: 'cs_123' }),
-    } as any)
+    } as Parameters<typeof Page>[0])
     expect(ui).toMatchObject({})
     expect(redirect).not.toHaveBeenCalled()
   })
@@ -97,9 +99,15 @@ describe('CheckoutSessionPage', () => {
       maybeCustomer: { id: 'cust_1', email: 'a@b.com' },
       maybeCurrentSubscriptions: [],
       discount: null,
-    } as any)
+    } as ReturnType<
+      typeof checkoutInfoForCheckoutSession
+    > extends Promise<infer T>
+      ? T
+      : never)
 
-    await Page({ params: Promise.resolve({ id: 'cs_456' }) } as any)
+    await Page({
+      params: Promise.resolve({ id: 'cs_456' }),
+    } as Parameters<typeof Page>[0])
     expect(redirect).toHaveBeenCalledWith(
       '/purchase/post-payment?setup_intent=seti_999'
     )
@@ -126,9 +134,15 @@ describe('CheckoutSessionPage', () => {
         { status: SubscriptionStatus.Active, isFreePlan: false },
       ],
       discount: null,
-    } as any)
+    } as unknown as ReturnType<
+      typeof checkoutInfoForCheckoutSession
+    > extends Promise<infer T>
+      ? T
+      : never)
 
-    await Page({ params: Promise.resolve({ id: 'cs_789' }) } as any)
+    await Page({
+      params: Promise.resolve({ id: 'cs_789' }),
+    } as Parameters<typeof Page>[0])
     expect(redirect).toHaveBeenCalledWith(
       'https://example.com/success'
     )

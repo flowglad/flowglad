@@ -6,19 +6,28 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { FormProvider, useForm } from 'react-hook-form'
-import {
-  useAuthContext,
-  useAuthenticatedContext,
-} from '@/contexts/authContext'
 import type { CreateDiscountFormSchema } from '@/db/schema/discounts'
 import { asMock } from '@/test-utils/mockHelpers'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import DiscountFormFields from './DiscountFormFields'
 
+// Create mock functions outside mock.module() so they can be accessed in tests
+const mockUseAuthenticatedContext = mock((): unknown => ({
+  organization: undefined,
+  user: undefined,
+  apiKey: undefined,
+}))
+
+const mockUseAuthContext = mock((): unknown => ({
+  organization: undefined,
+  user: undefined,
+  apiKey: undefined,
+}))
+
 // Mock the auth context
 mock.module('@/contexts/authContext', () => ({
-  useAuthenticatedContext: mock(() => undefined),
-  useAuthContext: mock(() => undefined),
+  useAuthenticatedContext: mockUseAuthenticatedContext,
+  useAuthContext: mockUseAuthContext,
 }))
 
 // Mock the PricingModelSelect component to avoid trpc calls
@@ -37,7 +46,15 @@ mock.module('@/registry/lib/currency', () => ({
 
 // Mock the currency input component
 mock.module('@/components/ui/currency-input', () => ({
-  CurrencyInput: ({ value, onValueChange, allowDecimals }: any) => (
+  CurrencyInput: ({
+    value,
+    onValueChange,
+    allowDecimals,
+  }: {
+    value: string
+    onValueChange: (value: string) => void
+    allowDecimals: boolean
+  }) => (
     <input
       data-testid="currency-input"
       value={value}
@@ -105,16 +122,16 @@ describe('DiscountFormFields', () => {
   }
 
   beforeEach(() => {
-    asMock(useAuthenticatedContext).mockReturnValue({
-      organization: mockOrganization as any,
-      user: undefined as any,
-      apiKey: undefined as any,
-    } as any)
-    asMock(useAuthContext).mockReturnValue({
-      organization: mockOrganization as any,
-      user: undefined as any,
-      apiKey: undefined as any,
-    } as any)
+    mockUseAuthenticatedContext.mockReturnValue({
+      organization: mockOrganization,
+      user: undefined,
+      apiKey: undefined,
+    })
+    mockUseAuthContext.mockReturnValue({
+      organization: mockOrganization,
+      user: undefined,
+      apiKey: undefined,
+    })
   })
 
   describe('Amount Type Switching', () => {

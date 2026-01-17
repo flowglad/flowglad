@@ -3,3 +3,6 @@ autoInstall = false
 
 [test]
 preload = ["./bun.setup.ts"]
+# Exclude integration tests (run with bun test --pattern '*.integration.test.*')
+# Exclude RLS tests (run separately with fileParallelism disabled)
+exclude = ["**/*.integration.test.*", "**/*.rls.test.*"]

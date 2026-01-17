@@ -83,7 +83,6 @@ import {
   upsertPaymentForStripeCharge,
 } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import core from '../core'
-// Mock getStripeCharge
 import * as stripeActual from '../stripe'
 import {
   getStripeCharge,
@@ -91,6 +90,7 @@ import {
   type StripeIntentMetadata,
 } from '../stripe'
 
+// Mock getStripeCharge
 mock.module('../stripe', () => ({
   ...stripeActual,
   getStripeCharge: mock(() => undefined),
