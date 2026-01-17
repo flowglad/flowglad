@@ -249,9 +249,7 @@ describe('cached combinator', () => {
   })
 
   it('constructs cache key from namespace and keyFn', async () => {
-    const wrappedFn = mock(() => undefined).mockResolvedValue({
-      value: 42,
-    })
+    const wrappedFn = mock(() => Promise.resolve({ value: 42 }))
     const testSchema = z.object({ value: z.number() })
 
     const cachedFn = cached(
@@ -274,9 +272,9 @@ describe('cached combinator', () => {
   })
 
   it('fails open when Redis set throws error', async () => {
-    const wrappedFn = mock(() => undefined).mockResolvedValue({
-      result: 'success',
-    })
+    const wrappedFn = mock(() =>
+      Promise.resolve({ result: 'success' })
+    )
     const testSchema = z.object({ result: z.string() })
 
     const cachedFn = cached(
@@ -393,9 +391,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 
   it('registers dependencies in Redis Sets when cache is populated', async () => {
-    const wrappedFn = mock(() => undefined).mockResolvedValue({
-      id: 1,
-    })
+    const wrappedFn = mock(() => Promise.resolve({ id: 1 }))
     const testSchema = z.object({ id: z.number() })
 
     const cachedFn = cached(
@@ -423,15 +419,9 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 
   it('invalidates correct cache keys when dependency is invalidated', async () => {
-    const wrappedFn1 = mock(() => undefined).mockResolvedValue({
-      entry: 1,
-    })
-    const wrappedFn2 = mock(() => undefined).mockResolvedValue({
-      entry: 2,
-    })
-    const wrappedFn3 = mock(() => undefined).mockResolvedValue({
-      entry: 3,
-    })
+    const wrappedFn1 = mock(() => Promise.resolve({ entry: 1 }))
+    const wrappedFn2 = mock(() => Promise.resolve({ entry: 2 }))
+    const wrappedFn3 = mock(() => Promise.resolve({ entry: 3 }))
     const testSchema = z.object({ entry: z.number() })
 
     // Create cached functions that share dep:A

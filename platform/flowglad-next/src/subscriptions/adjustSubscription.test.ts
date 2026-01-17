@@ -99,7 +99,7 @@ mock.module('@/trigger/attempt-billing-run', () => {
 mock.module(
   '@/trigger/notifications/send-customer-subscription-adjusted-notification',
   () => {
-    const mockFn = mock(() => undefined).mockResolvedValue(undefined)
+    const mockFn = mock(() => Promise.resolve(undefined))
     ;(globalThis as any).__mockCustomerAdjustedNotification = mockFn
     return {
       idempotentSendCustomerSubscriptionAdjustedNotification: mockFn,
@@ -111,7 +111,7 @@ mock.module(
 mock.module(
   '@/trigger/notifications/send-organization-subscription-adjusted-notification',
   () => {
-    const mockFn = mock(() => undefined).mockResolvedValue(undefined)
+    const mockFn = mock(() => Promise.resolve(undefined))
     ;(globalThis as any).__mockOrgAdjustedNotification = mockFn
     return {
       idempotentSendOrganizationSubscriptionAdjustedNotification:
@@ -120,21 +120,53 @@ mock.module(
   }
 )
 
+// Type for the trigger payload to fix mock.calls typing
+interface TriggerPayload {
+  billingRun: {
+    id: string
+    status: BillingRunStatus
+    billingPeriodId: string
+    isAdjustment: boolean
+    [key: string]: unknown
+  }
+  adjustmentParams?: {
+    newSubscriptionItems: SubscriptionItem.Upsert[]
+    adjustmentDate: number
+    [key: string]: unknown
+  }
+  [key: string]: unknown
+}
+
+// Type for notification payloads
+interface NotificationPayload {
+  adjustmentType: string
+  subscriptionId: string
+  customerId: string
+  organizationId: string
+  prorationAmount: number | null
+  previousItems: Array<{ unitPrice: number; [key: string]: unknown }>
+  newItems: Array<{ unitPrice: number; [key: string]: unknown }>
+  currency?: string
+  [key: string]: unknown
+}
+
 // Get the mock function for use in tests
 const getMockTrigger = () => {
   return (globalThis as any).__mockAttemptBillingRunTrigger as Mock<
-    () => Promise<{ id: string }>
+    (payload: TriggerPayload) => Promise<{ id: string }>
   >
 }
 
 const getMockCustomerNotification = () => {
   return (globalThis as any)
-    .__mockCustomerAdjustedNotification as Mock<() => Promise<void>>
+    .__mockCustomerAdjustedNotification as Mock<
+    (payload: NotificationPayload) => Promise<void>
+  >
 }
 
 const getMockOrgNotification = () => {
   return (globalThis as any).__mockOrgAdjustedNotification as Mock<
-    () => Promise<void>
+    (payload: NotificationPayload) => Promise<void>
   >
 }
 
@@ -160,7 +192,7 @@ function expectSubscriptionItemsToMatch(
 
     if (matchingResultItem) {
       // Verify common fields match (excluding dates and system-generated fields)
-      expect(matchingResultItem.name).toBe(newItem.name)
+      expect(matchingResultItem.name).toBe(newItem.name!)
       expect(matchingResultItem.quantity).toBe(newItem.quantity)
       expect(matchingResultItem.unitPrice).toBe(newItem.unitPrice)
       expect(matchingResultItem.type).toBe(newItem.type)
@@ -174,10 +206,10 @@ function expectSubscriptionItemsToMatch(
           toMs(newItem.expiredAt)!
         )
       }
-      expect(matchingResultItem.externalId).toBe(newItem.externalId)
+      expect(matchingResultItem.externalId).toBe(newItem.externalId!)
       expect(matchingResultItem.metadata).toEqual(newItem.metadata)
       expect(matchingResultItem.subscriptionId).toBe(subscription.id)
-      expect(matchingResultItem.priceId).toBe(newItem.priceId)
+      expect(matchingResultItem.priceId).toBe(newItem.priceId!)
       expect(matchingResultItem.livemode).toBe(subscription.livemode)
     }
   })
@@ -1301,7 +1333,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(mockTrigger).toHaveBeenCalledTimes(1)
         const triggerCall = mockTrigger.mock.calls[0][0]
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems
+          triggerCall.adjustmentParams!.newSubscriptionItems
         ).toMatchObject(
           expect.arrayContaining([
             expect.objectContaining({
@@ -1318,7 +1350,7 @@ describe('adjustSubscription Integration Tests', async () => {
           ])
         )
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems.length
+          triggerCall.adjustmentParams!.newSubscriptionItems.length
         ).toBe(2)
         return Result.ok(null)
       })
@@ -2154,7 +2186,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(synced.name).toBe('Current Plan')
-        expect(synced.priceId).toBe(currentItem.priceId)
+        expect(synced.priceId).toBe(currentItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2204,7 +2236,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('Premium Feature')
-        expect(synced.priceId).toBe(premiumItem.priceId)
+        expect(synced.priceId).toBe(premiumItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2243,7 +2275,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('Enterprise Plan')
-        expect(synced.priceId).toBe(expensiveItem.priceId)
+        expect(synced.priceId).toBe(expensiveItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2309,7 +2341,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(syncedAfter.name).toBe('Standard Plan')
-        expect(syncedAfter.priceId).toBe(secondaryItem.priceId)
+        expect(syncedAfter.priceId).toBe(secondaryItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2367,7 +2399,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(synced.name).toBe('New Premium')
-        expect(synced.priceId).toBe(newPremiumItem.priceId)
+        expect(synced.priceId).toBe(newPremiumItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2455,7 +2487,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('High Quantity')
-        expect(synced.priceId).toBe(highQuantityItem.priceId)
+        expect(synced.priceId).toBe(highQuantityItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2494,7 +2526,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('Newer Item')
-        expect(synced.priceId).toBe(newerItem.priceId)
+        expect(synced.priceId).toBe(newerItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2702,7 +2734,7 @@ describe('adjustSubscription Integration Tests', async () => {
         const orgPayload = mockOrgNotification.mock.calls[0][0]
         expect(orgPayload.adjustmentType).toBe('downgrade')
         expect(typeof orgPayload.currency).toBe('string')
-        expect(orgPayload.currency.length).toBeGreaterThan(0)
+        expect(orgPayload.currency!.length).toBeGreaterThan(0)
         return Result.ok(null)
       })
     })
@@ -3074,14 +3106,15 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // The resolved item should have the correct priceId
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
+          triggerCall.adjustmentParams!.newSubscriptionItems[0]
+            .priceId
         ).toBe(slugPrice.id)
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0]
+          triggerCall.adjustmentParams!.newSubscriptionItems[0]
             .unitPrice
         ).toBe(2999)
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].name
+          triggerCall.adjustmentParams!.newSubscriptionItems[0].name
         ).toBe('Premium via Slug')
         return Result.ok(null)
       })
@@ -3193,18 +3226,19 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // The expanded item should have all the correct fields from the price
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
+          triggerCall.adjustmentParams!.newSubscriptionItems[0]
+            .priceId
         ).toBe(testPrice.id)
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0]
+          triggerCall.adjustmentParams!.newSubscriptionItems[0]
             .quantity
         ).toBe(3)
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0]
+          triggerCall.adjustmentParams!.newSubscriptionItems[0]
             .unitPrice
         ).toBe(testPrice.unitPrice)
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].name
+          triggerCall.adjustmentParams!.newSubscriptionItems[0].name
         ).toBe(testPrice.name)
         return Result.ok(null)
       })
@@ -3301,12 +3335,12 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Should have both items resolved
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems.length
+          triggerCall.adjustmentParams!.newSubscriptionItems.length
         ).toBe(2)
 
         // First item resolved from priceSlug
         const slugItem = (
-          triggerCall.adjustmentParams
+          triggerCall.adjustmentParams!
             .newSubscriptionItems as SubscriptionItem.Record[]
         ).find((i) => i.priceId === slugPrice.id)
         expect(slugItem).toMatchObject({
@@ -3317,7 +3351,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // Second item resolved from priceId
         const idItem = (
-          triggerCall.adjustmentParams
+          triggerCall.adjustmentParams!
             .newSubscriptionItems as SubscriptionItem.Record[]
         ).find((i) => i.priceId === idPrice.id)
         expect(idItem).toMatchObject({ quantity: 2 })
@@ -3390,14 +3424,15 @@ describe('adjustSubscription Integration Tests', async () => {
 
         // The item should be resolved correctly from the UUID
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].priceId
+          triggerCall.adjustmentParams!.newSubscriptionItems[0]
+            .priceId
         ).toBe(uuidPrice.id)
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0]
+          triggerCall.adjustmentParams!.newSubscriptionItems[0]
             .unitPrice
         ).toBe(uuidPrice.unitPrice)
         expect(
-          triggerCall.adjustmentParams.newSubscriptionItems[0].name
+          triggerCall.adjustmentParams!.newSubscriptionItems[0].name
         ).toBe(uuidPrice.name)
         return Result.ok(null)
       })
