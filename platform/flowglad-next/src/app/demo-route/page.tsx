@@ -13,15 +13,24 @@ import {
   BillingPortalMagicLinkPreview,
   BillingPortalOTPPreview,
   ForgotPasswordPreview,
+  OrgCsvExportReadyPreview,
+  OrgOnboardingCompletedPreview,
+  OrgPaymentFailedPreview,
+  OrgPaymentPendingPreview,
+  OrgPaymentReceivedPreview,
+  OrgPayoutsEnabledPreview,
+  OrgSubscriptionAdjustedPreview,
   OrgSubscriptionCanceledPreview,
   OrgSubscriptionCancellationScheduledPreview,
   OrgSubscriptionCreatedPreview,
+  OrgTeamInvitationPreview,
   PaymentFailedPreview,
   PurchaseAccessTokenPreview,
   SubscriptionAdjustedPreview,
   SubscriptionCanceledPreview,
   SubscriptionCancellationScheduledPreview,
   SubscriptionCreatedPreview,
+  SubscriptionRenewalReminderPreview,
   SubscriptionUpgradedPreview,
   TrialEndingSoonPreview,
   TrialExpiredNoPaymentPreview,
@@ -78,6 +87,9 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
   'subscription-cancellation-scheduled': ({ livemode }) => (
     <SubscriptionCancellationScheduledPreview livemode={livemode} />
   ),
+  'subscription-renewal-reminder': ({ livemode }) => (
+    <SubscriptionRenewalReminderPreview livemode={livemode} />
+  ),
   'payment-failed': ({ hasRetry, livemode }) => (
     <PaymentFailedPreview
       hasRetryDate={hasRetry}
@@ -104,6 +116,30 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
     <OrgSubscriptionCancellationScheduledPreview
       livemode={livemode}
     />
+  ),
+  'org-subscription-adjusted': ({ livemode }) => (
+    <OrgSubscriptionAdjustedPreview livemode={livemode} />
+  ),
+  'org-payment-received': ({ livemode }) => (
+    <OrgPaymentReceivedPreview livemode={livemode} />
+  ),
+  'org-payment-failed': ({ livemode }) => (
+    <OrgPaymentFailedPreview livemode={livemode} />
+  ),
+  'org-payment-pending': ({ livemode }) => (
+    <OrgPaymentPendingPreview livemode={livemode} />
+  ),
+  'org-payouts-enabled': ({ livemode }) => (
+    <OrgPayoutsEnabledPreview livemode={livemode} />
+  ),
+  'org-onboarding-completed': ({ livemode }) => (
+    <OrgOnboardingCompletedPreview livemode={livemode} />
+  ),
+  'org-team-invitation': ({ livemode }) => (
+    <OrgTeamInvitationPreview livemode={livemode} />
+  ),
+  'org-csv-export-ready': ({ livemode }) => (
+    <OrgCsvExportReadyPreview livemode={livemode} />
   ),
   // Purchase access
   'purchase-access-token': ({ livemode }) => (

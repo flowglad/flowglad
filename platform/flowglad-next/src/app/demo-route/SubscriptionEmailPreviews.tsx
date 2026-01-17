@@ -5,10 +5,19 @@ import { CustomerSubscriptionAdjustedEmail } from '@/email-templates/customer-su
 import { CustomerSubscriptionCanceledEmail } from '@/email-templates/customer-subscription-canceled'
 import { CustomerSubscriptionCancellationScheduledEmail } from '@/email-templates/customer-subscription-cancellation-scheduled'
 import { CustomerSubscriptionCreatedEmail } from '@/email-templates/customer-subscription-created'
+import { CustomerSubscriptionRenewalReminderEmail } from '@/email-templates/customer-subscription-renewal-reminder'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
 import { CustomerTrialEndingSoonEmail } from '@/email-templates/customer-trial-ending-soon'
 import { CustomerTrialExpiredNoPaymentEmail } from '@/email-templates/customer-trial-expired-no-payment'
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
+import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
+import { OrganizationInvitationEmail } from '@/email-templates/organization/organization-invitation'
+import { OrganizationPaymentConfirmationEmail } from '@/email-templates/organization/organization-payment-awaiting-confirmation'
+import { OrganizationPaymentFailedNotificationEmail } from '@/email-templates/organization/organization-payment-failed'
+import { OrganizationPaymentNotificationEmail } from '@/email-templates/organization/organization-payment-succeeded'
+import { OrganizationPayoutsEnabledNotificationEmail } from '@/email-templates/organization/organization-payouts-enabled'
+import { OrganizationSubscriptionAdjustedEmail } from '@/email-templates/organization/organization-subscription-adjusted'
+import { OrganizationOnboardingCompletedNotificationEmail } from '@/email-templates/organization/payout-notification'
 import {
   OrganizationSubscriptionCanceledNotificationEmail,
   OrganizationSubscriptionCancellationScheduledNotificationEmail,
@@ -44,8 +53,8 @@ export const SubscriptionCreatedPreview = ({
     <EmailPreviewWrapper
       templateName="customer-subscription-created"
       scenario="New paid subscription"
-      subject="Payment method confirmed - Subscription active"
-      previewText="Payment method confirmed - Subscription active"
+      subject="Subscription Confirmed"
+      previewText="Your Subscription is Confirmed"
       livemode={livemode}
       emailType="subscription-created"
     >
@@ -83,8 +92,8 @@ export const SubscriptionUpgradedPreview = ({
     <EmailPreviewWrapper
       templateName="customer-subscription-upgraded"
       scenario={scenario}
-      subject="Subscription upgraded"
-      previewText="Payment method confirmed - Subscription upgraded"
+      subject="Subscription Confirmed"
+      previewText="Your Subscription is Confirmed"
       livemode={livemode}
       emailType="subscription-upgraded"
     >
@@ -123,16 +132,13 @@ export const SubscriptionAdjustedPreview = ({
 }: SubscriptionAdjustedPreviewProps) => {
   const isUpgrade = adjustmentType === 'upgrade'
   const subscriptionItems = createSubscriptionItems(isUpgrade)
-  const subjectText = isUpgrade
-    ? 'Your subscription has been upgraded'
-    : 'Your subscription has been updated'
 
   return (
     <EmailPreviewWrapper
       templateName="customer-subscription-adjusted"
       scenario={`Paid → Paid (${adjustmentType})`}
-      subject={subjectText}
-      previewText={subjectText}
+      subject="Subscription Updated"
+      previewText="Your Subscription has been Updated"
       livemode={livemode}
       emailType={
         isUpgrade
@@ -285,7 +291,7 @@ export const BillingPortalOTPPreview = ({
     <EmailPreviewWrapper
       templateName="customer-billing-portal-otp"
       scenario="Billing portal sign-in OTP"
-      subject={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
+      subject="Sign In to Billing Portal"
       previewText={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
       livemode={livemode}
       emailType="billing-portal-otp"
@@ -316,7 +322,7 @@ export const BillingPortalMagicLinkPreview = ({
     <EmailPreviewWrapper
       templateName="customer-billing-portal-magic-link"
       scenario="Billing portal magic link sign-in"
-      subject={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
+      subject="Sign In to Billing Portal"
       previewText={`Sign in to your billing portal for ${commonOrganizationProps.organizationName}`}
       livemode={livemode}
       emailType="billing-portal-magic-link"
@@ -347,7 +353,7 @@ export const ForgotPasswordPreview = ({
     <EmailPreviewWrapper
       templateName="forgot-password"
       scenario="Password reset request"
-      subject={`Reset your password, ${commonCustomerProps.customerName}`}
+      subject="Reset Your Password"
       previewText={`Reset your password, ${commonCustomerProps.customerName}`}
       livemode={livemode}
       emailType="forgot-password"
@@ -375,7 +381,7 @@ export const OrgSubscriptionCreatedPreview = ({
     <EmailPreviewWrapper
       templateName="organization-subscription-notifications"
       scenario="Org notification: New subscription"
-      subject={`New Subscription: ${commonCustomerProps.customerName} subscribed to Pro Plan`}
+      subject="New Subscription"
       previewText={`New Subscription: ${commonCustomerProps.customerName} subscribed to Pro Plan`}
       livemode={livemode}
       emailType="org-subscription-created"
@@ -407,7 +413,7 @@ export const OrgSubscriptionCanceledPreview = ({
     <EmailPreviewWrapper
       templateName="organization-subscription-notifications"
       scenario="Org notification: Subscription canceled"
-      subject={`Subscription Cancelled: ${commonCustomerProps.customerName} canceled Pro Plan`}
+      subject="Subscription Cancellation Alert"
       previewText={`Subscription Cancelled: ${commonCustomerProps.customerName} canceled Pro Plan`}
       livemode={livemode}
       emailType="org-subscription-canceled"
@@ -440,7 +446,7 @@ export const OrgSubscriptionCancellationScheduledPreview = ({
     <EmailPreviewWrapper
       templateName="organization-subscription-notifications"
       scenario="Org notification: Cancellation scheduled"
-      subject={`Cancellation Scheduled: ${commonCustomerProps.customerName} scheduled cancellation for Pro Plan`}
+      subject="Subscription Cancellation Scheduled"
       previewText={`Cancellation Scheduled: ${commonCustomerProps.customerName} scheduled cancellation for Pro Plan`}
       livemode={livemode}
       emailType="org-subscription-cancellation-scheduled"
@@ -473,7 +479,7 @@ export const PurchaseAccessTokenPreview = ({
     <EmailPreviewWrapper
       templateName="send-purchase-access-session-token"
       scenario="Purchase access magic link"
-      subject="Access your order with this magic link"
+      subject="Your Order Link"
       previewText="Access your order with this magic link."
       livemode={livemode}
       emailType="purchase-access-token"
@@ -505,20 +511,17 @@ export const TrialEndingSoonPreview = ({
     ? `Trial ending in ${daysRemaining} days - payment method on file, will auto-convert to paid subscription`
     : `Trial ending in ${daysRemaining} days - no payment method, prompts customer to add one`
 
+  const previewText =
+    daysRemaining === 1
+      ? 'Your Trial Ends Tomorrow'
+      : `Your Trial Ends in ${daysRemaining} Days`
+
   return (
     <EmailPreviewWrapper
       templateName="customer-trial-ending-soon"
       scenario={scenario}
-      subject={
-        daysRemaining === 1
-          ? 'Your Trial Ends Tomorrow'
-          : `Your Trial Ends in ${daysRemaining} Days`
-      }
-      previewText={
-        daysRemaining === 1
-          ? 'Your Trial Ends Tomorrow'
-          : `Your Trial Ends in ${daysRemaining} Days`
-      }
+      subject="Trial Ending Soon"
+      previewText={previewText}
       livemode={livemode}
       emailType="trial-ending-soon"
     >
@@ -554,8 +557,8 @@ export const TrialExpiredNoPaymentPreview = ({
     <EmailPreviewWrapper
       templateName="customer-trial-expired-no-payment"
       scenario="Trial has expired and no payment method was added - subscription is now inactive"
-      subject="Your Trial Has Ended - Add Payment to Continue"
-      previewText="Your Trial Has Ended - Add Payment to Continue"
+      subject="Update Your Payment Method"
+      previewText="Action Required: Update Your Payment Method"
       livemode={livemode}
       emailType="trial-expired-no-payment"
     >
@@ -564,6 +567,294 @@ export const TrialExpiredNoPaymentPreview = ({
         {...commonOrganizationProps}
         customerId={commonCustomerProps.customerId}
         planName="Pro Plan"
+        livemode={livemode}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Subscription Renewal Reminder Preview
+// ============================================================================
+
+interface SubscriptionRenewalReminderPreviewProps {
+  livemode?: boolean
+}
+
+export const SubscriptionRenewalReminderPreview = ({
+  livemode = true,
+}: SubscriptionRenewalReminderPreviewProps) => {
+  return (
+    <EmailPreviewWrapper
+      templateName="customer-subscription-renewal-reminder"
+      scenario="Renewal reminder sent 7 days before subscription renews"
+      subject="Subscription Renewal"
+      previewText="Your Subscription Renews Soon"
+      livemode={livemode}
+      emailType="subscription-renewal-reminder"
+    >
+      <CustomerSubscriptionRenewalReminderEmail
+        customerName={commonCustomerProps.customerName}
+        {...commonOrganizationProps}
+        customerId={commonCustomerProps.customerId}
+        planName="Pro Plan"
+        renewalDate={getFutureDate(7)}
+        daysUntilRenewal={7}
+        price={MOCK_PRICES.PRO_PLAN}
+        currency={DEFAULT_CURRENCY}
+        interval={DEFAULT_INTERVAL}
+        livemode={livemode}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Organization Payment Received Preview
+// ============================================================================
+
+interface OrgPaymentReceivedPreviewProps {
+  livemode?: boolean
+}
+
+export const OrgPaymentReceivedPreview = ({
+  livemode = true,
+}: OrgPaymentReceivedPreviewProps) => {
+  return (
+    <EmailPreviewWrapper
+      templateName="organization/organization-payment-succeeded"
+      scenario="Org notification: Payment received from customer"
+      subject="Congratulations!"
+      previewText={`Congratulations, ${commonOrganizationProps.organizationName}!`}
+      livemode={livemode}
+      emailType="org-payment-received"
+    >
+      <OrganizationPaymentNotificationEmail
+        organizationName={commonOrganizationProps.organizationName}
+        amount={MOCK_PRICES.PRO_PLAN}
+        invoiceNumber="INV-2024-001"
+        currency={DEFAULT_CURRENCY}
+        customerId={mockCustomer.id}
+        customerName={commonCustomerProps.customerName}
+        customerEmail="john.doe@example.com"
+        livemode={livemode}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Organization Payment Failed Preview
+// ============================================================================
+
+interface OrgPaymentFailedPreviewProps {
+  livemode?: boolean
+}
+
+export const OrgPaymentFailedPreview = ({
+  livemode = true,
+}: OrgPaymentFailedPreviewProps) => {
+  return (
+    <EmailPreviewWrapper
+      templateName="organization/organization-payment-failed"
+      scenario="Org notification: Customer payment failed"
+      subject="Payment Failed"
+      previewText="Payment Failed - Action Required"
+      livemode={livemode}
+      emailType="org-payment-failed"
+    >
+      <OrganizationPaymentFailedNotificationEmail
+        organizationName={commonOrganizationProps.organizationName}
+        amount={MOCK_PRICES.PRO_PLAN}
+        invoiceNumber="INV-2024-002"
+        currency={DEFAULT_CURRENCY}
+        customerId={mockCustomer.id}
+        customerName={commonCustomerProps.customerName}
+        failureReason="Your card was declined"
+        livemode={livemode}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Organization Payment Pending Preview
+// ============================================================================
+
+interface OrgPaymentPendingPreviewProps {
+  livemode?: boolean
+}
+
+export const OrgPaymentPendingPreview = ({
+  livemode = true,
+}: OrgPaymentPendingPreviewProps) => {
+  return (
+    <EmailPreviewWrapper
+      templateName="organization/organization-payment-awaiting-confirmation"
+      scenario="Org notification: Payment awaiting confirmation"
+      subject="Payment Pending Confirmation"
+      previewText="Awaiting Confirmation for Payment"
+      livemode={livemode}
+      emailType="org-payment-pending"
+    >
+      <OrganizationPaymentConfirmationEmail
+        organizationName={commonOrganizationProps.organizationName}
+        amount={MOCK_PRICES.PRO_PLAN}
+        invoiceNumber="INV-2024-003"
+        customerId={mockCustomer.id}
+        currency={DEFAULT_CURRENCY}
+        customerName={commonCustomerProps.customerName}
+        livemode={livemode}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Organization Subscription Adjusted Preview
+// ============================================================================
+
+interface OrgSubscriptionAdjustedPreviewProps {
+  livemode?: boolean
+}
+
+export const OrgSubscriptionAdjustedPreview = ({
+  livemode = true,
+}: OrgSubscriptionAdjustedPreviewProps) => {
+  const subscriptionItems = createSubscriptionItems(true)
+
+  return (
+    <EmailPreviewWrapper
+      templateName="organization/organization-subscription-adjusted"
+      scenario="Org notification: Customer updated their subscription"
+      subject="Subscription Updated"
+      previewText={`Subscription Updated - ${commonCustomerProps.customerName}`}
+      livemode={livemode}
+      emailType="org-subscription-adjusted"
+    >
+      <OrganizationSubscriptionAdjustedEmail
+        organizationName={commonOrganizationProps.organizationName}
+        customerName={commonCustomerProps.customerName}
+        customerEmail="john.doe@example.com"
+        customerId={mockCustomer.id}
+        adjustmentType="upgrade"
+        previousItems={subscriptionItems.previousItems}
+        newItems={subscriptionItems.newItems}
+        previousTotalPrice={subscriptionItems.previousTotalPrice}
+        newTotalPrice={subscriptionItems.newTotalPrice}
+        currency={DEFAULT_CURRENCY}
+        prorationAmount={subscriptionItems.prorationAmount}
+        effectiveDate={PREVIEW_REFERENCE_DATE}
+        livemode={livemode}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Organization Payouts Enabled Preview
+// ============================================================================
+
+interface OrgPayoutsEnabledPreviewProps {
+  livemode?: boolean
+}
+
+export const OrgPayoutsEnabledPreview = ({
+  livemode = true,
+}: OrgPayoutsEnabledPreviewProps) => {
+  return (
+    <EmailPreviewWrapper
+      templateName="organization/organization-payouts-enabled"
+      scenario="Org notification: Payouts have been enabled"
+      subject={`Payouts Enabled for ${commonOrganizationProps.organizationName}`}
+      previewText={`Payouts have been enabled for ${commonOrganizationProps.organizationName}`}
+      livemode={livemode}
+      emailType="org-payouts-enabled"
+    >
+      <OrganizationPayoutsEnabledNotificationEmail
+        organizationName={commonOrganizationProps.organizationName}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Organization Onboarding Completed Preview
+// ============================================================================
+
+interface OrgOnboardingCompletedPreviewProps {
+  livemode?: boolean
+}
+
+export const OrgOnboardingCompletedPreview = ({
+  livemode = true,
+}: OrgOnboardingCompletedPreviewProps) => {
+  return (
+    <EmailPreviewWrapper
+      templateName="organization/payout-notification"
+      scenario="Org notification: Onboarding completed, pending review"
+      subject={`Congratulations! ${commonOrganizationProps.organizationName} is fully onboarded`}
+      previewText={`Live payments pending review for ${commonOrganizationProps.organizationName}`}
+      livemode={livemode}
+      emailType="org-onboarding-completed"
+    >
+      <OrganizationOnboardingCompletedNotificationEmail
+        organizationName={commonOrganizationProps.organizationName}
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Organization Team Invitation Preview
+// ============================================================================
+
+interface OrgTeamInvitationPreviewProps {
+  livemode?: boolean
+}
+
+export const OrgTeamInvitationPreview = ({
+  livemode = true,
+}: OrgTeamInvitationPreviewProps) => {
+  return (
+    <EmailPreviewWrapper
+      templateName="organization/organization-invitation"
+      scenario="Team member invitation email"
+      subject={`You've been invited to ${commonOrganizationProps.organizationName}`}
+      previewText={`You've been invited to join ${commonOrganizationProps.organizationName}`}
+      livemode={livemode}
+      emailType="org-team-invitation"
+    >
+      <OrganizationInvitationEmail
+        organizationName={commonOrganizationProps.organizationName}
+        inviterName="Jane Smith"
+      />
+    </EmailPreviewWrapper>
+  )
+}
+
+// ============================================================================
+// Organization CSV Export Ready Preview
+// ============================================================================
+
+interface OrgCsvExportReadyPreviewProps {
+  livemode?: boolean
+}
+
+export const OrgCsvExportReadyPreview = ({
+  livemode = true,
+}: OrgCsvExportReadyPreviewProps) => {
+  return (
+    <EmailPreviewWrapper
+      templateName="organization/customers-csv-export-ready"
+      scenario="Org notification: Customer CSV export is ready"
+      subject="Your CSV Export is Ready"
+      previewText={`Your customers CSV export for ${commonOrganizationProps.organizationName} is ready`}
+      livemode={livemode}
+      emailType="org-csv-export-ready"
+    >
+      <CustomersCsvExportReadyEmail
+        organizationName={commonOrganizationProps.organizationName}
         livemode={livemode}
       />
     </EmailPreviewWrapper>
