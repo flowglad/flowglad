@@ -355,19 +355,17 @@ describe('priceMethods.ts', () => {
       })
 
       // Attempt to update the second price to be default
-      // This should fail because 'price' is already the default for this product
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          await updatePrice(
-            {
-              id: secondPrice.id,
-              isDefault: true,
-              type: PriceType.Subscription,
-            },
-            transaction
-          )
-        })
-      ).resolves.not.toThrow()
+      // This should succeed - if it throws, the test will fail
+      await adminTransaction(async ({ transaction }) => {
+        await updatePrice(
+          {
+            id: secondPrice.id,
+            isDefault: true,
+            type: PriceType.Subscription,
+          },
+          transaction
+        )
+      })
     })
 
     it('allows inserting a non-default price when a default price already exists', async () => {
