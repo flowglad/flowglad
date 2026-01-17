@@ -1459,3 +1459,221 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     expect(pricingModelRow!.productsCount).toBe(0)
   })
 })
+
+describe('Usage Meter Prices in Pricing Model Response', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+  })
+
+  it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere returns usage meters with their prices attached', async () => {
+    // Create a usage meter
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'API Calls Meter',
+    })
+
+    // Create a usage price for the meter
+    const usagePrice = await setupPrice({
+      name: 'Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 10,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: usageMeter.id,
+    })
+
+    // Query the pricing model
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+
+    // Find our usage meter
+    const usageMeterResult = pricingModelResult.usageMeters.find(
+      (m) => m.id === usageMeter.id
+    )
+
+    expect(usageMeterResult?.id).toBe(usageMeter.id)
+    expect(usageMeterResult!.prices).toHaveLength(1)
+    expect(usageMeterResult!.prices[0].id).toBe(usagePrice.id)
+    expect(usageMeterResult!.prices[0].type).toBe(PriceType.Usage)
+    expect(usageMeterResult!.prices[0].unitPrice).toBe(10)
+    expect(usageMeterResult!.defaultPrice?.id).toBe(usagePrice.id)
+  })
+
+  it('returns usage meters with multiple prices correctly grouped', async () => {
+    // Create a usage meter
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Video Minutes Meter',
+    })
+
+    // Create multiple usage prices for the same meter
+    // Note: safelyInsertPrice sets isDefault: false for all usage prices,
+    // so the fallback behavior (first price = default) applies
+    const usagePrice1 = await setupPrice({
+      name: 'Standard Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 5,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      usageMeterId: usageMeter.id,
+    })
+
+    const usagePrice2 = await setupPrice({
+      name: 'Premium Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 10,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      usageMeterId: usageMeter.id,
+    })
+
+    // Query the pricing model
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    const pricingModelResult = result[0]
+    const usageMeterResult = pricingModelResult.usageMeters.find(
+      (m) => m.id === usageMeter.id
+    )
+
+    expect(usageMeterResult!.prices).toHaveLength(2)
+    expect(usageMeterResult!.prices.map((p) => p.id)).toContain(
+      usagePrice1.id
+    )
+    expect(usageMeterResult!.prices.map((p) => p.id)).toContain(
+      usagePrice2.id
+    )
+    // Since usage prices don't have isDefault set, the first price becomes the default
+    expect(usageMeterResult!.defaultPrice?.id).toBe(usagePrice1.id)
+  })
+
+  it('selectPricingModelForCustomer filters inactive usage prices from usage meters', async () => {
+    // Create a usage meter
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Storage Meter',
+    })
+
+    // Create an active usage price
+    const activeUsagePrice = await setupPrice({
+      name: 'Active Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 20,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: usageMeter.id,
+      active: true,
+    })
+
+    // Create an inactive usage price
+    const inactiveUsagePrice = await setupPrice({
+      name: 'Inactive Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 15,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      usageMeterId: usageMeter.id,
+      active: false,
+    })
+
+    // Deactivate the inactive price
+    await adminTransaction(async ({ transaction }) => {
+      await safelyUpdatePrice(
+        {
+          id: inactiveUsagePrice.id,
+          type: PriceType.Usage,
+          active: false,
+          isDefault: false,
+        },
+        transaction
+      )
+    })
+
+    // Create a customer
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'usage-test@example.com',
+      pricingModelId: pricingModel.id,
+    })
+
+    // Query via selectPricingModelForCustomer (which applies active filtering)
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelForCustomer(customer, transaction)
+    })
+
+    // Find our usage meter
+    const usageMeterResult = result.usageMeters.find(
+      (m) => m.id === usageMeter.id
+    )
+
+    expect(usageMeterResult?.id).toBe(usageMeter.id)
+    // Should only contain the active price
+    expect(usageMeterResult!.prices).toHaveLength(1)
+    expect(usageMeterResult!.prices[0].id).toBe(activeUsagePrice.id)
+    expect(usageMeterResult!.prices[0].active).toBe(true)
+    expect(usageMeterResult!.defaultPrice?.id).toBe(
+      activeUsagePrice.id
+    )
+  })
+
+  it('returns usage meters with empty prices array when no prices exist', async () => {
+    // Create a usage meter without any prices
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Empty Meter',
+    })
+
+    // Query the pricing model
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    const pricingModelResult = result[0]
+    const usageMeterResult = pricingModelResult.usageMeters.find(
+      (m) => m.id === usageMeter.id
+    )
+
+    expect(usageMeterResult?.id).toBe(usageMeter.id)
+    expect(Array.isArray(usageMeterResult!.prices)).toBe(true)
+    expect(usageMeterResult!.prices).toHaveLength(0)
+    expect(usageMeterResult!.defaultPrice).toBeUndefined()
+  })
+})

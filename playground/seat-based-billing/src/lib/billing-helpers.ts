@@ -192,6 +192,7 @@ export function findUsageMeterBySlug(
 
 /**
  * Finds a usage price by its associated usage meter slug from the pricing model.
+ * Usage prices are now nested under usageMeters[].prices (not products[].prices).
  *
  * @param usageMeterSlug - The slug of the usage meter to find the price for
  * @param pricingModel - The billing pricing model (from billing.pricingModel)
@@ -201,27 +202,22 @@ export function findUsagePriceByMeterSlug(
   usageMeterSlug: string,
   pricingModel: BillingWithChecks['pricingModel'] | undefined
 ): Price | null {
-  if (!pricingModel?.products || !pricingModel?.usageMeters)
-    return null
+  if (!pricingModel?.usageMeters) return null
 
-  // Build lookup map: slug -> id
-  const meterIdBySlug = new Map(
-    pricingModel.usageMeters.map((meter: UsageMeter) => [
-      meter.slug,
-      meter.id,
-    ])
+  // Find the usage meter by slug
+  const usageMeter = pricingModel.usageMeters.find(
+    (meter: UsageMeter) => meter.slug === usageMeterSlug
   )
+  if (!usageMeter) return null
 
-  const usageMeterId = meterIdBySlug.get(usageMeterSlug)
-  if (!usageMeterId) return null
-
-  // Find price by meter ID
-  const usagePrice = pricingModel.products
-    .flatMap((product: Product) => product.prices ?? [])
-    .find(
-      (price: Price) =>
-        price.type === 'usage' && price.usageMeterId === usageMeterId
-    )
+  // Usage prices are now directly on the usage meter
+  // Cast to access the prices property which is part of the new schema
+  const meterWithPrices = usageMeter as UsageMeter & {
+    prices?: Price[]
+  }
+  const usagePrice = meterWithPrices.prices?.find(
+    (price: Price) => price.type === 'usage'
+  )
 
   return usagePrice ?? null
 }

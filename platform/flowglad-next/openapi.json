@@ -18585,7 +18585,7 @@
           "usageMeters": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/UsageMeterClientSelectSchema"
+              "$ref": "#/components/schemas/UsageMeterWithPricesRecord"
             }
           },
           "defaultProduct": {
@@ -18606,7 +18606,7 @@
         ],
         "additionalProperties": false
       },
-      "UsageMeterClientSelectSchema": {
+      "UsageMeterWithPricesRecord": {
         "type": "object",
         "properties": {
           "id": {
@@ -18649,6 +18649,16 @@
             "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
             "type": "string",
             "enum": ["sum", "count_distinct_properties"]
+          },
+          "prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsagePriceClientSelectSchema"
+            }
+          },
+          "defaultPrice": {
+            "description": "The default price for the usage meter. If no price is explicitly set as default, will return the first price.",
+            "$ref": "#/components/schemas/UsagePriceClientSelectSchema"
           }
         },
         "required": [
@@ -18660,7 +18670,8 @@
           "name",
           "pricingModelId",
           "slug",
-          "aggregationType"
+          "aggregationType",
+          "prices"
         ],
         "additionalProperties": false
       },
@@ -19152,6 +19163,64 @@
           "subscriptionItems",
           "resolvedTiming",
           "isUpgrade"
+        ],
+        "additionalProperties": false
+      },
+      "UsageMeterClientSelectSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "livemode": {
+            "type": "boolean"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the usage meter",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "pricingModelId": {
+            "type": "string"
+          },
+          "slug": {
+            "description": "The slug of the usage meter",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "aggregationType": {
+            "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+            "type": "string",
+            "enum": ["sum", "count_distinct_properties"]
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "updatedAt",
+          "livemode",
+          "organizationId",
+          "name",
+          "pricingModelId",
+          "slug",
+          "aggregationType"
         ],
         "additionalProperties": false
       },
