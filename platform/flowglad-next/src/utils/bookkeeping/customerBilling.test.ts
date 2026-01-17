@@ -4,8 +4,9 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -62,24 +63,24 @@ import {
 } from './customerBilling'
 
 // Mock next/headers to avoid Next.js context errors
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(() => undefined),
+    get: mock(() => undefined),
+    delete: mock(() => undefined),
   })),
 }))
 
 // Mock auth with factory function to avoid hoisting issues
-vi.mock('@/utils/auth', () => ({
+mock.module('@/utils/auth', () => ({
   auth: {
     api: {
-      signInMagicLink: vi.fn(),
-      createUser: vi.fn(),
+      signInMagicLink: mock(() => undefined),
+      createUser: mock(() => undefined),
     },
   },
-  getSession: vi.fn().mockResolvedValue(null),
+  getSession: mock(() => Promise.resolve(null)),
 }))
 
 describe('setDefaultPaymentMethodForCustomer', () => {
@@ -936,9 +937,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   let user: User.Record
 
   beforeEach(async () => {
-    // Reset all mocks
-    vi.clearAllMocks()
-
     // Set up first organization with pricing model and product
     const orgData = await setupOrg()
     organization = orgData.organization
@@ -978,7 +976,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     })
 
     // Mock the requestingCustomerAndUser to return our test data
-    vi.spyOn(
+    spyOn(
       databaseAuthentication,
       'requestingCustomerAndUser'
     ).mockResolvedValue([
@@ -989,19 +987,19 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     ])
 
     // Mock the organization ID retrieval for customer billing portal
-    vi.spyOn(
+    spyOn(
       customerBillingPortalState,
       'getCustomerBillingPortalOrganizationId'
     ).mockResolvedValue(organization.id)
 
     // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
-    vi.spyOn(
+    spyOn(
       customerBillingPortalState,
       'setCustomerBillingPortalOrganizationId'
     ).mockResolvedValue(undefined)
 
     // Mock selectBetterAuthUserById to always return a valid user
-    vi.spyOn(
+    spyOn(
       betterAuthSchemaMethods,
       'selectBetterAuthUserById'
     ).mockResolvedValue({
@@ -1013,7 +1011,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     } as any)
 
     // Mock getDatabaseAuthenticationInfo to return proper auth info for customer
-    vi.spyOn(
+    spyOn(
       databaseAuthentication,
       'getDatabaseAuthenticationInfo'
     ).mockResolvedValue({
@@ -1039,10 +1037,6 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         aud: 'stub',
       } as any,
     } as any)
-  })
-
-  afterEach(() => {
-    vi.clearAllMocks()
   })
 
   it('should fail when price is not accessible to customer (from different organization)', async () => {

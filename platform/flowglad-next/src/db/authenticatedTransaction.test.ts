@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import {
   setupMemberships,
@@ -48,13 +48,12 @@ import {
 import { insertUser } from './tableMethods/userMethods'
 import type { DbTransaction } from './types'
 
-const mockedAuth = vi.hoisted(
-  (): {
-    session: null | { user: { id: string; email: string } }
-  } => ({ session: null })
-)
+// Module-level mock state (replaces vi.hoisted)
+const mockedAuth: {
+  session: null | { user: { id: string; email: string } }
+} = { session: null }
 
-vi.mock('@/utils/auth', () => {
+mock.module('@/utils/auth', () => {
   return {
     getSession: async () => mockedAuth.session,
   }

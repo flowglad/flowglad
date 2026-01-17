@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -165,10 +165,8 @@ describe('Single Free Subscription Constraint', () => {
           transaction
         )
 
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should not throw - simply await the call (if it throws, the test will fail)
+        await verifyCanCreateSubscription(params, transaction)
       })
     })
 
@@ -203,10 +201,8 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should not throw - simply await the call (if it throws, the test will fail)
+        await verifyCanCreateSubscription(params, transaction)
       })
     })
 
@@ -259,10 +255,8 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should not throw - simply await the call (if it throws, the test will fail)
+        await verifyCanCreateSubscription(params, transaction)
       })
     })
   })
