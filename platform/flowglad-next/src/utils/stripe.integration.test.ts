@@ -1,5 +1,5 @@
+import { afterEach, describe, expect, it } from 'bun:test'
 import Stripe from 'stripe'
-import { afterEach, describe, expect, it } from 'vitest'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'

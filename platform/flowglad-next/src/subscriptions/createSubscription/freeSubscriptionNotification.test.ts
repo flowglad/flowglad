@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -22,11 +22,12 @@ import type { CreateSubscriptionParams } from './types'
 import { createSubscriptionWorkflow } from './workflow'
 
 // Mock the notification function
-vi.mock(
+mock.module(
   '@/trigger/notifications/send-organization-subscription-created-notification',
   () => ({
-    idempotentSendOrganizationSubscriptionCreatedNotification:
-      vi.fn(),
+    idempotentSendOrganizationSubscriptionCreatedNotification: mock(
+      () => undefined
+    ),
   })
 )
 
@@ -39,8 +40,6 @@ describe('Free Subscription Notification Behavior', () => {
   let paidProduct: Product.Record
 
   beforeEach(async () => {
-    vi.clearAllMocks()
-
     // Set up organization and products
     const orgData = await setupOrg()
     organization = orgData.organization

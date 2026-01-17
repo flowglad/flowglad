@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import type { Price } from '@/db/schema/prices'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { isPriceChanged } from './pricingModel'

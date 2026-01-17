@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import * as core from 'nanoid'
-import { beforeEach, describe, expect, it } from 'vitest'
 // Setup helpers from seedDatabase.ts
 import {
   setupBillingPeriod,

@@ -1,3 +1,4 @@
+/// <reference types="@testing-library/jest-dom" />
 import { afterAll, afterEach, beforeAll, mock } from 'bun:test'
 import { webcrypto } from 'node:crypto'
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
@@ -10,6 +11,7 @@ GlobalRegistrator.register()
 import { expect } from 'bun:test'
 import * as matchers from '@testing-library/jest-dom/matchers'
 
+// @ts-expect-error - jest-dom matchers have slightly different types than bun:test expects
 expect.extend(matchers)
 
 mock.module('server-only', () => ({}))

@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { addDays, addMonths, subMonths } from 'date-fns'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,

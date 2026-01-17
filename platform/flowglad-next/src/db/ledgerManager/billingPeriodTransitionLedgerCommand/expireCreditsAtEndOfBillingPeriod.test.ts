@@ -4,8 +4,8 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingRun,
