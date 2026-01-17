@@ -226,6 +226,7 @@ function collectSlugResolutionEvents(
 
 // Step 3: Resolve price slugs to IDs
 // Uses composite key (customerId:slug) to avoid collisions across customers
+// Looks up both product prices (nested in products) and usage prices (which have productId=null)
 async function resolvePriceSlugs(
   context: WithSlugEventsContext
 ): Promise<
@@ -234,7 +235,9 @@ async function resolvePriceSlugs(
     TRPCError
   >
 > {
-  const { eventsWithPriceSlugs, getPricingModelForCustomer } = context
+  const { eventsWithPriceSlugs, getPricingModelForCustomer, ctx } =
+    context
+  const { transaction } = ctx
 
   const slugToPriceIdMap = new Map<string, string>()
 
@@ -242,7 +245,7 @@ async function resolvePriceSlugs(
     const pricingModel = await getPricingModelForCustomer(
       event.customerId
     )
-    // Prices are nested within products
+    // Prices are nested within products (for subscription/single payment prices)
     let foundPrice: { id: string; slug?: string | null } | undefined
     for (const product of pricingModel.products) {
       foundPrice = product.prices.find(
@@ -250,6 +253,23 @@ async function resolvePriceSlugs(
       )
       if (foundPrice) break
     }
+
+    // If not found in product prices, also look for usage prices
+    // (usage prices have productId=null and belong to usage meters, not products)
+    if (!foundPrice) {
+      const usagePrices = await selectPrices(
+        {
+          pricingModelId: pricingModel.id,
+          slug: event.slug,
+          active: true,
+        },
+        transaction
+      )
+      if (usagePrices.length > 0) {
+        foundPrice = usagePrices[0]
+      }
+    }
+
     if (!foundPrice) {
       return Result.err(
         new TRPCError({
@@ -443,20 +463,14 @@ async function validatePricesAndBuildMap(
     }
 
     // Validate price belongs to customer's pricing model
+    // Use price.pricingModelId directly since usage prices don't have productId
+    // and thus aren't nested within pricingModel.products[].prices[]
     const subscription = subscriptionsMap.get(event.subscriptionId)
     if (subscription) {
       const pricingModel = await getPricingModelForCustomer(
         subscription.customerId
       )
-      // Prices are nested within products
-      let priceInModel: { id: string } | undefined
-      for (const product of pricingModel.products) {
-        priceInModel = product.prices.find(
-          (p: { id: string }) => p.id === event.priceId
-        )
-        if (priceInModel) break
-      }
-      if (!priceInModel) {
+      if (price.pricingModelId !== pricingModel.id) {
         return Result.err(
           new TRPCError({
             code: 'NOT_FOUND',

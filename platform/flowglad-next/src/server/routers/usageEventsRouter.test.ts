@@ -127,7 +127,6 @@ describe('usageEventsRouter', () => {
 
     // Setup prices
     price1 = await setupPrice({
-      productId: org1Data.product.id,
       name: 'Test Price 1',
       type: PriceType.Usage,
       unitPrice: 100,
@@ -138,7 +137,6 @@ describe('usageEventsRouter', () => {
       usageMeterId: usageMeter1.id,
     })
     price2 = await setupPrice({
-      productId: org2Data.product.id,
       name: 'Test Price 2',
       type: PriceType.Usage,
       unitPrice: 200,
@@ -284,7 +282,7 @@ describe('usageEventsRouter', () => {
       // Should return exactly 3 usage events (limited by parameter)
       expect(result.total).toBe(10)
       expect(result.hasMore).toBe(true)
-      expect(result.nextCursor).toMatchObject({})
+      expect(typeof result.nextCursor).toBe('string')
 
       // Verify returned events are from our created events
       const returnedEventIds = result.items.map((event) => event.id)

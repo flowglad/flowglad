@@ -6,7 +6,6 @@ import type {
   Organization,
 } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import {
   CountryCode,
   CurrencyCode,
@@ -22,11 +21,6 @@ describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
       stripeConnectContractType: StripeConnectContractType.Platform,
       feePercentage: '1.0',
     } as Organization.Record
-
-    const product = {
-      id: 'prod_1',
-      livemode: true,
-    } as Product.Record
 
     const price = {
       id: 'price_1',
@@ -50,7 +44,6 @@ describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
     const feeCalculationInsert =
       await createCheckoutSessionFeeCalculationInsertForPrice({
         organization,
-        product,
         price,
         purchase: undefined,
         discount: undefined,
@@ -73,11 +66,6 @@ describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
         StripeConnectContractType.MerchantOfRecord,
       feePercentage: '1.0',
     } as Organization.Record
-
-    const product = {
-      id: 'prod_1',
-      livemode: true,
-    } as Product.Record
 
     const price = {
       id: 'price_1',
@@ -102,7 +90,6 @@ describe('createCheckoutSessionFeeCalculationInsertForPrice', () => {
     const feeCalculationInsert =
       await createCheckoutSessionFeeCalculationInsertForPrice({
         organization,
-        product,
         price,
         purchase: undefined,
         discount: undefined,

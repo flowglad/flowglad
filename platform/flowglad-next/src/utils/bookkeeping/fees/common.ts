@@ -8,7 +8,6 @@ import type {
   Organization,
 } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import type { Purchase } from '@/db/schema/purchases'
 import { updateFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -246,13 +245,13 @@ export type TotalFeeAmountInput = Omit<
 
 export const calculateTaxes = async ({
   discountInclusiveAmount,
-  product,
+  livemode,
   billingAddress,
   price,
   purchase,
 }: {
   discountInclusiveAmount: number
-  product: Product.Record
+  livemode: boolean
   billingAddress: BillingAddress
   price: Price.Record
   purchase?: Purchase.Record
@@ -270,15 +269,13 @@ export const calculateTaxes = async ({
         billingAddress,
         discountInclusiveAmount,
         price,
-        product,
-        livemode: product.livemode,
+        livemode,
       })
     : await createStripeTaxCalculationByPrice({
         price,
         billingAddress,
         discountInclusiveAmount,
-        product,
-        livemode: product.livemode,
+        livemode,
       })
   return {
     taxAmountFixed: calc.tax_amount_exclusive,

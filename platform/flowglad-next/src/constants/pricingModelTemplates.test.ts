@@ -44,36 +44,33 @@ describe('Pricing Model Templates', () => {
   })
 
   describe('Usage Meters and Pricing', () => {
+    // Usage prices belong to usage meters, not products
     it('should have at least one usage type price for each usage meter', () => {
       PRICING_MODEL_TEMPLATES.forEach((template) => {
-        const { usageMeters, products } = template.input
+        const { usageMeters } = template.input
 
         // Only validate templates that have usage meters
         if (usageMeters.length === 0) {
           return
         }
 
-        // Get all usage meter slugs
-        const usageMeterSlugs = new Set(
-          usageMeters.map((meter) => meter.slug)
-        )
-
-        // Get all prices from all products
-        const allPrices = products.map((product) => product.price)
-
-        // For each usage meter, verify at least one usage type price exists
-        usageMeterSlugs.forEach((meterSlug) => {
-          const usagePricesForMeter = allPrices.filter(
-            (price) =>
-              price.type === PriceType.Usage &&
-              'usageMeterSlug' in price &&
-              price.usageMeterSlug === meterSlug
-          )
+        // Each usage meter should have nested prices
+        usageMeters.forEach((meter) => {
+          const meterSlug = meter.usageMeter.slug
+          const meterPrices = meter.prices ?? []
 
           expect(
-            usagePricesForMeter.length,
-            `Template "${template.metadata.id}" has usage meter "${meterSlug}" but no usage type prices associated with it`
+            meterPrices.length,
+            `Template "${template.metadata.id}" has usage meter "${meterSlug}" but no usage type prices nested under it`
           ).toBeGreaterThan(0)
+
+          // Verify all prices are usage type
+          meterPrices.forEach((price) => {
+            expect(
+              price.type,
+              `Template "${template.metadata.id}" has non-usage price type under usage meter "${meterSlug}"`
+            ).toBe(PriceType.Usage)
+          })
         })
       })
     })
