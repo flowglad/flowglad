@@ -5,6 +5,7 @@ import { attemptCancelScheduledSubscriptionsTask } from './attempt-cancel-schedu
 import { attemptBillingRunsTask } from './attempt-run-all-billings'
 import { attemptTransitionBillingPeriodsTask } from './attempt-transition-billing-periods'
 import { failStalePaymentsTask } from './fail-stale-payments'
+import { sendSubscriptionRenewalRemindersTask } from './send-subscription-renewal-reminders'
 import { sendTrialEndingRemindersTask } from './send-trial-ending-reminders'
 
 export const hourlyCron = schedules.task({
@@ -63,6 +64,17 @@ export const hourlyCron = schedules.task({
         },
         {
           idempotencyKey: `send-trial-ending-reminders:${timestamp.toISOString()}`,
+        }
+      )
+
+      // Send subscription renewal reminders for subscriptions renewing in 7 days
+      await sendSubscriptionRenewalRemindersTask.trigger(
+        {
+          timestamp,
+          reminderDays: 7,
+        },
+        {
+          idempotencyKey: `send-subscription-renewal-reminders:${timestamp.toISOString()}`,
         }
       )
     })

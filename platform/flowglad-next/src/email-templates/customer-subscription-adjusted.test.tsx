@@ -42,7 +42,9 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
         'Subscription Updated'
       )
       expect(
-        getByText('Your subscription has been updated. Here are the details:')
+        getByText(
+          'Your subscription has been updated. Here are the details:'
+        )
       ).toBeInTheDocument()
 
       // Proration amount
@@ -105,7 +107,9 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
         'Subscription Updated'
       )
       expect(
-        getByText('Your subscription has been updated. Here are the details:')
+        getByText(
+          'Your subscription has been updated. Here are the details:'
+        )
       ).toBeInTheDocument()
 
       // No proration for downgrade

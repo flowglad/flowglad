@@ -285,22 +285,37 @@ export const createSubscriptionWorkflow = async (
       updatedSubscription
     )
 
+    // Check if this is a trial subscription without a payment method
+    // Don't send "Subscription Confirmed" email for trials without payment
+    // since no billing commitment exists yet
+    const hasPaymentMethod =
+      updatedSubscription.defaultPaymentMethodId ||
+      updatedSubscription.backupPaymentMethodId ||
+      defaultPaymentMethod
+
+    const isTrialWithoutPayment =
+      updatedSubscription.status === SubscriptionStatus.Trialing &&
+      !hasPaymentMethod
+
     // Send customer notification - choose based on whether this is an upgrade
-    if (canceledFreeSubscription) {
-      // This is an upgrade from free to paid
-      await idempotentSendCustomerSubscriptionUpgradedNotification({
-        customerId: updatedSubscription.customerId,
-        newSubscriptionId: updatedSubscription.id,
-        previousSubscriptionId: canceledFreeSubscription.id,
-        organizationId: updatedSubscription.organizationId,
-      })
-    } else {
-      // This is a new paid subscription
-      await idempotentSendCustomerSubscriptionCreatedNotification({
-        customerId: updatedSubscription.customerId,
-        subscriptionId: updatedSubscription.id,
-        organizationId: updatedSubscription.organizationId,
-      })
+    // Skip customer notification for trials without payment method
+    if (!isTrialWithoutPayment) {
+      if (canceledFreeSubscription) {
+        // This is an upgrade from free to paid
+        await idempotentSendCustomerSubscriptionUpgradedNotification({
+          customerId: updatedSubscription.customerId,
+          newSubscriptionId: updatedSubscription.id,
+          previousSubscriptionId: canceledFreeSubscription.id,
+          organizationId: updatedSubscription.organizationId,
+        })
+      } else {
+        // This is a new paid subscription
+        await idempotentSendCustomerSubscriptionCreatedNotification({
+          customerId: updatedSubscription.customerId,
+          subscriptionId: updatedSubscription.id,
+          organizationId: updatedSubscription.organizationId,
+        })
+      }
     }
   }
 

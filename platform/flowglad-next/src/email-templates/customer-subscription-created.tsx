@@ -87,7 +87,7 @@ export const CustomerSubscriptionCreatedEmail = ({
           started!
         </Paragraph>
       ) : (
-        <Paragraph>Your subscription has been activated.</Paragraph>
+        <Paragraph>You've subscribed to the following:</Paragraph>
       )}
 
       <DetailSection>
@@ -140,7 +140,12 @@ export const CustomerSubscriptionCreatedEmail = ({
         </>
       ) : (
         <>
-          <Paragraph style={{ marginTop: '24px' }}>
+          <div data-testid="auto-renew-notice">
+            <Paragraph style={{ marginTop: '24px' }}>
+              Your subscription automatically renews until canceled.
+            </Paragraph>
+          </div>
+          <Paragraph style={{ marginTop: '16px' }}>
             The payment method
             {paymentMethodLast4
               ? ` ending in ${paymentMethodLast4}`

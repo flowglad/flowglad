@@ -31,15 +31,26 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     },
   }
 
-  it('renders subject line correctly', () => {
+  it('renders body text correctly', () => {
     const { getByText } = render(
       <CustomerSubscriptionCreatedEmail {...baseProps} />
     )
 
-    // Check that key text content is present
+    // Check that key text content is present (Apple-inspired "You've subscribed to" pattern)
     expect(
-      getByText('Your subscription has been activated.')
+      getByText("You've subscribed to the following:")
     ).toBeInTheDocument()
+  })
+
+  it('shows auto-renewal transparency notice for non-trial subscriptions', () => {
+    const { getByTestId } = render(
+      <CustomerSubscriptionCreatedEmail {...baseProps} />
+    )
+
+    const notice = getByTestId('auto-renew-notice')
+    expect(notice).toHaveTextContent(
+      'Your subscription automatically renews until canceled.'
+    )
   })
 
   it('displays plan name and pricing', () => {

@@ -250,7 +250,9 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
 
     // Should include auto-renewal transparency notice
     expect(
-      getByText('Your subscription automatically renews until canceled.')
+      getByText(
+        'Your subscription automatically renews until canceled.'
+      )
     ).toBeInTheDocument()
   })
 
@@ -279,7 +281,9 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     expect(queryByTestId('payment-method')).not.toBeInTheDocument()
     // Should still show auto-renewal notice
     expect(
-      getByText('Your subscription automatically renews until canceled.')
+      getByText(
+        'Your subscription automatically renews until canceled.'
+      )
     ).toBeInTheDocument()
   })
 
