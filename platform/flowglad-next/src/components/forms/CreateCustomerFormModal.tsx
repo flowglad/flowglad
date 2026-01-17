@@ -1,12 +1,18 @@
 'use client'
+import { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
-import {
-  type CreateCustomerInputSchema,
-  createCustomerInputSchema,
-} from '@/db/tableMethods/purchaseMethods'
 import core from '@/utils/core'
-import CustomerFormFields from './CustomerFormFields'
+import CustomerFormFields, { customerSchema } from './CustomerFormFields'
+
+// UI-level schema with email validation, extended with externalId for form submission
+const createCustomerFormSchema = customerSchema.extend({
+  customer: customerSchema.shape.customer.extend({
+    externalId: z.string(),
+  }),
+})
+
+type CreateCustomerFormValues = z.infer<typeof createCustomerFormSchema>
 
 const CreateCustomerFormModal = ({
   isOpen,
@@ -17,7 +23,7 @@ const CreateCustomerFormModal = ({
 }) => {
   const createCustomer = trpc.customers.create.useMutation()
 
-  const defaultValues: CreateCustomerInputSchema = {
+  const defaultValues: CreateCustomerFormValues = {
     customer: {
       name: '',
       email: '',
@@ -28,7 +34,7 @@ const CreateCustomerFormModal = ({
   return (
     <FormModal
       title="Create Customer"
-      formSchema={createCustomerInputSchema}
+      formSchema={createCustomerFormSchema}
       defaultValues={defaultValues}
       onSubmit={createCustomer.mutateAsync}
       isOpen={isOpen}
