@@ -1,10 +1,6 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { BusinessOnboardingStatus } from '@/types'
 import type { NavUserProps } from './NavUser'
 
@@ -27,30 +23,30 @@ const mockSession = {
   },
 }
 
-const mockSignOut = vi.fn()
-vi.mock('@/utils/authClient', () => ({
+const mockSignOut = mock(() => undefined)
+mock.module('@/utils/authClient', () => ({
   useSession: () => ({ data: mockSession, isPending: false }),
   signOut: () => mockSignOut(),
 }))
 
-vi.mock('@/app/_trpc/client', () => ({
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     utils: {
       toggleTestMode: {
         useMutation: () => ({
-          mutateAsync: vi.fn(),
+          mutateAsync: mock(() => undefined),
           isPending: false,
         }),
       },
     },
     useUtils: () => ({
-      invalidate: vi.fn(),
+      invalidate: mock(() => undefined),
       banners: {
         getDismissedIds: {
-          cancel: vi.fn(),
-          getData: vi.fn(() => []),
-          setData: vi.fn(),
-          invalidate: vi.fn(),
+          cancel: mock(() => undefined),
+          getData: mock(() => []),
+          setData: mock(() => undefined),
+          invalidate: mock(() => undefined),
         },
       },
     }),
@@ -59,7 +55,7 @@ vi.mock('@/app/_trpc/client', () => ({
         useQuery: () => ({
           data: { membership: { livemode: true } },
           isPending: false,
-          refetch: vi.fn(),
+          refetch: mock(() => undefined),
         }),
       },
     },
@@ -72,7 +68,7 @@ vi.mock('@/app/_trpc/client', () => ({
       },
       dismissAll: {
         useMutation: () => ({
-          mutate: vi.fn(),
+          mutate: mock(() => undefined),
           isPending: false,
         }),
       },
@@ -80,9 +76,12 @@ vi.mock('@/app/_trpc/client', () => ({
   },
 }))
 
-vi.mock('next/navigation', () => ({
+mock.module('next/navigation', () => ({
   usePathname: () => '/dashboard',
-  useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({
+    push: mock(() => undefined),
+    refresh: mock(() => undefined),
+  }),
 }))
 
 const mockOrganization = {
@@ -92,12 +91,12 @@ const mockOrganization = {
   onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
 }
 
-vi.mock('@/contexts/authContext', () => ({
+mock.module('@/contexts/authContext', () => ({
   useAuthContext: () => ({ organization: mockOrganization }),
 }))
 
-const mockToggleSidebar = vi.fn()
-vi.mock('@/components/ui/sidebar', () => ({
+const mockToggleSidebar = mock(() => undefined)
+mock.module('@/components/ui/sidebar', () => ({
   useSidebar: () => ({
     state: 'expanded',
     toggleSidebar: mockToggleSidebar,
@@ -137,13 +136,13 @@ vi.mock('@/components/ui/sidebar', () => ({
   ),
 }))
 
-vi.mock('next/image', () => ({
+mock.module('next/image', () => ({
   default: ({ src, alt }: { src: string; alt: string }) => (
     <img src={src} alt={alt} />
   ),
 }))
 
-vi.mock('./NavStandalone', () => ({
+mock.module('./NavStandalone', () => ({
   NavStandalone: ({ items }: { items: MockNavStandaloneItem[] }) => (
     <div data-testid="nav-standalone">
       {items.map((item) => (
@@ -159,7 +158,7 @@ vi.mock('./NavStandalone', () => ({
   ),
 }))
 
-vi.mock('./NavUser', () => ({
+mock.module('./NavUser', () => ({
   NavUser: ({ user, organization, onSignOut }: NavUserProps) => (
     <div data-testid="nav-user">
       <span data-testid="nav-user-name">{user.name}</span>
@@ -171,7 +170,7 @@ vi.mock('./NavUser', () => ({
   ),
 }))
 
-vi.mock('./SidebarBannerCarousel', () => ({
+mock.module('./SidebarBannerCarousel', () => ({
   SidebarBannerCarousel: () => null,
 }))
 
@@ -179,7 +178,8 @@ import { SideNavigation } from './SideNavigation'
 
 describe('SideNavigation', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    mockToggleSidebar.mockClear()
+    mockSignOut.mockClear()
   })
 
   it('should call toggleSidebar when logo button is clicked', () => {

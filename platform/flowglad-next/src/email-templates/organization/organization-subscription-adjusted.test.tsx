@@ -1,9 +1,5 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { describe, expect, it } from 'bun:test'
 import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
 import { CurrencyCode } from '@/types'
 import { OrganizationSubscriptionAdjustedEmail } from './organization-subscription-adjusted'
 
