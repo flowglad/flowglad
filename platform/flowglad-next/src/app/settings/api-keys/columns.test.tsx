@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, it, mock, vi } from 'bun:test'
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
@@ -7,6 +11,7 @@ import {
 } from '@testing-library/react'
 import { trpc } from '@/app/_trpc/client'
 import DeleteApiKeyModal from '@/components/forms/DeleteApiKeyModal'
+import { asMock } from '@/test-utils/mockHelpers'
 
 // Mock tRPC
 mock.module('@/app/_trpc/client', () => ({
@@ -21,7 +26,7 @@ mock.module('@/app/_trpc/client', () => ({
 
 // Mock FormModal to provide a simpler test interface
 mock.module('@/components/forms/FormModal', async () => {
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const React = await import('react')
   function FormModalMock({
     children,
@@ -66,13 +71,13 @@ mock.module('@/components/forms/FormModal', async () => {
 })
 
 describe('DeleteApiKeyModal', () => {
-  const mockMutateAsync = mock(() => undefined)
+  const mockMutateAsync = mock(async () => undefined)
   const mockSetIsOpen = mock(() => undefined)
 
   beforeEach(() => {
     mockMutateAsync.mockClear()
     mockSetIsOpen.mockClear()
-    vi.mocked(trpc.apiKeys.delete.useMutation).mockReturnValue({
+    asMock(trpc.apiKeys.delete.useMutation).mockReturnValue({
       mutateAsync: mockMutateAsync,
     } as unknown as ReturnType<
       typeof trpc.apiKeys.delete.useMutation

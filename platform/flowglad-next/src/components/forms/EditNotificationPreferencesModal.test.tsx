@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, it, mock, vi } from 'bun:test'
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
@@ -9,6 +13,7 @@ import type { ReactNode } from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import type { NotificationPreferences } from '@/db/schema/memberships'
+import { asMock } from '@/test-utils/mockHelpers'
 import EditNotificationPreferencesModal from './EditNotificationPreferencesModal'
 
 interface FormModalMockProps<T extends FieldValues> {
@@ -37,7 +42,7 @@ mock.module('@/app/_trpc/client', () => ({
 // Mock the form modal and wrap children with FormProvider
 // This mock is consistent with the established pattern in other modal tests (e.g., EditDiscountModal.test.tsx)
 mock.module('@/components/forms/FormModal', async () => {
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const { useForm, FormProvider } = await import('react-hook-form')
   function FormModalMock<T extends FieldValues>({
     children,
@@ -110,7 +115,8 @@ describe('EditNotificationPreferencesModal', () => {
     paymentSuccessful: true,
   }
 
-  const mockMutateAsync = mock(() => undefined)
+  // Using any return type to allow flexible mock values in different tests
+  const mockMutateAsync = mock(async (_data: unknown) => ({}) as any)
   const mockInvalidate = mock(() => undefined)
   const mockUtils = {
     organizations: {
@@ -123,25 +129,22 @@ describe('EditNotificationPreferencesModal', () => {
   beforeEach(() => {
     mockMutateAsync.mockClear()
     mockInvalidate.mockClear()
-    vi.mocked(trpc.useUtils).mockReturnValue(
+    asMock(trpc.useUtils).mockReturnValue(
       mockUtils as unknown as ReturnType<typeof trpc.useUtils>
     )
     // Mock useMutation to capture the onSuccess callback and call it when mutateAsync resolves
-    vi.mocked(
-      trpc.organizations.updateNotificationPreferences.useMutation
+    ;(
+      asMock(
+        trpc.organizations.updateNotificationPreferences.useMutation
+      ) as any
     ).mockImplementation((options: any) => {
       const onSuccess = options?.onSuccess
-      const mutateAsyncWithCallback = mock(async (data: any) => {
+      const mutateAsyncWithCallback = mock(async (data: unknown) => {
         const result = await mockMutateAsync(data)
         if (onSuccess) {
           // onSuccess signature: (data, variables, context, mutation)
           // We pass undefined for context and mutation since we don't use them
-          onSuccess(
-            result,
-            data,
-            undefined as unknown as Parameters<typeof onSuccess>[2],
-            undefined as unknown as Parameters<typeof onSuccess>[3]
-          )
+          onSuccess(result, data, undefined, undefined)
         }
         return result
       })
@@ -386,7 +389,7 @@ describe('EditNotificationPreferencesModal', () => {
         />
       )
 
-      const mutationCalls = vi.mocked(
+      const mutationCalls = asMock(
         trpc.organizations.updateNotificationPreferences.useMutation
       ).mock.calls
       expect(mutationCalls.length).toBeGreaterThan(0)

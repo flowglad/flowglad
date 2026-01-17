@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, it, mock, vi } from 'bun:test'
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
@@ -11,6 +15,7 @@ import {
   useAuthenticatedContext,
 } from '@/contexts/authContext'
 import type { CreateDiscountFormSchema } from '@/db/schema/discounts'
+import { asMock } from '@/test-utils/mockHelpers'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import DiscountFormFields from './DiscountFormFields'
 
@@ -40,9 +45,7 @@ mock.module('@/components/ui/currency-input', () => ({
     <input
       data-testid="currency-input"
       value={value}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-        onValueChange(e.target.value)
-      }
+      onChange={(e) => onValueChange(e.target.value)}
       data-allow-decimals={allowDecimals}
     />
   ),
@@ -106,12 +109,12 @@ describe('DiscountFormFields', () => {
   }
 
   beforeEach(() => {
-    ;(vi.mocked(useAuthenticatedContext) as any).mockReturnValue({
+    asMock(useAuthenticatedContext).mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,
     } as any)
-    ;(vi.mocked(useAuthContext) as any).mockReturnValue({
+    asMock(useAuthContext).mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,

@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, it, mock, vi } from 'bun:test'
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
@@ -10,6 +14,7 @@ import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { FormProvider, useForm } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import type { ModalInterfaceProps } from '@/components/forms/FormModal'
+import { asMock } from '@/test-utils/mockHelpers'
 import { PriceType } from '@/types'
 import { CreateSubscriptionFormModal } from './CreateSubscriptionFormModal'
 
@@ -116,7 +121,9 @@ describe('CreateSubscriptionFormModal', () => {
     },
   }
 
-  const mockMutateAsync = mock(() => Promise.resolve({}))
+  const mockMutateAsync = mock((_args: unknown) =>
+    Promise.resolve({})
+  )
   const mockCreateSubscription = {
     mutateAsync: mockMutateAsync,
     isPending: false,
@@ -133,19 +140,19 @@ describe('CreateSubscriptionFormModal', () => {
   beforeEach(() => {
     mockMutateAsync.mockClear()
     // Cast through unknown to avoid complex tRPC type requirements
-    vi.mocked(trpc.useUtils).mockReturnValue(
+    asMock(trpc.useUtils).mockReturnValue(
       mockUtils as unknown as ReturnType<typeof trpc.useUtils>
     )
-    vi.mocked(
-      trpc.customers.internal__getById.useQuery
-    ).mockReturnValue({
-      data: { customer: mockCustomer },
-      isLoading: false,
-      error: null,
-    } as unknown as ReturnType<
-      typeof trpc.customers.internal__getById.useQuery
-    >)
-    vi.mocked(
+    asMock(trpc.customers.internal__getById.useQuery).mockReturnValue(
+      {
+        data: { customer: mockCustomer },
+        isLoading: false,
+        error: null,
+      } as unknown as ReturnType<
+        typeof trpc.customers.internal__getById.useQuery
+      >
+    )
+    asMock(
       trpc.customers.getPricingModelForCustomer.useQuery
     ).mockReturnValue({
       data: {
@@ -158,14 +165,14 @@ describe('CreateSubscriptionFormModal', () => {
     } as unknown as ReturnType<
       typeof trpc.customers.getPricingModelForCustomer.useQuery
     >)
-    vi.mocked(trpc.paymentMethods.list.useQuery).mockReturnValue({
+    asMock(trpc.paymentMethods.list.useQuery).mockReturnValue({
       data: { data: [mockPaymentMethod] },
       isLoading: false,
       error: null,
     } as unknown as ReturnType<
       typeof trpc.paymentMethods.list.useQuery
     >)
-    vi.mocked(trpc.subscriptions.create.useMutation).mockReturnValue(
+    asMock(trpc.subscriptions.create.useMutation).mockReturnValue(
       mockCreateSubscription as unknown as ReturnType<
         typeof trpc.subscriptions.create.useMutation
       >
@@ -323,7 +330,7 @@ describe('CreateSubscriptionFormModal', () => {
 
   describe('Loading States', () => {
     it('should show loading skeletons when data is loading', () => {
-      vi.mocked(
+      asMock(
         trpc.customers.getPricingModelForCustomer.useQuery
       ).mockReturnValue({
         data: undefined,
@@ -344,7 +351,7 @@ describe('CreateSubscriptionFormModal', () => {
 
   describe('Error States', () => {
     it('should show error message when pricing model fails to load', () => {
-      vi.mocked(
+      asMock(
         trpc.customers.getPricingModelForCustomer.useQuery
       ).mockReturnValue({
         data: undefined,
@@ -362,7 +369,7 @@ describe('CreateSubscriptionFormModal', () => {
     })
 
     it('should show message when no products are available', () => {
-      vi.mocked(
+      asMock(
         trpc.customers.getPricingModelForCustomer.useQuery
       ).mockReturnValue({
         data: {
@@ -412,7 +419,10 @@ describe('CreateSubscriptionFormModal', () => {
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledTimes(1)
-        const callArgs = mockMutateAsync.mock.calls[0][0]
+        const callArgs = mockMutateAsync.mock.calls[0][0] as {
+          doNotCharge: boolean
+          defaultPaymentMethodId?: string
+        }
         expect(callArgs.doNotCharge).toBe(false)
         // Payment method should be set (defaults to first available payment method)
         expect(callArgs.defaultPaymentMethodId).toBe('pm_123')
@@ -443,7 +453,10 @@ describe('CreateSubscriptionFormModal', () => {
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledTimes(1)
-        const callArgs = mockMutateAsync.mock.calls[0][0]
+        const callArgs = mockMutateAsync.mock.calls[0][0] as {
+          doNotCharge: boolean
+          defaultPaymentMethodId?: string
+        }
         expect(callArgs.doNotCharge).toBe(true)
         // Even though payment method was selected before, it should be undefined
         expect(callArgs.defaultPaymentMethodId).toBeUndefined()

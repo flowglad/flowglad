@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, it, mock, vi } from 'bun:test'
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
@@ -7,6 +11,7 @@ import {
 } from '@testing-library/react'
 import { trpc } from '@/app/_trpc/client'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import { asMock } from '@/test-utils/mockHelpers'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import EditDiscountModal from './EditDiscountModal'
 
@@ -29,13 +34,13 @@ mock.module('@/app/_trpc/client', () => ({
 // Mock the stripe utils
 mock.module('@/utils/stripe', () => ({
   rawStringAmountToCountableCurrencyAmount: mock(
-    (currency: string, amount: string) => {
+    (currency, amount) => {
       // Mock conversion: "10.50" -> 1050 (cents)
       return Math.round(parseFloat(amount) * 100)
     }
   ),
   countableCurrencyAmountToRawStringAmount: mock(
-    (currency: string, amount: number) => {
+    (currency, amount) => {
       // Mock conversion: 1050 -> "10.50"
       return (amount / 100).toFixed(2)
     }
@@ -44,9 +49,9 @@ mock.module('@/utils/stripe', () => ({
 
 // Mock the form modal and wrap children with FormProvider
 mock.module('@/components/forms/FormModal', async () => {
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const React = await import('react')
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const { useForm, FormProvider } = await import('react-hook-form')
   function FormModalMock({
     children,
@@ -173,19 +178,19 @@ describe('EditDiscountModal', () => {
     organizationId: 'org_123',
   } as any
 
-  const mockMutateAsync = mock(() => undefined)
+  const mockMutateAsync = mock(async (_args: unknown) => undefined)
   const mockEditDiscount = {
     mutateAsync: mockMutateAsync,
   }
 
   beforeEach(() => {
     mockMutateAsync.mockClear()
-    vi.mocked(useAuthenticatedContext).mockReturnValue({
+    asMock(useAuthenticatedContext).mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,
     } as any)
-    vi.mocked(trpc.discounts.update.useMutation).mockReturnValue(
+    asMock(trpc.discounts.update.useMutation).mockReturnValue(
       mockEditDiscount as any
     )
   })
@@ -272,8 +277,10 @@ describe('EditDiscountModal', () => {
         amount: 25,
       }
 
-      const mutateSpy = mock(() => Promise.resolve({ success: true }))
-      vi.mocked(trpc.discounts.update.useMutation).mockReturnValue({
+      const mutateSpy = mock(async (_args: unknown) => ({
+        success: true,
+      }))
+      asMock(trpc.discounts.update.useMutation).mockReturnValue({
         mutateAsync: mutateSpy,
       } as any)
 
@@ -291,7 +298,9 @@ describe('EditDiscountModal', () => {
 
       await waitFor(() => {
         expect(mutateSpy).toHaveBeenCalled()
-        const payload = (mutateSpy as any).mock.calls[0][0]
+        const payload = mutateSpy.mock.calls[0][0] as {
+          discount: { amountType: string; amount: number }
+        }
         expect(payload.discount.amountType).toBe(
           DiscountAmountType.Percent
         )

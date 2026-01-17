@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { asMock } from '@/test-utils/mockHelpers'
 import * as backendCore from './backendCore'
 import {
   createStripeOAuthCsrfToken,
@@ -15,22 +16,22 @@ import {
  */
 const mockRedisStore: Map<string, string> = new Map()
 
-vi.mock('./redis', () => ({
+mock.module('./redis', () => ({
   redis: () => ({
-    get: vi.fn((key: string) => mockRedisStore.get(key) || null),
+    get: mock((key: string) => mockRedisStore.get(key) || null),
     // Atomic get-and-delete operation (Redis GETDEL)
-    getdel: vi.fn((key: string) => {
+    getdel: mock((key: string) => {
       const value = mockRedisStore.get(key) || null
       mockRedisStore.delete(key)
       return value
     }),
-    set: vi.fn(
+    set: mock(
       (key: string, value: string, _options?: { ex?: number }) => {
         mockRedisStore.set(key, value)
         return 'OK'
       }
     ),
-    del: vi.fn((key: string) => {
+    del: mock((key: string) => {
       const existed = mockRedisStore.has(key)
       mockRedisStore.delete(key)
       return existed ? 1 : 0
@@ -41,24 +42,21 @@ vi.mock('./redis', () => ({
   },
 }))
 
-vi.mock('./backendCore', () => ({
-  generateRandomBytes: vi.fn(
-    () => 'mock-csrf-token-32-bytes-long-xx'
-  ),
+mock.module('./backendCore', () => ({
+  generateRandomBytes: mock(() => 'mock-csrf-token-32-bytes-long-xx'),
 }))
 
-vi.mock('./logger', () => ({
+mock.module('./logger', () => ({
   logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
+    info: mock(() => undefined),
+    warn: mock(() => undefined),
+    error: mock(() => undefined),
   },
 }))
 
 describe('stripeOAuthState', () => {
   beforeEach(() => {
     mockRedisStore.clear()
-    vi.clearAllMocks()
   })
 
   describe('encodeStripeOAuthState', () => {
@@ -303,7 +301,7 @@ describe('stripeOAuthState', () => {
   describe('full OAuth flow integration', () => {
     beforeEach(() => {
       // Reset the mock to generate predictable tokens
-      vi.mocked(backendCore.generateRandomBytes).mockReturnValue(
+      asMock(backendCore.generateRandomBytes).mockReturnValue(
         'flow-test-token-abc123'
       )
     })

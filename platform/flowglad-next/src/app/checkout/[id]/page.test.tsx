@@ -1,4 +1,9 @@
-import { beforeEach, describe, expect, it, mock, vi } from 'bun:test'
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { asMock } from '@/test-utils/mockHelpers'
 import {
   CheckoutSessionStatus,
   PriceType,
@@ -8,7 +13,7 @@ import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 import Page from './page'
 
 // Mock next/navigation redirect
-const redirect = mock(() => undefined)
+const redirect = mock((_url: string) => undefined)
 mock.module('next/navigation', () => ({
   notFound: mock(() => undefined),
   redirect: (url: string) => redirect(url),
@@ -65,7 +70,7 @@ mock.module('@/utils/checkoutHelpers', () => ({
 
 describe('CheckoutSessionPage', () => {
   beforeEach(() => {
-    redirect.mockClear()
+    redirect.mockReset()
   })
 
   it('renders when only free subscription exists (no block)', async () => {
@@ -78,7 +83,7 @@ describe('CheckoutSessionPage', () => {
 
   it('redirects when session not open and setup intent present', async () => {
     // Adjust mock to return non-open status
-    vi.mocked(checkoutInfoForCheckoutSession).mockResolvedValueOnce({
+    asMock(checkoutInfoForCheckoutSession).mockResolvedValueOnce({
       checkoutSession: {
         id: 'cs_456',
         status: CheckoutSessionStatus.Succeeded,
@@ -105,7 +110,7 @@ describe('CheckoutSessionPage', () => {
   })
 
   it('blocks when active paid exists and multiples disallowed, redirect to successUrl if defined', async () => {
-    vi.mocked(checkoutInfoForCheckoutSession).mockResolvedValueOnce({
+    asMock(checkoutInfoForCheckoutSession).mockResolvedValueOnce({
       checkoutSession: {
         id: 'cs_789',
         status: CheckoutSessionStatus.Open,

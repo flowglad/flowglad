@@ -1,4 +1,8 @@
-import { beforeEach, describe, expect, it, mock, vi } from 'bun:test'
+/**
+ * @vitest-environment jsdom
+ */
+
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
@@ -7,6 +11,7 @@ import {
 } from '@testing-library/react'
 import { trpc } from '@/app/_trpc/client'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import { asMock } from '@/test-utils/mockHelpers'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import CreateDiscountModal from './CreateDiscountModal'
 
@@ -29,7 +34,7 @@ mock.module('@/app/_trpc/client', () => ({
 // Mock the stripe utils
 mock.module('@/utils/stripe', () => ({
   rawStringAmountToCountableCurrencyAmount: mock(
-    (currency: string, amount: string) => {
+    (currency, amount) => {
       // Mock conversion: "10.50" -> 1050 (cents)
       return Math.round(parseFloat(amount) * 100)
     }
@@ -38,9 +43,9 @@ mock.module('@/utils/stripe', () => ({
 
 // Mock the form modal and provide FormProvider context so inner fields can use useFormContext
 mock.module('@/components/forms/FormModal', async () => {
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const React = await import('react')
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const { useForm, FormProvider } = await import('react-hook-form')
   function FormModalMock({ children, onSubmit, defaultValues }: any) {
     const form = useForm({ defaultValues })
@@ -116,19 +121,19 @@ describe('CreateDiscountModal', () => {
     contactEmail: null,
   }
 
-  const mockMutateAsync = mock(() => undefined)
+  const mockMutateAsync = mock(async () => undefined)
   const mockCreateDiscount = {
     mutateAsync: mockMutateAsync,
   }
 
   beforeEach(() => {
     mockMutateAsync.mockClear()
-    vi.mocked(useAuthenticatedContext).mockReturnValue({
+    asMock(useAuthenticatedContext).mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,
     } as any)
-    vi.mocked(trpc.discounts.create.useMutation).mockReturnValue(
+    asMock(trpc.discounts.create.useMutation).mockReturnValue(
       mockCreateDiscount as any
     )
   })
