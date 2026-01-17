@@ -68,6 +68,7 @@ export const SubscriptionCreatedPreview = ({
         interval={DEFAULT_INTERVAL}
         nextBillingDate={getFutureDate(30)}
         paymentMethodLast4="4242"
+        dateConfirmed={PREVIEW_REFERENCE_DATE}
       />
     </EmailPreviewWrapper>
   )
@@ -112,6 +113,7 @@ export const SubscriptionUpgradedPreview = ({
         nextBillingDate={getFutureDate(30)}
         paymentMethodLast4="4242"
         trialing={trialing}
+        dateConfirmed={PREVIEW_REFERENCE_DATE}
       />
     </EmailPreviewWrapper>
   )

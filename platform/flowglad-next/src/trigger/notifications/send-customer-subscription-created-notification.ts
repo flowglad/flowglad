@@ -172,6 +172,9 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
         paymentMethodLast4: (paymentMethod?.paymentMethodData as any)
           ?.last4,
         trial: trialInfo,
+        dateConfirmed: subscription.createdAt
+          ? new Date(subscription.createdAt)
+          : new Date(),
       }),
     })
 

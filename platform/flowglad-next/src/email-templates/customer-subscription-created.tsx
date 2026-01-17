@@ -1,11 +1,11 @@
+import { Link } from '@react-email/components'
 import * as React from 'react'
 import { type CurrencyCode, IntervalUnit } from '@/types'
 import core, { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
-import { EmailButton } from './components/EmailButton'
 import {
-  DetailItem,
-  DetailSection,
+  DetailRow,
+  DetailTable,
   EmailLayout,
   Header,
   Paragraph,
@@ -30,6 +30,7 @@ export const CustomerSubscriptionCreatedEmail = ({
   nextBillingDate,
   paymentMethodLast4,
   trial,
+  dateConfirmed,
 }: {
   customerName: string
   organizationName: string
@@ -43,6 +44,7 @@ export const CustomerSubscriptionCreatedEmail = ({
   nextBillingDate?: Date
   paymentMethodLast4?: string
   trial?: TrialInfo
+  dateConfirmed?: Date
 }) => {
   const formattedPrice =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
@@ -67,8 +69,15 @@ export const CustomerSubscriptionCreatedEmail = ({
     ? `${formattedPrice}/${getIntervalText(interval)}`
     : formattedPrice
 
+  const billingPortalUrl = core.organizationBillingPortalURL({
+    organizationId,
+  })
+
+  // Use provided date or fall back to now
+  const confirmationDate = dateConfirmed ?? new Date()
+
   // Both trial and non-trial use unified "Subscription Confirmed" messaging
-  // per Apple-inspired patterns in subscription-email-improvements.md
+  // per Apple-inspired patterns
   const headerTitle = 'Subscription Confirmed'
   const previewText = 'Your Subscription is Confirmed'
 
@@ -81,93 +90,93 @@ export const CustomerSubscriptionCreatedEmail = ({
 
       <Paragraph>Hi {customerName},</Paragraph>
 
-      {trial ? (
-        <Paragraph>
-          Your subscription has been confirmed. Your free trial has
-          started!
-        </Paragraph>
-      ) : (
-        <Paragraph>You've subscribed to the following:</Paragraph>
-      )}
+      <Paragraph>You've successfully subscribed to the following plan:</Paragraph>
 
-      <DetailSection>
-        <DetailItem dataTestId="plan-name">
-          Plan: {planName}
-        </DetailItem>
+      <DetailTable>
+        <DetailRow
+          label="Plan"
+          value={planName}
+          dataTestId="plan-name"
+        />
         {trial ? (
           <>
-            <DetailItem dataTestId="trial-info">
-              Trial: Free for {trial.trialDurationDays} days
-            </DetailItem>
-            <DetailItem dataTestId="first-charge-date">
-              First charge: {formatDate(trial.trialEndDate)} for{' '}
-              {formattedPriceWithInterval}
-            </DetailItem>
+            <DetailRow
+              label="Trial"
+              value={`Free for ${trial.trialDurationDays} days, starting ${formatDate(confirmationDate)}`}
+              dataTestId="trial-info"
+            />
+            <DetailRow
+              label="Renewal Price"
+              value={`${formattedPriceWithInterval}, starting ${formatDate(trial.trialEndDate)}`}
+              dataTestId="renewal-price"
+            />
           </>
         ) : (
-          <DetailItem dataTestId="price">
-            Price: {formattedPriceWithInterval}
-          </DetailItem>
+          <>
+            <DetailRow
+              label="Price"
+              value={formattedPriceWithInterval}
+              dataTestId="price"
+            />
+            {nextBillingDate && (
+              <DetailRow
+                label="Next Billing Date"
+                value={formatDate(nextBillingDate)}
+                dataTestId="next-billing-date"
+              />
+            )}
+          </>
         )}
-        {!trial && nextBillingDate && (
-          <DetailItem dataTestId="next-billing-date">
-            Next billing date: {formatDate(nextBillingDate)}
-          </DetailItem>
-        )}
+        <DetailRow
+          label="Date Confirmed"
+          value={formatDate(confirmationDate)}
+          dataTestId="date-confirmed"
+        />
         {paymentMethodLast4 && (
-          <DetailItem dataTestId="payment-method">
-            Payment method: •••• {paymentMethodLast4}
-          </DetailItem>
+          <DetailRow
+            label="Payment Method"
+            value={`•••• ${paymentMethodLast4}`}
+            dataTestId="payment-method"
+          />
         )}
-      </DetailSection>
+      </DetailTable>
 
       {trial ? (
-        <>
-          <div data-testid="trial-auto-renew-notice">
-            <Paragraph style={{ marginTop: '24px' }}>
-              Your subscription automatically renews until canceled.
-              To avoid being charged, you must cancel at least a day
-              before {formatDate(trial.trialEndDate)}.
-            </Paragraph>
-          </div>
-          <Paragraph style={{ marginTop: '16px' }}>
-            The payment method
-            {paymentMethodLast4
-              ? ` ending in ${paymentMethodLast4}`
-              : ''}{' '}
-            will be used when your trial ends.
+        <div data-testid="trial-auto-renew-notice">
+          <Paragraph>
+            Your subscription automatically renews until canceled. To
+            avoid being charged, you must cancel at least a day before{' '}
+            {formatDate(trial.trialEndDate)}. To learn more or cancel,{' '}
+            <Link
+              href={billingPortalUrl}
+              style={{
+                color: '#2563eb',
+                textDecoration: 'underline',
+              }}
+            >
+              manage your subscription
+            </Link>
+            .
           </Paragraph>
-        </>
+        </div>
       ) : (
-        <>
-          <div data-testid="auto-renew-notice">
-            <Paragraph style={{ marginTop: '24px' }}>
-              Your subscription automatically renews until canceled.
-            </Paragraph>
-          </div>
-          <Paragraph style={{ marginTop: '16px' }}>
-            The payment method
-            {paymentMethodLast4
-              ? ` ending in ${paymentMethodLast4}`
-              : ''}{' '}
-            will be used for future charges.
+        <div data-testid="auto-renew-notice">
+          <Paragraph>
+            Your subscription automatically renews until canceled. To
+            learn more or cancel,{' '}
+            <Link
+              href={billingPortalUrl}
+              style={{
+                color: '#2563eb',
+                textDecoration: 'underline',
+              }}
+            >
+              manage your subscription
+            </Link>
+            .
           </Paragraph>
-        </>
+        </div>
       )}
-
-      <Paragraph style={{ marginTop: '16px' }}>
-        You can manage your subscription and payment methods at any
-        time through your billing portal.
-      </Paragraph>
-
-      <EmailButton
-        href={core.organizationBillingPortalURL({
-          organizationId,
-        })}
-        testId="manage-subscription-button"
-      >
-        Manage Subscription →
-      </EmailButton>
 
       <Signature
         greeting="Thanks,"

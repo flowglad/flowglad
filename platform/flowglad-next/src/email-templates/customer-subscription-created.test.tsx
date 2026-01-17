@@ -21,12 +21,13 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     interval: IntervalUnit.Month,
     nextBillingDate: new Date('2025-02-01'),
     paymentMethodLast4: '4242',
+    dateConfirmed: new Date('2025-01-15'),
   }
 
   const trialProps = {
     ...baseProps,
     trial: {
-      trialEndDate: new Date('2025-01-15'),
+      trialEndDate: new Date('2025-01-29'),
       trialDurationDays: 14,
     },
   }
@@ -36,9 +37,9 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       <CustomerSubscriptionCreatedEmail {...baseProps} />
     )
 
-    // Check that key text content is present (Apple-inspired "You've subscribed to" pattern)
+    // Check that key text content is present
     expect(
-      getByText("You've subscribed to the following:")
+      getByText("You've successfully subscribed to the following plan:")
     ).toBeInTheDocument()
   })
 
@@ -53,17 +54,24 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     )
   })
 
-  it('displays plan name and pricing', () => {
+  it('displays plan name in Apple-style table row', () => {
     const { getByTestId } = render(
       <CustomerSubscriptionCreatedEmail {...baseProps} />
     )
 
-    expect(getByTestId('plan-name')).toHaveTextContent(
-      'Plan: Pro Plan'
+    const planRow = getByTestId('plan-name')
+    expect(planRow).toHaveTextContent('Plan')
+    expect(planRow).toHaveTextContent('Pro Plan')
+  })
+
+  it('displays price in Apple-style table row', () => {
+    const { getByTestId } = render(
+      <CustomerSubscriptionCreatedEmail {...baseProps} />
     )
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: $25.00/month'
-    )
+
+    const priceRow = getByTestId('price')
+    expect(priceRow).toHaveTextContent('Price')
+    expect(priceRow).toHaveTextContent('$25.00/month')
   })
 
   it('formats monthly pricing correctly', () => {
@@ -71,9 +79,7 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       <CustomerSubscriptionCreatedEmail {...baseProps} />
     )
 
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: $25.00/month'
-    )
+    expect(getByTestId('price')).toHaveTextContent('$25.00/month')
   })
 
   it('formats yearly pricing correctly', () => {
@@ -86,19 +92,17 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       <CustomerSubscriptionCreatedEmail {...yearlyProps} />
     )
 
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: $300.00/year'
-    )
+    expect(getByTestId('price')).toHaveTextContent('$300.00/year')
   })
 
-  it('includes payment method last 4 digits', () => {
+  it('displays payment method in Apple-style table row', () => {
     const { getByTestId } = render(
       <CustomerSubscriptionCreatedEmail {...baseProps} />
     )
 
-    expect(getByTestId('payment-method')).toHaveTextContent(
-      'Payment method: •••• 4242'
-    )
+    const paymentRow = getByTestId('payment-method')
+    expect(paymentRow).toHaveTextContent('Payment Method')
+    expect(paymentRow).toHaveTextContent('•••• 4242')
   })
 
   it('handles missing payment method gracefully', () => {
@@ -106,41 +110,44 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       ...baseProps,
       paymentMethodLast4: undefined,
     }
-    const { queryByTestId, getByText } = render(
+    const { queryByTestId } = render(
       <CustomerSubscriptionCreatedEmail {...propsWithoutPayment} />
     )
 
     expect(queryByTestId('payment-method')).not.toBeInTheDocument()
-    // Should still show payment method text without specific card info
-    expect(
-      getByText(/The payment method will be used for future charges/)
-    ).toBeInTheDocument()
   })
 
-  it('includes billing portal link', () => {
-    const { getByTestId } = render(
+  it('includes inline manage subscription link', () => {
+    const { getByText } = render(
       <CustomerSubscriptionCreatedEmail {...baseProps} />
     )
 
-    const button = getByTestId('manage-subscription-button')
     const expectedUrl = core.organizationBillingPortalURL({
       organizationId: baseProps.organizationId,
     })
 
-    expect(button).toHaveAttribute('href', expectedUrl)
-    expect(button).toHaveTextContent('Manage Subscription →')
+    const link = getByText('manage your subscription')
+    expect(link).toHaveAttribute('href', expectedUrl)
   })
 
-  it('shows next billing date in correct format', () => {
+  it('shows next billing date in Apple-style table row', () => {
     const { getByTestId } = render(
       <CustomerSubscriptionCreatedEmail {...baseProps} />
     )
 
-    // Date formatting may vary based on locale/timezone
-    const dateElement = getByTestId('next-billing-date')
-    expect(dateElement.textContent).toContain('Next billing date:')
-    // Check that it contains the year at least
-    expect(dateElement.textContent).toContain('2025')
+    const dateRow = getByTestId('next-billing-date')
+    expect(dateRow).toHaveTextContent('Next Billing Date')
+    expect(dateRow).toHaveTextContent('2025')
+  })
+
+  it('shows date confirmed in Apple-style table row', () => {
+    const { getByTestId } = render(
+      <CustomerSubscriptionCreatedEmail {...baseProps} />
+    )
+
+    const dateRow = getByTestId('date-confirmed')
+    expect(dateRow).toHaveTextContent('Date Confirmed')
+    expect(dateRow).toHaveTextContent('2025')
   })
 
   it('does NOT show any upgrade-related content', () => {
@@ -152,7 +159,6 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     expect(content).not.toContain('Previous')
     expect(content).not.toContain('upgrade')
     expect(content).not.toContain('Upgrade')
-    expect(content).not.toContain('Free')
   })
 
   it('displays correct header with organization logo', () => {
@@ -214,35 +220,7 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       <CustomerSubscriptionCreatedEmail {...eurProps} />
     )
 
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: €20.00/month'
-    )
-  })
-
-  it('displays payment method info in body text when last4 is provided', () => {
-    const { getByText } = render(
-      <CustomerSubscriptionCreatedEmail {...baseProps} />
-    )
-
-    expect(
-      getByText(
-        /The payment method ending in 4242 will be used for future charges/
-      )
-    ).toBeInTheDocument()
-  })
-
-  it('displays generic payment text when last4 is not provided', () => {
-    const propsWithoutPayment = {
-      ...baseProps,
-      paymentMethodLast4: undefined,
-    }
-    const { getByText } = render(
-      <CustomerSubscriptionCreatedEmail {...propsWithoutPayment} />
-    )
-
-    expect(
-      getByText(/The payment method will be used for future charges/)
-    ).toBeInTheDocument()
+    expect(getByTestId('price')).toHaveTextContent('€20.00/month')
   })
 
   it('handles non-renewing subscription without interval', () => {
@@ -256,7 +234,7 @@ describe('CustomerSubscriptionCreatedEmail', () => {
     )
 
     // Should show price without interval
-    expect(getByTestId('price')).toHaveTextContent('Price: $25.00')
+    expect(getByTestId('price')).toHaveTextContent('$25.00')
     // Should not show next billing date
     expect(queryByTestId('next-billing-date')).not.toBeInTheDocument()
   })
@@ -271,9 +249,7 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       <CustomerSubscriptionCreatedEmail {...weeklyProps} />
     )
 
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: $5.00/week'
-    )
+    expect(getByTestId('price')).toHaveTextContent('$5.00/week')
   })
 
   it('formats daily pricing correctly', () => {
@@ -286,12 +262,12 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       <CustomerSubscriptionCreatedEmail {...dailyProps} />
     )
 
-    expect(getByTestId('price')).toHaveTextContent('Price: $1.00/day')
+    expect(getByTestId('price')).toHaveTextContent('$1.00/day')
   })
 
   // Trial subscription tests
   describe('trial subscription', () => {
-    it('displays trial-specific header when trial info is present', () => {
+    it('displays Subscription Confirmed header when trial info is present', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionCreatedEmail {...trialProps} />
       )
@@ -301,23 +277,26 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       )
     })
 
-    it('shows trial duration and first charge date', () => {
+    it('shows trial info in Apple-style format with start date', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionCreatedEmail {...trialProps} />
       )
 
-      expect(getByTestId('trial-info')).toHaveTextContent(
-        'Trial: Free for 14 days'
+      const trialRow = getByTestId('trial-info')
+      expect(trialRow).toHaveTextContent('Trial')
+      expect(trialRow).toHaveTextContent('Free for 14 days')
+      expect(trialRow).toHaveTextContent('starting')
+    })
+
+    it('shows renewal price with trial end date', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionCreatedEmail {...trialProps} />
       )
-      expect(getByTestId('first-charge-date')).toHaveTextContent(
-        'First charge:'
-      )
-      expect(getByTestId('first-charge-date')).toHaveTextContent(
-        '2025'
-      )
-      expect(getByTestId('first-charge-date')).toHaveTextContent(
-        '$25.00/month'
-      )
+
+      const renewalRow = getByTestId('renewal-price')
+      expect(renewalRow).toHaveTextContent('Renewal Price')
+      expect(renewalRow).toHaveTextContent('$25.00/month')
+      expect(renewalRow).toHaveTextContent('starting')
     })
 
     it('does NOT show regular price detail for trial subscriptions', () => {
@@ -338,8 +317,8 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       ).not.toBeInTheDocument()
     })
 
-    it('shows auto-renew notice with cancellation deadline', () => {
-      const { getByTestId } = render(
+    it('shows auto-renew notice with cancellation deadline and inline link', () => {
+      const { getByTestId, getByText } = render(
         <CustomerSubscriptionCreatedEmail {...trialProps} />
       )
 
@@ -350,47 +329,34 @@ describe('CustomerSubscriptionCreatedEmail', () => {
       expect(notice).toHaveTextContent(
         'To avoid being charged, you must cancel at least a day before'
       )
-    })
 
-    it('shows payment method will be used when trial ends', () => {
-      const { getByText } = render(
-        <CustomerSubscriptionCreatedEmail {...trialProps} />
+      // Verify inline link is present
+      const link = getByText('manage your subscription')
+      expect(link).toHaveAttribute(
+        'href',
+        core.organizationBillingPortalURL({
+          organizationId: trialProps.organizationId,
+        })
       )
-
-      expect(
-        getByText(
-          /The payment method ending in 4242 will be used when your trial ends/
-        )
-      ).toBeInTheDocument()
     })
 
-    it('shows trial started message', () => {
-      const { getByText } = render(
-        <CustomerSubscriptionCreatedEmail {...trialProps} />
-      )
-
-      expect(
-        getByText(/Your free trial has started/)
-      ).toBeInTheDocument()
-    })
-
-    it('still includes manage subscription button for trials', () => {
+    it('displays payment method for trials in table row', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionCreatedEmail {...trialProps} />
       )
 
-      const button = getByTestId('manage-subscription-button')
-      expect(button).toHaveTextContent('Manage Subscription →')
+      const paymentRow = getByTestId('payment-method')
+      expect(paymentRow).toHaveTextContent('Payment Method')
+      expect(paymentRow).toHaveTextContent('•••• 4242')
     })
 
-    it('displays payment method for trials', () => {
+    it('displays date confirmed for trials', () => {
       const { getByTestId } = render(
         <CustomerSubscriptionCreatedEmail {...trialProps} />
       )
 
-      expect(getByTestId('payment-method')).toHaveTextContent(
-        'Payment method: •••• 4242'
-      )
+      const dateRow = getByTestId('date-confirmed')
+      expect(dateRow).toHaveTextContent('Date Confirmed')
     })
   })
 })
