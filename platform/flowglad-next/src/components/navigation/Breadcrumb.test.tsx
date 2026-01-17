@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { describe, expect, it, mock } from 'bun:test'
 import { render, screen, within } from '@testing-library/react'
 import Breadcrumb from './Breadcrumb'

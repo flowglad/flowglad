@@ -56,7 +56,7 @@ mock.module('@/app/_trpc/client', () => ({
 // Mock the form modal and wrap children with FormProvider
 // This mock is consistent with the established pattern in other modal tests (e.g., EditDiscountModal.test.tsx)
 mock.module('@/components/forms/FormModal', async () => {
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const { useForm, FormProvider } = await import('react-hook-form')
   function FormModalMock<T extends FieldValues>({
     children,

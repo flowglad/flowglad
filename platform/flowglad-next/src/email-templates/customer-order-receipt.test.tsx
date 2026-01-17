@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { describe, expect, it } from 'bun:test'
 import { render } from '@testing-library/react'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'

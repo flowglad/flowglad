@@ -31,13 +31,13 @@ mock.module('@/app/_trpc/client', () => ({
 // Mock the stripe utils
 mock.module('@/utils/stripe', () => ({
   rawStringAmountToCountableCurrencyAmount: mock(
-    (currency: string, amount: string) => {
+    (currency, amount) => {
       // Mock conversion: "10.50" -> 1050 (cents)
       return Math.round(parseFloat(amount) * 100)
     }
   ),
   countableCurrencyAmountToRawStringAmount: mock(
-    (currency: string, amount: number) => {
+    (currency, amount) => {
       // Mock conversion: 1050 -> "10.50"
       return (amount / 100).toFixed(2)
     }
@@ -46,9 +46,9 @@ mock.module('@/utils/stripe', () => ({
 
 // Mock the form modal and wrap children with FormProvider
 mock.module('@/components/forms/FormModal', async () => {
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const React = await import('react')
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const { useForm, FormProvider } = await import('react-hook-form')
   function FormModalMock({
     children,
@@ -293,7 +293,9 @@ describe('EditDiscountModal', () => {
 
       await waitFor(() => {
         expect(mutateSpy).toHaveBeenCalled()
-        const payload = (mutateSpy as any).mock.calls[0][0]
+        const payload = mutateSpy.mock.calls[0][0] as {
+          discount: { amountType: string; amount: number }
+        }
         expect(payload.discount.amountType).toBe(
           DiscountAmountType.Percent
         )

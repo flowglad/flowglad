@@ -28,7 +28,7 @@ mock.module('@/app/_trpc/client', () => ({
 
 // Mock FormModal to provide a simpler test interface
 mock.module('@/components/forms/FormModal', async () => {
-  // biome-ignore lint/plugin: dynamic import required for mock.module factory
+  // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const React = await import('react')
   function FormModalMock({
     children,

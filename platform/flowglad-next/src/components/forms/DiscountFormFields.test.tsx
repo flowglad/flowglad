@@ -57,9 +57,7 @@ mock.module('@/components/ui/currency-input', () => ({
     <input
       data-testid="currency-input"
       value={value}
-      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-        onValueChange(e.target.value)
-      }
+      onChange={(e) => onValueChange(e.target.value)}
       data-allow-decimals={allowDecimals}
     />
   ),
