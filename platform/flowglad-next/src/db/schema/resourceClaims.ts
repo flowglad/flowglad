@@ -11,7 +11,6 @@ import { buildSchemas } from '@/db/createZodSchemas'
 import { organizations } from '@/db/schema/organizations'
 import { pricingModels } from '@/db/schema/pricingModels'
 import { resources } from '@/db/schema/resources'
-import { subscriptionItemFeatures } from '@/db/schema/subscriptionItemFeatures'
 import { subscriptions } from '@/db/schema/subscriptions'
 import {
   constructIndex,
@@ -36,10 +35,6 @@ export const resourceClaims = pgTable(
       'organization_id',
       organizations
     ),
-    subscriptionItemFeatureId: notNullStringForeignKey(
-      'subscription_item_feature_id',
-      subscriptionItemFeatures
-    ),
     resourceId: notNullStringForeignKey('resource_id', resources),
     subscriptionId: notNullStringForeignKey(
       'subscription_id',
@@ -60,7 +55,6 @@ export const resourceClaims = pgTable(
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.subscriptionId]),
     constructIndex(TABLE_NAME, [table.resourceId]),
-    constructIndex(TABLE_NAME, [table.subscriptionItemFeatureId]),
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
     // Partial index for active claims only
@@ -97,7 +91,6 @@ const readOnlyColumns = {
 } as const
 
 const createOnlyColumns = {
-  subscriptionItemFeatureId: true,
   resourceId: true,
   subscriptionId: true,
   pricingModelId: true,
