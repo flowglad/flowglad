@@ -1,4 +1,5 @@
 [install]
 autoInstall = false
+
 [test]
-preload = ["./vitest.setup.ts"]
+preload = ["./bun.setup.ts"]
