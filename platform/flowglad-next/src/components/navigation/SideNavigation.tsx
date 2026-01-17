@@ -62,12 +62,27 @@ export const SideNavigation = () => {
       await invalidateTRPC()
       await focusedMembership.refetch()
       /**
-       * Redirects the user back to `customers` page from
-       * `customer/id` when switching between live/test mode to avoid
-       * 404 or page crashes
+       * Redirects the user back to the parent list page from
+       * detail pages (e.g., /products/[id]) when switching between
+       * live/test mode to avoid 404 or page crashes.
+       * See: https://github.com/flowglad/flowglad/issues/1281
        */
-      if (pathname.startsWith('/customers/')) {
-        router.push('/customers')
+      const detailPagePatterns = [
+        '/customers/',
+        '/products/',
+        '/pricing-models/',
+        '/finance/subscriptions/',
+        '/finance/discounts/',
+        '/finance/purchases/',
+        '/usage-meters/',
+        '/features/',
+      ]
+      const matchedPattern = detailPagePatterns.find((pattern) =>
+        pathname.startsWith(pattern)
+      )
+      if (matchedPattern) {
+        // Redirect to parent list page (remove trailing slash to get base path)
+        router.push(matchedPattern.slice(0, -1))
       }
       router.refresh()
     },

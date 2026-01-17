@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "studio": "dotenvx run -f .env.local -- drizzle-kit studio",
     "dev": "next dev --turbopack",
     "prebuild": "dotenvx run -f .env.local -- bun run src/scripts/removeDevRoutes.ts && bun run build:preview-css",
     "build": "bun run check && next build",
