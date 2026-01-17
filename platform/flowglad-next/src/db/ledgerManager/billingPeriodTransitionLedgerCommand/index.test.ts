@@ -1,12 +1,13 @@
-import { and, eq } from 'drizzle-orm'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
+import { and, eq } from 'drizzle-orm'
 import {
   setupBillingPeriod,
   setupBillingRun,

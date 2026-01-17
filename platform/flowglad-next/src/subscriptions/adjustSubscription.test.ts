@@ -1,6 +1,14 @@
+import type { Mock } from 'bun:test'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 // These seed methods (and the clearDatabase helper) come from our test support code.
 // They create real records in our test database.
 import {
@@ -85,10 +93,10 @@ import {
 // Mock the trigger task - we test that it's called with correct parameters
 // The actual billing run execution is tested in billingRunHelpers.test.ts
 // Create the mock function inside the factory to avoid hoisting issues
-vi.mock('@/trigger/attempt-billing-run', () => {
-  const mockTriggerFn = vi
-    .fn()
-    .mockResolvedValue({ id: 'mock-billing-run-handle-id' })
+mock.module('@/trigger/attempt-billing-run', () => {
+  const mockTriggerFn = mock().mockResolvedValue({
+    id: 'mock-billing-run-handle-id',
+  })
   // Store reference so we can access it in tests
   ;(globalThis as any).__mockAttemptBillingRunTrigger = mockTriggerFn
   return {
@@ -99,10 +107,10 @@ vi.mock('@/trigger/attempt-billing-run', () => {
 })
 
 // Mock customer subscription adjusted notification
-vi.mock(
+mock.module(
   '@/trigger/notifications/send-customer-subscription-adjusted-notification',
   () => {
-    const mockFn = vi.fn().mockResolvedValue(undefined)
+    const mockFn = mock().mockResolvedValue(undefined)
     ;(globalThis as any).__mockCustomerAdjustedNotification = mockFn
     return {
       idempotentSendCustomerSubscriptionAdjustedNotification: mockFn,
@@ -111,10 +119,10 @@ vi.mock(
 )
 
 // Mock organization subscription adjusted notification
-vi.mock(
+mock.module(
   '@/trigger/notifications/send-organization-subscription-adjusted-notification',
   () => {
-    const mockFn = vi.fn().mockResolvedValue(undefined)
+    const mockFn = mock().mockResolvedValue(undefined)
     ;(globalThis as any).__mockOrgAdjustedNotification = mockFn
     return {
       idempotentSendOrganizationSubscriptionAdjustedNotification:
@@ -126,17 +134,17 @@ vi.mock(
 // Get the mock function for use in tests
 const getMockTrigger = () => {
   return (globalThis as any)
-    .__mockAttemptBillingRunTrigger as ReturnType<typeof vi.fn>
+    .__mockAttemptBillingRunTrigger as Mock<any>
 }
 
 const getMockCustomerNotification = () => {
   return (globalThis as any)
-    .__mockCustomerAdjustedNotification as ReturnType<typeof vi.fn>
+    .__mockCustomerAdjustedNotification as Mock<any>
 }
 
 const getMockOrgNotification = () => {
   return (globalThis as any)
-    .__mockOrgAdjustedNotification as ReturnType<typeof vi.fn>
+    .__mockOrgAdjustedNotification as Mock<any>
 }
 
 // Helper to normalize Date | number into milliseconds since epoch

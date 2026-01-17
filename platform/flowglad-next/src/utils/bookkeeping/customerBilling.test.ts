@@ -4,8 +4,9 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -64,24 +65,24 @@ import {
 } from './customerBilling'
 
 // Mock next/headers to avoid Next.js context errors
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(),
+    get: mock(),
+    delete: mock(),
   })),
 }))
 
 // Mock auth with factory function to avoid hoisting issues
-vi.mock('@/utils/auth', () => ({
+mock.module('@/utils/auth', () => ({
   auth: {
     api: {
-      signInMagicLink: vi.fn(),
-      createUser: vi.fn(),
+      signInMagicLink: mock(),
+      createUser: mock(),
     },
   },
-  getSession: vi.fn().mockResolvedValue(null),
+  getSession: mock().mockResolvedValue(null),
 }))
 
 describe('setDefaultPaymentMethodForCustomer', () => {
@@ -973,7 +974,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
 
   beforeEach(async () => {
     // Reset all mocks
-    vi.clearAllMocks()
+    mock.clearAllMocks()
 
     // Set up first organization with pricing model and product
     const orgData = await setupOrg()
@@ -1015,8 +1016,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     })
 
     // Mock the requestingCustomerAndUser to return our test data
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
+    spyOn(
       databaseAuthentication,
       'requestingCustomerAndUser'
     ).mockResolvedValue([
@@ -1027,22 +1027,19 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     ])
 
     // Mock the organization ID retrieval for customer billing portal
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
+    spyOn(
       customerBillingPortalState,
       'getCustomerBillingPortalOrganizationId'
     ).mockResolvedValue(organization.id)
 
     // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
+    spyOn(
       customerBillingPortalState,
       'setCustomerBillingPortalOrganizationId'
     ).mockResolvedValue(undefined)
 
     // Mock selectBetterAuthUserById to always return a valid user
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
+    spyOn(
       betterAuthSchemaMethods,
       'selectBetterAuthUserById'
     ).mockResolvedValue({
@@ -1054,8 +1051,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     } as any)
 
     // Mock getDatabaseAuthenticationInfo to return proper auth info for customer
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
+    spyOn(
       databaseAuthentication,
       'getDatabaseAuthenticationInfo'
     ).mockResolvedValue({
@@ -1084,7 +1080,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   })
 
   afterEach(() => {
-    vi.clearAllMocks()
+    mock.clearAllMocks()
   })
 
   it('should fail when price is not accessible to customer (from different organization)', async () => {

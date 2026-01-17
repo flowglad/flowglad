@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import type { ApiKey } from '@/db/schema/apiKeys'
 import type { Organization } from '@/db/schema/organizations'
 import { FlowgladApiKeyType } from '@/types'

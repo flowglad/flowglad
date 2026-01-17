@@ -1,5 +1,12 @@
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -48,7 +55,7 @@ import core from '@/utils/core'
 import { createProductTransaction } from '@/utils/pricingModel'
 import { IntentMetadataType } from '@/utils/stripe'
 
-vi.mock('next/headers', () => ({
+mock.module('next/headers', () => ({
   cookies: () => ({
     get: () => undefined,
     set: () => {},

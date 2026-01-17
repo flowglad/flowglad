@@ -1,6 +1,6 @@
+import { afterEach, beforeEach, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import { inArray } from 'drizzle-orm'
-import { afterEach, beforeEach, expect, it } from 'vitest'
 import { z } from 'zod'
 import {
   setupCustomer,

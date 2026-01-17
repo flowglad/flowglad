@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import type { User as BetterAuthUser } from 'better-auth'
 import { eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,

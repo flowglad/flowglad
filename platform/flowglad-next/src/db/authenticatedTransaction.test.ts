@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
 import { eq, sql } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import {
   setupCustomer,
@@ -51,17 +51,14 @@ import {
 import { insertUser } from './tableMethods/userMethods'
 import type { DbTransaction } from './types'
 
-const mockedAuth = vi.hoisted(
-  (): {
-    session: null | { user: { id: string; email: string } }
-  } => ({ session: null })
-)
+// Mutable auth state for testing
+const mockedAuth: {
+  session: null | { user: { id: string; email: string } }
+} = { session: null }
 
-vi.mock('@/utils/auth', () => {
-  return {
-    getSession: async () => mockedAuth.session,
-  }
-})
+mock.module('@/utils/auth', () => ({
+  getSession: async () => mockedAuth.session,
+}))
 
 const currentOrganizationIdQueryResultSchema = z
   .object({ organization_id: z.string() })

@@ -1,5 +1,6 @@
+import type { Mock } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -13,22 +14,22 @@ import { getSession } from '@/utils/auth'
 import core from '@/utils/core'
 import { server } from '../../../mocks/server'
 
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(),
+    get: mock(),
+    delete: mock(),
   })),
 }))
 
-vi.mock('@/utils/auth', () => ({
+mock.module('@/utils/auth', () => ({
   auth: {
     api: {
-      getSession: vi.fn(),
+      getSession: mock(),
     },
   },
-  getSession: vi.fn(),
+  getSession: mock(),
 }))
 
 const createAuthedContext = async (params: {
@@ -65,7 +66,7 @@ const createAuthedContext = async (params: {
     return insertedUser
   })
 
-  vi.mocked(getSession).mockResolvedValue({
+  ;(getSession as Mock<any>).mockResolvedValue({
     user: {
       id: betterAuthId,
       email,
@@ -88,7 +89,7 @@ const createAuthedContext = async (params: {
 
 describe('requestStripeConnectOnboardingLink mutation', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    mock.clearAllMocks()
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.flowglad.com'
   })
 

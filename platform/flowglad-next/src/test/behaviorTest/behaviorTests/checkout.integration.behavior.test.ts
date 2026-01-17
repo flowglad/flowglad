@@ -1,4 +1,5 @@
 import { Result } from 'better-result'
+
 /**
  * Checkout Integration Behavior Tests
  *
@@ -21,8 +22,8 @@ import { Result } from 'better-result'
  * - stripeTaxTransactionId set on FeeCalculation (MoR only)
  */
 
+import { expect } from 'bun:test'
 import type Stripe from 'stripe'
-import { expect } from 'vitest'
 import { teardownOrg } from '@/../seedDatabase'
 import {
   adminTransaction,

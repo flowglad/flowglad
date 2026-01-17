@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,

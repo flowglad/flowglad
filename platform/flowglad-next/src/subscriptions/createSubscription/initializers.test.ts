@@ -1,5 +1,5 @@
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupOrg,

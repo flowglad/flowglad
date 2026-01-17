@@ -1,13 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 
 // Only mock Next headers to satisfy runtime; avoid higher-level mocks
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(),
+    get: mock(),
+    delete: mock(),
   })),
 }))
 

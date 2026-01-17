@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
-import { beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { insertDiscount } from '@/db/tableMethods/discountMethods'

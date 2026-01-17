@@ -1,4 +1,11 @@
 [install]
 autoInstall = false
+
 [test]
-preload = ["./vitest.setup.ts"]
+preload = ["./bun.setup.ts"]
+# Include only .test.ts files (not .test.tsx - those run via vitest)
+include = ["src/**/*.test.ts"]
+# Exclude integration tests (run with bun test --pattern '*.integration.test.*')
+# Exclude RLS tests (run separately with fileParallelism disabled)
+# Exclude .test.tsx files (run via vitest for frontend tests)
+exclude = ["**/*.integration.test.*", "**/*.rls.test.*", "**/*.test.tsx"]

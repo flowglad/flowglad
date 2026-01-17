@@ -1,7 +1,7 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCheckoutSession,
   setupCustomer,

@@ -15,7 +15,7 @@
  * 2. **Platform Sign-Up** - Currency matches the organization's country
  */
 
-import { expect } from 'vitest'
+import { expect } from 'bun:test'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'

@@ -1,5 +1,13 @@
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -1741,13 +1749,10 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
-      // biome-ignore lint/plugin: mocking Trigger.dev task that makes network calls to external services
-      const notificationSpy = vi
-        .spyOn(
-          subscriptionCancellationNotifications,
-          'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
-        )
-        .mockResolvedValue(undefined)
+      const notificationSpy = spyOn(
+        subscriptionCancellationNotifications,
+        'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
+      ).mockResolvedValue(undefined)
       try {
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx

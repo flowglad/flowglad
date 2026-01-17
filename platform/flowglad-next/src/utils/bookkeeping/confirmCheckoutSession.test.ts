@@ -1,6 +1,14 @@
+import type { Mock } from 'bun:test'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCheckoutSession,
   setupCustomer,
@@ -54,17 +62,17 @@ import {
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
 
 // Mock Stripe functions
-vi.mock('@/utils/stripe', () => ({
-  cancelPaymentIntent: vi.fn(),
-  createStripeCustomer: vi.fn(),
-  getPaymentIntent: vi.fn(async () => ({
+mock.module('@/utils/stripe', () => ({
+  cancelPaymentIntent: mock(),
+  createStripeCustomer: mock(),
+  getPaymentIntent: mock(async () => ({
     id: 'pi_test',
     object: 'payment_intent',
     customer: null,
   })),
-  getSetupIntent: vi.fn(),
-  updatePaymentIntent: vi.fn(),
-  updateSetupIntent: vi.fn(),
+  getSetupIntent: mock(),
+  updatePaymentIntent: mock(),
+  updateSetupIntent: mock(),
 }))
 
 describe('confirmCheckoutSessionTransaction', () => {
@@ -128,7 +136,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       }
     )
     // Reset mocks
-    vi.resetAllMocks()
+    mock.restore()
   })
 
   describe('Checkout Session Validation', () => {
@@ -321,7 +329,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         email: 'newcustomer@example.com',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -379,7 +387,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -473,7 +481,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -569,7 +577,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -636,7 +644,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -735,7 +743,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         email: 'newcustomer@example.com',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -844,7 +852,9 @@ describe('confirmCheckoutSessionTransaction', () => {
           parent: 'pm_123',
         },
       } as Stripe.SetupIntent
-      vi.mocked(getSetupIntent).mockResolvedValue(mockSetupIntent)
+      ;(getSetupIntent as Mock<any>).mockResolvedValue(
+        mockSetupIntent
+      )
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -919,7 +929,9 @@ describe('confirmCheckoutSessionTransaction', () => {
           parent: 'pm_123',
         },
       } as Stripe.SetupIntent
-      vi.mocked(getSetupIntent).mockResolvedValue(mockSetupIntent)
+      ;(getSetupIntent as Mock<any>).mockResolvedValue(
+        mockSetupIntent
+      )
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
