@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
@@ -11,42 +8,81 @@ import {
 import React from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { FormProvider, useForm } from 'react-hook-form'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { trpc } from '@/app/_trpc/client'
 import type { ModalInterfaceProps } from '@/components/forms/FormModal'
 import { PriceType } from '@/types'
 import { CreateSubscriptionFormModal } from './CreateSubscriptionFormModal'
 
+// Create mock functions outside mock.module so they can be accessed in tests
+const mockUseUtils = mock((): unknown => ({
+  subscriptions: {
+    getTableRows: {
+      invalidate: mock(() => undefined),
+    },
+  },
+}))
+
+const mockCustomerGetByIdUseQuery = mock((): unknown => ({
+  data: undefined,
+  isLoading: false,
+  error: null,
+}))
+
+const mockGetPricingModelUseQuery = mock((): unknown => ({
+  data: undefined,
+  isLoading: false,
+  error: null,
+}))
+
+const mockPaymentMethodsListUseQuery = mock((): unknown => ({
+  data: undefined,
+  isLoading: false,
+  error: null,
+}))
+
+const mockMutateAsync = mock(
+  (_params: {
+    customerId: string
+    priceId: string
+    doNotCharge: boolean
+    defaultPaymentMethodId?: string
+  }) => Promise.resolve({})
+)
+
+const mockCreateSubscriptionUseMutation = mock(() => ({
+  mutateAsync: mockMutateAsync,
+  isPending: false,
+}))
+
 // Mock tRPC
-vi.mock('@/app/_trpc/client', () => ({
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     customers: {
       internal__getById: {
-        useQuery: vi.fn(),
+        useQuery: mockCustomerGetByIdUseQuery,
       },
       getPricingModelForCustomer: {
-        useQuery: vi.fn(),
+        useQuery: mockGetPricingModelUseQuery,
       },
     },
     paymentMethods: {
       list: {
-        useQuery: vi.fn(),
+        useQuery: mockPaymentMethodsListUseQuery,
       },
     },
     subscriptions: {
       create: {
-        useMutation: vi.fn(),
+        useMutation: mockCreateSubscriptionUseMutation,
       },
       getTableRows: {
-        invalidate: vi.fn(),
+        invalidate: mock(() => undefined),
       },
     },
-    useUtils: vi.fn(),
+    useUtils: mockUseUtils,
   },
 }))
 
 // Mock FormModal to provide FormProvider context
-vi.mock('@/components/forms/FormModal', () => {
+mock.module('@/components/forms/FormModal', () => {
   function FormModalMock<T extends FieldValues>({
     children,
     onSubmit,
@@ -120,38 +156,21 @@ describe('CreateSubscriptionFormModal', () => {
     },
   }
 
-  const mockMutateAsync = vi.fn().mockResolvedValue({})
-  const mockCreateSubscription = {
-    mutateAsync: mockMutateAsync,
-    isPending: false,
-  }
-
-  const mockUtils = {
-    subscriptions: {
-      getTableRows: {
-        invalidate: vi.fn(),
-      },
-    },
-  }
-
   beforeEach(() => {
-    vi.clearAllMocks()
-    // Cast through unknown to avoid complex tRPC type requirements
-    vi.mocked(trpc.useUtils).mockReturnValue(
-      mockUtils as unknown as ReturnType<typeof trpc.useUtils>
-    )
-    vi.mocked(
-      trpc.customers.internal__getById.useQuery
-    ).mockReturnValue({
+    mockMutateAsync.mockClear()
+    mockUseUtils.mockReturnValue({
+      subscriptions: {
+        getTableRows: {
+          invalidate: mock(() => undefined),
+        },
+      },
+    })
+    mockCustomerGetByIdUseQuery.mockReturnValue({
       data: { customer: mockCustomer },
       isLoading: false,
       error: null,
-    } as unknown as ReturnType<
-      typeof trpc.customers.internal__getById.useQuery
-    >)
-    vi.mocked(
-      trpc.customers.getPricingModelForCustomer.useQuery
-    ).mockReturnValue({
+    })
+    mockGetPricingModelUseQuery.mockReturnValue({
       data: {
         pricingModel: {
           products: [mockProduct],
@@ -159,21 +178,16 @@ describe('CreateSubscriptionFormModal', () => {
       },
       isLoading: false,
       error: null,
-    } as unknown as ReturnType<
-      typeof trpc.customers.getPricingModelForCustomer.useQuery
-    >)
-    vi.mocked(trpc.paymentMethods.list.useQuery).mockReturnValue({
+    })
+    mockPaymentMethodsListUseQuery.mockReturnValue({
       data: { data: [mockPaymentMethod] },
       isLoading: false,
       error: null,
-    } as unknown as ReturnType<
-      typeof trpc.paymentMethods.list.useQuery
-    >)
-    vi.mocked(trpc.subscriptions.create.useMutation).mockReturnValue(
-      mockCreateSubscription as unknown as ReturnType<
-        typeof trpc.subscriptions.create.useMutation
-      >
-    )
+    })
+    mockCreateSubscriptionUseMutation.mockReturnValue({
+      mutateAsync: mockMutateAsync,
+      isPending: false,
+    })
   })
 
   // Helper function to render the modal with default props
@@ -181,7 +195,7 @@ describe('CreateSubscriptionFormModal', () => {
     return render(
       <CreateSubscriptionFormModal
         isOpen={true}
-        setIsOpen={vi.fn()}
+        setIsOpen={mock(() => undefined)}
         customerId="customer_123"
       />
     )
@@ -327,15 +341,11 @@ describe('CreateSubscriptionFormModal', () => {
 
   describe('Loading States', () => {
     it('should show loading skeletons when data is loading', () => {
-      vi.mocked(
-        trpc.customers.getPricingModelForCustomer.useQuery
-      ).mockReturnValue({
+      mockGetPricingModelUseQuery.mockReturnValue({
         data: undefined,
         isLoading: true,
         error: null,
-      } as unknown as ReturnType<
-        typeof trpc.customers.getPricingModelForCustomer.useQuery
-      >)
+      })
 
       renderModal()
 
@@ -348,15 +358,11 @@ describe('CreateSubscriptionFormModal', () => {
 
   describe('Error States', () => {
     it('should show error message when pricing model fails to load', () => {
-      vi.mocked(
-        trpc.customers.getPricingModelForCustomer.useQuery
-      ).mockReturnValue({
+      mockGetPricingModelUseQuery.mockReturnValue({
         data: undefined,
         isLoading: false,
         error: new Error('Failed to load'),
-      } as unknown as ReturnType<
-        typeof trpc.customers.getPricingModelForCustomer.useQuery
-      >)
+      })
 
       renderModal()
 
@@ -366,9 +372,7 @@ describe('CreateSubscriptionFormModal', () => {
     })
 
     it('should show message when no products are available', () => {
-      vi.mocked(
-        trpc.customers.getPricingModelForCustomer.useQuery
-      ).mockReturnValue({
+      mockGetPricingModelUseQuery.mockReturnValue({
         data: {
           pricingModel: {
             products: [],
@@ -376,9 +380,7 @@ describe('CreateSubscriptionFormModal', () => {
         },
         isLoading: false,
         error: null,
-      } as unknown as ReturnType<
-        typeof trpc.customers.getPricingModelForCustomer.useQuery
-      >)
+      })
 
       renderModal()
 
@@ -416,10 +418,10 @@ describe('CreateSubscriptionFormModal', () => {
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledTimes(1)
-        const callArgs = mockMutateAsync.mock.calls[0][0]
-        expect(callArgs.doNotCharge).toBe(false)
+        const callArgs = mockMutateAsync.mock.calls[0]
+        expect(callArgs[0].doNotCharge).toBe(false)
         // Payment method should be set (defaults to first available payment method)
-        expect(callArgs.defaultPaymentMethodId).toBe('pm_123')
+        expect(callArgs[0].defaultPaymentMethodId).toBe('pm_123')
       })
     })
 
@@ -447,10 +449,10 @@ describe('CreateSubscriptionFormModal', () => {
 
       await waitFor(() => {
         expect(mockMutateAsync).toHaveBeenCalledTimes(1)
-        const callArgs = mockMutateAsync.mock.calls[0][0]
-        expect(callArgs.doNotCharge).toBe(true)
+        const callArgs = mockMutateAsync.mock.calls[0]
+        expect(callArgs[0].doNotCharge).toBe(true)
         // Even though payment method was selected before, it should be undefined
-        expect(callArgs.defaultPaymentMethodId).toBeUndefined()
+        expect(callArgs[0].defaultPaymentMethodId).toBeUndefined()
       })
     })
   })

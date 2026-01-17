@@ -165,10 +165,8 @@ describe('Single Free Subscription Constraint', () => {
           transaction
         )
 
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should not throw - if it throws, the test will fail
+        await verifyCanCreateSubscription(params, transaction)
       })
     })
 
@@ -203,10 +201,8 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should not throw - if it throws, the test will fail
+        await verifyCanCreateSubscription(params, transaction)
       })
     })
 
@@ -259,10 +255,8 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should not throw - if it throws, the test will fail
+        await verifyCanCreateSubscription(params, transaction)
       })
     })
   })

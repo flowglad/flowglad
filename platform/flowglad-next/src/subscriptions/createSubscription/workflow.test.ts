@@ -1053,12 +1053,14 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       expect(sif!.livemode).toBe(true) // explicit check for this test
 
       if (sif!.type === FeatureType.UsageCreditGrant) {
-        expect(sif!.amount).toBe(originalFeatureSetup!.feature.amount)
+        expect(sif!.amount).toBe(
+          originalFeatureSetup!.feature.amount!
+        )
         expect(sif!.renewalFrequency).toBe(
-          originalFeatureSetup!.feature.renewalFrequency
+          originalFeatureSetup!.feature.renewalFrequency!
         )
         expect(sif!.usageMeterId).toBe(
-          originalFeatureSetup!.feature.usageMeterId
+          originalFeatureSetup!.feature.usageMeterId!
         )
       } else if (sif!.type === FeatureType.Toggle) {
         expect(sif!.amount).toBeNull()
