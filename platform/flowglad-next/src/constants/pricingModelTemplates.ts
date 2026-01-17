@@ -1902,8 +1902,47 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       // Usage Meters - None needed for seat-based billing
       usageMeters: [],
 
+      // Resources - defines the "users" resource for this pricing model
+      resources: [
+        {
+          slug: 'users',
+          name: 'Users',
+          active: true,
+        },
+      ],
+
       // Features
       features: [
+        // Resource features - grant user capacity per product tier (1 seat each, adjustSubscription handles scaling)
+        {
+          type: FeatureType.Resource,
+          slug: 'basic_users',
+          name: 'Basic Plan Users',
+          description: 'User allocation for Basic plan subscribers',
+          resourceSlug: 'users',
+          amount: 1,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'business_users',
+          name: 'Business Plan Users',
+          description:
+            'User allocation for Business plan subscribers',
+          resourceSlug: 'users',
+          amount: 1,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'enterprise_users',
+          name: 'Enterprise Plan Users',
+          description:
+            'User allocation for Enterprise plan subscribers',
+          resourceSlug: 'users',
+          amount: 1,
+          active: true,
+        },
         // Basic (Free) tier features
         {
           type: FeatureType.Toggle,
@@ -2067,6 +2106,7 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 0,
           },
           features: [
+            'basic_users',
             'ai_meeting_notes',
             '14_day_history',
             'ai_chat',
@@ -2101,6 +2141,7 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 1400,
           },
           features: [
+            'business_users',
             'ai_meeting_notes',
             '14_day_history',
             'ai_chat',
@@ -2139,6 +2180,7 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 3500,
           },
           features: [
+            'enterprise_users',
             'ai_meeting_notes',
             '14_day_history',
             'ai_chat',

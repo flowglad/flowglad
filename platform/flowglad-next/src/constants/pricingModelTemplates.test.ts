@@ -170,4 +170,89 @@ describe('Pricing Model Templates', () => {
       ).not.toThrow()
     })
   })
+
+  describe('ai_meeting_notes_subscription template', () => {
+    const template = getTemplateById('ai_meeting_notes_subscription')!
+
+    it('should have a resources array with a users resource', () => {
+      expect(template.input.resources).toHaveLength(1)
+      expect(template.input.resources![0]).toMatchObject({
+        slug: 'users',
+        name: 'Users',
+        active: true,
+      })
+    })
+
+    it('should have resource features for Basic, Business, and Enterprise tiers with 1 user each', () => {
+      const resourceFeatures = template.input.features.filter(
+        (f) => f.type === FeatureType.Resource
+      )
+
+      expect(resourceFeatures).toHaveLength(3)
+
+      const basicUsers = resourceFeatures.find(
+        (f) => f.slug === 'basic_users'
+      )
+      const businessUsers = resourceFeatures.find(
+        (f) => f.slug === 'business_users'
+      )
+      const enterpriseUsers = resourceFeatures.find(
+        (f) => f.slug === 'enterprise_users'
+      )
+
+      expect(basicUsers).toMatchObject({
+        type: FeatureType.Resource,
+        slug: 'basic_users',
+        resourceSlug: 'users',
+        amount: 1,
+        active: true,
+      })
+
+      expect(businessUsers).toMatchObject({
+        type: FeatureType.Resource,
+        slug: 'business_users',
+        resourceSlug: 'users',
+        amount: 1,
+        active: true,
+      })
+
+      expect(enterpriseUsers).toMatchObject({
+        type: FeatureType.Resource,
+        slug: 'enterprise_users',
+        resourceSlug: 'users',
+        amount: 1,
+        active: true,
+      })
+    })
+
+    it('should attach basic_users to Basic tier', () => {
+      const basicTier = template.input.products.find(
+        (p) => p.product.slug === 'basic'
+      )
+
+      expect(basicTier!.features).toContain('basic_users')
+    })
+
+    it('should attach business_users to Business tier', () => {
+      const businessTier = template.input.products.find(
+        (p) => p.product.slug === 'business'
+      )
+
+      expect(businessTier!.features).toContain('business_users')
+    })
+
+    it('should attach enterprise_users to Enterprise tier', () => {
+      const enterpriseTier = template.input.products.find(
+        (p) => p.product.slug === 'enterprise'
+      )
+
+      expect(enterpriseTier!.features).toContain('enterprise_users')
+    })
+
+    it('should pass validation with resource features', () => {
+      expect(() =>
+        validateSetupPricingModelInput(template.input)
+      ).not.toThrow()
+    })
+  })
 })
