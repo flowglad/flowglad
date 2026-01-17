@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
@@ -9,23 +6,31 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { FormProvider, useForm } from 'react-hook-form'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  useAuthContext,
-  useAuthenticatedContext,
-} from '@/contexts/authContext'
 import type { CreateDiscountFormSchema } from '@/db/schema/discounts'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import DiscountFormFields from './DiscountFormFields'
 
+// Create mock functions outside mock.module() so they can be accessed in tests
+const mockUseAuthenticatedContext = mock((): unknown => ({
+  organization: undefined,
+  user: undefined,
+  apiKey: undefined,
+}))
+
+const mockUseAuthContext = mock((): unknown => ({
+  organization: undefined,
+  user: undefined,
+  apiKey: undefined,
+}))
+
 // Mock the auth context
-vi.mock('@/contexts/authContext', () => ({
-  useAuthenticatedContext: vi.fn(),
-  useAuthContext: vi.fn(),
+mock.module('@/contexts/authContext', () => ({
+  useAuthenticatedContext: mockUseAuthenticatedContext,
+  useAuthContext: mockUseAuthContext,
 }))
 
 // Mock the PricingModelSelect component to avoid trpc calls
-vi.mock('@/components/forms/PricingModelSelect', () => ({
+mock.module('@/components/forms/PricingModelSelect', () => ({
   default: () => (
     <div data-testid="pricing-model-select">
       Mocked PricingModelSelect
@@ -34,13 +39,21 @@ vi.mock('@/components/forms/PricingModelSelect', () => ({
 }))
 
 // Mock the currency character function
-vi.mock('@/registry/lib/currency', () => ({
-  currencyCharacter: vi.fn(() => '$'),
+mock.module('@/registry/lib/currency', () => ({
+  currencyCharacter: mock(() => '$'),
 }))
 
 // Mock the currency input component
-vi.mock('@/components/ui/currency-input', () => ({
-  CurrencyInput: ({ value, onValueChange, allowDecimals }: any) => (
+mock.module('@/components/ui/currency-input', () => ({
+  CurrencyInput: ({
+    value,
+    onValueChange,
+    allowDecimals,
+  }: {
+    value: string
+    onValueChange: (value: string) => void
+    allowDecimals: boolean
+  }) => (
     <input
       data-testid="currency-input"
       value={value}
@@ -51,8 +64,8 @@ vi.mock('@/components/ui/currency-input', () => ({
 }))
 
 // Mock the stripe utils
-vi.mock('@/utils/stripe', () => ({
-  isCurrencyZeroDecimal: vi.fn(() => false),
+mock.module('@/utils/stripe', () => ({
+  isCurrencyZeroDecimal: mock(() => false),
 }))
 
 const TestWrapper: React.FC<{
@@ -108,16 +121,16 @@ describe('DiscountFormFields', () => {
   }
 
   beforeEach(() => {
-    vi.mocked(useAuthenticatedContext).mockReturnValue({
-      organization: mockOrganization as any,
-      user: undefined as any,
-      apiKey: undefined as any,
-    } as any)
-    vi.mocked(useAuthContext).mockReturnValue({
-      organization: mockOrganization as any,
-      user: undefined as any,
-      apiKey: undefined as any,
-    } as any)
+    mockUseAuthenticatedContext.mockReturnValue({
+      organization: mockOrganization,
+      user: undefined,
+      apiKey: undefined,
+    })
+    mockUseAuthContext.mockReturnValue({
+      organization: mockOrganization,
+      user: undefined,
+      apiKey: undefined,
+    })
   })
 
   describe('Amount Type Switching', () => {

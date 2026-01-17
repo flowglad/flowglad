@@ -1,17 +1,15 @@
-/**
- * @vitest-environment jsdom
- */
-
 // @ts-nocheck
-import { render } from '@testing-library/react'
+
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
+  mock,
   vi,
-} from 'vitest'
+} from 'bun:test'
+import { render } from '@testing-library/react'
 import CheckoutPageProvider, {
   type CheckoutPageContextValues,
   subscriptionDetailsFromCheckoutInfoCore,
@@ -101,16 +99,12 @@ const mockCheckoutPageContext = (): CheckoutPageContextValues => {
 }
 
 // Mock the checkout page context
-vi.mock('@/contexts/checkoutPageContext', async (importOriginal) => {
-  const actual =
-    await importOriginal<
-      typeof import('@/contexts/checkoutPageContext')
-    >()
-  return {
-    ...actual,
-    useCheckoutPageContext: vi.fn(),
-  }
-})
+import * as checkoutPageContextActual from '@/contexts/checkoutPageContext'
+
+mock.module('@/contexts/checkoutPageContext', () => ({
+  ...checkoutPageContextActual,
+  useCheckoutPageContext: mock(() => undefined),
+}))
 
 // Test data setup - shared across all tests
 const mockPrice = {
@@ -260,7 +254,7 @@ describe('calculateTotalBillingDetails', () => {
 
 describe('price flow', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    // Mocks cleared individually if needed
   })
 
   it('should handle basic no discount, no feeCalculation', async () => {
@@ -451,7 +445,7 @@ describe('price flow', () => {
 
 describe('invoice flow', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    // Mocks cleared individually if needed
   })
 
   it('should handle basic no discount, no feeCalculation', async () => {
@@ -526,7 +520,7 @@ describe('invoice flow', () => {
 
 describe('TotalBillingDetails', () => {
   beforeEach(async () => {
-    vi.clearAllMocks()
+    // Mocks cleared individually if needed
   })
 
   describe('component rendering', () => {

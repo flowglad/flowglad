@@ -3,16 +3,16 @@
  * Tests all procedures with real database interactions
  */
 
-import { spyOn } from 'bun:test'
-import { TRPCError } from '@trpc/server'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
+import { TRPCError } from '@trpc/server'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -44,6 +44,7 @@ import {
 } from '@/db/tableMethods/subscriptionMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
 import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
+import { asMock } from '@/test-utils/mockHelpers'
 import {
   InvoiceStatus,
   PaymentMethodType,
@@ -56,24 +57,24 @@ import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
 import { customerBillingPortalRouter } from './customerBillingPortalRouter'
 
 // Mock next/headers to avoid Next.js context errors
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(() => undefined),
+    get: mock(() => undefined),
+    delete: mock(() => undefined),
   })),
 }))
 
 // Mock auth with factory function to avoid hoisting issues
-vi.mock('@/utils/auth', () => ({
+mock.module('@/utils/auth', () => ({
   auth: {
     api: {
-      signInMagicLink: vi.fn(),
-      createUser: vi.fn(),
+      signInMagicLink: mock(() => undefined),
+      createUser: mock(() => undefined),
     },
   },
-  getSession: vi.fn().mockResolvedValue(null),
+  getSession: mock(() => Promise.resolve(null)),
 }))
 
 // Setup test data variables
@@ -92,11 +93,12 @@ let invoice3: Invoice.Record
 let apiKeyToken: string
 
 beforeEach(async () => {
-  // Reset all mocks
-  vi.clearAllMocks()
+  // Reset specific mocks
+  asMock(auth.api.signInMagicLink).mockClear()
+  asMock(auth.api.createUser).mockClear()
 
   // Set default mock implementations for auth
-  vi.mocked(auth.api.signInMagicLink).mockResolvedValue({
+  asMock(auth.api.signInMagicLink).mockResolvedValue({
     success: true,
   } as any)
 
@@ -224,7 +226,8 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
-  vi.clearAllMocks()
+  asMock(auth.api.signInMagicLink).mockClear()
+  asMock(auth.api.createUser).mockClear()
 })
 
 // Create a context for testing the procedures
@@ -244,85 +247,77 @@ const createTestContext = (
 
 describe('Customer Billing Portal Router', () => {
   describe('getBilling', () => {
-    it(
-      'returns complete billing information without pagination',
-      { timeout: 10000 },
-      async () => {
-        const ctx = createTestContext()
-        const input = {
-          customerId: customer.id,
-        }
-
-        const result = await customerBillingPortalRouter
-          .createCaller(ctx)
-          .getBilling(input)
-
-        expect(result).toMatchObject({
-          customer: expect.objectContaining({
-            id: customer.id,
-            email: customer.email,
-            organizationId: organization.id,
-          }),
-          subscriptions: expect.arrayContaining([
-            expect.objectContaining({
-              id: subscription.id,
-              customerId: customer.id,
-              status: SubscriptionStatus.Active,
-            }),
-          ]),
-          invoices: expect.any(Array),
-          invoicePagination: undefined,
-          paymentMethods: expect.arrayContaining([
-            expect.objectContaining({
-              id: paymentMethod.id,
-              customerId: customer.id,
-              default: true,
-            }),
-          ]),
-          purchases: expect.any(Array),
-          currentSubscriptions: expect.any(Array),
-          catalog: expect.objectContaining({
-            id: pricingModel.id,
-          }),
-          pricingModel: expect.objectContaining({
-            id: pricingModel.id,
-          }),
-        })
-
-        // Verify all invoices are returned when no pagination
-        expect(result.invoices.length).toBeGreaterThanOrEqual(3)
+    it('returns complete billing information without pagination', async () => {
+      const ctx = createTestContext()
+      const input = {
+        customerId: customer.id,
       }
-    )
 
-    it(
-      'returns paginated billing data when pagination parameters provided',
-      { timeout: 10000 },
-      async () => {
-        const ctx = createTestContext()
-        const input = {
-          customerId: customer.id,
-          invoicePagination: { page: 1, pageSize: 2 },
-        }
+      const result = await customerBillingPortalRouter
+        .createCaller(ctx)
+        .getBilling(input)
 
-        const result = await customerBillingPortalRouter
-          .createCaller(ctx)
-          .getBilling(input)
+      expect(result).toMatchObject({
+        customer: expect.objectContaining({
+          id: customer.id,
+          email: customer.email,
+          organizationId: organization.id,
+        }),
+        subscriptions: expect.arrayContaining([
+          expect.objectContaining({
+            id: subscription.id,
+            customerId: customer.id,
+            status: SubscriptionStatus.Active,
+          }),
+        ]),
+        invoices: expect.any(Array),
+        invoicePagination: undefined,
+        paymentMethods: expect.arrayContaining([
+          expect.objectContaining({
+            id: paymentMethod.id,
+            customerId: customer.id,
+            default: true,
+          }),
+        ]),
+        purchases: expect.any(Array),
+        currentSubscriptions: expect.any(Array),
+        catalog: expect.objectContaining({
+          id: pricingModel.id,
+        }),
+        pricingModel: expect.objectContaining({
+          id: pricingModel.id,
+        }),
+      })
 
-        expect(result.invoices).toHaveLength(2)
-        expect(result.invoicePagination).toEqual({
-          page: 1,
-          pageSize: 2,
-          totalCount: expect.any(Number),
-          totalPages: expect.any(Number),
-        })
-        expect(
-          result.invoicePagination!.totalCount
-        ).toBeGreaterThanOrEqual(3)
-        expect(
-          result.invoicePagination!.totalPages
-        ).toBeGreaterThanOrEqual(2)
+      // Verify all invoices are returned when no pagination
+      expect(result.invoices.length).toBeGreaterThanOrEqual(3)
+    })
+
+    it('returns paginated billing data when pagination parameters provided', async () => {
+      const ctx = createTestContext()
+      const input = {
+        customerId: customer.id,
+        invoicePagination: { page: 1, pageSize: 2 },
       }
-    )
+
+      const result = await customerBillingPortalRouter
+        .createCaller(ctx)
+        .getBilling(input)
+
+      expect(result.invoices).toHaveLength(2)
+      expect(result.invoicePagination).toEqual({
+        page: 1,
+        pageSize: 2,
+        totalCount: expect.any(Number),
+        totalPages: expect.any(Number),
+      })
+      expect(
+        result.invoicePagination!.totalCount
+      ).toBeGreaterThanOrEqual(3)
+      expect(
+        result.invoicePagination!.totalPages
+      ).toBeGreaterThanOrEqual(2)
+    })
 
     it('handles empty invoice list correctly with pagination', async () => {
       // Create a customer with no invoices
@@ -374,44 +369,40 @@ describe('Customer Billing Portal Router', () => {
       })
     })
 
-    it(
-      'returns correct page of invoices for pagination',
-      { timeout: 10000 },
-      async () => {
-        // Create more invoices for better pagination testing
-        await Promise.all(
-          Array.from({ length: 7 }).map(() =>
-            setupInvoice({
-              customerId: customer.id,
-              organizationId: organization.id,
-              status: InvoiceStatus.Open,
-              livemode: true,
-              priceId: price.id,
-            })
-          )
+    it('returns correct page of invoices for pagination', async () => {
+      // Create more invoices for better pagination testing
+      await Promise.all(
+        Array.from({ length: 7 }).map(() =>
+          setupInvoice({
+            customerId: customer.id,
+            organizationId: organization.id,
+            status: InvoiceStatus.Open,
+            livemode: true,
+            priceId: price.id,
+          })
         )
+      )
 
-        const ctx = createTestContext()
+      const ctx = createTestContext()
 
-        // Get page 2 with page size 5
-        const input = {
-          customerId: customer.id,
-          invoicePagination: { page: 2, pageSize: 5 },
-        }
-
-        const result = await customerBillingPortalRouter
-          .createCaller(ctx)
-          .getBilling(input)
-
-        expect(result.invoices).toHaveLength(5)
-        expect(result.invoicePagination).toEqual({
-          page: 2,
-          pageSize: 5,
-          totalCount: 10, // 3 original + 7 new
-          totalPages: 2, // 10 invoices / 5 per page
-        })
+      // Get page 2 with page size 5
+      const input = {
+        customerId: customer.id,
+        invoicePagination: { page: 2, pageSize: 5 },
       }
-    )
+
+      const result = await customerBillingPortalRouter
+        .createCaller(ctx)
+        .getBilling(input)
+
+      expect(result.invoices).toHaveLength(5)
+      expect(result.invoicePagination).toEqual({
+        page: 2,
+        pageSize: 5,
+        totalCount: 10, // 3 original + 7 new
+        totalPages: 2, // 10 invoices / 5 per page
+      })
+    })
 
     it.skip('throws error when organizationId is missing from context', async () => {
       // Skip this test as the procedure doesn't actually check for missing organizationId in the way we're testing
@@ -451,46 +442,39 @@ describe('Customer Billing Portal Router', () => {
       )
     })
 
-    it(
-      'schedules subscription cancellation at period end',
-      { timeout: 30000 },
-      async () => {
-        const ctx = createTestContext()
-        const input = {
-          customerId: customer.id,
-          id: subscription.id,
-          cancellation: {
-            timing:
-              SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-          } as const,
-        }
-
-        const result = await customerBillingPortalRouter
-          .createCaller(ctx)
-          .cancelSubscription(input)
-
-        expect(result.subscription).toMatchObject({
-          id: subscription.id,
-          status: SubscriptionStatus.CancellationScheduled,
-        })
-
-        // Verify subscription is scheduled for cancellation
-        const scheduledSubscription = await adminTransaction(
-          async ({ transaction }) => {
-            return selectSubscriptionById(
-              subscription.id,
-              transaction
-            )
-          }
-        )
-        expect(scheduledSubscription.status).toBe(
-          SubscriptionStatus.CancellationScheduled
-        )
-        expect(typeof scheduledSubscription.cancelScheduledAt).toBe(
-          'number'
-        )
+    it('schedules subscription cancellation at period end', async () => {
+      const ctx = createTestContext()
+      const input = {
+        customerId: customer.id,
+        id: subscription.id,
+        cancellation: {
+          timing:
+            SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+        } as const,
       }
-    )
+
+      const result = await customerBillingPortalRouter
+        .createCaller(ctx)
+        .cancelSubscription(input)
+
+      expect(result.subscription).toMatchObject({
+        id: subscription.id,
+        status: SubscriptionStatus.CancellationScheduled,
+      })
+
+      // Verify subscription is scheduled for cancellation
+      const scheduledSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return selectSubscriptionById(subscription.id, transaction)
+        }
+      )
+      expect(scheduledSubscription.status).toBe(
+        SubscriptionStatus.CancellationScheduled
+      )
+      expect(typeof scheduledSubscription.cancelScheduledAt).toBe(
+        'number'
+      )
+    })
 
     it("throws error when trying to cancel another customer's subscription", async () => {
       // Create another customer with a subscription
@@ -797,62 +781,58 @@ describe('Customer Billing Portal Router', () => {
   })
 
   describe('setDefaultPaymentMethod', () => {
-    it(
-      'successfully sets default payment method',
-      { timeout: 10000 },
-      async () => {
-        // Create additional payment method to test with
-        const additionalPaymentMethod = await setupPaymentMethod({
-          organizationId: organization.id,
-          customerId: customer.id,
-          livemode: true,
-          default: false,
-          stripePaymentMethodId: `pm_${core.nanoid()}`,
-          type: PaymentMethodType.Card,
-        })
+    it('successfully sets default payment method', async () => {
+      // Create additional payment method to test with
+      const additionalPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+        default: false,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        type: PaymentMethodType.Card,
+      })
 
-        const ctx = createTestContext()
-        const input = {
-          customerId: customer.id,
-          paymentMethodId: additionalPaymentMethod.id,
-        }
-
-        const result = await customerBillingPortalRouter
-          .createCaller(ctx)
-          .setDefaultPaymentMethod(input)
-
-        expect(result).toMatchObject({
-          success: true,
-          paymentMethod: expect.objectContaining({
-            id: additionalPaymentMethod.id,
-            customerId: customer.id,
-            default: true,
-          }),
-        })
-
-        // Verify the payment method is actually set as default
-        const updatedPaymentMethod = await adminTransaction(
-          async ({ transaction }) => {
-            return selectPaymentMethodById(
-              additionalPaymentMethod.id,
-              transaction
-            )
-          }
-        )
-        expect(updatedPaymentMethod.default).toBe(true)
-
-        // Verify the previous default is no longer default
-        const previousDefault = await adminTransaction(
-          async ({ transaction }) => {
-            return selectPaymentMethodById(
-              paymentMethod.id,
-              transaction
-            )
-          }
-        )
-        expect(previousDefault.default).toBe(false)
+      const ctx = createTestContext()
+      const input = {
+        customerId: customer.id,
+        paymentMethodId: additionalPaymentMethod.id,
       }
-    )
+
+      const result = await customerBillingPortalRouter
+        .createCaller(ctx)
+        .setDefaultPaymentMethod(input)
+
+      expect(result).toMatchObject({
+        success: true,
+        paymentMethod: expect.objectContaining({
+          id: additionalPaymentMethod.id,
+          customerId: customer.id,
+          default: true,
+        }),
+      })
+
+      // Verify the payment method is actually set as default
+      const updatedPaymentMethod = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentMethodById(
+            additionalPaymentMethod.id,
+            transaction
+          )
+        }
+      )
+      expect(updatedPaymentMethod.default).toBe(true)
+
+      // Verify the previous default is no longer default
+      const previousDefault = await adminTransaction(
+        async ({ transaction }) => {
+          return selectPaymentMethodById(
+            paymentMethod.id,
+            transaction
+          )
+        }
+      )
+      expect(previousDefault.default).toBe(false)
+    })
 
     it("throws error when trying to set another customer's payment method as default", async () => {
       // Create another customer with a payment method
@@ -896,44 +876,37 @@ describe('Customer Billing Portal Router', () => {
       ).rejects.toThrow()
     })
 
-    it(
-      'updates subscriptions to use new default payment method',
-      { timeout: 10000 },
-      async () => {
-        // Create additional payment method
-        const newPaymentMethod = await setupPaymentMethod({
-          organizationId: organization.id,
-          customerId: customer.id,
-          livemode: true,
-          default: false,
-          stripePaymentMethodId: `pm_${core.nanoid()}`,
-          type: PaymentMethodType.Card,
-        })
+    it('updates subscriptions to use new default payment method', async () => {
+      // Create additional payment method
+      const newPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+        default: false,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        type: PaymentMethodType.Card,
+      })
 
-        const ctx = createTestContext()
-        const input = {
-          customerId: customer.id,
-          paymentMethodId: newPaymentMethod.id,
-        }
-
-        await customerBillingPortalRouter
-          .createCaller(ctx)
-          .setDefaultPaymentMethod(input)
-
-        // Verify subscription now uses the new payment method
-        const updatedSubscription = await adminTransaction(
-          async ({ transaction }) => {
-            return selectSubscriptionById(
-              subscription.id,
-              transaction
-            )
-          }
-        )
-        expect(updatedSubscription.defaultPaymentMethodId).toBe(
-          newPaymentMethod.id
-        )
+      const ctx = createTestContext()
+      const input = {
+        customerId: customer.id,
+        paymentMethodId: newPaymentMethod.id,
       }
-    )
+
+      await customerBillingPortalRouter
+        .createCaller(ctx)
+        .setDefaultPaymentMethod(input)
+
+      // Verify subscription now uses the new payment method
+      const updatedSubscription = await adminTransaction(
+        async ({ transaction }) => {
+          return selectSubscriptionById(subscription.id, transaction)
+        }
+      )
+      expect(updatedSubscription.defaultPaymentMethodId).toBe(
+        newPaymentMethod.id
+      )
+    })
   })
 
   describe('customerId authorization edge cases', () => {

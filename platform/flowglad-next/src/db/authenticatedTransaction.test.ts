@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import {
   setupMemberships,
@@ -48,17 +48,12 @@ import {
 import { insertUser } from './tableMethods/userMethods'
 import type { DbTransaction } from './types'
 
-const mockedAuth = vi.hoisted(
-  (): {
-    session: null | { user: { id: string; email: string } }
-  } => ({ session: null })
-)
+let mockedSession: { user: { id: string; email: string } } | null =
+  null
 
-vi.mock('@/utils/auth', () => {
-  return {
-    getSession: async () => mockedAuth.session,
-  }
-})
+mock.module('@/utils/auth', () => ({
+  getSession: async () => mockedSession,
+}))
 
 const currentOrganizationIdQueryResultSchema = z
   .object({ organization_id: z.string() })
@@ -95,7 +90,7 @@ describe('authenticatedTransaction', () => {
   let membershipB2: Membership.Record // userB in testOrg2
 
   beforeEach(async () => {
-    mockedAuth.session = null
+    mockedSession = null
 
     // Setup two test organizations
     const org1Setup = await setupOrg()
@@ -290,7 +285,7 @@ describe('authenticatedTransaction', () => {
         )
       })
 
-      mockedAuth.session = {
+      mockedSession = {
         user: {
           id: betterAuthId,
           email,

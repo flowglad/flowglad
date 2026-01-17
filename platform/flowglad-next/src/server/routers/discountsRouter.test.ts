@@ -134,7 +134,7 @@ describe('validateAndResolvePricingModelId', () => {
       return { resolvedId, defaultPMId: defaultPM?.id }
     })
 
-    expect(result.resolvedId).toBe(result.defaultPMId)
+    expect(result.resolvedId).toBe(result.defaultPMId!)
     expect(result.resolvedId).toMatch(/^pricing_model_/)
   })
 
@@ -155,7 +155,7 @@ describe('validateAndResolvePricingModelId', () => {
       return { resolvedId, defaultPMId: defaultPM?.id }
     })
 
-    expect(result.resolvedId).toBe(result.defaultPMId)
+    expect(result.resolvedId).toBe(result.defaultPMId!)
     expect(result.resolvedId).toMatch(/^pricing_model_/)
   })
 

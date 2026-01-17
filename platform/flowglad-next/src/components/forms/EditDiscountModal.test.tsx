@@ -1,44 +1,42 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   fireEvent,
   render,
   screen,
   waitFor,
 } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { trpc } from '@/app/_trpc/client'
-import { useAuthenticatedContext } from '@/contexts/authContext'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import EditDiscountModal from './EditDiscountModal'
 
+// Create mock functions outside mock.module so they can be accessed in tests
+const mockUseAuthenticatedContext = mock(() => undefined)
+const mockUseMutation = mock(() => undefined)
+
 // Mock the auth context
-vi.mock('@/contexts/authContext', () => ({
-  useAuthenticatedContext: vi.fn(),
+mock.module('@/contexts/authContext', () => ({
+  useAuthenticatedContext: mockUseAuthenticatedContext,
 }))
 
 // Mock tRPC
-vi.mock('@/app/_trpc/client', () => ({
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     discounts: {
       update: {
-        useMutation: vi.fn(),
+        useMutation: mockUseMutation,
       },
     },
   },
 }))
 
 // Mock the stripe utils
-vi.mock('@/utils/stripe', () => ({
-  rawStringAmountToCountableCurrencyAmount: vi.fn(
+mock.module('@/utils/stripe', () => ({
+  rawStringAmountToCountableCurrencyAmount: mock(
     (currency, amount) => {
       // Mock conversion: "10.50" -> 1050 (cents)
       return Math.round(parseFloat(amount) * 100)
     }
   ),
-  countableCurrencyAmountToRawStringAmount: vi.fn(
+  countableCurrencyAmountToRawStringAmount: mock(
     (currency, amount) => {
       // Mock conversion: 1050 -> "10.50"
       return (amount / 100).toFixed(2)
@@ -47,7 +45,7 @@ vi.mock('@/utils/stripe', () => ({
 }))
 
 // Mock the form modal and wrap children with FormProvider
-vi.mock('@/components/forms/FormModal', async () => {
+mock.module('@/components/forms/FormModal', async () => {
   // biome-ignore lint/plugin: dynamic import required for vi.mock factory
   const React = await import('react')
   // biome-ignore lint/plugin: dynamic import required for vi.mock factory
@@ -125,7 +123,7 @@ vi.mock('@/components/forms/FormModal', async () => {
 })
 
 // Mock the discount form fields
-vi.mock('./DiscountFormFields', () => ({
+mock.module('./DiscountFormFields', () => ({
   default: ({ edit }: { edit?: boolean }) => (
     <div data-testid="discount-form-fields" data-edit={edit}>
       Form Fields {edit ? '(Edit Mode)' : ''}
@@ -177,21 +175,21 @@ describe('EditDiscountModal', () => {
     organizationId: 'org_123',
   } as any
 
-  const mockMutateAsync = vi.fn()
+  const mockMutateAsync = mock((_params: unknown) =>
+    Promise.resolve(undefined)
+  )
   const mockEditDiscount = {
     mutateAsync: mockMutateAsync,
   }
 
   beforeEach(() => {
-    vi.clearAllMocks()
-    vi.mocked(useAuthenticatedContext).mockReturnValue({
+    mockMutateAsync.mockClear()
+    mockUseAuthenticatedContext.mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,
     } as any)
-    vi.mocked(trpc.discounts.update.useMutation).mockReturnValue(
-      mockEditDiscount as any
-    )
+    mockUseMutation.mockReturnValue(mockEditDiscount as any)
   })
 
   describe('Modal Rendering', () => {
@@ -199,7 +197,7 @@ describe('EditDiscountModal', () => {
       render(
         <EditDiscountModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock(() => undefined)}
           discount={mockDiscount}
         />
       )
@@ -217,7 +215,7 @@ describe('EditDiscountModal', () => {
       render(
         <EditDiscountModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock(() => undefined)}
           discount={mockDiscount}
         />
       )
@@ -239,7 +237,7 @@ describe('EditDiscountModal', () => {
       render(
         <EditDiscountModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock(() => undefined)}
           discount={mockDiscount}
         />
       )
@@ -276,15 +274,15 @@ describe('EditDiscountModal', () => {
         amount: 25,
       }
 
-      const mutateSpy = vi.fn().mockResolvedValue({ success: true })
-      vi.mocked(trpc.discounts.update.useMutation).mockReturnValue({
+      const mutateSpy = mock(() => Promise.resolve({ success: true }))
+      mockUseMutation.mockReturnValue({
         mutateAsync: mutateSpy,
       } as any)
 
       render(
         <EditDiscountModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock(() => undefined)}
           discount={percentDiscount}
         />
       )
@@ -295,7 +293,9 @@ describe('EditDiscountModal', () => {
 
       await waitFor(() => {
         expect(mutateSpy).toHaveBeenCalled()
-        const payload = mutateSpy.mock.calls[0][0]
+        const payload = mutateSpy.mock.calls[0][0] as {
+          discount: { amountType: string; amount: number }
+        }
         expect(payload.discount.amountType).toBe(
           DiscountAmountType.Percent
         )
@@ -314,7 +314,7 @@ describe('EditDiscountModal', () => {
       render(
         <EditDiscountModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock(() => undefined)}
           discount={mockDiscount}
         />
       )
@@ -333,7 +333,7 @@ describe('EditDiscountModal', () => {
       render(
         <EditDiscountModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock(() => undefined)}
           discount={discountWithDifferentAmount}
         />
       )
@@ -353,7 +353,7 @@ describe('EditDiscountModal', () => {
       render(
         <EditDiscountModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock(() => undefined)}
           discount={mockDiscount}
         />
       )
@@ -369,7 +369,7 @@ describe('EditDiscountModal', () => {
 
   describe('Modal State Management', () => {
     it('should call setIsOpen(false) after successful submit', async () => {
-      const mockSetIsOpen = vi.fn()
+      const mockSetIsOpen = mock(() => undefined)
       render(
         <EditDiscountModal
           isOpen={true}
@@ -397,7 +397,7 @@ describe('EditDiscountModal', () => {
       render(
         <EditDiscountModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock(() => undefined)}
           discount={percentDiscount}
         />
       )
@@ -421,7 +421,7 @@ describe('EditDiscountModal', () => {
       render(
         <EditDiscountModal
           isOpen={true}
-          setIsOpen={vi.fn()}
+          setIsOpen={mock(() => undefined)}
           discount={recurringDiscount}
         />
       )

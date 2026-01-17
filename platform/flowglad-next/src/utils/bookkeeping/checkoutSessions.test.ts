@@ -38,6 +38,7 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   DiscountAmountType,
+  EventNoun,
   FlowgladEventType,
   PaymentMethodType,
   PurchaseStatus,
@@ -269,10 +270,10 @@ describe('Checkout Sessions', async () => {
         checkoutSession.id
       )
       expect(feeCalculation.billingAddress).toEqual(
-        checkoutSession.billingAddress
+        checkoutSession.billingAddress!
       )
       expect(feeCalculation.paymentMethodType).toEqual(
-        checkoutSession.paymentMethodType
+        checkoutSession.paymentMethodType!
       )
     })
 
@@ -291,10 +292,10 @@ describe('Checkout Sessions', async () => {
         checkoutSession.id
       )
       expect(feeCalculation.billingAddress).toEqual(
-        checkoutSession.billingAddress
+        checkoutSession.billingAddress!
       )
       expect(feeCalculation.paymentMethodType).toEqual(
-        checkoutSession.paymentMethodType
+        checkoutSession.paymentMethodType!
       )
     })
   })
@@ -789,7 +790,9 @@ describe('Checkout Sessions', async () => {
         (e) => e.type === FlowgladEventType.CustomerCreated
       )
       expect(typeof customerCreatedEvent).toBe('object')
-      expect(customerCreatedEvent?.payload.object).toEqual('customer')
+      expect(customerCreatedEvent?.payload.object).toEqual(
+        EventNoun.Customer
+      )
       expect(typeof customerCreatedEvent?.payload.customer).toBe(
         'object'
       )
@@ -810,7 +813,7 @@ describe('Checkout Sessions', async () => {
       )
       expect(typeof subscriptionCreatedEvent).toBe('object')
       expect(subscriptionCreatedEvent?.payload.object).toEqual(
-        'subscription'
+        EventNoun.Subscription
       )
       expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(
         bookkeepingResult.customer.id
