@@ -1,8 +1,4 @@
-/**
- * @vitest-environment jsdom
- */
-
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock, vi } from 'bun:test'
 import {
   CheckoutSessionStatus,
   PriceType,
@@ -12,35 +8,35 @@ import { checkoutInfoForCheckoutSession } from '@/utils/checkoutHelpers'
 import Page from './page'
 
 // Mock next/navigation redirect
-const redirect = vi.fn()
-vi.mock('next/navigation', () => ({
-  notFound: vi.fn(),
+const redirect = mock(() => undefined)
+mock.module('next/navigation', () => ({
+  notFound: mock(() => undefined),
   redirect: (url: string) => redirect(url),
 }))
 
 // Mock checkoutInfo schema parsing to bypass strict Zod requirements in unit tests
-vi.mock('@/db/tableMethods/purchaseMethods', () => ({
+mock.module('@/db/tableMethods/purchaseMethods', () => ({
   checkoutInfoSchema: {
     parse: (x: any) => x,
   },
 }))
 
 // Mock server utilities used by the page
-vi.mock('@/db/adminTransaction', () => ({
+mock.module('@/db/adminTransaction', () => ({
   adminTransaction: (fn: any) => fn({ transaction: {} }),
 }))
 
-vi.mock('@/utils/stripe', () => ({
-  getPaymentIntent: vi.fn(async (id: string) => ({
+mock.module('@/utils/stripe', () => ({
+  getPaymentIntent: mock(async (id: string) => ({
     client_secret: `pi_secret_${id}`,
   })),
-  getSetupIntent: vi.fn(async (id: string) => ({
+  getSetupIntent: mock(async (id: string) => ({
     client_secret: `si_secret_${id}`,
   })),
 }))
 
-vi.mock('@/utils/checkoutHelpers', () => ({
-  checkoutInfoForCheckoutSession: vi.fn(async (id: string) => ({
+mock.module('@/utils/checkoutHelpers', () => ({
+  checkoutInfoForCheckoutSession: mock(async (id: string) => ({
     checkoutSession: {
       id,
       status: 'open',
@@ -61,7 +57,7 @@ vi.mock('@/utils/checkoutHelpers', () => ({
     ],
     discount: null,
   })),
-  getClientSecretsForCheckoutSession: vi.fn(async () => ({
+  getClientSecretsForCheckoutSession: mock(async () => ({
     clientSecret: 'pi_secret_test',
     customerSessionClientSecret: null,
   })),
@@ -69,7 +65,7 @@ vi.mock('@/utils/checkoutHelpers', () => ({
 
 describe('CheckoutSessionPage', () => {
   beforeEach(() => {
-    redirect.mockReset()
+    redirect.mockClear()
   })
 
   it('renders when only free subscription exists (no block)', async () => {

@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import { describe, expect, it, mock } from 'bun:test'
 import { fireEvent, render, screen } from '@testing-library/react'
 import { CurrencyInput } from './currency-input'
@@ -213,9 +209,6 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should handle allowDecimals prop', () => {
-      const onValueChange = mock<(value: string | undefined) => void>(
-        () => undefined
-      )
       render(
         <CurrencyInput
           allowDecimals={false}

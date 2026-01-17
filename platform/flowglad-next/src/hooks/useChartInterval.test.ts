@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import { describe, expect, it, mock } from 'bun:test'
 import { act, renderHook } from '@testing-library/react'
 import { RevenueChartIntervalUnit } from '@/types'

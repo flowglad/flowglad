@@ -1,7 +1,4 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { beforeEach, describe, expect, it, mock, vi } from 'bun:test'
 import {
   fireEvent,
   render,
@@ -11,42 +8,41 @@ import {
 import React from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { FormProvider, useForm } from 'react-hook-form'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { trpc } from '@/app/_trpc/client'
 import type { ModalInterfaceProps } from '@/components/forms/FormModal'
 import { PriceType } from '@/types'
 import { CreateSubscriptionFormModal } from './CreateSubscriptionFormModal'
 
 // Mock tRPC
-vi.mock('@/app/_trpc/client', () => ({
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     customers: {
       internal__getById: {
-        useQuery: vi.fn(),
+        useQuery: mock(() => undefined),
       },
       getPricingModelForCustomer: {
-        useQuery: vi.fn(),
+        useQuery: mock(() => undefined),
       },
     },
     paymentMethods: {
       list: {
-        useQuery: vi.fn(),
+        useQuery: mock(() => undefined),
       },
     },
     subscriptions: {
       create: {
-        useMutation: vi.fn(),
+        useMutation: mock(() => undefined),
       },
       getTableRows: {
-        invalidate: vi.fn(),
+        invalidate: mock(() => undefined),
       },
     },
-    useUtils: vi.fn(),
+    useUtils: mock(() => undefined),
   },
 }))
 
 // Mock FormModal to provide FormProvider context
-vi.mock('@/components/forms/FormModal', () => {
+mock.module('@/components/forms/FormModal', () => {
   function FormModalMock<T extends FieldValues>({
     children,
     onSubmit,
@@ -120,7 +116,7 @@ describe('CreateSubscriptionFormModal', () => {
     },
   }
 
-  const mockMutateAsync = vi.fn().mockResolvedValue({})
+  const mockMutateAsync = mock(() => Promise.resolve({}))
   const mockCreateSubscription = {
     mutateAsync: mockMutateAsync,
     isPending: false,
@@ -129,13 +125,13 @@ describe('CreateSubscriptionFormModal', () => {
   const mockUtils = {
     subscriptions: {
       getTableRows: {
-        invalidate: vi.fn(),
+        invalidate: mock(() => undefined),
       },
     },
   }
 
   beforeEach(() => {
-    vi.clearAllMocks()
+    mockMutateAsync.mockClear()
     // Cast through unknown to avoid complex tRPC type requirements
     vi.mocked(trpc.useUtils).mockReturnValue(
       mockUtils as unknown as ReturnType<typeof trpc.useUtils>
@@ -181,7 +177,7 @@ describe('CreateSubscriptionFormModal', () => {
     return render(
       <CreateSubscriptionFormModal
         isOpen={true}
-        setIsOpen={vi.fn()}
+        setIsOpen={mock(() => undefined)}
         customerId="customer_123"
       />
     )

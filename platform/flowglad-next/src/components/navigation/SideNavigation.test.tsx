@@ -1,7 +1,3 @@
-/**
- * @vitest-environment jsdom
- */
-
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
@@ -181,8 +177,6 @@ mock.module('./SidebarBannerCarousel', () => ({
 import { SideNavigation } from './SideNavigation'
 
 describe('SideNavigation', () => {
-  beforeEach(() => {})
-
   it('should call toggleSidebar when logo button is clicked', () => {
     render(<SideNavigation />)
 
