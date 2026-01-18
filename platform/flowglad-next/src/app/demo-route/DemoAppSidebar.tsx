@@ -161,11 +161,57 @@ const emailItems: NavItem[] = [
     label: 'Org: Cancellation Scheduled',
     emailType: 'org-subscription-cancellation-scheduled',
   },
+  {
+    href: '/demo-route?email=org-subscription-adjusted',
+    label: 'Org: Subscription Adjusted',
+    emailType: 'org-subscription-adjusted',
+  },
+  {
+    href: '/demo-route?email=org-payment-received',
+    label: 'Org: Payment Received',
+    emailType: 'org-payment-received',
+  },
+  {
+    href: '/demo-route?email=org-payment-failed',
+    label: 'Org: Payment Failed',
+    emailType: 'org-payment-failed',
+  },
+  {
+    href: '/demo-route?email=org-payment-pending',
+    label: 'Org: Payment Pending',
+    emailType: 'org-payment-pending',
+  },
+  {
+    href: '/demo-route?email=org-payouts-enabled',
+    label: 'Org: Payouts Enabled',
+    emailType: 'org-payouts-enabled',
+  },
+  {
+    href: '/demo-route?email=org-onboarding-completed',
+    label: 'Org: Onboarding Completed',
+    emailType: 'org-onboarding-completed',
+  },
+  {
+    href: '/demo-route?email=org-team-invitation',
+    label: 'Org: Team Invitation',
+    emailType: 'org-team-invitation',
+  },
+  {
+    href: '/demo-route?email=org-csv-export-ready',
+    label: 'Org: CSV Export Ready',
+    emailType: 'org-csv-export-ready',
+  },
   // Purchase access
   {
     href: '/demo-route?email=purchase-access-token',
     label: 'Purchase Access Token',
     emailType: 'purchase-access-token',
+  },
+  // Trial-related emails
+  {
+    href: '/demo-route?email=trial-expired-no-payment',
+    label: 'Trial Expired (No Payment)',
+    emailType: 'trial-expired-no-payment',
   },
 ]
 
@@ -191,6 +237,7 @@ const parseSearchParams = (
   livemode: searchParams.get('testMode') !== 'true', // Invert once at source
   hasRetry: searchParams.get('hasRetry') !== 'false',
   viewType: getViewType(searchParams.get('view') ?? undefined),
+  hasPaymentMethod: searchParams.get('hasPayment') !== 'false',
 })
 
 const isLinkActive = (
