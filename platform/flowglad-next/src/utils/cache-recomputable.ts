@@ -5,8 +5,12 @@
  * for recomputation. It should only be imported by server-side code.
  *
  * For client-safe caching utilities, import from './cache' instead.
+ *
+ * NOTE: We don't use 'server-only' import here because this module is also
+ * imported by scripts (e.g., openApiDoc.ts) that run outside Next.js context.
+ * The server-only constraint is enforced by Next.js bundling for actual
+ * client/server code splitting.
  */
-import 'server-only'
 
 import { SpanKind, trace } from '@opentelemetry/api'
 import { z } from 'zod'
