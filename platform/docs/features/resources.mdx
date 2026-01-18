@@ -169,7 +169,7 @@ export async function removeTeamMember(params: {
   })
 
   return {
-    released: result.claims,
+    released: result.releasedClaims,
     availableSeats: result.usage.available
   }
 }
@@ -230,14 +230,20 @@ interface ResourceUsage {
 
 ```typescript
 interface ResourceClaim {
-  id: string                        // Claim ID
-  resourceId: string                // Resource UUID
-  subscriptionId: string            // Subscription UUID
-  externalId: string | null         // Your identifier (null for anonymous)
-  claimedAt: number                 // Unix timestamp (ms)
-  releasedAt: number | null         // null = active
-  releaseReason: string | null      // Why it was released
-  metadata: Record<string, unknown> | null
+  id: string                                      // Claim ID
+  resourceId: string                              // Resource UUID
+  subscriptionId: string                          // Subscription UUID
+  subscriptionItemFeatureId: string               // Link to subscription feature
+  externalId: string | null                       // Your identifier (null for anonymous)
+  claimedAt: number                               // Unix timestamp (ms)
+  releasedAt: number | null                       // null = active
+  releaseReason: string | null                    // Why it was released
+  metadata: Record<string, string | number | boolean> | null
+  createdAt: number                               // Unix timestamp (ms)
+  updatedAt: number                               // Unix timestamp (ms)
+  livemode: boolean                               // true = production mode
+  organizationId: string                          // Owning organization
+  pricingModelId: string                          // Associated pricing model
 }
 ```
 
@@ -363,7 +369,7 @@ export async function removeMember(params: { orgId: string; userId: string }) {
   })
 
   return {
-    released: result.claims.length > 0,
+    released: result.releasedClaims.length > 0,
     availableSeats: result.usage.available
   }
 }
