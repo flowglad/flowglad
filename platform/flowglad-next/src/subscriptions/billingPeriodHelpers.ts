@@ -30,6 +30,7 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
+import { idempotentSendCustomerTrialExpiredNotification } from '@/trigger/notifications/send-customer-trial-expired-notification'
 import {
   BillingPeriodStatus,
   FeatureType,
@@ -381,6 +382,18 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     },
     transaction
   )
+
+  // If the trial billing period just ended and the subscription is now past_due
+  // (meaning no payment method), send the trial expired notification
+  if (
+    currentBillingPeriod.trialPeriod &&
+    subscription.status === SubscriptionStatus.PastDue
+  ) {
+    await idempotentSendCustomerTrialExpiredNotification({
+      subscriptionId: subscription.id,
+    })
+  }
+
   /**
    * See above, in practice this should never happen because above code updates status to past due if there is no payment method.
    */
