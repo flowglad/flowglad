@@ -10,6 +10,7 @@ import {
 import type { SetupPricingModelInput } from './setupSchemas'
 import {
   setupPricingModelSchema,
+  setupUsageMeterPriceInputSchema,
   validateSetupPricingModelInput,
 } from './setupSchemas'
 
@@ -838,6 +839,76 @@ describe('validateSetupPricingModelInput', () => {
       expect(() =>
         validateSetupPricingModelInput(input)
       ).not.toThrow()
+    })
+  })
+})
+
+describe('setupUsageMeterPriceInputSchema', () => {
+  const createValidUsagePriceInput = () => ({
+    type: PriceType.Usage as const,
+    slug: 'api-calls-price',
+    isDefault: true,
+    unitPrice: 100,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
+    trialPeriodDays: null,
+    usageEventsPerUnit: 1,
+    active: true,
+  })
+
+  describe('reserved slug validation', () => {
+    it('rejects usage price with slug ending in _no_charge via direct schema safeParse', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        slug: 'api-calls_no_charge',
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues).toHaveLength(1)
+        expect(result.error.issues[0].path).toEqual(['slug'])
+        expect(result.error.issues[0].message).toBe(
+          'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices'
+        )
+      }
+    })
+
+    it('accepts usage price with valid slug not ending in _no_charge', () => {
+      const input = createValidUsagePriceInput()
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.slug).toBe('api-calls-price')
+      }
+    })
+
+    it('accepts usage price with slug containing _no_charge in the middle', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        slug: 'no_charge_api_calls',
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.slug).toBe('no_charge_api_calls')
+      }
+    })
+
+    it('accepts usage price with undefined slug (optional field)', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        slug: undefined,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
     })
   })
 })
