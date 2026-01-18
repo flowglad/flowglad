@@ -170,6 +170,10 @@ export interface NonPresentContextValues {
   pricingModel: null
   billingPortalUrl: null
   reload: null
+  /**
+   * @deprecated Use `pricingModel` instead. This property is kept for backward compatibility.
+   */
+  catalog: null
   invoices: []
   paymentMethods: []
   purchases: []
@@ -220,6 +224,7 @@ const notPresentContextValues: NonPresentContextValues = {
   pricingModel: null,
   billingPortalUrl: null,
   reload: null,
+  catalog: null,
   invoices: [],
   paymentMethods: [],
   purchases: [],
@@ -1056,4 +1061,12 @@ export const useBilling = () => useContext(FlowgladContext)
 export const usePricingModel = () => {
   const { pricingModel } = useBilling()
   return pricingModel
+}
+
+/**
+ * @deprecated Use `usePricingModel` instead. This hook is kept for backward compatibility.
+ */
+export const useCatalog = () => {
+  const { catalog } = useBilling()
+  return catalog
 }
