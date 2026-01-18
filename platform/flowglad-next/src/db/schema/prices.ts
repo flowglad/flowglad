@@ -64,6 +64,20 @@ const createOnlyColumns = {
 
 export const priceImmutableFields = Object.keys(createOnlyColumns)
 
+/**
+ * Check if a price slug uses the reserved `_no_charge` suffix.
+ * This suffix is reserved for auto-generated fallback prices on usage meters.
+ *
+ * Note: This restriction applies ONLY to usage prices.
+ * Subscription and single_payment prices can use any slug including `_no_charge` suffix.
+ *
+ * @param slug - The slug to check
+ * @returns true if the slug ends with `_no_charge`
+ */
+export const isReservedPriceSlug = (slug: string): boolean => {
+  return slug.endsWith('_no_charge')
+}
+
 const hiddenColumns = {
   externalId: true,
   ...hiddenColumnsForClientSchema,

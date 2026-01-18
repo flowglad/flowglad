@@ -7,6 +7,7 @@ import {
 import {
   createPriceSchema,
   editPriceSchema,
+  isReservedPriceSlug,
   Price,
   pricesClientSelectSchema,
   pricesPaginatedListSchema,
@@ -68,6 +69,20 @@ export const createPrice = protectedProcedure
     return authenticatedTransaction(
       async ({ transaction, livemode, organizationId, userId }) => {
         const { price } = input
+
+        // Validate reserved slug for usage prices only
+        if (
+          price.type === PriceType.Usage &&
+          price.slug &&
+          isReservedPriceSlug(price.slug)
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices',
+          })
+        }
+
         const newPrice = await createPriceTransaction(
           { price },
           {
@@ -315,6 +330,19 @@ export const replaceUsagePrice = protectedProcedure
             code: 'BAD_REQUEST',
             message:
               'New price must belong to the same usage meter as the old price',
+          })
+        }
+
+        // Validate reserved slug for usage prices
+        if (
+          input.newPrice.type === PriceType.Usage &&
+          input.newPrice.slug &&
+          isReservedPriceSlug(input.newPrice.slug)
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices',
           })
         }
 

@@ -745,4 +745,99 @@ describe('validateSetupPricingModelInput', () => {
       expect(result.features).toHaveLength(3)
     })
   })
+
+  describe('reserved slug validation for usage prices', () => {
+    it('rejects usage price with slug ending in _no_charge via Zod schema validation', () => {
+      const input = createMinimalValidInput()
+      input.usageMeters = [
+        {
+          usageMeter: { slug: 'api-calls', name: 'API Calls' },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'api-calls_no_charge',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const hasReservedSlugError = result.error.issues.some(
+          (issue) =>
+            issue.message.includes('_no_charge') &&
+            issue.message.includes('reserved')
+        )
+        expect(hasReservedSlugError).toBe(true)
+      }
+    })
+
+    it('accepts usage price with slug containing _no_charge but not as suffix', () => {
+      const input = createMinimalValidInput()
+      input.usageMeters = [
+        {
+          usageMeter: { slug: 'api-calls', name: 'API Calls' },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'meter_no_charge_extra',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
+        },
+      ]
+
+      expect(() =>
+        validateSetupPricingModelInput(input)
+      ).not.toThrow()
+    })
+
+    it('accepts subscription price with _no_charge suffix (restriction only for usage prices)', () => {
+      const input = createMinimalValidInput()
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'promo_no_charge',
+        isDefault: true,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+      }
+
+      expect(() =>
+        validateSetupPricingModelInput(input)
+      ).not.toThrow()
+    })
+
+    it('accepts single_payment price with _no_charge suffix (restriction only for usage prices)', () => {
+      const input = createMinimalValidInput()
+      input.products[0].price = {
+        type: PriceType.SinglePayment,
+        slug: 'trial_no_charge',
+        isDefault: true,
+        unitPrice: 0,
+        active: true,
+      }
+
+      expect(() =>
+        validateSetupPricingModelInput(input)
+      ).not.toThrow()
+    })
+  })
 })
