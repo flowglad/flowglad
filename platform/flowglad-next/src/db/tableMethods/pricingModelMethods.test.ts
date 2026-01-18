@@ -1570,8 +1570,11 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
     expect(usageMeterResult!.prices.map((p) => p.id)).toContain(
       usagePrice2.id
     )
-    // Since usage prices don't have isDefault set, the first price becomes the default
-    expect(usageMeterResult!.defaultPrice?.id).toBe(usagePrice1.id)
+    // Since usage prices don't have isDefault set, one of them becomes the default
+    // (the specific choice depends on query ordering which is non-deterministic)
+    expect([usagePrice1.id, usagePrice2.id]).toContain(
+      usageMeterResult!.defaultPrice?.id
+    )
   })
 
   it('selectPricingModelForCustomer filters inactive usage prices from usage meters', async () => {
