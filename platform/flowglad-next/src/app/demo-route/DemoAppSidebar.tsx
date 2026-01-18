@@ -129,11 +129,6 @@ const emailItems: NavItem[] = [
     label: 'Cancellation Scheduled',
     emailType: 'subscription-cancellation-scheduled',
   },
-  {
-    href: '/demo-route?email=subscription-renewal-reminder',
-    label: 'Subscription Renewal Reminder',
-    emailType: 'subscription-renewal-reminder',
-  },
   // Authentication emails
   {
     href: '/demo-route?email=billing-portal-otp',
@@ -213,18 +208,6 @@ const emailItems: NavItem[] = [
     emailType: 'purchase-access-token',
   },
   // Trial-related emails
-  {
-    href: '/demo-route?email=trial-ending-soon&hasPayment=true',
-    label: 'Trial Ending Soon (With Payment)',
-    emailType: 'trial-ending-soon',
-    activeCondition: (p) => p.hasPaymentMethod !== false,
-  },
-  {
-    href: '/demo-route?email=trial-ending-soon&hasPayment=false',
-    label: 'Trial Ending Soon (No Payment)',
-    emailType: 'trial-ending-soon',
-    activeCondition: (p) => p.hasPaymentMethod === false,
-  },
   {
     href: '/demo-route?email=trial-expired-no-payment',
     label: 'Trial Expired (No Payment)',

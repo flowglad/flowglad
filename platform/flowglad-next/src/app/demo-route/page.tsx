@@ -30,9 +30,7 @@ import {
   SubscriptionCanceledPreview,
   SubscriptionCancellationScheduledPreview,
   SubscriptionCreatedPreview,
-  SubscriptionRenewalReminderPreview,
   SubscriptionUpgradedPreview,
-  TrialEndingSoonPreview,
   TrialExpiredNoPaymentPreview,
 } from './SubscriptionEmailPreviews'
 
@@ -86,9 +84,6 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
   ),
   'subscription-cancellation-scheduled': ({ livemode }) => (
     <SubscriptionCancellationScheduledPreview livemode={livemode} />
-  ),
-  'subscription-renewal-reminder': ({ livemode }) => (
-    <SubscriptionRenewalReminderPreview livemode={livemode} />
   ),
   'payment-failed': ({ hasRetry, livemode }) => (
     <PaymentFailedPreview
@@ -146,12 +141,6 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
     <PurchaseAccessTokenPreview livemode={livemode} />
   ),
   // Trial-related emails
-  'trial-ending-soon': ({ hasPaymentMethod, livemode }) => (
-    <TrialEndingSoonPreview
-      hasPaymentMethod={hasPaymentMethod}
-      livemode={livemode}
-    />
-  ),
   'trial-expired-no-payment': ({ livemode }) => (
     <TrialExpiredNoPaymentPreview livemode={livemode} />
   ),

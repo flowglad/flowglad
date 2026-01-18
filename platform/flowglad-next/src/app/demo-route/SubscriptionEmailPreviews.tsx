@@ -5,9 +5,7 @@ import { CustomerSubscriptionAdjustedEmail } from '@/email-templates/customer-su
 import { CustomerSubscriptionCanceledEmail } from '@/email-templates/customer-subscription-canceled'
 import { CustomerSubscriptionCancellationScheduledEmail } from '@/email-templates/customer-subscription-cancellation-scheduled'
 import { CustomerSubscriptionCreatedEmail } from '@/email-templates/customer-subscription-created'
-import { CustomerSubscriptionRenewalReminderEmail } from '@/email-templates/customer-subscription-renewal-reminder'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
-import { CustomerTrialEndingSoonEmail } from '@/email-templates/customer-trial-ending-soon'
 import { CustomerTrialExpiredNoPaymentEmail } from '@/email-templates/customer-trial-expired-no-payment'
 import { ForgotPasswordEmail } from '@/email-templates/forgot-password'
 import { CustomersCsvExportReadyEmail } from '@/email-templates/organization/customers-csv-export-ready'
@@ -495,56 +493,6 @@ export const PurchaseAccessTokenPreview = ({
 }
 
 // ============================================================================
-// Trial Ending Soon Preview
-// ============================================================================
-
-interface TrialEndingSoonPreviewProps {
-  hasPaymentMethod?: boolean
-  daysRemaining?: number
-  livemode?: boolean
-}
-
-export const TrialEndingSoonPreview = ({
-  hasPaymentMethod = true,
-  daysRemaining = 3,
-  livemode = true,
-}: TrialEndingSoonPreviewProps) => {
-  const scenario = hasPaymentMethod
-    ? `Trial ending in ${daysRemaining} days - payment method on file, will auto-convert to paid subscription`
-    : `Trial ending in ${daysRemaining} days - no payment method, prompts customer to add one`
-
-  const previewText =
-    daysRemaining === 1
-      ? 'Your Trial Ends Tomorrow'
-      : `Your Trial Ends in ${daysRemaining} Days`
-
-  return (
-    <EmailPreviewWrapper
-      templateName="customer-trial-ending-soon"
-      scenario={scenario}
-      subject="Trial Ending Soon"
-      previewText={previewText}
-      livemode={livemode}
-      emailType="trial-ending-soon"
-    >
-      <CustomerTrialEndingSoonEmail
-        customerName={commonCustomerProps.customerName}
-        {...commonOrganizationProps}
-        customerId={commonCustomerProps.customerId}
-        planName="Pro Plan"
-        trialEndDate={getFutureDate(daysRemaining)}
-        daysRemaining={daysRemaining}
-        price={MOCK_PRICES.PRO_PLAN}
-        currency={DEFAULT_CURRENCY}
-        interval={DEFAULT_INTERVAL}
-        hasPaymentMethod={hasPaymentMethod}
-        livemode={livemode}
-      />
-    </EmailPreviewWrapper>
-  )
-}
-
-// ============================================================================
 // Trial Expired No Payment Preview
 // ============================================================================
 
@@ -569,42 +517,6 @@ export const TrialExpiredNoPaymentPreview = ({
         {...commonOrganizationProps}
         customerId={commonCustomerProps.customerId}
         planName="Pro Plan"
-        livemode={livemode}
-      />
-    </EmailPreviewWrapper>
-  )
-}
-
-// ============================================================================
-// Subscription Renewal Reminder Preview
-// ============================================================================
-
-interface SubscriptionRenewalReminderPreviewProps {
-  livemode?: boolean
-}
-
-export const SubscriptionRenewalReminderPreview = ({
-  livemode = true,
-}: SubscriptionRenewalReminderPreviewProps) => {
-  return (
-    <EmailPreviewWrapper
-      templateName="customer-subscription-renewal-reminder"
-      scenario="Renewal reminder sent 7 days before subscription renews"
-      subject="Subscription Renewal"
-      previewText="Your Subscription Renews Soon"
-      livemode={livemode}
-      emailType="subscription-renewal-reminder"
-    >
-      <CustomerSubscriptionRenewalReminderEmail
-        customerName={commonCustomerProps.customerName}
-        {...commonOrganizationProps}
-        customerId={commonCustomerProps.customerId}
-        planName="Pro Plan"
-        renewalDate={getFutureDate(7)}
-        daysUntilRenewal={7}
-        price={MOCK_PRICES.PRO_PLAN}
-        currency={DEFAULT_CURRENCY}
-        interval={DEFAULT_INTERVAL}
         livemode={livemode}
       />
     </EmailPreviewWrapper>

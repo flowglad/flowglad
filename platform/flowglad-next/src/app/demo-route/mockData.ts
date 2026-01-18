@@ -152,7 +152,6 @@ export const EMAIL_TYPES = [
   'subscription-adjusted-downgrade',
   'subscription-canceled',
   'subscription-cancellation-scheduled',
-  'subscription-renewal-reminder',
   'payment-failed',
   'billing-portal-otp',
   'billing-portal-magic-link',
@@ -172,7 +171,6 @@ export const EMAIL_TYPES = [
   // Purchase access
   'purchase-access-token',
   // Trial-related emails
-  'trial-ending-soon',
   'trial-expired-no-payment',
 ] as const
 
@@ -719,45 +717,6 @@ export const TRIGGER_DOCS: Record<EmailType, TriggerInfo> = {
     ),
   },
 
-  'trial-ending-soon': {
-    event: 'subscription.trial_will_end',
-    description:
-      'Sent when a trial subscription is about to end. Subject line: "Your Trial Ends Tomorrow" or "Your Trial Ends in {X} Days". Content varies based on whether customer has payment method on file.',
-    conditions: [
-      'Subscription has an active trial',
-      'Trial end date is within the reminder window (e.g., 3 days)',
-      'Customer has not yet been notified for this trial period',
-    ],
-    relatedEvents: ['subscription.updated', 'subscription.canceled'],
-    docsUrl:
-      'https://docs.flowglad.com/webhooks/subscription-trial-will-end',
-    samplePayload: JSON.stringify(
-      {
-        id: 'evt_6tuv678',
-        type: 'subscription.trial_will_end',
-        data: {
-          object: {
-            id: 'sub_1xyz789',
-            customer: 'cus_abc123',
-            status: 'trialing',
-            trial_end: '2024-01-18T00:00:00Z',
-            plan: {
-              id: 'plan_pro',
-              name: 'Pro Plan',
-              amount: 2900,
-              currency: 'usd',
-              interval: 'month',
-            },
-            default_payment_method: 'pm_card_visa',
-          },
-        },
-        created: '2024-01-15T12:00:00Z',
-      },
-      null,
-      2
-    ),
-  },
-
   'trial-expired-no-payment': {
     event: 'subscription.trial_expired',
     description:
@@ -796,44 +755,6 @@ export const TRIGGER_DOCS: Record<EmailType, TriggerInfo> = {
           },
         },
         created: '2024-01-15T00:00:01Z',
-      },
-      null,
-      2
-    ),
-  },
-
-  'subscription-renewal-reminder': {
-    event: 'subscription.renewal_reminder',
-    description:
-      'Sent 7 days before subscription renewal as an automated reminder.',
-    conditions: [
-      'Subscription is active',
-      'Renewal date is within 7 days',
-      'Reminder has not already been sent for this period',
-    ],
-    relatedEvents: ['subscription.updated'],
-    docsUrl:
-      'https://docs.flowglad.com/webhooks/subscription-renewal-reminder',
-    samplePayload: JSON.stringify(
-      {
-        id: 'evt_8abc123',
-        type: 'subscription.renewal_reminder',
-        data: {
-          object: {
-            id: 'sub_1xyz789',
-            customer: 'cus_abc123',
-            status: 'active',
-            current_period_end: '2024-01-22T00:00:00Z',
-            plan: {
-              id: 'plan_pro',
-              name: 'Pro Plan',
-              amount: 2900,
-              currency: 'usd',
-              interval: 'month',
-            },
-          },
-        },
-        created: '2024-01-15T12:00:00Z',
       },
       null,
       2
