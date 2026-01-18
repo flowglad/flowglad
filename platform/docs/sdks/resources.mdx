@@ -9,11 +9,11 @@ Resources let you manage claimable capacity like seats, API keys, and project li
 
 ### How to use
 
-- **`getResourceUsages`** (server): Returns all resources and their usage stats for a subscription
-- **`getResourceUsage`** (server): Returns usage for a single resource by slug or ID
-- **`claimResource`** (server): Reserves capacity. Use `quantity` for anonymous claims, `externalId` for named claims
-- **`releaseResource`** (server): Frees capacity. Use `quantity` for FIFO release, `externalId` for named release
-- **`listResourceClaims`** (server): Returns all active claims, optionally filtered by resource
+- **`getResourceUsages`**: Returns all resources and their usage stats for a subscription
+- **`getResourceUsage`**: Returns usage for a single resource by slug or ID
+- **`claimResource`**: Reserves capacity. Use `quantity` for anonymous claims, `externalId` for named claims
+- **`releaseResource`**: Frees capacity. Use `quantity` for FIFO release, `externalId` for named release
+- **`listResourceClaims`**: Returns all active claims, optionally filtered by resource
 
 ### What you can do
 
@@ -53,18 +53,18 @@ Named claims use an `externalId` to track exactly what each allocation is for. T
 ```ts lib/team-management.ts
 import { flowglad } from '@/utils/flowglad'
 
-export async function addTeamMember(
-  orgExternalId: string,
-  userId: string,
+export async function addTeamMember(params: {
+  orgId: string
+  userId: string
   userEmail: string
-) {
-  const server = flowglad(orgExternalId)
+}) {
+  const server = flowglad(params.orgId)
 
   const result = await server.claimResource({
     resourceSlug: 'seats',
-    externalId: userId,
+    externalId: params.userId,
     metadata: {
-      email: userEmail,
+      email: params.userEmail,
       addedAt: new Date().toISOString()
     }
   })
@@ -83,15 +83,15 @@ Anonymous claims don't track individual identifiers—just reserve a quantity:
 ```ts lib/connection-pool.ts
 import { flowglad } from '@/utils/flowglad'
 
-export async function reserveConnections(
-  customerExternalId: string,
-  count: number
-) {
-  const server = flowglad(customerExternalId)
+export async function reserveConnections(params: {
+  customerExternalId: string
+  quantity: number
+}) {
+  const server = flowglad(params.customerExternalId)
 
   const result = await server.claimResource({
     resourceSlug: 'connections',
-    quantity: count
+    quantity: params.quantity
   })
 
   return result.claims
@@ -105,12 +105,12 @@ Release a specific claim by its `externalId`:
 ```ts lib/team-management.ts
 import { flowglad } from '@/utils/flowglad'
 
-export async function removeTeamMember(orgExternalId: string, userId: string) {
-  const server = flowglad(orgExternalId)
+export async function removeTeamMember(params: { orgId: string; userId: string }) {
+  const server = flowglad(params.orgId)
 
   const result = await server.releaseResource({
     resourceSlug: 'seats',
-    externalId: userId
+    externalId: params.userId
   })
 
   return {
@@ -122,20 +122,20 @@ export async function removeTeamMember(orgExternalId: string, userId: string) {
 
 ### Example: Release Resources (Anonymous)
 
-Release anonymous claims by quantity (FIFO—oldest first):
+Release anonymous claims by quantity:
 
 ```ts lib/connection-pool.ts
 import { flowglad } from '@/utils/flowglad'
 
-export async function releaseConnections(
-  customerExternalId: string,
-  count: number
-) {
-  const server = flowglad(customerExternalId)
+export async function releaseConnections(params: {
+  customerExternalId: string
+  quantity: number
+}) {
+  const server = flowglad(params.customerExternalId)
 
   const result = await server.releaseResource({
     resourceSlug: 'connections',
-    quantity: count
+    quantity: params.quantity
   })
 
   return result.claims
@@ -144,13 +144,13 @@ export async function releaseConnections(
 
 ### Example: List Active Claims
 
-Get all active (unreleased) claims for a resource:
+Get all active claims for a resource:
 
 ```ts lib/team-management.ts
 import { flowglad } from '@/utils/flowglad'
 
-export async function getTeamMembers(orgExternalId: string) {
-  const server = flowglad(orgExternalId)
+export async function getTeamMembers(params: { orgId: string }) {
+  const server = flowglad(params.orgId)
 
   const { claims } = await server.listResourceClaims({
     resourceSlug: 'seats'
@@ -198,7 +198,7 @@ const { usage } = await flowglad(customerExternalId).getResourceUsage({
 
 ### `claimResource`
 
-Reserve resource capacity. Choose ONE mode:
+Reserve resource capacity. Do so with either named or anonymous resource claims:
 
 ```ts
 // Named claim (idempotent)
