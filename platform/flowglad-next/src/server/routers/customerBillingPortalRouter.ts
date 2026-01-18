@@ -6,7 +6,10 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   checkoutSessionClientSelectSchema,
   customerBillingCreatePricedCheckoutSessionInputSchema,
@@ -580,14 +583,25 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     const { customer } = ctx
     const { paymentMethodId } = input
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
+    return comprehensiveAuthenticatedTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        const effectsCtx = {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
         const { paymentMethod } =
           await setDefaultPaymentMethodForCustomer(
             {
               paymentMethodId,
             },
-            transaction
+            effectsCtx
           )
 
         if (paymentMethod.customerId !== customer.id) {
@@ -598,10 +612,10 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
           })
         }
 
-        return {
+        return Result.ok({
           success: true,
           paymentMethod,
-        }
+        })
       },
       {
         apiKey: ctx.apiKey,

@@ -33,7 +33,10 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import type { DbTransaction } from '@/db/types'
 import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
-import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
+import {
+  createDiscardingEffectsContext,
+  createProcessingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -324,7 +327,7 @@ describe('Checkout Sessions', async () => {
                 automaticallyUpdateSubscriptions: null,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('Checkout session is not open')
@@ -357,7 +360,7 @@ describe('Checkout Sessions', async () => {
                 type: CheckoutSessionType.Product,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -390,7 +393,7 @@ describe('Checkout Sessions', async () => {
             {
               checkoutSession: updatedCheckoutSession,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -440,7 +443,7 @@ describe('Checkout Sessions', async () => {
                 priceId: price.id,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -475,7 +478,7 @@ describe('Checkout Sessions', async () => {
                 type: CheckoutSessionType.Product,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -518,7 +521,7 @@ describe('Checkout Sessions', async () => {
               },
               purchaseId: purchase.id,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('Purchase is not pending')
@@ -551,7 +554,7 @@ describe('Checkout Sessions', async () => {
             },
             purchaseId: purchase.id,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -596,7 +599,7 @@ describe('Checkout Sessions', async () => {
                 automaticallyUpdateSubscriptions: null,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -702,7 +705,7 @@ describe('Checkout Sessions', async () => {
                 discountId: fullDiscount.id,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )

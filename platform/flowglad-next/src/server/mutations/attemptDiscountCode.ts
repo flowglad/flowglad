@@ -1,5 +1,6 @@
+import { Result } from 'better-result'
 import * as R from 'ramda'
-import { adminTransaction } from '@/db/adminTransaction'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { attemptDiscountCodeInputSchema } from '@/db/schema/discounts'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
@@ -29,8 +30,9 @@ export const attemptDiscountCode = publicProcedure
             type: CheckoutSessionType.Purchase,
           }
 
-    const isValid = await adminTransaction(
-      async ({ transaction }) => {
+    const isValid = await comprehensiveAdminTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
         if ('invoiceId' in input) {
           throw new Error(
             `Invoice checkout flow does not support discount codes. Invoice id: ${input.invoiceId}`
@@ -42,7 +44,7 @@ export const attemptDiscountCode = publicProcedure
         )
 
         if (!checkoutSession) {
-          return false
+          return Result.ok(false)
         }
 
         const updateCheckoutSessionDiscount = (
@@ -53,7 +55,7 @@ export const attemptDiscountCode = publicProcedure
               checkoutSession: { ...checkoutSession, discountId },
               purchaseId: R.propOr(null, 'purchaseId', input),
             },
-            transaction
+            ctx
           )
         }
 
@@ -87,7 +89,7 @@ export const attemptDiscountCode = publicProcedure
 
         if (!pricingModelId || !organizationId) {
           await updateCheckoutSessionDiscount(null)
-          return false
+          return Result.ok(false)
         }
 
         // Find active discounts with matching code AND pricing model
@@ -104,17 +106,17 @@ export const attemptDiscountCode = publicProcedure
 
         if (!discount) {
           await updateCheckoutSessionDiscount(null)
-          return false
+          return Result.ok(false)
         }
 
         // Verify organization matches
         if (discount.organizationId !== organizationId) {
           await updateCheckoutSessionDiscount(null)
-          return false
+          return Result.ok(false)
         }
 
         await updateCheckoutSessionDiscount(discount.id)
-        return true
+        return Result.ok(true)
       }
     )
 

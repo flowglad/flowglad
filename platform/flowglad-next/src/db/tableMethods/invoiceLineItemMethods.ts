@@ -7,6 +7,7 @@ import {
   invoiceLineItemsInsertSchema,
   invoiceLineItemsSelectSchema,
   invoiceLineItemsUpdateSchema,
+  invoiceWithLineItemsSchema,
 } from '@/db/schema/invoiceLineItems'
 import {
   createBulkUpsertFunction,
@@ -20,7 +21,10 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { InvoiceStatus } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
 import core from '@/utils/core'
+import { RedisKeyNamespace } from '@/utils/redis'
 import {
   type Invoice,
   invoices,
@@ -276,6 +280,62 @@ export const selectInvoiceLineItemsAndInvoicesByInvoiceWhere = async (
     }))
   )
 }
+
+/**
+ * Customer-facing invoice statuses used for billing portal display.
+ * These are the statuses that customers should see in their billing history.
+ */
+const customerFacingInvoiceStatuses: InvoiceStatus[] = [
+  InvoiceStatus.AwaitingPaymentConfirmation,
+  InvoiceStatus.Paid,
+  InvoiceStatus.PartiallyRefunded,
+  InvoiceStatus.Open,
+  InvoiceStatus.FullyRefunded,
+]
+
+/**
+ * Selects customer-facing invoices with line items by customer ID with caching enabled by default.
+ * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ *
+ * This cache entry depends on customerInvoices - invalidate when
+ * invoices for this customer are created, updated, or their status changes.
+ *
+ * Cache key includes livemode to prevent cross-mode data leakage, since RLS
+ * filters invoices by livemode and the same customer could have different
+ * invoices in live vs test mode.
+ *
+ * Note: This function fetches a fixed set of customer-facing statuses:
+ * AwaitingPaymentConfirmation, Paid, PartiallyRefunded, Open, FullyRefunded.
+ */
+export const selectCustomerFacingInvoicesWithLineItems = cached(
+  {
+    namespace: RedisKeyNamespace.InvoicesByCustomer,
+    keyFn: (
+      customerId: string,
+      _transaction: DbTransaction,
+      livemode: boolean
+    ) => `${customerId}:${livemode}`,
+    schema: invoiceWithLineItemsSchema.array(),
+    dependenciesFn: (customerId: string) => [
+      CacheDependency.customerInvoices(customerId),
+    ],
+  },
+  async (
+    customerId: string,
+    transaction: DbTransaction,
+    // livemode is used by keyFn for cache key generation, not in the query itself
+    // (RLS filters by livemode context set on the transaction)
+    _livemode: boolean
+  ) => {
+    return selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+      {
+        customerId,
+        status: customerFacingInvoiceStatuses,
+      },
+      transaction
+    )
+  }
+)
 
 export const deleteInvoiceLineItemsByinvoiceId = async (
   invoiceId: string,
