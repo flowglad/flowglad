@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/shared",
-  "version": "0.16.3",
+  "version": "0.16.4",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
