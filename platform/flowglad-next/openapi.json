@@ -17,7 +17,10 @@
       "post": {
         "operationId": "payments-refund",
         "summary": "Refund a Payment",
-        "tags": ["Payments", "Refund"],
+        "tags": [
+          "Payments",
+          "Refund"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -61,7 +64,9 @@
                       "$ref": "#/components/schemas/PaymentClientSelectSchema"
                     }
                   },
-                  "required": ["payment"],
+                  "required": [
+                    "payment"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -114,7 +119,9 @@
       "get": {
         "operationId": "payments-list",
         "summary": "List Payments",
-        "tags": ["Payments"],
+        "tags": [
+          "Payments"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -163,7 +170,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -226,7 +237,9 @@
       "get": {
         "operationId": "payments-get",
         "summary": "Get Payment",
-        "tags": ["Payments"],
+        "tags": [
+          "Payments"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -254,7 +267,9 @@
                       "$ref": "#/components/schemas/PaymentClientSelectSchema"
                     }
                   },
-                  "required": ["payment"],
+                  "required": [
+                    "payment"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -317,7 +332,10 @@
       "post": {
         "operationId": "checkoutSessions-create",
         "summary": "Create Checkout Session",
-        "tags": ["Checkout Sessions", "Purchases"],
+        "tags": [
+          "Checkout Sessions",
+          "Purchases"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -336,7 +354,9 @@
                     "$ref": "#/components/schemas/CreateCheckoutSessionInput"
                   }
                 },
-                "required": ["checkoutSession"]
+                "required": [
+                  "checkoutSession"
+                ]
               }
             }
           }
@@ -358,7 +378,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["checkoutSession", "url"],
+                  "required": [
+                    "checkoutSession",
+                    "url"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -409,7 +432,10 @@
       "get": {
         "operationId": "checkoutSessions-list",
         "summary": "List Checkout Sessions",
-        "tags": ["Checkout Sessions", "Purchases"],
+        "tags": [
+          "Checkout Sessions",
+          "Purchases"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -459,7 +485,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -522,7 +552,10 @@
       "get": {
         "operationId": "checkoutSessions-get",
         "summary": "Get Checkout Session",
-        "tags": ["Checkout Sessions", "Purchases"],
+        "tags": [
+          "Checkout Sessions",
+          "Purchases"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -555,7 +588,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["checkoutSession", "url"],
+                  "required": [
+                    "checkoutSession",
+                    "url"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -618,7 +654,9 @@
       "get": {
         "operationId": "products-list",
         "summary": "List Products",
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -706,7 +744,9 @@
       "post": {
         "operationId": "products-create",
         "summary": "Create Product",
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -733,7 +773,10 @@
                     }
                   }
                 },
-                "required": ["product", "price"]
+                "required": [
+                  "product",
+                  "price"
+                ]
               }
             }
           }
@@ -750,7 +793,9 @@
                       "$ref": "#/components/schemas/ProductClientSelectSchema"
                     }
                   },
-                  "required": ["product"],
+                  "required": [
+                    "product"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -803,7 +848,9 @@
       "get": {
         "operationId": "products-get",
         "summary": "Get Product",
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -885,7 +932,9 @@
       "put": {
         "operationId": "products-update",
         "summary": "Update Product",
-        "tags": ["Products"],
+        "tags": [
+          "Products"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -922,7 +971,9 @@
                     }
                   }
                 },
-                "required": ["product"]
+                "required": [
+                  "product"
+                ]
               }
             }
           }
@@ -939,7 +990,9 @@
                       "$ref": "#/components/schemas/ProductClientSelectSchema"
                     }
                   },
-                  "required": ["product"],
+                  "required": [
+                    "product"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1002,7 +1055,9 @@
       "get": {
         "operationId": "prices-list",
         "summary": "List Prices",
-        "tags": ["Prices"],
+        "tags": [
+          "Prices"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1090,7 +1145,9 @@
       "post": {
         "operationId": "prices-create",
         "summary": "Create Price",
-        "tags": ["Prices"],
+        "tags": [
+          "Prices"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1108,7 +1165,9 @@
                     "$ref": "#/components/schemas/PricesInsert"
                   }
                 },
-                "required": ["price"]
+                "required": [
+                  "price"
+                ]
               }
             }
           }
@@ -1125,7 +1184,9 @@
                       "$ref": "#/components/schemas/PriceRecord"
                     }
                   },
-                  "required": ["price"],
+                  "required": [
+                    "price"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1178,7 +1239,9 @@
       "put": {
         "operationId": "prices-update",
         "summary": "Update Price",
-        "tags": ["Prices"],
+        "tags": [
+          "Prices"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1205,7 +1268,9 @@
                     "$ref": "#/components/schemas/PricesUpdate"
                   }
                 },
-                "required": ["price"]
+                "required": [
+                  "price"
+                ]
               }
             }
           }
@@ -1222,7 +1287,9 @@
                       "$ref": "#/components/schemas/PriceRecord"
                     }
                   },
-                  "required": ["price"],
+                  "required": [
+                    "price"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1283,7 +1350,9 @@
       "get": {
         "operationId": "prices-get",
         "summary": "Get Price",
-        "tags": ["Prices"],
+        "tags": [
+          "Prices"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1311,7 +1380,9 @@
                       "$ref": "#/components/schemas/PriceRecord"
                     }
                   },
-                  "required": ["price"],
+                  "required": [
+                    "price"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1374,7 +1445,9 @@
       "get": {
         "operationId": "purchases-get",
         "summary": "Get Purchase",
-        "tags": ["Purchases"],
+        "tags": [
+          "Purchases"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1403,7 +1476,9 @@
                       "$ref": "#/components/schemas/PurchaseRecord"
                     }
                   },
-                  "required": ["purchase"],
+                  "required": [
+                    "purchase"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1466,7 +1541,9 @@
       "post": {
         "operationId": "customers-create",
         "summary": "Create Customer",
-        "tags": ["Customer"],
+        "tags": [
+          "Customer"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1484,7 +1561,9 @@
                     "$ref": "#/components/schemas/CustomerClientInsertSchema"
                   }
                 },
-                "required": ["customer"]
+                "required": [
+                  "customer"
+                ]
               }
             }
           }
@@ -1513,11 +1592,15 @@
                           }
                         }
                       },
-                      "required": ["customer"],
+                      "required": [
+                        "customer"
+                      ],
                       "additionalProperties": false
                     }
                   },
-                  "required": ["data"],
+                  "required": [
+                    "data"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1568,7 +1651,9 @@
       "get": {
         "operationId": "customers-list",
         "summary": "List Customers",
-        "tags": ["Customer"],
+        "tags": [
+          "Customer"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1617,7 +1702,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1680,7 +1769,9 @@
       "put": {
         "operationId": "customers-update",
         "summary": "Update Customer",
-        "tags": ["Customer"],
+        "tags": [
+          "Customer"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1758,7 +1849,9 @@
                     }
                   }
                 },
-                "required": ["customer"]
+                "required": [
+                  "customer"
+                ]
               }
             }
           }
@@ -1775,7 +1868,9 @@
                       "$ref": "#/components/schemas/CustomerClientSelectSchema"
                     }
                   },
-                  "required": ["customer"],
+                  "required": [
+                    "customer"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1836,7 +1931,9 @@
       "get": {
         "operationId": "customers-get",
         "summary": "Get Customer",
-        "tags": ["Customer"],
+        "tags": [
+          "Customer"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1866,7 +1963,9 @@
                       "$ref": "#/components/schemas/CustomerClientSelectSchema"
                     }
                   },
-                  "required": ["customer"],
+                  "required": [
+                    "customer"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -1929,7 +2028,10 @@
       "get": {
         "operationId": "customers-getBilling",
         "summary": "Get Billing Details",
-        "tags": ["Customer", "Customer Billing"],
+        "tags": [
+          "Customer",
+          "Customer Billing"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -1980,7 +2082,10 @@
                             }
                           }
                         },
-                        "required": ["invoice", "invoiceLineItems"],
+                        "required": [
+                          "invoice",
+                          "invoiceLineItems"
+                        ],
                         "additionalProperties": false
                       }
                     },
@@ -2092,7 +2197,9 @@
       "get": {
         "operationId": "discounts-get",
         "summary": "Get Discount",
-        "tags": ["Discounts"],
+        "tags": [
+          "Discounts"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -2129,13 +2236,17 @@
                               "type": "number"
                             }
                           },
-                          "required": ["redemptionCount"],
+                          "required": [
+                            "redemptionCount"
+                          ],
                           "additionalProperties": false
                         }
                       ]
                     }
                   },
-                  "required": ["discount"],
+                  "required": [
+                    "discount"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2196,7 +2307,9 @@
       "put": {
         "operationId": "discounts-update",
         "summary": "Update Discount",
-        "tags": ["Discounts"],
+        "tags": [
+          "Discounts"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -2224,7 +2337,9 @@
                     "$ref": "#/components/schemas/DiscountUpdate"
                   }
                 },
-                "required": ["discount"]
+                "required": [
+                  "discount"
+                ]
               }
             }
           }
@@ -2242,7 +2357,9 @@
                       "$ref": "#/components/schemas/DiscountRecord"
                     }
                   },
-                  "required": ["discount"],
+                  "required": [
+                    "discount"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2305,7 +2422,9 @@
       "post": {
         "operationId": "discounts-create",
         "summary": "Create Discount",
-        "tags": ["Discounts"],
+        "tags": [
+          "Discounts"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -2324,7 +2443,9 @@
                     "$ref": "#/components/schemas/DiscountInsert"
                   }
                 },
-                "required": ["discount"]
+                "required": [
+                  "discount"
+                ]
               }
             }
           }
@@ -2342,7 +2463,9 @@
                       "$ref": "#/components/schemas/DiscountRecord"
                     }
                   },
-                  "required": ["discount"],
+                  "required": [
+                    "discount"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2393,7 +2516,9 @@
       "get": {
         "operationId": "discounts-list",
         "summary": "List Discounts",
-        "tags": ["Discounts"],
+        "tags": [
+          "Discounts"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -2438,7 +2563,9 @@
                                 "type": "number"
                               }
                             },
-                            "required": ["redemptionCount"],
+                            "required": [
+                              "redemptionCount"
+                            ],
                             "additionalProperties": false
                           }
                         ]
@@ -2457,7 +2584,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2520,7 +2651,9 @@
       "get": {
         "operationId": "invoiceLineItems-list",
         "summary": "List Invoice Line Items",
-        "tags": ["Invoice Line Items"],
+        "tags": [
+          "Invoice Line Items"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -2569,7 +2702,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2632,7 +2769,9 @@
       "get": {
         "operationId": "invoiceLineItems-get",
         "summary": "Get Invoice Line Item",
-        "tags": ["Invoice Line Items"],
+        "tags": [
+          "Invoice Line Items"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -2716,7 +2855,9 @@
       "get": {
         "operationId": "invoices-list",
         "summary": "List Invoices",
-        "tags": ["Invoices"],
+        "tags": [
+          "Invoices"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -2766,7 +2907,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2829,7 +2974,9 @@
       "get": {
         "operationId": "invoices-get",
         "summary": "Get Invoice",
-        "tags": ["Invoices"],
+        "tags": [
+          "Invoices"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -2864,7 +3011,10 @@
                       }
                     }
                   },
-                  "required": ["invoice", "invoiceLineItems"],
+                  "required": [
+                    "invoice",
+                    "invoiceLineItems"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -2927,7 +3077,9 @@
       "get": {
         "operationId": "pricingModels-list",
         "summary": "List Pricing Models",
-        "tags": ["Pricing Models"],
+        "tags": [
+          "Pricing Models"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -2976,7 +3128,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3037,7 +3193,9 @@
       "post": {
         "operationId": "pricingModels-create",
         "summary": "Create Pricing Model",
-        "tags": ["Pricing Models"],
+        "tags": [
+          "Pricing Models"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -3062,14 +3220,23 @@
                         "minLength": 1
                       }
                     },
-                    "required": ["name"]
+                    "required": [
+                      "name"
+                    ]
                   },
                   "defaultPlanIntervalUnit": {
                     "type": "string",
-                    "enum": ["day", "week", "month", "year"]
+                    "enum": [
+                      "day",
+                      "week",
+                      "month",
+                      "year"
+                    ]
                   }
                 },
-                "required": ["pricingModel"]
+                "required": [
+                  "pricingModel"
+                ]
               }
             }
           }
@@ -3086,7 +3253,9 @@
                       "$ref": "#/components/schemas/PricingModelClientSelectSchema"
                     }
                   },
-                  "required": ["pricingModel"],
+                  "required": [
+                    "pricingModel"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3139,7 +3308,9 @@
       "post": {
         "operationId": "pricingModels-setup",
         "summary": "Setup a PricingModel",
-        "tags": ["Pricing Models"],
+        "tags": [
+          "Pricing Models"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -3226,7 +3397,10 @@
                             },
                             "renewalFrequency": {
                               "type": "string",
-                              "enum": ["once", "every_billing_period"]
+                              "enum": [
+                                "once",
+                                "every_billing_period"
+                              ]
                             },
                             "active": {
                               "type": "boolean"
@@ -3360,7 +3534,11 @@
                               "maxLength": 255
                             }
                           },
-                          "required": ["name", "active", "slug"]
+                          "required": [
+                            "name",
+                            "active",
+                            "slug"
+                          ]
                         },
                         "price": {
                           "description": "The price for the product. Must have active=true and isDefault=true.",
@@ -3541,7 +3719,11 @@
                           }
                         }
                       },
-                      "required": ["product", "price", "features"]
+                      "required": [
+                        "product",
+                        "price",
+                        "features"
+                      ]
                     }
                   },
                   "usageMeters": {
@@ -3568,7 +3750,10 @@
                               ]
                             }
                           },
-                          "required": ["name", "slug"]
+                          "required": [
+                            "name",
+                            "slug"
+                          ]
                         },
                         "prices": {
                           "description": "The prices for this usage meter. Each price defines how usage on this meter is billed.",
@@ -3652,7 +3837,9 @@
                           }
                         }
                       },
-                      "required": ["usageMeter"]
+                      "required": [
+                        "usageMeter"
+                      ]
                     }
                   },
                   "resources": {
@@ -3677,7 +3864,10 @@
                           "type": "boolean"
                         }
                       },
-                      "required": ["slug", "name"]
+                      "required": [
+                        "slug",
+                        "name"
+                      ]
                     }
                   }
                 },
@@ -3703,7 +3893,9 @@
                       "$ref": "#/components/schemas/PricingModelDetailsRecord"
                     }
                   },
-                  "required": ["pricingModel"],
+                  "required": [
+                    "pricingModel"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3756,7 +3948,9 @@
       "get": {
         "operationId": "pricingModels-get",
         "summary": "Get Pricing Model",
-        "tags": ["Pricing Models"],
+        "tags": [
+          "Pricing Models"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -3784,7 +3978,9 @@
                       "$ref": "#/components/schemas/PricingModelDetailsRecord"
                     }
                   },
-                  "required": ["pricingModel"],
+                  "required": [
+                    "pricingModel"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3845,7 +4041,9 @@
       "put": {
         "operationId": "pricingModels-update",
         "summary": "Update Pricing Model",
-        "tags": ["Pricing Models"],
+        "tags": [
+          "Pricing Models"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -3872,7 +4070,9 @@
                     "$ref": "#/components/schemas/PricingModelClientUpdateSchema"
                   }
                 },
-                "required": ["pricingModel"]
+                "required": [
+                  "pricingModel"
+                ]
               }
             }
           }
@@ -3889,7 +4089,9 @@
                       "$ref": "#/components/schemas/PricingModelClientSelectSchema"
                     }
                   },
-                  "required": ["pricingModel"],
+                  "required": [
+                    "pricingModel"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -3952,7 +4154,9 @@
       "get": {
         "operationId": "pricingModels-getDefault",
         "summary": "Get Default Pricing Model for Organization",
-        "tags": ["Pricing Models"],
+        "tags": [
+          "Pricing Models"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -3971,7 +4175,9 @@
                       "$ref": "#/components/schemas/PricingModelDetailsRecord"
                     }
                   },
-                  "required": ["pricingModel"],
+                  "required": [
+                    "pricingModel"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4034,7 +4240,9 @@
       "post": {
         "operationId": "pricingModels-clone",
         "summary": "Clone a PricingModel",
-        "tags": ["Pricing Models"],
+        "tags": [
+          "Pricing Models"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -4063,10 +4271,15 @@
                   },
                   "destinationEnvironment": {
                     "type": "string",
-                    "enum": ["livemode", "testmode"]
+                    "enum": [
+                      "livemode",
+                      "testmode"
+                    ]
                   }
                 },
-                "required": ["name"]
+                "required": [
+                  "name"
+                ]
               }
             }
           }
@@ -4083,7 +4296,9 @@
                       "$ref": "#/components/schemas/PricingModelDetailsRecord"
                     }
                   },
-                  "required": ["pricingModel"],
+                  "required": [
+                    "pricingModel"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4136,7 +4351,9 @@
       "get": {
         "operationId": "apiKeys-get",
         "summary": "Get Api Key",
-        "tags": ["API Keys"],
+        "tags": [
+          "API Keys"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -4164,7 +4381,9 @@
                       "$ref": "#/components/schemas/ApiKeysClientSelectSchema"
                     }
                   },
-                  "required": ["apiKey"],
+                  "required": [
+                    "apiKey"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4228,7 +4447,9 @@
         "operationId": "subscriptions-adjust",
         "summary": "Adjust Subscription",
         "description": "Adjust an active subscription by changing its plan or quantity. Supports immediate adjustments with proration, end-of-billing-period adjustments for downgrades, and auto timing that automatically chooses based on whether it's an upgrade or downgrade. Also supports priceSlug for referencing prices by slug instead of id. For immediate adjustments with proration, this endpoint waits for the billing run to complete before returning, ensuring the subscription is fully updated.",
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -4274,7 +4495,9 @@
                     }
                   }
                 },
-                "required": ["adjustment"]
+                "required": [
+                  "adjustment"
+                ]
               }
             }
           }
@@ -4337,7 +4560,9 @@
       "post": {
         "operationId": "subscriptions-cancel",
         "summary": "Cancel Subscription",
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -4379,7 +4604,9 @@
                     }
                   }
                 },
-                "required": ["cancellation"]
+                "required": [
+                  "cancellation"
+                ]
               }
             }
           }
@@ -4396,7 +4623,9 @@
                       "$ref": "#/components/schemas/SubscriptionClientSelectSchema"
                     }
                   },
-                  "required": ["subscription"],
+                  "required": [
+                    "subscription"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4450,7 +4679,9 @@
         "operationId": "subscriptions-uncancel",
         "summary": "Uncancel Subscription",
         "description": "Reverses a scheduled subscription cancellation. The subscription must be in `cancellation_scheduled` status. This will restore the subscription to its previous status (typically `active` or `trialing`) and reschedule any billing runs that were aborted. For paid subscriptions, a valid payment method is required.",
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -4478,7 +4709,9 @@
                       "$ref": "#/components/schemas/SubscriptionClientSelectSchema"
                     }
                   },
-                  "required": ["subscription"],
+                  "required": [
+                    "subscription"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4531,7 +4764,9 @@
       "get": {
         "operationId": "subscriptions-list",
         "summary": "List Subscriptions",
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -4580,7 +4815,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4641,7 +4880,9 @@
       "post": {
         "operationId": "subscriptions-create",
         "summary": "Create Subscription",
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -4682,7 +4923,12 @@
                   "interval": {
                     "description": "The interval of the subscription. If not provided, defaults to the interval of the price provided by `priceId` or `priceSlug`.",
                     "type": "string",
-                    "enum": ["day", "week", "month", "year"]
+                    "enum": [
+                      "day",
+                      "week",
+                      "month",
+                      "year"
+                    ]
                   },
                   "intervalCount": {
                     "description": "The number of intervals that each billing period will last. If not provided, defaults to 1",
@@ -4729,7 +4975,9 @@
                       "$ref": "#/components/schemas/SubscriptionClientSelectSchema"
                     }
                   },
-                  "required": ["subscription"],
+                  "required": [
+                    "subscription"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4782,7 +5030,9 @@
       "get": {
         "operationId": "subscriptions-get",
         "summary": "Get Subscription",
-        "tags": ["Subscriptions"],
+        "tags": [
+          "Subscriptions"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -4810,7 +5060,9 @@
                       "$ref": "#/components/schemas/SubscriptionClientSelectSchema"
                     }
                   },
-                  "required": ["subscription"],
+                  "required": [
+                    "subscription"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4873,7 +5125,9 @@
       "get": {
         "operationId": "paymentMethods-list",
         "summary": "List Payment Methods",
-        "tags": ["Payment Methods"],
+        "tags": [
+          "Payment Methods"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -4922,7 +5176,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -4985,7 +5243,9 @@
       "get": {
         "operationId": "paymentMethods-get",
         "summary": "Get Payment Method",
-        "tags": ["Payment Methods"],
+        "tags": [
+          "Payment Methods"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -5013,7 +5273,9 @@
                       "$ref": "#/components/schemas/PaymentMethodClientSelectSchema"
                     }
                   },
-                  "required": ["paymentMethod"],
+                  "required": [
+                    "paymentMethod"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -5076,7 +5338,9 @@
       "get": {
         "operationId": "usageMeters-get",
         "summary": "Get Usage Meter",
-        "tags": ["Usage Meters"],
+        "tags": [
+          "Usage Meters"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -5104,7 +5368,9 @@
                       "$ref": "#/components/schemas/UsageMeterClientSelectSchema"
                     }
                   },
-                  "required": ["usageMeter"],
+                  "required": [
+                    "usageMeter"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -5165,7 +5431,9 @@
       "put": {
         "operationId": "usageMeters-update",
         "summary": "Update Usage Meter",
-        "tags": ["Usage Meters"],
+        "tags": [
+          "Usage Meters"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -5192,7 +5460,9 @@
                     "$ref": "#/components/schemas/UsageMeterClientUpdateSchema"
                   }
                 },
-                "required": ["usageMeter"]
+                "required": [
+                  "usageMeter"
+                ]
               }
             }
           }
@@ -5209,7 +5479,9 @@
                       "$ref": "#/components/schemas/UsageMeterClientSelectSchema"
                     }
                   },
-                  "required": ["usageMeter"],
+                  "required": [
+                    "usageMeter"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -5272,7 +5544,9 @@
       "post": {
         "operationId": "usageMeters-create",
         "summary": "Create Usage Meter",
-        "tags": ["Usage Meters"],
+        "tags": [
+          "Usage Meters"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -5309,7 +5583,9 @@
                     }
                   }
                 },
-                "required": ["usageMeter"]
+                "required": [
+                  "usageMeter"
+                ]
               }
             }
           }
@@ -5326,7 +5602,9 @@
                       "$ref": "#/components/schemas/UsageMeterClientSelectSchema"
                     }
                   },
-                  "required": ["usageMeter"],
+                  "required": [
+                    "usageMeter"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -5377,7 +5655,9 @@
       "get": {
         "operationId": "usageMeters-list",
         "summary": "List Usage Meters",
-        "tags": ["Usage Meters"],
+        "tags": [
+          "Usage Meters"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -5426,7 +5706,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -5489,7 +5773,9 @@
       "get": {
         "operationId": "usageEvents-get",
         "summary": "Get Usage Event",
-        "tags": ["Usage Events"],
+        "tags": [
+          "Usage Events"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -5517,7 +5803,9 @@
                       "$ref": "#/components/schemas/UsageEventClientSelectSchema"
                     }
                   },
-                  "required": ["usageEvent"],
+                  "required": [
+                    "usageEvent"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -5580,7 +5868,9 @@
       "post": {
         "operationId": "usageEvents-create",
         "summary": "Create Usage Event",
-        "tags": ["Usage Events"],
+        "tags": [
+          "Usage Events"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -5654,7 +5944,9 @@
                     ]
                   }
                 },
-                "required": ["usageEvent"]
+                "required": [
+                  "usageEvent"
+                ]
               }
             }
           }
@@ -5671,7 +5963,9 @@
                       "$ref": "#/components/schemas/UsageEventClientSelectSchema"
                     }
                   },
-                  "required": ["usageEvent"],
+                  "required": [
+                    "usageEvent"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -5722,7 +6016,9 @@
       "get": {
         "operationId": "usageEvents-list",
         "summary": "List Usage Events",
-        "tags": ["Usage Events"],
+        "tags": [
+          "Usage Events"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -5768,7 +6064,11 @@
                       "type": "string"
                     }
                   },
-                  "required": ["items", "total", "hasMore"],
+                  "required": [
+                    "items",
+                    "total",
+                    "hasMore"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -5832,7 +6132,9 @@
         "operationId": "usageEvents-bulkInsert",
         "summary": "Bulk Insert Usage Events",
         "description": "Create multiple usage events in a single request. Supports priceId, priceSlug, usageMeterId, or usageMeterSlug for each event. Exactly one identifier type must be provided per event.",
-        "tags": ["Usage Events"],
+        "tags": [
+          "Usage Events"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -5909,7 +6211,9 @@
                     }
                   }
                 },
-                "required": ["usageEvents"]
+                "required": [
+                  "usageEvents"
+                ]
               }
             }
           }
@@ -5929,7 +6233,9 @@
                       }
                     }
                   },
-                  "required": ["usageEvents"],
+                  "required": [
+                    "usageEvents"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -5982,7 +6288,9 @@
       "get": {
         "operationId": "webhooks-get",
         "summary": "Get Webhook",
-        "tags": ["Webhooks"],
+        "tags": [
+          "Webhooks"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -6072,7 +6380,9 @@
                       "additionalProperties": false
                     }
                   },
-                  "required": ["webhook"],
+                  "required": [
+                    "webhook"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -6133,7 +6443,9 @@
       "put": {
         "operationId": "webhooks-update",
         "summary": "Update Webhook",
-        "tags": ["Webhooks"],
+        "tags": [
+          "Webhooks"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -6190,10 +6502,16 @@
                         "type": "boolean"
                       }
                     },
-                    "required": ["id", "filterTypes", "url"]
+                    "required": [
+                      "id",
+                      "filterTypes",
+                      "url"
+                    ]
                   }
                 },
-                "required": ["webhook"]
+                "required": [
+                  "webhook"
+                ]
               }
             }
           }
@@ -6272,7 +6590,9 @@
                       "additionalProperties": false
                     }
                   },
-                  "required": ["webhook"],
+                  "required": [
+                    "webhook"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -6335,7 +6655,9 @@
       "post": {
         "operationId": "webhooks-create",
         "summary": "Create Webhook",
-        "tags": ["Webhooks"],
+        "tags": [
+          "Webhooks"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -6380,10 +6702,16 @@
                         "type": "boolean"
                       }
                     },
-                    "required": ["filterTypes", "url", "name"]
+                    "required": [
+                      "filterTypes",
+                      "url",
+                      "name"
+                    ]
                   }
                 },
-                "required": ["webhook"]
+                "required": [
+                  "webhook"
+                ]
               }
             }
           }
@@ -6465,7 +6793,10 @@
                       "type": "string"
                     }
                   },
-                  "required": ["webhook", "secret"],
+                  "required": [
+                    "webhook",
+                    "secret"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -6518,7 +6849,9 @@
       "get": {
         "operationId": "features-get",
         "summary": "Get Feature",
-        "tags": ["Features"],
+        "tags": [
+          "Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -6546,7 +6879,9 @@
                       "$ref": "#/components/schemas/FeatureRecord"
                     }
                   },
-                  "required": ["feature"],
+                  "required": [
+                    "feature"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -6607,7 +6942,9 @@
       "put": {
         "operationId": "features-update",
         "summary": "Update Feature",
-        "tags": ["Features"],
+        "tags": [
+          "Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -6634,7 +6971,9 @@
                     "$ref": "#/components/schemas/FeatureUpdate"
                   }
                 },
-                "required": ["feature"]
+                "required": [
+                  "feature"
+                ]
               }
             }
           }
@@ -6651,7 +6990,9 @@
                       "$ref": "#/components/schemas/FeatureRecord"
                     }
                   },
-                  "required": ["feature"],
+                  "required": [
+                    "feature"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -6714,7 +7055,9 @@
       "post": {
         "operationId": "features-create",
         "summary": "Create Feature",
-        "tags": ["Features"],
+        "tags": [
+          "Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -6732,7 +7075,9 @@
                     "$ref": "#/components/schemas/FeatureInsert"
                   }
                 },
-                "required": ["feature"]
+                "required": [
+                  "feature"
+                ]
               }
             }
           }
@@ -6749,7 +7094,9 @@
                       "$ref": "#/components/schemas/FeatureRecord"
                     }
                   },
-                  "required": ["feature"],
+                  "required": [
+                    "feature"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -6800,7 +7147,9 @@
       "get": {
         "operationId": "features-list",
         "summary": "List Features",
-        "tags": ["Features"],
+        "tags": [
+          "Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -6849,7 +7198,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -6912,7 +7265,9 @@
       "post": {
         "operationId": "productFeatures-create",
         "summary": "Create Product Feature",
-        "tags": ["Product Features"],
+        "tags": [
+          "Product Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -6930,7 +7285,9 @@
                     "$ref": "#/components/schemas/ProductFeatureClientInsertSchema"
                   }
                 },
-                "required": ["productFeature"]
+                "required": [
+                  "productFeature"
+                ]
               }
             }
           }
@@ -6947,7 +7304,9 @@
                       "$ref": "#/components/schemas/ProductFeatureClientSelectSchema"
                     }
                   },
-                  "required": ["productFeature"],
+                  "required": [
+                    "productFeature"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -6998,7 +7357,9 @@
       "get": {
         "operationId": "productFeatures-list",
         "summary": "List Product Features",
-        "tags": ["Product Features"],
+        "tags": [
+          "Product Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7047,7 +7408,11 @@
                       "type": "number"
                     }
                   },
-                  "required": ["data", "hasMore", "total"],
+                  "required": [
+                    "data",
+                    "hasMore",
+                    "total"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7110,7 +7475,9 @@
       "get": {
         "operationId": "productFeatures-get",
         "summary": "Get Product Feature",
-        "tags": ["Product Features"],
+        "tags": [
+          "Product Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7138,7 +7505,9 @@
                       "$ref": "#/components/schemas/ProductFeatureClientSelectSchema"
                     }
                   },
-                  "required": ["productFeature"],
+                  "required": [
+                    "productFeature"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7202,7 +7571,9 @@
         "operationId": "productFeatures-expire",
         "summary": "Expire Product Feature",
         "description": "Expire a product feature, making it no longer available for subscription items",
-        "tags": ["Product Features"],
+        "tags": [
+          "Product Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7230,7 +7601,9 @@
                       "type": "boolean"
                     }
                   },
-                  "required": ["success"],
+                  "required": [
+                    "success"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7283,7 +7656,9 @@
       "get": {
         "operationId": "subscriptionItemFeatures-get",
         "summary": "Get Subscription Item Feature",
-        "tags": ["Subscription Item Features"],
+        "tags": [
+          "Subscription Item Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7311,7 +7686,9 @@
                       "$ref": "#/components/schemas/SubscriptionItemFeaturesClientSelectSchema"
                     }
                   },
-                  "required": ["subscriptionItemFeature"],
+                  "required": [
+                    "subscriptionItemFeature"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7372,7 +7749,9 @@
       "put": {
         "operationId": "subscriptionItemFeatures-update",
         "summary": "Update Subscription Item Feature",
-        "tags": ["Subscription Item Features"],
+        "tags": [
+          "Subscription Item Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7399,7 +7778,9 @@
                     "$ref": "#/components/schemas/SubscriptionItemFeaturesClientUpdateSchema"
                   }
                 },
-                "required": ["subscriptionItemFeature"]
+                "required": [
+                  "subscriptionItemFeature"
+                ]
               }
             }
           }
@@ -7416,7 +7797,9 @@
                       "$ref": "#/components/schemas/SubscriptionItemFeaturesClientSelectSchema"
                     }
                   },
-                  "required": ["subscriptionItemFeature"],
+                  "required": [
+                    "subscriptionItemFeature"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7479,7 +7862,9 @@
       "post": {
         "operationId": "subscriptionItemFeatures-create",
         "summary": "Create Subscription Item Feature",
-        "tags": ["Subscription Item Features"],
+        "tags": [
+          "Subscription Item Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7497,7 +7882,9 @@
                     "$ref": "#/components/schemas/SubscriptionItemFeaturesClientInsertSchema"
                   }
                 },
-                "required": ["subscriptionItemFeature"]
+                "required": [
+                  "subscriptionItemFeature"
+                ]
               }
             }
           }
@@ -7514,7 +7901,9 @@
                       "$ref": "#/components/schemas/SubscriptionItemFeaturesClientSelectSchema"
                     }
                   },
-                  "required": ["subscriptionItemFeature"],
+                  "required": [
+                    "subscriptionItemFeature"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7568,7 +7957,9 @@
         "operationId": "subscriptionItemFeatures-deactivate",
         "summary": "Expire Subscription Item Feature",
         "description": "Expire a feature attached to a subscription item, no longer granting the customer access to it",
-        "tags": ["Subscription Item Features"],
+        "tags": [
+          "Subscription Item Features"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7614,7 +8005,9 @@
                       "$ref": "#/components/schemas/SubscriptionItemFeaturesClientSelectSchema"
                     }
                   },
-                  "required": ["subscriptionItemFeature"],
+                  "required": [
+                    "subscriptionItemFeature"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7667,7 +8060,9 @@
       "get": {
         "operationId": "resources-get",
         "summary": "Get Resource",
-        "tags": ["Resources"],
+        "tags": [
+          "Resources"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7695,7 +8090,9 @@
                       "$ref": "#/components/schemas/ResourceClientSelectSchema"
                     }
                   },
-                  "required": ["resource"],
+                  "required": [
+                    "resource"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7756,7 +8153,9 @@
       "put": {
         "operationId": "resources-update",
         "summary": "Update Resource",
-        "tags": ["Resources"],
+        "tags": [
+          "Resources"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7783,7 +8182,9 @@
                     "$ref": "#/components/schemas/ResourceClientUpdateSchema"
                   }
                 },
-                "required": ["resource"]
+                "required": [
+                  "resource"
+                ]
               }
             }
           }
@@ -7800,7 +8201,9 @@
                       "$ref": "#/components/schemas/ResourceClientSelectSchema"
                     }
                   },
-                  "required": ["resource"],
+                  "required": [
+                    "resource"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7863,7 +8266,9 @@
       "post": {
         "operationId": "resources-create",
         "summary": "Create Resource",
-        "tags": ["Resources"],
+        "tags": [
+          "Resources"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7881,7 +8286,9 @@
                     "$ref": "#/components/schemas/ResourceClientInsertSchema"
                   }
                 },
-                "required": ["resource"]
+                "required": [
+                  "resource"
+                ]
               }
             }
           }
@@ -7898,7 +8305,9 @@
                       "$ref": "#/components/schemas/ResourceClientSelectSchema"
                     }
                   },
-                  "required": ["resource"],
+                  "required": [
+                    "resource"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -7949,7 +8358,9 @@
       "get": {
         "operationId": "resources-list",
         "summary": "List Resources",
-        "tags": ["Resources"],
+        "tags": [
+          "Resources"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -7980,7 +8391,9 @@
                       }
                     }
                   },
-                  "required": ["resources"],
+                  "required": [
+                    "resources"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -8044,7 +8457,9 @@
         "operationId": "resourceClaims-claim",
         "summary": "Claim Resource",
         "description": "Claim a resource for a subscription. Exactly one of quantity, externalId, or externalIds must be provided.",
-        "tags": ["Resource Claims"],
+        "tags": [
+          "Resource Claims"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -8096,7 +8511,9 @@
                     }
                   }
                 },
-                "required": ["resourceSlug"]
+                "required": [
+                  "resourceSlug"
+                ]
               }
             }
           }
@@ -8150,7 +8567,10 @@
                       "additionalProperties": false
                     }
                   },
-                  "required": ["claims", "usage"],
+                  "required": [
+                    "claims",
+                    "usage"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -8204,7 +8624,9 @@
         "operationId": "resourceClaims-release",
         "summary": "Release Resource",
         "description": "Release claimed resources for a subscription. Exactly one of quantity, externalId, externalIds, or claimIds must be provided.",
-        "tags": ["Resource Claims"],
+        "tags": [
+          "Resource Claims"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -8260,7 +8682,9 @@
                     }
                   }
                 },
-                "required": ["resourceSlug"]
+                "required": [
+                  "resourceSlug"
+                ]
               }
             }
           }
@@ -8314,7 +8738,10 @@
                       "additionalProperties": false
                     }
                   },
-                  "required": ["releasedClaims", "usage"],
+                  "required": [
+                    "releasedClaims",
+                    "usage"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -8368,7 +8795,9 @@
         "operationId": "resourceClaims-getUsage",
         "summary": "Get Resource Usage",
         "description": "Get resource usage information for a subscription. Exactly one of resourceSlug or resourceId must be provided.",
-        "tags": ["Resource Claims"],
+        "tags": [
+          "Resource Claims"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -8467,7 +8896,9 @@
         "operationId": "resourceClaims-listResourceUsages",
         "summary": "List Resource Usages",
         "description": "List resource usage information for all resources on the subscription.",
-        "tags": ["Resource Claims"],
+        "tags": [
+          "Resource Claims"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -8573,7 +9004,9 @@
         "operationId": "resourceClaims-listClaims",
         "summary": "List Resource Claims",
         "description": "List active resource claims for a subscription. Optionally filter by resourceSlug.",
-        "tags": ["Resource Claims"],
+        "tags": [
+          "Resource Claims"
+        ],
         "security": [
           {
             "ApiKeyAuth": []
@@ -8611,7 +9044,9 @@
                       }
                     }
                   },
-                  "required": ["claims"],
+                  "required": [
+                    "claims"
+                  ],
                   "additionalProperties": false
                 }
               }
@@ -8848,7 +9283,12 @@
             "type": "boolean"
           }
         },
-        "required": ["successUrl", "cancelUrl", "type", "anonymous"]
+        "required": [
+          "successUrl",
+          "cancelUrl",
+          "type",
+          "anonymous"
+        ]
       },
       "ActivateSubscriptionCheckoutSessionInput": {
         "type": "object",
@@ -9021,7 +9461,11 @@
             ]
           }
         },
-        "required": ["name", "active", "pricingModelId"]
+        "required": [
+          "name",
+          "active",
+          "pricingModelId"
+        ]
       },
       "CreateProductPriceInput": {
         "oneOf": [
@@ -9050,7 +9494,12 @@
         "properties": {
           "intervalUnit": {
             "type": "string",
-            "enum": ["day", "week", "month", "year"]
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
           },
           "name": {
             "anyOf": [
@@ -9213,14 +9662,23 @@
             "type": "null"
           }
         },
-        "required": ["type", "isDefault", "unitPrice"]
+        "required": [
+          "type",
+          "isDefault",
+          "unitPrice"
+        ]
       },
       "ProductUsagePriceInsert": {
         "type": "object",
         "properties": {
           "intervalUnit": {
             "type": "string",
-            "enum": ["day", "week", "month", "year"]
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
           },
           "name": {
             "anyOf": [
@@ -9365,7 +9823,11 @@
             ]
           }
         },
-        "required": ["id", "name", "active"]
+        "required": [
+          "id",
+          "name",
+          "active"
+        ]
       },
       "PricesInsert": {
         "oneOf": [
@@ -9394,7 +9856,12 @@
         "properties": {
           "intervalUnit": {
             "type": "string",
-            "enum": ["day", "week", "month", "year"]
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
           },
           "name": {
             "anyOf": [
@@ -9566,14 +10033,24 @@
             "type": "null"
           }
         },
-        "required": ["type", "isDefault", "unitPrice", "productId"]
+        "required": [
+          "type",
+          "isDefault",
+          "unitPrice",
+          "productId"
+        ]
       },
       "UsagePriceClientInsertSchema": {
         "type": "object",
         "properties": {
           "intervalUnit": {
             "type": "string",
-            "enum": ["day", "week", "month", "year"]
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
           },
           "name": {
             "anyOf": [
@@ -9716,7 +10193,11 @@
             ]
           }
         },
-        "required": ["id", "type", "isDefault"]
+        "required": [
+          "id",
+          "type",
+          "isDefault"
+        ]
       },
       "SinglePaymentPriceClientUpdateSchema": {
         "type": "object",
@@ -9756,7 +10237,11 @@
             ]
           }
         },
-        "required": ["id", "type", "isDefault"]
+        "required": [
+          "id",
+          "type",
+          "isDefault"
+        ]
       },
       "UsagePriceClientUpdateSchema": {
         "type": "object",
@@ -9796,7 +10281,11 @@
             ]
           }
         },
-        "required": ["id", "type", "isDefault"]
+        "required": [
+          "id",
+          "type",
+          "isDefault"
+        ]
       },
       "CustomerClientInsertSchema": {
         "type": "object",
@@ -9854,7 +10343,11 @@
             ]
           }
         },
-        "required": ["email", "name", "externalId"]
+        "required": [
+          "email",
+          "name",
+          "externalId"
+        ]
       },
       "DiscountUpdate": {
         "anyOf": [
@@ -9890,7 +10383,10 @@
           },
           "amountType": {
             "type": "string",
-            "enum": ["percent", "fixed"]
+            "enum": [
+              "percent",
+              "fixed"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -9903,7 +10399,13 @@
             "type": "null"
           }
         },
-        "required": ["id", "code", "amount", "amountType", "duration"]
+        "required": [
+          "id",
+          "code",
+          "amount",
+          "amountType",
+          "duration"
+        ]
       },
       "NumberOfPaymentsDiscountClientUpdateSchema": {
         "type": "object",
@@ -9926,7 +10428,10 @@
           },
           "amountType": {
             "type": "string",
-            "enum": ["percent", "fixed"]
+            "enum": [
+              "percent",
+              "fixed"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -9972,7 +10477,10 @@
           },
           "amountType": {
             "type": "string",
-            "enum": ["percent", "fixed"]
+            "enum": [
+              "percent",
+              "fixed"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -9985,7 +10493,13 @@
             "type": "null"
           }
         },
-        "required": ["id", "code", "amount", "amountType", "duration"]
+        "required": [
+          "id",
+          "code",
+          "amount",
+          "amountType",
+          "duration"
+        ]
       },
       "DiscountInsert": {
         "anyOf": [
@@ -10021,7 +10535,10 @@
           },
           "amountType": {
             "type": "string",
-            "enum": ["percent", "fixed"]
+            "enum": [
+              "percent",
+              "fixed"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -10063,7 +10580,10 @@
           },
           "amountType": {
             "type": "string",
-            "enum": ["percent", "fixed"]
+            "enum": [
+              "percent",
+              "fixed"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -10109,7 +10629,10 @@
           },
           "amountType": {
             "type": "string",
-            "enum": ["percent", "fixed"]
+            "enum": [
+              "percent",
+              "fixed"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -10283,7 +10806,9 @@
             "type": "string"
           }
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "AdjustSubscriptionImmediatelyInput": {
         "type": "object",
@@ -10318,7 +10843,10 @@
             "type": "boolean"
           }
         },
-        "required": ["timing", "newSubscriptionItems"]
+        "required": [
+          "timing",
+          "newSubscriptionItems"
+        ]
       },
       "SubscriptionItemInsert": {
         "$ref": "#/components/schemas/StaticSubscriptionItemClientInsertSchema"
@@ -10737,7 +11265,10 @@
             }
           }
         },
-        "required": ["timing", "newSubscriptionItems"]
+        "required": [
+          "timing",
+          "newSubscriptionItems"
+        ]
       },
       "AdjustSubscriptionAutoTimingInput": {
         "type": "object",
@@ -10772,7 +11303,10 @@
             "type": "boolean"
           }
         },
-        "required": ["timing", "newSubscriptionItems"]
+        "required": [
+          "timing",
+          "newSubscriptionItems"
+        ]
       },
       "CancelSubscriptionAtEndOfBillingPeriodInput": {
         "type": "object",
@@ -10782,7 +11316,9 @@
             "const": "at_end_of_current_billing_period"
           }
         },
-        "required": ["timing"]
+        "required": [
+          "timing"
+        ]
       },
       "CancelSubscriptionImmediatelyInput": {
         "type": "object",
@@ -10792,7 +11328,9 @@
             "const": "immediately"
           }
         },
-        "required": ["timing"]
+        "required": [
+          "timing"
+        ]
       },
       "UsageMeterClientUpdateSchema": {
         "type": "object",
@@ -10809,10 +11347,15 @@
           "aggregationType": {
             "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
             "type": "string",
-            "enum": ["sum", "count_distinct_properties"]
+            "enum": [
+              "sum",
+              "count_distinct_properties"
+            ]
           }
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "UsageMeterClientInsertSchema": {
         "type": "object",
@@ -10829,10 +11372,17 @@
           "aggregationType": {
             "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
             "type": "string",
-            "enum": ["sum", "count_distinct_properties"]
+            "enum": [
+              "sum",
+              "count_distinct_properties"
+            ]
           }
         },
-        "required": ["name", "pricingModelId", "slug"]
+        "required": [
+          "name",
+          "pricingModelId",
+          "slug"
+        ]
       },
       "FeatureUpdate": {
         "oneOf": [
@@ -10900,7 +11450,10 @@
             "type": "boolean"
           }
         },
-        "required": ["id", "type"]
+        "required": [
+          "id",
+          "type"
+        ]
       },
       "UsageCreditGrantFeatureClientUpdateSchema": {
         "type": "object",
@@ -10934,7 +11487,10 @@
           },
           "renewalFrequency": {
             "type": "string",
-            "enum": ["once", "every_billing_period"]
+            "enum": [
+              "once",
+              "every_billing_period"
+            ]
           },
           "pricingModelId": {
             "type": "string"
@@ -11000,7 +11556,12 @@
             "type": "boolean"
           }
         },
-        "required": ["id", "type", "amount", "resourceId"]
+        "required": [
+          "id",
+          "type",
+          "amount",
+          "resourceId"
+        ]
       },
       "FeatureInsert": {
         "oneOf": [
@@ -11102,7 +11663,10 @@
           },
           "renewalFrequency": {
             "type": "string",
-            "enum": ["once", "every_billing_period"]
+            "enum": [
+              "once",
+              "every_billing_period"
+            ]
           },
           "pricingModelId": {
             "type": "string"
@@ -11201,7 +11765,10 @@
             ]
           }
         },
-        "required": ["productId", "featureId"]
+        "required": [
+          "productId",
+          "featureId"
+        ]
       },
       "SubscriptionItemFeaturesClientUpdateSchema": {
         "oneOf": [
@@ -11307,7 +11874,10 @@
             "const": null
           }
         },
-        "required": ["id", "type"]
+        "required": [
+          "id",
+          "type"
+        ]
       },
       "UsageCreditGrantSubscriptionItemFeatureClientUpdateSchema": {
         "type": "object",
@@ -11345,7 +11915,10 @@
           },
           "renewalFrequency": {
             "type": "string",
-            "enum": ["once", "every_billing_period"]
+            "enum": [
+              "once",
+              "every_billing_period"
+            ]
           },
           "expiredAt": {
             "anyOf": [
@@ -11481,7 +12054,12 @@
             "type": "string"
           }
         },
-        "required": ["id", "type", "amount", "resourceId"]
+        "required": [
+          "id",
+          "type",
+          "amount",
+          "resourceId"
+        ]
       },
       "SubscriptionItemFeaturesClientInsertSchema": {
         "oneOf": [
@@ -11631,7 +12209,10 @@
           },
           "renewalFrequency": {
             "type": "string",
-            "enum": ["once", "every_billing_period"]
+            "enum": [
+              "once",
+              "every_billing_period"
+            ]
           },
           "expiredAt": {
             "anyOf": [
@@ -11805,7 +12386,9 @@
             "type": "boolean"
           }
         },
-        "required": ["id"]
+        "required": [
+          "id"
+        ]
       },
       "ResourceClientInsertSchema": {
         "type": "object",
@@ -11823,7 +12406,11 @@
             "type": "boolean"
           }
         },
-        "required": ["pricingModelId", "slug", "name"]
+        "required": [
+          "pricingModelId",
+          "slug",
+          "name"
+        ]
       },
       "PaymentClientSelectSchema": {
         "type": "object",
@@ -11865,7 +12452,12 @@
           },
           "paymentMethod": {
             "type": "string",
-            "enum": ["card", "link", "us_bank_account", "sepa_debit"]
+            "enum": [
+              "card",
+              "link",
+              "us_bank_account",
+              "sepa_debit"
+            ]
           },
           "currency": {
             "$ref": "#/components/schemas/CurrencyCode"
@@ -12446,12 +13038,17 @@
                   "type": "string"
                 }
               },
-              "required": ["message"],
+              "required": [
+                "message"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["message", "code"],
+        "required": [
+          "message",
+          "code"
+        ],
         "additionalProperties": false
       },
       "error.UNAUTHORIZED": {
@@ -12485,12 +13082,17 @@
                   "type": "string"
                 }
               },
-              "required": ["message"],
+              "required": [
+                "message"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["message", "code"],
+        "required": [
+          "message",
+          "code"
+        ],
         "additionalProperties": false
       },
       "error.FORBIDDEN": {
@@ -12524,12 +13126,17 @@
                   "type": "string"
                 }
               },
-              "required": ["message"],
+              "required": [
+                "message"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["message", "code"],
+        "required": [
+          "message",
+          "code"
+        ],
         "additionalProperties": false
       },
       "error.INTERNAL_SERVER_ERROR": {
@@ -12563,12 +13170,17 @@
                   "type": "string"
                 }
               },
-              "required": ["message"],
+              "required": [
+                "message"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["message", "code"],
+        "required": [
+          "message",
+          "code"
+        ],
         "additionalProperties": false
       },
       "error.NOT_FOUND": {
@@ -12602,12 +13214,17 @@
                   "type": "string"
                 }
               },
-              "required": ["message"],
+              "required": [
+                "message"
+              ],
               "additionalProperties": false
             }
           }
         },
-        "required": ["message", "code"],
+        "required": [
+          "message",
+          "code"
+        ],
         "additionalProperties": false
       },
       "CheckoutSessionRecord": {
@@ -12952,7 +13569,9 @@
                 "type": "string"
               }
             },
-            "required": ["country"],
+            "required": [
+              "country"
+            ],
             "additionalProperties": false
           },
           "phone": {
@@ -12966,7 +13585,9 @@
             ]
           }
         },
-        "required": ["address"],
+        "required": [
+          "address"
+        ],
         "additionalProperties": false
       },
       "ProductCheckoutSessionRecord": {
@@ -13659,7 +14280,11 @@
             "type": "number"
           }
         },
-        "required": ["data", "hasMore", "total"],
+        "required": [
+          "data",
+          "hasMore",
+          "total"
+        ],
         "additionalProperties": false
       },
       "ProductClientSelectSchema": {
@@ -13927,7 +14552,12 @@
           },
           "intervalUnit": {
             "type": "string",
-            "enum": ["day", "week", "month", "year"]
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
           },
           "name": {
             "anyOf": [
@@ -14181,7 +14811,12 @@
           },
           "intervalUnit": {
             "type": "string",
-            "enum": ["day", "week", "month", "year"]
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
           },
           "name": {
             "anyOf": [
@@ -14430,7 +15065,10 @@
           },
           "renewalFrequency": {
             "type": "string",
-            "enum": ["once", "every_billing_period"]
+            "enum": [
+              "once",
+              "every_billing_period"
+            ]
           },
           "pricingModelId": {
             "type": "string"
@@ -14563,7 +15201,11 @@
             "type": "number"
           }
         },
-        "required": ["data", "hasMore", "total"],
+        "required": [
+          "data",
+          "hasMore",
+          "total"
+        ],
         "additionalProperties": false
       },
       "PurchaseRecord": {
@@ -14669,7 +15311,12 @@
           },
           "intervalUnit": {
             "type": "string",
-            "enum": ["day", "week", "month", "year"]
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
           },
           "intervalCount": {
             "description": "A positive integer",
@@ -15580,7 +16227,12 @@
           },
           "interval": {
             "type": "string",
-            "enum": ["day", "week", "month", "year"]
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
           },
           "intervalCount": {
             "description": "A positive integer",
@@ -15684,7 +16336,11 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "canceled", "credit_trial"]
+            "enum": [
+              "active",
+              "canceled",
+              "credit_trial"
+            ]
           },
           "defaultPaymentMethodId": {
             "anyOf": [
@@ -15924,7 +16580,11 @@
           },
           "status": {
             "type": "string",
-            "enum": ["active", "canceled", "credit_trial"]
+            "enum": [
+              "active",
+              "canceled",
+              "credit_trial"
+            ]
           },
           "defaultPaymentMethodId": {
             "anyOf": [
@@ -16282,7 +16942,10 @@
                     "aggregationType": {
                       "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
                       "type": "string",
-                      "enum": ["sum", "count_distinct_properties"]
+                      "enum": [
+                        "sum",
+                        "count_distinct_properties"
+                      ]
                     },
                     "availableBalance": {
                       "type": "number"
@@ -16308,7 +16971,10 @@
                 }
               }
             },
-            "required": ["featureItems", "usageMeterBalances"],
+            "required": [
+              "featureItems",
+              "usageMeterBalances"
+            ],
             "additionalProperties": false
           }
         },
@@ -16537,7 +17203,10 @@
           },
           "renewalFrequency": {
             "type": "string",
-            "enum": ["once", "every_billing_period"]
+            "enum": [
+              "once",
+              "every_billing_period"
+            ]
           },
           "expiredAt": {
             "anyOf": [
@@ -16930,7 +17599,12 @@
           },
           "interval": {
             "type": "string",
-            "enum": ["day", "week", "month", "year"]
+            "enum": [
+              "day",
+              "week",
+              "month",
+              "year"
+            ]
           },
           "intervalCount": {
             "description": "A positive integer",
@@ -17174,7 +17848,10 @@
                     "aggregationType": {
                       "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
                       "type": "string",
-                      "enum": ["sum", "count_distinct_properties"]
+                      "enum": [
+                        "sum",
+                        "count_distinct_properties"
+                      ]
                     },
                     "availableBalance": {
                       "type": "number"
@@ -17200,7 +17877,10 @@
                 }
               }
             },
-            "required": ["featureItems", "usageMeterBalances"],
+            "required": [
+              "featureItems",
+              "usageMeterBalances"
+            ],
             "additionalProperties": false
           }
         },
@@ -18491,7 +19171,9 @@
                             "type": "string"
                           }
                         },
-                        "required": ["country"],
+                        "required": [
+                          "country"
+                        ],
                         "additionalProperties": false
                       },
                       {
@@ -18500,16 +19182,25 @@
                     ]
                   }
                 },
-                "required": ["country"],
+                "required": [
+                  "country"
+                ],
                 "additionalProperties": false
               }
             },
-            "required": ["address"],
+            "required": [
+              "address"
+            ],
             "additionalProperties": false
           },
           "type": {
             "type": "string",
-            "enum": ["card", "link", "us_bank_account", "sepa_debit"]
+            "enum": [
+              "card",
+              "link",
+              "us_bank_account",
+              "sepa_debit"
+            ]
           },
           "default": {
             "type": "boolean"
@@ -18648,7 +19339,10 @@
           "aggregationType": {
             "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
             "type": "string",
-            "enum": ["sum", "count_distinct_properties"]
+            "enum": [
+              "sum",
+              "count_distinct_properties"
+            ]
           },
           "prices": {
             "type": "array",
@@ -18732,7 +19426,10 @@
           },
           "amountType": {
             "type": "string",
-            "enum": ["percent", "fixed"]
+            "enum": [
+              "percent",
+              "fixed"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -18805,7 +19502,10 @@
           },
           "amountType": {
             "type": "string",
-            "enum": ["percent", "fixed"]
+            "enum": [
+              "percent",
+              "fixed"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -18882,7 +19582,10 @@
           },
           "amountType": {
             "type": "string",
-            "enum": ["percent", "fixed"]
+            "enum": [
+              "percent",
+              "fixed"
+            ]
           },
           "active": {
             "type": "boolean"
@@ -19208,7 +19911,10 @@
           "aggregationType": {
             "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
             "type": "string",
-            "enum": ["sum", "count_distinct_properties"]
+            "enum": [
+              "sum",
+              "count_distinct_properties"
+            ]
           }
         },
         "required": [
@@ -19458,9 +20164,6 @@
           "organizationId": {
             "type": "string"
           },
-          "subscriptionItemFeatureId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "string"
           },
@@ -19526,7 +20229,6 @@
           "updatedAt",
           "livemode",
           "organizationId",
-          "subscriptionItemFeatureId",
           "resourceId",
           "subscriptionId",
           "pricingModelId",
@@ -19550,7 +20252,10 @@
             }
           }
         },
-        "required": ["usage", "claims"],
+        "required": [
+          "usage",
+          "claims"
+        ],
         "additionalProperties": false
       },
       "ResourceUsageData": {
