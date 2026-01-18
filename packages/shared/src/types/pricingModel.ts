@@ -1,7 +1,7 @@
 import type { Flowglad } from '@flowglad/node'
 
-export type Catalog =
-  Flowglad.CustomerRetrieveBillingResponse['catalog']
+export type PricingModel =
+  Flowglad.CustomerRetrieveBillingResponse['pricingModel']
 
 export type Product = Flowglad.ProductRetrieveResponse
 

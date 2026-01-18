@@ -44,8 +44,8 @@ const customer = await flowgladServer.findOrCreateCustomer()
 // Get customer billing information
 const billing = await flowgladServer.getBilling()
 
-// Get the catalog
-const catalog = await flowgladServer.getCatalog()
+// Get the pricing model
+const { pricingModel } = await flowgladServer.getPricingModel()
 
 // Create a subscription
 const subscription = await flowgladServer.createSubscription({
