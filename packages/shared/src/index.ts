@@ -39,13 +39,13 @@ export {
   uncancelSubscriptionSchema,
   updateCustomerSchema,
 } from './actions'
-export * from './types/catalog'
 export * from './types/checkoutSession'
 export * from './types/currency'
 export * from './types/customer'
 export * from './types/invoice'
 export * from './types/payment'
 export * from './types/paymentMethod'
+export * from './types/pricingModel'
 export {
   type ResourceClaim,
   type ResourceIdentifier,
