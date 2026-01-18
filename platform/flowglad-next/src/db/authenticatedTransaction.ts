@@ -1,6 +1,5 @@
 import { SpanKind } from '@opentelemetry/api'
 import { Result } from 'better-result'
-import { sql } from 'drizzle-orm'
 import type {
   AuthenticatedTransactionParams,
   ComprehensiveAuthenticatedTransactionParams,
@@ -15,6 +14,7 @@ import {
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
+import { withRLS } from './withRLS'
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string
@@ -97,55 +97,36 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       throw new Error('No userId found')
     }
 
-    // Set RLS context
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', '${sql.raw(
-        JSON.stringify(jwtClaim)
-      )}', TRUE)`
-    )
-    await transaction.execute(
-      sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)};`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('app.livemode', '${sql.raw(
-        Boolean(livemode).toString()
-      )}', TRUE);`
-    )
+    return withRLS(transaction, { jwtClaim, livemode }, async () => {
+      const paramsForFn: ComprehensiveAuthenticatedTransactionParams =
+        {
+          transaction,
+          userId,
+          livemode,
+          organizationId,
+          effects,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
 
-    const paramsForFn: ComprehensiveAuthenticatedTransactionParams = {
-      transaction,
-      userId,
-      livemode,
-      organizationId,
-      effects,
-      invalidateCache,
-      emitEvent,
-      enqueueLedgerCommand,
-    }
+      const output = await fn(paramsForFn)
 
-    const output = await fn(paramsForFn)
+      // Check for error early to skip effects and roll back transaction
+      if (output.status === 'error') {
+        throw output.error
+      }
 
-    // Check for error early to skip effects and roll back transaction
-    if (output.status === 'error') {
-      throw output.error
-    }
+      // Process accumulated effects
+      const counts = await processEffectsInTransaction(
+        effects,
+        transaction
+      )
+      processedEventsCount = counts.eventsCount
+      processedLedgerCommandsCount = counts.ledgerCommandsCount
 
-    // Process accumulated effects
-    const counts = await processEffectsInTransaction(
-      effects,
-      transaction
-    )
-    processedEventsCount = counts.eventsCount
-    processedLedgerCommandsCount = counts.ledgerCommandsCount
-
-    // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
-    // However, keeping it doesn't harm and can be an explicit cleanup.
-    await transaction.execute(sql`RESET ROLE;`)
-
-    return output
+      return output
+    })
   })
 
   // Transaction committed successfully - now invalidate caches

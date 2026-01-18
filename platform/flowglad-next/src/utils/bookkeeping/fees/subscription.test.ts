@@ -5,6 +5,7 @@ import {
   setupDiscount,
   setupOrg,
   setupPaymentMethod,
+  setupPrice,
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
@@ -27,10 +28,14 @@ import {
   DiscountDuration,
   FeeCalculationType,
   PaymentMethodType,
+  PriceType,
   StripeConnectContractType,
   SubscriptionItemType,
 } from '@/types'
-import { createSubscriptionFeeCalculationInsert as createSubscriptionFeeCalculationInsertFunction } from '@/utils/bookkeeping/fees/subscription'
+import {
+  createAndFinalizeSubscriptionFeeCalculation,
+  createSubscriptionFeeCalculationInsert as createSubscriptionFeeCalculationInsertFunction,
+} from '@/utils/bookkeeping/fees/subscription'
 import core from '@/utils/core'
 
 describe('createSubscriptionFeeCalculationInsert', () => {
@@ -87,6 +92,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     })
     testDiscount = await setupDiscount({
       organizationId: orgData.organization.id,
+      pricingModelId: orgData.pricingModel.id,
       name: '10% Off Sub',
       amount: 10,
       amountType: DiscountAmountType.Percent,
@@ -264,5 +270,94 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     expect(result.stripeTaxTransactionId).toBeNull()
     expect(result.currency).toBe(CurrencyCode.USD)
     expect(result.livemode).toBe(true)
+  })
+})
+
+describe('createAndFinalizeSubscriptionFeeCalculation', () => {
+  it('creates a fee calculation for subscription with a usage price (no product lookup required)', async () => {
+    const orgData = await setupOrg()
+    const customer = await setupCustomer({
+      organizationId: orgData.organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: orgData.organization.id,
+      customerId: customer.id,
+      type: PaymentMethodType.Card,
+    })
+    const usageMeter = await setupUsageMeter({
+      organizationId: orgData.organization.id,
+      name: 'Test Usage Meter for Error Path',
+      pricingModelId: orgData.pricingModel.id,
+    })
+
+    // Create a usage price (has usageMeterId but no productId)
+    // Note: pricingModelId is derived automatically from usageMeterId for usage prices
+    const usagePrice = await setupPrice({
+      type: PriceType.Usage,
+      usageMeterId: usageMeter.id,
+      unitPrice: 100,
+      livemode: true,
+      currency: CurrencyCode.USD,
+      name: 'Usage Price for Error Test',
+      isDefault: true,
+    })
+
+    // Create a subscription pointing to the usage price
+    const subscription = await setupSubscription({
+      organizationId: orgData.organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: usagePrice.id,
+    })
+
+    const billingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: new Date('2023-01-01T00:00:00.000Z').getTime(),
+      endDate: new Date('2023-01-31T23:59:59.999Z').getTime(),
+    })
+
+    const countries = await adminTransaction(
+      async ({ transaction }) =>
+        selectCountries(
+          {
+            id: (orgData.organization as Organization.Record)
+              .countryId,
+          },
+          transaction
+        )
+    )
+    const organizationCountry = countries[0]!
+
+    // Usage prices should now work without product lookup
+    const feeCalculation = await adminTransaction(
+      async ({ transaction }) =>
+        createAndFinalizeSubscriptionFeeCalculation(
+          {
+            organization: {
+              ...(orgData.organization as Organization.Record),
+              feePercentage: '2.0',
+              stripeConnectContractType:
+                StripeConnectContractType.Platform,
+            },
+            billingPeriod,
+            billingPeriodItems: [],
+            paymentMethod,
+            organizationCountry,
+            livemode: true,
+            currency: CurrencyCode.USD,
+            usageOverages: [],
+          },
+          transaction
+        )
+    )
+
+    // Verify fee calculation was created successfully
+    expect(feeCalculation.id).toMatch(/^feec_/)
+    expect(feeCalculation.billingPeriodId).toBe(billingPeriod.id)
+    expect(feeCalculation.organizationId).toBe(
+      orgData.organization.id
+    )
+    expect(feeCalculation.baseAmount).toBe(0) // No billing period items or usage overages
+    expect(feeCalculation.taxAmountFixed).toBe(0) // Platform mode, no tax calculation
   })
 })

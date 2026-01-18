@@ -359,6 +359,7 @@ export const applyDiscountBehavior = defineBehavior({
         {
           ...discountInsert,
           organizationId: prev.organization.id,
+          pricingModelId: prev.pricingModel.id,
           livemode: true,
         },
         transaction

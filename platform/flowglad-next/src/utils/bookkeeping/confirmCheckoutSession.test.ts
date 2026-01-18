@@ -435,6 +435,8 @@ describe('confirmCheckoutSessionTransaction', () => {
             throw new Error(
               'No default price found for pricing model'
             )
+          if (!match.product)
+            throw new Error('Product not found for default price')
           return match.product.id
         }
       )
@@ -1070,6 +1072,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       // Create a 100% off discount that equals the full price amount
       const fullDiscount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'FULL100',
         code: core.nanoid().slice(0, 10),
         amount: price.unitPrice, // Full price coverage

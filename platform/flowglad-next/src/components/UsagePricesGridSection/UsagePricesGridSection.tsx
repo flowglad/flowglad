@@ -84,7 +84,7 @@ export function UsagePricesGridSection({
       product: {
         id: string
         name: string
-      }
+      } | null
     },
     PricesGetTableRowsFilters
   >({

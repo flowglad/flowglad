@@ -6,11 +6,9 @@ import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
 import { insertFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
-import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
 import {
@@ -76,7 +74,6 @@ export const calculateBillingItemBaseAmount = (
 export const createSubscriptionFeeCalculationInsert = async (
   params: SubscriptionFeeCalculationParams & {
     price: Price.Record
-    product: Product.Record
   }
 ): Promise<FeeCalculation.Insert> => {
   const {
@@ -90,7 +87,6 @@ export const createSubscriptionFeeCalculationInsert = async (
     currency,
     usageOverages,
     price,
-    product,
   } = params
   const baseAmt = calculateBillingItemBaseAmount(
     billingPeriodItems,
@@ -126,7 +122,7 @@ export const createSubscriptionFeeCalculationInsert = async (
   ) {
     const calc = await calculateTaxes({
       discountInclusiveAmount: pretax,
-      product,
+      livemode,
       billingAddress: paymentMethod.billingDetails,
       price,
     })
@@ -176,15 +172,10 @@ export const createAndFinalizeSubscriptionFeeCalculation = async (
     subscription.priceId,
     transaction
   )
-  const product = await selectProductById(
-    price.productId,
-    transaction
-  )
   const insert = await createSubscriptionFeeCalculationInsert({
     ...params,
     discountRedemption: redemption,
     price,
-    product,
   })
   const initial = await insertFeeCalculation(insert, transaction)
   return finalizeFeeCalculation(initial, transaction)

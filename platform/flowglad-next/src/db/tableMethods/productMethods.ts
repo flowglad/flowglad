@@ -3,7 +3,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { payments } from '@/db/schema/payments'
 import {
-  type Price,
+  Price,
   prices,
   pricesClientSelectSchema,
   productsTableRowDataSchema,
@@ -194,12 +194,19 @@ export const aggregateRevenueByProductIds = async (
   const revenueMap = new Map<string, number>()
 
   for (const row of purchaseRevenueResults) {
-    revenueMap.set(row.productId, row.totalRevenue)
+    if (row.productId) {
+      revenueMap.set(row.productId, row.totalRevenue)
+    }
   }
 
   for (const row of subscriptionRevenueResults) {
-    const existingRevenue = revenueMap.get(row.productId) ?? 0
-    revenueMap.set(row.productId, existingRevenue + row.totalRevenue)
+    if (row.productId) {
+      const existingRevenue = revenueMap.get(row.productId) ?? 0
+      revenueMap.set(
+        row.productId,
+        existingRevenue + row.totalRevenue
+      )
+    }
   }
 
   return revenueMap
@@ -320,8 +327,19 @@ export const selectProductsCursorPaginated =
         aggregateRevenueByProductIds(productIds, transaction),
       ])
 
+      // Filter to only include prices with productId (non-usage prices)
+      // and group by productId
       const pricesByProductId: Record<string, Price.ClientRecord[]> =
-        groupBy((p) => p.productId, pricesForProducts)
+        {}
+      for (const p of pricesForProducts) {
+        if (Price.clientHasProductId(p)) {
+          const productId = p.productId
+          if (!pricesByProductId[productId]) {
+            pricesByProductId[productId] = []
+          }
+          pricesByProductId[productId].push(p)
+        }
+      }
       const pricingModelsById: Record<
         string,
         PricingModel.ClientRecord[]
