@@ -73,30 +73,6 @@ export const selectActiveResourceClaims = async (
 }
 
 /**
- * Counts active (non-released) claims for a given subscriptionItemFeatureId.
- * Useful for checking capacity against limits.
- * Uses a database COUNT query for efficiency instead of fetching all records.
- */
-export const countActiveClaimsForSubscriptionItemFeature = async (
-  subscriptionItemFeatureId: string,
-  transaction: DbTransaction
-): Promise<number> => {
-  const result = await transaction
-    .select({ count: count() })
-    .from(resourceClaims)
-    .where(
-      and(
-        eq(
-          resourceClaims.subscriptionItemFeatureId,
-          subscriptionItemFeatureId
-        ),
-        isNull(resourceClaims.releasedAt)
-      )
-    )
-  return result[0]?.count ?? 0
-}
-
-/**
  * Releases a resource claim by setting releasedAt timestamp and optional reason.
  */
 export const releaseResourceClaim = async (
@@ -114,35 +90,6 @@ export const releaseResourceClaim = async (
     },
     transaction
   )
-}
-
-/**
- * Releases all active claims for a given subscriptionItemFeatureId.
- * Used when a subscription item feature is detached or expired.
- * Uses a single atomic UPDATE to avoid TOCTOU race conditions.
- */
-export const releaseAllClaimsForSubscriptionItemFeature = async (
-  subscriptionItemFeatureId: string,
-  releaseReason: string,
-  transaction: DbTransaction
-): Promise<ResourceClaim.Record[]> => {
-  const result = await transaction
-    .update(resourceClaims)
-    .set({
-      releasedAt: Date.now(),
-      releaseReason,
-    })
-    .where(
-      and(
-        eq(
-          resourceClaims.subscriptionItemFeatureId,
-          subscriptionItemFeatureId
-        ),
-        isNull(resourceClaims.releasedAt)
-      )
-    )
-    .returning()
-  return resourceClaimsSelectSchema.array().parse(result)
 }
 
 /**
@@ -235,53 +182,6 @@ export const countActiveResourceClaimsBatch = async (
   }
   for (const row of result) {
     countMap.set(row.resourceId, row.count)
-  }
-
-  return countMap
-}
-
-/**
- * Batch counts active (non-released) claims for multiple subscription item features.
- * More efficient than calling countActiveClaimsForSubscriptionItemFeature for each feature individually.
- * Uses a single GROUP BY query to count claims per subscriptionItemFeatureId.
- *
- * @param subscriptionItemFeatureIds - Array of subscriptionItemFeatureIds to count
- * @param transaction - Database transaction
- * @returns Map of subscriptionItemFeatureId to count of active claims
- */
-export const countActiveClaimsForSubscriptionItemFeatures = async (
-  subscriptionItemFeatureIds: string[],
-  transaction: DbTransaction
-): Promise<Map<string, number>> => {
-  if (subscriptionItemFeatureIds.length === 0) {
-    return new Map()
-  }
-
-  const result = await transaction
-    .select({
-      subscriptionItemFeatureId:
-        resourceClaims.subscriptionItemFeatureId,
-      count: count(),
-    })
-    .from(resourceClaims)
-    .where(
-      and(
-        inArray(
-          resourceClaims.subscriptionItemFeatureId,
-          subscriptionItemFeatureIds
-        ),
-        isNull(resourceClaims.releasedAt)
-      )
-    )
-    .groupBy(resourceClaims.subscriptionItemFeatureId)
-
-  // Build map with counts, defaulting to 0 for features with no claims
-  const countMap = new Map<string, number>()
-  for (const featureId of subscriptionItemFeatureIds) {
-    countMap.set(featureId, 0)
-  }
-  for (const row of result) {
-    countMap.set(row.subscriptionItemFeatureId, row.count)
   }
 
   return countMap
