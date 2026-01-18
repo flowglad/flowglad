@@ -26,6 +26,12 @@ Based on what files changed, consult the appropriate reference:
 | `playground/` | [playground-review.md](playground-review.md) - Example project review |
 | `platform/flowglad-next/` | [platform-review.md](platform-review.md) - Main platform review |
 
+For reviewing implementation plans before code is written:
+
+| Review Type | Reference |
+|-------------|-----------|
+| Gameplans / Implementation Plans | [gameplan-review.md](gameplan-review.md) - Pre-implementation plan review |
+
 Read the relevant reference file(s) based on the diff to get area-specific checklists and guidelines.
 
 ## Review Process
