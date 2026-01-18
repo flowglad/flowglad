@@ -18,7 +18,7 @@
     "test:watch": "vitest --passWithNoTests"
   },
   "dependencies": {
-    "@flowglad/node": "0.28.0",
+    "@flowglad/node": "0.29.0",
     "@flowglad/shared": "workspace:*",
     "@tanstack/react-query": "5.66.0",
     "clsx": "2.1.1",

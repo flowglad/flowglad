@@ -1,6 +1,5 @@
 {
   "lockfileVersion": 1,
-  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "flowglad-next",
@@ -16,7 +15,7 @@
         "@dnd-kit/sortable": "^8.0.0",
         "@dnd-kit/utilities": "^3.2.2",
         "@dotenvx/dotenvx": "^1.9.1",
-        "@flowglad/node": "0.28.0",
+        "@flowglad/node": "0.29.0",
         "@hookform/resolvers": "^5.1.0",
         "@logtail/next": "^0.1.7",
         "@modelcontextprotocol/sdk": "^1.13.1",
@@ -671,7 +670,7 @@
 
     "@floating-ui/utils": ["@floating-ui/utils@0.2.10", "", {}, "sha512-aGTxbpbg8/b5JfU1HXSrbH3wXZuLPJcNEcZQFMxLs3oSzgtVu6nFPkbbGGUvBcUjKV2YyB9Wxxabo+HEH9tcRQ=="],
 
-    "@flowglad/node": ["@flowglad/node@0.28.0", "", {}, "sha512-u1Fr4dcseMtorTE/URA5nn8085ocEUbIgf9RcOpT4Amrc+Jgu1xcRDNa4M/ShGWSXaPLhlc3HDQGrxZaBY/dsg=="],
+    "@flowglad/node": ["@flowglad/node@0.29.0", "", {}, "sha512-kQcOOUHGDLm3UX/GMBlknjUzLMlJuwupE63xDOzQYZmEWRgDWMPqIt14sm1BXzWFTXwkO+TXgZ2qOZandNHA2A=="],
 
     "@google-cloud/precise-date": ["@google-cloud/precise-date@4.0.0", "", {}, "sha512-1TUx3KdaU3cN7nfCdNf+UVqA/PSX29Cjcox3fZZBtINlRrXVTmUkQnCKv2MbBUbCopbK4olAT1IHl76uZyCiVA=="],
 
