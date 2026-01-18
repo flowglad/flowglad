@@ -326,7 +326,6 @@ describe('createSubscriptionWorkflow', async () => {
         pricingModelId: product.pricingModelId,
       })
       const usagePrice = await setupPrice({
-        productId: product.id,
         type: PriceType.Usage,
         name: 'Usage Price',
         unitPrice: 100,
@@ -391,7 +390,6 @@ describe('createSubscriptionWorkflow', async () => {
         pricingModelId: product.pricingModelId,
       })
       const usageFeaturePrice = await setupPrice({
-        productId: product.id,
         type: PriceType.Usage,
         name: 'Feature Usage Price',
         unitPrice: 150,

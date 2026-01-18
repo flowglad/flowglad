@@ -1,10 +1,10 @@
 import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import type { UsageMeter } from '@/db/schema/usageMeters'
+import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { safelyInsertPrice } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { AuthenticatedTransactionParams } from '@/db/types'
 import { IntervalUnit, PriceType } from '@/types'
-import { createProductTransaction } from '@/utils/pricingModel'
 
 /** Price fields used in usage meter creation/updates */
 type UsageMeterPriceFields = {
@@ -14,11 +14,11 @@ type UsageMeterPriceFields = {
 }
 
 /**
- * Creates a usage meter along with a corresponding product and usage price.
- * The product and price will have the same slug as the usage meter.
+ * Creates a usage meter along with a corresponding usage price.
+ * The price will have the same slug as the usage meter and have productId: null.
  * The price defaults to $0.00 per usage event unless custom price values are provided.
  *
- * @throws Error if there's a slug collision with existing products or prices in the pricing model
+ * Note: Usage prices don't belong to products - they belong directly to usage meters.
  */
 export const createUsageMeterTransaction = async (
   payload: {
@@ -35,7 +35,6 @@ export const createUsageMeterTransaction = async (
     Required<Pick<AuthenticatedTransactionParams, 'invalidateCache'>>
 ): Promise<{
   usageMeter: UsageMeter.Record
-  product: Product.Record
   price: Price.Record
 }> => {
   if (!organizationId) {
@@ -45,6 +44,12 @@ export const createUsageMeterTransaction = async (
   }
 
   const { usageMeter: usageMeterInput, price: priceInput } = payload
+
+  // Get organization's default currency
+  const organization = await selectOrganizationById(
+    organizationId,
+    transaction
+  )
 
   const usageMeter = await insertUsageMeter(
     {
@@ -59,40 +64,29 @@ export const createUsageMeterTransaction = async (
   const unitPrice = priceInput?.unitPrice ?? 0
   const usageEventsPerUnit = priceInput?.usageEventsPerUnit ?? 1
 
-  // Create product and price using the same slug as the usage meter
-  // This will throw if there's a slug collision, causing the transaction to rollback
-  const { product, prices } = await createProductTransaction(
+  // Create usage price directly with productId: null
+  // Usage prices belong to usage meters, not products
+  const price = await safelyInsertPrice(
     {
-      product: {
-        name: usageMeter.name,
-        slug: usageMeter.slug,
-        pricingModelId: usageMeter.pricingModelId,
-        default: false,
-        active: true,
-        singularQuantityLabel: 'unit',
-        pluralQuantityLabel: 'units',
-      },
-      prices: [
-        {
-          type: PriceType.Usage,
-          slug: usageMeter.slug,
-          unitPrice,
-          usageMeterId: usageMeter.id,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          usageEventsPerUnit,
-          trialPeriodDays: null,
-          isDefault: true,
-          active: true,
-        },
-      ],
+      type: PriceType.Usage,
+      name: usageMeter.name,
+      slug: usageMeter.slug,
+      productId: null,
+      pricingModelId: usageMeter.pricingModelId,
+      usageMeterId: usageMeter.id,
+      unitPrice,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      usageEventsPerUnit,
+      trialPeriodDays: null,
+      livemode,
+      currency: organization.defaultCurrency,
     },
-    { transaction, livemode, organizationId, userId, invalidateCache }
+    transaction
   )
 
   return {
     usageMeter,
-    product,
-    price: prices[0],
+    price,
   }
 }

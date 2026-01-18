@@ -78,7 +78,6 @@ describe('createNonInvoiceCheckoutSession', () => {
       isDefault: false,
     })
     usagePrice = await setupPrice({
-      productId: nonDefaultProduct.id,
       type: PriceType.Usage,
       name: 'Usage Price',
       unitPrice: 100,

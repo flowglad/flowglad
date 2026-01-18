@@ -31,6 +31,7 @@ import type { RichSubscription } from '@/subscriptions/schemas'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
+  PriceType,
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
@@ -203,9 +204,13 @@ const InnerSubscriptionPage = ({
                   )
 
                 // Get product ID and name from the price
-                const productId = item.price.productId
-                const productName =
-                  productNames[productId] || 'Unnamed Product'
+                const productId =
+                  item.price.type !== PriceType.Usage
+                    ? item.price.productId
+                    : null
+                const productName = productId
+                  ? (productNames[productId] ?? 'Unnamed Product')
+                  : 'Usage-Based'
 
                 // Get appropriate date info based on subscription lifecycle state
                 // (handles active/renewing, cancellation scheduled, and canceled states)
@@ -228,7 +233,9 @@ const InnerSubscriptionPage = ({
                     variant="subscription"
                     quantity={item.quantity}
                     renewalDate={renewalDate}
-                    href={`/products/${productId}`}
+                    href={
+                      productId ? `/products/${productId}` : undefined
+                    }
                   />
                 )
               })}

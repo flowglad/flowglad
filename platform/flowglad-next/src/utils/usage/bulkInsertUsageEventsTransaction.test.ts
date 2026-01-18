@@ -68,7 +68,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     price = await setupPrice({
-      productId,
       name: 'Test Usage Price',
       type: PriceType.Usage,
       unitPrice: 10,
@@ -229,7 +228,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       })
 
       const price2 = await setupPrice({
-        productId: product2Id,
         name: 'Org2 Usage Price',
         type: PriceType.Usage,
         unitPrice: 20, // Different unit price
@@ -347,7 +345,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
       // Create a price for org2 that uses usageMeter2
       const price2 = await setupPrice({
-        productId: org2Setup.product.id,
         name: 'Org2 Usage Price For Meter Slug Test',
         type: PriceType.Usage,
         unitPrice: 15,
@@ -527,7 +524,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const otherPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
-            productId: otherOrg.product.id,
             name: 'Other Usage Price',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -581,7 +577,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const countDistinctPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
-            productId,
             name: 'Count Distinct Price',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -643,7 +638,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const countDistinctPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
-            productId,
             name: 'Count Distinct Price Empty Props',
             type: PriceType.Usage,
             unitPrice: 10,

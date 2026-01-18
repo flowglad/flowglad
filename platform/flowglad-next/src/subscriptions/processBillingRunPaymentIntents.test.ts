@@ -1908,7 +1908,6 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
       name: 'Test Usage Meter',
     })
     const usagePrice = await setupPrice({
-      productId: product.id,
       name: 'Usage Price',
       type: PriceType.Usage,
       unitPrice: 10,

@@ -66,11 +66,27 @@ export const USAGE_LIMIT_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       name: 'Usage-Limit Subscription',
       isDefault: false,
 
-      // Usage Meters
+      // Usage Meters with their prices
       usageMeters: [
         {
-          slug: 'fast_premium_requests',
-          name: 'Fast Premium Requests',
+          usageMeter: {
+            slug: 'fast_premium_requests',
+            name: 'Fast Premium Requests',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'fast_request_overage',
+              isDefault: true,
+              name: 'Fast Request Overage',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 10,
+            },
+          ],
         },
       ],
 
@@ -279,33 +295,8 @@ export const USAGE_LIMIT_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             'priority_access',
           ],
         },
-        {
-          product: {
-            name: 'Fast Request Overages',
-            default: false,
-            description:
-              'Additional fast requests billed at cost after included credits exhausted',
-            slug: 'fast_request_overages',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: 'request',
-            pluralQuantityLabel: 'requests',
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'fast_request_overage',
-            isDefault: true,
-            name: 'Fast Request Overage',
-            usageMeterSlug: 'fast_premium_requests',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 10,
-          },
-          features: [],
-        },
+        // Note: Usage prices are under usageMeters[].prices
+        // The "Fast Request Overages" product has been moved to usageMeters
       ],
     },
   }
@@ -349,22 +340,126 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       name: 'Unlimited Usage Subscription',
       isDefault: false,
 
-      // Usage Meters
+      // Usage Meters with their prices
+      // This template uses UsageCreditGrant features for limits
+      // $0 tracking prices are used to track usage events
       usageMeters: [
         {
-          slug: 'gpt_5_thinking_messages',
-          name: 'GPT-5 Thinking Messages',
+          usageMeter: {
+            slug: 'gpt_5_thinking_messages',
+            name: 'GPT-5 Thinking Messages',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'gpt5_tracking',
+              isDefault: true,
+              name: 'Default Price',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 0,
+            },
+          ],
         },
-        { slug: 'o3_messages', name: 'o3 Messages' },
-        { slug: 'o4_mini_messages', name: 'o4-mini Messages' },
         {
-          slug: 'o4_mini_high_messages',
-          name: 'o4-mini-high Messages',
+          usageMeter: { slug: 'o3_messages', name: 'o3 Messages' },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'o3_tracking',
+              isDefault: true,
+              name: 'Default Price',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 0,
+            },
+          ],
         },
-        { slug: 'agent_messages', name: 'Agent Mode Messages' },
         {
-          slug: 'deep_research_requests',
-          name: 'Deep Research Requests',
+          usageMeter: {
+            slug: 'o4_mini_messages',
+            name: 'o4-mini Messages',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'o4_mini_tracking',
+              isDefault: true,
+              name: 'Default Price',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 0,
+            },
+          ],
+        },
+        {
+          usageMeter: {
+            slug: 'o4_mini_high_messages',
+            name: 'o4-mini-high Messages',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'o4_mini_high_tracking',
+              isDefault: true,
+              name: 'Default Price',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 0,
+            },
+          ],
+        },
+        {
+          usageMeter: {
+            slug: 'agent_messages',
+            name: 'Agent Mode Messages',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'agent_tracking',
+              isDefault: true,
+              name: 'Default Price',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 0,
+            },
+          ],
+        },
+        {
+          usageMeter: {
+            slug: 'deep_research_requests',
+            name: 'Deep Research Requests',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'deep_research_tracking',
+              isDefault: true,
+              name: 'Default Price',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 0,
+            },
+          ],
         },
       ],
 
@@ -761,176 +856,7 @@ export const UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           displayGroup: 'business',
           displayOrder: 1,
         },
-        {
-          product: {
-            name: 'o3 Tracking',
-            default: false,
-            description: 'Tool for tracking o3 usage events',
-            slug: 'o3_tracking',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'o3_tracking',
-            isDefault: true,
-            name: 'Default Price',
-            usageMeterSlug: 'o3_messages',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 0,
-          },
-          features: [],
-          displayGroup: 'hidden',
-          displayOrder: 1,
-        },
-        {
-          product: {
-            name: 'o4 mini Tracking',
-            default: false,
-            description: 'Tool for tracking o4-mini usage events',
-            slug: 'o4_mini_tracking',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'o4_mini_tracking',
-            isDefault: true,
-            name: 'Default Price',
-            usageMeterSlug: 'o4_mini_messages',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 0,
-          },
-          features: [],
-          displayGroup: 'hidden',
-          displayOrder: 2,
-        },
-        {
-          product: {
-            name: 'o4 mini-high Tracking',
-            default: false,
-            description:
-              'Tool for tracking o4-mini-high usage events',
-            slug: 'o4_mini_high_tracking',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'o4_mini_high_tracking',
-            isDefault: true,
-            name: 'Default Price',
-            usageMeterSlug: 'o4_mini_high_messages',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 0,
-          },
-          features: [],
-          displayGroup: 'hidden',
-          displayOrder: 3,
-        },
-        {
-          product: {
-            name: 'GPT5 Tracking',
-            default: false,
-            description: 'Tool for tracking GPT5 usage events',
-            slug: 'gpt5_tracking',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'gpt5_tracking',
-            isDefault: true,
-            name: 'Default Price',
-            usageMeterSlug: 'gpt_5_thinking_messages',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 0,
-          },
-          features: [],
-          displayGroup: 'hidden',
-          displayOrder: 4,
-        },
-        {
-          product: {
-            name: 'Agent Tracking',
-            default: false,
-            description: 'Tool for tracking Agent usage events',
-            slug: 'agent_tracking',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'agent_tracking',
-            isDefault: true,
-            name: 'Default Price',
-            usageMeterSlug: 'agent_messages',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 0,
-          },
-          features: [],
-          displayGroup: 'hidden',
-          displayOrder: 5,
-        },
-        {
-          product: {
-            name: 'Deep Research Tracking',
-            default: false,
-            description:
-              'Tool for tracking Deep Research usage events',
-            slug: 'deep_research_tracking',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'deep_research_tracking',
-            isDefault: true,
-            name: 'Default Price',
-            usageMeterSlug: 'deep_research_requests',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 0,
-          },
-          features: [],
-          displayGroup: 'hidden',
-          displayOrder: 6,
-        },
+        // Note: Usage tracking prices are under usageMeters[].prices
       ],
     },
   }
@@ -974,15 +900,47 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       name: 'AI Image Generation Subscription',
       isDefault: false,
 
-      // Usage Meters
+      // Usage Meters with their prices
       usageMeters: [
         {
-          slug: 'fast_generations',
-          name: 'Fast Generations',
+          usageMeter: {
+            slug: 'fast_generations',
+            name: 'Fast Generations',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'fast_generation_usage',
+              isDefault: true,
+              name: 'Fast Generation Usage',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 5,
+            },
+          ],
         },
         {
-          slug: 'hd_video_minutes',
-          name: 'HD Video Minutes',
+          usageMeter: {
+            slug: 'hd_video_minutes',
+            name: 'HD Video Minutes',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'hd_video_minute_usage',
+              isDefault: true,
+              name: 'HD Video Minute Usage',
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              unitPrice: 100,
+            },
+          ],
         },
       ],
 
@@ -1326,64 +1284,7 @@ export const AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           displayGroup: 'hd_video_minute_top_ups',
           displayOrder: 2,
         },
-        {
-          product: {
-            name: 'Fast Generation Usage Price',
-            default: false,
-            description:
-              'Usage price for fast generations - defines cost per generation event',
-            slug: 'fast_generation_usage_price',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'fast_generation_usage',
-            isDefault: true,
-            name: 'Fast Generation Usage',
-            usageMeterSlug: 'fast_generations',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 5,
-          },
-          features: [],
-          displayGroup: 'hidden',
-          displayOrder: 1,
-        },
-        {
-          product: {
-            name: 'HD Video Minute Usage Price',
-            default: false,
-            description:
-              'Usage price for HD video minutes - defines cost per minute event',
-            slug: 'hd_video_minute_usage_price',
-            active: true,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'hd_video_minute_usage',
-            isDefault: true,
-            name: 'HD Video Minute Usage',
-            usageMeterSlug: 'hd_video_minutes',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 1,
-            active: true,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            unitPrice: 100,
-          },
-          features: [],
-          displayGroup: 'hidden',
-          displayOrder: 2,
-        },
+        // Note: Usage prices are under usageMeters[].prices
       ],
     },
   }
@@ -1429,8 +1330,37 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       // Usage Meters - None needed for seat-based billing
       usageMeters: [],
 
+      // Resources - defines the "teams" resource for this pricing model
+      resources: [
+        {
+          slug: 'teams',
+          name: 'Teams',
+          active: true,
+        },
+      ],
+
       // Features
       features: [
+        // Resource features - grant team capacity per product tier
+        {
+          type: FeatureType.Resource,
+          slug: 'free_teams',
+          name: 'Free Plan Teams',
+          description: 'Team allocation for Free plan subscribers',
+          resourceSlug: 'teams',
+          amount: 2,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'basic_teams',
+          name: 'Basic Plan Teams',
+          description: 'Team allocation for Basic plan subscribers',
+          resourceSlug: 'teams',
+          amount: 5,
+          active: true,
+        },
+
         // Core features
         {
           type: FeatureType.Toggle,
@@ -1675,6 +1605,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 0,
           },
           features: [
+            'free_teams',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1711,6 +1642,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 1000,
           },
           features: [
+            'basic_teams',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1752,6 +1684,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 12000,
           },
           features: [
+            'basic_teams',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1969,8 +1902,47 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       // Usage Meters - None needed for seat-based billing
       usageMeters: [],
 
+      // Resources - defines the "users" resource for this pricing model
+      resources: [
+        {
+          slug: 'users',
+          name: 'Users',
+          active: true,
+        },
+      ],
+
       // Features
       features: [
+        // Resource features - grant user capacity per product tier (1 seat each, adjustSubscription handles scaling)
+        {
+          type: FeatureType.Resource,
+          slug: 'basic_users',
+          name: 'Basic Plan Users',
+          description: 'User allocation for Basic plan subscribers',
+          resourceSlug: 'users',
+          amount: 1,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'business_users',
+          name: 'Business Plan Users',
+          description:
+            'User allocation for Business plan subscribers',
+          resourceSlug: 'users',
+          amount: 1,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'enterprise_users',
+          name: 'Enterprise Plan Users',
+          description:
+            'User allocation for Enterprise plan subscribers',
+          resourceSlug: 'users',
+          amount: 1,
+          active: true,
+        },
         // Basic (Free) tier features
         {
           type: FeatureType.Toggle,
@@ -2134,6 +2106,7 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 0,
           },
           features: [
+            'basic_users',
             'ai_meeting_notes',
             '14_day_history',
             'ai_chat',
@@ -2168,6 +2141,7 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 1400,
           },
           features: [
+            'business_users',
             'ai_meeting_notes',
             '14_day_history',
             'ai_chat',
@@ -2206,6 +2180,7 @@ export const AI_MEETING_NOTES_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 3500,
           },
           features: [
+            'enterprise_users',
             'ai_meeting_notes',
             '14_day_history',
             'ai_chat',
@@ -2264,11 +2239,27 @@ export const AI_TOKEN_USAGE_TEMPLATE: PricingModelTemplate = {
     name: 'AI Token Usage',
     isDefault: false,
 
-    // Usage Meters
+    // Usage Meters with their prices
     usageMeters: [
       {
-        slug: 'api_tokens',
-        name: 'API Tokens',
+        usageMeter: {
+          slug: 'api_tokens',
+          name: 'API Tokens',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'token_overage',
+            isDefault: true,
+            name: 'Token Overage',
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1000,
+            active: true,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            unitPrice: 10,
+          },
+        ],
       },
     ],
 
@@ -2470,33 +2461,8 @@ export const AI_TOKEN_USAGE_TEMPLATE: PricingModelTemplate = {
         displayGroup: 'business',
         displayOrder: 1,
       },
-      {
-        product: {
-          name: 'Token Overages',
-          default: false,
-          description:
-            'Additional tokens billed at cost after included credits exhausted',
-          slug: 'token_overages',
-          active: true,
-          imageURL: null,
-          singularQuantityLabel: 'token',
-          pluralQuantityLabel: 'tokens',
-        },
-        price: {
-          type: PriceType.Usage,
-          slug: 'token_overage',
-          isDefault: true,
-          name: 'Token Overage',
-          usageMeterSlug: 'api_tokens',
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1000,
-          active: true,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          unitPrice: 10,
-        },
-        features: [],
-      },
+      // Note: Usage prices are under usageMeters[].prices
+      // The "Token Overages" product has been moved to usageMeters
     ],
   },
 }
