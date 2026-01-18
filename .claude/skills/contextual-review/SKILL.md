@@ -1,11 +1,11 @@
 ---
-name: pr-review
+name: contextual-review
 description: Review pull requests for code quality, security vulnerabilities, best practices, and potential issues. Use when reviewing PRs, examining diffs, or providing code review feedback.
 ---
 
-# PR Review
+# Contextual Review
 
-Perform comprehensive code review on pull requests, analyzing changes for quality, correctness, security, and adherence to project standards.
+Perform comprehensive reviews of code changes, implementation plans, and architecture decisions. Analyzes for quality, correctness, security, and adherence to project standards.
 
 ## When to Use
 
@@ -13,6 +13,8 @@ Perform comprehensive code review on pull requests, analyzing changes for qualit
 - Examining workspace diffs before creating a PR
 - Getting feedback on code changes
 - Identifying potential issues before merging
+- Reviewing gameplans and implementation plans before execution
+- Validating data model and API design decisions
 
 ## Area-Specific Guidelines
 
