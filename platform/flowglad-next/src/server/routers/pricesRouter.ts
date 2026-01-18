@@ -7,12 +7,12 @@ import {
 import {
   createPriceSchema,
   editPriceSchema,
-  isReservedPriceSlug,
   Price,
   pricesClientSelectSchema,
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
   pricesTableRowDataSchema,
+  validateUsagePriceSlug,
 } from '@/db/schema/prices'
 import {
   safelyUpdatePrice,
@@ -70,18 +70,7 @@ export const createPrice = protectedProcedure
       async ({ transaction, livemode, organizationId, userId }) => {
         const { price } = input
 
-        // Validate reserved slug for usage prices only
-        if (
-          price.type === PriceType.Usage &&
-          price.slug &&
-          isReservedPriceSlug(price.slug)
-        ) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices',
-          })
-        }
+        validateUsagePriceSlug(price)
 
         const newPrice = await createPriceTransaction(
           { price },
@@ -333,18 +322,7 @@ export const replaceUsagePrice = protectedProcedure
           })
         }
 
-        // Validate reserved slug for usage prices
-        if (
-          input.newPrice.type === PriceType.Usage &&
-          input.newPrice.slug &&
-          isReservedPriceSlug(input.newPrice.slug)
-        ) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices',
-          })
-        }
+        validateUsagePriceSlug(input.newPrice)
 
         // Create the new price
         const newPrice = await createPriceTransaction(

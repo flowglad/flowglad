@@ -1786,7 +1786,10 @@ describe('pricesRouter - Reserved Slug Validation', () => {
             usageEventsPerUnit: 1,
           },
         })
-      ).rejects.toThrow('_no_charge')
+      ).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+        message: expect.stringContaining('_no_charge'),
+      })
     })
 
     it('allows usage price creation with slug not ending in _no_charge', async () => {
@@ -1923,7 +1926,10 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           },
           oldPriceId: existingUsagePriceId,
         })
-      ).rejects.toThrow('_no_charge')
+      ).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+        message: expect.stringContaining('_no_charge'),
+      })
     })
 
     it('allows replacement with slug not ending in _no_charge', async () => {

@@ -8,6 +8,7 @@ import {
 } from '@/db/schema/features'
 import {
   isReservedPriceSlug,
+  RESERVED_USAGE_PRICE_SLUG_SUFFIX,
   singlePaymentPriceClientInsertSchema,
   subscriptionPriceClientInsertSchema,
   usagePriceClientInsertSchema,
@@ -138,11 +139,14 @@ export const setupUsageMeterPriceInputSchema =
     .extend({
       ...priceOptionalFieldSchema,
     })
-    .refine((data) => !isReservedPriceSlug(data.slug ?? ''), {
-      message:
-        'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices',
-      path: ['slug'],
-    })
+    .refine(
+      // Only validate if slug is provided - undefined/null slugs are allowed
+      (data) => !data.slug || !isReservedPriceSlug(data.slug),
+      {
+        message: `Usage price slugs ending with "${RESERVED_USAGE_PRICE_SLUG_SUFFIX}" are reserved for auto-generated fallback prices`,
+        path: ['slug'],
+      }
+    )
 
 export type SetupUsageMeterPriceInput = z.infer<
   typeof setupUsageMeterPriceInputSchema
