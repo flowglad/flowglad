@@ -6,6 +6,7 @@ type Catalog = FlowgladNode.CustomerRetrieveBillingResponse['catalog']
 type Product =
   FlowgladNode.CustomerRetrieveBillingResponse['catalog']['products'][number]
 type Price = Product['prices'][number]
+type UsagePrice = FlowgladNode.UsagePriceClientSelectSchema
 
 // Helper to create a minimal price fixture
 const createPrice = (overrides: Partial<Price> = {}): Price =>
@@ -19,6 +20,32 @@ const createPrice = (overrides: Partial<Price> = {}): Price =>
     updatedAt: '2024-01-01T00:00:00Z',
     ...overrides,
   }) as Price
+
+// Helper to create a minimal usage price fixture
+const createUsagePrice = (
+  overrides: Partial<UsagePrice> = {}
+): UsagePrice =>
+  ({
+    id: 'price_default_usage',
+    slug: 'default-usage-price',
+    type: 'usage',
+    name: 'Default Usage Price',
+    livemode: false,
+    createdAt: 1704067200000,
+    updatedAt: 1704067200000,
+    active: true,
+    currency: 'USD',
+    intervalCount: 1,
+    intervalUnit: 'month',
+    isDefault: false,
+    pricingModelId: 'pm_default',
+    productId: null,
+    trialPeriodDays: null,
+    unitPrice: 100,
+    usageEventsPerUnit: 1,
+    usageMeterId: 'meter_default',
+    ...overrides,
+  }) as UsagePrice
 
 // Helper to create a minimal product fixture
 const createProduct = (overrides: Partial<Product> = {}): Product =>
@@ -37,8 +64,8 @@ type UsageMeter = Catalog['usageMeters'][number]
 
 // Helper to create a minimal usage meter fixture with prices
 const createUsageMeter = (
-  overrides: Partial<UsageMeter> & { prices?: Price[] } = {}
-): UsageMeter & { prices?: Price[] } =>
+  overrides: Partial<UsageMeter> = {}
+): UsageMeter =>
   ({
     id: 'meter_default',
     slug: 'default-meter',
@@ -49,15 +76,12 @@ const createUsageMeter = (
     updatedAt: '2024-01-01T00:00:00Z',
     organizationId: 'org_default',
     pricingModelId: 'pm_default',
+    prices: [],
     ...overrides,
-  }) as UsageMeter & { prices?: Price[] }
+  }) as UsageMeter
 
 // Helper to create a minimal catalog fixture
-const createCatalog = (
-  overrides: Partial<Catalog> & {
-    usageMeters?: Array<UsageMeter & { prices?: Price[] }>
-  } = {}
-): Catalog =>
+const createCatalog = (overrides: Partial<Catalog> = {}): Catalog =>
   ({
     id: 'catalog_default',
     products: [],
@@ -199,10 +223,10 @@ describe('constructGetPrice', () => {
 
   describe('usage meter prices', () => {
     it('returns the price when a usage meter contains a price matching the given slug', () => {
-      const usagePrice = createPrice({
+      const usagePrice = createUsagePrice({
         id: 'price_api_calls',
         slug: 'api-calls-price',
-        type: 'usage',
+        usageMeterId: 'meter_api_calls',
       })
       const usageMeter = createUsageMeter({
         id: 'meter_api_calls',
@@ -223,9 +247,9 @@ describe('constructGetPrice', () => {
     })
 
     it('returns null when no usage meter price matches the given slug', () => {
-      const usagePrice = createPrice({
+      const usagePrice = createUsagePrice({
         slug: 'existing-usage-price',
-        type: 'usage',
+        usageMeterId: 'meter_1',
       })
       const usageMeter = createUsageMeter({
         id: 'meter_1',
@@ -242,34 +266,16 @@ describe('constructGetPrice', () => {
       expect(result).toBeNull()
     })
 
-    it('handles usage meters without prices array gracefully', () => {
-      const usageMeterWithoutPrices = createUsageMeter({
-        id: 'meter_no_prices',
-        slug: 'meter-no-prices',
-        // No prices property - using createUsageMeter defaults
-      })
-      // Remove the prices property to test the graceful handling
-      delete (usageMeterWithoutPrices as { prices?: Price[] }).prices
-      const catalog = createCatalog({
-        usageMeters: [usageMeterWithoutPrices],
-      })
-      const getPrice = constructGetPrice(catalog)
-
-      const result = getPrice('any-slug')
-
-      expect(result).toBeNull()
-    })
-
     it('returns the correct price when multiple usage meters have prices', () => {
-      const apiCallsPrice = createPrice({
+      const apiCallsPrice = createUsagePrice({
         id: 'price_api_calls',
         slug: 'api-calls-per-request',
-        type: 'usage',
+        usageMeterId: 'meter_api',
       })
-      const storagePrice = createPrice({
+      const storagePrice = createUsagePrice({
         id: 'price_storage',
         slug: 'storage-per-gb',
-        type: 'usage',
+        usageMeterId: 'meter_storage',
       })
       const apiMeter = createUsageMeter({
         id: 'meter_api',
@@ -300,10 +306,10 @@ describe('constructGetPrice', () => {
         slug: 'pro-monthly',
         type: 'subscription',
       })
-      const usagePrice = createPrice({
+      const usagePrice = createUsagePrice({
         id: 'price_usage',
         slug: 'api-calls-price',
-        type: 'usage',
+        usageMeterId: 'meter_api',
       })
       const product = createProduct({
         slug: 'pro-plan',
@@ -358,10 +364,10 @@ describe('constructGetPrice', () => {
     })
 
     it('handles a catalog with usage meters but no products', () => {
-      const usagePrice = createPrice({
+      const usagePrice = createUsagePrice({
         id: 'price_only_usage',
         slug: 'usage-price',
-        type: 'usage',
+        usageMeterId: 'meter_1',
       })
       const usageMeter = createUsageMeter({
         id: 'meter_1',
@@ -401,10 +407,10 @@ describe('constructGetPrice', () => {
         slug: 'duplicate-slug',
         type: 'subscription',
       })
-      const usagePrice = createPrice({
+      const usagePrice = createUsagePrice({
         id: 'price_from_usage_meter',
         slug: 'duplicate-slug',
-        type: 'usage',
+        usageMeterId: 'meter_1',
       })
       const product = createProduct({ prices: [productPrice] })
       const usageMeter = createUsageMeter({

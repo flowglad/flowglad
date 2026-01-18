@@ -131,18 +131,10 @@ export const constructGetPrice = (
     )
 
   // Collect prices from usage meters (usage prices)
-  // Usage prices are now nested under usageMeters[].prices instead of products
-  // Cast needed until @flowglad/node types are regenerated from updated OpenAPI spec
-  type UsageMeterWithPrices = {
-    prices?: Price[]
-  }
-  const usageMeterPrices: Array<readonly [string | null, Price]> = (
-    catalog.usageMeters as UsageMeterWithPrices[]
-  ).flatMap((usageMeter) =>
-    (usageMeter.prices ?? []).map(
-      (price) => [price.slug, price] as const
+  const usageMeterPrices: Array<readonly [string | null, Price]> =
+    catalog.usageMeters.flatMap((usageMeter) =>
+      usageMeter.prices.map((price) => [price.slug, price] as const)
     )
-  )
 
   const pricesBySlug = new Map<string | null, Price>([
     ...productPrices,
