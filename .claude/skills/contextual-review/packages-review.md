@@ -63,10 +63,20 @@ packages/
 - Each integration has separate entry point (`./express`, `./supabase`, `./better-auth`)
 - Server-side only - no browser APIs
 
+**Route Handler and better-auth Considerations:**
+- [ ] Any feature that expands the Flowglad route handler surface must consider its corresponding better-auth implementation
+- [ ] New action keys or methods need parallel implementation in the better-auth plugin
+- [ ] Route handler changes should be mirrored in better-auth where applicable
+
 ### @flowglad/react
 - Hooks should follow React conventions (`use*` prefix)
 - Components should be client-safe
 - Avoid server-only dependencies
+
+**Server Dependency Considerations:**
+- [ ] React hooks depend on `@flowglad/server` methods - changes to server may require hook updates
+- [ ] When modifying server methods, check if corresponding React hooks need adjustment
+- [ ] New server capabilities may warrant new React hooks for client-side access
 
 ### @flowglad/nextjs
 - Supports App Router patterns
