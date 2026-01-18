@@ -3831,7 +3831,6 @@ describe('cancelSubscription with resources', async () => {
     // Create 3 cattle claims (no externalId)
     const cattleClaim1 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -3840,7 +3839,6 @@ describe('cancelSubscription with resources', async () => {
 
     const cattleClaim2 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -3849,7 +3847,6 @@ describe('cancelSubscription with resources', async () => {
 
     const cattleClaim3 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -3859,7 +3856,6 @@ describe('cancelSubscription with resources', async () => {
     // Create 2 pet claims (with externalId)
     const petClaim1 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -3868,7 +3864,6 @@ describe('cancelSubscription with resources', async () => {
 
     const petClaim2 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -4028,7 +4023,6 @@ describe('cancelSubscription with resources', async () => {
     for (let i = 0; i < 5; i++) {
       await setupResourceClaim({
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         resourceId: resource.id,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,

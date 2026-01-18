@@ -7,7 +7,8 @@ import {
 import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import {
-  countActiveClaimsForSubscriptionItemFeatures,
+  countActiveResourceClaims,
+  countActiveResourceClaimsBatch,
   selectActiveResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
@@ -18,6 +19,7 @@ import type { DbTransaction } from '@/db/types'
 import {
   claimResourceInputSchema,
   claimResourceTransaction,
+  getAggregatedResourceCapacity,
   getResourceUsageInputSchema,
   releaseResourceInputSchema,
   releaseResourceTransaction,
@@ -360,6 +362,7 @@ const getUsageProcedure = protectedProcedure
           transaction
         )
 
+        // Check if any features provide this resource
         const resourceFeature = allFeatures.find(
           (
             feature
@@ -375,21 +378,30 @@ const getUsageProcedure = protectedProcedure
           })
         }
 
-        const claimed =
-          (
-            await countActiveClaimsForSubscriptionItemFeatures(
-              [resourceFeature.id],
-              transaction
-            )
-          ).get(resourceFeature.id) ?? 0
+        // Get aggregated capacity from all features for this resource
+        const { totalCapacity } = await getAggregatedResourceCapacity(
+          {
+            subscriptionId: input.subscriptionId,
+            resourceId: resource.id,
+          },
+          transaction
+        )
 
-        const capacity = resourceFeature.amount
+        // Count active claims by (subscriptionId, resourceId)
+        const claimed = await countActiveResourceClaims(
+          {
+            subscriptionId: input.subscriptionId,
+            resourceId: resource.id,
+          },
+          transaction
+        )
+
         const usage = {
           resourceSlug: resource.slug,
           resourceId: resource.id,
-          capacity,
+          capacity: totalCapacity,
           claimed,
-          available: capacity - claimed,
+          available: totalCapacity - claimed,
         }
 
         const claims = await selectActiveResourceClaims(
@@ -520,23 +532,41 @@ const listResourceUsagesProcedure = protectedProcedure
           filteredResources.map((r) => [r.id, r])
         )
 
-        const featureIds = resourceFeatures.map((f) => f.id)
-        const claimCountsByFeatureId =
-          await countActiveClaimsForSubscriptionItemFeatures(
-            featureIds,
+        // Aggregate by resource: calculate total capacity from all features for each resource
+        const capacityByResourceId = new Map<string, number>()
+        for (const feature of resourceFeatures) {
+          const existing =
+            capacityByResourceId.get(feature.resourceId!) ?? 0
+          capacityByResourceId.set(
+            feature.resourceId!,
+            existing + feature.amount
+          )
+        }
+
+        // Get unique resource IDs that match our filters
+        const filteredResourceIds = Array.from(resourcesById.keys())
+
+        // Batch count active claims by (subscriptionId, resourceId)
+        const claimCountsByResourceId =
+          await countActiveResourceClaimsBatch(
+            {
+              subscriptionId: input.subscriptionId,
+              resourceIds: filteredResourceIds,
+            },
             transaction
           )
 
-        const usageResults = resourceFeatures
-          .map((feature) => {
-            const resource = resourcesById.get(feature.resourceId!)
+        // Build usage results - one entry per unique resource
+        const usageResults = filteredResourceIds
+          .map((resourceId) => {
+            const resource = resourcesById.get(resourceId)
             if (!resource) {
               return null
             }
 
-            const capacity = feature.amount
+            const capacity = capacityByResourceId.get(resourceId) ?? 0
             const claimed =
-              claimCountsByFeatureId.get(feature.id) ?? 0
+              claimCountsByResourceId.get(resourceId) ?? 0
 
             return {
               resourceSlug: resource.slug,
