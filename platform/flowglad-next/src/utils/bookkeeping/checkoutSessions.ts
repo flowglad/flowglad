@@ -148,10 +148,8 @@ export const editCheckoutSession = async (
       },
       transaction
     )
-    // Invalidate purchase cache after updating purchase
-    invalidateCache(
-      CacheDependency.customerPurchases(purchase.customerId!)
-    )
+    // Invalidate purchase cache after updating purchase content (billing address)
+    invalidateCache(CacheDependency.purchase(purchase.id))
   }
 
   const stripePaymentIntentId =

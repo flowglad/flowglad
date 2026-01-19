@@ -98,7 +98,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
           id: z.string(),
           name: z.string(),
         }),
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       mockFn
     )
@@ -149,7 +149,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
           id: z.string(),
           status: z.string(),
         }),
-        dependenciesFn: () => [dependencyKey],
+        dependenciesFn: (_result) => [dependencyKey],
       },
       mockFn
     )
@@ -266,7 +266,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
           id: z.string(),
           value: z.string(),
         }),
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       mockFn
     )
@@ -320,7 +320,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
           id: z.string(),
           value: z.string(),
         }),
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       mockFn
     )
@@ -375,7 +375,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
           livemode: z.boolean(),
           callNumber: z.number(),
         }),
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       mockFn
     )
@@ -423,7 +423,7 @@ describeIfRedisKey('Cache Integration Tests', () => {
           id: z.string(),
           version: z.number(),
         }),
-        dependenciesFn: (id: string) => [
+        dependenciesFn: (_result, id: string) => [
           CacheDependency.customerSubscriptions(id),
         ],
       },
@@ -503,7 +503,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
         namespace: TEST_NAMESPACE,
         keyFn: (key: string) => `${testKeyPrefix}_${key}`,
         schema: itemSchema.array(),
-        dependenciesFn: (key: string) => [
+        dependenciesFn: (_items, key: string) => [
           `${testKeyPrefix}_dep_${key}`,
         ],
       },
@@ -541,7 +541,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
         namespace: TEST_NAMESPACE,
         keyFn: (key: string) => key,
         schema: z.string().array(),
-        dependenciesFn: () => [],
+        dependenciesFn: (_items, _key: string) => [],
       },
       [],
       async () => [],
@@ -578,7 +578,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
         namespace: TEST_NAMESPACE,
         keyFn: (key: string) => `${testKeyPrefix}_${key}`,
         schema: itemSchema.array(),
-        dependenciesFn: (key: string) => [
+        dependenciesFn: (_items, key: string) => [
           `${testKeyPrefix}_dep_${key}`,
         ],
       },
@@ -621,7 +621,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
         namespace: TEST_NAMESPACE,
         keyFn: (key: string) => `${testKeyPrefix}_${key}`,
         schema: itemSchema.array(),
-        dependenciesFn: (key: string) => [
+        dependenciesFn: (_items, key: string) => [
           `${testKeyPrefix}_dep_${key}`,
         ],
       },
@@ -660,7 +660,7 @@ describeIfRedisKey('cachedBulkLookup Integration Tests', () => {
       namespace: TEST_NAMESPACE,
       keyFn: (key: string) => `${testKeyPrefix}_${key}`,
       schema: itemSchema.array(),
-      dependenciesFn: (key: string) => [
+      dependenciesFn: (_items: TestItem[], key: string) => [
         `${testKeyPrefix}_dep_${key}`,
       ],
     }

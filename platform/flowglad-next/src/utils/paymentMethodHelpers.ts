@@ -9,7 +9,6 @@ import {
 } from '@/db/tableMethods/paymentMethodMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import { PaymentMethodType } from '@/types'
-import { CacheDependency } from '@/utils/cache'
 import { titleCase } from '@/utils/core'
 import { getStripePaymentMethod } from '@/utils/stripe'
 
@@ -65,7 +64,7 @@ export const paymentMethodForStripePaymentMethodId = async (
   },
   ctx: TransactionEffectsContext
 ): Promise<PaymentMethod.Record> => {
-  const { transaction, invalidateCache } = ctx
+  const { transaction } = ctx
   const stripePaymentMethod = await getStripePaymentMethod(
     stripePaymentMethodId,
     livemode
@@ -90,12 +89,9 @@ export const paymentMethodForStripePaymentMethodId = async (
       )
     paymentMethod = await safelyInsertPaymentMethod(
       paymentMethodInsert,
-      transaction
+      ctx
     )
-    // Invalidate payment methods cache after inserting a new payment method
-    invalidateCache(
-      CacheDependency.customerPaymentMethods(customerId)
-    )
+    // Note: safelyInsertPaymentMethod now handles set membership invalidation internally
   }
   return paymentMethod
 }

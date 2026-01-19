@@ -159,6 +159,7 @@ export enum RedisKeyNamespace {
   PaymentMethodsByCustomer = 'paymentMethodsByCustomer',
   PurchasesByCustomer = 'purchasesByCustomer',
   InvoicesByCustomer = 'invoicesByCustomer',
+  UsageMetersByPricingModel = 'usageMetersByPricingModel',
   CacheDependencyRegistry = 'cacheDeps',
   CacheRecomputeMetadata = 'cacheRecompute',
 }
@@ -207,6 +208,9 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.InvoicesByCustomer]: {
     max: 50000,
+  },
+  [RedisKeyNamespace.UsageMetersByPricingModel]: {
+    max: 50000, // Usage meters are config data, typically 5-20 per pricing model
   },
   [RedisKeyNamespace.CacheDependencyRegistry]: {
     max: 500000, // Higher limit - these are small Sets mapping deps to cache keys
