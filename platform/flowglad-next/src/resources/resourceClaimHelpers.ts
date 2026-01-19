@@ -374,6 +374,87 @@ export const getAggregatedResourceCapacity = async (
   }
 }
 
+/**
+ * Batch version of getAggregatedResourceCapacity.
+ *
+ * Gets the aggregated resource capacity for multiple resources from all active
+ * subscription item features.
+ *
+ * "Active" means:
+ * 1. Parent subscription item is active (expiresAt IS NULL OR expiresAt > now())
+ * 2. Feature itself is not expired (expiredAt IS NULL OR expiredAt > now())
+ *
+ * @param params - subscriptionId and resourceIds to aggregate capacity for
+ * @param transaction - Database transaction
+ * @returns Map of resourceId to totalCapacity
+ */
+export const getAggregatedResourceCapacityBatch = async (
+  params: {
+    subscriptionId: string
+    resourceIds: string[]
+  },
+  transaction: DbTransaction
+): Promise<Map<string, number>> => {
+  const capacityByResourceId = new Map<string, number>()
+
+  if (params.resourceIds.length === 0) {
+    return capacityByResourceId
+  }
+
+  const now = Date.now()
+
+  // Get all currently active subscription items for this subscription
+  const activeItems = await selectCurrentlyActiveSubscriptionItems(
+    { subscriptionId: params.subscriptionId },
+    now,
+    transaction
+  )
+
+  if (activeItems.length === 0) {
+    // Initialize all requested resources with 0 capacity
+    for (const resourceId of params.resourceIds) {
+      capacityByResourceId.set(resourceId, 0)
+    }
+    return capacityByResourceId
+  }
+
+  const subscriptionItemIds = activeItems.map((item) => item.id)
+
+  // Get all subscription item features for these active items
+  const allFeatures =
+    await selectSubscriptionItemFeaturesBySubscriptionItemIds(
+      subscriptionItemIds,
+      transaction
+    )
+
+  // Filter to Resource features that are not expired and match requested resources
+  const requestedResourceIds = new Set(params.resourceIds)
+  const resourceFeatures = allFeatures.filter(
+    (f): f is SubscriptionItemFeature.ResourceRecord =>
+      f.type === FeatureType.Resource &&
+      f.resourceId !== null &&
+      requestedResourceIds.has(f.resourceId) &&
+      (f.expiredAt === null || f.expiredAt > now)
+  )
+
+  // Initialize all requested resources with 0 capacity
+  for (const resourceId of params.resourceIds) {
+    capacityByResourceId.set(resourceId, 0)
+  }
+
+  // Sum up capacity by resource
+  for (const feature of resourceFeatures) {
+    const existing =
+      capacityByResourceId.get(feature.resourceId!) ?? 0
+    capacityByResourceId.set(
+      feature.resourceId!,
+      existing + feature.amount
+    )
+  }
+
+  return capacityByResourceId
+}
+
 const MAX_OPTIMISTIC_LOCK_RETRIES = 3
 
 /**

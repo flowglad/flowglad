@@ -20,6 +20,7 @@ import {
   claimResourceInputSchema,
   claimResourceTransaction,
   getAggregatedResourceCapacity,
+  getAggregatedResourceCapacityBatch,
   getResourceUsageInputSchema,
   releaseResourceInputSchema,
   releaseResourceTransaction,
@@ -532,19 +533,19 @@ const listResourceUsagesProcedure = protectedProcedure
           filteredResources.map((r) => [r.id, r])
         )
 
-        // Aggregate by resource: calculate total capacity from all features for each resource
-        const capacityByResourceId = new Map<string, number>()
-        for (const feature of resourceFeatures) {
-          const existing =
-            capacityByResourceId.get(feature.resourceId!) ?? 0
-          capacityByResourceId.set(
-            feature.resourceId!,
-            existing + feature.amount
-          )
-        }
-
         // Get unique resource IDs that match our filters
         const filteredResourceIds = Array.from(resourcesById.keys())
+
+        // Get aggregated capacity using the batch helper
+        // This correctly filters for active subscription items and non-expired features
+        const capacityByResourceId =
+          await getAggregatedResourceCapacityBatch(
+            {
+              subscriptionId: input.subscriptionId,
+              resourceIds: filteredResourceIds,
+            },
+            transaction
+          )
 
         // Batch count active claims by (subscriptionId, resourceId)
         const claimCountsByResourceId =
