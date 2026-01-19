@@ -1,4 +1,5 @@
 import {
+  type AuthenticatedActionKey,
   FlowgladActionKey,
   flowgladActionValidators,
 } from '@flowglad/shared'
@@ -100,7 +101,7 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.ReleaseResource]: 'releaseResource',
   [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
 } satisfies Record<
-  FlowgladActionKey,
+  AuthenticatedActionKey,
   keyof typeof endpointKeyToActionKey
 >
 
@@ -293,7 +294,9 @@ export const createFlowgladCustomerForOrganization = async (
  * Each endpoint handles authentication, customer resolution, input validation,
  * and delegates to the existing routeToHandlerMap handlers.
  */
-const createFlowgladBillingEndpoint = <T extends FlowgladActionKey>(
+const createFlowgladBillingEndpoint = <
+  T extends AuthenticatedActionKey,
+>(
   actionKey: T,
   options: FlowgladBetterAuthPluginOptions
 ) => {

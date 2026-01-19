@@ -1,6 +1,13 @@
-import { FlowgladActionKey, type HTTPMethod } from '@flowglad/shared'
+import {
+  type AuthenticatedActionKey,
+  FlowgladActionKey,
+  type HTTPMethod,
+} from '@flowglad/shared'
 import type { FlowgladServer } from './FlowgladServer'
-import { routeToHandlerMap } from './subrouteHandlers'
+import {
+  isHybridActionKey,
+  routeToHandlerMap,
+} from './subrouteHandlers'
 import type { SubRouteHandler } from './subrouteHandlers/types'
 
 /**
@@ -124,7 +131,16 @@ export const requestHandler = <TRequest = unknown>(
         )
       }
 
-      const handler = routeToHandlerMap[joinedPath]
+      // Hybrid routes require additional configuration - handled in future patch
+      if (isHybridActionKey(joinedPath)) {
+        throw new RequestHandlerError(
+          `"${joinedPath}" requires apiKey configuration for hybrid route support`,
+          501
+        )
+      }
+
+      const handler =
+        routeToHandlerMap[joinedPath as AuthenticatedActionKey]
       if (!handler) {
         throw new RequestHandlerError(
           `"${joinedPath}" is not a valid Flowglad API path`,
