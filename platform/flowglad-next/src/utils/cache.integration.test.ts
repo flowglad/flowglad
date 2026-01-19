@@ -331,13 +331,12 @@ describeIfRedisKey('Cache Integration Tests', () => {
     // First call - caches 'first'
     await cachedFn('ignore_no_write')
 
-    // Verify cache has 'first'
-    const cachedBefore = await client.get(fullCacheKey)
-    const parsedBefore =
-      typeof cachedBefore === 'string'
-        ? JSON.parse(cachedBefore)
-        : cachedBefore
-    expect(parsedBefore.value).toBe('first')
+    // Verify cache has 'first' (Upstash auto-parses JSON)
+    const cachedBefore = (await client.get(fullCacheKey)) as {
+      id: string
+      value: string
+    }
+    expect(cachedBefore.value).toBe('first')
 
     // Update underlying data
     currentValue = 'second'
@@ -348,13 +347,12 @@ describeIfRedisKey('Cache Integration Tests', () => {
     })
     expect(result.value).toBe('second')
 
-    // Verify cache still has 'first'
-    const cachedAfter = await client.get(fullCacheKey)
-    const parsedAfter =
-      typeof cachedAfter === 'string'
-        ? JSON.parse(cachedAfter)
-        : cachedAfter
-    expect(parsedAfter.value).toBe('first')
+    // Verify cache still has 'first' (Upstash auto-parses JSON)
+    const cachedAfter = (await client.get(fullCacheKey)) as {
+      id: string
+      value: string
+    }
+    expect(cachedAfter.value).toBe('first')
   })
 
   it('ignoreCache option bypasses cache when cached function accepts multiple arguments', async () => {
@@ -1847,11 +1845,13 @@ describeIfRedisKey(
       expect(initialResult).toHaveLength(1)
       expect(initialResult[0].id).toBe(subscription.id)
 
-      // Verify cache and metadata are populated
+      // Verify cache and metadata are populated (Upstash auto-parses JSON)
       const cachedValueBefore = await client.get(cacheKey)
-      expect(typeof cachedValueBefore).toBe('string')
-      const metadataBefore = await client.get(metadataKey)
-      expect(typeof metadataBefore).toBe('string')
+      expect(Array.isArray(cachedValueBefore)).toBe(true)
+      const metadataBefore = (await client.get(
+        metadataKey
+      )) as CacheRecomputeMetadata
+      expect(typeof metadataBefore).toBe('object')
 
       // Invalidate the cache (but keep the metadata for recomputation test)
       await invalidateDependencies([dependencyKey])
@@ -1866,15 +1866,15 @@ describeIfRedisKey(
       // Wait for recomputation to complete
       await new Promise((resolve) => setTimeout(resolve, 200))
 
-      // Verify cache is repopulated with fresh data
-      const cachedValueAfterRecompute = await client.get(cacheKey)
-      expect(typeof cachedValueAfterRecompute).toBe('string')
-
-      const repopulatedData = JSON.parse(
-        cachedValueAfterRecompute as string
-      )
-      expect(repopulatedData).toHaveLength(1)
-      expect(repopulatedData[0].id).toBe(subscription.id)
+      // Verify cache is repopulated with fresh data (Upstash auto-parses JSON)
+      const cachedValueAfterRecompute = (await client.get(
+        cacheKey
+      )) as {
+        id: string
+      }[]
+      expect(Array.isArray(cachedValueAfterRecompute)).toBe(true)
+      expect(cachedValueAfterRecompute).toHaveLength(1)
+      expect(cachedValueAfterRecompute[0].id).toBe(subscription.id)
     })
   }
 )
@@ -1954,25 +1954,26 @@ describeIfRedisKey(
         )
       })
 
-      // Verify cache is populated
+      // Verify cache is populated (Upstash auto-parses JSON)
       const cachedValue = await client.get(cacheKey)
-      expect(typeof cachedValue).toBe('string')
+      expect(Array.isArray(cachedValue)).toBe(true)
 
-      // Verify recompute metadata is stored with correct params
-      const metadataValue = await client.get(metadataKey)
-      expect(typeof metadataValue).toBe('string')
+      // Verify recompute metadata is stored with correct params (Upstash auto-parses JSON)
+      const metadataValue = (await client.get(
+        metadataKey
+      )) as CacheRecomputeMetadata
+      expect(typeof metadataValue).toBe('object')
 
-      const metadata = JSON.parse(metadataValue as string)
-      expect(metadata.namespace).toBe(
+      expect(metadataValue.namespace).toBe(
         RedisKeyNamespace.ItemsBySubscription
       )
-      expect(metadata.params).toEqual({
+      expect(metadataValue.params).toEqual({
         subscriptionId: subscription.id,
         livemode: true,
       })
-      expect(metadata.transactionContext.type).toBe('admin')
-      expect(metadata.transactionContext.livemode).toBe(true)
-      expect(metadata.createdAt).toBeGreaterThan(0)
+      expect(metadataValue.transactionContext.type).toBe('admin')
+      expect(metadataValue.transactionContext.livemode).toBe(true)
+      expect(metadataValue.createdAt).toBeGreaterThan(0)
     })
   }
 )
