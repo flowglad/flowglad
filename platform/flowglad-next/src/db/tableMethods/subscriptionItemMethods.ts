@@ -567,11 +567,11 @@ export const selectRichSubscriptionsAndActiveItems = async (
     Object.keys(whereConditions).length === 1
 
   if (isSimpleCustomerIdQuery) {
-    // Use cached query with params object pattern
+    // Use cached query for simple customer ID lookups
     subscriptionRecords = await selectSubscriptionsByCustomerId(
-      { customerId, livemode },
-      transaction,
-      cacheRecomputationContext
+      customerId,
+      livemode,
+      transaction
     )
   } else {
     // Fallback to uncached query for complex queries

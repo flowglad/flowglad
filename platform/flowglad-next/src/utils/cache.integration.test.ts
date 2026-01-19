@@ -847,9 +847,9 @@ describeIfRedisKey(
       const result1 = await adminTransaction(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
-            { customerId: customer.id, livemode },
-            transaction,
-            { type: 'admin', livemode }
+            customer.id,
+            livemode,
+            transaction
           )
         }
       )
@@ -866,9 +866,9 @@ describeIfRedisKey(
       const result2 = await adminTransaction(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
-            { customerId: customer.id, livemode },
-            transaction,
-            { type: 'admin', livemode }
+            customer.id,
+            livemode,
+            transaction
           )
         }
       )
@@ -898,9 +898,9 @@ describeIfRedisKey(
       const result = await adminTransaction(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
-            { customerId: customerWithNoSubs.id, livemode },
-            transaction,
-            { type: 'admin', livemode }
+            customerWithNoSubs.id,
+            livemode,
+            transaction
           )
         }
       )
@@ -958,9 +958,9 @@ describeIfRedisKey(
       // Populate cache
       await adminTransaction(async ({ transaction, livemode }) => {
         return selectSubscriptionsByCustomerId(
-          { customerId: customer.id, livemode },
-          transaction,
-          { type: 'admin', livemode }
+          customer.id,
+          livemode,
+          transaction
         )
       })
 
@@ -1766,94 +1766,6 @@ return 0
     }
   })
 })
-
-describeIfRedisKey(
-  'selectSubscriptionsByCustomerId recomputation Integration Tests',
-  () => {
-    let keysToCleanup: string[] = []
-
-    afterEach(async () => {
-      const client = getRedisTestClient()
-      await cleanupRedisTestKeys(client, keysToCleanup)
-      keysToCleanup = []
-    })
-
-    it('stores recompute metadata with params when populating cache', async () => {
-      const client = getRedisTestClient()
-
-      // Setup test data
-      const { organization, pricingModel } = await setupOrg()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
-      const product = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Recompute Test Product',
-      })
-      const price = await setupPrice({
-        productId: product.id,
-        name: 'Recompute Test Price',
-        type: PriceType.Subscription,
-        unitPrice: 1000,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-      })
-      await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        paymentMethodId: paymentMethod.id,
-        priceId: price.id,
-        status: SubscriptionStatus.Active,
-      })
-
-      // Track keys for cleanup
-      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
-      const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
-      const dependencyKey = CacheDependency.customerSubscriptions(
-        customer.id
-      )
-      const registryKey = `cacheDeps:${dependencyKey}`
-      keysToCleanup.push(cacheKey, metadataKey, registryKey)
-
-      // Populate cache by calling the function
-      await adminTransaction(async ({ transaction, livemode }) => {
-        return selectSubscriptionsByCustomerId(
-          { customerId: customer.id, livemode },
-          transaction,
-          { type: 'admin', livemode }
-        )
-      })
-
-      // Verify cache is populated
-      const cachedValue = await client.get(cacheKey)
-      expect(Array.isArray(cachedValue)).toBe(true)
-
-      // Verify recompute metadata is stored (since it now uses cachedRecomputable())
-      const metadataValue = (await client.get(
-        metadataKey
-      )) as CacheRecomputeMetadata | null
-      expect(typeof metadataValue).toBe('object')
-      expect(metadataValue?.namespace).toBe(
-        RedisKeyNamespace.SubscriptionsByCustomer
-      )
-      expect(metadataValue?.params).toEqual({
-        customerId: customer.id,
-        livemode: true,
-      })
-      expect(metadataValue?.cacheRecomputationContext).toEqual({
-        type: 'admin',
-        livemode: true,
-      })
-    })
-  }
-)
 
 describeIfRedisKey(
   'selectSubscriptionItemsWithPricesBySubscriptionId recomputation Integration Tests',
