@@ -22,6 +22,7 @@ import {
   CacheDependency,
   cached,
   cachedBulkLookup,
+  fromDependencies,
 } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { features } from '../schema/features'
@@ -172,9 +173,9 @@ const selectSubscriptionItemFeaturesWithFeatureSlugCachedInternal =
         livemode: boolean
       ) => `${subscriptionItemId}:${livemode}`,
       schema: subscriptionItemFeaturesClientSelectSchema.array(),
-      dependenciesFn: (subscriptionItemId: string) => [
-        CacheDependency.subscriptionItemFeatures(subscriptionItemId),
-      ],
+      dependenciesFn: fromDependencies(
+        CacheDependency.subscriptionItemFeatures
+      ),
     },
     selectSubscriptionItemFeaturesWithFeatureSlugFromDb
   )
@@ -308,9 +309,9 @@ export const selectSubscriptionItemFeaturesWithFeatureSlugs = async (
       keyFn: (subscriptionItemId: string) =>
         `${subscriptionItemId}:${livemode}`,
       schema: subscriptionItemFeaturesClientSelectSchema.array(),
-      dependenciesFn: (subscriptionItemId: string) => [
-        CacheDependency.subscriptionItemFeatures(subscriptionItemId),
-      ],
+      dependenciesFn: fromDependencies(
+        CacheDependency.subscriptionItemFeatures
+      ),
     },
     subscriptionItemIds,
     async (missedSubscriptionItemIds: string[]) => {

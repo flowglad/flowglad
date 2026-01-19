@@ -16,7 +16,11 @@ import {
   type ORMMethodCreatorConfig,
   onConflictDoUpdateSetValues,
 } from '@/db/tableUtils'
-import { CacheDependency, cached } from '@/utils/cache'
+import {
+  CacheDependency,
+  cached,
+  fromDependencies,
+} from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import type {
   DbTransaction,
@@ -99,9 +103,9 @@ export const selectPaymentMethodsByCustomerId = cached(
       livemode: boolean
     ) => `${customerId}:${livemode}`,
     schema: paymentMethodsSelectSchema.array(),
-    dependenciesFn: (customerId: string) => [
-      CacheDependency.customerPaymentMethods(customerId),
-    ],
+    dependenciesFn: fromDependencies(
+      CacheDependency.customerPaymentMethods
+    ),
   },
   async (
     customerId: string,
