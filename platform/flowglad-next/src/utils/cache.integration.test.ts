@@ -846,14 +846,10 @@ describeIfRedisKey(
       // First call - should cache the result
       const result1 = await adminTransaction(
         async ({ transaction, livemode }) => {
-          const cacheRecomputationContext = {
-            type: 'admin' as const,
-            livemode,
-          }
           return selectSubscriptionsByCustomerId(
-            { customerId: customer.id, livemode },
+            customer.id,
             transaction,
-            cacheRecomputationContext
+            livemode
           )
         }
       )
@@ -869,14 +865,10 @@ describeIfRedisKey(
       // Second call - should return cached result
       const result2 = await adminTransaction(
         async ({ transaction, livemode }) => {
-          const cacheRecomputationContext = {
-            type: 'admin' as const,
-            livemode,
-          }
           return selectSubscriptionsByCustomerId(
-            { customerId: customer.id, livemode },
+            customer.id,
             transaction,
-            cacheRecomputationContext
+            livemode
           )
         }
       )
@@ -905,14 +897,10 @@ describeIfRedisKey(
       // First call - should cache the empty result
       const result = await adminTransaction(
         async ({ transaction, livemode }) => {
-          const cacheRecomputationContext = {
-            type: 'admin' as const,
-            livemode,
-          }
           return selectSubscriptionsByCustomerId(
-            { customerId: customerWithNoSubs.id, livemode },
+            customerWithNoSubs.id,
             transaction,
-            cacheRecomputationContext
+            livemode
           )
         }
       )
@@ -969,14 +957,10 @@ describeIfRedisKey(
 
       // Populate cache
       await adminTransaction(async ({ transaction, livemode }) => {
-        const cacheRecomputationContext = {
-          type: 'admin' as const,
-          livemode,
-        }
         return selectSubscriptionsByCustomerId(
-          { customerId: customer.id, livemode },
+          customer.id,
           transaction,
-          cacheRecomputationContext
+          livemode
         )
       })
 
@@ -1840,14 +1824,10 @@ describeIfRedisKey(
 
       // Populate cache by calling the function
       await adminTransaction(async ({ transaction, livemode }) => {
-        const cacheRecomputationContext = {
-          type: 'admin' as const,
-          livemode,
-        }
         return selectSubscriptionsByCustomerId(
-          { customerId: customer.id, livemode },
+          customer.id,
           transaction,
-          cacheRecomputationContext
+          livemode
         )
       })
 
@@ -1855,116 +1835,15 @@ describeIfRedisKey(
       const cachedValue = await client.get(cacheKey)
       expect(Array.isArray(cachedValue)).toBe(true)
 
-      // Verify recompute metadata is stored with correct params
-      const metadataValue = (await client.get(
-        metadataKey
-      )) as CacheRecomputeMetadata
-      expect(typeof metadataValue).toBe('object')
-
-      expect(metadataValue.namespace).toBe(
-        RedisKeyNamespace.SubscriptionsByCustomer
-      )
-      expect(metadataValue.params).toEqual({
-        customerId: customer.id,
-        livemode: true,
-      })
-      expect(metadataValue.cacheRecomputationContext.type).toBe(
-        'admin'
-      )
-      expect(metadataValue.cacheRecomputationContext.livemode).toBe(
-        true
-      )
-      expect(metadataValue.createdAt).toBeGreaterThan(0)
+      // Note: selectSubscriptionsByCustomerId now uses cached() not cachedRecomputable(),
+      // so recompute metadata is not stored. This test verifies basic caching works.
+      const metadataValue = await client.get(metadataKey)
+      expect(metadataValue).toBeNull() // No metadata for cached() functions
     })
 
-    it('recomputation handler fetches fresh data and repopulates cache after invalidation', async () => {
-      const client = getRedisTestClient()
-
-      // Setup test data
-      const { organization, pricingModel } = await setupOrg()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
-      const product = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: 'Recompute Invalidation Test Product',
-      })
-      const price = await setupPrice({
-        productId: product.id,
-        name: 'Recompute Invalidation Test Price',
-        type: PriceType.Subscription,
-        unitPrice: 2000,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-      })
-      const subscription = await setupSubscription({
-        organizationId: organization.id,
-        customerId: customer.id,
-        paymentMethodId: paymentMethod.id,
-        priceId: price.id,
-        status: SubscriptionStatus.Active,
-      })
-
-      // Track keys for cleanup
-      const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
-      const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
-      const dependencyKey = CacheDependency.customerSubscriptions(
-        customer.id
-      )
-      const registryKey = `cacheDeps:${dependencyKey}`
-      keysToCleanup.push(cacheKey, metadataKey, registryKey)
-
-      // Populate cache
-      const initialResult = await adminTransaction(
-        async ({ transaction, livemode }) => {
-          const cacheRecomputationContext = {
-            type: 'admin' as const,
-            livemode,
-          }
-          return selectSubscriptionsByCustomerId(
-            { customerId: customer.id, livemode },
-            transaction,
-            cacheRecomputationContext
-          )
-        }
-      )
-
-      expect(initialResult).toHaveLength(1)
-      expect(initialResult[0].id).toBe(subscription.id)
-
-      // Verify cache and metadata are populated (Upstash auto-parses JSON)
-      const cachedValueBefore = await client.get(cacheKey)
-      expect(Array.isArray(cachedValueBefore)).toBe(true)
-      const metadataBefore = (await client.get(
-        metadataKey
-      )) as CacheRecomputeMetadata
-      expect(typeof metadataBefore).toBe('object')
-
-      // Invalidate the cache (but keep the metadata for recomputation test)
-      await invalidateDependencies([dependencyKey])
-
-      // Verify cache is cleared but registry still has the key (for recomputation)
-      const cachedValueAfterInvalidation = await client.get(cacheKey)
-      expect(cachedValueAfterInvalidation).toBeNull()
-
-      // Trigger recomputation using the stored metadata
-      await recomputeDependencies([dependencyKey])
-
-      // Poll for cache repopulation (Upstash auto-parses JSON)
-      const cachedValueAfterRecompute = await waitForCachePopulation<
-        { id: string }[]
-      >(client, cacheKey)
-      expect(Array.isArray(cachedValueAfterRecompute)).toBe(true)
-      expect(cachedValueAfterRecompute).toHaveLength(1)
-      expect(cachedValueAfterRecompute[0].id).toBe(subscription.id)
-    })
+    // Note: Recomputation tests for selectSubscriptionsByCustomerId have been removed
+    // since this function now uses cached() instead of cachedRecomputable().
+    // See selectSubscriptionItemsWithPricesBySubscriptionId tests below for recomputation coverage.
   }
 )
 

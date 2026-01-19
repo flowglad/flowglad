@@ -12,7 +12,6 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
-import { z } from 'zod'
 import {
   nonRenewingStatusSchema,
   type Subscription,
@@ -38,8 +37,11 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason, SubscriptionStatus } from '@/types'
-import { CacheDependency } from '@/utils/cache'
-import { cachedRecomputable } from '@/utils/cache-recomputable'
+import {
+  CacheDependency,
+  cached,
+  fromDependencies,
+} from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
   customerClientSelectSchema,
@@ -129,53 +131,37 @@ export const selectSubscriptions = createSelectFunction(
 )
 
 /**
- * Params schema for selectSubscriptionsByCustomerId.
- * Used by cachedRecomputable() for validation during recomputation.
- */
-const selectSubscriptionsByCustomerParamsSchema = z.object({
-  customerId: z.string(),
-  livemode: z.boolean(),
-})
-
-/**
- * Params type for selectSubscriptionsByCustomerId.
- * Uses params object pattern required by cachedRecomputable().
- * Must be a type (not interface) to satisfy SerializableParams constraint.
- */
-type SelectSubscriptionsByCustomerParams = z.infer<
-  typeof selectSubscriptionsByCustomerParamsSchema
->
-
-/**
- * Selects subscriptions by customer ID with caching and automatic recomputation enabled.
+ * Selects subscriptions by customer ID with caching enabled by default.
+ * Pass { ignoreCache: true } as the last argument to bypass the cache.
  *
  * This cache entry depends on customerSubscriptions - invalidate when
  * subscriptions for this customer are created, updated, or deleted.
- * When invalidated, the cache will be automatically recomputed using
- * the stored params and transaction context.
  *
  * Cache key includes livemode to prevent cross-mode data leakage, since RLS
  * filters subscriptions by livemode and the same customer could have different
  * subscriptions in live vs test mode.
  */
-export const selectSubscriptionsByCustomerId = cachedRecomputable<
-  SelectSubscriptionsByCustomerParams,
-  Subscription.Record[]
->(
+export const selectSubscriptionsByCustomerId = cached(
   {
     namespace: RedisKeyNamespace.SubscriptionsByCustomer,
-    paramsSchema: selectSubscriptionsByCustomerParamsSchema,
-    keyFn: (params) => `${params.customerId}:${params.livemode}`,
+    keyFn: (
+      customerId: string,
+      _transaction: DbTransaction,
+      livemode: boolean
+    ) => `${customerId}:${livemode}`,
     schema: subscriptionsSelectSchema.array(),
-    dependenciesFn: (params) => [
-      CacheDependency.customerSubscriptions(params.customerId),
-    ],
+    dependenciesFn: fromDependencies(
+      CacheDependency.customerSubscriptions
+    ),
   },
-  async (params, transaction, _cacheRecomputationContext) => {
-    return selectSubscriptions(
-      { customerId: params.customerId },
-      transaction
-    )
+  async (
+    customerId: string,
+    transaction: DbTransaction,
+    // livemode is used by keyFn for cache key generation, not in the query itself
+    // (RLS filters by livemode context set on the transaction)
+    _livemode: boolean
+  ) => {
+    return selectSubscriptions({ customerId }, transaction)
   }
 )
 
