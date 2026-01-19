@@ -50,12 +50,14 @@ describe('resources RLS - merchant role sequence permissions', () => {
         active: true,
       }
 
-      const inserted = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return insertResource(resourceInsert, transaction)
-        },
-        { apiKey: apiKey.token }
-      )
+      const inserted = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return insertResource(resourceInsert, transaction)
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(inserted.id).toMatch(/^resource_/)
       expect(inserted.slug).toBe('test-seats')
@@ -79,20 +81,24 @@ describe('resources RLS - merchant role sequence permissions', () => {
         active: true,
       }
 
-      const inserted = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return insertResource(resourceInsert, transaction)
-        },
-        { apiKey: apiKey.token }
-      )
+      const inserted = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return insertResource(resourceInsert, transaction)
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       // Then select it back
-      const selected = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectResourceById(inserted.id, transaction)
-        },
-        { apiKey: apiKey.token }
-      )
+      const selected = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectResourceById(inserted.id, transaction)
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(selected.id).toBe(inserted.id)
       expect(selected.slug).toBe('select-test-resource')
@@ -100,44 +106,48 @@ describe('resources RLS - merchant role sequence permissions', () => {
 
     it('lists resources for the organization via authenticatedTransaction', async () => {
       // Insert two resources
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await insertResource(
-            {
-              organizationId: organization.id,
-              pricingModelId: pricingModel.id,
-              slug: 'resource-1',
-              name: 'Resource 1',
-              livemode: true,
-              active: true,
-            },
-            transaction
-          )
-          await insertResource(
-            {
-              organizationId: organization.id,
-              pricingModelId: pricingModel.id,
-              slug: 'resource-2',
-              name: 'Resource 2',
-              livemode: true,
-              active: true,
-            },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            await insertResource(
+              {
+                organizationId: organization.id,
+                pricingModelId: pricingModel.id,
+                slug: 'resource-1',
+                name: 'Resource 1',
+                livemode: true,
+                active: true,
+              },
+              transaction
+            )
+            await insertResource(
+              {
+                organizationId: organization.id,
+                pricingModelId: pricingModel.id,
+                slug: 'resource-2',
+                name: 'Resource 2',
+                livemode: true,
+                active: true,
+              },
+              transaction
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       // Select all resources for the pricing model
-      const resources = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectResources(
-            { pricingModelId: pricingModel.id },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      const resources = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectResources(
+              { pricingModelId: pricingModel.id },
+              transaction
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(resources.length).toBe(2)
       const slugs = resources.map((r) => r.slug)
@@ -156,33 +166,37 @@ describe('resources RLS - merchant role sequence permissions', () => {
       })
 
       // Insert a resource in org1
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          return insertResource(
-            {
-              organizationId: organization.id,
-              pricingModelId: pricingModel.id,
-              slug: 'org1-resource',
-              name: 'Org1 Resource',
-              livemode: true,
-              active: true,
-            },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return insertResource(
+              {
+                organizationId: organization.id,
+                pricingModelId: pricingModel.id,
+                slug: 'org1-resource',
+                name: 'Org1 Resource',
+                livemode: true,
+                active: true,
+              },
+              transaction
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       // Try to select org1's resource using org2's API key - should return empty
-      const resources = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectResources(
-            { organizationId: organization.id },
-            transaction
-          )
-        },
-        { apiKey: org2ApiKey.apiKey.token }
-      )
+      const resources = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectResources(
+              { organizationId: organization.id },
+              transaction
+            )
+          },
+          { apiKey: org2ApiKey.apiKey.token }
+        )
+      ).unwrap()
 
       expect(resources).toHaveLength(0)
     })

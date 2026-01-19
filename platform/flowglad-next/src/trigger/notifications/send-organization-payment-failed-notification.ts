@@ -42,7 +42,7 @@ const sendOrganizationPaymentFailedNotificationTask = task({
       ctx,
     })
 
-    const { organization, customer, usersAndMemberships } =
+    const { organization, customer, usersAndMemberships } = (
       await adminTransaction(async ({ transaction }) => {
         const organization = await selectOrganizationById(
           paymentData.organizationId,
@@ -65,6 +65,7 @@ const sendOrganizationPaymentFailedNotificationTask = task({
           usersAndMemberships,
         }
       })
+    ).unwrap()
 
     if (!organization || !customer) {
       throw new Error('Organization or customer not found')

@@ -13,8 +13,8 @@ const PurchasePage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
-  const result = await authenticatedTransaction(
-    async ({ transaction }) => {
+  const result = (
+    await authenticatedTransaction(async ({ transaction }) => {
       const purchase = await selectPurchaseById(id, transaction)
 
       if (!purchase) {
@@ -41,8 +41,8 @@ const PurchasePage = async ({
         price,
         product,
       }
-    }
-  )
+    })
+  ).unwrap()
 
   if (!result || !result.purchase || !result.customer) {
     notFound()

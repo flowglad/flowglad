@@ -87,81 +87,87 @@ describe('insertSubscriptionMeterPeriodCalculation', () => {
   })
 
   it('should successfully insert subscription meter period calculation and derive pricingModelId from usage meter', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const calculation =
-        await insertSubscriptionMeterPeriodCalculation(
-          {
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            billingRunId: billingRun.id,
-            totalRawUsageAmount: 1000,
-            creditsAppliedAmount: 0,
-            netBilledAmount: 1000,
-            status: SubscriptionMeterPeriodCalculationStatus.Active,
-            calculatedAt: Date.now(),
-            livemode: true,
-          },
-          transaction
-        )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const calculation =
+          await insertSubscriptionMeterPeriodCalculation(
+            {
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              billingRunId: billingRun.id,
+              totalRawUsageAmount: 1000,
+              creditsAppliedAmount: 0,
+              netBilledAmount: 1000,
+              status: SubscriptionMeterPeriodCalculationStatus.Active,
+              calculatedAt: Date.now(),
+              livemode: true,
+            },
+            transaction
+          )
 
-      // Verify pricingModelId is correctly derived from usage meter
-      expect(calculation.pricingModelId).toBe(
-        usageMeter.pricingModelId
-      )
-      expect(calculation.pricingModelId).toBe(pricingModel.id)
-    })
+        // Verify pricingModelId is correctly derived from usage meter
+        expect(calculation.pricingModelId).toBe(
+          usageMeter.pricingModelId
+        )
+        expect(calculation.pricingModelId).toBe(pricingModel.id)
+      })
+    ).unwrap()
   })
 
   it('should use provided pricingModelId without derivation', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const calculation =
-        await insertSubscriptionMeterPeriodCalculation(
-          {
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-            billingPeriodId: billingPeriod.id,
-            billingRunId: billingRun.id,
-            totalRawUsageAmount: 1000,
-            creditsAppliedAmount: 0,
-            netBilledAmount: 1000,
-            status: SubscriptionMeterPeriodCalculationStatus.Active,
-            calculatedAt: Date.now(),
-            livemode: true,
-            pricingModelId: pricingModel.id, // Pre-provided
-          },
-          transaction
-        )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const calculation =
+          await insertSubscriptionMeterPeriodCalculation(
+            {
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+              billingPeriodId: billingPeriod.id,
+              billingRunId: billingRun.id,
+              totalRawUsageAmount: 1000,
+              creditsAppliedAmount: 0,
+              netBilledAmount: 1000,
+              status: SubscriptionMeterPeriodCalculationStatus.Active,
+              calculatedAt: Date.now(),
+              livemode: true,
+              pricingModelId: pricingModel.id, // Pre-provided
+            },
+            transaction
+          )
 
-      // Verify the provided pricingModelId is used
-      expect(calculation.pricingModelId).toBe(pricingModel.id)
-    })
+        // Verify the provided pricingModelId is used
+        expect(calculation.pricingModelId).toBe(pricingModel.id)
+      })
+    ).unwrap()
   })
 
   it('should throw an error when usageMeterId does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentUsageMeterId = `um_${core.nanoid()}`
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
-      await expect(
-        insertSubscriptionMeterPeriodCalculation(
-          {
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            usageMeterId: nonExistentUsageMeterId,
-            billingPeriodId: billingPeriod.id,
-            billingRunId: billingRun.id,
-            totalRawUsageAmount: 1000,
-            creditsAppliedAmount: 0,
-            netBilledAmount: 1000,
-            status: SubscriptionMeterPeriodCalculationStatus.Active,
-            calculatedAt: Date.now(),
-            livemode: true,
-          },
-          transaction
-        )
-      ).rejects.toThrow()
-    })
+        await expect(
+          insertSubscriptionMeterPeriodCalculation(
+            {
+              organizationId: organization.id,
+              subscriptionId: subscription.id,
+              usageMeterId: nonExistentUsageMeterId,
+              billingPeriodId: billingPeriod.id,
+              billingRunId: billingRun.id,
+              totalRawUsageAmount: 1000,
+              creditsAppliedAmount: 0,
+              netBilledAmount: 1000,
+              status: SubscriptionMeterPeriodCalculationStatus.Active,
+              calculatedAt: Date.now(),
+              livemode: true,
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    ).unwrap()
   })
 })

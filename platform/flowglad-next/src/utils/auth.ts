@@ -33,8 +33,8 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
 }) => {
   const { email, url, token, organizationId } = params
   // Get organization and customer info for the email
-  const { organization, customer } = await adminTransaction(
-    async ({ transaction }) => {
+  const { organization, customer } = (
+    await adminTransaction(async ({ transaction }) => {
       const org = await selectOrganizationById(
         organizationId,
         transaction
@@ -48,8 +48,8 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
         organization: org,
         customer: customers[0] || null,
       }
-    }
-  )
+    })
+  ).unwrap()
 
   // Build the magic link URL with OTP
   // Send the magic link email
@@ -83,8 +83,8 @@ const handleSendVerificationOTP = async (params: {
   const { email, otp, organizationId } = params
 
   // Get organization and customer info for the email
-  const { organization, customer } = await adminTransaction(
-    async ({ transaction }) => {
+  const { organization, customer } = (
+    await adminTransaction(async ({ transaction }) => {
       const org = await selectOrganizationById(
         organizationId,
         transaction
@@ -98,8 +98,8 @@ const handleSendVerificationOTP = async (params: {
         organization: org,
         customer: customers[0] || null,
       }
-    }
-  )
+    })
+  ).unwrap()
 
   if (!organization) {
     throw new Error(

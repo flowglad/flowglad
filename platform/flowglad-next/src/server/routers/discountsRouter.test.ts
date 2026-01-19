@@ -16,23 +16,25 @@ describe('validateAndResolvePricingModelId', () => {
 
   beforeEach(async () => {
     // Set up two separate organizations with their own pricing models
-    const result = await adminTransaction(async ({ transaction }) => {
-      const {
-        organization: organization1,
-        pricingModel: pricingModel1,
-      } = await setupOrg()
-      const {
-        organization: organization2,
-        pricingModel: pricingModel2,
-      } = await setupOrg()
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const {
+          organization: organization1,
+          pricingModel: pricingModel1,
+        } = await setupOrg()
+        const {
+          organization: organization2,
+          pricingModel: pricingModel2,
+        } = await setupOrg()
 
-      return {
-        org1Id: organization1.id,
-        org1PricingModelId: pricingModel1.id,
-        org2Id: organization2.id,
-        org2PricingModelId: pricingModel2.id,
-      }
-    })
+        return {
+          org1Id: organization1.id,
+          org1PricingModelId: pricingModel1.id,
+          org2Id: organization2.id,
+          org2PricingModelId: pricingModel2.id,
+        }
+      })
+    ).unwrap()
 
     org1Id = result.org1Id
     org1PricingModelId = result.org1PricingModelId
@@ -41,14 +43,16 @@ describe('validateAndResolvePricingModelId', () => {
   })
 
   it('returns the provided pricingModelId when it belongs to the same organization', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return validateAndResolvePricingModelId({
-        pricingModelId: org1PricingModelId,
-        organizationId: org1Id,
-        livemode,
-        transaction,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return validateAndResolvePricingModelId({
+          pricingModelId: org1PricingModelId,
+          organizationId: org1Id,
+          livemode,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     expect(result).toBe(org1PricingModelId)
   })
@@ -67,14 +71,16 @@ describe('validateAndResolvePricingModelId', () => {
 
     // Verify the error details
     try {
-      await adminTransaction(async ({ transaction }) => {
-        return validateAndResolvePricingModelId({
-          pricingModelId: org2PricingModelId,
-          organizationId: org1Id,
-          livemode,
-          transaction,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return validateAndResolvePricingModelId({
+            pricingModelId: org2PricingModelId,
+            organizationId: org1Id,
+            livemode,
+            transaction,
+          })
         })
-      })
+      ).unwrap()
     } catch (error) {
       expect(error).toBeInstanceOf(TRPCError)
       expect((error as TRPCError).code).toBe('BAD_REQUEST')
@@ -100,14 +106,16 @@ describe('validateAndResolvePricingModelId', () => {
 
     // Verify the error details
     try {
-      await adminTransaction(async ({ transaction }) => {
-        return validateAndResolvePricingModelId({
-          pricingModelId: nonExistentPricingModelId,
-          organizationId: org1Id,
-          livemode,
-          transaction,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return validateAndResolvePricingModelId({
+            pricingModelId: nonExistentPricingModelId,
+            organizationId: org1Id,
+            livemode,
+            transaction,
+          })
         })
-      })
+      ).unwrap()
     } catch (error) {
       expect(error).toBeInstanceOf(TRPCError)
       expect((error as TRPCError).code).toBe('BAD_REQUEST')
@@ -118,42 +126,46 @@ describe('validateAndResolvePricingModelId', () => {
   })
 
   it('returns the default pricing model ID when pricingModelId is not provided', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      const defaultPM = await selectDefaultPricingModel(
-        { organizationId: org1Id, livemode },
-        transaction
-      )
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const defaultPM = await selectDefaultPricingModel(
+          { organizationId: org1Id, livemode },
+          transaction
+        )
 
-      const resolvedId = await validateAndResolvePricingModelId({
-        pricingModelId: undefined,
-        organizationId: org1Id,
-        livemode,
-        transaction,
+        const resolvedId = await validateAndResolvePricingModelId({
+          pricingModelId: undefined,
+          organizationId: org1Id,
+          livemode,
+          transaction,
+        })
+
+        return { resolvedId, defaultPMId: defaultPM?.id }
       })
-
-      return { resolvedId, defaultPMId: defaultPM?.id }
-    })
+    ).unwrap()
 
     expect(result.resolvedId).toBe(result.defaultPMId)
     expect(result.resolvedId).toMatch(/^pricing_model_/)
   })
 
   it('returns the default pricing model ID when pricingModelId is null', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      const defaultPM = await selectDefaultPricingModel(
-        { organizationId: org1Id, livemode },
-        transaction
-      )
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const defaultPM = await selectDefaultPricingModel(
+          { organizationId: org1Id, livemode },
+          transaction
+        )
 
-      const resolvedId = await validateAndResolvePricingModelId({
-        pricingModelId: null,
-        organizationId: org1Id,
-        livemode,
-        transaction,
+        const resolvedId = await validateAndResolvePricingModelId({
+          pricingModelId: null,
+          organizationId: org1Id,
+          livemode,
+          transaction,
+        })
+
+        return { resolvedId, defaultPMId: defaultPM?.id }
       })
-
-      return { resolvedId, defaultPMId: defaultPM?.id }
-    })
+    ).unwrap()
 
     expect(result.resolvedId).toBe(result.defaultPMId)
     expect(result.resolvedId).toMatch(/^pricing_model_/)
@@ -176,14 +188,16 @@ describe('validateAndResolvePricingModelId', () => {
 
     // Verify the error details
     try {
-      await adminTransaction(async ({ transaction }) => {
-        return validateAndResolvePricingModelId({
-          pricingModelId: org1PricingModelId,
-          organizationId: org1Id,
-          livemode: false,
-          transaction,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return validateAndResolvePricingModelId({
+            pricingModelId: org1PricingModelId,
+            organizationId: org1Id,
+            livemode: false,
+            transaction,
+          })
         })
-      })
+      ).unwrap()
     } catch (error) {
       expect(error).toBeInstanceOf(TRPCError)
       expect((error as TRPCError).code).toBe('BAD_REQUEST')
@@ -192,8 +206,8 @@ describe('validateAndResolvePricingModelId', () => {
 
   describe('integration with insertDiscount', () => {
     it('creates a discount successfully after validation passes', async () => {
-      const discount = await adminTransaction(
-        async ({ transaction }) => {
+      const discount = (
+        await adminTransaction(async ({ transaction }) => {
           // First validate and resolve the pricingModelId
           const resolvedPricingModelId =
             await validateAndResolvePricingModelId({
@@ -219,8 +233,8 @@ describe('validateAndResolvePricingModelId', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(discount.id).toMatch(/^discount_/)
       expect(discount.pricingModelId).toBe(org1PricingModelId)

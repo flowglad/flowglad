@@ -29,9 +29,11 @@ const CheckoutSessionPage = async ({
     maybeCurrentSubscriptions,
     discount,
     isEligibleForTrial,
-  } = await adminTransaction(async ({ transaction }) => {
-    return checkoutInfoForCheckoutSession(id, transaction)
-  })
+  } = (
+    await adminTransaction(async ({ transaction }) => {
+      return checkoutInfoForCheckoutSession(id, transaction)
+    })
+  ).unwrap()
 
   if (!checkoutSession) {
     notFound()

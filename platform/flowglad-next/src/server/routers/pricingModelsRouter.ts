@@ -4,9 +4,8 @@ import yaml from 'json-to-pretty-yaml'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
   authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import { pricingModelWithProductsAndUsageMetersSchema } from '@/db/schema/prices'
 import {
@@ -85,14 +84,17 @@ const listPricingModelsProcedure = protectedProcedure
   .input(pricingModelsPaginatedSelectSchema)
   .output(pricingModelsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPricingModelsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelsPaginated(input, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
+    return result
   })
 
 const getPricingModelProcedure = protectedProcedure
@@ -104,22 +106,25 @@ const getPricingModelProcedure = protectedProcedure
     })
   )
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const [pricingModel] =
-          await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-            { id: input.id },
-            transaction
-          )
-        if (!pricingModel) {
-          throw new Error(`Pricing Model ${input.id} not found`)
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] =
+            await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+              { id: input.id },
+              transaction
+            )
+          if (!pricingModel) {
+            throw new Error(`Pricing Model ${input.id} not found`)
+          }
+          return { pricingModel }
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-        return { pricingModel }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
+    return result
   })
 
 const createPricingModelProcedure = protectedProcedure
@@ -131,20 +136,25 @@ const createPricingModelProcedure = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    const result = await authenticatedTransaction(
-      async ({ transaction, organizationId, livemode }) => {
-        return createPricingModelBookkeeping(
-          {
-            pricingModel: input.pricingModel,
-            defaultPlanIntervalUnit: input.defaultPlanIntervalUnit,
-          },
-          { transaction, organizationId, livemode }
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction, organizationId, livemode }) => {
+          const bookkeepingResult =
+            await createPricingModelBookkeeping(
+              {
+                pricingModel: input.pricingModel,
+                defaultPlanIntervalUnit:
+                  input.defaultPlanIntervalUnit,
+              },
+              { transaction, organizationId, livemode }
+            )
+          return bookkeepingResult
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return {
       pricingModel: result.unwrap().pricingModel,
       // Note: We're not returning the default product/price in the API response
@@ -160,21 +170,24 @@ const updatePricingModelProcedure = protectedProcedure
       pricingModel: pricingModelsClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const pricingModel = await safelyUpdatePricingModel(
-          {
-            ...input.pricingModel,
-            id: input.id,
-          },
-          transaction
-        )
-        return Result.ok({ pricingModel })
-      }
-    )
-  )
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({ transaction }) => {
+          const pricingModel = await safelyUpdatePricingModel(
+            {
+              ...input.pricingModel,
+              id: input.id,
+            },
+            transaction
+          )
+          return Result.ok({ pricingModel })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const getDefaultPricingModelProcedure = protectedProcedure
   .meta({
@@ -193,27 +206,29 @@ const getDefaultPricingModelProcedure = protectedProcedure
     })
   )
   .query(async ({ ctx }) => {
-    const pricingModel = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const [defaultPricingModel] =
-          await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-            {
-              organizationId: ctx.organizationId!,
-              livemode: ctx.livemode,
-              isDefault: true,
-            },
-            transaction
-          )
-        if (!defaultPricingModel) {
-          throw new Error('Default pricing model not found')
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const [defaultPricingModel] =
+            await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+              {
+                organizationId: ctx.organizationId!,
+                livemode: ctx.livemode,
+                isDefault: true,
+              },
+              transaction
+            )
+          if (!defaultPricingModel) {
+            throw new Error('Default pricing model not found')
+          }
+          return defaultPricingModel
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-        return defaultPricingModel
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
-    return { pricingModel }
+      )
+    ).unwrap()
+    return { pricingModel: result }
   })
 
 const clonePricingModelProcedure = protectedProcedure
@@ -233,14 +248,20 @@ const clonePricingModelProcedure = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    const pricingModel = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPricingModelById(input.id, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    ).catch((error) => {
+    const pricingModelResult = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelById(input.id, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
+
+    try {
+      pricingModelResult
+    } catch (error) {
       if (error instanceof NotFoundError) {
         throw new TRPCError({
           code: 'NOT_FOUND',
@@ -249,7 +270,7 @@ const clonePricingModelProcedure = protectedProcedure
         })
       }
       throw error
-    })
+    }
 
     /**
      * We intentionally use adminTransaction here to allow cloning pricing models
@@ -269,13 +290,13 @@ const clonePricingModelProcedure = protectedProcedure
      * - Removing destinationEnvironment from the public API schema (clonePricingModelInputSchema)
      * - Adding role/scope checks before allowing cross-environment clones
      */
-    const clonedPricingModel = await adminTransaction(
-      async ({ transaction }) => {
+    const clonedPricingModelResult = (
+      await adminTransaction(async ({ transaction }) => {
         return await clonePricingModelTransaction(input, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
-    return { pricingModel: clonedPricingModel }
+    return { pricingModel: clonedPricingModelResult }
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -295,14 +316,17 @@ const getTableRowsProcedure = protectedProcedure
       })
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectPricingModelsTableRows({ input, transaction })
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPricingModelsTableRows({ input, transaction })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const setupPricingModelProcedure = protectedProcedure
   .meta({
@@ -320,29 +344,32 @@ const setupPricingModelProcedure = protectedProcedure
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const result = await setupPricingModelTransaction(
-          {
-            input,
-            organizationId: ctx.organizationId!,
-            livemode: ctx.livemode,
-          },
-          transaction
-        )
-        const [pricingModelWithProductsAndUsageMeters] =
-          await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-            { id: result.pricingModel.id },
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({ transaction, organizationId, livemode }) => {
+          const setupResult = await setupPricingModelTransaction(
+            {
+              input,
+              organizationId,
+              livemode,
+            },
             transaction
           )
-        return Result.ok({
-          pricingModel: pricingModelWithProductsAndUsageMeters,
-        })
-      }
-    )
-  )
+          const [pricingModelWithProductsAndUsageMeters] =
+            await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+              { id: setupResult.pricingModel.id },
+              transaction
+            )
+          return Result.ok({
+            pricingModel: pricingModelWithProductsAndUsageMeters,
+          })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const exportPricingModelProcedure = protectedProcedure
   .input(idInputSchema)
@@ -353,24 +380,27 @@ const exportPricingModelProcedure = protectedProcedure
         .describe('YAML representation of the pricing model'),
     })
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const data = await getPricingModelSetupData(
-          input.id,
-          transaction
-        )
-        return { pricingModelYAML: yaml.stringify(data) }
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const data = await getPricingModelSetupData(
+            input.id,
+            transaction
+          )
+          return { pricingModelYAML: yaml.stringify(data) }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const getIntegrationGuideProcedure = protectedProcedure
   .input(idInputSchema)
   .query(async function* ({ input, ctx }) {
     // Fetch data within a transaction first
-    const { pricingModelData, codebaseContext } =
+    const result = (
       await authenticatedTransaction(
         async ({ transaction }) => {
           const pricingModelData = await getPricingModelSetupData(
@@ -385,6 +415,9 @@ const getIntegrationGuideProcedure = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
+    ).unwrap()
+
+    const { pricingModelData, codebaseContext } = result
 
     // Then stream the AI-generated content (doesn't need transaction)
     yield* constructIntegrationGuideStream({

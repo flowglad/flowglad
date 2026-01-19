@@ -116,20 +116,22 @@ export const initiateStripeConnectBehavior = defineBehavior({
   ): Promise<InitiateStripeConnectResult> => {
     const stripeAccountId = `acct_test_${core.nanoid()}`
 
-    await adminTransaction(
-      async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: prev.organization.id,
-            stripeAccountId,
-            onboardingStatus:
-              BusinessOnboardingStatus.PartiallyOnboarded,
-          },
-          transaction
-        )
-      },
-      { livemode: true }
-    )
+    ;(
+      await adminTransaction(
+        async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: prev.organization.id,
+              stripeAccountId,
+              onboardingStatus:
+                BusinessOnboardingStatus.PartiallyOnboarded,
+            },
+            transaction
+          )
+        },
+        { livemode: true }
+      )
+    ).unwrap()
 
     return {
       ...prev,
@@ -176,18 +178,21 @@ export const finalizeStripeOnboardingBehavior = defineBehavior({
     _deps,
     prev: InitiateStripeConnectResult
   ): Promise<CompleteStripeOnboardingResult> => {
-    await adminTransaction(
-      async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: prev.organization.id,
-            onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-          },
-          transaction
-        )
-      },
-      { livemode: true }
-    )
+    ;(
+      await adminTransaction(
+        async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: prev.organization.id,
+              onboardingStatus:
+                BusinessOnboardingStatus.FullyOnboarded,
+            },
+            transaction
+          )
+        },
+        { livemode: true }
+      )
+    ).unwrap()
 
     return {
       ...prev,
@@ -238,19 +243,22 @@ export const completeStripeOnboardingBehavior = defineBehavior({
   ): Promise<CompleteStripeOnboardingResult> => {
     const stripeAccountId = `acct_test_${core.nanoid()}`
 
-    await adminTransaction(
-      async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: prev.organization.id,
-            stripeAccountId,
-            onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
-          },
-          transaction
-        )
-      },
-      { livemode: true }
-    )
+    ;(
+      await adminTransaction(
+        async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: prev.organization.id,
+              stripeAccountId,
+              onboardingStatus:
+                BusinessOnboardingStatus.FullyOnboarded,
+            },
+            transaction
+          )
+        },
+        { livemode: true }
+      )
+    ).unwrap()
 
     return {
       ...prev,

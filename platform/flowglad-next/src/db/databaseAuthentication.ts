@@ -83,27 +83,29 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     organizationId,
     apiKeyType,
     apiKeyLivemode,
-  } = await adminTransaction(async ({ transaction }) => {
-    const [apiKeyRecord] = await selectApiKeys(
-      {
-        token: key,
-      },
-      transaction
-    )
-    const [membershipAndUser] =
-      await selectMembershipsAndUsersByMembershipWhere(
+  } = (
+    await adminTransaction(async ({ transaction }) => {
+      const [apiKeyRecord] = await selectApiKeys(
         {
-          organizationId: apiKeyRecord.organizationId,
+          token: key,
         },
         transaction
       )
-    return {
-      membershipAndUser,
-      organizationId: apiKeyRecord.organizationId,
-      apiKeyType: apiKeyRecord.type,
-      apiKeyLivemode: apiKeyRecord.livemode,
-    }
-  })
+      const [membershipAndUser] =
+        await selectMembershipsAndUsersByMembershipWhere(
+          {
+            organizationId: apiKeyRecord.organizationId,
+          },
+          transaction
+        )
+      return {
+        membershipAndUser,
+        organizationId: apiKeyRecord.organizationId,
+        apiKeyType: apiKeyRecord.type,
+        apiKeyLivemode: apiKeyRecord.livemode,
+      }
+    })
+  ).unwrap()
   return {
     keyType: apiKeyType,
     userId: membershipAndUser.user.id,

@@ -19,14 +19,14 @@ const BillingPortalRedirectPage = async ({
     redirect(`/billing-portal/${organizationId}/sign-in`)
   }
   const user = await betterAuthUserToApplicationUser(session.user)
-  const customers = await authenticatedTransaction(
-    async ({ transaction }) => {
+  const customers = (
+    await authenticatedTransaction(async ({ transaction }) => {
       return selectCustomers(
         { userId: user.id, organizationId, livemode: true },
         transaction
       )
-    }
-  )
+    })
+  ).unwrap()
   if (customers.length === 0) {
     return <div>No customers found</div>
   } else if (customers.length === 1) {

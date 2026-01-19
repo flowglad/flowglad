@@ -27,7 +27,7 @@ const sendOrganizationPayoutsEnabledNotificationTask = task({
       payload,
     })
 
-    const { organization, usersAndMemberships } =
+    const { organization, usersAndMemberships } = (
       await adminTransaction(async ({ transaction }) => {
         const organization = await selectOrganizationById(
           organizationId,
@@ -48,6 +48,7 @@ const sendOrganizationPayoutsEnabledNotificationTask = task({
           usersAndMemberships,
         }
       })
+    ).unwrap()
 
     const recipientEmails = usersAndMemberships
       .map(({ user }) => user.email)

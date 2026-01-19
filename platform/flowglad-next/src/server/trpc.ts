@@ -118,8 +118,8 @@ const isCustomerAuthed = t.middleware(
 
     const customerId = parsed.data.customerId
 
-    const [customerAndOrganization] = await adminTransaction(
-      async ({ transaction }) => {
+    const [customerAndOrganization] = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomerAndOrganizationByCustomerWhere(
           {
             userId: user.id,
@@ -128,8 +128,8 @@ const isCustomerAuthed = t.middleware(
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     if (!customerAndOrganization) {
       throw new TRPCError({ code: 'UNAUTHORIZED' })

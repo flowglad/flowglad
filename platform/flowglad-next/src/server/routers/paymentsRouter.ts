@@ -50,14 +50,16 @@ const listPaymentsProcedure = protectedProcedure
   .input(paymentsPaginatedSelectSchema)
   .output(paymentsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPaymentsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPaymentsPaginated(input, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 const getPaymentProcedure = protectedProcedure
@@ -65,14 +67,16 @@ const getPaymentProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ payment: paymentsClientSelectSchema }))
   .query(async ({ ctx, input }) => {
-    const payment = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPaymentById(input.id, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const payment = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPaymentById(input.id, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return { payment }
   })
 
@@ -112,27 +116,31 @@ const getCountsByStatusProcedure = protectedProcedure
     )
   )
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPaymentCountsByStatus(transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPaymentCountsByStatus(transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 export const retryPayment = protectedProcedure
   .input(z.object({ id: z.string() }))
   .mutation(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return retryPaymentTransaction(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return retryPaymentTransaction(input, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 export const paymentsRouter = router({

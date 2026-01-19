@@ -69,8 +69,8 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       startDate: new Date('2023-01-01T00:00:00.000Z').getTime(),
       endDate: new Date('2023-01-31T23:59:59.999Z').getTime(),
     })
-    const countries = await adminTransaction(
-      async ({ transaction }) =>
+    const countries = (
+      await adminTransaction(async ({ transaction }) =>
         selectCountries(
           {
             id: (orgData.organization as Organization.Record)
@@ -78,7 +78,8 @@ describe('createSubscriptionFeeCalculationInsert', () => {
           },
           transaction
         )
-    )
+      )
+    ).unwrap()
     if (!countries || countries.length === 0)
       throw new Error(
         'Organization country not found during test setup'
@@ -316,8 +317,8 @@ describe('createAndFinalizeSubscriptionFeeCalculation', () => {
       endDate: new Date('2023-01-31T23:59:59.999Z').getTime(),
     })
 
-    const countries = await adminTransaction(
-      async ({ transaction }) =>
+    const countries = (
+      await adminTransaction(async ({ transaction }) =>
         selectCountries(
           {
             id: (orgData.organization as Organization.Record)
@@ -325,12 +326,13 @@ describe('createAndFinalizeSubscriptionFeeCalculation', () => {
           },
           transaction
         )
-    )
+      )
+    ).unwrap()
     const organizationCountry = countries[0]!
 
     // Usage prices should now work without product lookup
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) =>
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) =>
         createAndFinalizeSubscriptionFeeCalculation(
           {
             organization: {
@@ -349,7 +351,8 @@ describe('createAndFinalizeSubscriptionFeeCalculation', () => {
           },
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     // Verify fee calculation was created successfully
     expect(feeCalculation.id).toMatch(/^feec_/)

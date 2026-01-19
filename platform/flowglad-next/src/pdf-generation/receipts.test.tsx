@@ -196,8 +196,8 @@ describe('Receipt Components', () => {
       })
 
       // Update the invoice with the correct subtotal and tax
-      const updatedInvoiceWithTax = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedInvoiceWithTax = (
+        await adminTransaction(async ({ transaction }) => {
           return await updateInvoice(
             {
               id: invoiceWithDiscountAndTax.id,
@@ -212,8 +212,8 @@ describe('Receipt Components', () => {
             } as any,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const paymentWithDiscountAndTax = await setupPayment({
         invoiceId: invoiceWithDiscountAndTax.id,

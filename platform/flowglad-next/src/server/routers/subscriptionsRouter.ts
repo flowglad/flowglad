@@ -3,8 +3,6 @@ import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
   authenticatedTransaction,
   comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -311,7 +309,7 @@ const adjustSubscriptionProcedure = protectedProcedure
     // Step 1: Perform the adjustment in a transaction
     // This triggers the billing run but doesn't wait for it
     // Cache invalidations are handled automatically by the comprehensive transaction
-    const adjustmentResult =
+    const adjustmentResultWrapped = (
       await comprehensiveAuthenticatedTransaction(
         async (transactionCtx) => {
           return Result.ok(
@@ -326,6 +324,7 @@ const adjustSubscriptionProcedure = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
+    ).unwrap()
 
     const {
       subscription,
@@ -333,7 +332,7 @@ const adjustSubscriptionProcedure = protectedProcedure
       resolvedTiming,
       isUpgrade,
       pendingBillingRunId,
-    } = adjustmentResult
+    } = adjustmentResultWrapped
 
     // Step 2: If there's a pending billing run, wait for it to complete
     // This happens outside the transaction since it can take several seconds
@@ -376,22 +375,26 @@ const adjustSubscriptionProcedure = protectedProcedure
       // Step 3: After billing run completes, fetch fresh subscription data
       // The subscription items are now updated by processOutcomeForBillingRun
       // Pass apiKey to maintain authentication context after async wait
-      const freshData = await authenticatedTransaction(
-        async ({ transaction }) => {
-          const freshSubscription = await selectSubscriptionById(
-            subscription.id,
-            transaction
-          )
-          const freshSubscriptionItems =
-            await selectCurrentlyActiveSubscriptionItems(
-              { subscriptionId: subscription.id },
-              new Date(),
+      const freshDataResult = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const freshSubscription = await selectSubscriptionById(
+              subscription.id,
               transaction
             )
-          return { freshSubscription, freshSubscriptionItems }
-        },
-        { apiKey: ctx.apiKey }
-      )
+            const freshSubscriptionItems =
+              await selectCurrentlyActiveSubscriptionItems(
+                { subscriptionId: subscription.id },
+                new Date(),
+                transaction
+              )
+            return { freshSubscription, freshSubscriptionItems }
+          },
+          { apiKey: ctx.apiKey }
+        )
+      ).unwrap()
+
+      const freshData = freshDataResult
 
       return {
         subscription: {
@@ -438,11 +441,31 @@ const cancelSubscriptionProcedure = protectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      cancelSubscriptionProcedureTransaction
-    )
-  )
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          return cancelSubscriptionProcedureTransaction({
+            input,
+            ctx,
+            transactionCtx: {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            },
+          })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const uncancelSubscriptionProcedure = protectedProcedure
   .meta({
@@ -462,38 +485,61 @@ const uncancelSubscriptionProcedure = protectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      uncancelSubscriptionProcedureTransaction
-    )
-  )
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          return uncancelSubscriptionProcedureTransaction({
+            input,
+            ctx,
+            transactionCtx: {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            },
+          })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const listSubscriptionsProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(subscriptionsPaginatedSelectSchema)
   .output(subscriptionsPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const result = await selectSubscriptionsPaginated(
-          input,
-          transaction
-        )
-        return {
-          ...result,
-          data: result.data.map((subscription) => ({
-            ...subscription,
-            current: isSubscriptionCurrent(
-              subscription.status,
-              subscription.cancellationReason
-            ),
-          })),
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const result = await selectSubscriptionsPaginated(
+            input,
+            transaction
+          )
+          return {
+            ...result,
+            data: result.data.map((subscription) => ({
+              ...subscription,
+              current: isSubscriptionCurrent(
+                subscription.status,
+                subscription.cancellationReason
+              ),
+            })),
+          }
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
+    return result
   })
 
 const getSubscriptionProcedure = protectedProcedure
@@ -501,26 +547,29 @@ const getSubscriptionProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
-        return {
-          subscription: {
-            ...subscription,
-            current: isSubscriptionCurrent(
-              subscription.status,
-              subscription.cancellationReason
-            ),
-          },
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const subscription = await selectSubscriptionById(
+            input.id,
+            transaction
+          )
+          return {
+            subscription: {
+              ...subscription,
+              current: isSubscriptionCurrent(
+                subscription.status,
+                subscription.cancellationReason
+              ),
+            },
+          }
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
+    return result
   })
 
 export const createSubscriptionInputSchema = z
@@ -644,104 +693,108 @@ const createSubscriptionProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createSubscriptionInputSchema)
   .output(z.object({ subscription: subscriptionClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const {
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({
           transaction,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
-        } = transactionCtx
-        if (!ctx.organization) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Organization not found',
-          })
-        }
-
-        const customer =
-          await validateAndResolveCustomerForSubscription({
-            customerId: input.customerId,
-            customerExternalId: input.customerExternalId,
-            organizationId: ctx.organization.id,
-            transaction,
-          })
-
-        const { price, product, organization } =
-          await validateAndResolvePriceForSubscription({
-            priceId: input.priceId,
-            priceSlug: input.priceSlug,
-            customerId: customer.id,
-            transaction,
-          })
-
-        const defaultPaymentMethod = input.defaultPaymentMethodId
-          ? await selectPaymentMethodById(
-              input.defaultPaymentMethodId,
-              transaction
-            )
-          : undefined
-        const backupPaymentMethod = input.backupPaymentMethodId
-          ? await selectPaymentMethodById(
-              input.backupPaymentMethodId,
-              transaction
-            )
-          : undefined
-        const startDate = input.startDate ?? new Date()
-        const defaultTrialEnd = price.trialPeriodDays
-          ? new Date(
-              startDate.getTime() +
-                price.trialPeriodDays * 24 * 60 * 60 * 1000
-            )
-          : undefined
-        const trialEnd = input.trialEnd ?? defaultTrialEnd
-        const output = await createSubscriptionWorkflow(
-          {
-            customer,
-            organization,
-            product,
-            price,
-            quantity: input.quantity ?? 1,
-            interval: input.interval ?? price.intervalUnit,
-            intervalCount: input.intervalCount ?? price.intervalCount,
-            trialEnd: trialEnd ? new Date(trialEnd) : undefined,
-            metadata: input.metadata,
-            name: input.name,
-            startDate,
-            defaultPaymentMethod,
-            backupPaymentMethod,
-            livemode: ctx.livemode,
-            autoStart: true,
-            doNotCharge: input.doNotCharge,
-            // FIXME: Uncomment if we decide to expose preserveBillingCycleAnchor in the API
-            // preserveBillingCycleAnchor: input.preserveBillingCycleAnchor ?? false,
-          },
-          {
-            transaction,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
+        }) => {
+          if (!ctx.organization) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Organization not found',
+            })
           }
-        )
-        const outputValue = output.unwrap()
-        const finalResult = {
-          subscription: {
-            ...outputValue.subscription,
-            current: isSubscriptionCurrent(
-              outputValue.subscription.status,
-              outputValue.subscription.cancellationReason
-            ),
-          },
-        }
 
-        return Result.ok({
-          ...outputValue,
-          ...finalResult,
-        })
-      }
-    )
-  )
+          const customer =
+            await validateAndResolveCustomerForSubscription({
+              customerId: input.customerId,
+              customerExternalId: input.customerExternalId,
+              organizationId: ctx.organization.id,
+              transaction,
+            })
+
+          const { price, product, organization } =
+            await validateAndResolvePriceForSubscription({
+              priceId: input.priceId,
+              priceSlug: input.priceSlug,
+              customerId: customer.id,
+              transaction,
+            })
+
+          const defaultPaymentMethod = input.defaultPaymentMethodId
+            ? await selectPaymentMethodById(
+                input.defaultPaymentMethodId,
+                transaction
+              )
+            : undefined
+          const backupPaymentMethod = input.backupPaymentMethodId
+            ? await selectPaymentMethodById(
+                input.backupPaymentMethodId,
+                transaction
+              )
+            : undefined
+          const startDate = input.startDate ?? new Date()
+          const defaultTrialEnd = price.trialPeriodDays
+            ? new Date(
+                startDate.getTime() +
+                  price.trialPeriodDays * 24 * 60 * 60 * 1000
+              )
+            : undefined
+          const trialEnd = input.trialEnd ?? defaultTrialEnd
+          const output = await createSubscriptionWorkflow(
+            {
+              customer,
+              organization,
+              product,
+              price,
+              quantity: input.quantity ?? 1,
+              interval: input.interval ?? price.intervalUnit,
+              intervalCount:
+                input.intervalCount ?? price.intervalCount,
+              trialEnd: trialEnd ? new Date(trialEnd) : undefined,
+              metadata: input.metadata,
+              name: input.name,
+              startDate,
+              defaultPaymentMethod,
+              backupPaymentMethod,
+              livemode: ctx.livemode,
+              autoStart: true,
+              doNotCharge: input.doNotCharge,
+              // FIXME: Uncomment if we decide to expose preserveBillingCycleAnchor in the API
+              // preserveBillingCycleAnchor: input.preserveBillingCycleAnchor ?? false,
+            },
+            {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
+          const outputValue = output.unwrap()
+          const finalResult = {
+            subscription: {
+              ...outputValue.subscription,
+              current: isSubscriptionCurrent(
+                outputValue.subscription.status,
+                outputValue.subscription.cancellationReason
+              ),
+            },
+          }
+
+          return Result.ok({
+            ...outputValue,
+            ...finalResult,
+          })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const getCountsByStatusProcedure = protectedProcedure
   .input(z.object({}))
@@ -754,14 +807,17 @@ const getCountsByStatusProcedure = protectedProcedure
     )
   )
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectSubscriptionCountsByStatus(transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectSubscriptionCountsByStatus(transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
+    return result
   })
 
 const getTableRows = protectedProcedure
@@ -781,14 +837,21 @@ const getTableRows = protectedProcedure
       subscriptionsTableRowDataSchema
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectSubscriptionsTableRowData({ input, transaction })
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({ transaction }) => {
+          const data = await selectSubscriptionsTableRowData({
+            input,
+            transaction,
+          })
+          return Result.ok(data)
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 // TRPC-only procedure, not exposed as REST API
 const updatePaymentMethodProcedure = protectedProcedure
@@ -798,126 +861,134 @@ const updatePaymentMethodProcedure = protectedProcedure
       subscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({ transaction }) => {
+          const subscription = await selectSubscriptionById(
+            input.id,
+            transaction
+          )
 
-        // Verify the payment method exists and belongs to the same customer
-        const paymentMethod = await selectPaymentMethodById(
-          input.paymentMethodId,
-          transaction
-        )
+          // Verify the payment method exists and belongs to the same customer
+          const paymentMethod = await selectPaymentMethodById(
+            input.paymentMethodId,
+            transaction
+          )
 
-        if (paymentMethod.customerId !== subscription.customerId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Payment method does not belong to the subscription customer',
+          if (paymentMethod.customerId !== subscription.customerId) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Payment method does not belong to the subscription customer',
+            })
+          }
+
+          // Update the subscription with the new payment method
+          const updatedSubscription = await updateSubscription(
+            {
+              id: subscription.id,
+              defaultPaymentMethodId: input.paymentMethodId,
+              renews: subscription.renews,
+            },
+            transaction
+          )
+
+          return Result.ok({
+            subscription: {
+              ...updatedSubscription,
+              current: isSubscriptionCurrent(
+                updatedSubscription.status,
+                updatedSubscription.cancellationReason
+              ),
+            },
           })
-        }
-
-        // Update the subscription with the new payment method
-        const updatedSubscription = await updateSubscription(
-          {
-            id: subscription.id,
-            defaultPaymentMethodId: input.paymentMethodId,
-            renews: subscription.renews,
-          },
-          transaction
-        )
-
-        return {
-          subscription: {
-            ...updatedSubscription,
-            current: isSubscriptionCurrent(
-              updatedSubscription.status,
-              updatedSubscription.cancellationReason
-            ),
-          },
-        }
-      }
-    )
-  )
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 const retryBillingRunProcedure = protectedProcedure
   .input(retryBillingRunInputSchema)
   .output(z.object({ message: z.string() }))
   .mutation(async ({ input, ctx }) => {
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        const billingPeriod = await selectBillingPeriodById(
-          input.billingPeriodId,
-          transaction
-        )
-        if (billingPeriod.status === BillingPeriodStatus.Completed) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Billing period is already completed',
-          })
-        }
-        if (billingPeriod.status === BillingPeriodStatus.Canceled) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Billing period is already canceled',
-          })
-        }
-        if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Billing period is already upcoming',
-          })
-        }
-        const subscription = await selectSubscriptionById(
-          billingPeriod.subscriptionId,
-          transaction
-        )
+    const resultWrapped = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const billingPeriod = await selectBillingPeriodById(
+            input.billingPeriodId,
+            transaction
+          )
+          if (
+            billingPeriod.status === BillingPeriodStatus.Completed
+          ) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Billing period is already completed',
+            })
+          }
+          if (billingPeriod.status === BillingPeriodStatus.Canceled) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Billing period is already canceled',
+            })
+          }
+          if (billingPeriod.status === BillingPeriodStatus.Upcoming) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Billing period is already upcoming',
+            })
+          }
+          const subscription = await selectSubscriptionById(
+            billingPeriod.subscriptionId,
+            transaction
+          )
 
-        if (subscription.doNotCharge) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Cannot retry billing for doNotCharge subscriptions',
-          })
-        }
+          if (subscription.doNotCharge) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Cannot retry billing for doNotCharge subscriptions',
+            })
+          }
 
-        const paymentMethod = subscription.defaultPaymentMethodId
-          ? await selectPaymentMethodById(
-              subscription.defaultPaymentMethodId,
-              transaction
-            )
-          : (
-              await selectPaymentMethods(
-                {
-                  customerId: subscription.customerId,
-                  default: true,
-                },
+          const paymentMethod = subscription.defaultPaymentMethodId
+            ? await selectPaymentMethodById(
+                subscription.defaultPaymentMethodId,
                 transaction
               )
-            )[0]
+            : (
+                await selectPaymentMethods(
+                  {
+                    customerId: subscription.customerId,
+                    default: true,
+                  },
+                  transaction
+                )
+              )[0]
 
-        if (!paymentMethod) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'No payment method found for subscription',
-          })
-        }
+          if (!paymentMethod) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'No payment method found for subscription',
+            })
+          }
 
-        return createBillingRun(
-          {
-            billingPeriod,
-            scheduledFor: new Date(),
-            paymentMethod,
-          },
-          transaction
-        )
-      },
-      { apiKey: ctx.apiKey }
-    )
-    const billingRun = await executeBillingRun(result.id)
+          return createBillingRun(
+            {
+              billingPeriod,
+              scheduledFor: new Date(),
+              paymentMethod,
+            },
+            transaction
+          )
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    const billingRunData = resultWrapped
+    const billingRun = await executeBillingRun(billingRunData.id)
     if (!billingRun) {
       throw new TRPCError({
         code: 'BAD_REQUEST',
@@ -944,17 +1015,20 @@ const listDistinctSubscriptionProductNamesProcedure =
     .input(z.object({}).optional())
     .output(z.array(z.string()))
     .query(async ({ ctx }) => {
-      return authenticatedTransaction(
-        async ({ transaction, organizationId }) => {
-          return selectDistinctSubscriptionProductNames(
-            organizationId,
-            transaction
-          )
-        },
-        {
-          apiKey: ctx.apiKey,
-        }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction, organizationId }) => {
+            return selectDistinctSubscriptionProductNames(
+              organizationId,
+              transaction
+            )
+          },
+          {
+            apiKey: ctx.apiKey,
+          }
+        )
+      ).unwrap()
+      return result
     })
 
 export const subscriptionsRouter = router({

@@ -474,14 +474,14 @@ describe('Customer Billing Portal Router', () => {
         })
 
         // Verify subscription is scheduled for cancellation
-        const scheduledSubscription = await adminTransaction(
-          async ({ transaction }) => {
+        const scheduledSubscription = (
+          await adminTransaction(async ({ transaction }) => {
             return selectSubscriptionById(
               subscription.id,
               transaction
             )
-          }
-        )
+          })
+        ).unwrap()
         expect(scheduledSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
@@ -723,32 +723,34 @@ describe('Customer Billing Portal Router', () => {
       const {
         user: userWithoutStripeCustomer,
         customer: customerWithoutStripe,
-      } = await adminTransaction(async ({ transaction }) => {
-        const userWithoutStripeCustomer = await insertUser(
-          {
-            id: `user_${core.nanoid()}`,
-            email: `test-no-customer-${core.nanoid()}@test.com`,
-            name: 'User Without Customer',
-            betterAuthId: `better_auth_${core.nanoid()}`,
-          },
-          transaction
-        )
-        const customer = await insertCustomer(
-          {
-            organizationId: organization.id,
-            email: `test+${core.nanoid()}@test.com`,
-            name: 'Test Customer Without Stripe',
-            externalId: core.nanoid(),
-            livemode: true,
-            stripeCustomerId: null, // No Stripe customer ID
-            invoiceNumberBase: core.nanoid(),
-            userId: userWithoutStripeCustomer.id,
-            pricingModelId: pricingModel.id,
-          },
-          transaction
-        )
-        return { user: userWithoutStripeCustomer, customer }
-      })
+      } = (
+        await adminTransaction(async ({ transaction }) => {
+          const userWithoutStripeCustomer = await insertUser(
+            {
+              id: `user_${core.nanoid()}`,
+              email: `test-no-customer-${core.nanoid()}@test.com`,
+              name: 'User Without Customer',
+              betterAuthId: `better_auth_${core.nanoid()}`,
+            },
+            transaction
+          )
+          const customer = await insertCustomer(
+            {
+              organizationId: organization.id,
+              email: `test+${core.nanoid()}@test.com`,
+              name: 'Test Customer Without Stripe',
+              externalId: core.nanoid(),
+              livemode: true,
+              stripeCustomerId: null, // No Stripe customer ID
+              invoiceNumberBase: core.nanoid(),
+              userId: userWithoutStripeCustomer.id,
+              pricingModelId: pricingModel.id,
+            },
+            transaction
+          )
+          return { user: userWithoutStripeCustomer, customer }
+        })
+      ).unwrap()
 
       const ctx = createTestContext(
         userWithoutStripeCustomer,
@@ -766,8 +768,8 @@ describe('Customer Billing Portal Router', () => {
 
     it('throws error when customer not found in context', async () => {
       // Create a user with no associated customer
-      const userWithoutCustomer = await adminTransaction(
-        async ({ transaction }) => {
+      const userWithoutCustomer = (
+        await adminTransaction(async ({ transaction }) => {
           return insertUser(
             {
               id: `user_${core.nanoid()}`,
@@ -777,8 +779,8 @@ describe('Customer Billing Portal Router', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const ctxWithoutCustomer = {
         ...createTestContext(userWithoutCustomer, undefined),
@@ -830,25 +832,25 @@ describe('Customer Billing Portal Router', () => {
         })
 
         // Verify the payment method is actually set as default
-        const updatedPaymentMethod = await adminTransaction(
-          async ({ transaction }) => {
+        const updatedPaymentMethod = (
+          await adminTransaction(async ({ transaction }) => {
             return selectPaymentMethodById(
               additionalPaymentMethod.id,
               transaction
             )
-          }
-        )
+          })
+        ).unwrap()
         expect(updatedPaymentMethod.default).toBe(true)
 
         // Verify the previous default is no longer default
-        const previousDefault = await adminTransaction(
-          async ({ transaction }) => {
+        const previousDefault = (
+          await adminTransaction(async ({ transaction }) => {
             return selectPaymentMethodById(
               paymentMethod.id,
               transaction
             )
-          }
-        )
+          })
+        ).unwrap()
         expect(previousDefault.default).toBe(false)
       }
     )
@@ -920,14 +922,14 @@ describe('Customer Billing Portal Router', () => {
           .setDefaultPaymentMethod(input)
 
         // Verify subscription now uses the new payment method
-        const updatedSubscription = await adminTransaction(
-          async ({ transaction }) => {
+        const updatedSubscription = (
+          await adminTransaction(async ({ transaction }) => {
             return selectSubscriptionById(
               subscription.id,
               transaction
             )
-          }
-        )
+          })
+        ).unwrap()
         expect(updatedSubscription.defaultPaymentMethodId).toBe(
           newPaymentMethod.id
         )

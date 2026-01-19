@@ -85,14 +85,15 @@ const getMembers = protectedProcedure
       throw new Error('organizationId is required')
     }
 
-    const members = await adminTransaction(
-      async ({ transaction }) => {
+    const membersResult = (
+      await adminTransaction(async ({ transaction }) => {
         return selectMembershipsAndUsersByMembershipWhere(
           { organizationId: ctx.organizationId },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
+    const members = membersResult
 
     // Sort members by date of creation, newest first
     const sortedMembers = members.sort((a, b) => {
@@ -399,21 +400,24 @@ const getUsageMetersWithEventsProcedure = protectedProcedure
   )
 
 const getOrganizations = protectedProcedure.query(async ({ ctx }) => {
-  return adminTransaction(async ({ transaction }) => {
-    // Get all memberships and organizations for the user
-    const membershipsAndOrganizations =
-      await selectMembershipsAndOrganizationsByMembershipWhere(
-        { userId: ctx.user!.id },
-        transaction
+  const result = (
+    await adminTransaction(async ({ transaction }) => {
+      // Get all memberships and organizations for the user
+      const membershipsAndOrganizations =
+        await selectMembershipsAndOrganizationsByMembershipWhere(
+          { userId: ctx.user!.id },
+          transaction
+        )
+
+      // Extract just the organizations
+      const organizations = membershipsAndOrganizations.map(
+        ({ organization }) => organization
       )
 
-    // Extract just the organizations
-    const organizations = membershipsAndOrganizations.map(
-      ({ organization }) => organization
-    )
-
-    return organizations
-  }, {})
+      return organizations
+    }, {})
+  ).unwrap()
+  return result
 })
 
 const createOrganization = protectedProcedure
@@ -430,23 +434,26 @@ const createOrganization = protectedProcedure
       throw new Error('User not found')
     }
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      const [user] = await selectUsers(
-        {
-          betterAuthId: session.user.id,
-        },
-        transaction
-      )
-      return createOrganizationTransaction(
-        input,
-        {
-          id: user.id,
-          email: user.email!,
-          fullName: user.name ?? undefined,
-        },
-        transaction
-      )
-    })
+    const transactionResult = (
+      await adminTransaction(async ({ transaction }) => {
+        const [user] = await selectUsers(
+          {
+            betterAuthId: session.user.id,
+          },
+          transaction
+        )
+        return createOrganizationTransaction(
+          input,
+          {
+            id: user.id,
+            email: user.email!,
+            fullName: user.name ?? undefined,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
+    const result = transactionResult
     if (input.codebaseMarkdown) {
       await saveOrganizationCodebaseMarkdown({
         organizationId: result.organization.id,
@@ -503,14 +510,15 @@ const updateFocusedMembershipSchema = z.object({
 const updateFocusedMembership = protectedProcedure
   .input(updateFocusedMembershipSchema)
   .mutation(async ({ input, ctx }) => {
-    const memberships = await adminTransaction(
-      async ({ transaction }) => {
+    const membershipsResult = (
+      await adminTransaction(async ({ transaction }) => {
         return selectMembershipsAndOrganizationsByMembershipWhere(
           { userId: ctx.user!.id },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
+    const memberships = membershipsResult
     const membershipToFocus = memberships.find(
       (m) => m.membership.organizationId === input.organizationId
     )
@@ -520,19 +528,22 @@ const updateFocusedMembership = protectedProcedure
         message: 'Membership not found',
       })
     }
-    return adminTransaction(async ({ transaction }) => {
-      await unfocusMembershipsForUser(
-        membershipToFocus.membership.userId,
-        transaction
-      )
-      return updateMembership(
-        {
-          id: membershipToFocus.membership.id,
-          focused: true,
-        },
-        transaction
-      )
-    })
+    const updateResult = (
+      await adminTransaction(async ({ transaction }) => {
+        await unfocusMembershipsForUser(
+          membershipToFocus.membership.userId,
+          transaction
+        )
+        return updateMembership(
+          {
+            id: membershipToFocus.membership.id,
+            focused: true,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
+    return updateResult
   })
 
 const getMembersTableRowData = protectedProcedure
@@ -541,32 +552,38 @@ const getMembersTableRowData = protectedProcedure
     createPaginatedTableRowOutputSchema(membershipsTableRowDataSchema)
   )
   .query(async (args) => {
-    const focusedMembership = await authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        return selectFocusedMembershipAndOrganization(
-          userId,
-          transaction
-        )
-      }
-    )
+    const focusedMembershipResult = (
+      await authenticatedTransaction(
+        async ({ transaction, userId }) => {
+          return selectFocusedMembershipAndOrganization(
+            userId,
+            transaction
+          )
+        }
+      )
+    ).unwrap()
+    const focusedMembership = focusedMembershipResult
     /**
      * Force overwrite the organizationId because we need to do an admin transaction
      * to give the user visbility into their teammates. Due to limitations of RLS,
      * we can't do this in the authenticated transaction as memberships
      * is the "root" basis of most of our RLS policies.
      */
-    return adminTransaction(async ({ transaction }) => {
-      return selectMembershipsTableRowData({
-        input: {
-          ...args.input,
-          filters: {
-            ...args.input.filters,
-            organizationId: focusedMembership.organization.id,
+    const tableRowDataResult = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectMembershipsTableRowData({
+          input: {
+            ...args.input,
+            filters: {
+              ...args.input.filters,
+              organizationId: focusedMembership.organization.id,
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
+    return tableRowDataResult
   })
 
 /**

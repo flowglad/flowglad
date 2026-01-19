@@ -37,7 +37,7 @@ const sendCustomerSubscriptionCancellationScheduledNotificationTask =
         }
       )
 
-      const { subscription, organization, customer } =
+      const { subscription, organization, customer } = (
         await adminTransaction(async ({ transaction }) => {
           const subscription = await selectSubscriptionById(
             subscriptionId,
@@ -62,6 +62,7 @@ const sendCustomerSubscriptionCancellationScheduledNotificationTask =
             customer,
           }
         })
+      ).unwrap()
 
       if (!organization) {
         throw new Error(

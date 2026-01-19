@@ -35,32 +35,34 @@ export const innerInviteUserToOrganizationHandler = async (
   }
 ) => {
   // Use admin transaction to find user by email
-  const [userForEmail] = await adminTransaction(
-    async ({ transaction }) => {
+  const [userForEmail] = (
+    await adminTransaction(async ({ transaction }) => {
       return selectUsers({ email: input.email }, transaction)
-    }
-  )
+    })
+  ).unwrap()
 
   if (!userForEmail) {
-    await adminTransaction(async ({ transaction }) => {
-      const databaseUser = await insertUser(
-        {
-          id: `user_${core.nanoid()}`,
-          email: input.email,
-          name: input.name ?? '',
-        },
-        transaction
-      )
-      await insertMembership(
-        {
-          userId: databaseUser.id,
-          organizationId: focusedMembership.organization.id,
-          focused: false,
-          livemode: focusedMembership.membership.livemode,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const databaseUser = await insertUser(
+          {
+            id: `user_${core.nanoid()}`,
+            email: input.email,
+            name: input.name ?? '',
+          },
+          transaction
+        )
+        await insertMembership(
+          {
+            userId: databaseUser.id,
+            organizationId: focusedMembership.organization.id,
+            focused: false,
+            livemode: focusedMembership.membership.livemode,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
     await sendOrganizationInvitationEmail({
       to: [input.email],
       organizationName: focusedMembership.organization.name,
@@ -71,29 +73,30 @@ export const innerInviteUserToOrganizationHandler = async (
       message: 'User created and invited to organization',
     }
   }
-
   // Insert membership for the user
-  await adminTransaction(async ({ transaction, livemode }) => {
-    const membershipForUser = await selectMemberships(
-      {
-        userId: userForEmail.id,
-        organizationId: focusedMembership.organization.id,
-      },
-      transaction
-    )
-    if (membershipForUser.length > 0) {
-      return
-    }
-    return insertMembership(
-      {
-        userId: userForEmail.id,
-        organizationId: focusedMembership.organization.id,
-        focused: false,
-        livemode,
-      },
-      transaction
-    )
-  })
+  ;(
+    await adminTransaction(async ({ transaction, livemode }) => {
+      const membershipForUser = await selectMemberships(
+        {
+          userId: userForEmail.id,
+          organizationId: focusedMembership.organization.id,
+        },
+        transaction
+      )
+      if (membershipForUser.length > 0) {
+        return
+      }
+      return insertMembership(
+        {
+          userId: userForEmail.id,
+          organizationId: focusedMembership.organization.id,
+          focused: false,
+          livemode,
+        },
+        transaction
+      )
+    })
+  ).unwrap()
 }
 
 /**
@@ -107,7 +110,7 @@ export const inviteUserToOrganization = protectedProcedure
   .input(inviteUserToOrganizationSchema)
   .mutation(async ({ input, ctx }) => {
     // Get focused membership to get organization ID
-    const { focusedMembership, user: inviterUser } =
+    const { focusedMembership, user: inviterUser } = (
       await authenticatedTransaction(
         async ({ transaction, userId }) => {
           const focusedMembership =
@@ -125,6 +128,7 @@ export const inviteUserToOrganization = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
+    ).unwrap()
     await innerInviteUserToOrganizationHandler(
       focusedMembership,
       input,

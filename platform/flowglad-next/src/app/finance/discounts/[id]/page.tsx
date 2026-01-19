@@ -15,8 +15,8 @@ interface PageProps {
 const DiscountPage = async ({ params }: PageProps) => {
   const { id } = await params
 
-  const result = await authenticatedTransaction(
-    async ({ transaction }) => {
+  const result = (
+    await authenticatedTransaction(async ({ transaction }) => {
       let discount
       try {
         discount = await selectDiscountById(id, transaction)
@@ -40,8 +40,8 @@ const DiscountPage = async ({ params }: PageProps) => {
         discount,
         redemptionCount: redemptionResult?.count ?? 0,
       }
-    }
-  )
+    })
+  ).unwrap()
 
   if (!result) {
     notFound()

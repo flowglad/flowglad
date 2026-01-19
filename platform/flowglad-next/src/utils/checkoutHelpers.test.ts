@@ -237,51 +237,55 @@ describe('checkoutHelpers', () => {
     it('valid session with customer → includes product/price/org and customer', async () => {
       const { organization, product, price, customer, session } =
         await makeSession()
-      await adminTransaction(async ({ transaction }) => {
-        const result = await checkoutInfoForCheckoutSession(
-          session.id,
-          transaction
-        )
-        expect(result.product.id).toBe(product.id)
-        expect(result.price.id).toBe(price.id)
-        expect(result.sellerOrganization.id).toBe(organization.id)
-        expect(result.maybeCustomer?.id).toBe(customer.id)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await checkoutInfoForCheckoutSession(
+            session.id,
+            transaction
+          )
+          expect(result.product.id).toBe(product.id)
+          expect(result.price.id).toBe(price.id)
+          expect(result.sellerOrganization.id).toBe(organization.id)
+          expect(result.maybeCustomer?.id).toBe(customer.id)
+        })
+      ).unwrap()
     })
 
     it('valid session without customer → includes product/price/org and no customer', async () => {
       const { organization, product, price } = await makeSession()
-      await adminTransaction(async ({ transaction }) => {
-        const noCustomerSession = await insertCheckoutSession(
-          {
-            status: CheckoutSessionStatus.Open,
-            type: CheckoutSessionType.Product,
-            priceId: price.id,
-            quantity: 1,
-            livemode: price.livemode,
-            organizationId: organization.id,
-            invoiceId: null,
-            purchaseId: null,
-            targetSubscriptionId: null,
-            automaticallyUpdateSubscriptions: null,
-            preserveBillingCycleAnchor: false,
-            outputName: null,
-            outputMetadata: {},
-            customerId: null,
-            customerEmail: null,
-            customerName: null,
-          },
-          transaction
-        )
-        const result = await checkoutInfoForCheckoutSession(
-          noCustomerSession.id,
-          transaction
-        )
-        expect(result.product.id).toBe(product.id)
-        expect(result.price.id).toBe(price.id)
-        expect(result.sellerOrganization.id).toBe(organization.id)
-        expect(result.maybeCustomer).toBeNull()
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const noCustomerSession = await insertCheckoutSession(
+            {
+              status: CheckoutSessionStatus.Open,
+              type: CheckoutSessionType.Product,
+              priceId: price.id,
+              quantity: 1,
+              livemode: price.livemode,
+              organizationId: organization.id,
+              invoiceId: null,
+              purchaseId: null,
+              targetSubscriptionId: null,
+              automaticallyUpdateSubscriptions: null,
+              preserveBillingCycleAnchor: false,
+              outputName: null,
+              outputMetadata: {},
+              customerId: null,
+              customerEmail: null,
+              customerName: null,
+            },
+            transaction
+          )
+          const result = await checkoutInfoForCheckoutSession(
+            noCustomerSession.id,
+            transaction
+          )
+          expect(result.product.id).toBe(product.id)
+          expect(result.price.id).toBe(price.id)
+          expect(result.sellerOrganization.id).toBe(organization.id)
+          expect(result.maybeCustomer).toBeNull()
+        })
+      ).unwrap()
     })
 
     it('includes discount when discount is applied to checkout', async () => {
@@ -294,17 +298,19 @@ describe('checkoutHelpers', () => {
         amount: 10,
         code: 'SAVE10',
       })
-      await adminTransaction(async ({ transaction }) => {
-        await updateCheckoutSession(
-          { ...session, discountId: discount.id },
-          transaction
-        )
-        const result = await checkoutInfoForCheckoutSession(
-          session.id,
-          transaction
-        )
-        expect(result.discount?.id).toBe(discount.id)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCheckoutSession(
+            { ...session, discountId: discount.id },
+            transaction
+          )
+          const result = await checkoutInfoForCheckoutSession(
+            session.id,
+            transaction
+          )
+          expect(result.discount?.id).toBe(discount.id)
+        })
+      ).unwrap()
     })
 
     it('includes latest feeCalculation for checkout', async () => {
@@ -321,15 +327,19 @@ describe('checkoutHelpers', () => {
         priceId: price.id,
         livemode: true,
       })
-      await adminTransaction(async ({ transaction }) => {
-        const result = await checkoutInfoForCheckoutSession(
-          session.id,
-          transaction
-        )
-        expect(result.feeCalculation).toMatchObject({ id: second.id })
-        expect(result.feeCalculation?.id).toBe(second.id)
-        expect(result.feeCalculation?.id).not.toBe(first.id)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await checkoutInfoForCheckoutSession(
+            session.id,
+            transaction
+          )
+          expect(result.feeCalculation).toMatchObject({
+            id: second.id,
+          })
+          expect(result.feeCalculation?.id).toBe(second.id)
+          expect(result.feeCalculation?.id).not.toBe(first.id)
+        })
+      ).unwrap()
     })
 
     it('includes current subscriptions if the customer has any', async () => {
@@ -341,15 +351,17 @@ describe('checkoutHelpers', () => {
         priceId: price.id,
         status: SubscriptionStatus.Active,
       })
-      await adminTransaction(async ({ transaction }) => {
-        const result = await checkoutInfoForCheckoutSession(
-          session.id,
-          transaction
-        )
-        expect(
-          result.maybeCurrentSubscriptions?.length
-        ).toBeGreaterThan(0)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await checkoutInfoForCheckoutSession(
+            session.id,
+            transaction
+          )
+          expect(
+            result.maybeCurrentSubscriptions?.length
+          ).toBeGreaterThan(0)
+        })
+      ).unwrap()
     })
 
     it('includes features', async () => {
@@ -380,13 +392,15 @@ describe('checkoutHelpers', () => {
         quantity: 1,
         livemode: true,
       })
-      await adminTransaction(async ({ transaction }) => {
-        const result = await checkoutInfoForCheckoutSession(
-          session.id,
-          transaction
-        )
-        expect(result.features?.length).toBeGreaterThan(0)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await checkoutInfoForCheckoutSession(
+            session.id,
+            transaction
+          )
+          expect(result.features?.length).toBeGreaterThan(0)
+        })
+      ).unwrap()
     })
   })
 
@@ -397,13 +411,15 @@ describe('checkoutHelpers', () => {
         organizationId: organization.id,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await hasCustomerUsedTrial(
-          customer.id,
-          transaction
-        )
-        expect(result).toBe(false)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await hasCustomerUsedTrial(
+            customer.id,
+            transaction
+          )
+          expect(result).toBe(false)
+        })
+      ).unwrap()
     })
 
     it('should return false when customer has subscriptions but none with trialEnd', async () => {
@@ -440,13 +456,15 @@ describe('checkoutHelpers', () => {
         trialEnd: undefined,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await hasCustomerUsedTrial(
-          customer.id,
-          transaction
-        )
-        expect(result).toBe(false)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await hasCustomerUsedTrial(
+            customer.id,
+            transaction
+          )
+          expect(result).toBe(false)
+        })
+      ).unwrap()
     })
 
     it('should return true when customer has one subscription with trialEnd', async () => {
@@ -484,13 +502,15 @@ describe('checkoutHelpers', () => {
         trialEnd,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await hasCustomerUsedTrial(
-          customer.id,
-          transaction
-        )
-        expect(result).toBe(true)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await hasCustomerUsedTrial(
+            customer.id,
+            transaction
+          )
+          expect(result).toBe(true)
+        })
+      ).unwrap()
     })
 
     it('should return true when customer has multiple subscriptions and one has trialEnd', async () => {
@@ -549,13 +569,15 @@ describe('checkoutHelpers', () => {
         trialEnd,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await hasCustomerUsedTrial(
-          customer.id,
-          transaction
-        )
-        expect(result).toBe(true)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await hasCustomerUsedTrial(
+            customer.id,
+            transaction
+          )
+          expect(result).toBe(true)
+        })
+      ).unwrap()
     })
 
     it('should return true when customer has cancelled subscription with trialEnd', async () => {
@@ -593,13 +615,15 @@ describe('checkoutHelpers', () => {
         trialEnd,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await hasCustomerUsedTrial(
-          customer.id,
-          transaction
-        )
-        expect(result).toBe(true)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await hasCustomerUsedTrial(
+            customer.id,
+            transaction
+          )
+          expect(result).toBe(true)
+        })
+      ).unwrap()
     })
   })
 
@@ -627,14 +651,16 @@ describe('checkoutHelpers', () => {
         organizationId: organization.id,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await calculateTrialEligibility(
-          price,
-          customer,
-          transaction
-        )
-        expect(result).toBeUndefined()
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await calculateTrialEligibility(
+            price,
+            customer,
+            transaction
+          )
+          expect(result).toBeUndefined()
+        })
+      ).unwrap()
     })
 
     it('should return true for Subscription price with anonymous customer', async () => {
@@ -659,14 +685,16 @@ describe('checkoutHelpers', () => {
         intervalCount: 1,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await calculateTrialEligibility(
-          price,
-          null,
-          transaction
-        )
-        expect(result).toBe(true)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await calculateTrialEligibility(
+            price,
+            null,
+            transaction
+          )
+          expect(result).toBe(true)
+        })
+      ).unwrap()
     })
 
     it('should return true for Subscription price with customer who has no trial history', async () => {
@@ -703,14 +731,16 @@ describe('checkoutHelpers', () => {
         trialEnd: undefined,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await calculateTrialEligibility(
-          price,
-          customer,
-          transaction
-        )
-        expect(result).toBe(true)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await calculateTrialEligibility(
+            price,
+            customer,
+            transaction
+          )
+          expect(result).toBe(true)
+        })
+      ).unwrap()
     })
 
     it('should return false for Subscription price with customer who has used trial', async () => {
@@ -760,15 +790,17 @@ describe('checkoutHelpers', () => {
         trialEnd,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Check eligibility for a different price
-        const result = await calculateTrialEligibility(
-          price2,
-          customer,
-          transaction
-        )
-        expect(result).toBe(false)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Check eligibility for a different price
+          const result = await calculateTrialEligibility(
+            price2,
+            customer,
+            transaction
+          )
+          expect(result).toBe(false)
+        })
+      ).unwrap()
     })
   })
 })

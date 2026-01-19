@@ -1,8 +1,5 @@
 import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   createInvoiceSchema,
   editInvoiceSchema,
@@ -58,14 +55,17 @@ const listInvoicesProcedure = protectedProcedure
   .input(invoicesPaginatedSelectSchema)
   .output(invoicesPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectInvoicesPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectInvoicesPaginated(input, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
+    return result
   })
 
 const getInvoiceProcedure = protectedProcedure
@@ -73,19 +73,22 @@ const getInvoiceProcedure = protectedProcedure
   .input(idInputSchema)
   .output(invoiceWithLineItemsClientSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const [invoiceAndLineItems] =
-          await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-            { id: input.id },
-            transaction
-          )
-        return invoiceAndLineItems
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const [invoiceAndLineItems] =
+            await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+              { id: input.id },
+              transaction
+            )
+          return invoiceAndLineItems
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
+    return result
   })
 
 const updateInvoiceProcedure = protectedProcedure
@@ -97,7 +100,7 @@ const updateInvoiceProcedure = protectedProcedure
     })
   )
   .mutation(async ({ ctx, input }) => {
-    const { invoice, invoiceLineItems } =
+    const result = (
       await authenticatedTransaction(
         async ({ transaction }) => {
           return updateInvoiceTransaction(
@@ -110,6 +113,8 @@ const updateInvoiceProcedure = protectedProcedure
           apiKey: ctx.apiKey,
         }
       )
+    ).unwrap()
+    const { invoice, invoiceLineItems } = result
     return { invoice, invoiceLineItems }
   })
 
@@ -124,14 +129,17 @@ const getCountsByStatusProcedure = protectedProcedure
     )
   )
   .query(async ({ ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectInvoiceCountsByStatus(transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectInvoiceCountsByStatus(transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
+    return result
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -150,14 +158,17 @@ const getTableRowsProcedure = protectedProcedure
       invoicesPaginatedTableRowDataSchema
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectInvoicesTableRowData({ input, transaction })
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectInvoicesTableRowData({ input, transaction })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const invoicesRouter = router({
   list: listInvoicesProcedure,

@@ -156,10 +156,11 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     await executeBillingRun(adjustmentBillingRun.id)
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(adjustmentBillingRun.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
     expect(typeof updatedBillingRun.errorDetails).toBe('object')
     expect(updatedBillingRun.errorDetails?.message).toContain(
@@ -217,10 +218,11 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       adjustmentDate,
     })
 
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(adjustmentBillingRun.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
 
@@ -288,13 +290,15 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     ).mockResolvedValueOnce(mockConfirmationResult)
 
     // Get subscription items before adjustment
-    const itemsBefore = await adminTransaction(({ transaction }) =>
-      selectCurrentlyActiveSubscriptionItems(
-        { subscriptionId: subscription.id },
-        new Date(),
-        transaction
+    const itemsBefore = (
+      await adminTransaction(({ transaction }) =>
+        selectCurrentlyActiveSubscriptionItems(
+          { subscriptionId: subscription.id },
+          new Date(),
+          transaction
+        )
       )
-    )
+    ).unwrap()
     expect(
       itemsBefore.some((item) => item.id === existingItem.id)
     ).toBe(true)
@@ -305,20 +309,23 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Verify billing run succeeded
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(adjustmentBillingRun.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
 
     // Verify subscription items were updated after payment
-    const itemsAfter = await adminTransaction(({ transaction }) =>
-      selectCurrentlyActiveSubscriptionItems(
-        { subscriptionId: subscription.id },
-        adjustmentDate.getTime() + 1000, // After adjustment date
-        transaction
+    const itemsAfter = (
+      await adminTransaction(({ transaction }) =>
+        selectCurrentlyActiveSubscriptionItems(
+          { subscriptionId: subscription.id },
+          adjustmentDate.getTime() + 1000, // After adjustment date
+          transaction
+        )
       )
-    )
+    ).unwrap()
 
     // Old item should be expired
     const oldItemStillActive = itemsAfter.find(
@@ -400,13 +407,15 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     ).mockResolvedValueOnce(mockConfirmationResult)
 
     // Get items before
-    const itemsBefore = await adminTransaction(({ transaction }) =>
-      selectCurrentlyActiveSubscriptionItems(
-        { subscriptionId: subscription.id },
-        new Date(),
-        transaction
+    const itemsBefore = (
+      await adminTransaction(({ transaction }) =>
+        selectCurrentlyActiveSubscriptionItems(
+          { subscriptionId: subscription.id },
+          new Date(),
+          transaction
+        )
       )
-    )
+    ).unwrap()
     const originalItemIds = itemsBefore
       .filter((item) => !item.expiredAt)
       .map((item) => item.id)
@@ -418,20 +427,23 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Verify billing run status (should be Failed after processOutcomeForBillingRun)
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(adjustmentBillingRun.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
 
     // Verify subscription items were NOT updated
-    const itemsAfter = await adminTransaction(({ transaction }) =>
-      selectCurrentlyActiveSubscriptionItems(
-        { subscriptionId: subscription.id },
-        new Date(),
-        transaction
+    const itemsAfter = (
+      await adminTransaction(({ transaction }) =>
+        selectCurrentlyActiveSubscriptionItems(
+          { subscriptionId: subscription.id },
+          new Date(),
+          transaction
+        )
       )
-    )
+    ).unwrap()
     const afterItemIds = itemsAfter
       .filter((item) => !item.expiredAt)
       .map((item) => item.id)
@@ -553,10 +565,11 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       vi.mocked(createPaymentIntentForBillingRun)
     ).toHaveBeenCalled()
 
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(adjustmentBillingRun.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
 
@@ -662,10 +675,11 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     // Verify no payment intent was created (or created with zero amount)
     // Since amount is 0, executeBillingRun should handle it without creating payment intent
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(adjustmentBillingRun.id, transaction)
-    )
+      )
+    ).unwrap()
 
     // If amount is 0, billing run should succeed without payment
     // The actual behavior depends on implementation, but key is no negative charge
@@ -760,19 +774,22 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Verify billing run succeeded
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(adjustmentBillingRun.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
 
     // Verify subscription items - get all items including expired ones
-    const allItemsAfter = await adminTransaction(({ transaction }) =>
-      selectSubscriptionItems(
-        { subscriptionId: subscription.id },
-        transaction
+    const allItemsAfter = (
+      await adminTransaction(({ transaction }) =>
+        selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
       )
-    )
+    ).unwrap()
 
     // Second item should be expired
     const secondItemAfter = allItemsAfter.find(
@@ -783,14 +800,15 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     )
 
     // Get active items for the other checks
-    const activeItemsAfter = await adminTransaction(
-      ({ transaction }) =>
+    const activeItemsAfter = (
+      await adminTransaction(({ transaction }) =>
         selectCurrentlyActiveSubscriptionItems(
           { subscriptionId: subscription.id },
           adjustmentDate.getTime() + 1000,
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     // First item should still exist and be active with correct properties
     const firstItemAfter = activeItemsAfter.find(
@@ -894,10 +912,11 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       vi.mocked(createPaymentIntentForBillingRun)
     ).toHaveBeenCalled()
 
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(adjustmentBillingRun.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
 
@@ -963,10 +982,11 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Verify subscription record was synced
-    const updatedSubscription = await adminTransaction(
-      ({ transaction }) =>
+    const updatedSubscription = (
+      await adminTransaction(({ transaction }) =>
         selectSubscriptionById(subscription.id, transaction)
-    )
+      )
+    ).unwrap()
 
     // Subscription should reflect the most expensive item (the new higher price)
     expect(updatedSubscription.priceId).toBe(higherPrice.id)
@@ -1043,21 +1063,23 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Verify billing period items exist (proration items are created in adjustSubscription)
-    const billingPeriodItemsAfter = await adminTransaction(
-      ({ transaction }) =>
+    const billingPeriodItemsAfter = (
+      await adminTransaction(({ transaction }) =>
         selectBillingPeriodItems(
           { billingPeriodId: billingPeriod.id },
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     // The billing period should have items (original staticBillingPeriodItem at minimum)
     expect(billingPeriodItemsAfter.length).toBeGreaterThan(0)
 
-    const updatedBillingRun = await adminTransaction(
-      ({ transaction }) =>
+    const updatedBillingRun = (
+      await adminTransaction(({ transaction }) =>
         selectBillingRunById(adjustmentBillingRun.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
 })

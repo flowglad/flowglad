@@ -14,7 +14,7 @@ interface FeaturePageProps {
 const FeaturePage = async ({ params }: FeaturePageProps) => {
   const { id } = await params
 
-  const { feature, pricingModel, usageMeter } =
+  const { feature, pricingModel, usageMeter } = (
     await authenticatedTransaction(async ({ transaction }) => {
       let feature
       try {
@@ -54,6 +54,7 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
         usageMeter,
       }
     })
+  ).unwrap()
 
   if (!feature) {
     notFound()

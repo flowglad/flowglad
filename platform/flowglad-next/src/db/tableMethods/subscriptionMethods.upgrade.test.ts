@@ -290,33 +290,35 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update free subscription to be canceled with upgrade reason
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-            replacedBySubscriptionId: paidSubscription.id,
-            renews: freeSubscription.renews,
-          },
-          transaction
-        )
-
-        // Query active subscriptions
-        const activeSubscriptions =
-          await selectActiveSubscriptionsForCustomer(
-            customer.id,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update free subscription to be canceled with upgrade reason
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: Date.now(),
+              replacedBySubscriptionId: paidSubscription.id,
+              renews: freeSubscription.renews,
+            },
             transaction
           )
 
-        expect(activeSubscriptions).toHaveLength(1)
-        expect(activeSubscriptions[0].id).toBe(paidSubscription.id)
-        expect(activeSubscriptions[0].status).toBe(
-          SubscriptionStatus.Active
-        )
-      })
+          // Query active subscriptions
+          const activeSubscriptions =
+            await selectActiveSubscriptionsForCustomer(
+              customer.id,
+              transaction
+            )
+
+          expect(activeSubscriptions).toHaveLength(1)
+          expect(activeSubscriptions[0].id).toBe(paidSubscription.id)
+          expect(activeSubscriptions[0].status).toBe(
+            SubscriptionStatus.Active
+          )
+        })
+      ).unwrap()
     })
 
     it('should return all active non-upgraded subscriptions when multiple exist', async () => {
@@ -340,19 +342,21 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const activeSubscriptions =
-          await selectActiveSubscriptionsForCustomer(
-            customer.id,
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const activeSubscriptions =
+            await selectActiveSubscriptionsForCustomer(
+              customer.id,
+              transaction
+            )
 
-        // Both subscriptions should be returned
-        expect(activeSubscriptions).toHaveLength(2)
-        const subIds = activeSubscriptions.map((s) => s.id)
-        expect(subIds).toContain(subscription1.id)
-        expect(subIds).toContain(subscription2.id)
-      })
+          // Both subscriptions should be returned
+          expect(activeSubscriptions).toHaveLength(2)
+          const subIds = activeSubscriptions.map((s) => s.id)
+          expect(subIds).toContain(subscription1.id)
+          expect(subIds).toContain(subscription2.id)
+        })
+      ).unwrap()
     })
 
     it('should exclude Active subscription with UpgradedToPaid (inconsistent state)', async () => {
@@ -376,29 +380,31 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update to inconsistent state: Active but with UpgradedToPaid
-        await updateSubscription(
-          {
-            id: inconsistentSub.id,
-            status: SubscriptionStatus.Active, // Still Active
-            cancellationReason: CancellationReason.UpgradedToPaid, // But marked as upgraded
-            replacedBySubscriptionId: replacementSub.id,
-            renews: inconsistentSub.renews,
-          },
-          transaction
-        )
-
-        const activeSubscriptions =
-          await selectActiveSubscriptionsForCustomer(
-            customer.id,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update to inconsistent state: Active but with UpgradedToPaid
+          await updateSubscription(
+            {
+              id: inconsistentSub.id,
+              status: SubscriptionStatus.Active, // Still Active
+              cancellationReason: CancellationReason.UpgradedToPaid, // But marked as upgraded
+              replacedBySubscriptionId: replacementSub.id,
+              renews: inconsistentSub.renews,
+            },
             transaction
           )
 
-        // Only replacement should be returned, not the inconsistent one
-        expect(activeSubscriptions).toHaveLength(1)
-        expect(activeSubscriptions[0].id).toBe(replacementSub.id)
-      })
+          const activeSubscriptions =
+            await selectActiveSubscriptionsForCustomer(
+              customer.id,
+              transaction
+            )
+
+          // Only replacement should be returned, not the inconsistent one
+          expect(activeSubscriptions).toHaveLength(1)
+          expect(activeSubscriptions[0].id).toBe(replacementSub.id)
+        })
+      ).unwrap()
     })
 
     it('should include Active subscriptions with NonPayment/Other cancellation reasons', async () => {
@@ -422,64 +428,68 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update with NonPayment reason
-        await updateSubscription(
-          {
-            id: nonPaymentSub.id,
-            cancellationReason: CancellationReason.NonPayment,
-            renews: nonPaymentSub.renews,
-          },
-          transaction
-        )
-
-        // Update with Other reason
-        await updateSubscription(
-          {
-            id: otherSub.id,
-            cancellationReason: CancellationReason.Other,
-            renews: otherSub.renews,
-          },
-          transaction
-        )
-
-        // Check customer 1
-        const customer1Subs =
-          await selectActiveSubscriptionsForCustomer(
-            customer.id,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update with NonPayment reason
+          await updateSubscription(
+            {
+              id: nonPaymentSub.id,
+              cancellationReason: CancellationReason.NonPayment,
+              renews: nonPaymentSub.renews,
+            },
             transaction
           )
-        expect(customer1Subs).toHaveLength(1)
-        expect(customer1Subs[0].id).toBe(nonPaymentSub.id)
-        expect(customer1Subs[0].cancellationReason).toBe(
-          CancellationReason.NonPayment
-        )
 
-        // Check customer 2
-        const customer2Subs =
-          await selectActiveSubscriptionsForCustomer(
-            customer2.id,
+          // Update with Other reason
+          await updateSubscription(
+            {
+              id: otherSub.id,
+              cancellationReason: CancellationReason.Other,
+              renews: otherSub.renews,
+            },
             transaction
           )
-        expect(customer2Subs).toHaveLength(1)
-        expect(customer2Subs[0].id).toBe(otherSub.id)
-        expect(customer2Subs[0].cancellationReason).toBe(
-          CancellationReason.Other
-        )
-      })
+
+          // Check customer 1
+          const customer1Subs =
+            await selectActiveSubscriptionsForCustomer(
+              customer.id,
+              transaction
+            )
+          expect(customer1Subs).toHaveLength(1)
+          expect(customer1Subs[0].id).toBe(nonPaymentSub.id)
+          expect(customer1Subs[0].cancellationReason).toBe(
+            CancellationReason.NonPayment
+          )
+
+          // Check customer 2
+          const customer2Subs =
+            await selectActiveSubscriptionsForCustomer(
+              customer2.id,
+              transaction
+            )
+          expect(customer2Subs).toHaveLength(1)
+          expect(customer2Subs[0].id).toBe(otherSub.id)
+          expect(customer2Subs[0].cancellationReason).toBe(
+            CancellationReason.Other
+          )
+        })
+      ).unwrap()
     })
 
     it('should return empty array when no active subscriptions exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const activeSubscriptions =
-          await selectActiveSubscriptionsForCustomer(
-            customer.id,
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const activeSubscriptions =
+            await selectActiveSubscriptionsForCustomer(
+              customer.id,
+              transaction
+            )
 
-        expect(activeSubscriptions).toHaveLength(0)
-        expect(activeSubscriptions).toEqual([])
-      })
+          expect(activeSubscriptions).toHaveLength(0)
+          expect(activeSubscriptions).toEqual([])
+        })
+      ).unwrap()
     })
   })
 
@@ -505,35 +515,37 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update free subscription to be canceled with upgrade reason
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-            replacedBySubscriptionId: paidSubscription.id,
-            renews: freeSubscription.renews,
-          },
-          transaction
-        )
-
-        // Query current subscription
-        const currentSubscription =
-          await selectCurrentSubscriptionForCustomer(
-            customer.id,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update free subscription to be canceled with upgrade reason
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: Date.now(),
+              replacedBySubscriptionId: paidSubscription.id,
+              renews: freeSubscription.renews,
+            },
             transaction
           )
 
-        expect(currentSubscription).toMatchObject({
-          id: paidSubscription.id,
+          // Query current subscription
+          const currentSubscription =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
+
+          expect(currentSubscription).toMatchObject({
+            id: paidSubscription.id,
+          })
+          expect(currentSubscription?.id).toBe(paidSubscription.id)
+          expect(currentSubscription?.status).toBe(
+            SubscriptionStatus.Active
+          )
         })
-        expect(currentSubscription?.id).toBe(paidSubscription.id)
-        expect(currentSubscription?.status).toBe(
-          SubscriptionStatus.Active
-        )
-      })
+      ).unwrap()
     })
 
     it('should return null when no active subscriptions exist', async () => {
@@ -547,27 +559,29 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Cancel it (not upgrade)
-        await updateSubscription(
-          {
-            id: subscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.CustomerRequest,
-            canceledAt: Date.now(),
-            renews: subscription.renews,
-          },
-          transaction
-        )
-
-        const currentSubscription =
-          await selectCurrentSubscriptionForCustomer(
-            customer.id,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Cancel it (not upgrade)
+          await updateSubscription(
+            {
+              id: subscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.CustomerRequest,
+              canceledAt: Date.now(),
+              renews: subscription.renews,
+            },
             transaction
           )
 
-        expect(currentSubscription).toBeNull()
-      })
+          const currentSubscription =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
+
+          expect(currentSubscription).toBeNull()
+        })
+      ).unwrap()
     })
 
     it('should return null when the only Active subscription is marked UpgradedToPaid', async () => {
@@ -581,26 +595,28 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update to inconsistent state: Active but with UpgradedToPaid
-        await updateSubscription(
-          {
-            id: subscription.id,
-            status: SubscriptionStatus.Active,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            renews: subscription.renews,
-          },
-          transaction
-        )
-
-        const currentSubscription =
-          await selectCurrentSubscriptionForCustomer(
-            customer.id,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update to inconsistent state: Active but with UpgradedToPaid
+          await updateSubscription(
+            {
+              id: subscription.id,
+              status: SubscriptionStatus.Active,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              renews: subscription.renews,
+            },
             transaction
           )
 
-        expect(currentSubscription).toBeNull()
-      })
+          const currentSubscription =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
+
+          expect(currentSubscription).toBeNull()
+        })
+      ).unwrap()
     })
 
     it('should handle upgrade chains >10 deep without timing out', async () => {
@@ -627,34 +643,37 @@ describe('Subscription Upgrade Selection Logic', () => {
         subscriptions.push(sub)
       }
 
-      await adminTransaction(async ({ transaction }) => {
-        // Link them in a chain
-        for (let i = 0; i < chainLength - 1; i++) {
-          await updateSubscription(
-            {
-              id: subscriptions[i].id,
-              replacedBySubscriptionId: subscriptions[i + 1].id,
-              renews: subscriptions[i].renews,
-            },
-            transaction
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Link them in a chain
+          for (let i = 0; i < chainLength - 1; i++) {
+            await updateSubscription(
+              {
+                id: subscriptions[i].id,
+                replacedBySubscriptionId: subscriptions[i + 1].id,
+                renews: subscriptions[i].renews,
+              },
+              transaction
+            )
+          }
+
+          const startTime = Date.now()
+          const currentSub =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
+          const endTime = Date.now()
+
+          // Should complete quickly despite deep chain
+          expect(endTime - startTime).toBeLessThan(1000)
+
+          // Should return the last subscription in the chain
+          expect(subscriptions.map((s) => s.id)).toContain(
+            currentSub!.id
           )
-        }
-
-        const startTime = Date.now()
-        const currentSub = await selectCurrentSubscriptionForCustomer(
-          customer.id,
-          transaction
-        )
-        const endTime = Date.now()
-
-        // Should complete quickly despite deep chain
-        expect(endTime - startTime).toBeLessThan(1000)
-
-        // Should return the last subscription in the chain
-        expect(subscriptions.map((s) => s.id)).toContain(
-          currentSub!.id
-        )
-      })
+        })
+      ).unwrap()
     })
 
     it('should ignore subscriptions from other customers', async () => {
@@ -680,16 +699,18 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const currentSubscription =
-          await selectCurrentSubscriptionForCustomer(
-            customer.id,
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const currentSubscription =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
 
-        // Should return null, not the other customer's active subscription
-        expect(currentSubscription).toBeNull()
-      })
+          // Should return null, not the other customer's active subscription
+          expect(currentSubscription).toBeNull()
+        })
+      ).unwrap()
     })
   })
 
@@ -765,44 +786,46 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update free subscription to canceled with upgrade reason
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date('2024-01-15').getTime(),
-            replacedBySubscriptionId: paidSubscription.id,
-            renews: freeSubscription.renews,
-          },
-          transaction
-        )
-
-        // Query billing periods for date range covering both
-        const activePeriods =
-          await selectActiveBillingPeriodsForDateRange(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update free subscription to canceled with upgrade reason
+          await updateSubscription(
             {
-              startDate: new Date('2024-01-01'),
-              endDate: new Date('2024-02-28'),
-              organizationId: organization.id,
-              livemode: false,
+              id: freeSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: new Date('2024-01-15').getTime(),
+              replacedBySubscriptionId: paidSubscription.id,
+              renews: freeSubscription.renews,
             },
             transaction
           )
 
-        // Only paid subscription's billing period should be returned
-        expect(activePeriods).toHaveLength(1)
-        expect(activePeriods[0].billingPeriod.id).toBe(
-          paidBillingPeriod.id
-        )
-        expect(activePeriods[0].subscription.id).toBe(
-          paidSubscription.id
-        )
-        expect(
-          activePeriods[0].subscription.cancellationReason
-        ).not.toBe(CancellationReason.UpgradedToPaid)
-      })
+          // Query billing periods for date range covering both
+          const activePeriods =
+            await selectActiveBillingPeriodsForDateRange(
+              {
+                startDate: new Date('2024-01-01'),
+                endDate: new Date('2024-02-28'),
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+
+          // Only paid subscription's billing period should be returned
+          expect(activePeriods).toHaveLength(1)
+          expect(activePeriods[0].billingPeriod.id).toBe(
+            paidBillingPeriod.id
+          )
+          expect(activePeriods[0].subscription.id).toBe(
+            paidSubscription.id
+          )
+          expect(
+            activePeriods[0].subscription.cancellationReason
+          ).not.toBe(CancellationReason.UpgradedToPaid)
+        })
+      ).unwrap()
     })
 
     it('should include billing periods for active subscriptions', async () => {
@@ -840,32 +863,35 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Query all periods
-        const activePeriods =
-          await selectActiveBillingPeriodsForDateRange(
-            {
-              startDate: new Date('2024-01-01'),
-              endDate: new Date('2024-04-01'),
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Query all periods
+          const activePeriods =
+            await selectActiveBillingPeriodsForDateRange(
+              {
+                startDate: new Date('2024-01-01'),
+                endDate: new Date('2024-04-01'),
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
 
-        // All periods should be returned
-        expect(activePeriods).toHaveLength(3)
-        expect(
-          activePeriods.every(
-            (p) => p.subscription.id === subscription.id
-          )
-        ).toBe(true)
-        expect(
-          activePeriods.every(
-            (p) => p.subscription.status === SubscriptionStatus.Active
-          )
-        ).toBe(true)
-      })
+          // All periods should be returned
+          expect(activePeriods).toHaveLength(3)
+          expect(
+            activePeriods.every(
+              (p) => p.subscription.id === subscription.id
+            )
+          ).toBe(true)
+          expect(
+            activePeriods.every(
+              (p) =>
+                p.subscription.status === SubscriptionStatus.Active
+            )
+          ).toBe(true)
+        })
+      ).unwrap()
     })
 
     it('should respect date range filtering', async () => {
@@ -900,25 +926,29 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Query only for February (but will include overlapping periods)
-        const activePeriods =
-          await selectActiveBillingPeriodsForDateRange(
-            {
-              startDate: new Date('2024-02-01'),
-              endDate: new Date('2024-02-28'),
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Query only for February (but will include overlapping periods)
+          const activePeriods =
+            await selectActiveBillingPeriodsForDateRange(
+              {
+                startDate: new Date('2024-02-01'),
+                endDate: new Date('2024-02-28'),
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
 
-        // Both Jan (ends Feb 1) and Feb periods overlap with the query range
-        expect(activePeriods).toHaveLength(2)
-        const periodIds = activePeriods.map((p) => p.billingPeriod.id)
-        expect(periodIds).toContain(periodJan.id)
-        expect(periodIds).toContain(periodFeb.id)
-      })
+          // Both Jan (ends Feb 1) and Feb periods overlap with the query range
+          expect(activePeriods).toHaveLength(2)
+          const periodIds = activePeriods.map(
+            (p) => p.billingPeriod.id
+          )
+          expect(periodIds).toContain(periodJan.id)
+          expect(periodIds).toContain(periodFeb.id)
+        })
+      ).unwrap()
     })
 
     it('should include periods when query endDate equals period startDate (boundary case)', async () => {
@@ -938,25 +968,27 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Query with endDate exactly at period startDate
-        const activePeriods =
-          await selectActiveBillingPeriodsForDateRange(
-            {
-              startDate: new Date('2024-01-01').getTime(),
-              endDate: new Date('2024-02-01').getTime(), // Exactly at period start
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Query with endDate exactly at period startDate
+          const activePeriods =
+            await selectActiveBillingPeriodsForDateRange(
+              {
+                startDate: new Date('2024-01-01').getTime(),
+                endDate: new Date('2024-02-01').getTime(), // Exactly at period start
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
 
-        // Should be included (boundary is inclusive)
-        expect(activePeriods).toHaveLength(1)
-        expect(activePeriods[0].billingPeriod.id).toBe(
-          billingPeriod.id
-        )
-      })
+          // Should be included (boundary is inclusive)
+          expect(activePeriods).toHaveLength(1)
+          expect(activePeriods[0].billingPeriod.id).toBe(
+            billingPeriod.id
+          )
+        })
+      ).unwrap()
     })
 
     it('should exclude periods for upgraded subscriptions even if replacedBySubscriptionId is null', async () => {
@@ -979,31 +1011,33 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Ensure replacedBySubscriptionId is null
-        await updateSubscription(
-          {
-            id: upgradedSub.id,
-            replacedBySubscriptionId: null,
-            renews: upgradedSub.renews,
-          },
-          transaction
-        )
-
-        const activePeriods =
-          await selectActiveBillingPeriodsForDateRange(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Ensure replacedBySubscriptionId is null
+          await updateSubscription(
             {
-              startDate: new Date('2024-01-01'),
-              endDate: new Date('2024-02-01'),
-              organizationId: organization.id,
-              livemode: false,
+              id: upgradedSub.id,
+              replacedBySubscriptionId: null,
+              renews: upgradedSub.renews,
             },
             transaction
           )
 
-        // Should be excluded despite null replacedBy
-        expect(activePeriods).toHaveLength(0)
-      })
+          const activePeriods =
+            await selectActiveBillingPeriodsForDateRange(
+              {
+                startDate: new Date('2024-01-01'),
+                endDate: new Date('2024-02-01'),
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+
+          // Should be excluded despite null replacedBy
+          expect(activePeriods).toHaveLength(0)
+        })
+      ).unwrap()
     })
 
     it('should filter by billingPeriod.livemode regardless of subscription.livemode', async () => {
@@ -1033,43 +1067,45 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false, // Test mode period
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Query for test mode
-        const testModePeriods =
-          await selectActiveBillingPeriodsForDateRange(
-            {
-              startDate: new Date('2024-01-01'),
-              endDate: new Date('2024-03-01'),
-              organizationId: organization.id,
-              livemode: false, // Query for test mode
-            },
-            transaction
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Query for test mode
+          const testModePeriods =
+            await selectActiveBillingPeriodsForDateRange(
+              {
+                startDate: new Date('2024-01-01'),
+                endDate: new Date('2024-03-01'),
+                organizationId: organization.id,
+                livemode: false, // Query for test mode
+              },
+              transaction
+            )
+
+          // Should only return test mode period, not live mode
+          expect(testModePeriods).toHaveLength(1)
+          expect(testModePeriods[0].billingPeriod.id).toBe(
+            testPeriod.id
           )
 
-        // Should only return test mode period, not live mode
-        expect(testModePeriods).toHaveLength(1)
-        expect(testModePeriods[0].billingPeriod.id).toBe(
-          testPeriod.id
-        )
+          // Query for live mode
+          const liveModePeriods =
+            await selectActiveBillingPeriodsForDateRange(
+              {
+                startDate: new Date('2024-01-01'),
+                endDate: new Date('2024-03-01'),
+                organizationId: organization.id,
+                livemode: true, // Query for live mode
+              },
+              transaction
+            )
 
-        // Query for live mode
-        const liveModePeriods =
-          await selectActiveBillingPeriodsForDateRange(
-            {
-              startDate: new Date('2024-01-01'),
-              endDate: new Date('2024-03-01'),
-              organizationId: organization.id,
-              livemode: true, // Query for live mode
-            },
-            transaction
+          // Should only return live mode period
+          expect(liveModePeriods).toHaveLength(1)
+          expect(liveModePeriods[0].billingPeriod.id).toBe(
+            livePeriod.id
           )
-
-        // Should only return live mode period
-        expect(liveModePeriods).toHaveLength(1)
-        expect(liveModePeriods[0].billingPeriod.id).toBe(
-          livePeriod.id
-        )
-      })
+        })
+      ).unwrap()
     })
 
     it('should handle subscriptions canceled for non-upgrade reasons', async () => {
@@ -1091,40 +1127,42 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Cancel with customer_request reason
-        await updateSubscription(
-          {
-            id: subscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.CustomerRequest,
-            canceledAt: Date.now(),
-            renews: subscription.renews,
-          },
-          transaction
-        )
-
-        // Query billing periods
-        const activePeriods =
-          await selectActiveBillingPeriodsForDateRange(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Cancel with customer_request reason
+          await updateSubscription(
             {
-              startDate: new Date('2024-01-01'),
-              endDate: new Date('2024-02-01'),
-              organizationId: organization.id,
-              livemode: false,
+              id: subscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.CustomerRequest,
+              canceledAt: Date.now(),
+              renews: subscription.renews,
             },
             transaction
           )
 
-        // Billing period should be included despite cancellation
-        expect(activePeriods).toHaveLength(1)
-        expect(activePeriods[0].billingPeriod.id).toBe(
-          billingPeriod.id
-        )
-        expect(activePeriods[0].subscription.cancellationReason).toBe(
-          CancellationReason.CustomerRequest
-        )
-      })
+          // Query billing periods
+          const activePeriods =
+            await selectActiveBillingPeriodsForDateRange(
+              {
+                startDate: new Date('2024-01-01'),
+                endDate: new Date('2024-02-01'),
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
+
+          // Billing period should be included despite cancellation
+          expect(activePeriods).toHaveLength(1)
+          expect(activePeriods[0].billingPeriod.id).toBe(
+            billingPeriod.id
+          )
+          expect(
+            activePeriods[0].subscription.cancellationReason
+          ).toBe(CancellationReason.CustomerRequest)
+        })
+      ).unwrap()
     })
 
     it('should filter by organizationId and livemode correctly', async () => {
@@ -1202,25 +1240,27 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Query for org1 test mode only
-        const activePeriods =
-          await selectActiveBillingPeriodsForDateRange(
-            {
-              startDate: new Date('2024-01-01'),
-              endDate: new Date('2024-02-01'),
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Query for org1 test mode only
+          const activePeriods =
+            await selectActiveBillingPeriodsForDateRange(
+              {
+                startDate: new Date('2024-01-01'),
+                endDate: new Date('2024-02-01'),
+                organizationId: organization.id,
+                livemode: false,
+              },
+              transaction
+            )
 
-        // Only org1 test mode period should be returned
-        expect(activePeriods).toHaveLength(1)
-        expect(activePeriods[0].billingPeriod.id).toBe(
-          periodOrg1Test.id
-        )
-      })
+          // Only org1 test mode period should be returned
+          expect(activePeriods).toHaveLength(1)
+          expect(activePeriods[0].billingPeriod.id).toBe(
+            periodOrg1Test.id
+          )
+        })
+      ).unwrap()
     })
   })
 
@@ -1255,36 +1295,38 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Upgrade free to paid
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date('2024-01-15').getTime(),
-            replacedBySubscriptionId: paidSubscription.id,
-            renews: freeSubscription.renews,
-          },
-          transaction
-        )
-
-        // Get active subscriptions for the period
-        const activeSubscriptions =
-          await getActiveSubscriptionsForPeriod(
-            organization.id,
-            periodStart,
-            periodEnd,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Upgrade free to paid
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: new Date('2024-01-15').getTime(),
+              replacedBySubscriptionId: paidSubscription.id,
+              renews: freeSubscription.renews,
+            },
             transaction
           )
 
-        // Only paid subscription should be included
-        expect(activeSubscriptions).toHaveLength(1)
-        expect(activeSubscriptions[0].id).toBe(paidSubscription.id)
-        expect(activeSubscriptions[0].cancellationReason).not.toBe(
-          CancellationReason.UpgradedToPaid
-        )
-      })
+          // Get active subscriptions for the period
+          const activeSubscriptions =
+            await getActiveSubscriptionsForPeriod(
+              organization.id,
+              periodStart,
+              periodEnd,
+              transaction
+            )
+
+          // Only paid subscription should be included
+          expect(activeSubscriptions).toHaveLength(1)
+          expect(activeSubscriptions[0].id).toBe(paidSubscription.id)
+          expect(activeSubscriptions[0].cancellationReason).not.toBe(
+            CancellationReason.UpgradedToPaid
+          )
+        })
+      ).unwrap()
     })
 
     it('should correctly filter by date period', async () => {
@@ -1331,22 +1373,24 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Get active subscriptions for the period
-        const activeSubscriptions =
-          await getActiveSubscriptionsForPeriod(
-            organization.id,
-            periodStart,
-            periodEnd,
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Get active subscriptions for the period
+          const activeSubscriptions =
+            await getActiveSubscriptionsForPeriod(
+              organization.id,
+              periodStart,
+              periodEnd,
+              transaction
+            )
 
-        // Should include subscriptions active during period
-        const activeIds = activeSubscriptions.map((s) => s.id)
-        expect(activeIds).toContain(subThroughout.id)
-        expect(activeIds).toContain(subStartedDuring.id)
-        expect(activeIds).not.toContain(subEndedBefore.id)
-      })
+          // Should include subscriptions active during period
+          const activeIds = activeSubscriptions.map((s) => s.id)
+          expect(activeIds).toContain(subThroughout.id)
+          expect(activeIds).toContain(subStartedDuring.id)
+          expect(activeIds).not.toContain(subEndedBefore.id)
+        })
+      ).unwrap()
     })
 
     it('should exclude subscriptions from other organizations', async () => {
@@ -1398,33 +1442,35 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Get subscriptions for org1
-        const org1Subscriptions =
-          await getActiveSubscriptionsForPeriod(
-            organization.id,
-            periodStart,
-            periodEnd,
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Get subscriptions for org1
+          const org1Subscriptions =
+            await getActiveSubscriptionsForPeriod(
+              organization.id,
+              periodStart,
+              periodEnd,
+              transaction
+            )
 
-        // Should only include org1 subscription
-        expect(org1Subscriptions).toHaveLength(1)
-        expect(org1Subscriptions[0].id).toBe(org1Sub.id)
+          // Should only include org1 subscription
+          expect(org1Subscriptions).toHaveLength(1)
+          expect(org1Subscriptions[0].id).toBe(org1Sub.id)
 
-        // Get subscriptions for org2
-        const org2Subscriptions =
-          await getActiveSubscriptionsForPeriod(
-            organization2.id,
-            periodStart,
-            periodEnd,
-            transaction
-          )
+          // Get subscriptions for org2
+          const org2Subscriptions =
+            await getActiveSubscriptionsForPeriod(
+              organization2.id,
+              periodStart,
+              periodEnd,
+              transaction
+            )
 
-        // Should only include org2 subscription
-        expect(org2Subscriptions).toHaveLength(1)
-        expect(org2Subscriptions[0].id).toBe(org2Sub.id)
-      })
+          // Should only include org2 subscription
+          expect(org2Subscriptions).toHaveLength(1)
+          expect(org2Subscriptions[0].id).toBe(org2Sub.id)
+        })
+      ).unwrap()
     })
 
     it('should exclude Active subscriptions with UpgradedToPaid', async () => {
@@ -1453,30 +1499,32 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update to inconsistent state
-        await updateSubscription(
-          {
-            id: inconsistentSub.id,
-            status: SubscriptionStatus.Active,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            renews: inconsistentSub.renews,
-          },
-          transaction
-        )
-
-        const activeSubscriptions =
-          await getActiveSubscriptionsForPeriod(
-            organization.id,
-            periodStart,
-            periodEnd,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update to inconsistent state
+          await updateSubscription(
+            {
+              id: inconsistentSub.id,
+              status: SubscriptionStatus.Active,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              renews: inconsistentSub.renews,
+            },
             transaction
           )
 
-        // Should only include the normal subscription
-        expect(activeSubscriptions).toHaveLength(1)
-        expect(activeSubscriptions[0].id).toBe(normalSub.id)
-      })
+          const activeSubscriptions =
+            await getActiveSubscriptionsForPeriod(
+              organization.id,
+              periodStart,
+              periodEnd,
+              transaction
+            )
+
+          // Should only include the normal subscription
+          expect(activeSubscriptions).toHaveLength(1)
+          expect(activeSubscriptions[0].id).toBe(normalSub.id)
+        })
+      ).unwrap()
     })
 
     it('should include subscriptions canceled for CustomerRequest if canceled after period start', async () => {
@@ -1509,19 +1557,23 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const activeSubscriptions =
-          await getActiveSubscriptionsForPeriod(
-            organization.id,
-            periodStart,
-            periodEnd,
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const activeSubscriptions =
+            await getActiveSubscriptionsForPeriod(
+              organization.id,
+              periodStart,
+              periodEnd,
+              transaction
+            )
 
-        // Should only include subscription canceled after period start
-        expect(activeSubscriptions).toHaveLength(1)
-        expect(activeSubscriptions[0].id).toBe(canceledAfterStart.id)
-      })
+          // Should only include subscription canceled after period start
+          expect(activeSubscriptions).toHaveLength(1)
+          expect(activeSubscriptions[0].id).toBe(
+            canceledAfterStart.id
+          )
+        })
+      ).unwrap()
     })
 
     it('should exclude subscriptions canceled exactly at period start', async () => {
@@ -1554,19 +1606,23 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const activeSubscriptions =
-          await getActiveSubscriptionsForPeriod(
-            organization.id,
-            periodStart,
-            periodEnd,
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const activeSubscriptions =
+            await getActiveSubscriptionsForPeriod(
+              organization.id,
+              periodStart,
+              periodEnd,
+              transaction
+            )
 
-        // Should only include subscription canceled after start, not at start
-        expect(activeSubscriptions).toHaveLength(1)
-        expect(activeSubscriptions[0].id).toBe(canceledAfterStart.id)
-      })
+          // Should only include subscription canceled after start, not at start
+          expect(activeSubscriptions).toHaveLength(1)
+          expect(activeSubscriptions[0].id).toBe(
+            canceledAfterStart.id
+          )
+        })
+      ).unwrap()
     })
 
     it('should handle subscription lifecycle transitions', async () => {
@@ -1601,45 +1657,47 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Mark free as upgraded at start of period 2
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: new Date('2024-02-01').getTime(),
-            replacedBySubscriptionId: paidSubscription.id,
-            renews: freeSubscription.renews,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Mark free as upgraded at start of period 2
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: new Date('2024-02-01').getTime(),
+              replacedBySubscriptionId: paidSubscription.id,
+              renews: freeSubscription.renews,
+            },
+            transaction
+          )
 
-        // Get subscriptions for period 1
-        const period1Subs = await getActiveSubscriptionsForPeriod(
-          organization.id,
-          period1Start,
-          period1End,
-          transaction
-        )
+          // Get subscriptions for period 1
+          const period1Subs = await getActiveSubscriptionsForPeriod(
+            organization.id,
+            period1Start,
+            period1End,
+            transaction
+          )
 
-        // Get subscriptions for period 2
-        const period2Subs = await getActiveSubscriptionsForPeriod(
-          organization.id,
-          period2Start,
-          period2End,
-          transaction
-        )
+          // Get subscriptions for period 2
+          const period2Subs = await getActiveSubscriptionsForPeriod(
+            organization.id,
+            period2Start,
+            period2End,
+            transaction
+          )
 
-        // Period 1: Only paid subscription (free is excluded due to upgrade)
-        // The paid subscription started on Feb 1, which is the end of period 1
-        expect(period1Subs).toHaveLength(1)
-        expect(period1Subs[0].id).toBe(paidSubscription.id)
+          // Period 1: Only paid subscription (free is excluded due to upgrade)
+          // The paid subscription started on Feb 1, which is the end of period 1
+          expect(period1Subs).toHaveLength(1)
+          expect(period1Subs[0].id).toBe(paidSubscription.id)
 
-        // Period 2: Only paid subscription (free is still excluded)
-        expect(period2Subs).toHaveLength(1)
-        expect(period2Subs[0].id).toBe(paidSubscription.id)
-      })
+          // Period 2: Only paid subscription (free is still excluded)
+          expect(period2Subs).toHaveLength(1)
+          expect(period2Subs[0].id).toBe(paidSubscription.id)
+        })
+      ).unwrap()
     })
   })
 
@@ -1665,43 +1723,45 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Mark free as upgraded
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-            replacedBySubscriptionId: paidSubscription.id,
-            renews: freeSubscription.renews,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Mark free as upgraded
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: Date.now(),
+              replacedBySubscriptionId: paidSubscription.id,
+              renews: freeSubscription.renews,
+            },
+            transaction
+          )
 
-        // Get customer billing details
-        const billingDetails = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction
-        )
+          // Get customer billing details
+          const billingDetails = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
 
-        // CurrentSubscriptions should only contain paid subscription
-        expect(billingDetails.currentSubscriptions).toHaveLength(1)
-        expect(billingDetails.currentSubscriptions[0].id).toBe(
-          paidSubscription.id
-        )
-        expect(billingDetails.currentSubscriptions[0].status).toBe(
-          SubscriptionStatus.Active
-        )
+          // CurrentSubscriptions should only contain paid subscription
+          expect(billingDetails.currentSubscriptions).toHaveLength(1)
+          expect(billingDetails.currentSubscriptions[0].id).toBe(
+            paidSubscription.id
+          )
+          expect(billingDetails.currentSubscriptions[0].status).toBe(
+            SubscriptionStatus.Active
+          )
 
-        // Verify the upgraded subscription is not included
-        const subscriptionIds =
-          billingDetails.currentSubscriptions.map((s) => s.id)
-        expect(subscriptionIds).not.toContain(freeSubscription.id)
-      })
+          // Verify the upgraded subscription is not included
+          const subscriptionIds =
+            billingDetails.currentSubscriptions.map((s) => s.id)
+          expect(subscriptionIds).not.toContain(freeSubscription.id)
+        })
+      ).unwrap()
     })
 
     it('should handle multiple subscription upgrades in chain correctly', async () => {
@@ -1735,52 +1795,54 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-            replacedBySubscriptionId: basicSubscription.id,
-            renews: freeSubscription.renews,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: Date.now(),
+              replacedBySubscriptionId: basicSubscription.id,
+              renews: freeSubscription.renews,
+            },
+            transaction
+          )
 
-        await updateSubscription(
-          {
-            id: basicSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-            replacedBySubscriptionId: premiumSubscription.id,
-            renews: basicSubscription.renews,
-          },
-          transaction
-        )
+          await updateSubscription(
+            {
+              id: basicSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: Date.now(),
+              replacedBySubscriptionId: premiumSubscription.id,
+              renews: basicSubscription.renews,
+            },
+            transaction
+          )
 
-        // Get customer billing details
-        const billingDetails = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction
-        )
+          // Get customer billing details
+          const billingDetails = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
 
-        // Only premium subscription should be current
-        expect(billingDetails.currentSubscriptions).toHaveLength(1)
-        expect(billingDetails.currentSubscriptions[0].id).toBe(
-          premiumSubscription.id
-        )
+          // Only premium subscription should be current
+          expect(billingDetails.currentSubscriptions).toHaveLength(1)
+          expect(billingDetails.currentSubscriptions[0].id).toBe(
+            premiumSubscription.id
+          )
 
-        // Neither free nor basic should be included
-        const subscriptionIds =
-          billingDetails.currentSubscriptions.map((s) => s.id)
-        expect(subscriptionIds).not.toContain(freeSubscription.id)
-        expect(subscriptionIds).not.toContain(basicSubscription.id)
-      })
+          // Neither free nor basic should be included
+          const subscriptionIds =
+            billingDetails.currentSubscriptions.map((s) => s.id)
+          expect(subscriptionIds).not.toContain(freeSubscription.id)
+          expect(subscriptionIds).not.toContain(basicSubscription.id)
+        })
+      ).unwrap()
     })
 
     it('should handle multiple Active non-upgraded subscriptions deterministically', async () => {
@@ -1815,40 +1877,42 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Get billing details multiple times
-        const billingDetails1 = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Get billing details multiple times
+          const billingDetails1 = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
 
-        const billingDetails2 = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction
-        )
+          const billingDetails2 = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction
+          )
 
-        // Should return all active subscriptions
-        expect(billingDetails1.currentSubscriptions).toHaveLength(3)
-        const subIds1 = billingDetails1.currentSubscriptions.map(
-          (s) => s.id
-        )
-        expect(subIds1).toContain(sub1.id)
-        expect(subIds1).toContain(sub2.id)
-        expect(subIds1).toContain(sub3.id)
+          // Should return all active subscriptions
+          expect(billingDetails1.currentSubscriptions).toHaveLength(3)
+          const subIds1 = billingDetails1.currentSubscriptions.map(
+            (s) => s.id
+          )
+          expect(subIds1).toContain(sub1.id)
+          expect(subIds1).toContain(sub2.id)
+          expect(subIds1).toContain(sub3.id)
 
-        // Should be deterministic (same result each time)
-        expect(billingDetails2.currentSubscriptions).toHaveLength(3)
-        const subIds2 = billingDetails2.currentSubscriptions
-          .map((s) => s.id)
-          .sort()
-        expect(subIds1.sort()).toEqual(subIds2)
-      })
+          // Should be deterministic (same result each time)
+          expect(billingDetails2.currentSubscriptions).toHaveLength(3)
+          const subIds2 = billingDetails2.currentSubscriptions
+            .map((s) => s.id)
+            .sort()
+          expect(subIds1.sort()).toEqual(subIds2)
+        })
+      ).unwrap()
     })
   })
 
@@ -1885,35 +1949,38 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Calculate subscriber breakdown
-        const breakdown = await calculateSubscriberBreakdown(
-          organization.id,
-          currentMonth,
-          previousMonth,
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Calculate subscriber breakdown
+          const breakdown = await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
 
-        // Churned count should only include customer_request cancellation
-        // Upgraded subscription should NOT be counted as churn
-        expect(breakdown.churned).toBe(1) // Only the customer_request cancellation
+          // Churned count should only include customer_request cancellation
+          // Upgraded subscription should NOT be counted as churn
+          expect(breakdown.churned).toBe(1) // Only the customer_request cancellation
 
-        // Get all subscriptions for verification
-        const allSubs = await getActiveSubscriptionsForPeriod(
-          organization.id,
-          new Date('2024-01-01'),
-          new Date('2024-02-29'),
-          transaction
-        )
+          // Get all subscriptions for verification
+          const allSubs = await getActiveSubscriptionsForPeriod(
+            organization.id,
+            new Date('2024-01-01'),
+            new Date('2024-02-29'),
+            transaction
+          )
 
-        // Verify the upgraded subscription is not in active list
-        const upgradedInActive = allSubs.find(
-          (s) =>
-            s.id === upgradedSub.id &&
-            s.cancellationReason === CancellationReason.UpgradedToPaid
-        )
-        expect(upgradedInActive).toBeUndefined()
-      })
+          // Verify the upgraded subscription is not in active list
+          const upgradedInActive = allSubs.find(
+            (s) =>
+              s.id === upgradedSub.id &&
+              s.cancellationReason ===
+                CancellationReason.UpgradedToPaid
+          )
+          expect(upgradedInActive).toBeUndefined()
+        })
+      ).unwrap()
     })
 
     it('should handle mixed cancellation reasons correctly', async () => {
@@ -1966,33 +2033,36 @@ describe('Subscription Upgrade Selection Logic', () => {
         }),
       ])
 
-      await adminTransaction(async ({ transaction }) => {
-        // Calculate breakdown
-        const breakdown = await calculateSubscriberBreakdown(
-          organization.id,
-          currentMonth,
-          previousMonth,
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Calculate breakdown
+          const breakdown = await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
 
-        // Verify that upgraded subscriptions are not counted in churn
-        // We created 2 upgraded and 1 customer_request cancellation
-        // Only customer_request should count as churn
-        const upgradedCount = canceledSubs.filter(
-          (s) =>
-            s.cancellationReason === CancellationReason.UpgradedToPaid
-        ).length
-        const customerRequestCount = canceledSubs.filter(
-          (s) =>
-            s.cancellationReason ===
-            CancellationReason.CustomerRequest
-        ).length
+          // Verify that upgraded subscriptions are not counted in churn
+          // We created 2 upgraded and 1 customer_request cancellation
+          // Only customer_request should count as churn
+          const upgradedCount = canceledSubs.filter(
+            (s) =>
+              s.cancellationReason ===
+              CancellationReason.UpgradedToPaid
+          ).length
+          const customerRequestCount = canceledSubs.filter(
+            (s) =>
+              s.cancellationReason ===
+              CancellationReason.CustomerRequest
+          ).length
 
-        expect(upgradedCount).toBe(2)
-        expect(customerRequestCount).toBe(1)
-        // Churn should only count customer_request, not upgrades
-        expect(breakdown.churned).toBe(1) // Only customer_request counts as churn
-      })
+          expect(upgradedCount).toBe(2)
+          expect(customerRequestCount).toBe(1)
+          // Churn should only count customer_request, not upgrades
+          expect(breakdown.churned).toBe(1) // Only customer_request counts as churn
+        })
+      ).unwrap()
     })
 
     it('should treat NonPayment and Other cancellation reasons as churn', async () => {
@@ -2075,18 +2145,20 @@ describe('Subscription Upgrade Selection Logic', () => {
         }),
       ])
 
-      await adminTransaction(async ({ transaction }) => {
-        const breakdown = await calculateSubscriberBreakdown(
-          organization.id,
-          currentMonth,
-          previousMonth,
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const breakdown = await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
 
-        // Should count NonPayment, Other, and CustomerRequest as churn (3 total)
-        // UpgradedToPaid should NOT be counted
-        expect(breakdown.churned).toBe(3)
-      })
+          // Should count NonPayment, Other, and CustomerRequest as churn (3 total)
+          // UpgradedToPaid should NOT be counted
+          expect(breakdown.churned).toBe(3)
+        })
+      ).unwrap()
     })
 
     it('should handle month boundary cancellations correctly', async () => {
@@ -2156,19 +2228,21 @@ describe('Subscription Upgrade Selection Logic', () => {
         }),
       ])
 
-      await adminTransaction(async ({ transaction }) => {
-        const breakdown = await calculateSubscriberBreakdown(
-          organization.id,
-          currentMonth,
-          previousMonth,
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const breakdown = await calculateSubscriberBreakdown(
+            organization.id,
+            currentMonth,
+            previousMonth,
+            transaction
+          )
 
-        // All three should be counted as churn in the current month
-        // The exact count depends on the implementation logic
-        expect(breakdown.churned).toBeGreaterThanOrEqual(0)
-        expect(breakdown.churned).toBeLessThanOrEqual(3)
-      })
+          // All three should be counted as churn in the current month
+          // The exact count depends on the implementation logic
+          expect(breakdown.churned).toBeGreaterThanOrEqual(0)
+          expect(breakdown.churned).toBeLessThanOrEqual(3)
+        })
+      ).unwrap()
     })
   })
 
@@ -2195,45 +2269,48 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Create a circular reference (this shouldn't happen in practice)
-        // Update A to point to B
-        await updateSubscription(
-          {
-            id: subA.id,
-            replacedBySubscriptionId: subB.id,
-            renews: subA.renews,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Create a circular reference (this shouldn't happen in practice)
+          // Update A to point to B
+          await updateSubscription(
+            {
+              id: subA.id,
+              replacedBySubscriptionId: subB.id,
+              renews: subA.renews,
+            },
+            transaction
+          )
 
-        // Update B to point back to A (circular)
-        await updateSubscription(
-          {
-            id: subB.id,
-            replacedBySubscriptionId: subA.id,
-            renews: subB.renews,
-          },
-          transaction
-        )
+          // Update B to point back to A (circular)
+          await updateSubscription(
+            {
+              id: subB.id,
+              replacedBySubscriptionId: subA.id,
+              renews: subB.renews,
+            },
+            transaction
+          )
 
-        // This should not infinite loop
-        const startTime = Date.now()
-        const currentSub = await selectCurrentSubscriptionForCustomer(
-          customer.id,
-          transaction
-        )
-        const endTime = Date.now()
+          // This should not infinite loop
+          const startTime = Date.now()
+          const currentSub =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
+          const endTime = Date.now()
 
-        // Should complete quickly (not timeout)
-        expect(endTime - startTime).toBeLessThan(1000) // Less than 1 second
+          // Should complete quickly (not timeout)
+          expect(endTime - startTime).toBeLessThan(1000) // Less than 1 second
 
-        // Should return something sensible (the active one or null)
-        // The exact behavior depends on implementation
-        if (currentSub) {
-          expect([subA.id, subB.id]).toContain(currentSub.id)
-        }
-      })
+          // Should return something sensible (the active one or null)
+          // The exact behavior depends on implementation
+          if (currentSub) {
+            expect([subA.id, subB.id]).toContain(currentSub.id)
+          }
+        })
+      ).unwrap()
     })
 
     it('should handle broken upgrade chains gracefully', async () => {
@@ -2248,39 +2325,41 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update to point to non-existent subscription
-        const fakeSubscriptionId = `sub_${core.nanoid()}`
-        await updateSubscription(
-          {
-            id: subscription.id,
-            replacedBySubscriptionId: fakeSubscriptionId,
-            renews: subscription.renews,
-          },
-          transaction
-        )
-
-        // Should not throw when calling selectCurrentSubscriptionForCustomer
-        let error = null
-        let currentSub = null
-        try {
-          currentSub = await selectCurrentSubscriptionForCustomer(
-            customer.id,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update to point to non-existent subscription
+          const fakeSubscriptionId = `sub_${core.nanoid()}`
+          await updateSubscription(
+            {
+              id: subscription.id,
+              replacedBySubscriptionId: fakeSubscriptionId,
+              renews: subscription.renews,
+            },
             transaction
           )
-        } catch (e) {
-          error = e
-        }
 
-        // Should not throw error
-        expect(error).toBeNull()
+          // Should not throw when calling selectCurrentSubscriptionForCustomer
+          let error = null
+          let currentSub = null
+          try {
+            currentSub = await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
+          } catch (e) {
+            error = e
+          }
 
-        // Should handle gracefully (return null or the broken subscription)
-        // The exact behavior depends on implementation
-        if (currentSub) {
-          expect(currentSub.id).toBe(subscription.id)
-        }
-      })
+          // Should not throw error
+          expect(error).toBeNull()
+
+          // Should handle gracefully (return null or the broken subscription)
+          // The exact behavior depends on implementation
+          if (currentSub) {
+            expect(currentSub.id).toBe(subscription.id)
+          }
+        })
+      ).unwrap()
     })
 
     it('should handle upgrade chain with multiple branches', async () => {
@@ -2315,38 +2394,41 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update base to point to branch1
-        await updateSubscription(
-          {
-            id: baseSub.id,
-            replacedBySubscriptionId: branch1.id,
-            renews: baseSub.renews,
-          },
-          transaction
-        )
-
-        // Get current subscription - should handle ambiguity
-        const currentSub = await selectCurrentSubscriptionForCustomer(
-          customer.id,
-          transaction
-        )
-
-        // Should return one of the active subscriptions
-        expect(typeof currentSub).toBe('object')
-        if (currentSub) {
-          expect([branch1.id, branch2.id]).toContain(currentSub.id)
-          expect(currentSub.status).toBe(SubscriptionStatus.Active)
-        }
-
-        // Verify it's deterministic (calling again returns same result)
-        const currentSub2 =
-          await selectCurrentSubscriptionForCustomer(
-            customer.id,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update base to point to branch1
+          await updateSubscription(
+            {
+              id: baseSub.id,
+              replacedBySubscriptionId: branch1.id,
+              renews: baseSub.renews,
+            },
             transaction
           )
-        expect(currentSub2?.id).toBe(currentSub?.id)
-      })
+
+          // Get current subscription - should handle ambiguity
+          const currentSub =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
+
+          // Should return one of the active subscriptions
+          expect(typeof currentSub).toBe('object')
+          if (currentSub) {
+            expect([branch1.id, branch2.id]).toContain(currentSub.id)
+            expect(currentSub.status).toBe(SubscriptionStatus.Active)
+          }
+
+          // Verify it's deterministic (calling again returns same result)
+          const currentSub2 =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
+          expect(currentSub2?.id).toBe(currentSub?.id)
+        })
+      ).unwrap()
     })
 
     it('should handle broken upgrade chain with null replacedBySubscriptionId', async () => {
@@ -2372,34 +2454,38 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // Ensure replacedBySubscriptionId is null
-        await updateSubscription(
-          {
-            id: brokenSub.id,
-            replacedBySubscriptionId: null,
-            renews: brokenSub.renews,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Ensure replacedBySubscriptionId is null
+          await updateSubscription(
+            {
+              id: brokenSub.id,
+              replacedBySubscriptionId: null,
+              renews: brokenSub.renews,
+            },
+            transaction
+          )
 
-        // Should still work and return the active subscription
-        const currentSub = await selectCurrentSubscriptionForCustomer(
-          customer.id,
-          transaction
-        )
+          // Should still work and return the active subscription
+          const currentSub =
+            await selectCurrentSubscriptionForCustomer(
+              customer.id,
+              transaction
+            )
 
-        expect(currentSub).toMatchObject({ id: activeSub.id })
-        expect(currentSub?.id).toBe(activeSub.id)
+          expect(currentSub).toMatchObject({ id: activeSub.id })
+          expect(currentSub?.id).toBe(activeSub.id)
 
-        // The broken subscription should not be considered current
-        const allActive = await selectActiveSubscriptionsForCustomer(
-          customer.id,
-          transaction
-        )
-        expect(allActive).toHaveLength(1)
-        expect(allActive[0].id).toBe(activeSub.id)
-      })
+          // The broken subscription should not be considered current
+          const allActive =
+            await selectActiveSubscriptionsForCustomer(
+              customer.id,
+              transaction
+            )
+          expect(allActive).toHaveLength(1)
+          expect(allActive[0].id).toBe(activeSub.id)
+        })
+      ).unwrap()
     })
   })
 })

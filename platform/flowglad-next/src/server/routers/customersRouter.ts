@@ -3,9 +3,8 @@ import { Result } from 'better-result'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
   authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   customerClientSelectSchema,
@@ -88,156 +87,165 @@ const createCustomerProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createCustomerInputSchema)
   .output(createCustomerOutputSchema)
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({
-        input,
-        ctx,
-        transactionCtx,
-      }): Promise<Result<CreateCustomerOutputSchema, Error>> => {
-        const { transaction } = transactionCtx
-        const { livemode, organizationId } = ctx
-        try {
+  .mutation(async ({ input, ctx }) => {
+    const { livemode, organizationId } = ctx
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }): Promise<Result<CreateCustomerOutputSchema, Error>> => {
+          try {
+            if (!organizationId) {
+              throw new TRPCError({
+                code: 'BAD_REQUEST',
+                message: 'organizationId is required',
+              })
+            }
+
+            const { customer } = input
+            /**
+             * We have to parse the customer record here because of the billingAddress json
+             */
+            const createdCustomerOutput =
+              await createCustomerBookkeeping(
+                {
+                  customer: {
+                    ...customer,
+                    organizationId,
+                  },
+                },
+                {
+                  transaction,
+                  livemode,
+                  organizationId,
+                  invalidateCache,
+                  emitEvent,
+                  enqueueLedgerCommand,
+                }
+              )
+
+            if (ctx.path) {
+              await revalidatePath(ctx.path)
+            }
+
+            const {
+              customer: createdCustomer,
+              subscription,
+              subscriptionItems,
+            } = createdCustomerOutput
+            return Result.ok({
+              data: {
+                customer: createdCustomer,
+                subscription: subscription
+                  ? subscriptionWithCurrent(subscription)
+                  : undefined,
+                subscriptionItems,
+              },
+            })
+          } catch (error) {
+            errorHandlers.customer.handle(error, {
+              operation: 'create',
+              details: { customerData: input.customer },
+            })
+            throw error
+          }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
+
+export const updateCustomer = protectedProcedure
+  .meta(openApiMetas.PUT)
+  .input(editCustomerInputSchema)
+  .output(editCustomerOutputSchema)
+  .mutation(async ({ input, ctx }) => {
+    const { organizationId } = ctx
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
           if (!organizationId) {
             throw new TRPCError({
               code: 'BAD_REQUEST',
               message: 'organizationId is required',
             })
           }
-
-          const { customer } = input
-          /**
-           * We have to parse the customer record here because of the billingAddress json
-           */
-          const createdCustomerOutput =
-            await createCustomerBookkeeping(
-              {
-                customer: {
-                  ...customer,
+          try {
+            const { customer } = input
+            const customerRecord =
+              await selectCustomerByExternalIdAndOrganizationId(
+                {
+                  externalId: input.externalId,
                   organizationId,
                 },
-              },
+                transaction
+              )
+
+            if (!customerRecord) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: `Customer with externalId ${input.externalId} not found`,
+              })
+            }
+            const updatedCustomer = await updateCustomerDb(
               {
-                transaction,
-                livemode,
-                organizationId,
-                invalidateCache: transactionCtx.invalidateCache,
-                emitEvent: transactionCtx.emitEvent,
-                enqueueLedgerCommand:
-                  transactionCtx.enqueueLedgerCommand,
-              }
-            )
-
-          if (ctx.path) {
-            await revalidatePath(ctx.path)
-          }
-
-          const {
-            customer: createdCustomer,
-            subscription,
-            subscriptionItems,
-          } = createdCustomerOutput
-          return Result.ok({
-            data: {
-              customer: createdCustomer,
-              subscription: subscription
-                ? subscriptionWithCurrent(subscription)
-                : undefined,
-              subscriptionItems,
-            },
-          })
-        } catch (error) {
-          errorHandlers.customer.handle(error, {
-            operation: 'create',
-            details: { customerData: input.customer },
-          })
-          throw error
-        }
-      }
-    )
-  )
-
-export const updateCustomer = protectedProcedure
-  .meta(openApiMetas.PUT)
-  .input(editCustomerInputSchema)
-  .output(editCustomerOutputSchema)
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'organizationId is required',
-          })
-        }
-        try {
-          const { customer } = input
-          const customerRecord =
-            await selectCustomerByExternalIdAndOrganizationId(
-              {
-                externalId: input.externalId,
-                organizationId,
+                ...customer,
+                id: customerRecord.id,
               },
               transaction
             )
-
-          if (!customerRecord) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: `Customer with externalId ${input.externalId} not found`,
+            return {
+              customer: updatedCustomer,
+            }
+          } catch (error) {
+            errorHandlers.customer.handle(error, {
+              operation: 'update',
+              id: input.externalId,
+              details: {
+                customerData: input.customer,
+                externalId: input.externalId,
+                note: 'error context.id is the externalId of the customer',
+              },
             })
+            throw error
           }
-          const updatedCustomer = await updateCustomerDb(
-            {
-              ...customer,
-              id: customerRecord.id,
-            },
-            transaction
-          )
-          return {
-            customer: updatedCustomer,
-          }
-        } catch (error) {
-          errorHandlers.customer.handle(error, {
-            operation: 'update',
-            id: input.externalId,
-            details: {
-              customerData: input.customer,
-              externalId: input.externalId,
-              note: 'error context.id is the externalId of the customer',
-            },
-          })
-          throw error
-        }
-      }
-    )
-  )
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const getCustomerById = protectedProcedure
   .input(z.object({ id: z.string() }))
   .output(z.object({ customer: customerClientSelectSchema }))
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        try {
-          const customer = await selectCustomerById(
-            input.id,
-            transaction
-          )
-          return { customer }
-        } catch (error) {
-          errorHandlers.customer.handle(error, {
-            operation: 'get',
-            id: input.id,
-          })
-          throw error
-        }
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          try {
+            const customer = await selectCustomerById(
+              input.id,
+              transaction
+            )
+            return { customer }
+          } catch (error) {
+            errorHandlers.customer.handle(error, {
+              operation: 'get',
+              id: input.id,
+            })
+            throw error
+          }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const getPricingModelForCustomer = protectedProcedure
   .input(z.object({ customerId: z.string() }))
@@ -246,30 +254,33 @@ export const getPricingModelForCustomer = protectedProcedure
       pricingModel: pricingModelWithProductsAndUsageMetersSchema,
     })
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        try {
-          const customer = await selectCustomerById(
-            input.customerId,
-            transaction
-          )
-          const pricingModel = await selectPricingModelForCustomer(
-            customer,
-            transaction
-          )
-          return { pricingModel }
-        } catch (error) {
-          errorHandlers.customer.handle(error, {
-            operation: 'getPricingModel',
-            id: input.customerId,
-          })
-          throw error
-        }
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          try {
+            const customer = await selectCustomerById(
+              input.customerId,
+              transaction
+            )
+            const pricingModel = await selectPricingModelForCustomer(
+              customer,
+              transaction
+            )
+            return { pricingModel }
+          } catch (error) {
+            errorHandlers.customer.handle(error, {
+              operation: 'getPricingModel',
+              id: input.customerId,
+            })
+            throw error
+          }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const getCustomer = protectedProcedure
   .meta(openApiMetas.GET)
@@ -292,17 +303,21 @@ export const getCustomer = protectedProcedure
       })
     }
 
-    const customers = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          { externalId: input.externalId, organizationId },
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectCustomers(
+            { externalId: input.externalId, organizationId },
+            transaction
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
+
+    const customers = result
 
     if (!customers.length) {
       if ('id' in input) {
@@ -362,6 +377,22 @@ export const getCustomerBilling = protectedProcedure
     if (!organizationId) {
       throw new Error('organizationId is required')
     }
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return customerBillingTransaction(
+            {
+              externalId: input.externalId,
+              organizationId,
+            },
+            transaction
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     const {
       customer,
       pricingModel,
@@ -371,20 +402,7 @@ export const getCustomerBilling = protectedProcedure
       currentSubscription,
       purchases,
       subscriptions,
-    } = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return customerBillingTransaction(
-          {
-            externalId: input.externalId,
-            organizationId,
-          },
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    } = result
     return {
       customer,
       invoices,
@@ -412,29 +430,35 @@ const listCustomersProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(customersPaginatedSelectSchema)
   .output(customersPaginatedListSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectCustomersPaginated(input, transaction)
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectCustomersPaginated(input, transaction)
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const getTableRowsProcedure = protectedProcedure
   .input(customersPaginatedTableRowInputSchema)
   .output(customersPaginatedTableRowOutputSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectCustomersCursorPaginatedWithTableRowData({
-          input,
-          transaction,
-        })
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectCustomersCursorPaginatedWithTableRowData({
+            input,
+            transaction,
+          })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const exportCsvProcedure = protectedProcedure
   .input(
@@ -456,127 +480,130 @@ const exportCsvProcedure = protectedProcedure
       asyncExportStarted: z.boolean().optional(),
     })
   )
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
-        const { filters, searchQuery } = input
-        // Maximum number of customers that can be exported via CSV without async export
-        const CUSTOMER_LIMIT = 1000
-        const PAGE_SIZE = 100
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User ID is required',
-          })
-        }
-
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Organization ID is required',
-          })
-        }
-
-        // Get first page to check total count with minimal data transfer
-        const countCheckResponse =
-          await selectCustomersCursorPaginatedWithTableRowData({
-            input: {
-              pageSize: 1, // Minimal page size for count check
-              filters,
-              searchQuery,
-            },
-            transaction,
-          })
-
-        const totalCustomers = countCheckResponse.total || 0
-
-        // Early return if over limit - no additional DB operations
-        if (totalCustomers > CUSTOMER_LIMIT) {
-          await tracedTrigger(
-            'generateCsvExport',
-            async () =>
-              generateCsvExportTask.trigger(
-                {
-                  userId,
-                  organizationId,
-                  filters,
-                  searchQuery,
-                  livemode,
-                },
-                {
-                  idempotencyKey: await createTriggerIdempotencyKey(
-                    `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
-                  ),
-                }
-              ),
-            {
-              'trigger.organization_id': organizationId,
-              'trigger.livemode': livemode,
-            }
-          )
-
-          return {
-            totalCustomers,
-            asyncExportStarted: true,
+  .mutation(async ({ input, ctx }) => {
+    const { livemode, organizationId } = ctx
+    const userId = ctx.user?.id
+    const { filters, searchQuery } = input
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          // Maximum number of customers that can be exported via CSV without async export
+          const CUSTOMER_LIMIT = 1000
+          const PAGE_SIZE = 100
+          if (!userId) {
+            throw new TRPCError({
+              code: 'UNAUTHORIZED',
+              message: 'User ID is required',
+            })
           }
-        }
-        const focusedMembership =
-          await selectFocusedMembershipAndOrganization(
-            userId,
-            transaction
-          )
 
-        if (!focusedMembership) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'No focused membership found',
-          })
-        }
+          if (!organizationId) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'Organization ID is required',
+            })
+          }
 
-        // Start with the first page we already fetched
-        const rows = [...countCheckResponse.items]
-
-        let pageAfter = countCheckResponse.endCursor
-
-        // Continue fetching remaining pages if there are more
-        while (countCheckResponse.hasNextPage && pageAfter) {
-          const response =
+          // Get first page to check total count with minimal data transfer
+          const countCheckResponse =
             await selectCustomersCursorPaginatedWithTableRowData({
               input: {
-                pageAfter,
-                pageSize: PAGE_SIZE,
+                pageSize: 1, // Minimal page size for count check
                 filters,
                 searchQuery,
               },
               transaction,
             })
 
-          rows.push(...response.items)
+          const totalCustomers = countCheckResponse.total || 0
 
-          if (!response.hasNextPage || !response.endCursor) {
-            break
+          // Early return if over limit - no additional DB operations
+          if (totalCustomers > CUSTOMER_LIMIT) {
+            await tracedTrigger(
+              'generateCsvExport',
+              async () =>
+                generateCsvExportTask.trigger(
+                  {
+                    userId,
+                    organizationId,
+                    filters,
+                    searchQuery,
+                    livemode,
+                  },
+                  {
+                    idempotencyKey: await createTriggerIdempotencyKey(
+                      `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
+                    ),
+                  }
+                ),
+              {
+                'trigger.organization_id': organizationId,
+                'trigger.livemode': livemode,
+              }
+            )
+
+            return {
+              totalCustomers,
+              asyncExportStarted: true,
+            }
+          }
+          const focusedMembership =
+            await selectFocusedMembershipAndOrganization(
+              userId,
+              transaction
+            )
+
+          if (!focusedMembership) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: 'No focused membership found',
+            })
           }
 
-          pageAfter = response.endCursor
-        }
+          // Start with the first page we already fetched
+          const rows = [...countCheckResponse.items]
 
-        const { csv, filename } = createCustomersCsv(
-          rows,
-          focusedMembership.organization.defaultCurrency
-        )
+          let pageAfter = countCheckResponse.endCursor
 
-        return {
-          csv,
-          filename,
-          totalCustomers,
-          asyncExportStarted: false,
-        }
-      }
-    )
-  )
+          // Continue fetching remaining pages if there are more
+          while (countCheckResponse.hasNextPage && pageAfter) {
+            const response =
+              await selectCustomersCursorPaginatedWithTableRowData({
+                input: {
+                  pageAfter,
+                  pageSize: PAGE_SIZE,
+                  filters,
+                  searchQuery,
+                },
+                transaction,
+              })
+
+            rows.push(...response.items)
+
+            if (!response.hasNextPage || !response.endCursor) {
+              break
+            }
+
+            pageAfter = response.endCursor
+          }
+
+          const { csv, filename } = createCustomersCsv(
+            rows,
+            focusedMembership.organization.defaultCurrency
+          )
+
+          return {
+            csv,
+            filename,
+            totalCustomers,
+            asyncExportStarted: false,
+          }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const migrateCustomerPricingModelProcedure = protectedProcedure
   .input(
@@ -592,11 +619,31 @@ const migrateCustomerPricingModelProcedure = protectedProcedure
       newSubscription: subscriptionClientSelectSchema,
     })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      migrateCustomerPricingModelProcedureTransaction
-    )
-  )
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          return migrateCustomerPricingModelProcedureTransaction({
+            input,
+            ctx,
+            transactionCtx: {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            },
+          })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const customersRouter = router({
   create: createCustomerProcedure,

@@ -65,52 +65,58 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should derive pricingModelId from invoice when invoiceId is provided', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const derivedPricingModelId =
-          await derivePricingModelIdForInvoiceLineItem(
-            {
-              invoiceId: invoice.id,
-              priceId: price.id,
-            },
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const derivedPricingModelId =
+            await derivePricingModelIdForInvoiceLineItem(
+              {
+                invoiceId: invoice.id,
+                priceId: price.id,
+              },
+              transaction
+            )
 
-        expect(derivedPricingModelId).toBe(invoice.pricingModelId)
-        expect(derivedPricingModelId).toBe(pricingModel.id)
-      })
+          expect(derivedPricingModelId).toBe(invoice.pricingModelId)
+          expect(derivedPricingModelId).toBe(pricingModel.id)
+        })
+      ).unwrap()
     })
 
     it('should derive pricingModelId from price when only priceId is provided', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const derivedPricingModelId =
-          await derivePricingModelIdForInvoiceLineItem(
-            {
-              invoiceId: null,
-              priceId: price.id,
-            },
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const derivedPricingModelId =
+            await derivePricingModelIdForInvoiceLineItem(
+              {
+                invoiceId: null,
+                priceId: price.id,
+              },
+              transaction
+            )
 
-        expect(derivedPricingModelId).toBe(price.pricingModelId)
-        expect(derivedPricingModelId).toBe(product.pricingModelId)
-        expect(derivedPricingModelId).toBe(pricingModel.id)
-      })
+          expect(derivedPricingModelId).toBe(price.pricingModelId)
+          expect(derivedPricingModelId).toBe(product.pricingModelId)
+          expect(derivedPricingModelId).toBe(pricingModel.id)
+        })
+      ).unwrap()
     })
 
     it('should throw error when both invoiceId and priceId are null', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          derivePricingModelIdForInvoiceLineItem(
-            {
-              invoiceId: null,
-              priceId: null,
-            },
-            transaction
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await expect(
+            derivePricingModelIdForInvoiceLineItem(
+              {
+                invoiceId: null,
+                priceId: null,
+              },
+              transaction
+            )
+          ).rejects.toThrow(
+            'Cannot derive pricingModelId for invoice line item: both invoiceId and priceId are null'
           )
-        ).rejects.toThrow(
-          'Cannot derive pricingModelId for invoice line item: both invoiceId and priceId are null'
-        )
-      })
+        })
+      ).unwrap()
     })
   })
 
@@ -153,66 +159,72 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should successfully insert invoice line item and derive pricingModelId from invoice', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const invoiceLineItem = await insertInvoiceLineItem(
-          {
-            invoiceId: invoice.id,
-            quantity: 1,
-            price: 1000,
-            priceId: price.id,
-            description: 'Test line item',
-            type: SubscriptionItemType.Static,
-            livemode: true,
-          },
-          transaction
-        )
-
-        // Verify pricingModelId is correctly derived from invoice
-        expect(invoiceLineItem.pricingModelId).toBe(
-          invoice.pricingModelId
-        )
-        expect(invoiceLineItem.pricingModelId).toBe(pricingModel.id)
-      })
-    })
-
-    it('should throw an error when invoiceId is invalid and priceId is null', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          insertInvoiceLineItem(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const invoiceLineItem = await insertInvoiceLineItem(
             {
-              invoiceId: 'invalid_invoice_id',
+              invoiceId: invoice.id,
               quantity: 1,
               price: 1000,
-              priceId: null,
+              priceId: price.id,
               description: 'Test line item',
               type: SubscriptionItemType.Static,
               livemode: true,
             },
             transaction
           )
-        ).rejects.toThrow()
-      })
+
+          // Verify pricingModelId is correctly derived from invoice
+          expect(invoiceLineItem.pricingModelId).toBe(
+            invoice.pricingModelId
+          )
+          expect(invoiceLineItem.pricingModelId).toBe(pricingModel.id)
+        })
+      ).unwrap()
+    })
+
+    it('should throw an error when invoiceId is invalid and priceId is null', async () => {
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await expect(
+            insertInvoiceLineItem(
+              {
+                invoiceId: 'invalid_invoice_id',
+                quantity: 1,
+                price: 1000,
+                priceId: null,
+                description: 'Test line item',
+                type: SubscriptionItemType.Static,
+                livemode: true,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      ).unwrap()
     })
 
     it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const invoiceLineItem = await insertInvoiceLineItem(
-          {
-            invoiceId: invoice.id,
-            quantity: 1,
-            price: 1000,
-            priceId: price.id,
-            description: 'Test line item',
-            type: SubscriptionItemType.Static,
-            livemode: true,
-            pricingModelId: pricingModel.id, // explicitly provided
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const invoiceLineItem = await insertInvoiceLineItem(
+            {
+              invoiceId: invoice.id,
+              quantity: 1,
+              price: 1000,
+              priceId: price.id,
+              description: 'Test line item',
+              type: SubscriptionItemType.Static,
+              livemode: true,
+              pricingModelId: pricingModel.id, // explicitly provided
+            },
+            transaction
+          )
 
-        // Verify the provided pricingModelId is used
-        expect(invoiceLineItem.pricingModelId).toBe(pricingModel.id)
-      })
+          // Verify the provided pricingModelId is used
+          expect(invoiceLineItem.pricingModelId).toBe(pricingModel.id)
+        })
+      ).unwrap()
     })
   })
 
@@ -266,84 +278,88 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should bulk insert invoice line items and derive pricingModelId for each', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const invoiceLineItems = await insertInvoiceLineItems(
-          [
-            {
-              invoiceId: invoice.id,
-              quantity: 1,
-              price: 1000,
-              priceId: price1.id,
-              description: 'Test line item 1',
-              type: SubscriptionItemType.Static,
-              livemode: true,
-            },
-            {
-              invoiceId: invoice.id,
-              quantity: 2,
-              price: 2000,
-              priceId: price2.id,
-              description: 'Test line item 2',
-              type: SubscriptionItemType.Static,
-              livemode: true,
-            },
-          ],
-          transaction
-        )
-
-        expect(invoiceLineItems).toHaveLength(2)
-
-        // Verify pricingModelId is correctly derived for each invoice line item
-        expect(invoiceLineItems[0]!.pricingModelId).toBe(
-          price1.pricingModelId
-        )
-        expect(invoiceLineItems[0]!.pricingModelId).toBe(
-          invoice.pricingModelId
-        )
-        expect(invoiceLineItems[0]!.pricingModelId).toBe(
-          pricingModel.id
-        )
-
-        expect(invoiceLineItems[1]!.pricingModelId).toBe(
-          price2.pricingModelId
-        )
-        expect(invoiceLineItems[1]!.pricingModelId).toBe(
-          invoice.pricingModelId
-        )
-        expect(invoiceLineItems[1]!.pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
-    })
-
-    it('should throw error when one invoice line item has invalid invoiceId and null priceId', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          insertInvoiceLineItems(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const invoiceLineItems = await insertInvoiceLineItems(
             [
               {
                 invoiceId: invoice.id,
                 quantity: 1,
                 price: 1000,
                 priceId: price1.id,
-                description: 'Valid line item',
+                description: 'Test line item 1',
                 type: SubscriptionItemType.Static,
                 livemode: true,
               },
               {
-                invoiceId: 'invalid_invoice_id',
+                invoiceId: invoice.id,
                 quantity: 2,
                 price: 2000,
-                priceId: null,
-                description: 'Invalid line item',
+                priceId: price2.id,
+                description: 'Test line item 2',
                 type: SubscriptionItemType.Static,
                 livemode: true,
               },
             ],
             transaction
           )
-        ).rejects.toThrow()
-      })
+
+          expect(invoiceLineItems).toHaveLength(2)
+
+          // Verify pricingModelId is correctly derived for each invoice line item
+          expect(invoiceLineItems[0]!.pricingModelId).toBe(
+            price1.pricingModelId
+          )
+          expect(invoiceLineItems[0]!.pricingModelId).toBe(
+            invoice.pricingModelId
+          )
+          expect(invoiceLineItems[0]!.pricingModelId).toBe(
+            pricingModel.id
+          )
+
+          expect(invoiceLineItems[1]!.pricingModelId).toBe(
+            price2.pricingModelId
+          )
+          expect(invoiceLineItems[1]!.pricingModelId).toBe(
+            invoice.pricingModelId
+          )
+          expect(invoiceLineItems[1]!.pricingModelId).toBe(
+            pricingModel.id
+          )
+        })
+      ).unwrap()
+    })
+
+    it('should throw error when one invoice line item has invalid invoiceId and null priceId', async () => {
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await expect(
+            insertInvoiceLineItems(
+              [
+                {
+                  invoiceId: invoice.id,
+                  quantity: 1,
+                  price: 1000,
+                  priceId: price1.id,
+                  description: 'Valid line item',
+                  type: SubscriptionItemType.Static,
+                  livemode: true,
+                },
+                {
+                  invoiceId: 'invalid_invoice_id',
+                  quantity: 2,
+                  price: 2000,
+                  priceId: null,
+                  description: 'Invalid line item',
+                  type: SubscriptionItemType.Static,
+                  livemode: true,
+                },
+              ],
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      ).unwrap()
     })
   })
 })

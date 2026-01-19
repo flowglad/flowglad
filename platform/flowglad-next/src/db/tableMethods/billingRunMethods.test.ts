@@ -72,8 +72,8 @@ describe('billingRunMethods', () => {
 
   describe('safelyInsertBillingRun', () => {
     it('should successfully create a billing run for a valid active subscription', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -85,8 +85,8 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.subscriptionId).toBe(subscription.id)
       expect(result.billingPeriodId).toBe(billingPeriod.id)
@@ -96,13 +96,15 @@ describe('billingRunMethods', () => {
 
     it('should throw error when subscription is canceled', async () => {
       // Cancel the subscription
-      await adminTransaction(async ({ transaction }) => {
-        await safelyUpdateSubscriptionStatus(
-          subscription,
-          SubscriptionStatus.Canceled,
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await safelyUpdateSubscriptionStatus(
+            subscription,
+            SubscriptionStatus.Canceled,
+            transaction
+          )
+        })
+      ).unwrap()
 
       await expect(
         adminTransaction(async ({ transaction }) => {
@@ -169,8 +171,8 @@ describe('billingRunMethods', () => {
         livemode: false,
       })
 
-      const testmodeBillingRun = await adminTransaction(
-        async ({ transaction }) => {
+      const testmodeBillingRun = (
+        await adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: testmodeBillingPeriod.id,
@@ -182,12 +184,12 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Create livemode billing run (should NOT be returned when querying for livemode: false)
-      const livemodeBillingRun = await adminTransaction(
-        async ({ transaction }) => {
+      const livemodeBillingRun = (
+        await adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -199,18 +201,18 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Query for testmode runs (inverse case - livemode: true is covered in test 4)
-      const testmodeResults = await adminTransaction(
-        async ({ transaction }) => {
+      const testmodeResults = (
+        await adminTransaction(async ({ transaction }) => {
           return selectBillingRunsDueForExecution(
             { livemode: false },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify testmode results contain matching run and not livemode run
       expect(
@@ -229,8 +231,8 @@ describe('billingRunMethods', () => {
       const now = Date.now()
 
       // Create a billing run that matches all criteria
-      const matchingBillingRun = await adminTransaction(
-        async ({ transaction }) => {
+      const matchingBillingRun = (
+        await adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -242,13 +244,13 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Create billing runs that don't match one or more criteria
       // 1. Wrong status
-      const nonMatchingStatusRun = await adminTransaction(
-        async ({ transaction }) => {
+      const nonMatchingStatusRun = (
+        await adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -260,12 +262,12 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // 2. Future scheduledFor
-      const nonMatchingTimeRun = await adminTransaction(
-        async ({ transaction }) => {
+      const nonMatchingTimeRun = (
+        await adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -277,8 +279,8 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // 3. Wrong livemode
       const testmodeBillingPeriod = await setupBillingPeriod({
@@ -288,8 +290,8 @@ describe('billingRunMethods', () => {
         livemode: false,
       })
 
-      const nonMatchingLivemodeRun = await adminTransaction(
-        async ({ transaction }) => {
+      const nonMatchingLivemodeRun = (
+        await adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: testmodeBillingPeriod.id,
@@ -301,17 +303,17 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return selectBillingRunsDueForExecution(
             { livemode: true },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify matching billing run is in results
       expect(
@@ -339,8 +341,8 @@ describe('billingRunMethods', () => {
 
   describe('pricingModelId derivation', () => {
     it('should derive pricingModelId from subscription when creating billing run', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -352,16 +354,16 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.pricingModelId).toBe(subscription.pricingModelId)
       expect(result.pricingModelId).toBe(pricingModel.id)
     })
 
     it('should honor provided pricingModelId', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -374,8 +376,8 @@ describe('billingRunMethods', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.pricingModelId).toBe(pricingModel.id)
     })

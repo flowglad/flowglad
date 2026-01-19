@@ -137,7 +137,7 @@ export const updateCheckoutSession = protectedProcedure
         }
       },
       { apiKey: ctx.apiKey }
-    )
+    ).then((result) => result.unwrap())
   })
 
 const getCheckoutSessionProcedure = protectedProcedure
@@ -159,7 +159,7 @@ const getCheckoutSessionProcedure = protectedProcedure
       {
         apiKey: ctx.apiKey,
       }
-    )
+    ).then((result) => result.unwrap())
   })
 
 const listCheckoutSessionsProcedure = protectedProcedure
@@ -174,7 +174,7 @@ const listCheckoutSessionsProcedure = protectedProcedure
       {
         apiKey: ctx.apiKey,
       }
-    )
+    ).then((result) => result.unwrap())
   })
 
 /***
@@ -201,7 +201,7 @@ export const setPaymentMethodTypeProcedure = publicProcedure
       return {
         checkoutSession,
       }
-    })
+    }).then((result) => result.unwrap())
   })
 
 export const setCustomerEmailProcedure = publicProcedure
@@ -213,7 +213,7 @@ export const setCustomerEmailProcedure = publicProcedure
       return {
         checkoutSession,
       }
-    })
+    }).then((result) => result.unwrap())
   })
 
 export const setBillingAddressProcedure = publicProcedure
@@ -240,7 +240,7 @@ export const setBillingAddressProcedure = publicProcedure
         checkoutSession: result.checkoutSession,
         feeCalculation: result.feeCalculation,
       }
-    })
+    }).then((result) => result.unwrap())
   })
 
 export const setAutomaticallyUpdateSubscriptionsProcedure =
@@ -259,7 +259,7 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
             transaction
           )
         return { checkoutSession }
-      })
+      }).then((result) => result.unwrap())
     })
 
 export const checkoutSessionsRouter = router({

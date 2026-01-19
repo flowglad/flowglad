@@ -63,37 +63,12 @@ describe('Ledger Transaction Methods', () => {
 
   describe('insertLedgerTransaction', () => {
     it('should successfully insert ledger transaction and derive pricingModelId from subscription', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerTransaction = await insertLedgerTransaction(
-          {
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            type: LedgerTransactionType.CreditGrantRecognized,
-            idempotencyKey: `idem_${core.nanoid()}`,
-            metadata: {},
-            livemode: true,
-          },
-          transaction
-        )
-
-        // Verify pricingModelId is correctly derived from subscription
-        expect(ledgerTransaction.pricingModelId).toBe(
-          subscription.pricingModelId
-        )
-        expect(ledgerTransaction.pricingModelId).toBe(pricingModel.id)
-        expect(ledgerTransaction.subscriptionId).toBe(subscription.id)
-      })
-    })
-
-    it('should throw an error when subscriptionId does not exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentSubscriptionId = `sub_${core.nanoid()}`
-
-        await expect(
-          insertLedgerTransaction(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const ledgerTransaction = await insertLedgerTransaction(
             {
               organizationId: organization.id,
-              subscriptionId: nonExistentSubscriptionId,
+              subscriptionId: subscription.id,
               type: LedgerTransactionType.CreditGrantRecognized,
               idempotencyKey: `idem_${core.nanoid()}`,
               metadata: {},
@@ -101,106 +76,52 @@ describe('Ledger Transaction Methods', () => {
             },
             transaction
           )
-        ).rejects.toThrow()
-      })
+
+          // Verify pricingModelId is correctly derived from subscription
+          expect(ledgerTransaction.pricingModelId).toBe(
+            subscription.pricingModelId
+          )
+          expect(ledgerTransaction.pricingModelId).toBe(
+            pricingModel.id
+          )
+          expect(ledgerTransaction.subscriptionId).toBe(
+            subscription.id
+          )
+        })
+      ).unwrap()
+    })
+
+    it('should throw an error when subscriptionId does not exist', async () => {
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentSubscriptionId = `sub_${core.nanoid()}`
+
+          await expect(
+            insertLedgerTransaction(
+              {
+                organizationId: organization.id,
+                subscriptionId: nonExistentSubscriptionId,
+                type: LedgerTransactionType.CreditGrantRecognized,
+                idempotencyKey: `idem_${core.nanoid()}`,
+                metadata: {},
+                livemode: true,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      ).unwrap()
     })
 
     it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerTransaction = await insertLedgerTransaction(
-          {
-            organizationId: organization.id,
-            subscriptionId: subscription.id,
-            type: LedgerTransactionType.CreditGrantRecognized,
-            idempotencyKey: `idem_${core.nanoid()}`,
-            metadata: {},
-            livemode: true,
-            pricingModelId: pricingModel.id, // explicitly provided
-          },
-          transaction
-        )
-
-        // Verify the provided pricingModelId is used
-        expect(ledgerTransaction.pricingModelId).toBe(pricingModel.id)
-      })
-    })
-  })
-
-  describe('insertLedgerTransactionOrDoNothingByIdempotencyKey', () => {
-    it('should successfully insert ledger transaction with idempotency key and derive pricingModelId', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const idempotencyKey = `idem_${core.nanoid()}`
-        const result =
-          await insertLedgerTransactionOrDoNothingByIdempotencyKey(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const ledgerTransaction = await insertLedgerTransaction(
             {
               organizationId: organization.id,
               subscriptionId: subscription.id,
               type: LedgerTransactionType.CreditGrantRecognized,
-              idempotencyKey,
-              metadata: {},
-              livemode: true,
-            },
-            transaction
-          )
-
-        expect(result).toHaveLength(1)
-        const ledgerTransaction = result[0]
-        expect(ledgerTransaction.pricingModelId).toBe(
-          subscription.pricingModelId
-        )
-        expect(ledgerTransaction.pricingModelId).toBe(pricingModel.id)
-        expect(ledgerTransaction.idempotencyKey).toBe(idempotencyKey)
-      })
-    })
-
-    it('should not insert duplicate when idempotency key already exists', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const idempotencyKey = `idem_${core.nanoid()}`
-
-        // First insert
-        const firstResult =
-          await insertLedgerTransactionOrDoNothingByIdempotencyKey(
-            {
-              organizationId: organization.id,
-              subscriptionId: subscription.id,
-              type: LedgerTransactionType.CreditGrantRecognized,
-              idempotencyKey,
-              metadata: {},
-              livemode: true,
-            },
-            transaction
-          )
-
-        expect(firstResult).toHaveLength(1)
-
-        // Second insert with same idempotency key should do nothing
-        const secondResult =
-          await insertLedgerTransactionOrDoNothingByIdempotencyKey(
-            {
-              organizationId: organization.id,
-              subscriptionId: subscription.id,
-              type: LedgerTransactionType.CreditGrantRecognized,
-              idempotencyKey, // same idempotency key
-              metadata: {},
-              livemode: true,
-            },
-            transaction
-          )
-
-        expect(secondResult).toHaveLength(0)
-      })
-    })
-
-    it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const idempotencyKey = `idem_${core.nanoid()}`
-        const result =
-          await insertLedgerTransactionOrDoNothingByIdempotencyKey(
-            {
-              organizationId: organization.id,
-              subscriptionId: subscription.id,
-              type: LedgerTransactionType.CreditGrantRecognized,
-              idempotencyKey,
+              idempotencyKey: `idem_${core.nanoid()}`,
               metadata: {},
               livemode: true,
               pricingModelId: pricingModel.id, // explicitly provided
@@ -208,9 +129,110 @@ describe('Ledger Transaction Methods', () => {
             transaction
           )
 
-        expect(result).toHaveLength(1)
-        expect(result[0].pricingModelId).toBe(pricingModel.id)
-      })
+          // Verify the provided pricingModelId is used
+          expect(ledgerTransaction.pricingModelId).toBe(
+            pricingModel.id
+          )
+        })
+      ).unwrap()
+    })
+  })
+
+  describe('insertLedgerTransactionOrDoNothingByIdempotencyKey', () => {
+    it('should successfully insert ledger transaction with idempotency key and derive pricingModelId', async () => {
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const idempotencyKey = `idem_${core.nanoid()}`
+          const result =
+            await insertLedgerTransactionOrDoNothingByIdempotencyKey(
+              {
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                type: LedgerTransactionType.CreditGrantRecognized,
+                idempotencyKey,
+                metadata: {},
+                livemode: true,
+              },
+              transaction
+            )
+
+          expect(result).toHaveLength(1)
+          const ledgerTransaction = result[0]
+          expect(ledgerTransaction.pricingModelId).toBe(
+            subscription.pricingModelId
+          )
+          expect(ledgerTransaction.pricingModelId).toBe(
+            pricingModel.id
+          )
+          expect(ledgerTransaction.idempotencyKey).toBe(
+            idempotencyKey
+          )
+        })
+      ).unwrap()
+    })
+
+    it('should not insert duplicate when idempotency key already exists', async () => {
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const idempotencyKey = `idem_${core.nanoid()}`
+
+          // First insert
+          const firstResult =
+            await insertLedgerTransactionOrDoNothingByIdempotencyKey(
+              {
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                type: LedgerTransactionType.CreditGrantRecognized,
+                idempotencyKey,
+                metadata: {},
+                livemode: true,
+              },
+              transaction
+            )
+
+          expect(firstResult).toHaveLength(1)
+
+          // Second insert with same idempotency key should do nothing
+          const secondResult =
+            await insertLedgerTransactionOrDoNothingByIdempotencyKey(
+              {
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                type: LedgerTransactionType.CreditGrantRecognized,
+                idempotencyKey, // same idempotency key
+                metadata: {},
+                livemode: true,
+              },
+              transaction
+            )
+
+          expect(secondResult).toHaveLength(0)
+        })
+      ).unwrap()
+    })
+
+    it('should use provided pricingModelId without derivation', async () => {
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const idempotencyKey = `idem_${core.nanoid()}`
+          const result =
+            await insertLedgerTransactionOrDoNothingByIdempotencyKey(
+              {
+                organizationId: organization.id,
+                subscriptionId: subscription.id,
+                type: LedgerTransactionType.CreditGrantRecognized,
+                idempotencyKey,
+                metadata: {},
+                livemode: true,
+                pricingModelId: pricingModel.id, // explicitly provided
+              },
+              transaction
+            )
+
+          expect(result).toHaveLength(1)
+          expect(result[0].pricingModelId).toBe(pricingModel.id)
+        })
+      ).unwrap()
     })
   })
 })

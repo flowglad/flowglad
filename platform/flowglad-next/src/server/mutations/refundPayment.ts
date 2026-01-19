@@ -22,16 +22,18 @@ export const refundPayment = protectedProcedure
   .input(refundPaymentInputSchema)
   .output(z.object({ payment: paymentsClientSelectSchema }))
   .mutation(async ({ input, ctx }) => {
-    const payment = await authenticatedTransaction(
-      async ({ transaction, livemode }) => {
-        return selectPaymentById(input.id, transaction)
-      }
-    )
+    const payment = (
+      await authenticatedTransaction(
+        async ({ transaction, livemode }) => {
+          return selectPaymentById(input.id, transaction)
+        }
+      )
+    ).unwrap()
     if (!payment) {
       throw new Error('Payment not found')
     }
-    const updatedPayment = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedPayment = (
+      await adminTransaction(async ({ transaction }) => {
         return await refundPaymentTransaction(
           {
             id: input.id,
@@ -39,7 +41,7 @@ export const refundPayment = protectedProcedure
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     return { payment: updatedPayment }
   })

@@ -23,14 +23,14 @@ export const GET = async (
 
   const user = await betterAuthUserToApplicationUser(session.user)
   const { organizationId } = await params
-  const customers = await adminTransaction(
-    async ({ transaction }) => {
+  const customers = (
+    await adminTransaction(async ({ transaction }) => {
       return selectCustomers(
         { userId: user.id, organizationId },
         transaction
       )
-    }
-  )
+    })
+  ).unwrap()
 
   if (customers.length === 0) {
     await clearCustomerBillingPortalOrganizationId()

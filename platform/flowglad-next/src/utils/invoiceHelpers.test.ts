@@ -71,36 +71,38 @@ describe('updateInvoiceTransaction', () => {
         priceId: price.id,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const result = await updateInvoiceTransaction(
-          {
-            id: invoice.id,
-            invoice: {
-              id: invoice.id, // IDs match
-              type: InvoiceType.Purchase,
-              status: InvoiceStatus.Open,
-              currency: invoice.currency,
-              dueDate: invoice.dueDate,
-              invoiceDate: invoice.invoiceDate,
-            },
-            invoiceLineItems: [
-              {
-                invoiceId: invoice.id,
-                description: 'Test line item',
-                quantity: 1,
-                price: 1000,
-                type: SubscriptionItemType.Static,
-                priceId: null,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const result = await updateInvoiceTransaction(
+            {
+              id: invoice.id,
+              invoice: {
+                id: invoice.id, // IDs match
+                type: InvoiceType.Purchase,
+                status: InvoiceStatus.Open,
+                currency: invoice.currency,
+                dueDate: invoice.dueDate,
+                invoiceDate: invoice.invoiceDate,
               },
-            ],
-          },
-          true,
-          transaction
-        )
+              invoiceLineItems: [
+                {
+                  invoiceId: invoice.id,
+                  description: 'Test line item',
+                  quantity: 1,
+                  price: 1000,
+                  type: SubscriptionItemType.Static,
+                  priceId: null,
+                },
+              ],
+            },
+            true,
+            transaction
+          )
 
-        expect(result.invoice.id).toBe(invoice.id)
-        expect(result.invoice.status).toBe(InvoiceStatus.Open)
-      })
+          expect(result.invoice.id).toBe(invoice.id)
+          expect(result.invoice.status).toBe(InvoiceStatus.Open)
+        })
+      ).unwrap()
     })
   })
 
@@ -389,10 +391,45 @@ describe('updateInvoiceTransaction', () => {
         priceId: price.id,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        // First update to set up multiple line items
-        const { invoiceLineItems: updatedInvoiceLineItems } =
-          await updateInvoiceTransaction(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // First update to set up multiple line items
+          const { invoiceLineItems: updatedInvoiceLineItems } =
+            await updateInvoiceTransaction(
+              {
+                id: invoice.id,
+                invoice: {
+                  id: invoice.id,
+                  type: InvoiceType.Purchase,
+                  status: invoice.status,
+                  currency: invoice.currency,
+                  dueDate: invoice.dueDate,
+                  invoiceDate: invoice.invoiceDate,
+                },
+                invoiceLineItems: [
+                  {
+                    invoiceId: invoice.id,
+                    description: 'Item 1',
+                    quantity: 1,
+                    price: 1000,
+                    type: SubscriptionItemType.Static,
+                    priceId: null,
+                  },
+                  {
+                    invoiceId: invoice.id,
+                    description: 'Item 2',
+                    quantity: 1,
+                    price: 2000,
+                    type: SubscriptionItemType.Static,
+                    priceId: null,
+                  },
+                ],
+              },
+              true,
+              transaction
+            )
+          // Second update with mixed changes
+          const result = await updateInvoiceTransaction(
             {
               id: invoice.id,
               invoice: {
@@ -400,23 +437,24 @@ describe('updateInvoiceTransaction', () => {
                 type: InvoiceType.Purchase,
                 status: invoice.status,
                 currency: invoice.currency,
-                dueDate: invoice.dueDate,
                 invoiceDate: invoice.invoiceDate,
+                dueDate: invoice.dueDate,
               },
               invoiceLineItems: [
                 {
+                  id: updatedInvoiceLineItems[0].id, // Modify existing
                   invoiceId: invoice.id,
-                  description: 'Item 1',
-                  quantity: 1,
-                  price: 1000,
+                  description: 'Modified Item 1',
+                  quantity: 2,
+                  price: 1500,
                   type: SubscriptionItemType.Static,
                   priceId: null,
                 },
                 {
-                  invoiceId: invoice.id,
-                  description: 'Item 2',
+                  invoiceId: invoice.id, // Add new
+                  description: 'New Item 3',
                   quantity: 1,
-                  price: 2000,
+                  price: 3000,
                   type: SubscriptionItemType.Static,
                   priceId: null,
                 },
@@ -425,55 +463,21 @@ describe('updateInvoiceTransaction', () => {
             true,
             transaction
           )
-        // Second update with mixed changes
-        const result = await updateInvoiceTransaction(
-          {
-            id: invoice.id,
-            invoice: {
-              id: invoice.id,
-              type: InvoiceType.Purchase,
-              status: invoice.status,
-              currency: invoice.currency,
-              invoiceDate: invoice.invoiceDate,
-              dueDate: invoice.dueDate,
-            },
-            invoiceLineItems: [
-              {
-                id: updatedInvoiceLineItems[0].id, // Modify existing
-                invoiceId: invoice.id,
-                description: 'Modified Item 1',
-                quantity: 2,
-                price: 1500,
-                type: SubscriptionItemType.Static,
-                priceId: null,
-              },
-              {
-                invoiceId: invoice.id, // Add new
-                description: 'New Item 3',
-                quantity: 1,
-                price: 3000,
-                type: SubscriptionItemType.Static,
-                priceId: null,
-              },
-            ],
-          },
-          true,
-          transaction
-        )
 
-        expect(result.invoiceLineItems).toHaveLength(2)
-        const modifiedItem = result.invoiceLineItems.find(
-          (item) => item.description === 'Modified Item 1'
-        )
-        const newItem = result.invoiceLineItems.find(
-          (item) => item.description === 'New Item 3'
-        )
-        expect(modifiedItem).toMatchObject({ price: 1500 })
-        expect(modifiedItem!.price).toBe(1500)
-        expect(modifiedItem!.quantity).toBe(2)
-        expect(newItem).toMatchObject({ price: 3000 })
-        expect(newItem!.price).toBe(3000)
-      })
+          expect(result.invoiceLineItems).toHaveLength(2)
+          const modifiedItem = result.invoiceLineItems.find(
+            (item) => item.description === 'Modified Item 1'
+          )
+          const newItem = result.invoiceLineItems.find(
+            (item) => item.description === 'New Item 3'
+          )
+          expect(modifiedItem).toMatchObject({ price: 1500 })
+          expect(modifiedItem!.price).toBe(1500)
+          expect(modifiedItem!.quantity).toBe(2)
+          expect(newItem).toMatchObject({ price: 3000 })
+          expect(newItem!.price).toBe(3000)
+        })
+      ).unwrap()
     })
   })
 

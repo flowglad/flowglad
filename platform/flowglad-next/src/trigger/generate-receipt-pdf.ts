@@ -19,8 +19,8 @@ export const generatePaymentReceiptPdfTask = task({
     return tracedTaskRun(
       'generateReceiptPdf',
       async () => {
-        const { payment, invoice } = await adminTransaction(
-          async ({ transaction }) => {
+        const { payment, invoice } = (
+          await adminTransaction(async ({ transaction }) => {
             const payment = await selectPaymentById(
               paymentId,
               transaction
@@ -32,8 +32,8 @@ export const generatePaymentReceiptPdfTask = task({
                 )
               : null
             return { payment, invoice }
-          }
-        )
+          })
+        ).unwrap()
         if (!invoice) {
           return {
             message: `Invoice not found for payment: ${payment.id}`,
@@ -58,24 +58,26 @@ export const generatePaymentReceiptPdfTask = task({
           key,
           cloudflareMethods.BUCKET_PUBLIC_URL
         )
-        await adminTransaction(async ({ transaction }) => {
-          if (invoice) {
-            await updateInvoice(
+        ;(
+          await adminTransaction(async ({ transaction }) => {
+            if (invoice) {
+              await updateInvoice(
+                {
+                  ...invoice,
+                  receiptPdfURL: receiptURL,
+                },
+                transaction
+              )
+            }
+            return updatePayment(
               {
-                ...invoice,
-                receiptPdfURL: receiptURL,
+                id: payment.id,
+                receiptURL,
               },
               transaction
             )
-          }
-          return updatePayment(
-            {
-              id: payment.id,
-              receiptURL,
-            },
-            transaction
-          )
-        })
+          })
+        ).unwrap()
 
         return {
           message: `Receipt PDF generated successfully: ${payment.id}`,

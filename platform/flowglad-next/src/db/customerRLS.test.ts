@@ -192,47 +192,49 @@ describe('Customer Role RLS Policies', () => {
     org2Price = org2Data.price
 
     // Setup users
-    await adminTransaction(async ({ transaction }) => {
-      userA = await insertUser(
-        {
-          id: `usr_${core.nanoid()}`,
-          email: `userA_${core.nanoid()}@test.com`,
-          name: 'User A',
-          betterAuthId: `bau_${core.nanoid()}`,
-        },
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        userA = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: `userA_${core.nanoid()}@test.com`,
+            name: 'User A',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
 
-      userB = await insertUser(
-        {
-          id: `usr_${core.nanoid()}`,
-          email: `userB_${core.nanoid()}@test.com`,
-          name: 'User B',
-          betterAuthId: `bau_${core.nanoid()}`,
-        },
-        transaction
-      )
+        userB = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: `userB_${core.nanoid()}@test.com`,
+            name: 'User B',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
 
-      userC = await insertUser(
-        {
-          id: `usr_${core.nanoid()}`,
-          email: `userC_${core.nanoid()}@test.com`,
-          name: 'User C',
-          betterAuthId: `bau_${core.nanoid()}`,
-        },
-        transaction
-      )
+        userC = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: `userC_${core.nanoid()}@test.com`,
+            name: 'User C',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
 
-      userD = await insertUser(
-        {
-          id: `usr_${core.nanoid()}`,
-          email: `userD_${core.nanoid()}@test.com`,
-          name: 'User D',
-          betterAuthId: `bau_${core.nanoid()}`,
-        },
-        transaction
-      )
-    })
+        userD = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: `userD_${core.nanoid()}@test.com`,
+            name: 'User D',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Setup customers for Org1
     customerA_Org1 = await setupCustomer({
@@ -241,32 +243,36 @@ describe('Customer Role RLS Policies', () => {
       livemode: true,
     })
     // Update with userId
-    await adminTransaction(async ({ transaction }) => {
-      customerA_Org1 = await updateCustomer(
-        {
-          id: customerA_Org1.id,
-          userId: userA.id,
-          name: 'Customer A Org1',
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        customerA_Org1 = await updateCustomer(
+          {
+            id: customerA_Org1.id,
+            userId: userA.id,
+            name: 'Customer A Org1',
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     customerB_Org1 = await setupCustomer({
       organizationId: org1.id,
       email: userB.email!,
       livemode: true,
     })
-    await adminTransaction(async ({ transaction }) => {
-      customerB_Org1 = await updateCustomer(
-        {
-          id: customerB_Org1.id,
-          userId: userB.id,
-          name: 'Customer B Org1',
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        customerB_Org1 = await updateCustomer(
+          {
+            id: customerB_Org1.id,
+            userId: userB.id,
+            name: 'Customer B Org1',
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // CustomerC_Org1 without a userId - for testing NULL userId scenarios
     customerC_Org1 = await setupCustomer({
@@ -284,32 +290,36 @@ describe('Customer Role RLS Policies', () => {
       email: userC.email!,
       livemode: true,
     })
-    await adminTransaction(async ({ transaction }) => {
-      customerA_Org2 = await updateCustomer(
-        {
-          id: customerA_Org2.id,
-          userId: userC.id,
-          name: 'Customer C Org2',
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        customerA_Org2 = await updateCustomer(
+          {
+            id: customerA_Org2.id,
+            userId: userC.id,
+            name: 'Customer C Org2',
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     customerD_Org2 = await setupCustomer({
       organizationId: org2.id,
       email: userD.email!,
       livemode: true,
     })
-    await adminTransaction(async ({ transaction }) => {
-      customerD_Org2 = await updateCustomer(
-        {
-          id: customerD_Org2.id,
-          userId: userD.id,
-          name: 'Customer D Org2',
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        customerD_Org2 = await updateCustomer(
+          {
+            id: customerD_Org2.id,
+            userId: userD.id,
+            name: 'Customer D Org2',
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Setup payment methods
     paymentMethodA_Org1 = await setupPaymentMethod({
@@ -626,11 +636,11 @@ describe('Customer Role RLS Policies', () => {
       expect(updateAttempt).toBeNull()
 
       // Verify customerB's name is unchanged using admin transaction
-      const verifyCustomerB = await adminTransaction(
-        async ({ transaction }) => {
+      const verifyCustomerB = (
+        await adminTransaction(async ({ transaction }) => {
           return selectCustomerById(customerB_Org1.id, transaction)
-        }
-      )
+        })
+      ).unwrap()
       expect(verifyCustomerB.name).toBe('Customer B Org1')
     })
 
@@ -659,14 +669,14 @@ describe('Customer Role RLS Policies', () => {
       expect(cancelAttempt).toBeNull()
 
       // Verify subscription is still active using admin transaction
-      const verifySubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const verifySubscription = (
+        await adminTransaction(async ({ transaction }) => {
           return selectSubscriptionById(
             subscriptionB_Org1.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(verifySubscription.status).toBe(
         SubscriptionStatus.Active
       )
@@ -904,8 +914,8 @@ describe('Customer Role RLS Policies', () => {
       })
 
       // Create user for the empty customer
-      const emptyUser = await adminTransaction(
-        async ({ transaction }) => {
+      const emptyUser = (
+        await adminTransaction(async ({ transaction }) => {
           const user = await insertUser(
             {
               id: `usr_${core.nanoid()}`,
@@ -923,8 +933,8 @@ describe('Customer Role RLS Policies', () => {
           )
 
           return user
-        }
-      )
+        })
+      ).unwrap()
 
       const result = await authenticatedCustomerTransaction(
         emptyCustomer,
@@ -983,12 +993,14 @@ describe('Customer Role RLS Policies', () => {
       })
 
       // Associate customerA with PM A
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          { id: customerA_Org1.id, pricingModelId: pmA.id },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            { id: customerA_Org1.id, pricingModelId: pmA.id },
+            transaction
+          )
+        })
+      ).unwrap()
 
       const visibleProducts = await authenticatedCustomerTransaction(
         customerA_Org1,
@@ -1027,8 +1039,8 @@ describe('Customer Role RLS Policies', () => {
         pricingModelId: differentPm.id,
       })
 
-      const differentPmUser = await adminTransaction(
-        async ({ transaction }) => {
+      const differentPmUser = (
+        await adminTransaction(async ({ transaction }) => {
           const user = await insertUser(
             {
               id: `usr_${core.nanoid()}`,
@@ -1043,8 +1055,8 @@ describe('Customer Role RLS Policies', () => {
             transaction
           )
           return user
-        }
-      )
+        })
+      ).unwrap()
 
       const visibleProducts = await authenticatedCustomerTransaction(
         customerWithDifferentPm,
@@ -1189,226 +1201,230 @@ describe('Customer Role RLS Policies', () => {
 
     beforeEach(async () => {
       // Setup pricing models for testing
-      await adminTransaction(async ({ transaction }) => {
-        pricingModelA = await insertPricingModel(
-          {
-            organizationId: org1.id,
-            name: 'Pricing Model A',
-            livemode: true,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          pricingModelA = await insertPricingModel(
+            {
+              organizationId: org1.id,
+              name: 'Pricing Model A',
+              livemode: true,
+            },
+            transaction
+          )
 
-        pricingModelB = await insertPricingModel(
-          {
-            organizationId: org1.id,
-            name: 'Pricing Model B',
-            livemode: true,
-          },
-          transaction
-        )
+          pricingModelB = await insertPricingModel(
+            {
+              organizationId: org1.id,
+              name: 'Pricing Model B',
+              livemode: true,
+            },
+            transaction
+          )
 
-        // Create products in different pricing models
-        productInModelA = await insertProduct(
-          {
-            organizationId: org1.id,
-            pricingModelId: pricingModelA.id,
-            name: 'Product in Model A',
-            description: 'Product in pricing model A',
-            imageURL: '',
-            singularQuantityLabel: 'unit',
-            pluralQuantityLabel: 'units',
-            externalId: `prod_${core.nanoid()}`,
-            default: false,
-            slug: `product-model-a-${core.nanoid()}`,
-            active: true,
-            livemode: true,
-          },
-          transaction
-        )
+          // Create products in different pricing models
+          productInModelA = await insertProduct(
+            {
+              organizationId: org1.id,
+              pricingModelId: pricingModelA.id,
+              name: 'Product in Model A',
+              description: 'Product in pricing model A',
+              imageURL: '',
+              singularQuantityLabel: 'unit',
+              pluralQuantityLabel: 'units',
+              externalId: `prod_${core.nanoid()}`,
+              default: false,
+              slug: `product-model-a-${core.nanoid()}`,
+              active: true,
+              livemode: true,
+            },
+            transaction
+          )
 
-        productInModelB = await insertProduct(
-          {
-            organizationId: org1.id,
-            pricingModelId: pricingModelB.id,
-            name: 'Product in Model B',
-            description: 'Product in pricing model B',
-            imageURL: '',
-            singularQuantityLabel: 'unit',
-            pluralQuantityLabel: 'units',
-            externalId: `prod_${core.nanoid()}`,
-            default: false,
-            slug: `product-model-b-${core.nanoid()}`,
-            active: true,
-            livemode: true,
-          },
-          transaction
-        )
+          productInModelB = await insertProduct(
+            {
+              organizationId: org1.id,
+              pricingModelId: pricingModelB.id,
+              name: 'Product in Model B',
+              description: 'Product in pricing model B',
+              imageURL: '',
+              singularQuantityLabel: 'unit',
+              pluralQuantityLabel: 'units',
+              externalId: `prod_${core.nanoid()}`,
+              default: false,
+              slug: `product-model-b-${core.nanoid()}`,
+              active: true,
+              livemode: true,
+            },
+            transaction
+          )
 
-        // Create prices for products
-        priceInModelA = await insertPrice(
-          {
-            productId: productInModelA.id,
-            name: 'Price in Model A',
-            externalId: `price_${core.nanoid()}`,
-            slug: `price-model-a-${core.nanoid()}`,
-            type: PriceType.Subscription,
-            unitPrice: 5000,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            active: true,
-            livemode: true,
-            isDefault: true,
-            trialPeriodDays: 0,
-            currency: CurrencyCode.USD,
-            usageEventsPerUnit: null,
-            usageMeterId: null,
-          },
-          transaction
-        )
+          // Create prices for products
+          priceInModelA = await insertPrice(
+            {
+              productId: productInModelA.id,
+              name: 'Price in Model A',
+              externalId: `price_${core.nanoid()}`,
+              slug: `price-model-a-${core.nanoid()}`,
+              type: PriceType.Subscription,
+              unitPrice: 5000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              active: true,
+              livemode: true,
+              isDefault: true,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+            },
+            transaction
+          )
 
-        priceInModelB = await insertPrice(
-          {
-            productId: productInModelB.id,
-            name: 'Price in Model B',
-            externalId: `price_${core.nanoid()}`,
-            slug: `price-model-b-${core.nanoid()}`,
-            type: PriceType.Subscription,
-            unitPrice: 6000,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            active: true,
-            livemode: true,
-            isDefault: true,
-            trialPeriodDays: 0,
-            currency: CurrencyCode.USD,
-            usageEventsPerUnit: null,
-            usageMeterId: null,
-          },
-          transaction
-        )
+          priceInModelB = await insertPrice(
+            {
+              productId: productInModelB.id,
+              name: 'Price in Model B',
+              externalId: `price_${core.nanoid()}`,
+              slug: `price-model-b-${core.nanoid()}`,
+              type: PriceType.Subscription,
+              unitPrice: 6000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              active: true,
+              livemode: true,
+              isDefault: true,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+            },
+            transaction
+          )
 
-        // Create active and inactive products/prices for testing
-        activeProduct = await insertProduct(
-          {
-            organizationId: org1.id,
-            pricingModelId: pricingModelA.id,
-            name: 'Active Product',
-            description: 'Active product for testing',
-            imageURL: '',
-            singularQuantityLabel: 'unit',
-            pluralQuantityLabel: 'units',
-            externalId: `prod_${core.nanoid()}`,
-            default: false,
-            slug: `active-product-${core.nanoid()}`,
-            active: true,
-            livemode: true,
-          },
-          transaction
-        )
+          // Create active and inactive products/prices for testing
+          activeProduct = await insertProduct(
+            {
+              organizationId: org1.id,
+              pricingModelId: pricingModelA.id,
+              name: 'Active Product',
+              description: 'Active product for testing',
+              imageURL: '',
+              singularQuantityLabel: 'unit',
+              pluralQuantityLabel: 'units',
+              externalId: `prod_${core.nanoid()}`,
+              default: false,
+              slug: `active-product-${core.nanoid()}`,
+              active: true,
+              livemode: true,
+            },
+            transaction
+          )
 
-        inactiveProduct = await insertProduct(
-          {
-            organizationId: org1.id,
-            pricingModelId: pricingModelA.id,
-            name: 'Inactive Product',
-            description: 'Inactive product for testing',
-            imageURL: '',
-            singularQuantityLabel: 'unit',
-            pluralQuantityLabel: 'units',
-            externalId: `prod_${core.nanoid()}`,
-            default: false,
-            slug: `inactive-product-${core.nanoid()}`,
-            active: false,
-            livemode: true,
-          },
-          transaction
-        )
+          inactiveProduct = await insertProduct(
+            {
+              organizationId: org1.id,
+              pricingModelId: pricingModelA.id,
+              name: 'Inactive Product',
+              description: 'Inactive product for testing',
+              imageURL: '',
+              singularQuantityLabel: 'unit',
+              pluralQuantityLabel: 'units',
+              externalId: `prod_${core.nanoid()}`,
+              default: false,
+              slug: `inactive-product-${core.nanoid()}`,
+              active: false,
+              livemode: true,
+            },
+            transaction
+          )
 
-        activePrice = await insertPrice(
-          {
-            productId: activeProduct.id,
-            name: 'Active Price',
-            externalId: `price_${core.nanoid()}`,
-            slug: `active-price-${core.nanoid()}`,
-            type: PriceType.Subscription,
-            unitPrice: 3000,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            active: true,
-            livemode: true,
-            isDefault: true,
-            trialPeriodDays: 0,
-            currency: CurrencyCode.USD,
-            usageEventsPerUnit: null,
-            usageMeterId: null,
-          },
-          transaction
-        )
+          activePrice = await insertPrice(
+            {
+              productId: activeProduct.id,
+              name: 'Active Price',
+              externalId: `price_${core.nanoid()}`,
+              slug: `active-price-${core.nanoid()}`,
+              type: PriceType.Subscription,
+              unitPrice: 3000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              active: true,
+              livemode: true,
+              isDefault: true,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+            },
+            transaction
+          )
 
-        inactivePrice = await insertPrice(
-          {
-            productId: activeProduct.id,
-            name: 'Inactive Price',
-            externalId: `price_${core.nanoid()}`,
-            slug: `inactive-price-${core.nanoid()}`,
-            type: PriceType.Subscription,
-            unitPrice: 4000,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            active: false,
-            livemode: true,
-            isDefault: false,
-            trialPeriodDays: 0,
-            currency: CurrencyCode.USD,
-            usageEventsPerUnit: null,
-            usageMeterId: null,
-          },
-          transaction
-        )
+          inactivePrice = await insertPrice(
+            {
+              productId: activeProduct.id,
+              name: 'Inactive Price',
+              externalId: `price_${core.nanoid()}`,
+              slug: `inactive-price-${core.nanoid()}`,
+              type: PriceType.Subscription,
+              unitPrice: 4000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              active: false,
+              livemode: true,
+              isDefault: false,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+            },
+            transaction
+          )
 
-        // Assign customerA_Org1 to pricing model A
-        await updateCustomer(
-          {
-            id: customerA_Org1.id,
-            pricingModelId: pricingModelA.id,
-          },
-          transaction
-        )
+          // Assign customerA_Org1 to pricing model A
+          await updateCustomer(
+            {
+              id: customerA_Org1.id,
+              pricingModelId: pricingModelA.id,
+            },
+            transaction
+          )
 
-        // Assign customerB_Org1 to pricing model B
-        await updateCustomer(
-          {
-            id: customerB_Org1.id,
-            pricingModelId: pricingModelB.id,
-          },
-          transaction
-        )
-      })
+          // Assign customerB_Org1 to pricing model B
+          await updateCustomer(
+            {
+              id: customerB_Org1.id,
+              pricingModelId: pricingModelB.id,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       // Refresh the customer objects AFTER the admin transaction commits
-      await adminTransaction(async ({ transaction }) => {
-        customerA_Org1 = await selectCustomerById(
-          customerA_Org1.id,
-          transaction
-        )
-        customerB_Org1 = await selectCustomerById(
-          customerB_Org1.id,
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          customerA_Org1 = await selectCustomerById(
+            customerA_Org1.id,
+            transaction
+          )
+          customerB_Org1 = await selectCustomerById(
+            customerB_Org1.id,
+            transaction
+          )
 
-        // Verify the pricing models were assigned correctly
-        if (!customerA_Org1.pricingModelId) {
-          throw new Error(
-            'customerA_Org1 pricingModelId not set after refresh'
-          )
-        }
-        if (!customerB_Org1.pricingModelId) {
-          throw new Error(
-            'customerB_Org1 pricingModelId not set after refresh'
-          )
-        }
-      })
+          // Verify the pricing models were assigned correctly
+          if (!customerA_Org1.pricingModelId) {
+            throw new Error(
+              'customerA_Org1 pricingModelId not set after refresh'
+            )
+          }
+          if (!customerB_Org1.pricingModelId) {
+            throw new Error(
+              'customerB_Org1 pricingModelId not set after refresh'
+            )
+          }
+        })
+      ).unwrap()
     })
 
     describe('Checkout session creation restrictions', () => {
@@ -1556,15 +1572,17 @@ describe('Customer Role RLS Policies', () => {
 
       it('should prevent customer from creating checkout session for customer in another organization sharing same user id', async () => {
         // First, update customerA_Org2 to share the same userId as customerA_Org1
-        await adminTransaction(async ({ transaction }) => {
-          await updateCustomer(
-            {
-              id: customerA_Org2.id,
-              userId: userA.id, // Same user as customerA_Org1
-            },
-            transaction
-          )
-        })
+        ;(
+          await adminTransaction(async ({ transaction }) => {
+            await updateCustomer(
+              {
+                id: customerA_Org2.id,
+                userId: userA.id, // Same user as customerA_Org1
+              },
+              transaction
+            )
+          })
+        ).unwrap()
 
         let error: Error | null = null
 
@@ -1692,8 +1710,8 @@ describe('Customer Role RLS Policies', () => {
     describe('Product and price active status validation', () => {
       it('should prevent checkout with price from inactive product', async () => {
         // Create a price for the inactive product
-        const priceForInactiveProduct = await adminTransaction(
-          async ({ transaction }) => {
+        const priceForInactiveProduct = (
+          await adminTransaction(async ({ transaction }) => {
             return await insertPrice(
               {
                 productId: inactiveProduct.id,
@@ -1714,8 +1732,8 @@ describe('Customer Role RLS Policies', () => {
               },
               transaction
             )
-          }
-        )
+          })
+        ).unwrap()
 
         let error: Error | null = null
 
@@ -1792,8 +1810,8 @@ describe('Customer Role RLS Policies', () => {
 
       it('should prevent checkout when both product and price are inactive', async () => {
         // Create an inactive price for inactive product
-        const bothInactive = await adminTransaction(
-          async ({ transaction }) => {
+        const bothInactive = (
+          await adminTransaction(async ({ transaction }) => {
             return await insertPrice(
               {
                 productId: inactiveProduct.id,
@@ -1814,8 +1832,8 @@ describe('Customer Role RLS Policies', () => {
               },
               transaction
             )
-          }
-        )
+          })
+        ).unwrap()
 
         let error: Error | null = null
 
@@ -1938,12 +1956,14 @@ describe('Customer Role RLS Policies', () => {
 
     it('should handle archived customers correctly', async () => {
       // Archive customerA using admin transaction
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          { id: customerA_Org1.id, archived: true },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            { id: customerA_Org1.id, archived: true },
+            transaction
+          )
+        })
+      ).unwrap()
 
       // CustomerA should still only see own data when authenticated, even when archived
       const result = await authenticatedCustomerTransaction(
@@ -1976,12 +1996,14 @@ describe('Customer Role RLS Policies', () => {
       expect(result.otherCustomers[0].id).toBe(customerA_Org1.id)
 
       // Restore archived status for cleanup
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          { id: customerA_Org1.id, archived: false },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            { id: customerA_Org1.id, archived: false },
+            transaction
+          )
+        })
+      ).unwrap()
     })
 
     it('should prevent creating new records', async () => {

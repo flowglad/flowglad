@@ -141,28 +141,33 @@ const confirmCheckoutSessionBehavior = defineBehavior({
     )
 
     // Update checkout session with payment intent ID and confirm
-    await comprehensiveAdminTransaction(async (ctx) => {
-      const { transaction } = ctx
-      const session = await selectCheckoutSessionById(
-        prev.updatedCheckoutSession.id,
-        transaction
-      )
-      if (!session) {
-        throw new Error('Checkout session not found')
-      }
+    ;(
+      await comprehensiveAdminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const session = await selectCheckoutSessionById(
+          prev.updatedCheckoutSession.id,
+          transaction
+        )
+        if (!session) {
+          throw new Error('Checkout session not found')
+        }
 
-      await updateCheckoutSession(
-        {
-          ...session,
-          stripePaymentIntentId: paymentIntent.id,
-        },
-        transaction
-      )
+        await updateCheckoutSession(
+          {
+            ...session,
+            stripePaymentIntentId: paymentIntent.id,
+          },
+          transaction
+        )
 
-      // Confirm the checkout session
-      await confirmCheckoutSessionTransaction({ id: session.id }, ctx)
-      return Result.ok(null)
-    })
+        // Confirm the checkout session
+        await confirmCheckoutSessionTransaction(
+          { id: session.id },
+          ctx
+        )
+        return Result.ok(null)
+      })
+    ).unwrap()
 
     return {
       ...prev,
@@ -247,8 +252,8 @@ const processPaymentSuccessBehavior = defineBehavior({
     }
 
     // Process the charge through our bookkeeping
-    const bookkeepingResult = await comprehensiveAdminTransaction(
-      async (params) => {
+    const bookkeepingResult = (
+      await comprehensiveAdminTransaction(async (params) => {
         const result = await processStripeChargeForCheckoutSession(
           {
             checkoutSessionId: prev.updatedCheckoutSession.id,
@@ -257,8 +262,8 @@ const processPaymentSuccessBehavior = defineBehavior({
           createProcessingEffectsContext(params)
         )
         return Result.ok(result)
-      }
-    )
+      })
+    ).unwrap()
 
     const purchase = bookkeepingResult.purchase
     if (!purchase) {
@@ -266,7 +271,7 @@ const processPaymentSuccessBehavior = defineBehavior({
     }
 
     // Fetch the invoice, payment, and final fee calculation
-    const { invoice, payment, finalFeeCalculation } =
+    const { invoice, payment, finalFeeCalculation } = (
       await adminTransaction(async ({ transaction }) => {
         const invoiceRecords = await selectInvoices(
           { purchaseId: purchase.id },
@@ -299,6 +304,7 @@ const processPaymentSuccessBehavior = defineBehavior({
           finalFeeCalculation: feeCalc,
         }
       })
+    ).unwrap()
 
     return {
       ...prev,

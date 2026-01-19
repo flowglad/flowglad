@@ -102,51 +102,53 @@ describeIfRedisKey(
       )
       const registryKey = `cacheDeps:${dependencyKey}`
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        // First call - should populate cache
-        const result1 =
-          await selectSubscriptionItemsWithPricesBySubscriptionId(
-            subscription.id,
-            transaction,
-            livemode
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // First call - should populate cache
+          const result1 =
+            await selectSubscriptionItemsWithPricesBySubscriptionId(
+              subscription.id,
+              transaction,
+              livemode
+            )
+
+          // Verify correct data returned
+          expect(result1.length).toBe(1)
+          expect(result1[0].subscriptionItem.id).toBe(
+            subscriptionItem.id
+          )
+          expect(result1[0].price?.id).toBe(price.id)
+
+          // Verify the value is stored in Redis and has expected structure
+          const storedValue = await client.get(cacheKey)
+          expect(Array.isArray(storedValue)).toBe(true)
+          const storedArray = storedValue as Array<{
+            subscriptionItem: { id: string }
+            price: { id: string } | null
+          }>
+          expect(storedArray.length).toBe(1)
+          expect(storedArray[0].subscriptionItem.id).toBe(
+            subscriptionItem.id
           )
 
-        // Verify correct data returned
-        expect(result1.length).toBe(1)
-        expect(result1[0].subscriptionItem.id).toBe(
-          subscriptionItem.id
-        )
-        expect(result1[0].price?.id).toBe(price.id)
+          // Verify the dependency registry contains our cache key
+          const registeredKeys = await client.smembers(registryKey)
+          expect(registeredKeys).toContain(cacheKey)
 
-        // Verify the value is stored in Redis and has expected structure
-        const storedValue = await client.get(cacheKey)
-        expect(Array.isArray(storedValue)).toBe(true)
-        const storedArray = storedValue as Array<{
-          subscriptionItem: { id: string }
-          price: { id: string } | null
-        }>
-        expect(storedArray.length).toBe(1)
-        expect(storedArray[0].subscriptionItem.id).toBe(
-          subscriptionItem.id
-        )
+          // Second call - should return cached result
+          const result2 =
+            await selectSubscriptionItemsWithPricesBySubscriptionId(
+              subscription.id,
+              transaction,
+              livemode
+            )
 
-        // Verify the dependency registry contains our cache key
-        const registeredKeys = await client.smembers(registryKey)
-        expect(registeredKeys).toContain(cacheKey)
-
-        // Second call - should return cached result
-        const result2 =
-          await selectSubscriptionItemsWithPricesBySubscriptionId(
-            subscription.id,
-            transaction,
-            livemode
+          expect(result2.length).toBe(1)
+          expect(result2[0].subscriptionItem.id).toBe(
+            result1[0].subscriptionItem.id
           )
-
-        expect(result2.length).toBe(1)
-        expect(result2[0].subscriptionItem.id).toBe(
-          result1[0].subscriptionItem.id
-        )
-      })
+        })
+      ).unwrap()
     })
 
     it('cache returns fresh data after invalidateDependencies is called with subscription dependency', async () => {
@@ -154,48 +156,50 @@ describeIfRedisKey(
       // Cache key includes livemode (true by default in admin transactions)
       const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}:true`
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        // First call - populate cache with 1 item
-        const result1 =
-          await selectSubscriptionItemsWithPricesBySubscriptionId(
-            subscription.id,
-            transaction,
-            livemode
-          )
-        expect(result1.length).toBe(1)
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // First call - populate cache with 1 item
+          const result1 =
+            await selectSubscriptionItemsWithPricesBySubscriptionId(
+              subscription.id,
+              transaction,
+              livemode
+            )
+          expect(result1.length).toBe(1)
 
-        // Verify cache is populated with expected structure
-        const cachedBefore = await client.get(cacheKey)
-        expect(Array.isArray(cachedBefore)).toBe(true)
-        expect((cachedBefore as unknown[]).length).toBe(1)
+          // Verify cache is populated with expected structure
+          const cachedBefore = await client.get(cacheKey)
+          expect(Array.isArray(cachedBefore)).toBe(true)
+          expect((cachedBefore as unknown[]).length).toBe(1)
 
-        // Add a new subscription item (outside the cache)
-        await setupSubscriptionItem({
-          subscriptionId: subscription.id,
-          name: 'New Item After Cache',
-          quantity: 2,
-          unitPrice: 2000,
-          priceId: price.id,
+          // Add a new subscription item (outside the cache)
+          await setupSubscriptionItem({
+            subscriptionId: subscription.id,
+            name: 'New Item After Cache',
+            quantity: 2,
+            unitPrice: 2000,
+            priceId: price.id,
+          })
+
+          // Invalidate the subscription dependency
+          await invalidateDependencies([
+            CacheDependency.subscriptionItems(subscription.id),
+          ])
+
+          // Verify cache entry was deleted
+          const cachedAfter = await client.get(cacheKey)
+          expect(cachedAfter).toBeNull()
+
+          // Next call should fetch fresh data with 2 items
+          const result2 =
+            await selectSubscriptionItemsWithPricesBySubscriptionId(
+              subscription.id,
+              transaction,
+              livemode
+            )
+          expect(result2.length).toBe(2)
         })
-
-        // Invalidate the subscription dependency
-        await invalidateDependencies([
-          CacheDependency.subscriptionItems(subscription.id),
-        ])
-
-        // Verify cache entry was deleted
-        const cachedAfter = await client.get(cacheKey)
-        expect(cachedAfter).toBeNull()
-
-        // Next call should fetch fresh data with 2 items
-        const result2 =
-          await selectSubscriptionItemsWithPricesBySubscriptionId(
-            subscription.id,
-            transaction,
-            livemode
-          )
-        expect(result2.length).toBe(2)
-      })
+      ).unwrap()
     })
 
     it('cache returns empty array for non-existent subscription', async () => {
@@ -207,15 +211,17 @@ describeIfRedisKey(
       const registryKey = `cacheDeps:${dependencyKey}`
       keysToCleanup.push(cacheKey, registryKey)
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        const result =
-          await selectSubscriptionItemsWithPricesBySubscriptionId(
-            nonExistentId,
-            transaction,
-            livemode
-          )
-        expect(result).toEqual([])
-      })
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          const result =
+            await selectSubscriptionItemsWithPricesBySubscriptionId(
+              nonExistentId,
+              transaction,
+              livemode
+            )
+          expect(result).toEqual([])
+        })
+      ).unwrap()
     })
   }
 )
@@ -304,20 +310,22 @@ describeIfRedisKey(
       const cacheKey1 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription1.id}:true`
       const cacheKey2 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription2.id}:true`
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        const results =
-          await selectSubscriptionItemsWithPricesBySubscriptionIds(
-            [subscription1.id, subscription2.id],
-            transaction,
-            livemode
-          )
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          const results =
+            await selectSubscriptionItemsWithPricesBySubscriptionIds(
+              [subscription1.id, subscription2.id],
+              transaction,
+              livemode
+            )
 
-        // Should return items for both subscriptions (flattened)
-        expect(results.length).toBe(2)
-        const ids = results.map((r) => r.subscriptionItem.id)
-        expect(ids).toContain(subscriptionItem1.id)
-        expect(ids).toContain(subscriptionItem2.id)
-      })
+          // Should return items for both subscriptions (flattened)
+          expect(results.length).toBe(2)
+          const ids = results.map((r) => r.subscriptionItem.id)
+          expect(ids).toContain(subscriptionItem1.id)
+          expect(ids).toContain(subscriptionItem2.id)
+        })
+      ).unwrap()
 
       // Verify both subscriptions are cached separately
       const cached1 = await client.get(cacheKey1)
@@ -333,45 +341,51 @@ describeIfRedisKey(
       const cacheKey1 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription1.id}:true`
 
       // Pre-populate cache for subscription1 using the single function
-      await adminTransaction(async ({ transaction, livemode }) => {
-        await selectSubscriptionItemsWithPricesBySubscriptionId(
-          subscription1.id,
-          transaction,
-          livemode
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          await selectSubscriptionItemsWithPricesBySubscriptionId(
+            subscription1.id,
+            transaction,
+            livemode
+          )
+        })
+      ).unwrap()
 
       // Verify subscription1 is cached
       const cached1Before = await client.get(cacheKey1)
       expect(Array.isArray(cached1Before)).toBe(true)
 
       // Now call bulk function for both - subscription1 should be a cache hit
-      await adminTransaction(async ({ transaction, livemode }) => {
-        const results =
-          await selectSubscriptionItemsWithPricesBySubscriptionIds(
-            [subscription1.id, subscription2.id],
-            transaction,
-            livemode
-          )
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          const results =
+            await selectSubscriptionItemsWithPricesBySubscriptionIds(
+              [subscription1.id, subscription2.id],
+              transaction,
+              livemode
+            )
 
-        expect(results.length).toBe(2)
-        const ids = results.map((r) => r.subscriptionItem.id)
-        expect(ids).toContain(subscriptionItem1.id)
-        expect(ids).toContain(subscriptionItem2.id)
-      })
+          expect(results.length).toBe(2)
+          const ids = results.map((r) => r.subscriptionItem.id)
+          expect(ids).toContain(subscriptionItem1.id)
+          expect(ids).toContain(subscriptionItem2.id)
+        })
+      ).unwrap()
     })
 
     it('returns empty array when given empty subscription IDs array', async () => {
-      await adminTransaction(async ({ transaction, livemode }) => {
-        const results =
-          await selectSubscriptionItemsWithPricesBySubscriptionIds(
-            [],
-            transaction,
-            livemode
-          )
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          const results =
+            await selectSubscriptionItemsWithPricesBySubscriptionIds(
+              [],
+              transaction,
+              livemode
+            )
 
-        expect(results).toEqual([])
-      })
+          expect(results).toEqual([])
+        })
+      ).unwrap()
     })
 
     it('respects cache invalidation for individual subscriptions', async () => {
@@ -379,62 +393,64 @@ describeIfRedisKey(
       const cacheKey1 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription1.id}:true`
       const cacheKey2 = `${RedisKeyNamespace.ItemsBySubscription}:${subscription2.id}:true`
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        // Populate cache for both subscriptions
-        await selectSubscriptionItemsWithPricesBySubscriptionIds(
-          [subscription1.id, subscription2.id],
-          transaction,
-          livemode
-        )
-
-        // Verify both are cached
-        const cached1Before = await client.get(cacheKey1)
-        const cached2Before = await client.get(cacheKey2)
-        expect(Array.isArray(cached1Before)).toBe(true)
-        expect(Array.isArray(cached2Before)).toBe(true)
-
-        // Add item to subscription1
-        await setupSubscriptionItem({
-          subscriptionId: subscription1.id,
-          name: 'New Item for Subscription 1',
-          quantity: 3,
-          unitPrice: 3000,
-          priceId: price.id,
-        })
-
-        // Invalidate only subscription1's cache
-        await invalidateDependencies([
-          CacheDependency.subscriptionItems(subscription1.id),
-        ])
-
-        // Verify subscription1 cache is cleared but subscription2 is still cached
-        const cached1After = await client.get(cacheKey1)
-        const cached2After = await client.get(cacheKey2)
-        expect(cached1After).toBeNull()
-        expect(Array.isArray(cached2After)).toBe(true)
-
-        // Bulk fetch again - should get fresh data for subscription1 (2 items)
-        // and cached data for subscription2 (1 item)
-        const results =
+      ;(
+        await adminTransaction(async ({ transaction, livemode }) => {
+          // Populate cache for both subscriptions
           await selectSubscriptionItemsWithPricesBySubscriptionIds(
             [subscription1.id, subscription2.id],
             transaction,
             livemode
           )
 
-        // subscription1 now has 2 items, subscription2 has 1 item
-        expect(results.length).toBe(3)
-        const sub1Items = results.filter(
-          (r) =>
-            r.subscriptionItem.subscriptionId === subscription1.id
-        )
-        const sub2Items = results.filter(
-          (r) =>
-            r.subscriptionItem.subscriptionId === subscription2.id
-        )
-        expect(sub1Items.length).toBe(2)
-        expect(sub2Items.length).toBe(1)
-      })
+          // Verify both are cached
+          const cached1Before = await client.get(cacheKey1)
+          const cached2Before = await client.get(cacheKey2)
+          expect(Array.isArray(cached1Before)).toBe(true)
+          expect(Array.isArray(cached2Before)).toBe(true)
+
+          // Add item to subscription1
+          await setupSubscriptionItem({
+            subscriptionId: subscription1.id,
+            name: 'New Item for Subscription 1',
+            quantity: 3,
+            unitPrice: 3000,
+            priceId: price.id,
+          })
+
+          // Invalidate only subscription1's cache
+          await invalidateDependencies([
+            CacheDependency.subscriptionItems(subscription1.id),
+          ])
+
+          // Verify subscription1 cache is cleared but subscription2 is still cached
+          const cached1After = await client.get(cacheKey1)
+          const cached2After = await client.get(cacheKey2)
+          expect(cached1After).toBeNull()
+          expect(Array.isArray(cached2After)).toBe(true)
+
+          // Bulk fetch again - should get fresh data for subscription1 (2 items)
+          // and cached data for subscription2 (1 item)
+          const results =
+            await selectSubscriptionItemsWithPricesBySubscriptionIds(
+              [subscription1.id, subscription2.id],
+              transaction,
+              livemode
+            )
+
+          // subscription1 now has 2 items, subscription2 has 1 item
+          expect(results.length).toBe(3)
+          const sub1Items = results.filter(
+            (r) =>
+              r.subscriptionItem.subscriptionId === subscription1.id
+          )
+          const sub2Items = results.filter(
+            (r) =>
+              r.subscriptionItem.subscriptionId === subscription2.id
+          )
+          expect(sub1Items.length).toBe(2)
+          expect(sub2Items.length).toBe(1)
+        })
+      ).unwrap()
     })
   }
 )

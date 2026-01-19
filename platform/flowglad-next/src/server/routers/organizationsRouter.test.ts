@@ -73,14 +73,14 @@ describe('organizationsRouter - notification preferences', () => {
     user = userApiKeySetup.user
 
     // Get the membership that was created
-    const memberships = await adminTransaction(
-      async ({ transaction }) => {
+    const memberships = (
+      await adminTransaction(async ({ transaction }) => {
         return selectMemberships(
           { userId: user.id, organizationId: organization.id },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     membership = memberships[0]
   })
 
@@ -101,22 +101,24 @@ describe('organizationsRouter - notification preferences', () => {
     })
 
     it('returns stored notification preferences merged with defaults', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const [membershipRecord] = await selectMemberships(
-          { userId: user.id, organizationId: organization.id },
-          transaction
-        )
-        await updateMembership(
-          {
-            id: membershipRecord.id,
-            notificationPreferences: {
-              testModeNotifications: true,
-              subscriptionCreated: false,
-            } as Partial<NotificationPreferences>,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const [membershipRecord] = await selectMemberships(
+            { userId: user.id, organizationId: organization.id },
+            transaction
+          )
+          await updateMembership(
+            {
+              id: membershipRecord.id,
+              notificationPreferences: {
+                testModeNotifications: true,
+                subscriptionCreated: false,
+              } as Partial<NotificationPreferences>,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken, user)
       const result = await caller.getNotificationPreferences()

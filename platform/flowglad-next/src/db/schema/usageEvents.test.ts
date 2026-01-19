@@ -158,39 +158,43 @@ describe('usage_events RLS policies', () => {
 
   it('should ALLOW merchants to read usage events for their organization', async () => {
     // Create usage event for organization 1
-    const usageEvent = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return insertUsageEvent(
-          {
-            customerId: customer1.id,
-            subscriptionId: subscription1.id,
-            usageMeterId: usageMeter1.id,
-            priceId: price1.id,
-            billingPeriodId: billingPeriod1.id,
-            amount: 100,
-            transactionId: 'txn_org1_allowed',
-            usageDate: Date.now(),
-            livemode: true,
-            properties: {},
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const usageEvent = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return insertUsageEvent(
+            {
+              customerId: customer1.id,
+              subscriptionId: subscription1.id,
+              usageMeterId: usageMeter1.id,
+              priceId: price1.id,
+              billingPeriodId: billingPeriod1.id,
+              amount: 100,
+              transactionId: 'txn_org1_allowed',
+              usageDate: Date.now(),
+              livemode: true,
+              properties: {},
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Try to read with org1 API key
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEvents(
-          {
-            id: usageEvent.id,
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEvents(
+            {
+              id: usageEvent.id,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Should return the usage event
     expect(result).toHaveLength(1)
@@ -199,39 +203,43 @@ describe('usage_events RLS policies', () => {
 
   it('should DENY merchants from reading usage events for other organizations', async () => {
     // Create usage event for organization 2
-    const usageEvent = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return insertUsageEvent(
-          {
-            customerId: customer2.id,
-            subscriptionId: subscription2.id,
-            usageMeterId: usageMeter2.id,
-            priceId: price2.id,
-            billingPeriodId: billingPeriod2.id,
-            amount: 200,
-            transactionId: 'txn_org2_denied',
-            usageDate: Date.now(),
-            livemode: true,
-            properties: {},
-          },
-          transaction
-        )
-      },
-      { apiKey: org2ApiKeyToken }
-    )
+    const usageEvent = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return insertUsageEvent(
+            {
+              customerId: customer2.id,
+              subscriptionId: subscription2.id,
+              usageMeterId: usageMeter2.id,
+              priceId: price2.id,
+              billingPeriodId: billingPeriod2.id,
+              amount: 200,
+              transactionId: 'txn_org2_denied',
+              usageDate: Date.now(),
+              livemode: true,
+              properties: {},
+            },
+            transaction
+          )
+        },
+        { apiKey: org2ApiKeyToken }
+      )
+    ).unwrap()
 
     // Try to read with org1 API key
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEvents(
-          {
-            id: usageEvent.id,
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEvents(
+            {
+              id: usageEvent.id,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Should return empty results due to RLS
     expect(result).toHaveLength(0)
@@ -253,12 +261,14 @@ describe('usage_events RLS policies', () => {
     }
 
     // Try to insert with org1 API key
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return insertUsageEvent(usageEventInsert, transaction)
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return insertUsageEvent(usageEventInsert, transaction)
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Should successfully insert usage event
     expect(typeof result.id).toBe('string')
@@ -293,26 +303,28 @@ describe('usage_events RLS policies', () => {
 
   it('should enforce livemode/testmode separation', async () => {
     // Create usage event in livemode
-    const usageEvent = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return insertUsageEvent(
-          {
-            customerId: customer1.id,
-            subscriptionId: subscription1.id,
-            usageMeterId: usageMeter1.id,
-            priceId: price1.id,
-            billingPeriodId: billingPeriod1.id,
-            amount: 100,
-            transactionId: 'txn_livemode',
-            usageDate: Date.now(),
-            livemode: true,
-            properties: {},
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const usageEvent = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return insertUsageEvent(
+            {
+              customerId: customer1.id,
+              subscriptionId: subscription1.id,
+              usageMeterId: usageMeter1.id,
+              priceId: price1.id,
+              billingPeriodId: billingPeriod1.id,
+              amount: 100,
+              transactionId: 'txn_livemode',
+              usageDate: Date.now(),
+              livemode: true,
+              properties: {},
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Try to read with testmode API key (should fail due to livemode policy)
     const testmodeApiKey = await setupUserAndApiKey({
@@ -324,17 +336,19 @@ describe('usage_events RLS policies', () => {
       throw new Error('Testmode API key token not found')
     }
 
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEvents(
-          {
-            id: usageEvent.id,
-          },
-          transaction
-        )
-      },
-      { apiKey: testmodeApiKey.apiKey.token }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEvents(
+            {
+              id: usageEvent.id,
+            },
+            transaction
+          )
+        },
+        { apiKey: testmodeApiKey.apiKey.token }
+      )
+    ).unwrap()
 
     // Should return empty results due to livemode policy
     expect(result).toHaveLength(0)

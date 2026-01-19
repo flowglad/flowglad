@@ -36,7 +36,7 @@ interface AuthenticatedTransactionOptions {
 export async function authenticatedTransaction<T>(
   fn: (params: AuthenticatedTransactionParams) => Promise<T>,
   options?: AuthenticatedTransactionOptions
-): Promise<T> {
+): Promise<Result<T, Error>> {
   return comprehensiveAuthenticatedTransaction(async (params) => {
     const result = await fn(params)
     return Result.ok(result)
@@ -151,7 +151,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     params: ComprehensiveAuthenticatedTransactionParams
   ) => Promise<Result<T, Error>>,
   options?: AuthenticatedTransactionOptions
-): Promise<T> {
+): Promise<Result<T, Error>> {
   // Static attributes are set at span creation for debugging failed transactions
   const { output } = await traced(
     {
@@ -175,10 +175,7 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     () => executeComprehensiveAuthenticatedTransaction(fn, options)
   )()
 
-  if (output.status === 'error') {
-    throw output.error
-  }
-  return output.value
+  return output
 }
 
 export type AuthenticatedProcedureResolver<
@@ -233,24 +230,27 @@ export const authenticatedProcedureComprehensiveTransaction = <
   ) => Promise<Result<TOutput, Error>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
-    return comprehensiveAuthenticatedTransaction(
-      (params) => {
-        const transactionCtx: TransactionEffectsContext = {
-          transaction: params.transaction,
-          invalidateCache: params.invalidateCache,
-          emitEvent: params.emitEvent,
-          enqueueLedgerCommand: params.enqueueLedgerCommand,
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        (params) => {
+          const transactionCtx: TransactionEffectsContext = {
+            transaction: params.transaction,
+            invalidateCache: params.invalidateCache,
+            emitEvent: params.emitEvent,
+            enqueueLedgerCommand: params.enqueueLedgerCommand,
+          }
+          return handler({
+            input: opts.input,
+            ctx: opts.ctx,
+            transactionCtx,
+          })
+        },
+        {
+          apiKey: opts.ctx.apiKey,
+          customerId: opts.ctx.customerId,
         }
-        return handler({
-          input: opts.input,
-          ctx: opts.ctx,
-          transactionCtx,
-        })
-      },
-      {
-        apiKey: opts.ctx.apiKey,
-        customerId: opts.ctx.customerId,
-      }
-    )
+      )
+    ).unwrap()
+    return result
   }
 }

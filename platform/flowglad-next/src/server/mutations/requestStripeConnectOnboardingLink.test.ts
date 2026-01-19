@@ -41,29 +41,31 @@ const createAuthedContext = async (params: {
   const betterAuthId = `ba_test_${core.nanoid()}`
   const email = `merchant+${core.nanoid()}@example.com`
 
-  const user = await adminTransaction(async ({ transaction }) => {
-    const insertedUser: User.Record = await insertUser(
-      {
-        id: `usr_test_${core.nanoid()}`,
-        email,
-        name: 'Test Merchant',
-        betterAuthId,
-      },
-      transaction
-    )
+  const user = (
+    await adminTransaction(async ({ transaction }) => {
+      const insertedUser: User.Record = await insertUser(
+        {
+          id: `usr_test_${core.nanoid()}`,
+          email,
+          name: 'Test Merchant',
+          betterAuthId,
+        },
+        transaction
+      )
 
-    await insertMembership(
-      {
-        userId: insertedUser.id,
-        organizationId: organization.id,
-        focused: true,
-        livemode,
-      },
-      transaction
-    )
+      await insertMembership(
+        {
+          userId: insertedUser.id,
+          organizationId: organization.id,
+          focused: true,
+          livemode,
+        },
+        transaction
+      )
 
-    return insertedUser
-  })
+      return insertedUser
+    })
+  ).unwrap()
 
   vi.mocked(getSession).mockResolvedValue({
     user: {

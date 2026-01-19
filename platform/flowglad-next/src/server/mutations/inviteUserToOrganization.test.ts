@@ -79,21 +79,23 @@ describe('innerInviteUserToOrganizationHandler', () => {
         inviterName: inviterUser.name ?? undefined,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const [newUser] = await selectUsers({ email }, transaction)
-        expect(newUser.name).toBe(input.name)
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const [newUser] = await selectUsers({ email }, transaction)
+          expect(newUser.name).toBe(input.name)
 
-        const newMemberships = await selectMemberships(
-          {
-            userId: newUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(newMemberships).toHaveLength(1)
-        expect(newMemberships[0].focused).toBe(false)
-        expect(newMemberships[0].livemode).toBe(true)
-      })
+          const newMemberships = await selectMemberships(
+            {
+              userId: newUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(newMemberships).toHaveLength(1)
+          expect(newMemberships[0].focused).toBe(false)
+          expect(newMemberships[0].livemode).toBe(true)
+        })
+      ).unwrap()
 
       expect(result).toEqual({
         success: true,
@@ -147,18 +149,20 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       expect(sendOrganizationInvitationEmail).not.toHaveBeenCalled()
 
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          {
-            userId: existingUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(memberships).toHaveLength(1)
-        expect(memberships[0].focused).toBe(false)
-        expect(memberships[0].livemode).toBe(true)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: existingUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(memberships).toHaveLength(1)
+          expect(memberships[0].focused).toBe(false)
+          expect(memberships[0].livemode).toBe(true)
+        })
+      ).unwrap()
 
       expect(result).toBeUndefined()
       await teardownOrg({ organizationId: otherOrg.id })
@@ -171,16 +175,18 @@ describe('innerInviteUserToOrganizationHandler', () => {
       })
       const input = { email: existingUser.email! }
 
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          {
-            userId: existingUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(memberships.length).toBeGreaterThan(0)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: existingUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(memberships.length).toBeGreaterThan(0)
+        })
+      ).unwrap()
 
       const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
@@ -190,16 +196,18 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       expect(sendOrganizationInvitationEmail).not.toHaveBeenCalled()
 
-      await adminTransaction(async ({ transaction }) => {
-        const memberships = await selectMemberships(
-          {
-            userId: existingUser.id,
-            organizationId: organization.id,
-          },
-          transaction
-        )
-        expect(memberships).toHaveLength(1)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const memberships = await selectMemberships(
+            {
+              userId: existingUser.id,
+              organizationId: organization.id,
+            },
+            transaction
+          )
+          expect(memberships).toHaveLength(1)
+        })
+      ).unwrap()
 
       expect(result).toBeUndefined()
     })

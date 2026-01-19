@@ -10,14 +10,14 @@ export const getApiKeys = protectedProcedure
       throw new Error('organizationId is required')
     }
 
-    const apiKeys = await authenticatedTransaction(
-      async ({ transaction }) => {
+    const apiKeys = (
+      await authenticatedTransaction(async ({ transaction }) => {
         return selectApiKeys(
           { organizationId: ctx.organizationId, ...input },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     return {
       data: { apiKeys },

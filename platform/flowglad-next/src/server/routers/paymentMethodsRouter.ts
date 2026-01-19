@@ -25,14 +25,16 @@ const listPaymentMethodsProcedure = protectedProcedure
   .input(paymentMethodsPaginatedSelectSchema)
   .output(paymentMethodsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPaymentMethodsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPaymentMethodsPaginated(input, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 const getPaymentMethodProcedure = protectedProcedure
@@ -42,14 +44,16 @@ const getPaymentMethodProcedure = protectedProcedure
     z.object({ paymentMethod: paymentMethodClientSelectSchema })
   )
   .query(async ({ ctx, input }) => {
-    const paymentMethod = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPaymentMethodById(input.id, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const paymentMethod = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPaymentMethodById(input.id, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return { paymentMethod }
   })
 

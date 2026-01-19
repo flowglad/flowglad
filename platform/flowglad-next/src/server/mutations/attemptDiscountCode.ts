@@ -30,8 +30,8 @@ export const attemptDiscountCode = publicProcedure
             type: CheckoutSessionType.Purchase,
           }
 
-    const isValid = await comprehensiveAdminTransaction(
-      async (ctx) => {
+    const isValid = (
+      await comprehensiveAdminTransaction(async (ctx) => {
         const { transaction } = ctx
         if ('invoiceId' in input) {
           throw new Error(
@@ -117,8 +117,8 @@ export const attemptDiscountCode = publicProcedure
 
         await updateCheckoutSessionDiscount(discount.id)
         return Result.ok(true)
-      }
-    )
+      })
+    ).unwrap()
 
     return { isValid }
   })

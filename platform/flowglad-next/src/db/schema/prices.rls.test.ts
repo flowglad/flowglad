@@ -158,12 +158,14 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
         usageMeterId: null,
       }
 
-      const inserted = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return insertPrice(priceInsert, transaction)
-        },
-        { apiKey: apiKey.token }
-      )
+      const inserted = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return insertPrice(priceInsert, transaction)
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(inserted.id).toMatch(/^price_/)
       expect(inserted.productId).toBe(product.id)
@@ -188,12 +190,14 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
         trialPeriodDays: null,
       }
 
-      const inserted = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return insertPrice(priceInsert, transaction)
-        },
-        { apiKey: apiKey.token }
-      )
+      const inserted = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return insertPrice(priceInsert, transaction)
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(inserted.id).toMatch(/^price_/)
       expect(inserted.usageMeterId).toBe(usageMeter.id)
@@ -287,12 +291,14 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       })
 
       // Select via authenticated transaction
-      const selected = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectPriceById(subscriptionPrice.id, transaction)
-        },
-        { apiKey: apiKey.token }
-      )
+      const selected = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectPriceById(subscriptionPrice.id, transaction)
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(selected.id).toBe(subscriptionPrice.id)
       expect(selected.productId).toBe(product.id)
@@ -314,12 +320,14 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       })
 
       // Select via authenticated transaction
-      const selected = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectPriceById(usagePrice.id, transaction)
-        },
-        { apiKey: apiKey.token }
-      )
+      const selected = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectPriceById(usagePrice.id, transaction)
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(selected.id).toBe(usagePrice.id)
       expect(selected.usageMeterId).toBe(usageMeter.id)
@@ -342,28 +350,30 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       })
 
       // Try to select org2's price using org1's API key
-      const prices = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectPrices(
-            { productId: org2Data.product.id },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      const prices = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectPrices(
+              { productId: org2Data.product.id },
+              transaction
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       // Should return empty array since org1 can't see org2's products/prices
       expect(prices).toHaveLength(0)
 
       // Verify the price exists via admin transaction
-      const adminPrices = await adminTransaction(
-        async ({ transaction }) => {
+      const adminPrices = (
+        await adminTransaction(async ({ transaction }) => {
           return selectPrices(
             { productId: org2Data.product.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(adminPrices.length).toBeGreaterThan(0)
       expect(adminPrices.some((p) => p.id === org2Price.id)).toBe(
         true
@@ -391,28 +401,30 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       })
 
       // Try to select org2's usage price using org1's API key
-      const prices = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectPrices(
-            { usageMeterId: org2UsageMeter.id },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      const prices = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectPrices(
+              { usageMeterId: org2UsageMeter.id },
+              transaction
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       // Should return empty array
       expect(prices).toHaveLength(0)
 
       // Verify the price exists via admin transaction
-      const adminPrices = await adminTransaction(
-        async ({ transaction }) => {
+      const adminPrices = (
+        await adminTransaction(async ({ transaction }) => {
           return selectPrices(
             { usageMeterId: org2UsageMeter.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(
         adminPrices.some((p) => p.id === org2UsagePrice.id)
       ).toBe(true)
@@ -435,19 +447,21 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       })
 
       // Update via authenticated transaction
-      const updated = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updatePrice(
-            {
-              id: subscriptionPrice.id,
-              name: 'Updated Subscription Name',
-              type: PriceType.Subscription,
-            },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      const updated = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return updatePrice(
+              {
+                id: subscriptionPrice.id,
+                name: 'Updated Subscription Name',
+                type: PriceType.Subscription,
+              },
+              transaction
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(updated.id).toBe(subscriptionPrice.id)
       expect(updated.name).toBe('Updated Subscription Name')
@@ -468,19 +482,21 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       })
 
       // Update via authenticated transaction
-      const updated = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return updatePrice(
-            {
-              id: usagePrice.id,
-              name: 'Updated Usage Name',
-              type: PriceType.Usage,
-            },
-            transaction
-          )
-        },
-        { apiKey: apiKey.token }
-      )
+      const updated = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return updatePrice(
+              {
+                id: usagePrice.id,
+                name: 'Updated Usage Name',
+                type: PriceType.Usage,
+              },
+              transaction
+            )
+          },
+          { apiKey: apiKey.token }
+        )
+      ).unwrap()
 
       expect(updated.id).toBe(usagePrice.id)
       expect(updated.name).toBe('Updated Usage Name')
@@ -536,19 +552,21 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
 
   it('allows updating a usage price to use a different usage meter in the same pricing model', async () => {
     // Update the usage price to use usageMeter2 (same pricing model)
-    const updated = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return updatePrice(
-          {
-            id: usagePrice.id,
-            usageMeterId: usageMeter2.id,
-            type: PriceType.Usage,
-          },
-          transaction
-        )
-      },
-      { apiKey: apiKey.token }
-    )
+    const updated = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return updatePrice(
+            {
+              id: usagePrice.id,
+              usageMeterId: usageMeter2.id,
+              type: PriceType.Usage,
+            },
+            transaction
+          )
+        },
+        { apiKey: apiKey.token }
+      )
+    ).unwrap()
 
     expect(updated.id).toBe(usagePrice.id)
     expect(updated.usageMeterId).toBe(usageMeter2.id)
@@ -605,16 +623,18 @@ describe('prices RLS - customer read access', () => {
     product = orgData.product
 
     // Create a user for the customer
-    customerUser = await adminTransaction(async ({ transaction }) => {
-      return insertUser(
-        {
-          id: `usr_${core.nanoid()}`,
-          email: `customer_${core.nanoid()}@test.com`,
-          name: 'Test Customer User',
-        },
-        transaction
-      )
-    })
+    customerUser = (
+      await adminTransaction(async ({ transaction }) => {
+        return insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: `customer_${core.nanoid()}@test.com`,
+            name: 'Test Customer User',
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Create a customer
     customer = await setupCustomer({

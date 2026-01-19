@@ -11,11 +11,11 @@ const listCountries = protectedProcedure
     })
   )
   .query(async () => {
-    const countries = await adminTransaction(
-      async ({ transaction }) => {
+    const countries = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCountries({}, transaction)
-      }
-    )
+      })
+    ).unwrap()
     return {
       countries,
     }

@@ -94,8 +94,8 @@ export const updateOrganizationOnboardingStatus = async (
     stripeAccountId,
     livemode
   )
-  const organization = await adminTransaction(
-    async ({ transaction }) => {
+  const organization = (
+    await adminTransaction(async ({ transaction }) => {
       let [organization] = await selectOrganizations(
         {
           stripeAccountId,
@@ -140,7 +140,7 @@ export const updateOrganizationOnboardingStatus = async (
       }
 
       return organization
-    }
-  )
+    })
+  ).unwrap()
   return { onboardingStatus, organization }
 }

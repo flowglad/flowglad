@@ -125,17 +125,19 @@ describe('authenticatedTransaction', () => {
     })
 
     // Create additional membership for userA in testOrg2 (focused: false)
-    membershipA2 = await adminTransaction(async ({ transaction }) => {
-      return insertMembership(
-        {
-          organizationId: testOrg2.id,
-          userId: userA.id,
-          focused: false,
-          livemode: true,
-        },
-        transaction
-      )
-    })
+    membershipA2 = (
+      await adminTransaction(async ({ transaction }) => {
+        return insertMembership(
+          {
+            organizationId: testOrg2.id,
+            userId: userA.id,
+            focused: false,
+            livemode: true,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // UserB only has membership in testOrg2 (focused: true)
     membershipB2 = await setupMemberships({
@@ -167,14 +169,16 @@ describe('authenticatedTransaction', () => {
 
       // expects:
       // - transaction should execute successfully with proper context
-      const result = await authenticatedTransaction(
-        async ({ transaction, userId, organizationId }) => {
-          expect(userId).toBe(userA.id)
-          expect(organizationId).toBe(testOrg1.id)
-          return 'success'
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction, userId, organizationId }) => {
+            expect(userId).toBe(userA.id)
+            expect(organizationId).toBe(testOrg1.id)
+            return 'success'
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('success')
     })
   })
@@ -187,14 +191,16 @@ describe('authenticatedTransaction', () => {
 
       // expects:
       // - transaction should execute successfully with livemode: true
-      const result = await authenticatedTransaction(
-        async ({ livemode, organizationId }) => {
-          expect(livemode).toBe(true)
-          expect(organizationId).toBe(testOrg1.id)
-          return 'livemode_success'
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ livemode, organizationId }) => {
+            expect(livemode).toBe(true)
+            expect(organizationId).toBe(testOrg1.id)
+            return 'livemode_success'
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('livemode_success')
     })
 
@@ -210,13 +216,15 @@ describe('authenticatedTransaction', () => {
         livemode: false,
       })
 
-      const result = await authenticatedTransaction(
-        async ({ livemode }) => {
-          expect(livemode).toBe(false)
-          return 'test_mode_success'
-        },
-        { apiKey: testModeApiKey.apiKey.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ livemode }) => {
+            expect(livemode).toBe(false)
+            return 'test_mode_success'
+          },
+          { apiKey: testModeApiKey.apiKey.token }
+        )
+      ).unwrap()
       expect(result).toBe('test_mode_success')
     })
 
@@ -241,15 +249,17 @@ describe('authenticatedTransaction', () => {
 
   describe('current_organization_id()', () => {
     it('is set for API key authenticated requests', async () => {
-      const result = await authenticatedTransaction(
-        async ({ transaction, organizationId }) => {
-          const currentOrganizationId =
-            await selectCurrentOrganizationId(transaction)
-          expect(currentOrganizationId).toBe(organizationId)
-          return currentOrganizationId
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction, organizationId }) => {
+            const currentOrganizationId =
+              await selectCurrentOrganizationId(transaction)
+            expect(currentOrganizationId).toBe(organizationId)
+            return currentOrganizationId
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe(testOrg1.id)
     })
 
@@ -260,35 +270,37 @@ describe('authenticatedTransaction', () => {
       const email = `webapp-${Date.now()}@test.com`
       const userId = `usr_test_${hashData(`user-${Date.now()}`)}`
 
-      await adminTransaction(async ({ transaction }) => {
-        await insertUser(
-          {
-            id: userId,
-            email,
-            name: 'Webapp User',
-            betterAuthId,
-          },
-          transaction
-        )
-        await insertMembership(
-          {
-            organizationId: testOrg1.id,
-            userId,
-            focused: true,
-            livemode: true,
-          },
-          transaction
-        )
-        await insertMembership(
-          {
-            organizationId: testOrg2.id,
-            userId,
-            focused: false,
-            livemode: true,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await insertUser(
+            {
+              id: userId,
+              email,
+              name: 'Webapp User',
+              betterAuthId,
+            },
+            transaction
+          )
+          await insertMembership(
+            {
+              organizationId: testOrg1.id,
+              userId,
+              focused: true,
+              livemode: true,
+            },
+            transaction
+          )
+          await insertMembership(
+            {
+              organizationId: testOrg2.id,
+              userId,
+              focused: false,
+              livemode: true,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       mockedAuth.session = {
         user: {
@@ -297,14 +309,16 @@ describe('authenticatedTransaction', () => {
         },
       }
 
-      const result = await authenticatedTransaction(
-        async ({ transaction, organizationId }) => {
-          const currentOrganizationId =
-            await selectCurrentOrganizationId(transaction)
-          expect(currentOrganizationId).toBe(organizationId)
-          return currentOrganizationId
-        }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction, organizationId }) => {
+            const currentOrganizationId =
+              await selectCurrentOrganizationId(transaction)
+            expect(currentOrganizationId).toBe(organizationId)
+            return currentOrganizationId
+          }
+        )
+      ).unwrap()
 
       expect(result).toBe(testOrg1.id)
     })
@@ -359,14 +373,16 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // expects:
       // - function should execute successfully
       // - organizationId should be available in transaction params
-      const result = await comprehensiveAuthenticatedTransaction(
-        async ({ organizationId, userId }) => {
-          expect(organizationId).toBe(testOrg1.id)
-          expect(userId).toBe(userA.id)
-          return Result.ok('comprehensive_success')
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await comprehensiveAuthenticatedTransaction(
+          async ({ organizationId, userId }) => {
+            expect(organizationId).toBe(testOrg1.id)
+            expect(userId).toBe(userA.id)
+            return Result.ok('comprehensive_success')
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('comprehensive_success')
     })
   })
@@ -400,13 +416,15 @@ describe('comprehensiveAuthenticatedTransaction', () => {
         processedAt: null,
       }
 
-      const result = await comprehensiveAuthenticatedTransaction(
-        async ({ emitEvent }) => {
-          emitEvent(mockEvent)
-          return Result.ok('events_processed')
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await comprehensiveAuthenticatedTransaction(
+          async ({ emitEvent }) => {
+            emitEvent(mockEvent)
+            return Result.ok('events_processed')
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('events_processed')
     })
 
@@ -418,10 +436,12 @@ describe('comprehensiveAuthenticatedTransaction', () => {
       // expects:
       // - transaction should complete successfully
       // - result should be returned from output.result
-      const result = await comprehensiveAuthenticatedTransaction(
-        async () => Result.ok('simple_result'),
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await comprehensiveAuthenticatedTransaction(
+          async () => Result.ok('simple_result'),
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
       expect(result).toBe('simple_result')
     })
   })
@@ -460,18 +480,20 @@ describe('RLS Access Control with selectOrganizations', () => {
     apiKeyB = userApiKeyB.apiKey
 
     // Create memberships for cross-organization testing
-    await adminTransaction(async ({ transaction }) => {
-      // Give userA membership in testOrg2 as well (focused: false)
-      await insertMembership(
-        {
-          organizationId: testOrg2.id,
-          userId: userA.id,
-          focused: false,
-          livemode: true,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        // Give userA membership in testOrg2 as well (focused: false)
+        await insertMembership(
+          {
+            organizationId: testOrg2.id,
+            userId: userA.id,
+            focused: false,
+            livemode: true,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
   })
 
   describe('Single Organization Access', () => {
@@ -484,16 +506,18 @@ describe('RLS Access Control with selectOrganizations', () => {
       // expects:
       // - selectOrganizations should return only testOrg1
       // - testOrg2 should be filtered out by RLS despite userA having membership there
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          const organizations = await selectOrganizations(
-            {},
-            transaction
-          )
-          return organizations
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const organizations = await selectOrganizations(
+              {},
+              transaction
+            )
+            return organizations
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
 
       expect(result).toHaveLength(1)
       expect(result[0].id).toBe(testOrg1.id)
@@ -510,16 +534,18 @@ describe('RLS Access Control with selectOrganizations', () => {
       const org3Setup = await setupOrg()
       const testOrg3 = org3Setup.organization
 
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          const organizations = await selectOrganizations(
-            {},
-            transaction
-          )
-          return organizations
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const organizations = await selectOrganizations(
+              {},
+              transaction
+            )
+            return organizations
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
 
       // Should only return testOrg1, not testOrg3
       expect(result).toHaveLength(1)
@@ -539,16 +565,18 @@ describe('RLS Access Control with selectOrganizations', () => {
       // expects:
       // - selectOrganizations should return only testOrg1
       // - testOrg2 should be filtered out despite userA having membership there
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          const organizations = await selectOrganizations(
-            {},
-            transaction
-          )
-          return organizations
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const organizations = await selectOrganizations(
+              {},
+              transaction
+            )
+            return organizations
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
 
       expect(result).toHaveLength(1)
       expect(result[0].id).toBe(testOrg1.id)
@@ -594,30 +622,32 @@ describe('RLS Access Control with selectMemberships', () => {
     userB = userApiKeyB.user
 
     // Create specific membership configurations for testing
-    await adminTransaction(async ({ transaction }) => {
-      // Give userA membership in testOrg2 (focused: false)
-      membershipA2 = await insertMembership(
-        {
-          organizationId: testOrg2.id,
-          userId: userA.id,
-          focused: false,
-          livemode: true,
-        },
-        transaction
-      )
-
-      const [existingMembership] = await selectMemberships(
-        { userId: userA.id, organizationId: testOrg1.id },
-        transaction
-      )
-      if (existingMembership) {
-        await updateMembership(
-          { id: existingMembership.id, focused: true },
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        // Give userA membership in testOrg2 (focused: false)
+        membershipA2 = await insertMembership(
+          {
+            organizationId: testOrg2.id,
+            userId: userA.id,
+            focused: false,
+            livemode: true,
+          },
           transaction
         )
-        membershipA1 = { ...existingMembership, focused: true }
-      }
-    })
+
+        const [existingMembership] = await selectMemberships(
+          { userId: userA.id, organizationId: testOrg1.id },
+          transaction
+        )
+        if (existingMembership) {
+          await updateMembership(
+            { id: existingMembership.id, focused: true },
+            transaction
+          )
+          membershipA1 = { ...existingMembership, focused: true }
+        }
+      })
+    ).unwrap()
   })
 
   describe('Focused Membership Access', () => {
@@ -629,13 +659,18 @@ describe('RLS Access Control with selectMemberships', () => {
       // expects:
       // - selectMemberships should return only the testOrg1 membership
       // - testOrg2 membership should be filtered out due to focused=false
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          const memberships = await selectMemberships({}, transaction)
-          return memberships
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const memberships = await selectMemberships(
+              {},
+              transaction
+            )
+            return memberships
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
 
       expect(result).toHaveLength(1)
       expect(result[0].organizationId).toBe(testOrg1.id)
@@ -649,8 +684,8 @@ describe('RLS Access Control with selectMemberships', () => {
 
       // expects:
       // - selectMemberships should return the membership because API key auth bypasses focused check
-      const testApiKey = await adminTransaction(
-        async ({ transaction }) => {
+      const testApiKey = (
+        await adminTransaction(async ({ transaction }) => {
           return insertApiKey(
             {
               organizationId: testOrg2.id,
@@ -662,33 +697,41 @@ describe('RLS Access Control with selectMemberships', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Determine which userId this API key will authenticate as, then force their membership to focused=false
-      const apiUserId = await authenticatedTransaction(
-        async ({ userId }) => userId,
-        { apiKey: testApiKey.token }
-      )
+      const apiUserId = (
+        await authenticatedTransaction(async ({ userId }) => userId, {
+          apiKey: testApiKey.token,
+        })
+      ).unwrap()
 
-      await adminTransaction(async ({ transaction }) => {
-        const [membership] = await selectMemberships(
-          { userId: apiUserId, organizationId: testOrg2.id },
-          transaction
-        )
-        await updateMembership(
-          { id: membership.id, focused: false },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const [membership] = await selectMemberships(
+            { userId: apiUserId, organizationId: testOrg2.id },
+            transaction
+          )
+          await updateMembership(
+            { id: membership.id, focused: false },
+            transaction
+          )
+        })
+      ).unwrap()
 
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          const memberships = await selectMemberships({}, transaction)
-          return memberships
-        },
-        { apiKey: testApiKey.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const memberships = await selectMemberships(
+              {},
+              transaction
+            )
+            return memberships
+          },
+          { apiKey: testApiKey.token }
+        )
+      ).unwrap()
 
       // API key auth bypasses focused=true requirement
       // Should return the membership even with focused=false
@@ -706,13 +749,18 @@ describe('RLS Access Control with selectMemberships', () => {
       // expects:
       // - selectMemberships should return only userA's membership
       // - userB's membership should be filtered out by RLS user_id check
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          const memberships = await selectMemberships({}, transaction)
-          return memberships
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            const memberships = await selectMemberships(
+              {},
+              transaction
+            )
+            return memberships
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
 
       // Should only return memberships for userA
       result.forEach((membership) => {
@@ -755,19 +803,21 @@ describe('Authentication Method Tests', () => {
       // - transaction should execute successfully
       // - JWT claims should be properly set for API key user
       // - selectOrganizations should return testOrg1
-      const result = await authenticatedTransaction(
-        async ({ transaction, userId, organizationId }) => {
-          expect(userId).toBe(userA.id)
-          expect(organizationId).toBe(testOrg1.id)
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction, userId, organizationId }) => {
+            expect(userId).toBe(userA.id)
+            expect(organizationId).toBe(testOrg1.id)
 
-          const organizations = await selectOrganizations(
-            {},
-            transaction
-          )
-          return organizations
-        },
-        { apiKey: apiKeyA.token }
-      )
+            const organizations = await selectOrganizations(
+              {},
+              transaction
+            )
+            return organizations
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
 
       expect(result).toHaveLength(1)
       expect(result[0].id).toBe(testOrg1.id)
@@ -782,15 +832,17 @@ describe('Authentication Method Tests', () => {
       // - JWT claims should contain correct userId from API key metadata
       // - JWT claims should contain correct organization_id from API key
       // - livemode should match API key settings
-      const result = await authenticatedTransaction(
-        async ({ userId, organizationId, livemode }) => {
-          expect(userId).toBe(userA.id)
-          expect(organizationId).toBe(testOrg1.id)
-          expect(livemode).toBe(apiKeyA.livemode)
-          return 'api_key_jwt_success'
-        },
-        { apiKey: apiKeyA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ userId, organizationId, livemode }) => {
+            expect(userId).toBe(userA.id)
+            expect(organizationId).toBe(testOrg1.id)
+            expect(livemode).toBe(apiKeyA.livemode)
+            return 'api_key_jwt_success'
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
 
       expect(result).toBe('api_key_jwt_success')
     })
@@ -860,9 +912,11 @@ describe('Error Handling Tests', () => {
         'Attempted to use test organization id in a non-test environment'
 
       try {
-        await authenticatedTransaction(async () => 'result', {
-          __testOnlyOrganizationId: testOrg1.id,
-        })
+        ;(
+          await authenticatedTransaction(async () => 'result', {
+            __testOnlyOrganizationId: testOrg1.id,
+          })
+        ).unwrap()
         // If we reach here, transaction succeeded - that's fine too
       } catch (error) {
         // We should NOT get the test-only validation error
@@ -1037,32 +1091,34 @@ describe('Edge Cases', () => {
       // - document current behavior (may include issues with missing current_organization_id function)
       // - this test should highlight any RLS policy issues
       // - may need to be updated once current_organization_id function is implemented
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          try {
-            const memberships = await selectMemberships(
-              {},
-              transaction
-            )
-            const organizations = await selectOrganizations(
-              {},
-              transaction
-            )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            try {
+              const memberships = await selectMemberships(
+                {},
+                transaction
+              )
+              const organizations = await selectOrganizations(
+                {},
+                transaction
+              )
 
-            return {
-              memberships: memberships.length,
-              organizations: organizations.length,
-              success: true,
+              return {
+                memberships: memberships.length,
+                organizations: organizations.length,
+                success: true,
+              }
+            } catch (error: any) {
+              return {
+                error: error.message,
+                success: false,
+              }
             }
-          } catch (error: any) {
-            return {
-              error: error.message,
-              success: false,
-            }
-          }
-        },
-        { apiKey: apiKeyA.token }
-      )
+          },
+          { apiKey: apiKeyA.token }
+        )
+      ).unwrap()
 
       // Document the current behavior - may succeed or fail depending on RLS implementation
       expect(result).toEqual(
@@ -1118,17 +1174,19 @@ describe('RLS for selectProducts', () => {
     apiKeyAForOrg1 = uaOrg1.apiKey
 
     // Also give user A a membership in org2, unfocused
-    await adminTransaction(async ({ transaction }) => {
-      await insertMembership(
-        {
-          organizationId: prodOrg2.id,
-          userId: prodUserA.id,
-          focused: false,
-          livemode: true,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await insertMembership(
+          {
+            organizationId: prodOrg2.id,
+            userId: prodUserA.id,
+            focused: false,
+            livemode: true,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Create user B focused on org2 for negative-access scenarios
     const ubOrg2 = await setupUserAndApiKey({
@@ -1150,12 +1208,14 @@ describe('RLS for selectProducts', () => {
     // - two orgs created in beforeEach with default products
     // - userA focused on org1 via apiKeyAForOrg1
 
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectProducts({}, transaction)
-      },
-      { apiKey: apiKeyAForOrg1.token }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectProducts({}, transaction)
+        },
+        { apiKey: apiKeyAForOrg1.token }
+      )
+    ).unwrap()
 
     // expects:
     expect(
@@ -1164,31 +1224,37 @@ describe('RLS for selectProducts', () => {
   })
 
   it('does not return products for other organizations even if user is a member but not the current organization', async () => {
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectProducts(
-          { organizationId: prodOrg2.id },
-          transaction
-        )
-      },
-      { apiKey: apiKeyAForOrg1.token }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectProducts(
+            { organizationId: prodOrg2.id },
+            transaction
+          )
+        },
+        { apiKey: apiKeyAForOrg1.token }
+      )
+    ).unwrap()
     expect(result).toHaveLength(0)
   })
 
   it('switching focus changes which products are visible', async () => {
-    const inOrg1 = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: apiKeyAForOrg1.token }
-    )
+    const inOrg1 = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: apiKeyAForOrg1.token }
+      )
+    ).unwrap()
     expect(
       inOrg1.every((p) => p.organizationId === prodOrg1.id)
     ).toBe(true)
 
-    const inOrg2 = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: apiKeyAForOrg2.token }
-    )
+    const inOrg2 = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: apiKeyAForOrg2.token }
+      )
+    ).unwrap()
     expect(
       inOrg2.every((p) => p.organizationId === prodOrg2.id)
     ).toBe(true)
@@ -1210,20 +1276,24 @@ describe('RLS for selectProducts', () => {
 
   it('can update a product in the current organization', async () => {
     const updatedName = 'Updated Product Name'
-    await authenticatedTransaction(
-      async ({ transaction }) => {
-        await updateProduct(
-          { id: product1.id, name: updatedName },
-          transaction
-        )
-      },
-      { apiKey: apiKeyAForOrg1.token }
-    )
-    const after = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectProducts({ id: product1.id }, transaction),
-      { apiKey: apiKeyAForOrg1.token }
-    )
+    ;(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updateProduct(
+            { id: product1.id, name: updatedName },
+            transaction
+          )
+        },
+        { apiKey: apiKeyAForOrg1.token }
+      )
+    ).unwrap()
+    const after = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectProducts({ id: product1.id }, transaction),
+        { apiKey: apiKeyAForOrg1.token }
+      )
+    ).unwrap()
     expect(after[0].name).toBe(updatedName)
   })
 
@@ -1255,28 +1325,30 @@ describe('RLS for selectProducts', () => {
   })
 
   it('can insert a product for the current organization', async () => {
-    const created = await authenticatedTransaction(
-      async ({ transaction, livemode }) => {
-        return insertProduct(
-          {
-            name: 'Org1 New Product',
-            organizationId: prodOrg1.id,
-            pricingModelId: prodPricingModel1.id,
-            default: false,
-            description: null,
-            livemode,
-            externalId: null,
-            slug: null,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-            active: true,
-          },
-          transaction
-        )
-      },
-      { apiKey: apiKeyAForOrg1.token }
-    )
+    const created = (
+      await authenticatedTransaction(
+        async ({ transaction, livemode }) => {
+          return insertProduct(
+            {
+              name: 'Org1 New Product',
+              organizationId: prodOrg1.id,
+              pricingModelId: prodPricingModel1.id,
+              default: false,
+              description: null,
+              livemode,
+              externalId: null,
+              slug: null,
+              imageURL: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+              active: true,
+            },
+            transaction
+          )
+        },
+        { apiKey: apiKeyAForOrg1.token }
+      )
+    ).unwrap()
     expect(created.organizationId).toBe(prodOrg1.id)
   })
 
@@ -1314,26 +1386,32 @@ describe('RLS for selectProducts', () => {
       livemode: false,
     })
 
-    const liveProducts = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: liveKey.token }
-    )
+    const liveProducts = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: liveKey.token }
+      )
+    ).unwrap()
     expect(liveProducts.every((p) => p.livemode === true)).toBe(true)
 
-    const testProducts = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: testKey.apiKey.token }
-    )
+    const testProducts = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: testKey.apiKey.token }
+      )
+    ).unwrap()
     expect(testProducts.every((p) => p.livemode === false)).toBe(true)
   })
 
   it('webapp session auth behaves the same as API key auth', async () => {
     // We cannot simulate a full webapp session easily here without auth helpers.
     // Validate API-key path already enforces RLS; parity covered in final section.
-    const viaApiKey = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: apiKeyAForOrg1.token }
-    )
+    const viaApiKey = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: apiKeyAForOrg1.token }
+      )
+    ).unwrap()
     expect(
       viaApiKey.every((p) => p.organizationId === prodOrg1.id)
     ).toBe(true)
@@ -1341,18 +1419,23 @@ describe('RLS for selectProducts', () => {
 
   it("user with membership in only one organization cannot access other organizations' products", async () => {
     // prodUserB focused on prodOrg2; verify cannot see prodOrg1
-    const result = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectProducts({ organizationId: prodOrg1.id }, transaction),
-      {
-        apiKey: (
-          await setupUserAndApiKey({
-            organizationId: prodOrg2.id,
-            livemode: true,
-          })
-        ).apiKey.token,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectProducts(
+            { organizationId: prodOrg1.id },
+            transaction
+          ),
+        {
+          apiKey: (
+            await setupUserAndApiKey({
+              organizationId: prodOrg2.id,
+              livemode: true,
+            })
+          ).apiKey.token,
+        }
+      )
+    ).unwrap()
     expect(result).toHaveLength(0)
   })
 
@@ -1396,17 +1479,19 @@ describe('RLS for selectPricingModels', () => {
     apiKeyCatAOrg1 = uaOrg1.apiKey
 
     // Also give user A a membership in org2, unfocused
-    await adminTransaction(async ({ transaction }) => {
-      await insertMembership(
-        {
-          organizationId: catOrg2.id,
-          userId: catUserA.id,
-          focused: false,
-          livemode: true,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await insertMembership(
+          {
+            organizationId: catOrg2.id,
+            userId: catUserA.id,
+            focused: false,
+            livemode: true,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Create user B focused on org2 for negative-access scenarios
     const ubOrg2 = await setupUserAndApiKey({
@@ -1424,40 +1509,51 @@ describe('RLS for selectPricingModels', () => {
   })
 
   it('returns only pricingModels for the currently-focused organization', async () => {
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => selectPricingModels({}, transaction),
-      { apiKey: apiKeyCatAOrg1.token }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels({}, transaction),
+        { apiKey: apiKeyCatAOrg1.token }
+      )
+    ).unwrap()
     expect(result.every((c) => c.organizationId === catOrg1.id)).toBe(
       true
     )
   })
 
   it('does not return pricingModels for other organizations even when passing explicit where conditions', async () => {
-    const result = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectPricingModels(
-          { organizationId: catOrg2.id },
-          transaction
-        ),
-      { apiKey: apiKeyCatAOrg1.token }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels(
+            { organizationId: catOrg2.id },
+            transaction
+          ),
+        { apiKey: apiKeyCatAOrg1.token }
+      )
+    ).unwrap()
     expect(result).toHaveLength(0)
   })
 
   it('switching focus changes which pricingModels are visible', async () => {
-    const inOrg1 = await authenticatedTransaction(
-      async ({ transaction }) => selectPricingModels({}, transaction),
-      { apiKey: apiKeyCatAOrg1.token }
-    )
+    const inOrg1 = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels({}, transaction),
+        { apiKey: apiKeyCatAOrg1.token }
+      )
+    ).unwrap()
     expect(inOrg1.every((c) => c.organizationId === catOrg1.id)).toBe(
       true
     )
 
-    const inOrg2 = await authenticatedTransaction(
-      async ({ transaction }) => selectPricingModels({}, transaction),
-      { apiKey: apiKeyCatAOrg2.token }
-    )
+    const inOrg2 = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels({}, transaction),
+        { apiKey: apiKeyCatAOrg2.token }
+      )
+    ).unwrap()
     expect(inOrg2.every((c) => c.organizationId === catOrg2.id)).toBe(
       true
     )
@@ -1482,20 +1578,24 @@ describe('RLS for selectPricingModels', () => {
 
   it('can update a pricingModel in the current organization', async () => {
     const newName = 'Updated PricingModel Name'
-    await authenticatedTransaction(
-      async ({ transaction }) => {
-        await updatePricingModel(
-          { id: pricingModel1.id, name: newName },
-          transaction
-        )
-      },
-      { apiKey: apiKeyCatAOrg1.token }
-    )
-    const after = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectPricingModels({ id: pricingModel1.id }, transaction),
-      { apiKey: apiKeyCatAOrg1.token }
-    )
+    ;(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          await updatePricingModel(
+            { id: pricingModel1.id, name: newName },
+            transaction
+          )
+        },
+        { apiKey: apiKeyCatAOrg1.token }
+      )
+    ).unwrap()
+    const after = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels({ id: pricingModel1.id }, transaction),
+        { apiKey: apiKeyCatAOrg1.token }
+      )
+    ).unwrap()
     expect(after[0].name).toBe(newName)
   })
 
@@ -1519,19 +1619,21 @@ describe('RLS for selectPricingModels', () => {
   })
 
   it('can insert a pricingModel for the current organization', async () => {
-    const created = await authenticatedTransaction(
-      async ({ transaction }) =>
-        insertPricingModel(
-          {
-            organizationId: catOrg1.id,
-            name: 'New Org1 PricingModel',
-            isDefault: false,
-            livemode: true,
-          },
-          transaction
-        ),
-      { apiKey: apiKeyCatAOrg1.token }
-    )
+    const created = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          insertPricingModel(
+            {
+              organizationId: catOrg1.id,
+              name: 'New Org1 PricingModel',
+              isDefault: false,
+              livemode: true,
+            },
+            transaction
+          ),
+        { apiKey: apiKeyCatAOrg1.token }
+      )
+    ).unwrap()
     expect(created.organizationId).toBe(catOrg1.id)
   })
 
@@ -1573,28 +1675,37 @@ describe('RLS for selectPricingModels', () => {
       livemode: false,
     })
 
-    const livePricingModels = await authenticatedTransaction(
-      async ({ transaction }) => selectPricingModels({}, transaction),
-      { apiKey: liveKey.token }
-    )
+    const livePricingModels = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels({}, transaction),
+        { apiKey: liveKey.token }
+      )
+    ).unwrap()
     expect(livePricingModels.every((c) => c.livemode === true)).toBe(
       true
     )
 
-    const testPricingModels = await authenticatedTransaction(
-      async ({ transaction }) => selectPricingModels({}, transaction),
-      { apiKey: testKey.apiKey.token }
-    )
+    const testPricingModels = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels({}, transaction),
+        { apiKey: testKey.apiKey.token }
+      )
+    ).unwrap()
     expect(testPricingModels.every((c) => c.livemode === false)).toBe(
       true
     )
   })
 
   it('webapp session auth behaves the same as API key auth', async () => {
-    const viaApiKey = await authenticatedTransaction(
-      async ({ transaction }) => selectPricingModels({}, transaction),
-      { apiKey: apiKeyCatAOrg1.token }
-    )
+    const viaApiKey = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels({}, transaction),
+        { apiKey: apiKeyCatAOrg1.token }
+      )
+    ).unwrap()
     expect(
       viaApiKey.every((c) => c.organizationId === catOrg1.id)
     ).toBe(true)
@@ -1607,14 +1718,16 @@ describe('RLS for selectPricingModels', () => {
         livemode: true,
       })
     ).apiKey
-    const result = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectPricingModels(
-          { organizationId: catOrg1.id },
-          transaction
-        ),
-      { apiKey: onlyOrg2Key.token }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels(
+            { organizationId: catOrg1.id },
+            transaction
+          ),
+        { apiKey: onlyOrg2Key.token }
+      )
+    ).unwrap()
     expect(result).toHaveLength(0)
   })
 
@@ -1625,14 +1738,16 @@ describe('RLS for selectPricingModels', () => {
         livemode: true,
       })
     ).apiKey
-    const result = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectPricingModels(
-          { organizationId: catOrg1.id },
-          transaction
-        ),
-      { apiKey: onlyOrg2Key.token }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels(
+            { organizationId: catOrg1.id },
+            transaction
+          ),
+        { apiKey: onlyOrg2Key.token }
+      )
+    ).unwrap()
     expect(result).toHaveLength(0)
   })
 })
@@ -1647,17 +1762,21 @@ describe('Second-order RLS defense in depth', () => {
         livemode: true,
       })
     ).apiKey
-    const prods = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectProducts({ id: p2.id }, transaction),
-      { apiKey: k1.token }
-    )
+    const prods = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectProducts({ id: p2.id }, transaction),
+        { apiKey: k1.token }
+      )
+    ).unwrap()
     expect(prods).toHaveLength(0)
-    const cats = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectPricingModels({ id: c2.id }, transaction),
-      { apiKey: k1.token }
-    )
+    const cats = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectPricingModels({ id: c2.id }, transaction),
+        { apiKey: k1.token }
+      )
+    ).unwrap()
     expect(cats).toHaveLength(0)
   })
 
@@ -1669,15 +1788,17 @@ describe('Second-order RLS defense in depth', () => {
         livemode: true,
       })
     ).apiKey
-    const rows = await authenticatedTransaction(
-      async ({ transaction, userId }) =>
-        getProductTableRows(
-          { cursor: '0', limit: 20, filters: {} },
-          transaction,
-          userId
-        ),
-      { apiKey: key.token }
-    )
+    const rows = (
+      await authenticatedTransaction(
+        async ({ transaction, userId }) =>
+          getProductTableRows(
+            { cursor: '0', limit: 20, filters: {} },
+            transaction,
+            userId
+          ),
+        { apiKey: key.token }
+      )
+    ).unwrap()
     expect(
       rows.data.every((r) => r.product.organizationId === o1.id)
     ).toBe(true)
@@ -1740,11 +1861,13 @@ describe('Second-order RLS defense in depth', () => {
         livemode: true,
       })
     ).apiKey
-    const prods = await authenticatedTransaction(
-      async ({ transaction }) =>
-        selectProducts({ organizationId: o1.id }, transaction),
-      { apiKey: onlyOrg2.token }
-    )
+    const prods = (
+      await authenticatedTransaction(
+        async ({ transaction }) =>
+          selectProducts({ organizationId: o1.id }, transaction),
+        { apiKey: onlyOrg2.token }
+      )
+    ).unwrap()
     expect(prods).toHaveLength(0)
     await expect(
       authenticatedTransaction(
@@ -1778,10 +1901,12 @@ describe('Second-order RLS defense in depth', () => {
       organizationId: organization.id,
       livemode: true,
     })
-    const apiKeyResult = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: apiKey.token }
-    )
+    const apiKeyResult = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: apiKey.token }
+      )
+    ).unwrap()
     expect(
       apiKeyResult.every((p) => p.organizationId === organization.id)
     ).toBe(true)
@@ -1796,40 +1921,46 @@ describe('Edge cases and robustness for second-order RLS', () => {
       organizationId: o1.id,
       livemode: true,
     })
-    const first = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: apiKey.token }
-    )
+    const first = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: apiKey.token }
+      )
+    ).unwrap()
     expect(first.every((p) => p.organizationId === o1.id)).toBe(true)
 
     // Switch focus: add focused membership for org2 and unfocus org1
-    await adminTransaction(async ({ transaction }) => {
-      await insertMembership(
-        {
-          organizationId: o2.id,
-          userId: user.id,
-          focused: true,
-          livemode: true,
-        },
-        transaction
-      )
-      const [mem] = await selectMemberships(
-        { organizationId: o1.id, userId: user.id },
-        transaction
-      )
-      if (mem)
-        await updateMembership(
-          { id: mem.id, focused: false },
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await insertMembership(
+          {
+            organizationId: o2.id,
+            userId: user.id,
+            focused: true,
+            livemode: true,
+          },
           transaction
         )
-    })
+        const [mem] = await selectMemberships(
+          { organizationId: o1.id, userId: user.id },
+          transaction
+        )
+        if (mem)
+          await updateMembership(
+            { id: mem.id, focused: false },
+            transaction
+          )
+      })
+    ).unwrap()
 
     // API key is tied to o1, so it should still access o1's products
     // even when the user's membership in o1 has focused=false
-    const second = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: apiKey.token }
-    )
+    const second = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: apiKey.token }
+      )
+    ).unwrap()
     // API key's org is determined by the org it was created for, not by focused membership
     expect(second.every((p) => p.organizationId === o1.id)).toBe(true)
   })
@@ -1848,15 +1979,19 @@ describe('Edge cases and robustness for second-order RLS', () => {
         livemode: false,
       })
     ).apiKey
-    const live = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: liveKey.token }
-    )
+    const live = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: liveKey.token }
+      )
+    ).unwrap()
     expect(live.every((p) => p.livemode === true)).toBe(true)
-    const test = await authenticatedTransaction(
-      async ({ transaction }) => selectProducts({}, transaction),
-      { apiKey: testKey.token }
-    )
+    const test = (
+      await authenticatedTransaction(
+        async ({ transaction }) => selectProducts({}, transaction),
+        { apiKey: testKey.token }
+      )
+    ).unwrap()
     expect(test.every((p) => p.livemode === false)).toBe(true)
   })
 })

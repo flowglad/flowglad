@@ -31,7 +31,7 @@ const sendCustomerTrialExpiredNotificationTask = task({
       attempt: ctx.attempt,
     })
 
-    const { organization, customer, subscription, price } =
+    const { organization, customer, subscription, price } = (
       await adminTransaction(async ({ transaction }) => {
         const subscription = await selectSubscriptionById(
           payload.subscriptionId,
@@ -56,6 +56,7 @@ const sendCustomerTrialExpiredNotificationTask = task({
           price,
         }
       })
+    ).unwrap()
 
     if (!organization || !customer || !subscription) {
       throw new Error('Required data not found')

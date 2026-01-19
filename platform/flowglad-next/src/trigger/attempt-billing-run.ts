@@ -39,14 +39,14 @@ export const attemptBillingRunTask = task({
           payload.billingRun.id,
           payload.adjustmentParams
         )
-        const updatedBillingRun = await adminTransaction(
-          ({ transaction }) => {
+        const updatedBillingRun = (
+          await adminTransaction(({ transaction }) => {
             return selectBillingRunById(
               payload.billingRun.id,
               transaction
             )
-          }
-        )
+          })
+        ).unwrap()
 
         await storeTelemetry(
           'billing_run',

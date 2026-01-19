@@ -45,17 +45,21 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     })
 
     // Call the actual function
-    await adminTransaction(async ({ transaction }) => {
-      await commitCustomerCreatedEvent(customer, transaction)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await commitCustomerCreatedEvent(customer, transaction)
+      })
+    ).unwrap()
 
     // Query the database to get the actual event that was created
-    const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents(
-        { organizationId: orgData.organization.id },
-        transaction
-      )
-    })
+    const events = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectEvents(
+          { organizationId: orgData.organization.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const customerCreatedEvent = events.find(
       (e) => e.type === FlowgladEventType.CustomerCreated
@@ -81,16 +85,20 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      await commitCustomerUpdatedEvent(customer, transaction)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await commitCustomerUpdatedEvent(customer, transaction)
+      })
+    ).unwrap()
 
-    const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents(
-        { organizationId: orgData.organization.id },
-        transaction
-      )
-    })
+    const events = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectEvents(
+          { organizationId: orgData.organization.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const customerUpdatedEvent = events.find(
       (e) => e.type === FlowgladEventType.CustomerUpdated
@@ -148,8 +156,8 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    const payment = await adminTransaction(
-      async ({ transaction }) => {
+    const payment = (
+      await adminTransaction(async ({ transaction }) => {
         return await insertPayment(
           {
             stripeChargeId: `ch_${core.nanoid()}`,
@@ -166,19 +174,23 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    await adminTransaction(async ({ transaction }) => {
-      await commitPaymentSucceededEvent(payment, transaction)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await commitPaymentSucceededEvent(payment, transaction)
+      })
+    ).unwrap()
 
-    const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents(
-        { organizationId: orgData.organization.id },
-        transaction
-      )
-    })
+    const events = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectEvents(
+          { organizationId: orgData.organization.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const paymentSucceededEvent = events.find(
       (e) => e.type === FlowgladEventType.PaymentSucceeded
@@ -236,8 +248,8 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    const payment = await adminTransaction(
-      async ({ transaction }) => {
+    const payment = (
+      await adminTransaction(async ({ transaction }) => {
         return await insertPayment(
           {
             stripeChargeId: `ch_${core.nanoid()}`,
@@ -254,19 +266,23 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    await adminTransaction(async ({ transaction }) => {
-      await commitPaymentCanceledEvent(payment, transaction)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await commitPaymentCanceledEvent(payment, transaction)
+      })
+    ).unwrap()
 
-    const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents(
-        { organizationId: orgData.organization.id },
-        transaction
-      )
-    })
+    const events = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectEvents(
+          { organizationId: orgData.organization.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const paymentFailedEvent = events.find(
       (e) => e.type === FlowgladEventType.PaymentFailed
@@ -318,16 +334,20 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      await commitPurchaseCompletedEvent(purchase, transaction)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await commitPurchaseCompletedEvent(purchase, transaction)
+      })
+    ).unwrap()
 
-    const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents(
-        { organizationId: orgData.organization.id },
-        transaction
-      )
-    })
+    const events = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectEvents(
+          { organizationId: orgData.organization.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const purchaseCompletedEvent = events.find(
       (e) => e.type === FlowgladEventType.PurchaseCompleted
@@ -385,16 +405,23 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      await commitSubscriptionCreatedEvent(subscription, transaction)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await commitSubscriptionCreatedEvent(
+          subscription,
+          transaction
+        )
+      })
+    ).unwrap()
 
-    const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents(
-        { organizationId: orgData.organization.id },
-        transaction
-      )
-    })
+    const events = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectEvents(
+          { organizationId: orgData.organization.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const subscriptionCreatedEvent = events.find(
       (e) => e.type === FlowgladEventType.SubscriptionCreated
@@ -452,16 +479,23 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      await commitSubscriptionUpdatedEvent(subscription, transaction)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await commitSubscriptionUpdatedEvent(
+          subscription,
+          transaction
+        )
+      })
+    ).unwrap()
 
-    const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents(
-        { organizationId: orgData.organization.id },
-        transaction
-      )
-    })
+    const events = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectEvents(
+          { organizationId: orgData.organization.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const subscriptionUpdatedEvent = events.find(
       (e) => e.type === FlowgladEventType.SubscriptionUpdated
@@ -519,16 +553,23 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    await adminTransaction(async ({ transaction }) => {
-      await commitSubscriptionCanceledEvent(subscription, transaction)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await commitSubscriptionCanceledEvent(
+          subscription,
+          transaction
+        )
+      })
+    ).unwrap()
 
-    const events = await adminTransaction(async ({ transaction }) => {
-      return await selectEvents(
-        { organizationId: orgData.organization.id },
-        transaction
-      )
-    })
+    const events = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectEvents(
+          { organizationId: orgData.organization.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const subscriptionCancelledEvent = events.find(
       (e) => e.type === FlowgladEventType.SubscriptionCanceled

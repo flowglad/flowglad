@@ -142,8 +142,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      const { result, effects } = await adminTransaction(
-        async ({ transaction }) => {
+      const { result, effects } = (
+        await adminTransaction(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           const result = await migratePricingModelForCustomer(
@@ -155,8 +155,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             ctx
           )
           return { result, effects }
-        }
-      )
+        })
+      ).unwrap()
 
       const unwrapped = result.unwrap()
 
@@ -233,8 +233,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -243,8 +243,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const unwrapped = result.unwrap()
 
@@ -341,8 +341,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -351,8 +351,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const unwrapped = result.unwrap()
 
@@ -386,8 +386,8 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should migrate customer with no subscriptions to a default subscription on the new pricing model', async () => {
       // Execute migration on customer with no subscriptions
-      const { result, effects } = await adminTransaction(
-        async ({ transaction }) => {
+      const { result, effects } = (
+        await adminTransaction(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           const result = await migratePricingModelForCustomer(
@@ -399,8 +399,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             ctx
           )
           return { result, effects }
-        }
-      )
+        })
+      ).unwrap()
 
       const unwrapped = result.unwrap()
 
@@ -441,8 +441,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration - should return Result.err
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -451,8 +451,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.status).toBe('error')
       if (result.status === 'error') {
@@ -464,8 +464,8 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should handle customer already on target pricing model as no-op', async () => {
       // Setup: Customer already on pricing model 2
-      const updatedCustomer = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedCustomer = (
+        await adminTransaction(async ({ transaction }) => {
           return await updateCustomer(
             {
               id: customer.id,
@@ -473,8 +473,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const subscription = await setupSubscription({
         organizationId: organization.id,
@@ -484,8 +484,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration (same pricing model)
-      const { result, effects } = await adminTransaction(
-        async ({ transaction }) => {
+      const { result, effects } = (
+        await adminTransaction(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           const result = await migratePricingModelForCustomer(
@@ -497,8 +497,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             ctx
           )
           return { result, effects }
-        }
-      )
+        })
+      ).unwrap()
 
       const unwrapped = result.unwrap()
 
@@ -553,8 +553,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration (automatically updates customer's pricingModelId)
-      const migrationResult = await adminTransaction(
-        async ({ transaction }) => {
+      const migrationResult = (
+        await adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -563,8 +563,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify customer's pricingModelId was updated
       expect(migrationResult.unwrap().customer.pricingModelId).toBe(
@@ -572,8 +572,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify billing state via customerBillingTransaction
-      const billingState = await adminTransaction(
-        async ({ transaction }) => {
+      const billingState = (
+        await adminTransaction(async ({ transaction }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
@@ -581,8 +581,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify the new pricing model is returned
       expect(billingState.pricingModel.id).toBe(pricingModel2.id)
@@ -654,8 +654,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration to pricing model 2
-      const migrationResult = await adminTransaction(
-        async ({ transaction }) => {
+      const migrationResult = (
+        await adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -664,8 +664,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify customer's pricingModelId was updated
       expect(migrationResult.unwrap().customer.pricingModelId).toBe(
@@ -673,8 +673,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Get billing state
-      const billingState = await adminTransaction(
-        async ({ transaction }) => {
+      const billingState = (
+        await adminTransaction(async ({ transaction }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
@@ -682,8 +682,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify the pricing model is pricingModel2
       expect(billingState.pricingModel.id).toBe(pricingModel2.id)
@@ -781,8 +781,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      const migrationResult = await adminTransaction(
-        async ({ transaction }) => {
+      const migrationResult = (
+        await adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -791,8 +791,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify customer's pricingModelId was updated
       expect(migrationResult.unwrap().customer.pricingModelId).toBe(
@@ -800,8 +800,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Get billing state
-      const billingState = await adminTransaction(
-        async ({ transaction }) => {
+      const billingState = (
+        await adminTransaction(async ({ transaction }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
@@ -809,8 +809,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify the pricing model is pricingModel2
       expect(billingState.pricingModel.id).toBe(pricingModel2.id)
@@ -905,8 +905,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      const migrationResult = await adminTransaction(
-        async ({ transaction }) => {
+      const migrationResult = (
+        await adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -915,8 +915,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify customer's pricingModelId was updated
       expect(migrationResult.unwrap().customer.pricingModelId).toBe(
@@ -924,8 +924,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Get billing state
-      const billingState = await adminTransaction(
-        async ({ transaction }) => {
+      const billingState = (
+        await adminTransaction(async ({ transaction }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
@@ -933,8 +933,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify currentSubscriptions has only the new subscription
       expect(billingState.currentSubscriptions).toHaveLength(1)
@@ -1032,35 +1032,39 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      await adminTransaction(async ({ transaction }) => {
-        await migratePricingModelForCustomer(
-          {
-            customer,
-            oldPricingModelId: pricingModel1.id,
-            newPricingModelId: pricingModel2.id,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
       // Verify all scheduled billing runs are now aborted
-      await adminTransaction(async ({ transaction }) => {
-        const updatedBillingRun1 = await selectBillingRunById(
-          billingRun1.id,
-          transaction
-        )
-        const updatedBillingRun2 = await selectBillingRunById(
-          billingRun2.id,
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const updatedBillingRun1 = await selectBillingRunById(
+            billingRun1.id,
+            transaction
+          )
+          const updatedBillingRun2 = await selectBillingRunById(
+            billingRun2.id,
+            transaction
+          )
 
-        expect(updatedBillingRun1.status).toBe(
-          BillingRunStatus.Aborted
-        )
-        expect(updatedBillingRun2.status).toBe(
-          BillingRunStatus.Aborted
-        )
-      })
+          expect(updatedBillingRun1.status).toBe(
+            BillingRunStatus.Aborted
+          )
+          expect(updatedBillingRun2.status).toBe(
+            BillingRunStatus.Aborted
+          )
+        })
+      ).unwrap()
     })
 
     it('should expire all subscription items when migrating', async () => {
@@ -1137,8 +1141,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      const canceledAt = await adminTransaction(
-        async ({ transaction }) => {
+      const canceledAt = (
+        await adminTransaction(async ({ transaction }) => {
           const result = await migratePricingModelForCustomer(
             {
               customer,
@@ -1148,26 +1152,28 @@ describe('Pricing Model Migration Test Suite', async () => {
             createDiscardingEffectsContext(transaction)
           )
           return result.unwrap().canceledSubscriptions[0].canceledAt
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify subscription items are expired
-      await adminTransaction(async ({ transaction }) => {
-        const items = await selectSubscriptionItems(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-        expect(items).toHaveLength(1)
-        expect(items[0].expiredAt).toBe(canceledAt)
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const items = await selectSubscriptionItems(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          expect(items).toHaveLength(1)
+          expect(items[0].expiredAt).toBe(canceledAt)
 
-        // Verify features are expired
-        const features = await selectSubscriptionItemFeatures(
-          { subscriptionItemId: subscriptionItem.id },
-          transaction
-        )
-        expect(features).toHaveLength(1)
-        expect(features[0].expiredAt).toBe(canceledAt)
-      })
+          // Verify features are expired
+          const features = await selectSubscriptionItemFeatures(
+            { subscriptionItemId: subscriptionItem.id },
+            transaction
+          )
+          expect(features).toHaveLength(1)
+          expect(features[0].expiredAt).toBe(canceledAt)
+        })
+      ).unwrap()
     })
 
     it('should make current billing period completed and cancel future ones when migrating', async () => {
@@ -1198,41 +1204,45 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      await adminTransaction(async ({ transaction }) => {
-        await migratePricingModelForCustomer(
-          {
-            customer,
-            oldPricingModelId: pricingModel1.id,
-            newPricingModelId: pricingModel2.id,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
       // Verify billing period updates
-      await adminTransaction(async ({ transaction }) => {
-        const updatedActiveBP = await selectBillingPeriodById(
-          activeBP.id,
-          transaction
-        )
-        const updatedFutureBP = await selectBillingPeriodById(
-          futureBP.id,
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const updatedActiveBP = await selectBillingPeriodById(
+            activeBP.id,
+            transaction
+          )
+          const updatedFutureBP = await selectBillingPeriodById(
+            futureBP.id,
+            transaction
+          )
 
-        // Active period should be completed and end date should be set to cancellation time
-        expect(updatedActiveBP.status).toBe(
-          BillingPeriodStatus.Completed
-        )
-        expect(updatedActiveBP.endDate).toBeLessThanOrEqual(
-          Date.now()
-        )
+          // Active period should be completed and end date should be set to cancellation time
+          expect(updatedActiveBP.status).toBe(
+            BillingPeriodStatus.Completed
+          )
+          expect(updatedActiveBP.endDate).toBeLessThanOrEqual(
+            Date.now()
+          )
 
-        // Future period should be canceled
-        expect(updatedFutureBP.status).toBe(
-          BillingPeriodStatus.Canceled
-        )
-      })
+          // Future period should be canceled
+          expect(updatedFutureBP.status).toBe(
+            BillingPeriodStatus.Canceled
+          )
+        })
+      ).unwrap()
     })
   })
 
@@ -1262,8 +1272,8 @@ describe('Pricing Model Migration Test Suite', async () => {
         name: 'Other Org Pricing Model',
       })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -1272,8 +1282,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.status).toBe('error')
       if (result.status === 'error') {
@@ -1295,8 +1305,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute via procedure transaction function
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return await migrateCustomerPricingModelProcedureTransaction(
             {
               input: {
@@ -1315,8 +1325,8 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
             }
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const unwrapped = result.unwrap()
 
@@ -1331,11 +1341,11 @@ describe('Pricing Model Migration Test Suite', async () => {
       expect(unwrapped.newSubscription.priceId).toBe(price2.id)
 
       // Verify customer in database was updated
-      const updatedCustomer = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedCustomer = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectCustomerById(customer.id, transaction)
-        }
-      )
+        })
+      ).unwrap()
       expect(updatedCustomer.pricingModelId).toBe(pricingModel2.id)
     })
 
@@ -1452,15 +1462,17 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should throw BAD_REQUEST when customer livemode does not match pricing model livemode', async () => {
       // Setup: Ensure customer has livemode=false
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            livemode: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            {
+              id: customer.id,
+              livemode: false,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       // Setup: Create a live pricing model with a default product
       const livePricingModel = await setupPricingModel({
@@ -1469,12 +1481,14 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Update pricing model to livemode=true
-      await adminTransaction(async ({ transaction }) => {
-        await transaction
-          .update(pricingModels)
-          .set({ livemode: true })
-          .where(eq(pricingModels.id, livePricingModel.id))
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await transaction
+            .update(pricingModels)
+            .set({ livemode: true })
+            .where(eq(pricingModels.id, livePricingModel.id))
+        })
+      ).unwrap()
 
       // Create a default product with default price for the live pricing model
       const liveProduct = await setupProduct({
@@ -1533,26 +1547,28 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration
-      await adminTransaction(async ({ transaction }) => {
-        return await migratePricingModelForCustomer(
-          {
-            customer,
-            oldPricingModelId: pricingModel1.id,
-            newPricingModelId: pricingModel2.id,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
       // Verify old subscription still exists in database
-      const allSubscriptions = await adminTransaction(
-        async ({ transaction }) => {
+      const allSubscriptions = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptions(
             { customerId: customer.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const canceledSubscription = allSubscriptions.find(
         (s) => s.id === subscription.id
@@ -1589,20 +1605,22 @@ describe('Pricing Model Migration Test Suite', async () => {
       })
 
       // Execute migration for first customer only
-      await adminTransaction(async ({ transaction }) => {
-        return await migratePricingModelForCustomer(
-          {
-            customer,
-            oldPricingModelId: pricingModel1.id,
-            newPricingModelId: pricingModel2.id,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return await migratePricingModelForCustomer(
+            {
+              customer,
+              oldPricingModelId: pricingModel1.id,
+              newPricingModelId: pricingModel2.id,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
       // Verify other customer's subscription is unaffected
-      const otherCustomerSubs = await adminTransaction(
-        async ({ transaction }) => {
+      const otherCustomerSubs = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptions(
             {
               customerId: otherCustomer.id,
@@ -1610,8 +1628,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(otherCustomerSubs).toHaveLength(1)
       expect(otherCustomerSubs[0].id).toBe(otherSubscription.id)
@@ -1630,8 +1648,8 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const effects = await adminTransaction(
-        async ({ transaction }) => {
+      const effects = (
+        await adminTransaction(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           await migratePricingModelForCustomer(
@@ -1643,8 +1661,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             ctx
           )
           return effects
-        }
-      )
+        })
+      ).unwrap()
 
       // Should have cache invalidations for the customer's subscriptions
       expect(effects.cacheInvalidations).toContain(
@@ -1654,8 +1672,8 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should return customerSubscriptions cache invalidation when migrating with no existing subscriptions', async () => {
       // Customer with no subscriptions
-      const effects = await adminTransaction(
-        async ({ transaction }) => {
+      const effects = (
+        await adminTransaction(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           await migratePricingModelForCustomer(
@@ -1667,8 +1685,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             ctx
           )
           return effects
-        }
-      )
+        })
+      ).unwrap()
 
       // Should still have cache invalidation from the new subscription creation
       expect(effects.cacheInvalidations).toContain(
@@ -1690,8 +1708,8 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const effects = await adminTransaction(
-        async ({ transaction }) => {
+      const effects = (
+        await adminTransaction(async ({ transaction }) => {
           const { ctx, effects } =
             createCapturingEffectsContext(transaction)
           await migratePricingModelForCustomer(
@@ -1703,8 +1721,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             ctx
           )
           return effects
-        }
-      )
+        })
+      ).unwrap()
 
       // Should invalidate the migrated customer's cache
       expect(effects.cacheInvalidations).toContain(
@@ -1724,8 +1742,8 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const effects = await adminTransaction(
-        async ({ transaction }) => {
+      const effects = (
+        await adminTransaction(async ({ transaction }) => {
           const { callbacks, effects } = createCapturingCallbacks()
           await migrateCustomerPricingModelProcedureTransaction({
             input: {
@@ -1744,8 +1762,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
           })
           return effects
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify cache invalidations are returned from procedure transaction
       expect(effects.cacheInvalidations).toContain(

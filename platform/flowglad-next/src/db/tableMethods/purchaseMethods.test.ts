@@ -52,50 +52,19 @@ describe('insertPurchase', () => {
   })
 
   it('should successfully insert purchase and derive pricingModelId from price', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const purchase = await insertPurchase(
-        {
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: price.id,
-          livemode: true,
-          name: 'Test Purchase',
-          priceType: PriceType.SinglePayment,
-          totalPurchaseValue: price.unitPrice,
-          quantity: 1,
-          firstInvoiceValue: price.unitPrice,
-          status: PurchaseStatus.Paid,
-          pricePerBillingCycle: null,
-          intervalUnit: null,
-          intervalCount: null,
-          trialPeriodDays: null,
-        },
-        transaction
-      )
-
-      // Verify pricingModelId is correctly derived from price's product
-      expect(purchase.pricingModelId).toBe(price.pricingModelId)
-      expect(purchase.pricingModelId).toBe(product.pricingModelId)
-      expect(purchase.pricingModelId).toBe(pricingModel.id)
-    })
-  })
-
-  it('should throw an error when priceId does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentPriceId = `price_${core.nanoid()}`
-
-      await expect(
-        insertPurchase(
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const purchase = await insertPurchase(
           {
             organizationId: organization.id,
             customerId: customer.id,
-            priceId: nonExistentPriceId,
+            priceId: price.id,
             livemode: true,
             name: 'Test Purchase',
             priceType: PriceType.SinglePayment,
-            totalPurchaseValue: 1000,
+            totalPurchaseValue: price.unitPrice,
             quantity: 1,
-            firstInvoiceValue: 1000,
+            firstInvoiceValue: price.unitPrice,
             status: PurchaseStatus.Paid,
             pricePerBillingCycle: null,
             intervalUnit: null,
@@ -104,36 +73,73 @@ describe('insertPurchase', () => {
           },
           transaction
         )
-      ).rejects.toThrow()
-    })
+
+        // Verify pricingModelId is correctly derived from price's product
+        expect(purchase.pricingModelId).toBe(price.pricingModelId)
+        expect(purchase.pricingModelId).toBe(product.pricingModelId)
+        expect(purchase.pricingModelId).toBe(pricingModel.id)
+      })
+    ).unwrap()
+  })
+
+  it('should throw an error when priceId does not exist', async () => {
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentPriceId = `price_${core.nanoid()}`
+
+        await expect(
+          insertPurchase(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              priceId: nonExistentPriceId,
+              livemode: true,
+              name: 'Test Purchase',
+              priceType: PriceType.SinglePayment,
+              totalPurchaseValue: 1000,
+              quantity: 1,
+              firstInvoiceValue: 1000,
+              status: PurchaseStatus.Paid,
+              pricePerBillingCycle: null,
+              intervalUnit: null,
+              intervalCount: null,
+              trialPeriodDays: null,
+            },
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    ).unwrap()
   })
 
   it('should use provided pricingModelId without derivation', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const purchase = await insertPurchase(
-        {
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: price.id,
-          livemode: true,
-          name: 'Test Purchase',
-          priceType: PriceType.SinglePayment,
-          totalPurchaseValue: price.unitPrice,
-          quantity: 1,
-          firstInvoiceValue: price.unitPrice,
-          status: PurchaseStatus.Paid,
-          pricePerBillingCycle: null,
-          intervalUnit: null,
-          intervalCount: null,
-          trialPeriodDays: null,
-          pricingModelId: pricingModel.id, // explicitly provided
-        },
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const purchase = await insertPurchase(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: price.id,
+            livemode: true,
+            name: 'Test Purchase',
+            priceType: PriceType.SinglePayment,
+            totalPurchaseValue: price.unitPrice,
+            quantity: 1,
+            firstInvoiceValue: price.unitPrice,
+            status: PurchaseStatus.Paid,
+            pricePerBillingCycle: null,
+            intervalUnit: null,
+            intervalCount: null,
+            trialPeriodDays: null,
+            pricingModelId: pricingModel.id, // explicitly provided
+          },
+          transaction
+        )
 
-      // Verify the provided pricingModelId is used
-      expect(purchase.pricingModelId).toBe(pricingModel.id)
-    })
+        // Verify the provided pricingModelId is used
+        expect(purchase.pricingModelId).toBe(pricingModel.id)
+      })
+    ).unwrap()
   })
 })
 
@@ -179,54 +185,60 @@ describe('bulkInsertPurchases', () => {
   })
 
   it('should bulk insert purchases and derive pricingModelId for each', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const purchases = await bulkInsertPurchases(
-        [
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            priceId: price1.id,
-            livemode: true,
-            name: 'Test Purchase 1',
-            priceType: PriceType.SinglePayment,
-            totalPurchaseValue: price1.unitPrice,
-            quantity: 1,
-            firstInvoiceValue: price1.unitPrice,
-            status: PurchaseStatus.Paid,
-            pricePerBillingCycle: null,
-            intervalUnit: null,
-            intervalCount: null,
-            trialPeriodDays: null,
-          },
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            priceId: price2.id,
-            livemode: true,
-            name: 'Test Purchase 2',
-            priceType: PriceType.SinglePayment,
-            totalPurchaseValue: price2.unitPrice,
-            quantity: 1,
-            firstInvoiceValue: price2.unitPrice,
-            status: PurchaseStatus.Paid,
-            pricePerBillingCycle: null,
-            intervalUnit: null,
-            intervalCount: null,
-            trialPeriodDays: null,
-          },
-        ],
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const purchases = await bulkInsertPurchases(
+          [
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              priceId: price1.id,
+              livemode: true,
+              name: 'Test Purchase 1',
+              priceType: PriceType.SinglePayment,
+              totalPurchaseValue: price1.unitPrice,
+              quantity: 1,
+              firstInvoiceValue: price1.unitPrice,
+              status: PurchaseStatus.Paid,
+              pricePerBillingCycle: null,
+              intervalUnit: null,
+              intervalCount: null,
+              trialPeriodDays: null,
+            },
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              priceId: price2.id,
+              livemode: true,
+              name: 'Test Purchase 2',
+              priceType: PriceType.SinglePayment,
+              totalPurchaseValue: price2.unitPrice,
+              quantity: 1,
+              firstInvoiceValue: price2.unitPrice,
+              status: PurchaseStatus.Paid,
+              pricePerBillingCycle: null,
+              intervalUnit: null,
+              intervalCount: null,
+              trialPeriodDays: null,
+            },
+          ],
+          transaction
+        )
 
-      expect(purchases).toHaveLength(2)
+        expect(purchases).toHaveLength(2)
 
-      // Verify pricingModelId is correctly derived for each purchase
-      expect(purchases[0]!.pricingModelId).toBe(price1.pricingModelId)
-      expect(purchases[0]!.pricingModelId).toBe(pricingModel.id)
+        // Verify pricingModelId is correctly derived for each purchase
+        expect(purchases[0]!.pricingModelId).toBe(
+          price1.pricingModelId
+        )
+        expect(purchases[0]!.pricingModelId).toBe(pricingModel.id)
 
-      expect(purchases[1]!.pricingModelId).toBe(price2.pricingModelId)
-      expect(purchases[1]!.pricingModelId).toBe(pricingModel.id)
-    })
+        expect(purchases[1]!.pricingModelId).toBe(
+          price2.pricingModelId
+        )
+        expect(purchases[1]!.pricingModelId).toBe(pricingModel.id)
+      })
+    ).unwrap()
   })
 })
 
@@ -261,60 +273,64 @@ describe('upsertPurchaseById', () => {
   })
 
   it('should upsert purchase and derive pricingModelId from price', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const purchase = await upsertPurchaseById(
-        {
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: price.id,
-          livemode: true,
-          name: 'Test Purchase',
-          priceType: PriceType.SinglePayment,
-          totalPurchaseValue: price.unitPrice,
-          quantity: 1,
-          firstInvoiceValue: price.unitPrice,
-          status: PurchaseStatus.Paid,
-          pricePerBillingCycle: null,
-          intervalUnit: null,
-          intervalCount: null,
-          trialPeriodDays: null,
-        },
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const purchase = await upsertPurchaseById(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: price.id,
+            livemode: true,
+            name: 'Test Purchase',
+            priceType: PriceType.SinglePayment,
+            totalPurchaseValue: price.unitPrice,
+            quantity: 1,
+            firstInvoiceValue: price.unitPrice,
+            status: PurchaseStatus.Paid,
+            pricePerBillingCycle: null,
+            intervalUnit: null,
+            intervalCount: null,
+            trialPeriodDays: null,
+          },
+          transaction
+        )
 
-      // Verify pricingModelId is correctly derived from price's product
-      expect(purchase.pricingModelId).toBe(price.pricingModelId)
-      expect(purchase.pricingModelId).toBe(product.pricingModelId)
-      expect(purchase.pricingModelId).toBe(pricingModel.id)
-    })
+        // Verify pricingModelId is correctly derived from price's product
+        expect(purchase.pricingModelId).toBe(price.pricingModelId)
+        expect(purchase.pricingModelId).toBe(product.pricingModelId)
+        expect(purchase.pricingModelId).toBe(pricingModel.id)
+      })
+    ).unwrap()
   })
 
   it('should use provided pricingModelId without derivation', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const purchase = await upsertPurchaseById(
-        {
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: price.id,
-          livemode: true,
-          name: 'Test Purchase',
-          priceType: PriceType.SinglePayment,
-          totalPurchaseValue: price.unitPrice,
-          quantity: 1,
-          firstInvoiceValue: price.unitPrice,
-          status: PurchaseStatus.Paid,
-          pricePerBillingCycle: null,
-          intervalUnit: null,
-          intervalCount: null,
-          trialPeriodDays: null,
-          pricingModelId: pricingModel.id, // explicitly provided
-        },
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const purchase = await upsertPurchaseById(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: price.id,
+            livemode: true,
+            name: 'Test Purchase',
+            priceType: PriceType.SinglePayment,
+            totalPurchaseValue: price.unitPrice,
+            quantity: 1,
+            firstInvoiceValue: price.unitPrice,
+            status: PurchaseStatus.Paid,
+            pricePerBillingCycle: null,
+            intervalUnit: null,
+            intervalCount: null,
+            trialPeriodDays: null,
+            pricingModelId: pricingModel.id, // explicitly provided
+          },
+          transaction
+        )
 
-      // Verify the provided pricingModelId is used
-      expect(purchase.pricingModelId).toBe(pricingModel.id)
-    })
+        // Verify the provided pricingModelId is used
+        expect(purchase.pricingModelId).toBe(pricingModel.id)
+      })
+    ).unwrap()
   })
 })
 
@@ -400,28 +416,32 @@ describe('derivePricingModelIdFromPurchase', () => {
   })
 
   it('should derive pricingModelId from an existing purchase', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdFromPurchase(
-          purchase.id,
-          transaction
-        )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const derivedPricingModelId =
+          await derivePricingModelIdFromPurchase(
+            purchase.id,
+            transaction
+          )
 
-      expect(derivedPricingModelId).toBe(pricingModel.id)
-      expect(derivedPricingModelId).toBe(purchase.pricingModelId)
-    })
+        expect(derivedPricingModelId).toBe(pricingModel.id)
+        expect(derivedPricingModelId).toBe(purchase.pricingModelId)
+      })
+    ).unwrap()
   })
 
   it('should throw error when purchase does not exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const nonExistentPurchaseId = `purchase_${core.nanoid()}`
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentPurchaseId = `purchase_${core.nanoid()}`
 
-      await expect(
-        derivePricingModelIdFromPurchase(
-          nonExistentPurchaseId,
-          transaction
-        )
-      ).rejects.toThrow()
-    })
+        await expect(
+          derivePricingModelIdFromPurchase(
+            nonExistentPurchaseId,
+            transaction
+          )
+        ).rejects.toThrow()
+      })
+    ).unwrap()
   })
 })

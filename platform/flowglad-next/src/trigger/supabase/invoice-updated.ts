@@ -37,48 +37,50 @@ export const invoiceUpdatedTask = task({
         customer,
         organization,
         paymentForInvoice,
-      } = await adminTransaction(async ({ transaction }) => {
-        const invoiceLineItems = await selectInvoiceLineItems(
-          { invoiceId: newRecord.id },
-          transaction
-        )
-
-        const [{ customer }] =
-          await selectCustomerAndCustomerTableRows(
-            {
-              id: newRecord.customerId,
-            },
+      } = (
+        await adminTransaction(async ({ transaction }) => {
+          const invoiceLineItems = await selectInvoiceLineItems(
+            { invoiceId: newRecord.id },
             transaction
           )
-        if (!customer) {
-          throw new Error(
-            `Customer not found for invoice ${newRecord.id}`
-          )
-        }
 
-        const organization = await selectOrganizationById(
-          customer.organizationId,
-          transaction
-        )
-        if (!organization) {
-          throw new Error(
-            `Organization not found for invoice ${newRecord.id}`
+          const [{ customer }] =
+            await selectCustomerAndCustomerTableRows(
+              {
+                id: newRecord.customerId,
+              },
+              transaction
+            )
+          if (!customer) {
+            throw new Error(
+              `Customer not found for invoice ${newRecord.id}`
+            )
+          }
+
+          const organization = await selectOrganizationById(
+            customer.organizationId,
+            transaction
           )
-        }
-        logger.info(`Sending receipt email to ${customer.email}`)
-        const [paymentForInvoice] = await selectPayments(
-          { invoiceId: newRecord.id },
-          transaction
-        )
-        return {
-          invoice: newRecord,
-          invoiceLineItems,
-          customer,
-          organization,
-          paymentForInvoice,
-          message: 'Receipt email sent successfully',
-        }
-      })
+          if (!organization) {
+            throw new Error(
+              `Organization not found for invoice ${newRecord.id}`
+            )
+          }
+          logger.info(`Sending receipt email to ${customer.email}`)
+          const [paymentForInvoice] = await selectPayments(
+            { invoiceId: newRecord.id },
+            transaction
+          )
+          return {
+            invoice: newRecord,
+            invoiceLineItems,
+            customer,
+            organization,
+            paymentForInvoice,
+            message: 'Receipt email sent successfully',
+          }
+        })
+      ).unwrap()
       await generatePaymentReceiptPdfTask.triggerAndWait({
         paymentId: paymentForInvoice.id,
       })

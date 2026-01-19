@@ -35,8 +35,8 @@ export const stripePaymentIntentSucceededTask = task({
          * process it on own track, and then terminate
          */
         if ('billingRunId' in metadata) {
-          const result = await comprehensiveAdminTransaction(
-            async (params) => {
+          const result = (
+            await comprehensiveAdminTransaction(async (params) => {
               const effectsCtx: TransactionEffectsContext = {
                 transaction: params.transaction,
                 invalidateCache: params.invalidateCache,
@@ -48,8 +48,8 @@ export const stripePaymentIntentSucceededTask = task({
                 effectsCtx
               )
               return Result.ok(billingResult)
-            }
-          )
+            })
+          ).unwrap()
           return result
         }
 
@@ -59,74 +59,79 @@ export const stripePaymentIntentSucceededTask = task({
           organization,
           customer,
           payment,
-        } = await comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const { payment } = await processPaymentIntentStatusUpdated(
-            payload.data.object,
-            ctx
-          )
+        } = (
+          await comprehensiveAdminTransaction(async (ctx) => {
+            const { transaction } = ctx
+            const { payment } =
+              await processPaymentIntentStatusUpdated(
+                payload.data.object,
+                ctx
+              )
 
-          if (!payment.purchaseId) {
-            throw new Error(
-              `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
-            )
-          }
+            if (!payment.purchaseId) {
+              throw new Error(
+                `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
+              )
+            }
 
-          const purchase = await selectPurchaseById(
-            payment.purchaseId,
-            transaction
-          )
-
-          const [invoice] =
-            await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-              { id: payment.invoiceId },
+            const purchase = await selectPurchaseById(
+              payment.purchaseId,
               transaction
             )
 
-          const [customer] = await selectCustomers(
-            {
-              id: purchase.customerId,
-            },
-            transaction
-          )
+            const [invoice] =
+              await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+                { id: payment.invoiceId },
+                transaction
+              )
 
-          const organization = await selectOrganizationById(
-            purchase.organizationId,
-            transaction
-          )
-
-          const membersForOrganization =
-            await selectMembershipsAndUsersByMembershipWhere(
-              { organizationId: organization.id },
+            const [customer] = await selectCustomers(
+              {
+                id: purchase.customerId,
+              },
               transaction
             )
 
-          await safelyIncrementDiscountRedemptionSubscriptionPayment(
-            payment,
-            transaction
-          )
-          const result = {
-            invoice: invoice.invoice,
-            invoiceLineItems: invoice.invoiceLineItems,
-            purchase,
-            organization,
-            customer,
-            membersForOrganization,
-            payment,
-          }
-
-          return Result.ok(result)
-        }, {})
-
-        await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            await createStripeTaxTransactionIfNeededForPayment(
-              { organization, payment, invoice },
+            const organization = await selectOrganizationById(
+              purchase.organizationId,
               transaction
             )
-            return Result.ok(null)
-          }
-        )
+
+            const membersForOrganization =
+              await selectMembershipsAndUsersByMembershipWhere(
+                { organizationId: organization.id },
+                transaction
+              )
+
+            await safelyIncrementDiscountRedemptionSubscriptionPayment(
+              payment,
+              transaction
+            )
+            const result = {
+              invoice: invoice.invoice,
+              invoiceLineItems: invoice.invoiceLineItems,
+              purchase,
+              organization,
+              customer,
+              membersForOrganization,
+              payment,
+            }
+
+            return Result.ok(result)
+          }, {})
+        ).unwrap()
+
+        ;(
+          await comprehensiveAdminTransaction(
+            async ({ transaction }) => {
+              await createStripeTaxTransactionIfNeededForPayment(
+                { organization, payment, invoice },
+                transaction
+              )
+              return Result.ok(null)
+            }
+          )
+        ).unwrap()
 
         /**
          * Generate the invoice PDF, which should be finalized now

@@ -61,15 +61,17 @@ describe('Pricing Models RLS - Organization Policy', async () => {
         isDefault: false,
       }
       let createdPricingModel: PricingModel.ClientRecord | undefined
-      await authenticatedTransaction(
-        async (params) => {
-          createdPricingModel = await insertPricingModel(
-            pricingModelInsert,
-            params.transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            createdPricingModel = await insertPricingModel(
+              pricingModelInsert,
+              params.transaction
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
       expect(createdPricingModel).toMatchObject({
         name: pricingModelInsert.name,
       })
@@ -108,19 +110,21 @@ describe('Pricing Models RLS - Organization Policy', async () => {
       let fetchedPricingModel2: PricingModel.ClientRecord | null =
         null
 
-      await authenticatedTransaction(
-        async (params) => {
-          fetchedPricingModel1 = await selectPricingModelById(
-            org1DefaultPricingModel.id,
-            params.transaction
-          )
-          fetchedPricingModel2 = await selectPricingModelById(
-            org1ExtraPricingModel.id,
-            params.transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            fetchedPricingModel1 = await selectPricingModelById(
+              org1DefaultPricingModel.id,
+              params.transaction
+            )
+            fetchedPricingModel2 = await selectPricingModelById(
+              org1ExtraPricingModel.id,
+              params.transaction
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
 
       expect(fetchedPricingModel1).toMatchObject({
         id: org1DefaultPricingModel.id,
@@ -155,15 +159,17 @@ describe('Pricing Models RLS - Organization Policy', async () => {
       const newName = 'Updated Org1 Default Pricing Model Name'
       let updatedPricingModel: PricingModel.ClientRecord | undefined
 
-      await authenticatedTransaction(
-        async (params) => {
-          updatedPricingModel = await updatePricingModel(
-            { id: org1DefaultPricingModel.id, name: newName },
-            params.transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      ;(
+        await authenticatedTransaction(
+          async (params) => {
+            updatedPricingModel = await updatePricingModel(
+              { id: org1DefaultPricingModel.id, name: newName },
+              params.transaction
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
 
       expect(updatedPricingModel).toMatchObject({ name: newName })
       expect(updatedPricingModel!.name).toBe(newName)

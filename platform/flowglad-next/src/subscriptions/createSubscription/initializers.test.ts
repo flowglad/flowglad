@@ -114,11 +114,11 @@ describe('insertSubscriptionAndItems', () => {
 
       // expects:
       // - The call should succeed and create a non-renewing subscription
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify the subscription was created successfully
       expect(result.subscription).toMatchObject({})
@@ -170,10 +170,11 @@ describe('insertSubscriptionAndItems', () => {
       }
       // expects:
       // - The call to insertSubscriptionAndItems should succeed.
-      const { subscription, subscriptionItems } =
+      const { subscription, subscriptionItems } = (
         await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
         })
+      ).unwrap()
       // - The returned subscription should have status 'active', because credit_trial status has been deprecated
       expect(subscription.status).toBe(SubscriptionStatus.Active)
       // - The returned subscription item should have type 'static'
@@ -197,10 +198,11 @@ describe('insertSubscriptionAndItems', () => {
       }
       // expects:
       // - The call to insertSubscriptionAndItems should succeed.
-      const { subscription, subscriptionItems } =
+      const { subscription, subscriptionItems } = (
         await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
         })
+      ).unwrap()
       // - The returned subscription should have status of either 'incomplete' or 'active'.
       expect(subscription.status).toBeOneOf([
         SubscriptionStatus.Incomplete,
@@ -231,11 +233,11 @@ describe('insertSubscriptionAndItems', () => {
 
       // expects:
       // - The call should succeed.
-      const { subscription } = await adminTransaction(
-        async ({ transaction }) => {
+      const { subscription } = (
+        await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
-        }
-      )
+        })
+      ).unwrap()
       // - The created subscription should have status 'trialing'.
       expect(subscription.status).toBe(SubscriptionStatus.Trialing)
       // - The subscription's currentBillingPeriodEnd should be equal to the trialEnd date.
@@ -269,11 +271,11 @@ describe('insertSubscriptionAndItems', () => {
         defaultPaymentMethod: paymentMethod,
       }
       // expects:
-      const { subscription } = await adminTransaction(
-        async ({ transaction }) => {
+      const { subscription } = (
+        await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
-        }
-      )
+        })
+      ).unwrap()
       // - The resulting subscription should have status 'active'.
       expect(subscription.status).toBe(SubscriptionStatus.Active)
       // - The subscription should have runBillingAtPeriodStart set to true (for subscription price type).
@@ -299,11 +301,11 @@ describe('insertSubscriptionAndItems', () => {
         trialEnd,
       }
       // expects:
-      const { subscription } = await adminTransaction(
-        async ({ transaction }) => {
+      const { subscription } = (
+        await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
-        }
-      )
+        })
+      ).unwrap()
       // - The resulting subscription should have status 'trialing'.
       expect(subscription.status).toBe(SubscriptionStatus.Trialing)
       // - The subscription's trialEnd field should match the provided date.
@@ -344,11 +346,11 @@ describe('insertSubscriptionAndItems', () => {
         autoStart: false,
       }
       // expects:
-      const { subscription } = await adminTransaction(
-        async ({ transaction }) => {
+      const { subscription } = (
+        await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
-        }
-      )
+        })
+      ).unwrap()
       // - The resulting subscription should have status 'incomplete'.
       expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
     })
@@ -386,11 +388,11 @@ describe('insertSubscriptionAndItems', () => {
         intervalCount: 1,
       }
       // expects:
-      const { subscription } = await adminTransaction(
-        async ({ transaction }) => {
+      const { subscription } = (
+        await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
-        }
-      )
+        })
+      ).unwrap()
       // - The resulting subscription should have runBillingAtPeriodStart set to false.
       expect(subscription.runBillingAtPeriodStart).toBe(false)
     })
@@ -413,11 +415,11 @@ describe('insertSubscriptionAndItems', () => {
         name: subscriptionName,
       }
       // expects:
-      const { subscription } = await adminTransaction(
-        async ({ transaction }) => {
+      const { subscription } = (
+        await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
-        }
-      )
+        })
+      ).unwrap()
       // - The resulting subscription's `name` should match the provided name.
       expect(subscription.name).toBe(subscriptionName)
     })
@@ -438,11 +440,11 @@ describe('insertSubscriptionAndItems', () => {
         intervalCount: 1,
       }
       // expects:
-      const { subscription } = await adminTransaction(
-        async ({ transaction }) => {
+      const { subscription } = (
+        await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
-        }
-      )
+        })
+      ).unwrap()
       // - The resulting subscription's `name` should be a combination of the product and price names (e.g., "Product Name - Price Name").
       const expectedName = `${product.name}${
         defaultPrice.name ? ` - ${defaultPrice.name}` : ''
@@ -479,10 +481,11 @@ describe('insertSubscriptionAndItems', () => {
       }
 
       // expects:
-      const { subscription, subscriptionItems } =
+      const { subscription, subscriptionItems } = (
         await adminTransaction(async ({ transaction }) => {
           return insertSubscriptionAndItems(params, transaction)
         })
+      ).unwrap()
 
       // - The subscription status should be 'active', because credit_trial status has been deprecated
       expect(subscription.status).toBe(SubscriptionStatus.Active)

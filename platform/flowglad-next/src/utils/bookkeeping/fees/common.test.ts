@@ -665,8 +665,8 @@ describe('finalizeFeeCalculation', () => {
   it('applies full fee when no payments exist in current month', async () => {
     const { organization, price } = await setupOrg()
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -688,14 +688,14 @@ describe('finalizeFeeCalculation', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFeeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -739,8 +739,8 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -762,14 +762,14 @@ describe('finalizeFeeCalculation', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFeeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -802,8 +802,8 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -825,14 +825,14 @@ describe('finalizeFeeCalculation', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFeeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -873,8 +873,8 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -896,14 +896,14 @@ describe('finalizeFeeCalculation', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFeeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -934,8 +934,8 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -957,14 +957,14 @@ describe('finalizeFeeCalculation', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFeeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -997,8 +997,8 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -1020,14 +1020,14 @@ describe('finalizeFeeCalculation', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFeeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     // Full fee: 20000 * 5% = 1000
     // Effective percentage: (1000 / 20000) * 100 = 5%
@@ -1059,8 +1059,8 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice.id,
     })
     const baseFeePercentage = organization.feePercentage
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -1082,14 +1082,14 @@ describe('finalizeFeeCalculation', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFeeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       baseFeePercentage
@@ -1115,31 +1115,33 @@ describe('finalizeFeeCalculation', () => {
     const lastMonth = new Date()
     lastMonth.setMonth(lastMonth.getMonth() - 2)
 
-    await adminTransaction(async ({ transaction }) => {
-      return insertPayment(
-        {
-          stripeChargeId,
-          status: PaymentStatus.Succeeded,
-          amount: 150000,
-          customerId: customer.id,
-          organizationId: organization.id,
-          invoiceId: invoice.id,
-          chargeDate: lastMonth.getTime(),
-          currency: CurrencyCode.USD,
-          paymentMethod: PaymentMethodType.Card,
-          refunded: false,
-          refundedAt: null,
-          refundedAmount: 0,
-          taxCountry: CountryCode.US,
-          livemode: true,
-          stripePaymentIntentId: `pi_${core.nanoid()}`,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        return insertPayment(
+          {
+            stripeChargeId,
+            status: PaymentStatus.Succeeded,
+            amount: 150000,
+            customerId: customer.id,
+            organizationId: organization.id,
+            invoiceId: invoice.id,
+            chargeDate: lastMonth.getTime(),
+            currency: CurrencyCode.USD,
+            paymentMethod: PaymentMethodType.Card,
+            refunded: false,
+            refundedAt: null,
+            refundedAmount: 0,
+            taxCountry: CountryCode.US,
+            livemode: true,
+            stripePaymentIntentId: `pi_${core.nanoid()}`,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -1161,14 +1163,14 @@ describe('finalizeFeeCalculation', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFeeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       organization.feePercentage
@@ -1222,8 +1224,8 @@ describe('finalizeFeeCalculation', () => {
       invoiceId: invoice2.id,
     })
 
-    const feeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const feeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeeCalculation(
           {
             organizationId: org1.id,
@@ -1245,14 +1247,14 @@ describe('finalizeFeeCalculation', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedFeeCalculation = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFeeCalculation = (
+      await adminTransaction(async ({ transaction }) => {
         return finalizeFeeCalculation(feeCalculation, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedFeeCalculation.flowgladFeePercentage).toBe(
       org1.feePercentage

@@ -41,8 +41,8 @@ describe('Template Integration Tests', () => {
       ]
 
       for (const { template, expectedName } of templates) {
-        const result = await adminTransaction(
-          async ({ transaction }) =>
+        const result = (
+          await adminTransaction(async ({ transaction }) =>
             setupPricingModelTransaction(
               {
                 input: template.input,
@@ -51,7 +51,8 @@ describe('Template Integration Tests', () => {
               },
               transaction
             )
-        )
+          )
+        ).unwrap()
 
         expect(typeof result.pricingModel.id).toBe('string')
         expect(result.pricingModel.name).toBe(expectedName)
@@ -65,31 +66,35 @@ describe('Template Integration Tests', () => {
         name: 'My Custom Usage Model',
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        setupPricingModelTransaction(
-          {
-            input: customInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input: customInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.pricingModel.name).toBe('My Custom Usage Model')
     })
 
     it('should create template in correct environment', async () => {
-      const result = await adminTransaction(async ({ transaction }) =>
-        setupPricingModelTransaction(
-          {
-            input: UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE.input,
-            organizationId: organization.id,
-            livemode: true,
-          },
-          transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input: UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE.input,
+              organizationId: organization.id,
+              livemode: true,
+            },
+            transaction
+          )
         )
-      )
+      ).unwrap()
 
       expect(result.pricingModel.livemode).toBe(true)
       expect(result.products.every((p) => p.livemode === true)).toBe(

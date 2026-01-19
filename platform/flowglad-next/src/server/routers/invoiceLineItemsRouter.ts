@@ -24,14 +24,16 @@ const listInvoiceLineItemsProcedure = protectedProcedure
   .input(invoiceLineItemsPaginatedSelectSchema)
   .output(invoiceLineItemsPaginatedListSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectInvoiceLineItemsPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectInvoiceLineItemsPaginated(input, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 const getInvoiceLineItemProcedure = protectedProcedure
@@ -39,14 +41,16 @@ const getInvoiceLineItemProcedure = protectedProcedure
   .input(idInputSchema)
   .output(invoiceLineItemsClientSelectSchema)
   .query(async ({ ctx, input }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectInvoiceLineItemById(input.id, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectInvoiceLineItemById(input.id, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
   })
 
 export const invoiceLineItemsRouter = router({

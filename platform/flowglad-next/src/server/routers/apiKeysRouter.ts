@@ -1,15 +1,11 @@
 import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   apiKeysClientSelectSchema,
   createApiKeyInputSchema,
 } from '@/db/schema/apiKeys'
 import {
   selectApiKeyById,
-  selectApiKeys,
   selectApiKeysTableRowData,
 } from '@/db/tableMethods/apiKeyMethods'
 import {
@@ -22,7 +18,7 @@ import {
   createSecretApiKeyTransaction,
   deleteSecretApiKeyTransaction,
 } from '@/utils/apiKeyHelpers'
-import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
+import { generateOpenApiMetas } from '@/utils/openapi'
 import { rotateApiKeyProcedure } from '../mutations/rotateApiKey'
 import { protectedProcedure, router } from '../trpc'
 
@@ -48,7 +44,7 @@ const getApiKeyProcedure = protectedProcedure
       {
         apiKey: ctx.apiKey,
       }
-    )
+    ).then((result) => result.unwrap())
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -70,18 +66,20 @@ const getTableRowsProcedure = protectedProcedure
       })
     )
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+  .query(async ({ input, ctx }) => {
+    return authenticatedTransaction(
+      async ({ transaction }) => {
         return selectApiKeysTableRowData({ input, transaction })
+      },
+      {
+        apiKey: ctx.apiKey,
       }
-    )
-  )
+    ).then((result) => result.unwrap())
+  })
 
 export const createApiKey = protectedProcedure
   .input(createApiKeyInputSchema)
-  .mutation(async ({ input }) => {
+  .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
       async ({ transaction, userId, livemode, organizationId }) => {
         return createSecretApiKeyTransaction(input, {
@@ -90,8 +88,11 @@ export const createApiKey = protectedProcedure
           livemode,
           organizationId,
         })
+      },
+      {
+        apiKey: ctx.apiKey,
       }
-    )
+    ).then((r) => r.unwrap())
 
     return {
       apiKey: result.apiKey,
@@ -109,8 +110,11 @@ export const deleteApiKey = protectedProcedure
           userId,
           livemode,
           organizationId,
-        })
-    )
+        }),
+      {
+        apiKey: ctx.apiKey,
+      }
+    ).then((result) => result.unwrap())
     return { success: true }
   })
 

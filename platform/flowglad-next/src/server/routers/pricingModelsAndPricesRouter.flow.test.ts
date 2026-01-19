@@ -80,14 +80,14 @@ describe('pricingModelsRouter.create', () => {
     expect(pricingModel).toMatchObject({})
     expect(pricingModel.name).toBe('PM Subscription')
 
-    const productAndPrices = await adminTransaction(
-      async ({ transaction }) => {
+    const productAndPrices = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPricesAndProductsByProductWhere(
           { pricingModelId: pricingModel.id, default: true },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     expect(productAndPrices.length).toBeGreaterThan(0)
     const defaultProduct = productAndPrices[0]
     expect(defaultProduct.default).toBe(true)
@@ -117,14 +117,14 @@ describe('pricingModelsRouter.create', () => {
       .create({
         pricingModel: { name: 'PM One-Time', isDefault: false },
       } as any)
-    const productAndPrices = await adminTransaction(
-      async ({ transaction }) => {
+    const productAndPrices = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPricesAndProductsByProductWhere(
           { pricingModelId: pricingModel.id, default: true },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     const defaultProduct = productAndPrices[0]
     const defaultPrice = defaultProduct.defaultPrice!
     expect(defaultPrice.type).toBe(PriceType.SinglePayment)
@@ -180,8 +180,8 @@ describe('pricesRouter.create', () => {
       isApi: true as any,
       path: '',
     }
-    const product = await adminTransaction(
-      async ({ transaction }) => {
+    const product = (
+      await adminTransaction(async ({ transaction }) => {
         return insertProduct(
           {
             name: 'No Price Product',
@@ -203,8 +203,8 @@ describe('pricesRouter.create', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     const result = await pricesRouter.createCaller(ctx).create({
       price: {
         productId: product.id,
@@ -241,8 +241,8 @@ describe('pricesRouter.create', () => {
       .create({ pricingModel: { name: 'PM constraints' } as any })
 
     // Create a non-default product under the pricing model
-    const product = await adminTransaction(
-      async ({ transaction }) => {
+    const product = (
+      await adminTransaction(async ({ transaction }) => {
         return insertProduct(
           {
             name: 'Non-Default Product',
@@ -260,8 +260,8 @@ describe('pricesRouter.create', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Create the first default price
     const firstPrice = await pricesRouter.createCaller(ctx).create({
@@ -300,11 +300,11 @@ describe('pricesRouter.create', () => {
     expect(secondPrice.price.active).toBe(true)
 
     // Verify the first price is now non-default and inactive
-    const [updatedFirstPrice] = await adminTransaction(
-      async ({ transaction }) => {
+    const [updatedFirstPrice] = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPrices({ id: firstPrice.price.id }, transaction)
-      }
-    )
+      })
+    ).unwrap()
     expect(updatedFirstPrice.isDefault).toBe(false)
     expect(updatedFirstPrice.active).toBe(false)
   })
@@ -331,14 +331,14 @@ describe('pricesRouter.create', () => {
       })
 
     // Get the default product that was created with the pricing model
-    const productAndPrices = await adminTransaction(
-      async ({ transaction }) => {
+    const productAndPrices = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPricesAndProductsByProductWhere(
           { pricingModelId: pricingModel.id, default: true },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     const defaultProduct = productAndPrices[0]
     const defaultPrice = defaultProduct.defaultPrice!
 
@@ -365,14 +365,14 @@ describe('pricesRouter.create', () => {
     const { pricingModel } = await pricingModelsRouter
       .createCaller(ctx)
       .create({ pricingModel: { name: 'PM with Default' } as any })
-    const productAndPrices = await adminTransaction(
-      async ({ transaction }) => {
+    const productAndPrices = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPricesAndProductsByProductWhere(
           { pricingModelId: pricingModel.id, default: true },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     const defaultProduct = productAndPrices[0]
     try {
       await pricesRouter.createCaller(ctx).create({
@@ -416,8 +416,8 @@ describe('pricesRouter.create', () => {
       .createCaller(ctx)
       .create({ pricingModel: { name: 'PM Currency' } as any })
     // Create a regular (non-default) product to test currency and livemode
-    const product = await adminTransaction(
-      async ({ transaction }) => {
+    const product = (
+      await adminTransaction(async ({ transaction }) => {
         return insertProduct(
           {
             name: 'Regular Product for Currency Test',
@@ -435,8 +435,8 @@ describe('pricesRouter.create', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     const created = await pricesRouter.createCaller(ctx).create({
       price: {
         productId: product.id,
@@ -452,11 +452,11 @@ describe('pricesRouter.create', () => {
       },
     })
     // Verify via direct select to see stored fields
-    const [stored] = await adminTransaction(
-      async ({ transaction }) => {
+    const [stored] = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPrices({ id: created.price.id }, transaction)
-      }
-    )
+      })
+    ).unwrap()
     expect(stored.currency).toBe(orgData.organization.defaultCurrency)
     expect(stored.livemode).toBe(false)
   })
@@ -589,11 +589,11 @@ describe('pricingModelsRouter.clone', () => {
     expect(clonedPM.isDefault).toBe(false)
 
     // Verify in database that the cloned model is actually livemode
-    const dbClonedPM = await adminTransaction(
-      async ({ transaction }) => {
+    const dbClonedPM = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPricingModelById(clonedPM.id, transaction)
-      }
-    )
+      })
+    ).unwrap()
     expect(dbClonedPM?.livemode).toBe(true)
   })
 
@@ -636,11 +636,11 @@ describe('pricingModelsRouter.clone', () => {
     expect(clonedPM.isDefault).toBe(false)
 
     // Verify in database
-    const dbClonedPM = await adminTransaction(
-      async ({ transaction }) => {
+    const dbClonedPM = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPricingModelById(clonedPM.id, transaction)
-      }
-    )
+      })
+    ).unwrap()
     expect(dbClonedPM?.livemode).toBe(false)
   })
 })

@@ -44,21 +44,25 @@ describe('safelyUpdatePricingModel', () => {
   })
 
   it('should make a non-default pricingModel the new default, and unset the old default', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      await safelyUpdatePricingModel(
-        { id: pricingModelB.id, isDefault: true },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdatePricingModel(
+          { id: pricingModelB.id, isDefault: true },
+          transaction
+        )
+      })
+    ).unwrap()
 
-    const updatedPricingModelA = await adminTransaction(
-      async ({ transaction }) =>
+    const updatedPricingModelA = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(pricingModelA.id, transaction)
-    )
-    const updatedPricingModelB = await adminTransaction(
-      async ({ transaction }) =>
+      )
+    ).unwrap()
+    const updatedPricingModelB = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(pricingModelB.id, transaction)
-    )
+      )
+    ).unwrap()
 
     expect(updatedPricingModelB.isDefault).toBe(true)
     expect(updatedPricingModelA.isDefault).toBe(false)
@@ -66,19 +70,20 @@ describe('safelyUpdatePricingModel', () => {
 
   it("should update a non-default pricingModel's properties without affecting the default status of other pricingModels", async () => {
     const newName = 'New PricingModel Name'
-    const updatedPricingModelB = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedPricingModelB = (
+      await adminTransaction(async ({ transaction }) => {
         return await safelyUpdatePricingModel(
           { id: pricingModelB.id, name: newName },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const updatedPricingModelA = await adminTransaction(
-      async ({ transaction }) =>
+    const updatedPricingModelA = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(pricingModelA.id, transaction)
-    )
+      )
+    ).unwrap()
 
     expect(updatedPricingModelB.name).toBe(newName)
     expect(updatedPricingModelB.isDefault).toBe(false)
@@ -86,28 +91,28 @@ describe('safelyUpdatePricingModel', () => {
   })
 
   it('should allow unsetting a default pricingModel, leaving the organization with no default', async () => {
-    const updatedPricingModelA = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedPricingModelA = (
+      await adminTransaction(async ({ transaction }) => {
         return await safelyUpdatePricingModel(
           { id: pricingModelA.id, isDefault: false },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedPricingModelA.isDefault).toBe(false)
   })
 
   it('should update a property on a default pricingModel without changing its default status', async () => {
     const newName = 'New Name For Default PricingModel'
-    const updatedPricingModelA = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedPricingModelA = (
+      await adminTransaction(async ({ transaction }) => {
         return await safelyUpdatePricingModel(
           { id: pricingModelA.id, name: newName },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(updatedPricingModelA.name).toBe(newName)
     expect(updatedPricingModelA.isDefault).toBe(true)
@@ -120,35 +125,39 @@ describe('safelyUpdatePricingModel', () => {
     const otherOrgDefaultPricingModel = otherOrgData.pricingModel
 
     // Action: Make pricingModelB the new default for the FIRST organization.
-    await adminTransaction(async ({ transaction }) => {
-      await safelyUpdatePricingModel(
-        { id: pricingModelB.id, isDefault: true },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdatePricingModel(
+          { id: pricingModelB.id, isDefault: true },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Expect: The default pricingModel for the second organization remains unchanged.
-    const refreshedOtherOrgPricingModel = await adminTransaction(
-      async ({ transaction }) =>
+    const refreshedOtherOrgPricingModel = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(
           otherOrgDefaultPricingModel.id,
           transaction
         )
-    )
+      )
+    ).unwrap()
     expect(refreshedOtherOrgPricingModel.isDefault).toBe(true)
 
     // Sanity check: The old default for the first organization should now be false.
-    const refreshedPricingModelA = await adminTransaction(
-      async ({ transaction }) =>
+    const refreshedPricingModelA = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(pricingModelA.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(refreshedPricingModelA.isDefault).toBe(false)
   })
 
   it('should not affect default pricingModels across livemode boundaries when updating', async () => {
     // Get the testmode pricing model that setupOrg already created
-    const testModePricingModel = await adminTransaction(
-      async ({ transaction }) => {
+    const testModePricingModel = (
+      await adminTransaction(async ({ transaction }) => {
         const [pricingModel] = await selectPricingModels(
           {
             organizationId: organization.id,
@@ -158,8 +167,8 @@ describe('safelyUpdatePricingModel', () => {
           transaction
         )
         return pricingModel!
-      }
-    )
+      })
+    ).unwrap()
 
     // Verify we have two default pricing models - one for each livemode
     expect(pricingModelA.isDefault).toBe(true)
@@ -168,26 +177,31 @@ describe('safelyUpdatePricingModel', () => {
     expect(testModePricingModel.livemode).toBe(false)
 
     // Make pricingModelB (livemode: true) the new default
-    await adminTransaction(async ({ transaction }) => {
-      await safelyUpdatePricingModel(
-        { id: pricingModelB.id, isDefault: true },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdatePricingModel(
+          { id: pricingModelB.id, isDefault: true },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Check that only the livemode: true default was affected
-    const refreshedPricingModelA = await adminTransaction(
-      async ({ transaction }) =>
+    const refreshedPricingModelA = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(pricingModelA.id, transaction)
-    )
-    const refreshedPricingModelB = await adminTransaction(
-      async ({ transaction }) =>
+      )
+    ).unwrap()
+    const refreshedPricingModelB = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(pricingModelB.id, transaction)
-    )
-    const refreshedTestModePricingModel = await adminTransaction(
-      async ({ transaction }) =>
+      )
+    ).unwrap()
+    const refreshedTestModePricingModel = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(testModePricingModel.id, transaction)
-    )
+      )
+    ).unwrap()
 
     // pricingModelB should now be the default for livemode: true
     expect(refreshedPricingModelB.isDefault).toBe(true)
@@ -214,8 +228,8 @@ describe('safelyInsertPricingModel', () => {
   })
 
   it('should make the new pricingModel the default and unset the old default', async () => {
-    const newPricingModel = await adminTransaction(
-      async ({ transaction }) => {
+    const newPricingModel = (
+      await adminTransaction(async ({ transaction }) => {
         return safelyInsertPricingModel(
           {
             name: 'New Default PricingModel',
@@ -225,24 +239,25 @@ describe('safelyInsertPricingModel', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const refreshedOldDefault = await adminTransaction(
-      async ({ transaction }) =>
+    const refreshedOldDefault = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(
           existingDefaultPricingModel.id,
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     expect(newPricingModel.isDefault).toBe(true)
     expect(refreshedOldDefault.isDefault).toBe(false)
   })
 
   it('should insert a non-default pricingModel without affecting the existing default', async () => {
-    const newPricingModel = await adminTransaction(
-      async ({ transaction }) => {
+    const newPricingModel = (
+      await adminTransaction(async ({ transaction }) => {
         return safelyInsertPricingModel(
           {
             name: 'New Non-Default PricingModel',
@@ -252,16 +267,17 @@ describe('safelyInsertPricingModel', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const refreshedOldDefault = await adminTransaction(
-      async ({ transaction }) =>
+    const refreshedOldDefault = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(
           existingDefaultPricingModel.id,
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     expect(newPricingModel.isDefault).toBe(false)
     expect(refreshedOldDefault.isDefault).toBe(true)
@@ -273,33 +289,36 @@ describe('safelyInsertPricingModel', () => {
     const otherOrgDefaultPricingModel = otherOrgData.pricingModel
 
     // Insert a new default pricingModel for the FIRST organization
-    await adminTransaction(async ({ transaction }) => {
-      return safelyInsertPricingModel(
-        {
-          name: 'New Default PricingModel for Org 1',
-          organizationId: organization.id,
-          isDefault: true,
-          livemode: true,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        return safelyInsertPricingModel(
+          {
+            name: 'New Default PricingModel for Org 1',
+            organizationId: organization.id,
+            isDefault: true,
+            livemode: true,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Check that the second org's default pricingModel is untouched
-    const refreshedOtherOrgPricingModel = await adminTransaction(
-      async ({ transaction }) =>
+    const refreshedOtherOrgPricingModel = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(
           otherOrgDefaultPricingModel.id,
           transaction
         )
-    )
+      )
+    ).unwrap()
     expect(refreshedOtherOrgPricingModel.isDefault).toBe(true)
   })
 
   it('should not affect default pricingModels across livemode boundaries when inserting', async () => {
     // Create a test mode (livemode: false) default pricing model for the same organization
-    const testModeDefaultPricingModel = await adminTransaction(
-      async ({ transaction }) => {
+    const testModeDefaultPricingModel = (
+      await adminTransaction(async ({ transaction }) => {
         return safelyInsertPricingModel(
           {
             name: 'Test Mode Default PricingModel',
@@ -309,8 +328,8 @@ describe('safelyInsertPricingModel', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Verify we have two default pricing models - one for each livemode
     expect(existingDefaultPricingModel.isDefault).toBe(true)
@@ -319,8 +338,8 @@ describe('safelyInsertPricingModel', () => {
     expect(testModeDefaultPricingModel.livemode).toBe(false)
 
     // Insert a new default for livemode: true
-    const newLivemodeDefault = await adminTransaction(
-      async ({ transaction }) => {
+    const newLivemodeDefault = (
+      await adminTransaction(async ({ transaction }) => {
         return safelyInsertPricingModel(
           {
             name: 'New Live Mode Default PricingModel',
@@ -330,24 +349,26 @@ describe('safelyInsertPricingModel', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Check that only the livemode: true default was affected
-    const refreshedOldLivemodeDefault = await adminTransaction(
-      async ({ transaction }) =>
+    const refreshedOldLivemodeDefault = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(
           existingDefaultPricingModel.id,
           transaction
         )
-    )
-    const refreshedTestModeDefault = await adminTransaction(
-      async ({ transaction }) =>
+      )
+    ).unwrap()
+    const refreshedTestModeDefault = (
+      await adminTransaction(async ({ transaction }) =>
         selectPricingModelById(
           testModeDefaultPricingModel.id,
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     // New livemode pricing model should be default
     expect(newLivemodeDefault.isDefault).toBe(true)
@@ -457,12 +478,14 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     })
 
     // Query the pricing models with products and features
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Verify the results
     expect(result).toHaveLength(1)
@@ -519,12 +542,14 @@ describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () 
     })
 
     // Query the pricing model
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Find the product without features
     const productResult = result[0].products.find(
@@ -624,9 +649,11 @@ describe('selectPricingModelForCustomer', () => {
       pricingModelId: specificPricingModel.id,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelForCustomer(customer, transaction)
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelForCustomer(customer, transaction)
+      })
+    ).unwrap()
 
     // Should return the specific pricing model
     expect(result.id).toBe(specificPricingModel.id)
@@ -647,9 +674,11 @@ describe('selectPricingModelForCustomer', () => {
       email: 'default@example.com',
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelForCustomer(customer, transaction)
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelForCustomer(customer, transaction)
+      })
+    ).unwrap()
 
     // Should return the default pricing model
     expect(result.id).toBe(defaultPricingModel.id)
@@ -676,12 +705,14 @@ describe('selectPricingModelForCustomer', () => {
       pricingModelId: 'nonexistent-id',
     }
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelForCustomer(
-        customerWithBadId,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelForCustomer(
+          customerWithBadId,
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Should fallback to default pricing model
     expect(result.id).toBe(defaultPricingModel.id)
@@ -738,9 +769,11 @@ describe('selectPricingModelForCustomer', () => {
       pricingModelId: emptyPricingModel.id,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelForCustomer(customer, transaction)
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelForCustomer(customer, transaction)
+      })
+    ).unwrap()
 
     expect(result.id).toBe(emptyPricingModel.id)
     expect(result.products).toHaveLength(0)
@@ -831,12 +864,14 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     })
 
     // Query the pricing model
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Verify the results
     expect(result).toHaveLength(1)
@@ -874,12 +909,14 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     })
 
     // Query the pricing model
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Verify the results
     expect(result).toHaveLength(1)
@@ -897,12 +934,14 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     // Don't assign any features to the product
 
     // Query the pricing model
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Verify the results
     expect(result).toHaveLength(1)
@@ -928,12 +967,14 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     })
 
     // Query the pricing model
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Verify the results
     expect(result).toHaveLength(1)
@@ -998,12 +1039,14 @@ describe('Feature Expiration Filtering in selectPricingModelsWithProductsAndUsag
     })
 
     // Query the pricing model
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Verify the results
     expect(result).toHaveLength(1)
@@ -1078,12 +1121,14 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
       pricingModelId: pricingModel.id,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return await selectPricingModelForCustomer(
-        customer,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectPricingModelForCustomer(
+          customer,
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.products).toHaveLength(2) // setupOrg + our test product
 
@@ -1149,26 +1194,28 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
 
     // setupPrice makes active=true and isDefault=true via safelyInsertPrice,
     // so we update both prices to be inactive and non-default
-    await adminTransaction(async ({ transaction }) => {
-      await safelyUpdatePrice(
-        {
-          id: inactivePrice1.id,
-          type: PriceType.Subscription,
-          active: false,
-          isDefault: false,
-        },
-        transaction
-      )
-      await safelyUpdatePrice(
-        {
-          id: inactivePrice2.id,
-          type: PriceType.Subscription,
-          active: false,
-          isDefault: false,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdatePrice(
+          {
+            id: inactivePrice1.id,
+            type: PriceType.Subscription,
+            active: false,
+            isDefault: false,
+          },
+          transaction
+        )
+        await safelyUpdatePrice(
+          {
+            id: inactivePrice2.id,
+            type: PriceType.Subscription,
+            active: false,
+            isDefault: false,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const customer = await setupCustomer({
       organizationId: organization.id,
@@ -1176,12 +1223,14 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
       pricingModelId: pricingModel.id,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return await selectPricingModelForCustomer(
-        customer,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectPricingModelForCustomer(
+          customer,
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.products).toHaveLength(1) // Only setupOrg product
 
@@ -1233,12 +1282,14 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
       pricingModelId: pricingModel.id,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return await selectPricingModelForCustomer(
-        customer,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return await selectPricingModelForCustomer(
+          customer,
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.products).toHaveLength(2)
 
@@ -1331,14 +1382,14 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     })
 
     // Query the count
-    const countMap = await adminTransaction(
-      async ({ transaction }) => {
+    const countMap = (
+      await adminTransaction(async ({ transaction }) => {
         return countNonUsageProductsByPricingModelIds(
           [pricingModel.id],
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Should count all products (subscription products + default product)
     // Usage prices no longer have products, so no products are excluded
@@ -1388,16 +1439,18 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     })
 
     // Query pricing models table rows
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsTableRows({
-        input: {
-          filters: {
-            id: pricingModel.id,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsTableRows({
+          input: {
+            filters: {
+              id: pricingModel.id,
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     // Find our pricing model
     const pricingModelRow = result.items.find(
@@ -1438,16 +1491,18 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     })
 
     // Query pricing models table rows
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsTableRows({
-        input: {
-          filters: {
-            id: emptyPricingModel.id,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsTableRows({
+          input: {
+            filters: {
+              id: emptyPricingModel.id,
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     // Find our pricing model
     const pricingModelRow = result.items.find(
@@ -1492,12 +1547,14 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
     })
 
     // Query the pricing model
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(1)
     const pricingModelResult = result[0]
@@ -1551,12 +1608,14 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
     })
 
     // Query the pricing model
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const pricingModelResult = result[0]
     const usageMeterResult = pricingModelResult.usageMeters.find(
@@ -1614,17 +1673,19 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
     })
 
     // Deactivate the inactive price
-    await adminTransaction(async ({ transaction }) => {
-      await safelyUpdatePrice(
-        {
-          id: inactiveUsagePrice.id,
-          type: PriceType.Usage,
-          active: false,
-          isDefault: false,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await safelyUpdatePrice(
+          {
+            id: inactiveUsagePrice.id,
+            type: PriceType.Usage,
+            active: false,
+            isDefault: false,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Create a customer
     const customer = await setupCustomer({
@@ -1634,9 +1695,11 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
     })
 
     // Query via selectPricingModelForCustomer (which applies active filtering)
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelForCustomer(customer, transaction)
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelForCustomer(customer, transaction)
+      })
+    ).unwrap()
 
     // Find our usage meter
     const usageMeterResult = result.usageMeters.find(
@@ -1662,12 +1725,14 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
     })
 
     // Query the pricing model
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: pricingModel.id },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+          { id: pricingModel.id },
+          transaction
+        )
+      })
+    ).unwrap()
 
     const pricingModelResult = result[0]
     const usageMeterResult = pricingModelResult.usageMeters.find(

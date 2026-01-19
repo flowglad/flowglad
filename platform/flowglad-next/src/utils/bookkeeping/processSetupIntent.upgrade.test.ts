@@ -193,24 +193,26 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return await processSetupIntentSucceeded(
-            setupIntent,
-            createDiscardingEffectsContext(transaction)
-          )
-        }
-      )
+      const result = (
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return await processSetupIntentSucceeded(
+              setupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
+          }
+        )
+      ).unwrap()
 
       // Verify free subscription was canceled
-      const updatedFreeSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedFreeSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptionById(
             freeSubscription.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(updatedFreeSubscription.status).toBe(
         SubscriptionStatus.Canceled
       )
@@ -223,14 +225,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       ).toBe('string')
 
       // Verify new subscription was created
-      const allSubscriptions = await adminTransaction(
-        async ({ transaction }) => {
+      const allSubscriptions = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptions(
             { customerId: customer.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       const activeSubscriptions = allSubscriptions.filter(
         (sub) => sub.status === SubscriptionStatus.Active
       )
@@ -296,22 +298,26 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
+      ;(
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return await processSetupIntentSucceeded(
+              setupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
+          }
         )
-      })
+      ).unwrap()
 
       // Get the new subscription
-      const allSubscriptions = await adminTransaction(
-        async ({ transaction }) => {
+      const allSubscriptions = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptions(
             { customerId: customer.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       const newSubscription = allSubscriptions.find(
         (sub) => sub.status === SubscriptionStatus.Active
       )
@@ -344,14 +350,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
   describe('Customer without existing subscription', () => {
     it('should create new subscription without canceling anything', async () => {
       // Ensure customer has no subscriptions
-      const existingSubscriptions = await adminTransaction(
-        async ({ transaction }) => {
+      const existingSubscriptions = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptions(
             { customerId: customer.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(existingSubscriptions).toHaveLength(0)
 
       // Create purchase and checkout session for paid product
@@ -388,22 +394,26 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
+      ;(
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return await processSetupIntentSucceeded(
+              setupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
+          }
         )
-      })
+      ).unwrap()
 
       // Verify new subscription was created
-      const allSubscriptions = await adminTransaction(
-        async ({ transaction }) => {
+      const allSubscriptions = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptions(
             { customerId: customer.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(allSubscriptions).toHaveLength(1)
       expect(allSubscriptions[0].status).toBe(
         SubscriptionStatus.Active
@@ -438,15 +448,17 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
   describe('Customer with existing paid subscription', () => {
     it('should allow creating second paid subscription while canceling free', async () => {
       // Update organization to allow multiple subscriptions
-      await adminTransaction(async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: organization.id,
-            allowMultipleSubscriptionsPerCustomer: true,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: organization.id,
+              allowMultipleSubscriptionsPerCustomer: true,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       // Create existing paid subscription
       const existingPaidSubscription = await setupSubscription({
@@ -504,22 +516,26 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
+      ;(
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return await processSetupIntentSucceeded(
+              setupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
+          }
         )
-      })
+      ).unwrap()
 
       // Verify free subscription was canceled
-      const updatedFreeSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedFreeSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptionById(
             freeSubscription.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(updatedFreeSubscription.status).toBe(
         SubscriptionStatus.Canceled
       )
@@ -528,28 +544,28 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       )
 
       // Verify original paid subscription remains active
-      const updatedExistingPaid = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedExistingPaid = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptionById(
             existingPaidSubscription.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(updatedExistingPaid.status).toBe(
         SubscriptionStatus.Active
       )
       expect(updatedExistingPaid.cancellationReason).toBeNull()
 
       // Verify customer has two active paid subscriptions
-      const allSubscriptions = await adminTransaction(
-        async ({ transaction }) => {
+      const allSubscriptions = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptions(
             { customerId: customer.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       const activeSubscriptions = allSubscriptions.filter(
         (sub) => sub.status === SubscriptionStatus.Active
       )
@@ -636,22 +652,26 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Process the setup intent
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        return await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
+      ;(
+        await comprehensiveAdminTransaction(
+          async ({ transaction }) => {
+            return await processSetupIntentSucceeded(
+              setupIntent,
+              createDiscardingEffectsContext(transaction)
+            )
+          }
         )
-      })
+      ).unwrap()
 
       // Verify free subscription remains active
-      const updatedFreeSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedFreeSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptionById(
             freeSubscription.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(updatedFreeSubscription.status).toBe(
         SubscriptionStatus.Active
       )
@@ -659,14 +679,14 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       expect(updatedFreeSubscription.canceledAt).toBeNull()
 
       // Verify no new subscriptions were created
-      const allSubscriptions = await adminTransaction(
-        async ({ transaction }) => {
+      const allSubscriptions = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptions(
             { customerId: customer.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(allSubscriptions).toHaveLength(1)
       expect(allSubscriptions[0].id).toBe(freeSubscription.id)
     })

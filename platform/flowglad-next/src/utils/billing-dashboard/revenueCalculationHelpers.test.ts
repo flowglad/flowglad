@@ -440,14 +440,16 @@ describe('getBillingPeriodsForDateRange', () => {
     const startDate = new Date('2023-06-01T05:00:00.000Z')
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getBillingPeriodsForDateRange(
-        organization.id,
-        startDate,
-        endDate,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return getBillingPeriodsForDateRange(
+          organization.id,
+          startDate,
+          endDate,
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result).toEqual([])
   })
@@ -463,8 +465,8 @@ describe('getBillingPeriodsForDateRange', () => {
     })
 
     // Create a subscription
-    const subscription = await adminTransaction(
-      async ({ transaction }) => {
+    const subscription = (
+      await adminTransaction(async ({ transaction }) => {
         return setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -474,49 +476,53 @@ describe('getBillingPeriodsForDateRange', () => {
           intervalCount: 1,
           status: SubscriptionStatus.Active,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create a billing period
-    const billingPeriod = await adminTransaction(
-      async ({ transaction }) => {
+    const billingPeriod = (
+      await adminTransaction(async ({ transaction }) => {
         return setupBillingPeriod({
           subscriptionId: subscription.id,
           startDate: new Date('2023-06-01T05:00:00.000Z'),
           endDate: new Date('2023-06-30T05:00:00.000Z'),
           status: BillingPeriodStatus.Active,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create billing period items
-    await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItem({
-        billingPeriodId: billingPeriod.id,
-        quantity: 2,
-        unitPrice: 100,
-        name: 'Test Item 1',
-      })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 2,
+          unitPrice: 100,
+          name: 'Test Item 1',
+        })
 
-      await setupBillingPeriodItem({
-        billingPeriodId: billingPeriod.id,
-        quantity: 1,
-        unitPrice: 50,
-        name: 'Test Item 2',
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 50,
+          name: 'Test Item 2',
+        })
       })
-    })
+    ).unwrap()
 
     const startDate = new Date('2023-06-01T05:00:00.000Z')
     const endDate = new Date('2023-06-30T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return getBillingPeriodsForDateRange(
-        organization.id,
-        startDate,
-        endDate,
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return getBillingPeriodsForDateRange(
+          organization.id,
+          startDate,
+          endDate,
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.length).toBe(1)
     expect(result[0].billingPeriod.id).toBe(billingPeriod.id)
@@ -538,17 +544,19 @@ describe('calculateMRRByMonth', () => {
     const startDate = new Date('2023-01-15T05:00:00.000Z')
     const endDate = new Date('2023-03-15T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateMRRByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Should have 3 months: Jan, Feb, Mar 2023
     expect(result.length).toBe(3)
@@ -569,17 +577,19 @@ describe('calculateMRRByMonth', () => {
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateMRRByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.length).toBe(1)
     expect(result[0].amount).toBe(0)
@@ -599,8 +609,8 @@ describe('calculateMRRByMonth', () => {
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
     // Create a subscription
-    const subscription = await adminTransaction(
-      async ({ transaction }) => {
+    const subscription = (
+      await adminTransaction(async ({ transaction }) => {
         return setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -610,42 +620,46 @@ describe('calculateMRRByMonth', () => {
           intervalCount: 1,
           status: SubscriptionStatus.Active,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create a billing period
-    const billingPeriod = await adminTransaction(
-      async ({ transaction }) => {
+    const billingPeriod = (
+      await adminTransaction(async ({ transaction }) => {
         return setupBillingPeriod({
           subscriptionId: subscription.id,
           startDate,
           endDate,
           status: BillingPeriodStatus.Active,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create billing period items
-    await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItem({
-        billingPeriodId: billingPeriod.id,
-        quantity: 1,
-        unitPrice: 100,
-        name: 'Test Item',
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Test Item',
+        })
       })
-    })
+    ).unwrap()
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateMRRByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.length).toBe(1)
     expect(result[0].amount).toBe(100) // $100 MRR for the month
@@ -665,8 +679,8 @@ describe('calculateMRRByMonth', () => {
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
     // Create a subscription with yearly interval
-    const subscription = await adminTransaction(
-      async ({ transaction }) => {
+    const subscription = (
+      await adminTransaction(async ({ transaction }) => {
         return setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -676,42 +690,46 @@ describe('calculateMRRByMonth', () => {
           intervalCount: 1,
           status: SubscriptionStatus.Active,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create a billing period
-    const billingPeriod = await adminTransaction(
-      async ({ transaction }) => {
+    const billingPeriod = (
+      await adminTransaction(async ({ transaction }) => {
         return setupBillingPeriod({
           subscriptionId: subscription.id,
           startDate,
           endDate: addYears(startDate, 1),
           status: BillingPeriodStatus.Active,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create billing period items
-    await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItem({
-        billingPeriodId: billingPeriod.id,
-        quantity: 1,
-        unitPrice: 1200,
-        name: 'Test Item',
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 1200,
+          name: 'Test Item',
+        })
       })
-    })
+    ).unwrap()
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateMRRByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Should have 3 months of data
     expect(result.length).toBe(3)
@@ -733,11 +751,11 @@ describe('calculateMRRByMonth', () => {
     })
 
     const startDate = new Date('2023-01-15T05:00:00.000Z') // Mid-January
-    const endDate = new Date('2023-02-15T05:00:00.000Z') // Mid-February
+    const endDate = new Date('2023-02-15T05:00:00.000Z') // Mid-February;
 
     // Create a subscription
-    const subscription = await adminTransaction(
-      async ({ transaction }) => {
+    const subscription = (
+      await adminTransaction(async ({ transaction }) => {
         return setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -747,42 +765,46 @@ describe('calculateMRRByMonth', () => {
           intervalCount: 1,
           status: SubscriptionStatus.Active,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create a billing period
-    const billingPeriod = await adminTransaction(
-      async ({ transaction }) => {
+    const billingPeriod = (
+      await adminTransaction(async ({ transaction }) => {
         return setupBillingPeriod({
           subscriptionId: subscription.id,
           startDate,
           endDate,
           status: BillingPeriodStatus.Active,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create billing period items
-    await adminTransaction(async ({ transaction }) => {
-      await setupBillingPeriodItem({
-        billingPeriodId: billingPeriod.id,
-        quantity: 1,
-        unitPrice: 100,
-        name: 'Test Item',
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await setupBillingPeriodItem({
+          billingPeriodId: billingPeriod.id,
+          quantity: 1,
+          unitPrice: 100,
+          name: 'Test Item',
+        })
       })
-    })
+    ).unwrap()
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateMRRByMonth(
-        organization.id,
-        {
-          startDate: new Date('2023-01-01T05:00:00.000Z'),
-          endDate: new Date('2023-02-28T05:00:00.000Z'),
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate: new Date('2023-01-01T05:00:00.000Z'),
+            endDate: new Date('2023-02-28T05:00:00.000Z'),
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Should have 2 months of data
     expect(result.length).toBe(2)
@@ -866,17 +888,19 @@ describe('calculateMRRByMonth', () => {
       name: 'Yearly Item',
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateMRRByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.length).toBe(1)
     // $100 from monthly + $100 from yearly ($1200/12) = $200 MRR
@@ -1016,26 +1040,28 @@ describe('calculateMRRByMonth', () => {
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      await setupSubscriptionsAndBillingPeriods(
-        organization,
-        price,
-        customer,
-        paymentMethod,
-        startDate,
-        endDate,
-        transaction
-      )
-      return calculateMRRByMonth(
-        organization.id,
-        {
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        await setupSubscriptionsAndBillingPeriods(
+          organization,
+          price,
+          customer,
+          paymentMethod,
           startDate,
           endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-        },
-        transaction
-      )
-    })
+          transaction
+        )
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.length).toBe(1)
     // Expected MRR:
@@ -1191,18 +1217,20 @@ describe('calculateMRRByMonth with productId filter', () => {
       name: 'Test Item',
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateMRRByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-          productId: undefined, // No filter
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+            productId: undefined, // No filter
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(1)
     expect(result[0].amount).toBe(100)
@@ -1313,8 +1341,8 @@ describe('calculateMRRByMonth with productId filter', () => {
     })
 
     // Query for Product A only
-    const resultA = await adminTransaction(
-      async ({ transaction }) => {
+    const resultA = (
+      await adminTransaction(async ({ transaction }) => {
         return calculateMRRByMonth(
           organization.id,
           {
@@ -1325,15 +1353,15 @@ describe('calculateMRRByMonth with productId filter', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultA).toHaveLength(1)
     expect(resultA[0].amount).toBe(100)
 
     // Query for Product B only
-    const resultB = await adminTransaction(
-      async ({ transaction }) => {
+    const resultB = (
+      await adminTransaction(async ({ transaction }) => {
         return calculateMRRByMonth(
           organization.id,
           {
@@ -1344,15 +1372,15 @@ describe('calculateMRRByMonth with productId filter', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultB).toHaveLength(1)
     expect(resultB[0].amount).toBe(200)
 
     // Query for all products (no filter)
-    const resultAll = await adminTransaction(
-      async ({ transaction }) => {
+    const resultAll = (
+      await adminTransaction(async ({ transaction }) => {
         return calculateMRRByMonth(
           organization.id,
           {
@@ -1362,8 +1390,8 @@ describe('calculateMRRByMonth with productId filter', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(resultAll).toHaveLength(1)
     expect(resultAll[0].amount).toBe(300) // $100 + $200
@@ -1421,18 +1449,20 @@ describe('calculateMRRByMonth with productId filter', () => {
     })
 
     // Query for Product B (which has no subscriptions)
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateMRRByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-          productId: productB.id,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+            productId: productB.id,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(1)
     expect(result[0].amount).toBe(0)
@@ -1477,18 +1507,20 @@ describe('calculateMRRByMonth with productId filter', () => {
     })
 
     // Query with non-existent productId
-    const result = await adminTransaction(async ({ transaction }) => {
-      return calculateMRRByMonth(
-        organization.id,
-        {
-          startDate,
-          endDate,
-          granularity: RevenueChartIntervalUnit.Month,
-          productId: 'non_existent_product_id',
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return calculateMRRByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+            productId: 'non_existent_product_id',
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result).toHaveLength(1)
     expect(result[0].amount).toBe(0)

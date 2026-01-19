@@ -314,10 +314,10 @@ const ProfessionalServicesAgreement = () => {
                 <span className="sow_link">Deliverables</span> (if
                 any) under Section 2.1 (Deliverables); (b){' '}
                 <span className="keyterms_link">Provider&apos;s</span>{' '}
-                rights to use Customer Materials in Section 2.2
+                rights to use Customer Materials in Section 2.2;
                 (Customer Materials); and (c){' '}
                 <span className="keyterms_link">Customer&apos;s</span>{' '}
-                rights to Pre-Existing Materials in Section 2.3
+                rights to Pre-Existing Materials in Section 2.3;
                 (Pre-Existing Materials), neither party transfers any
                 rights in any of their products, data, or any other
                 intellectual property.
@@ -522,7 +522,7 @@ const ProfessionalServicesAgreement = () => {
                     <span className="sow_link">Fees</span> accrued
                     before termination and{' '}
                     <span className="keyterms_link">Customer</span>{' '}
-                    will pay the invoice according to Section 4
+                    will pay the invoice according to Section 4;
                     (Payment & Taxes).
                   </p>
                 </li>
@@ -544,18 +544,18 @@ const ProfessionalServicesAgreement = () => {
                 <li>
                   <p>
                     The following sections will survive expiration or
-                    termination of the Agreement: Section 2.1
+                    termination of the Agreement: Section 2.1;
                     (Deliverables), Section 2.3 (Pre-Existing
                     Materials), Section 2.5 (Feedback and Usage Data),
-                    Section 2.6 (Reservation of Rights), Section 4
+                    Section 2.6 (Reservation of Rights), Section 4;
                     (Payment & Taxes) for fees accrued or payable
-                    before expiration or termination, Section 5.3
+                    before expiration or termination, Section 5.3;
                     (Effect of Termination), Section 5.4 (Survival),
                     Section 6 (Representations & Warranties), Section
-                    7 (Disclaimer of Warranties), Section 8
-                    (Limitation of Liability), Section 9
+                    7 (Disclaimer of Warranties), Section 8;
+                    (Limitation of Liability), Section 9;
                     (Indemnification), Section 10 (Insurance) for the
-                    time period specified, Section 11
+                    time period specified, Section 11;
                     (Confidentiality), Section 12 (General Terms),
                     Section 13 (Definitions), and the portions of a
                     Cover Page referenced by these sections.
@@ -605,7 +605,7 @@ const ProfessionalServicesAgreement = () => {
               <p>
                 <span className="keyterms_link">Customer</span>{' '}
                 represents and warrants to{' '}
-                <span className="keyterms_link">Provider</span> that
+                <span className="keyterms_link">Provider</span> that;
                 (a){' '}
                 <span className="keyterms_link">Provider&apos;s</span>{' '}
                 use of Customer Materials and{' '}
@@ -637,13 +637,13 @@ const ProfessionalServicesAgreement = () => {
                 copyright, trademark, trade secret, or right of
                 publicity; (c) the{' '}
                 <span className="sow_link">Deliverables</span> (if
-                any) will conform to the requirements in the SOW; and
+                any) will conform to the requirements in the SOW; and;
                 (d) it has all rights necessary to perform the
                 Services and convey the{' '}
                 <span className="sow_link">Deliverables</span> (if
                 any, however excluding Customer Materials and{' '}
                 <span className="keyterms_link">Customer</span>
-                -procured Third-Party Materials) under Section 2
+                -procured Third-Party Materials) under Section 2;
                 (Intellectual Property).
               </p>
             </li>
@@ -838,7 +838,7 @@ const ProfessionalServicesAgreement = () => {
                 promptly notifying the Indemnifying Party of each
                 Covered Claim for which it seeks protection; (b)
                 providing reasonable assistance to the Indemnifying
-                Party at the Indemnifying Party&apos;s expense; and
+                Party at the Indemnifying Party&apos;s expense; and;
                 (c) giving the Indemnifying Party sole control over
                 the defense and settlement of each Covered Claim. A
                 Protected Party may participate in a Covered Claim
@@ -964,7 +964,7 @@ const ProfessionalServicesAgreement = () => {
               <p>
                 This Agreement is the only agreement between the
                 parties about its subject and this Agreement
-                supersedes all prior or contemporaneous statements
+                supersedes all prior or contemporaneous statements;
                 (whether in writing or not) about its subject.{' '}
                 <span className="keyterms_link">Provider</span>{' '}
                 expressly rejects any terms included in{' '}
@@ -1023,7 +1023,7 @@ const ProfessionalServicesAgreement = () => {
                 the violation of a party&apos;s intellectual property
                 rights may cause irreparable harm for which monetary
                 damages cannot adequately compensate. As a result,
-                upon the actual or threatened breach of Section 11
+                upon the actual or threatened breach of Section 11;
                 (Confidentiality) or violation of a party&apos;s
                 intellectual property rights, the non-breaching or
                 non-violating party may seek appropriate equitable
@@ -1179,7 +1179,7 @@ const ProfessionalServicesAgreement = () => {
                 <strong>&quot;Affiliate&quot;</strong> means an entity
                 that, directly or indirectly, controls, is under the
                 control of, or is under common control with a party,
-                where control means having more than fifty percent
+                where control means having more than fifty percent;
                 (50%) of the voting stock or other ownership interest.
               </p>
             </li>
@@ -1216,7 +1216,7 @@ const ProfessionalServicesAgreement = () => {
                 means information in any form disclosed by or on
                 behalf of a Discloser, including before the{' '}
                 <span className="keyterms_link">Effective Date</span>,
-                to a Recipient in connection with this Agreement that
+                to a Recipient in connection with this Agreement that;
                 (a) the Discloser identifies as
                 &quot;confidential&quot;, &quot;proprietary&quot;, or
                 the like; or (b) should be reasonably understood as

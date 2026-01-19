@@ -27,11 +27,11 @@ export const attemptSubscriptionCancellationTask = task({
         message: 'Subscription already ended',
       }
     }
-    const canceledSubscription = await comprehensiveAdminTransaction(
-      async (ctx) => {
+    const canceledSubscription = (
+      await comprehensiveAdminTransaction(async (ctx) => {
         return cancelSubscriptionImmediately({ subscription }, ctx)
-      }
-    )
+      })
+    ).unwrap()
 
     await storeTelemetry('subscription', subscription.id, ctx.run.id)
 

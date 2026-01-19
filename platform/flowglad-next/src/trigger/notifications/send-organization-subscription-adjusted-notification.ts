@@ -64,33 +64,35 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
       customer,
       subscription,
       usersAndMemberships,
-    } = await adminTransaction(async ({ transaction }) => {
-      const organization = await selectOrganizationById(
-        organizationId,
-        transaction
-      )
-      const customer = await selectCustomerById(
-        customerId,
-        transaction
-      )
-      const subscription = await selectSubscriptionById(
-        subscriptionId,
-        transaction
-      )
-      const usersAndMemberships =
-        await selectMembershipsAndUsersByMembershipWhere(
-          {
-            organizationId,
-          },
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        const organization = await selectOrganizationById(
+          organizationId,
           transaction
         )
-      return {
-        organization,
-        customer,
-        subscription,
-        usersAndMemberships,
-      }
-    })
+        const customer = await selectCustomerById(
+          customerId,
+          transaction
+        )
+        const subscription = await selectSubscriptionById(
+          subscriptionId,
+          transaction
+        )
+        const usersAndMemberships =
+          await selectMembershipsAndUsersByMembershipWhere(
+            {
+              organizationId,
+            },
+            transaction
+          )
+        return {
+          organization,
+          customer,
+          subscription,
+          usersAndMemberships,
+        }
+      })
+    ).unwrap()
 
     if (!organization || !customer || !subscription) {
       throw new Error(

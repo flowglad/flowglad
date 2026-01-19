@@ -32,7 +32,7 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
       }
     )
 
-    const { subscription, organization, customer } =
+    const { subscription, organization, customer } = (
       await adminTransaction(async ({ transaction }) => {
         const subscription = await selectSubscriptionById(
           subscriptionId,
@@ -55,6 +55,7 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
           customer,
         }
       })
+    ).unwrap()
 
     if (!organization || !customer) {
       throw new Error('Organization or customer not found')

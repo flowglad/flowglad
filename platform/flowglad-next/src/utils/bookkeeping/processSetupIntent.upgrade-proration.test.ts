@@ -206,26 +206,28 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
       // Get the new subscription
-      const subscriptions = await adminTransaction(
-        async ({ transaction }) => {
+      const subscriptions = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectSubscriptions(
             { customerId: customer.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const paidSubscription = subscriptions.find(
         (s) => s.status === SubscriptionStatus.Active && !s.isFreePlan
@@ -263,20 +265,22 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
       // Get billing period items
-      const paidSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const paidSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -285,26 +289,26 @@ describe('Subscription Upgrade with Proration', () => {
             (s) =>
               s.status === SubscriptionStatus.Active && !s.isFreePlan
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriod = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriod = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectCurrentBillingPeriodForSubscription(
             paidSubscription!.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriodItems = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriodItems = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectBillingPeriodItems(
             { billingPeriodId: billingPeriod!.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Should have full price, not prorated
       expect(billingPeriodItems).toHaveLength(1)
@@ -320,19 +324,21 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
-      const paidSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const paidSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -341,26 +347,26 @@ describe('Subscription Upgrade with Proration', () => {
             (s) =>
               s.status === SubscriptionStatus.Active && !s.isFreePlan
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriod = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriod = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectCurrentBillingPeriodForSubscription(
             paidSubscription!.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriodItems = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriodItems = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectBillingPeriodItems(
             { billingPeriodId: billingPeriod!.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify no prorated items
       const proratedItems = billingPeriodItems.filter((item) =>
@@ -436,19 +442,21 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
-      const paidSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const paidSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -457,8 +465,8 @@ describe('Subscription Upgrade with Proration', () => {
             (s) =>
               s.status === SubscriptionStatus.Active && !s.isFreePlan
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Should preserve the original anchor date
       expect(
@@ -482,19 +490,21 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
-      const paidSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const paidSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -503,8 +513,8 @@ describe('Subscription Upgrade with Proration', () => {
             (s) =>
               s.status === SubscriptionStatus.Active && !s.isFreePlan
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Should preserve the original period end date
       expect(
@@ -531,18 +541,20 @@ describe('Subscription Upgrade with Proration', () => {
       ) // ~30 days from now
 
       // Update the free subscription in the database
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            renews: true, // Required field for the schema
-            currentBillingPeriodStart: periodStart.getTime(),
-            currentBillingPeriodEnd: periodEnd.getTime(),
-            billingCycleAnchorDate: periodStart.getTime(),
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              renews: true, // Required field for the schema
+              currentBillingPeriodStart: periodStart.getTime(),
+              currentBillingPeriodEnd: periodEnd.getTime(),
+              billingCycleAnchorDate: periodStart.getTime(),
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
@@ -568,19 +580,21 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
-      const paidSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const paidSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -589,26 +603,26 @@ describe('Subscription Upgrade with Proration', () => {
             (s) =>
               s.status === SubscriptionStatus.Active && !s.isFreePlan
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriod = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriod = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectCurrentBillingPeriodForSubscription(
             paidSubscription!.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriodItems = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriodItems = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectBillingPeriodItems(
             { billingPeriodId: billingPeriod!.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Should have prorated items, but with minimal proration
       expect(billingPeriodItems.length).toBeGreaterThan(0)
@@ -645,18 +659,20 @@ describe('Subscription Upgrade with Proration', () => {
       const twoDaysAgo = new Date('2025-08-29') // August 29th
 
       // Update the free subscription in the database
-      await adminTransaction(async ({ transaction }) => {
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            renews: true, // Required field for the schema
-            currentBillingPeriodStart: twoDaysAgo.getTime(),
-            currentBillingPeriodEnd: yesterday.getTime(), // Period already ended
-            billingCycleAnchorDate: twoDaysAgo.getTime(),
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              renews: true, // Required field for the schema
+              currentBillingPeriodStart: twoDaysAgo.getTime(),
+              currentBillingPeriodEnd: yesterday.getTime(), // Period already ended
+              billingCycleAnchorDate: twoDaysAgo.getTime(),
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       // Update local reference to match database state
       freeSubscription.billingCycleAnchorDate = twoDaysAgo.getTime()
@@ -685,19 +701,21 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
-      const paidSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const paidSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -706,26 +724,26 @@ describe('Subscription Upgrade with Proration', () => {
             (s) =>
               s.status === SubscriptionStatus.Active && !s.isFreePlan
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriod = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriod = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectCurrentBillingPeriodForSubscription(
             paidSubscription!.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriodItems = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriodItems = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectBillingPeriodItems(
             { billingPeriodId: billingPeriod!.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Should fallback to new billing cycle starting on upgrade date
       const upgradeDate = new Date() // Current date
@@ -790,19 +808,21 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
-      const paidSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const paidSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -811,26 +831,26 @@ describe('Subscription Upgrade with Proration', () => {
             (s) =>
               s.status === SubscriptionStatus.Active && !s.isFreePlan
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriod = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriod = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectCurrentBillingPeriodForSubscription(
             paidSubscription!.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriodItems = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriodItems = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectBillingPeriodItems(
             { billingPeriodId: billingPeriod!.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Should have prorated items
       expect(billingPeriodItems.length).toBeGreaterThan(0)
@@ -895,19 +915,21 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
-      const paidSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const paidSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -916,26 +938,26 @@ describe('Subscription Upgrade with Proration', () => {
             (s) =>
               s.status === SubscriptionStatus.Active && !s.isFreePlan
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriod = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriod = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectCurrentBillingPeriodForSubscription(
             paidSubscription!.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriodItems = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriodItems = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectBillingPeriodItems(
             { billingPeriodId: billingPeriod!.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Find prorated item
       const proratedItem = billingPeriodItems.find((item) =>
@@ -1011,19 +1033,21 @@ describe('Subscription Upgrade with Proration', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        await createFeeCalculationForCheckoutSession(
-          checkoutSession as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-        await processSetupIntentSucceeded(
-          setupIntent,
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await createFeeCalculationForCheckoutSession(
+            checkoutSession as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+          await processSetupIntentSucceeded(
+            setupIntent,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
-      const paidSubscription = await adminTransaction(
-        async ({ transaction }) => {
+      const paidSubscription = (
+        await adminTransaction(async ({ transaction }) => {
           const subs = await selectSubscriptions(
             { customerId: customer.id },
             transaction
@@ -1032,26 +1056,26 @@ describe('Subscription Upgrade with Proration', () => {
             (s) =>
               s.status === SubscriptionStatus.Active && !s.isFreePlan
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriod = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriod = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectCurrentBillingPeriodForSubscription(
             paidSubscription!.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const billingPeriodItems = await adminTransaction(
-        async ({ transaction }) => {
+      const billingPeriodItems = (
+        await adminTransaction(async ({ transaction }) => {
           return await selectBillingPeriodItems(
             { billingPeriodId: billingPeriod!.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Should charge full price when upgrade is at period boundary
       const proratedItems = billingPeriodItems.filter((item) =>

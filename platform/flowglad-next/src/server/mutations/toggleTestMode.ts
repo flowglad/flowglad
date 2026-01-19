@@ -14,23 +14,25 @@ export const toggleTestMode = protectedProcedure
     })
   )
   .mutation(async ({ input }) => {
-    const membershipToUpdate = await authenticatedTransaction(
-      async ({ transaction, userId }) => {
-        const { membership } =
-          await selectFocusedMembershipAndOrganization(
-            userId,
-            transaction
-          )
-        return { membership }
-      }
-    )
+    const membershipToUpdate = (
+      await authenticatedTransaction(
+        async ({ transaction, userId }) => {
+          const { membership } =
+            await selectFocusedMembershipAndOrganization(
+              userId,
+              transaction
+            )
+          return { membership }
+        }
+      )
+    ).unwrap()
     /**
      * Need to bypass RLS to update the membership here,
      * so that we can continue the "can't update your own membership"
      * rule.
      */
-    const updatedMembership = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedMembership = (
+      await adminTransaction(async ({ transaction }) => {
         return updateMembership(
           {
             id: membershipToUpdate.membership.id,
@@ -38,8 +40,8 @@ export const toggleTestMode = protectedProcedure
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     return {
       data: { membership: updatedMembership },
     }

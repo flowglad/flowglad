@@ -47,49 +47,54 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
       newPrice,
       previousPrice,
       paymentMethod,
-    } = await adminTransaction(async ({ transaction }) => {
-      const organization = await selectOrganizationById(
-        payload.organizationId,
-        transaction
-      )
-      const customer = await selectCustomerById(
-        payload.customerId,
-        transaction
-      )
-      const newSubscription = await selectSubscriptionById(
-        payload.newSubscriptionId,
-        transaction
-      )
-      const previousSubscription = await selectSubscriptionById(
-        payload.previousSubscriptionId,
-        transaction
-      )
-      const newPrice = newSubscription.priceId
-        ? await selectPriceById(newSubscription.priceId, transaction)
-        : null
-      const previousPrice = previousSubscription.priceId
-        ? await selectPriceById(
-            previousSubscription.priceId,
-            transaction
-          )
-        : null
-      const paymentMethods = await selectPaymentMethods(
-        { customerId: payload.customerId },
-        transaction
-      )
-      const paymentMethod =
-        paymentMethods.find((pm) => pm.default) || paymentMethods[0]
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        const organization = await selectOrganizationById(
+          payload.organizationId,
+          transaction
+        )
+        const customer = await selectCustomerById(
+          payload.customerId,
+          transaction
+        )
+        const newSubscription = await selectSubscriptionById(
+          payload.newSubscriptionId,
+          transaction
+        )
+        const previousSubscription = await selectSubscriptionById(
+          payload.previousSubscriptionId,
+          transaction
+        )
+        const newPrice = newSubscription.priceId
+          ? await selectPriceById(
+              newSubscription.priceId,
+              transaction
+            )
+          : null
+        const previousPrice = previousSubscription.priceId
+          ? await selectPriceById(
+              previousSubscription.priceId,
+              transaction
+            )
+          : null
+        const paymentMethods = await selectPaymentMethods(
+          { customerId: payload.customerId },
+          transaction
+        )
+        const paymentMethod =
+          paymentMethods.find((pm) => pm.default) || paymentMethods[0]
 
-      return {
-        organization,
-        customer,
-        newSubscription,
-        previousSubscription,
-        newPrice,
-        previousPrice,
-        paymentMethod,
-      }
-    })
+        return {
+          organization,
+          customer,
+          newSubscription,
+          previousSubscription,
+          newPrice,
+          previousPrice,
+          paymentMethod,
+        }
+      })
+    ).unwrap()
 
     if (
       !organization ||

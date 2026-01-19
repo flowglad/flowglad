@@ -227,8 +227,8 @@ describe('Checkout Sessions', async () => {
   describe('createFeeCalculationForCheckoutSession', () => {
     it('should include discount when discountId is provided', async () => {
       // Update checkout session to include discount
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedCheckoutSession = (
+        await adminTransaction(async ({ transaction }) => {
           return updateCheckoutSession(
             {
               ...checkoutSession,
@@ -236,17 +236,17 @@ describe('Checkout Sessions', async () => {
             } as CheckoutSession.Update,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const feeCalculationWithDiscount = await adminTransaction(
-        async ({ transaction }) => {
+      const feeCalculationWithDiscount = (
+        await adminTransaction(async ({ transaction }) => {
           return createFeeCalculationForCheckoutSession(
             updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(feeCalculationWithDiscount.discountId).toEqual(
         discount.id
       )
@@ -256,14 +256,14 @@ describe('Checkout Sessions', async () => {
     })
 
     it('should correctly fetch price, product, and organization data', async () => {
-      const feeCalculation = await adminTransaction(
-        async ({ transaction }) => {
+      const feeCalculation = (
+        await adminTransaction(async ({ transaction }) => {
           return createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(typeof feeCalculation).toBe('object')
       expect(feeCalculation.priceId).toEqual(checkoutSession.priceId)
@@ -280,14 +280,14 @@ describe('Checkout Sessions', async () => {
     })
 
     it('should create fee calculation with correct parameters', async () => {
-      const feeCalculation = await adminTransaction(
-        async ({ transaction }) => {
+      const feeCalculation = (
+        await adminTransaction(async ({ transaction }) => {
           return createFeeCalculationForCheckoutSession(
             checkoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(typeof feeCalculation).toBe('object')
       expect(feeCalculation.checkoutSessionId).toEqual(
@@ -305,15 +305,17 @@ describe('Checkout Sessions', async () => {
   describe('editCheckoutSession', () => {
     it('should throw "Checkout session is not open" when session status is not Open', async () => {
       // Update checkout session to a non-open status
-      await adminTransaction(async ({ transaction }) => {
-        await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            status: CheckoutSessionStatus.Succeeded,
-          } as CheckoutSession.Update,
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCheckoutSession(
+            {
+              ...checkoutSession,
+              status: CheckoutSessionStatus.Succeeded,
+            } as CheckoutSession.Update,
+            transaction
+          )
+        })
+      ).unwrap()
 
       await expect(
         adminTransaction(async ({ transaction }) => {
@@ -343,8 +345,8 @@ describe('Checkout Sessions', async () => {
         country: 'US',
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return editCheckoutSession(
             {
               checkoutSession: {
@@ -362,8 +364,8 @@ describe('Checkout Sessions', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(
         (result.checkoutSession.billingAddress as BillingAddress)
@@ -373,8 +375,8 @@ describe('Checkout Sessions', async () => {
 
     it('should skip fee calculation when updated session is not fee-ready', async () => {
       // Update checkout session to be not fee-ready
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedCheckoutSession = (
+        await adminTransaction(async ({ transaction }) => {
           await deleteFeeCalculation(feeCalculation.id, transaction)
           return updateCheckoutSession(
             {
@@ -384,11 +386,11 @@ describe('Checkout Sessions', async () => {
             } as CheckoutSession.Update,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const latestFeeCalculation = await adminTransaction(
-        async ({ transaction }) => {
+      const latestFeeCalculation = (
+        await adminTransaction(async ({ transaction }) => {
           await editCheckoutSession(
             {
               checkoutSession: updatedCheckoutSession,
@@ -401,8 +403,8 @@ describe('Checkout Sessions', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(latestFeeCalculation).toBeNull()
     })
@@ -417,8 +419,8 @@ describe('Checkout Sessions', async () => {
         country: 'US',
       }
       let priorFeeCalculation: FeeCalculation.Record | null = null
-      const latestFeeCalculation = await adminTransaction(
-        async ({ transaction }) => {
+      const latestFeeCalculation = (
+        await adminTransaction(async ({ transaction }) => {
           priorFeeCalculation = await selectLatestFeeCalculation(
             {
               checkoutSessionId: checkoutSession.id,
@@ -451,8 +453,8 @@ describe('Checkout Sessions', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(typeof priorFeeCalculation).toBe('object')
       expect(typeof latestFeeCalculation).toBe('object')
       expect(latestFeeCalculation!.id).not.toEqual(
@@ -462,8 +464,8 @@ describe('Checkout Sessions', async () => {
 
     it('should use existing fee calculation when parameters have not changed', async () => {
       let priorFeeCalculation: FeeCalculation.Record | null = null
-      const latestFeeCalculation = await adminTransaction(
-        async ({ transaction }) => {
+      const latestFeeCalculation = (
+        await adminTransaction(async ({ transaction }) => {
           priorFeeCalculation = await selectLatestFeeCalculation(
             {
               checkoutSessionId: checkoutSession.id,
@@ -486,8 +488,8 @@ describe('Checkout Sessions', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(typeof latestFeeCalculation).toBe('object')
       expect(latestFeeCalculation!.id).toEqual(
@@ -497,16 +499,18 @@ describe('Checkout Sessions', async () => {
 
     it('should throw "Purchase is not pending" when purchase status is not Pending', async () => {
       // Update purchase to a non-pending status
-      await adminTransaction(async ({ transaction }) => {
-        await updatePurchase(
-          {
-            id: purchase.id,
-            priceType: purchase.priceType,
-            status: PurchaseStatus.Paid,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updatePurchase(
+            {
+              id: purchase.id,
+              priceType: purchase.priceType,
+              status: PurchaseStatus.Paid,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       await expect(
         adminTransaction(async ({ transaction }) => {
@@ -537,32 +541,34 @@ describe('Checkout Sessions', async () => {
         country: 'US',
       }
 
-      await adminTransaction(async ({ transaction }) => {
-        return editCheckoutSession(
-          {
-            checkoutSession: {
-              ...checkoutSession,
-              priceId: price.id,
-              billingAddress: {
-                address: newBillingAddress,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return editCheckoutSession(
+            {
+              checkoutSession: {
+                ...checkoutSession,
+                priceId: price.id,
+                billingAddress: {
+                  address: newBillingAddress,
+                },
+                type: CheckoutSessionType.Product,
+                invoiceId: null,
+                targetSubscriptionId: null,
+                automaticallyUpdateSubscriptions: null,
+                preserveBillingCycleAnchor: false,
               },
-              type: CheckoutSessionType.Product,
-              invoiceId: null,
-              targetSubscriptionId: null,
-              automaticallyUpdateSubscriptions: null,
-              preserveBillingCycleAnchor: false,
+              purchaseId: purchase.id,
             },
-            purchaseId: purchase.id,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
-      const updatedPurchase = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedPurchase = (
+        await adminTransaction(async ({ transaction }) => {
           return selectPurchaseById(purchase.id, transaction)
-        }
-      )
+        })
+      ).unwrap()
 
       expect(
         (updatedPurchase.billingAddress as BillingAddress)['address']
@@ -571,23 +577,27 @@ describe('Checkout Sessions', async () => {
 
     it('should skip Stripe payment intent update when no fee calculation exists', async () => {
       // Delete fee calculation
-      await adminTransaction(async ({ transaction }) => {
-        await deleteFeeCalculation(feeCalculation.id, transaction)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await deleteFeeCalculation(feeCalculation.id, transaction)
+        })
+      ).unwrap()
 
       // Update checkout session to have a payment intent
-      await adminTransaction(async ({ transaction }) => {
-        await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            stripePaymentIntentId: `pi_${core.nanoid()}`,
-          } as CheckoutSession.Update,
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCheckoutSession(
+            {
+              ...checkoutSession,
+              stripePaymentIntentId: `pi_${core.nanoid()}`,
+            } as CheckoutSession.Update,
+            transaction
+          )
+        })
+      ).unwrap()
 
-      const latestFeeCalculation = await adminTransaction(
-        async ({ transaction }) => {
+      const latestFeeCalculation = (
+        await adminTransaction(async ({ transaction }) => {
           await editCheckoutSession(
             {
               checkoutSession: {
@@ -607,8 +617,8 @@ describe('Checkout Sessions', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(latestFeeCalculation).toBeNull()
     })
@@ -626,8 +636,8 @@ describe('Checkout Sessions', async () => {
       })
 
       // Update checkout session to include the full discount
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedCheckoutSession = (
+        await adminTransaction(async ({ transaction }) => {
           return updateCheckoutSession(
             {
               ...checkoutSession,
@@ -635,18 +645,18 @@ describe('Checkout Sessions', async () => {
             } as CheckoutSession.Update,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Create fee calculation for this session with the discount
-      const feeCalculationWith100Discount = await adminTransaction(
-        async ({ transaction }) => {
+      const feeCalculationWith100Discount = (
+        await adminTransaction(async ({ transaction }) => {
           return createFeeCalculationForCheckoutSession(
             updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const totalDue = calculateTotalDueAmount(
         feeCalculationWith100Discount
@@ -675,8 +685,8 @@ describe('Checkout Sessions', async () => {
       })
 
       // First, set up a checkout session with a payment intent
-      const checkoutSessionWithPI = await adminTransaction(
-        async ({ transaction }) => {
+      const checkoutSessionWithPI = (
+        await adminTransaction(async ({ transaction }) => {
           return updateCheckoutSession(
             {
               ...checkoutSession,
@@ -684,20 +694,22 @@ describe('Checkout Sessions', async () => {
             } as CheckoutSession.Update,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Create the initial fee calculation so editCheckoutSession sees it
-      await adminTransaction(async ({ transaction }) => {
-        return createFeeCalculationForCheckoutSession(
-          checkoutSessionWithPI as CheckoutSession.FeeReadyRecord,
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          return createFeeCalculationForCheckoutSession(
+            checkoutSessionWithPI as CheckoutSession.FeeReadyRecord,
+            transaction
+          )
+        })
+      ).unwrap()
 
       // Apply the 100% discount via editCheckoutSession
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return editCheckoutSession(
             {
               checkoutSession: {
@@ -707,8 +719,8 @@ describe('Checkout Sessions', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify the checkout session was updated with the discount
       expect(result.checkoutSession.discountId).toEqual(
@@ -716,16 +728,16 @@ describe('Checkout Sessions', async () => {
       )
 
       // The fee calculation should now reflect the discount
-      const latestFeeCalc = await adminTransaction(
-        async ({ transaction }) => {
+      const latestFeeCalc = (
+        await adminTransaction(async ({ transaction }) => {
           return selectLatestFeeCalculation(
             {
               checkoutSessionId: checkoutSession.id,
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const totalDue = calculateTotalDueAmount(latestFeeCalc!)
 
@@ -740,8 +752,8 @@ describe('Checkout Sessions', async () => {
   describe('processPurchaseBookkeepingForCheckoutSession', () => {
     it('should create customer creation events when creating a new customer for anonymous checkout', async () => {
       // Update checkout session to have no customer ID (anonymous checkout)
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedCheckoutSession = (
+        await adminTransaction(async ({ transaction }) => {
           return updateCheckoutSession(
             {
               ...checkoutSession,
@@ -751,11 +763,11 @@ describe('Checkout Sessions', async () => {
             } as CheckoutSession.Update,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const bookkeepingResult = await comprehensiveAdminTransaction(
-        async (params) => {
+      const bookkeepingResult = (
+        await comprehensiveAdminTransaction(async (params) => {
           const result =
             await processPurchaseBookkeepingForCheckoutSession(
               {
@@ -765,8 +777,8 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(result)
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify customer was created
       expect(typeof bookkeepingResult.customer).toBe('object')
@@ -777,15 +789,15 @@ describe('Checkout Sessions', async () => {
         'Anonymous Customer'
       )
 
-      const dbEvents = await adminTransaction(
-        async ({ transaction }) => {
+      const dbEvents = (
+        await adminTransaction(async ({ transaction }) => {
           return selectEventsByCustomer(
             bookkeepingResult.customer.id,
             organization.id,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Verify specific event types were created in database
       const customerCreatedEvent = dbEvents.find(
@@ -822,20 +834,22 @@ describe('Checkout Sessions', async () => {
 
     it('should use existing customer when linked to purchase', async () => {
       // Update checkout session to have a purchase ID
-      await adminTransaction(async ({ transaction }) => {
-        await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            preserveBillingCycleAnchor: false,
-            type: CheckoutSessionType.Purchase,
-            purchaseId: purchase.id,
-          } as CheckoutSession.Update,
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCheckoutSession(
+            {
+              ...checkoutSession,
+              preserveBillingCycleAnchor: false,
+              type: CheckoutSessionType.Purchase,
+              purchaseId: purchase.id,
+            } as CheckoutSession.Update,
+            transaction
+          )
+        })
+      ).unwrap()
 
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
+      const result = (
+        await comprehensiveAdminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
@@ -845,15 +859,15 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
 
     it('should use existing customer when linked to checkout session', async () => {
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
+      const result = (
+        await comprehensiveAdminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
@@ -863,23 +877,25 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
 
     it('should throw error when provided Stripe customer ID does not match existing customer', async () => {
       // Update checkout session to have a purchase ID
-      await adminTransaction(async ({ transaction }) => {
-        await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            purchaseId: purchase.id,
-          } as CheckoutSession.Update,
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCheckoutSession(
+            {
+              ...checkoutSession,
+              purchaseId: purchase.id,
+            } as CheckoutSession.Update,
+            transaction
+          )
+        })
+      ).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async (params) => {
@@ -897,8 +913,8 @@ describe('Checkout Sessions', async () => {
     })
 
     it('should find customer by Stripe customer ID when provided', async () => {
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
+      const result = (
+        await comprehensiveAdminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
@@ -908,16 +924,16 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.customer.id).toEqual(customer.id)
     })
 
     it('should make the charge.customer equal to the customer.stripeCustomerId, even if the checkouSession initially does not have a customer', async () => {
       // Update checkout session to have no customer ID
-      const updatedCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedCheckoutSession = (
+        await adminTransaction(async ({ transaction }) => {
           return updateCheckoutSession(
             {
               ...checkoutSession,
@@ -925,11 +941,11 @@ describe('Checkout Sessions', async () => {
             } as CheckoutSession.Update,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
+      const result = (
+        await comprehensiveAdminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
@@ -939,8 +955,8 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.customer.stripeCustomerId).toEqual(
         succeededCharge.customer! as string
@@ -949,19 +965,21 @@ describe('Checkout Sessions', async () => {
 
     it('should create new Stripe customer when no Stripe customer ID is provided', async () => {
       // Update checkout session to have no customer ID
-      await adminTransaction(async ({ transaction }) => {
-        await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            stripePaymentIntentId:
-              succeededCharge.payment_intent! as string,
-            customerId: null,
-          } as CheckoutSession.Update,
-          transaction
-        )
-      })
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCheckoutSession(
+            {
+              ...checkoutSession,
+              stripePaymentIntentId:
+                succeededCharge.payment_intent! as string,
+              customerId: null,
+            } as CheckoutSession.Update,
+            transaction
+          )
+        })
+      ).unwrap()
+      const result = (
+        await comprehensiveAdminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
@@ -971,26 +989,28 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )
+        })
+      ).unwrap()
       expect(result.customer.stripeCustomerId).toMatchObject({})
     })
 
     it('should create new purchase when none exists', async () => {
       // Update checkout session to have no purchase ID
-      await adminTransaction(async ({ transaction }) => {
-        await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            type: CheckoutSessionType.Product,
-            purchaseId: null,
-          } as CheckoutSession.Update,
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateCheckoutSession(
+            {
+              ...checkoutSession,
+              type: CheckoutSessionType.Product,
+              purchaseId: null,
+            } as CheckoutSession.Update,
+            transaction
+          )
+        })
+      ).unwrap()
 
-      const newPurchaseResult = await comprehensiveAdminTransaction(
-        async (params) => {
+      const newPurchaseResult = (
+        await comprehensiveAdminTransaction(async (params) => {
           const bookkeeping =
             await processPurchaseBookkeepingForCheckoutSession(
               {
@@ -1000,47 +1020,50 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(bookkeeping)
-        }
-      )
+        })
+      ).unwrap()
 
       expect(typeof newPurchaseResult.purchase.id).toBe('string')
     })
 
     it('should apply discount when fee calculation has a discount ID', async () => {
       // Update fee calculation to have a discount ID
-      await comprehensiveAdminTransaction(async (params) => {
-        const { transaction } = params
-        const updatedCheckoutSession = await updateCheckoutSession(
-          {
-            ...checkoutSession,
-            stripePaymentIntentId:
-              succeededCharge.payment_intent! as string,
-            discountId: discount.id,
-          },
-          transaction
-        )
-        const result =
-          await processPurchaseBookkeepingForCheckoutSession(
+      ;(
+        await comprehensiveAdminTransaction(async (params) => {
+          const { transaction } = params
+          const updatedCheckoutSession = await updateCheckoutSession(
             {
-              checkoutSession: updatedCheckoutSession,
-              stripeCustomerId: succeededCharge.customer! as string,
+              ...checkoutSession,
+              stripePaymentIntentId:
+                succeededCharge.payment_intent! as string,
+              discountId: discount.id,
             },
-            createProcessingEffectsContext(params)
+            transaction
           )
-        const [discountRedemption] = await selectDiscountRedemptions(
-          {
-            purchaseId: result.purchase.id,
-          },
-          transaction
-        )
-        expect(typeof discountRedemption).toBe('object')
-        expect(discountRedemption.discountId).toEqual(discount.id)
-        return Result.ok(discountRedemption)
-      })
+          const result =
+            await processPurchaseBookkeepingForCheckoutSession(
+              {
+                checkoutSession: updatedCheckoutSession,
+                stripeCustomerId: succeededCharge.customer! as string,
+              },
+              createProcessingEffectsContext(params)
+            )
+          const [discountRedemption] =
+            await selectDiscountRedemptions(
+              {
+                purchaseId: result.purchase.id,
+              },
+              transaction
+            )
+          expect(typeof discountRedemption).toBe('object')
+          expect(discountRedemption.discountId).toEqual(discount.id)
+          return Result.ok(discountRedemption)
+        })
+      ).unwrap()
     })
 
     it('should link fee calculation to purchase record', async () => {
-      const { latestFeeCalculation, bookkeepingResult } =
+      const { latestFeeCalculation, bookkeepingResult } = (
         await comprehensiveAdminTransaction(async (params) => {
           const { transaction } = params
           const bookkeepingResult =
@@ -1063,6 +1086,7 @@ describe('Checkout Sessions', async () => {
             bookkeepingResult,
           })
         })
+      ).unwrap()
 
       expect(latestFeeCalculation?.purchaseId).toEqual(
         bookkeepingResult.purchase.id
@@ -1071,9 +1095,11 @@ describe('Checkout Sessions', async () => {
 
     it('should throw error when no fee calculation is found for session', async () => {
       // Delete fee calculation
-      await adminTransaction(async ({ transaction }) => {
-        await deleteFeeCalculation(feeCalculation.id, transaction)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await deleteFeeCalculation(feeCalculation.id, transaction)
+        })
+      ).unwrap()
 
       await expect(
         comprehensiveAdminTransaction(async (params) => {
@@ -1121,8 +1147,8 @@ describe('Checkout Sessions', async () => {
 
   describe('processStripeChargeForCheckoutSession', () => {
     it('should process purchase bookkeeping and create invoice for non-invoice sessions with status Pending or Succeeded', async () => {
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
+      const result = (
+        await comprehensiveAdminTransaction(async (params) => {
           const { transaction } = params
           await updateCheckoutSession(
             {
@@ -1141,8 +1167,8 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(chargeResult)
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.purchase).toMatchObject({})
       expect(result.invoice).toMatchObject({})
@@ -1157,8 +1183,8 @@ describe('Checkout Sessions', async () => {
         customer.stripeCustomerId!
       )
 
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
+      const result = (
+        await comprehensiveAdminTransaction(async (params) => {
           const chargeResult =
             await processStripeChargeForCheckoutSession(
               {
@@ -1168,16 +1194,16 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(chargeResult)
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.purchase).toBeNull()
       expect(result.invoice).toBeNull()
     })
 
     it('should update checkout session with customer information from charge', async () => {
-      const result = await comprehensiveAdminTransaction(
-        async (params) => {
+      const result = (
+        await comprehensiveAdminTransaction(async (params) => {
           const { transaction } = params
           await updateCheckoutSession(
             {
@@ -1197,8 +1223,8 @@ describe('Checkout Sessions', async () => {
               createProcessingEffectsContext(params)
             )
           return Result.ok(chargeResult)
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.checkoutSession.customerName).toEqual(
         succeededCharge.billing_details?.name
@@ -1236,8 +1262,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         livemode: false,
       })
       // Update to remove billing address for testing
-      morCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
+      morCheckoutSession = (
+        await adminTransaction(async ({ transaction }) => {
           return updateCheckoutSession(
             {
               ...session,
@@ -1245,8 +1271,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             } as CheckoutSession.Update,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
     })
 
     it('calculates tax when billing address is set and session becomes fee-ready', async () => {
@@ -1260,8 +1286,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: morCheckoutSession.id,
@@ -1269,8 +1295,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.checkoutSession.billingAddress).toEqual(
         billingAddress
@@ -1297,8 +1323,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
       }
 
       // First set CA address
-      const firstResult = await adminTransaction(
-        async ({ transaction }) => {
+      const firstResult = (
+        await adminTransaction(async ({ transaction }) => {
           return editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: morCheckoutSession.id,
@@ -1306,8 +1332,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const firstFeeCalculationId = firstResult.feeCalculation?.id
 
@@ -1322,8 +1348,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         },
       }
 
-      const secondResult = await adminTransaction(
-        async ({ transaction }) => {
+      const secondResult = (
+        await adminTransaction(async ({ transaction }) => {
           return editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: morCheckoutSession.id,
@@ -1331,8 +1357,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(secondResult.checkoutSession.billingAddress).toEqual(
         orAddress
@@ -1356,8 +1382,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         livemode: false,
       })
       // Update to remove paymentMethodType and billingAddress for testing
-      const notFeeReadySession = await adminTransaction(
-        async ({ transaction }) => {
+      const notFeeReadySession = (
+        await adminTransaction(async ({ transaction }) => {
           return updateCheckoutSession(
             {
               ...session,
@@ -1366,8 +1392,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             } as CheckoutSession.Update,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const billingAddress: BillingAddress = {
         address: {
@@ -1379,8 +1405,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: notFeeReadySession.id,
@@ -1388,8 +1414,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.checkoutSession.billingAddress).toEqual(
         billingAddress
@@ -1422,8 +1448,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         quantity: 1,
         livemode: false,
       })
-      const platformCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
+      const platformCheckoutSession = (
+        await adminTransaction(async ({ transaction }) => {
           return updateCheckoutSession(
             {
               ...session,
@@ -1431,8 +1457,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             } as CheckoutSession.Update,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const billingAddress: BillingAddress = {
         address: {
@@ -1444,8 +1470,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
         },
       }
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           return editCheckoutSessionBillingAddress(
             {
               checkoutSessionId: platformCheckoutSession.id,
@@ -1453,8 +1479,8 @@ describe('editCheckoutSessionBillingAddress', async () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result.checkoutSession.billingAddress).toEqual(
         billingAddress

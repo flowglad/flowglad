@@ -23,7 +23,7 @@ const CheckoutSessionPage = async ({
   params: Promise<{ checkoutSessionId: string }>
 }) => {
   const { checkoutSessionId } = await params
-  const { checkoutSession, sellerOrganization, customer } =
+  const { checkoutSession, sellerOrganization, customer } = (
     await adminTransaction(async ({ transaction }) => {
       const checkoutSession = await selectCheckoutSessionById(
         checkoutSessionId,
@@ -48,6 +48,7 @@ const CheckoutSessionPage = async ({
         customer,
       }
     })
+  ).unwrap()
 
   if (!checkoutSession) {
     notFound()

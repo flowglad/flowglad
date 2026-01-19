@@ -37,74 +37,77 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   beforeEach(async () => {
     // Set up organization and pricing model with default product and price
-    const result = await adminTransaction(async ({ transaction }) => {
-      const { organization } = await setupOrg()
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const { organization } = await setupOrg()
 
-      // Create pricing model with default product using the new bookkeeping function
-      const bookkeepingResult = await createPricingModelBookkeeping(
-        {
-          pricingModel: {
-            name: 'Test Pricing Model',
-            isDefault: false, // Can't have multiple defaults per org
+        // Create pricing model with default product using the new bookkeeping function
+        const bookkeepingResult = (
+          await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Test Pricing Model',
+                isDefault: false, // Can't have multiple defaults per org
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+        ).unwrap()
+
+        // Create a regular product with a regular price for comparison
+        const regularProduct = await insertProduct(
+          {
+            name: 'Regular Product',
+            slug: 'regular-product',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId: bookkeepingResult.pricingModel.id,
+            organizationId: organization.id,
+            livemode,
+            active: true,
           },
-        },
-        {
-          transaction,
+          transaction
+        )
+
+        const regularPrice = await insertPrice(
+          {
+            productId: regularProduct.id,
+            unitPrice: 1000,
+            isDefault: true,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: organization.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Regular Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: null,
+          },
+          transaction
+        )
+
+        return {
           organizationId: organization.id,
-          livemode,
+          pricingModelId: bookkeepingResult.pricingModel.id,
+          defaultProductId: bookkeepingResult.defaultProduct.id,
+          defaultPriceId: bookkeepingResult.defaultPrice.id,
+          regularProductId: regularProduct.id,
+          regularPriceId: regularPrice.id,
         }
-      )
-
-      // Create a regular product with a regular price for comparison
-      const regularProduct = await insertProduct(
-        {
-          name: 'Regular Product',
-          slug: 'regular-product',
-          default: false,
-          description: null,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          externalId: null,
-          pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
-          organizationId: organization.id,
-          livemode,
-          active: true,
-        },
-        transaction
-      )
-
-      const regularPrice = await insertPrice(
-        {
-          productId: regularProduct.id,
-          unitPrice: 1000,
-          isDefault: true,
-          type: PriceType.Subscription,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: organization.defaultCurrency,
-          livemode,
-          active: true,
-          name: 'Regular Price',
-          trialPeriodDays: null,
-          usageEventsPerUnit: null,
-          usageMeterId: null,
-          externalId: null,
-          slug: null,
-        },
-        transaction
-      )
-
-      return {
-        organizationId: organization.id,
-        pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
-        defaultProductId:
-          bookkeepingResult.unwrap().defaultProduct.id,
-        defaultPriceId: bookkeepingResult.unwrap().defaultPrice.id,
-        regularProductId: regularProduct.id,
-        regularPriceId: regularPrice.id,
-      }
-    })
+      })
+    ).unwrap()
 
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
@@ -140,8 +143,8 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should allow unitPrice of 0 for default price on default product', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           const existingPrice = await selectPriceById(
             defaultPriceId,
             transaction
@@ -176,8 +179,8 @@ describe('pricesRouter - Default Price Constraints', () => {
           )
 
           return updatedPrice
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toMatchObject({})
       expect(result.unitPrice).toBe(0)
@@ -236,8 +239,8 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should allow updating non-financial fields on default price of default product', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           const existingPrice = await selectPriceById(
             defaultPriceId,
             transaction
@@ -272,8 +275,8 @@ describe('pricesRouter - Default Price Constraints', () => {
           )
 
           return updatedPrice
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toMatchObject({})
       expect(result.name).toBe('Updated Default Price Name')
@@ -322,57 +325,61 @@ describe('pricesRouter - Default Price Constraints', () => {
         path: '',
       }
       // create another product with its own price
-      await adminTransaction(async ({ transaction }) => {
-        const otherProduct = await insertProduct(
-          {
-            name: 'Another Product',
-            slug: 'another-product',
-            default: false,
-            description: null,
-            imageURL: null,
-            singularQuantityLabel: null,
-            pluralQuantityLabel: null,
-            externalId: null,
-            pricingModelId,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const otherProduct = await insertProduct(
+            {
+              name: 'Another Product',
+              slug: 'another-product',
+              default: false,
+              description: null,
+              imageURL: null,
+              singularQuantityLabel: null,
+              pluralQuantityLabel: null,
+              externalId: null,
+              pricingModelId,
+              organizationId,
+              livemode,
+              active: true,
+            },
+            transaction
+          )
+          const org = await orgSetup.selectOrganizationById(
             organizationId,
-            livemode,
-            active: true,
-          },
-          transaction
-        )
-        const org = await orgSetup.selectOrganizationById(
-          organizationId,
-          transaction
-        )
-        const otherPrice = await insertPrice(
-          {
-            productId: otherProduct.id,
-            unitPrice: 4000,
-            isDefault: true,
-            type: PriceType.Subscription,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            currency: org.defaultCurrency,
-            livemode,
-            active: true,
-            name: 'Other Price',
-            trialPeriodDays: null,
-            usageEventsPerUnit: null,
-            usageMeterId: null,
-            externalId: null,
-            slug: null,
-          },
-          transaction
-        )
-        await expect(
-          productsRouter.createCaller(ctx as TRPCApiContext).update({
-            // @ts-expect-error - Intentionally providing minimal product object for cross-product price guard test
-            product: { id: defaultProductId },
-            // @ts-expect-error - Intentionally providing minimal price object for cross-product price guard test
-            price: { id: otherPrice.id },
-          })
-        ).rejects.toThrow(TRPCError)
-      })
+            transaction
+          )
+          const otherPrice = await insertPrice(
+            {
+              productId: otherProduct.id,
+              unitPrice: 4000,
+              isDefault: true,
+              type: PriceType.Subscription,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              currency: org.defaultCurrency,
+              livemode,
+              active: true,
+              name: 'Other Price',
+              trialPeriodDays: null,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+              externalId: null,
+              slug: null,
+            },
+            transaction
+          )
+          await expect(
+            productsRouter
+              .createCaller(ctx as TRPCApiContext)
+              .update({
+                // @ts-expect-error - Intentionally providing minimal product object for cross-product price guard test
+                product: { id: defaultProductId },
+                // @ts-expect-error - Intentionally providing minimal price object for cross-product price guard test
+                price: { id: otherPrice.id },
+              })
+          ).rejects.toThrow(TRPCError)
+        })
+      ).unwrap()
     })
 
     it('pricesRouter.create: enforces single default per product and auto-default for first price', async () => {
@@ -407,8 +414,8 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('editPrice - Regular Prices', () => {
     it('should allow updating unitPrice on regular prices', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           const existingPrice = await selectPriceById(
             regularPriceId,
             transaction
@@ -436,16 +443,16 @@ describe('pricesRouter - Default Price Constraints', () => {
           )
 
           return updatedPrice
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toMatchObject({})
       expect(result.unitPrice).toBe(2000)
     })
 
     it('should allow changing isDefault status on regular prices', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
+      const result = (
+        await adminTransaction(async ({ transaction }) => {
           // First create another price to be the new default
           await insertPrice(
             {
@@ -495,8 +502,8 @@ describe('pricesRouter - Default Price Constraints', () => {
           )
 
           return updatedPrice
-        }
-      )
+        })
+      ).unwrap()
 
       expect(result).toMatchObject({})
       expect(result.isDefault).toBe(false)
@@ -553,8 +560,8 @@ describe('pricesRouter - Default Price Constraints', () => {
       }
 
       // First, create a new product without any prices in the same organization
-      const newProduct = await adminTransaction(
-        async ({ transaction }) => {
+      const newProduct = (
+        await adminTransaction(async ({ transaction }) => {
           const pricingModel = await createPricingModelBookkeeping(
             {
               pricingModel: {
@@ -588,8 +595,8 @@ describe('pricesRouter - Default Price Constraints', () => {
           )
 
           return product
-        }
-      )
+        })
+      ).unwrap()
 
       // This should succeed - default price on non-default product with non-zero price
       const result = await pricesRouter
@@ -701,230 +708,233 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   const livemode = true
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      const { organization } = await setupOrg()
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const { organization } = await setupOrg()
 
-      // Create pricing model with default product
-      const bookkeepingResult = await createPricingModelBookkeeping(
-        {
-          pricingModel: {
-            name: 'Test Pricing Model for Usage Prices',
-            isDefault: false,
+        // Create pricing model with default product
+        const bookkeepingResult = (
+          await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Test Pricing Model for Usage Prices',
+                isDefault: false,
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+        ).unwrap()
+
+        const pricingModelId = bookkeepingResult.pricingModel.id
+
+        // Create two usage meters
+        const usageMeterA = await insertUsageMeter(
+          {
+            name: 'Fast Generations',
+            slug: 'fast-generations',
+            organizationId: organization.id,
+            pricingModelId,
+            livemode,
+            aggregationType: UsageMeterAggregationType.Sum,
           },
-        },
-        {
-          transaction,
+          transaction
+        )
+
+        const usageMeterB = await insertUsageMeter(
+          {
+            name: 'Slow Generations',
+            slug: 'slow-generations',
+            organizationId: organization.id,
+            pricingModelId,
+            livemode,
+            aggregationType: UsageMeterAggregationType.Sum,
+          },
+          transaction
+        )
+
+        // Create products for usage prices
+        const usageProductA = await insertProduct(
+          {
+            name: 'Usage Product A',
+            slug: 'usage-product-a',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId,
+            organizationId: organization.id,
+            livemode,
+            active: true,
+          },
+          transaction
+        )
+
+        const usageProductB = await insertProduct(
+          {
+            name: 'Usage Product B',
+            slug: 'usage-product-b',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId,
+            organizationId: organization.id,
+            livemode,
+            active: true,
+          },
+          transaction
+        )
+
+        const usageProductC = await insertProduct(
+          {
+            name: 'Usage Product C',
+            slug: 'usage-product-c',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId,
+            organizationId: organization.id,
+            livemode,
+            active: true,
+          },
+          transaction
+        )
+
+        const subscriptionProduct = await insertProduct(
+          {
+            name: 'Subscription Product',
+            slug: 'subscription-product',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId,
+            organizationId: organization.id,
+            livemode,
+            active: true,
+          },
+          transaction
+        )
+
+        // Create usage price for meter A (active)
+        // Usage prices don't have productId - they belong to usage meters
+        const usagePriceA = await insertPrice(
+          {
+            productId: null,
+            pricingModelId,
+            unitPrice: 100,
+            isDefault: true,
+            type: PriceType.Usage,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: organization.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Usage Price A',
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            usageMeterId: usageMeterA.id,
+            externalId: null,
+            slug: 'usage-price-a',
+          },
+          transaction
+        )
+
+        // Create usage price for meter B (active)
+        // Usage prices don't have productId - they belong to usage meters
+        const usagePriceB = await insertPrice(
+          {
+            productId: null,
+            pricingModelId,
+            unitPrice: 200,
+            isDefault: true,
+            type: PriceType.Usage,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: organization.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Usage Price B',
+            trialPeriodDays: null,
+            usageEventsPerUnit: 100,
+            usageMeterId: usageMeterB.id,
+            externalId: null,
+            slug: 'usage-price-b',
+          },
+          transaction
+        )
+
+        // Create inactive usage price for meter A.
+        // Usage prices don't have productId (they belong to usage meters).
+        const inactiveUsagePrice = await insertPrice(
+          {
+            productId: null,
+            pricingModelId,
+            unitPrice: 50,
+            isDefault: false,
+            type: PriceType.Usage,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: organization.defaultCurrency,
+            livemode,
+            active: false,
+            name: 'Inactive Usage Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: 10,
+            usageMeterId: usageMeterA.id,
+            externalId: null,
+            slug: 'inactive-usage-price',
+          },
+          transaction
+        )
+
+        // Create a subscription price (not usage)
+        const subscriptionPrice = await insertPrice(
+          {
+            productId: subscriptionProduct.id,
+            unitPrice: 1000,
+            isDefault: true,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: organization.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Subscription Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: 'subscription-price',
+          },
+          transaction
+        )
+
+        return {
           organizationId: organization.id,
-          livemode,
+          pricingModelId,
+          usageMeterAId: usageMeterA.id,
+          usageMeterBId: usageMeterB.id,
+          usagePriceAId: usagePriceA.id,
+          usagePriceBId: usagePriceB.id,
+          subscriptionPriceId: subscriptionPrice.id,
+          inactiveUsagePriceId: inactiveUsagePrice.id,
         }
-      )
-
-      const pricingModelId =
-        bookkeepingResult.unwrap().pricingModel.id
-
-      // Create two usage meters
-      const usageMeterA = await insertUsageMeter(
-        {
-          name: 'Fast Generations',
-          slug: 'fast-generations',
-          organizationId: organization.id,
-          pricingModelId,
-          livemode,
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-        transaction
-      )
-
-      const usageMeterB = await insertUsageMeter(
-        {
-          name: 'Slow Generations',
-          slug: 'slow-generations',
-          organizationId: organization.id,
-          pricingModelId,
-          livemode,
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-        transaction
-      )
-
-      // Create products for usage prices
-      const usageProductA = await insertProduct(
-        {
-          name: 'Usage Product A',
-          slug: 'usage-product-a',
-          default: false,
-          description: null,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          externalId: null,
-          pricingModelId,
-          organizationId: organization.id,
-          livemode,
-          active: true,
-        },
-        transaction
-      )
-
-      const usageProductB = await insertProduct(
-        {
-          name: 'Usage Product B',
-          slug: 'usage-product-b',
-          default: false,
-          description: null,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          externalId: null,
-          pricingModelId,
-          organizationId: organization.id,
-          livemode,
-          active: true,
-        },
-        transaction
-      )
-
-      const usageProductC = await insertProduct(
-        {
-          name: 'Usage Product C',
-          slug: 'usage-product-c',
-          default: false,
-          description: null,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          externalId: null,
-          pricingModelId,
-          organizationId: organization.id,
-          livemode,
-          active: true,
-        },
-        transaction
-      )
-
-      const subscriptionProduct = await insertProduct(
-        {
-          name: 'Subscription Product',
-          slug: 'subscription-product',
-          default: false,
-          description: null,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          externalId: null,
-          pricingModelId,
-          organizationId: organization.id,
-          livemode,
-          active: true,
-        },
-        transaction
-      )
-
-      // Create usage price for meter A (active)
-      // Usage prices don't have productId - they belong to usage meters
-      const usagePriceA = await insertPrice(
-        {
-          productId: null,
-          pricingModelId,
-          unitPrice: 100,
-          isDefault: true,
-          type: PriceType.Usage,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: organization.defaultCurrency,
-          livemode,
-          active: true,
-          name: 'Usage Price A',
-          trialPeriodDays: null,
-          usageEventsPerUnit: 1,
-          usageMeterId: usageMeterA.id,
-          externalId: null,
-          slug: 'usage-price-a',
-        },
-        transaction
-      )
-
-      // Create usage price for meter B (active)
-      // Usage prices don't have productId - they belong to usage meters
-      const usagePriceB = await insertPrice(
-        {
-          productId: null,
-          pricingModelId,
-          unitPrice: 200,
-          isDefault: true,
-          type: PriceType.Usage,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: organization.defaultCurrency,
-          livemode,
-          active: true,
-          name: 'Usage Price B',
-          trialPeriodDays: null,
-          usageEventsPerUnit: 100,
-          usageMeterId: usageMeterB.id,
-          externalId: null,
-          slug: 'usage-price-b',
-        },
-        transaction
-      )
-
-      // Create inactive usage price for meter A.
-      // Usage prices don't have productId (they belong to usage meters).
-      const inactiveUsagePrice = await insertPrice(
-        {
-          productId: null,
-          pricingModelId,
-          unitPrice: 50,
-          isDefault: false,
-          type: PriceType.Usage,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: organization.defaultCurrency,
-          livemode,
-          active: false,
-          name: 'Inactive Usage Price',
-          trialPeriodDays: null,
-          usageEventsPerUnit: 10,
-          usageMeterId: usageMeterA.id,
-          externalId: null,
-          slug: 'inactive-usage-price',
-        },
-        transaction
-      )
-
-      // Create a subscription price (not usage)
-      const subscriptionPrice = await insertPrice(
-        {
-          productId: subscriptionProduct.id,
-          unitPrice: 1000,
-          isDefault: true,
-          type: PriceType.Subscription,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: organization.defaultCurrency,
-          livemode,
-          active: true,
-          name: 'Subscription Price',
-          trialPeriodDays: null,
-          usageEventsPerUnit: null,
-          usageMeterId: null,
-          externalId: null,
-          slug: 'subscription-price',
-        },
-        transaction
-      )
-
-      return {
-        organizationId: organization.id,
-        pricingModelId,
-        usageMeterAId: usageMeterA.id,
-        usageMeterBId: usageMeterB.id,
-        usagePriceAId: usagePriceA.id,
-        usagePriceBId: usagePriceB.id,
-        subscriptionPriceId: subscriptionPrice.id,
-        inactiveUsagePriceId: inactiveUsagePrice.id,
-      }
-    })
+      })
+    ).unwrap()
 
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
@@ -1075,66 +1085,69 @@ describe('pricesRouter - API Contract Updates', () => {
   const livemode = true
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      const { organization } = await setupOrg()
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const { organization } = await setupOrg()
 
-      // Create pricing model with default product
-      const bookkeepingResult = await createPricingModelBookkeeping(
-        {
-          pricingModel: {
-            name: 'Test Pricing Model for PR4',
-            isDefault: false,
+        // Create pricing model with default product
+        const bookkeepingResult = (
+          await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Test Pricing Model for PR4',
+                isDefault: false,
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+        ).unwrap()
+
+        const pricingModelId = bookkeepingResult.pricingModel.id
+
+        // Create a usage meter
+        const usageMeter = await insertUsageMeter(
+          {
+            name: 'API Calls',
+            slug: 'api-calls',
+            organizationId: organization.id,
+            pricingModelId,
+            livemode,
+            aggregationType: UsageMeterAggregationType.Sum,
           },
-        },
-        {
-          transaction,
+          transaction
+        )
+
+        // Create a regular product (for testing subscription prices)
+        const regularProduct = await insertProduct(
+          {
+            name: 'Regular Product',
+            slug: 'regular-product-pr4',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId,
+            organizationId: organization.id,
+            livemode,
+            active: true,
+          },
+          transaction
+        )
+
+        return {
           organizationId: organization.id,
-          livemode,
+          pricingModelId,
+          usageMeterId: usageMeter.id,
+          regularProductId: regularProduct.id,
         }
-      )
-
-      const pricingModelId =
-        bookkeepingResult.unwrap().pricingModel.id
-
-      // Create a usage meter
-      const usageMeter = await insertUsageMeter(
-        {
-          name: 'API Calls',
-          slug: 'api-calls',
-          organizationId: organization.id,
-          pricingModelId,
-          livemode,
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-        transaction
-      )
-
-      // Create a regular product (for testing subscription prices)
-      const regularProduct = await insertProduct(
-        {
-          name: 'Regular Product',
-          slug: 'regular-product-pr4',
-          default: false,
-          description: null,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          externalId: null,
-          pricingModelId,
-          organizationId: organization.id,
-          livemode,
-          active: true,
-        },
-        transaction
-      )
-
-      return {
-        organizationId: organization.id,
-        pricingModelId,
-        usageMeterId: usageMeter.id,
-        regularProductId: regularProduct.id,
-      }
-    })
+      })
+    ).unwrap()
 
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
@@ -1299,111 +1312,114 @@ describe('pricesRouter.replaceUsagePrice', () => {
   const livemode = true
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      const { organization } = await setupOrg()
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const { organization } = await setupOrg()
 
-      // Create pricing model with default product
-      const bookkeepingResult = await createPricingModelBookkeeping(
-        {
-          pricingModel: {
-            name: 'Test Pricing Model for replaceUsagePrice',
-            isDefault: false,
+        // Create pricing model with default product
+        const bookkeepingResult = (
+          await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Test Pricing Model for replaceUsagePrice',
+                isDefault: false,
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+        ).unwrap()
+
+        const pricingModelId = bookkeepingResult.pricingModel.id
+
+        // Create a usage meter
+        const usageMeter = await insertUsageMeter(
+          {
+            name: 'API Calls for Replace Test',
+            slug: 'api-calls-replace-test',
+            organizationId: organization.id,
+            pricingModelId,
+            livemode,
+            aggregationType: UsageMeterAggregationType.Sum,
           },
-        },
-        {
-          transaction,
-          organizationId: organization.id,
-          livemode,
-        }
-      )
+          transaction
+        )
 
-      const pricingModelId =
-        bookkeepingResult.unwrap().pricingModel.id
+        // Create a usage price
+        const usagePrice = await insertPrice(
+          {
+            productId: null,
+            pricingModelId,
+            unitPrice: 100,
+            isDefault: true,
+            type: PriceType.Usage,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: organization.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Original Usage Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: 10,
+            usageMeterId: usageMeter.id,
+            externalId: null,
+            slug: 'original-usage-price',
+          },
+          transaction
+        )
 
-      // Create a usage meter
-      const usageMeter = await insertUsageMeter(
-        {
-          name: 'API Calls for Replace Test',
-          slug: 'api-calls-replace-test',
+        // Create a regular product with subscription price (for negative test)
+        const regularProduct = await insertProduct(
+          {
+            name: 'Regular Product for Replace Test',
+            slug: 'regular-product-replace-test',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId,
+            organizationId: organization.id,
+            livemode,
+            active: true,
+          },
+          transaction
+        )
+
+        const subscriptionPrice = await insertPrice(
+          {
+            productId: regularProduct.id,
+            unitPrice: 1000,
+            isDefault: true,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: organization.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Subscription Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: 'subscription-price-replace-test',
+          },
+          transaction
+        )
+
+        return {
           organizationId: organization.id,
           pricingModelId,
-          livemode,
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-        transaction
-      )
-
-      // Create a usage price
-      const usagePrice = await insertPrice(
-        {
-          productId: null,
-          pricingModelId,
-          unitPrice: 100,
-          isDefault: true,
-          type: PriceType.Usage,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: organization.defaultCurrency,
-          livemode,
-          active: true,
-          name: 'Original Usage Price',
-          trialPeriodDays: null,
-          usageEventsPerUnit: 10,
           usageMeterId: usageMeter.id,
-          externalId: null,
-          slug: 'original-usage-price',
-        },
-        transaction
-      )
-
-      // Create a regular product with subscription price (for negative test)
-      const regularProduct = await insertProduct(
-        {
-          name: 'Regular Product for Replace Test',
-          slug: 'regular-product-replace-test',
-          default: false,
-          description: null,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          externalId: null,
-          pricingModelId,
-          organizationId: organization.id,
-          livemode,
-          active: true,
-        },
-        transaction
-      )
-
-      const subscriptionPrice = await insertPrice(
-        {
-          productId: regularProduct.id,
-          unitPrice: 1000,
-          isDefault: true,
-          type: PriceType.Subscription,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: organization.defaultCurrency,
-          livemode,
-          active: true,
-          name: 'Subscription Price',
-          trialPeriodDays: null,
-          usageEventsPerUnit: null,
-          usageMeterId: null,
-          externalId: null,
-          slug: 'subscription-price-replace-test',
-        },
-        transaction
-      )
-
-      return {
-        organizationId: organization.id,
-        pricingModelId,
-        usageMeterId: usageMeter.id,
-        usagePriceId: usagePrice.id,
-        subscriptionPriceId: subscriptionPrice.id,
-      }
-    })
+          usagePriceId: usagePrice.id,
+          subscriptionPriceId: subscriptionPrice.id,
+        }
+      })
+    ).unwrap()
 
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId
@@ -1587,8 +1603,8 @@ describe('pricesRouter.replaceUsagePrice', () => {
     }
 
     // Create a second usage price for the same meter
-    const secondPrice = await adminTransaction(
-      async ({ transaction }) => {
+    const secondPrice = (
+      await adminTransaction(async ({ transaction }) => {
         const org = await orgSetup.selectOrganizationById(
           organizationId,
           transaction
@@ -1614,8 +1630,8 @@ describe('pricesRouter.replaceUsagePrice', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Replace the first usage price
     const result = await pricesRouter
@@ -1643,11 +1659,11 @@ describe('pricesRouter.replaceUsagePrice', () => {
     expect(result.newPrice.active).toBe(true)
 
     // Verify second price is still active (not affected by the replacement)
-    const secondPriceAfter = await adminTransaction(
-      async ({ transaction }) => {
+    const secondPriceAfter = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPriceById(secondPrice.id, transaction)
-      }
-    )
+      })
+    ).unwrap()
 
     expect(secondPriceAfter.active).toBe(true)
     expect(secondPriceAfter.unitPrice).toBe(500)
@@ -1664,90 +1680,93 @@ describe('pricesRouter - Reserved Slug Validation', () => {
   const livemode = true
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      const { organization } = await setupOrg()
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const { organization } = await setupOrg()
 
-      // Create pricing model with default product
-      const bookkeepingResult = await createPricingModelBookkeeping(
-        {
-          pricingModel: {
-            name: 'Test Pricing Model for Reserved Slug Validation',
-            isDefault: false,
+        // Create pricing model with default product
+        const bookkeepingResult = (
+          await createPricingModelBookkeeping(
+            {
+              pricingModel: {
+                name: 'Test Pricing Model for Reserved Slug Validation',
+                isDefault: false,
+              },
+            },
+            {
+              transaction,
+              organizationId: organization.id,
+              livemode,
+            }
+          )
+        ).unwrap()
+
+        const pricingModelId = bookkeepingResult.pricingModel.id
+
+        // Create a usage meter
+        const usageMeter = await insertUsageMeter(
+          {
+            name: 'API Calls Reserved Test',
+            slug: 'api-calls-reserved-test',
+            organizationId: organization.id,
+            pricingModelId,
+            livemode,
+            aggregationType: UsageMeterAggregationType.Sum,
           },
-        },
-        {
-          transaction,
-          organizationId: organization.id,
-          livemode,
-        }
-      )
+          transaction
+        )
 
-      const pricingModelId =
-        bookkeepingResult.unwrap().pricingModel.id
+        // Create a regular product (for testing subscription prices)
+        const regularProduct = await insertProduct(
+          {
+            name: 'Regular Product Reserved Test',
+            slug: 'regular-product-reserved-test',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId,
+            organizationId: organization.id,
+            livemode,
+            active: true,
+          },
+          transaction
+        )
 
-      // Create a usage meter
-      const usageMeter = await insertUsageMeter(
-        {
-          name: 'API Calls Reserved Test',
-          slug: 'api-calls-reserved-test',
+        // Create an existing usage price for replacement tests
+        const existingUsagePrice = await insertPrice(
+          {
+            productId: null,
+            pricingModelId,
+            unitPrice: 100,
+            isDefault: true,
+            type: PriceType.Usage,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            currency: organization.defaultCurrency,
+            livemode,
+            active: true,
+            name: 'Existing Usage Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: 10,
+            usageMeterId: usageMeter.id,
+            externalId: null,
+            slug: 'existing-usage-price',
+          },
+          transaction
+        )
+
+        return {
           organizationId: organization.id,
           pricingModelId,
-          livemode,
-          aggregationType: UsageMeterAggregationType.Sum,
-        },
-        transaction
-      )
-
-      // Create a regular product (for testing subscription prices)
-      const regularProduct = await insertProduct(
-        {
-          name: 'Regular Product Reserved Test',
-          slug: 'regular-product-reserved-test',
-          default: false,
-          description: null,
-          imageURL: null,
-          singularQuantityLabel: null,
-          pluralQuantityLabel: null,
-          externalId: null,
-          pricingModelId,
-          organizationId: organization.id,
-          livemode,
-          active: true,
-        },
-        transaction
-      )
-
-      // Create an existing usage price for replacement tests
-      const existingUsagePrice = await insertPrice(
-        {
-          productId: null,
-          pricingModelId,
-          unitPrice: 100,
-          isDefault: true,
-          type: PriceType.Usage,
-          intervalUnit: IntervalUnit.Month,
-          intervalCount: 1,
-          currency: organization.defaultCurrency,
-          livemode,
-          active: true,
-          name: 'Existing Usage Price',
-          trialPeriodDays: null,
-          usageEventsPerUnit: 10,
           usageMeterId: usageMeter.id,
-          externalId: null,
-          slug: 'existing-usage-price',
-        },
-        transaction
-      )
-
-      return {
-        organizationId: organization.id,
-        pricingModelId,
-        usageMeterId: usageMeter.id,
-        regularProductId: regularProduct.id,
-        existingUsagePriceId: existingUsagePrice.id,
-      }
-    })
+          regularProductId: regularProduct.id,
+          existingUsagePriceId: existingUsagePrice.id,
+        }
+      })
+    ).unwrap()
 
     organizationId = result.organizationId
     pricingModelId = result.pricingModelId

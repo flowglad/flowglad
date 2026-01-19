@@ -12,9 +12,11 @@ export const memberInsertedTask = task({
     { ctx }
   ) => {
     const { userId } = payload.record
-    const user = await adminTransaction(async ({ transaction }) =>
-      selectUserById(userId, transaction)
-    )
+    const user = (
+      await adminTransaction(async ({ transaction }) =>
+        selectUserById(userId, transaction)
+      )
+    ).unwrap()
     if (!user) {
       throw new Error(
         `User not found for membership with userId ${userId}`

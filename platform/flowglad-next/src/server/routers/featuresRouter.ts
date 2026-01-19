@@ -82,7 +82,7 @@ const listFeaturesProcedure = protectedProcedure
       {
         apiKey: ctx.apiKey,
       }
-    )
+    ).then((result) => result.unwrap())
   })
 
 export const updateFeature = protectedProcedure

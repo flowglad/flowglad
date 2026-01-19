@@ -1,9 +1,8 @@
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
-  authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
   authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   bulkInsertUsageEventsSchema,
@@ -52,45 +51,50 @@ export const createUsageEvent = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createUsageEventWithSlugSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const {
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({
           transaction,
           emitEvent,
           invalidateCache,
           enqueueLedgerCommand,
-        } = transactionCtx
-        const resolvedInput = await resolveUsageEventInput(
-          input,
-          transaction
-        )
+        }) => {
+          const resolvedInput = await resolveUsageEventInput(
+            input,
+            transaction
+          )
 
-        const result = await ingestAndProcessUsageEvent(
-          { input: resolvedInput, livemode: ctx.livemode },
-          {
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-          }
-        )
-        return Result.ok(result)
-      }
-    )
-  )
+          const usageEventResult = await ingestAndProcessUsageEvent(
+            { input: resolvedInput, livemode: ctx.livemode },
+            {
+              transaction,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+          return Result.ok(usageEventResult)
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const getUsageEvent = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    const usageEvent = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventById(input.id, transaction)
-      },
-      { apiKey: ctx.apiKey }
-    )
+    const usageEvent = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventById(input.id, transaction)
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
     return { usageEvent }
   })
 
@@ -109,19 +113,33 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
   .output(
     z.object({ usageEvents: z.array(usageEventsClientSelectSchema) })
   )
-  .mutation(
-    authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        return bulkInsertUsageEventsTransaction(
-          {
-            input,
-            livemode: ctx.livemode,
-          },
-          transactionCtx
-        )
-      }
-    )
-  )
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await comprehensiveAuthenticatedTransaction(
+        async ({
+          transaction,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+        }) => {
+          return bulkInsertUsageEventsTransaction(
+            {
+              input,
+              livemode: ctx.livemode,
+            },
+            {
+              transaction,
+              emitEvent,
+              invalidateCache,
+              enqueueLedgerCommand,
+            }
+          )
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 // List usage events with pagination
 const listUsageEventsProcedure = protectedProcedure
@@ -129,37 +147,42 @@ const listUsageEventsProcedure = protectedProcedure
   .input(usageEventPaginatedSelectSchema)
   .output(usageEventPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const result = await selectUsageEventsPaginated(
-          input,
-          transaction
-        )
-        return {
-          items: result.data,
-          total: result.total,
-          hasMore: result.hasMore,
-          nextCursor: result.nextCursor,
+    return (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const result = await selectUsageEventsPaginated(
+            input,
+            transaction
+          )
+          return {
+            items: result.data,
+            total: result.total,
+            hasMore: result.hasMore,
+            nextCursor: result.nextCursor,
+          }
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
   })
 
 // Get table rows for usage events with joins
 const getTableRowsProcedure = protectedProcedure
   .input(usageEventsPaginatedTableRowInputSchema)
   .output(usageEventsPaginatedTableRowOutputSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectUsageEventsTableRowData({ input, transaction })
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsTableRowData({ input, transaction })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const usageEventsRouter = router({
   get: getUsageEvent,

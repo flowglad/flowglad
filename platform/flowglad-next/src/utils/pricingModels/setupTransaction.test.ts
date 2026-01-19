@@ -246,12 +246,14 @@ describe('setupPricingModelTransaction (integration)', () => {
       ],
     }
 
-    const result = await adminTransaction(async ({ transaction }) =>
-      setupPricingModelTransaction(
-        { input, organizationId: organization.id, livemode: false },
-        transaction
+    const result = (
+      await adminTransaction(async ({ transaction }) =>
+        setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          transaction
+        )
       )
-    )
+    ).unwrap()
 
     // PricingModel
     expect(typeof result.pricingModel.id).toBe('string')
@@ -315,12 +317,18 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [], // No products provided
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
         )
-      )
+      ).unwrap()
 
       // Should have auto-generated default product
       expect(result.products).toHaveLength(1)
@@ -350,12 +358,18 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
         )
-      )
+      ).unwrap()
 
       const defaultPrice = result.prices[0]
       expect(defaultPrice.currency).toEqual(
@@ -401,12 +415,18 @@ describe('setupPricingModelTransaction (integration)', () => {
         ],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          transaction
+      const result = (
+        await adminTransaction(async ({ transaction }) =>
+          setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
         )
-      )
+      ).unwrap()
 
       // Should have user-provided default product, no auto-generated one
       expect(result.products).toHaveLength(1)

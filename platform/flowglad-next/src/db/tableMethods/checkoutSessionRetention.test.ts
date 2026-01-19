@@ -80,16 +80,20 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     })
     const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
     const backdate = Date.now() - fifteenDaysMs
-    await adminTransaction(async ({ transaction }) => {
-      await transaction
-        .update(checkoutSessions)
-        .set({ createdAt: backdate })
-        .where(eq(checkoutSessions.id, old.id))
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await transaction
+          .update(checkoutSessions)
+          .set({ createdAt: backdate })
+          .where(eq(checkoutSessions.id, old.id))
+      })
+    ).unwrap()
 
-    const deleted = await adminTransaction(async ({ transaction }) =>
-      deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
-    )
+    const deleted = (
+      await adminTransaction(async ({ transaction }) =>
+        deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
+      )
+    ).unwrap()
 
     expect(deleted.find((s) => s.id === old.id)).toMatchObject({
       id: old.id,
@@ -100,10 +104,11 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
         selectCheckoutSessionById(old.id, transaction)
       )
     ).rejects.toThrow()
-    const recentStillThere = await adminTransaction(
-      async ({ transaction }) =>
+    const recentStillThere = (
+      await adminTransaction(async ({ transaction }) =>
         selectCheckoutSessionById(recent.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(recentStillThere.id).toBe(recent.id)
   })
 
@@ -131,20 +136,24 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     })
     const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
     const backdate = Date.now() - fifteenDaysMs
-    await adminTransaction(async ({ transaction }) => {
-      await transaction
-        .update(checkoutSessions)
-        .set({ createdAt: backdate })
-        .where(eq(checkoutSessions.id, oldSucceeded.id))
-      await transaction
-        .update(checkoutSessions)
-        .set({ createdAt: backdate })
-        .where(eq(checkoutSessions.id, oldPending.id))
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await transaction
+          .update(checkoutSessions)
+          .set({ createdAt: backdate })
+          .where(eq(checkoutSessions.id, oldSucceeded.id))
+        await transaction
+          .update(checkoutSessions)
+          .set({ createdAt: backdate })
+          .where(eq(checkoutSessions.id, oldPending.id))
+      })
+    ).unwrap()
 
-    const deleted = await adminTransaction(async ({ transaction }) =>
-      deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
-    )
+    const deleted = (
+      await adminTransaction(async ({ transaction }) =>
+        deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
+      )
+    ).unwrap()
     expect(
       deleted.find((s) => s.id === oldSucceeded.id)
     ).toBeUndefined()
@@ -152,12 +161,16 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       deleted.find((s) => s.id === oldPending.id)
     ).toBeUndefined()
     // ensure both still present
-    const s1 = await adminTransaction(async ({ transaction }) =>
-      selectCheckoutSessionById(oldSucceeded.id, transaction)
-    )
-    const s2 = await adminTransaction(async ({ transaction }) =>
-      selectCheckoutSessionById(oldPending.id, transaction)
-    )
+    const s1 = (
+      await adminTransaction(async ({ transaction }) =>
+        selectCheckoutSessionById(oldSucceeded.id, transaction)
+      )
+    ).unwrap()
+    const s2 = (
+      await adminTransaction(async ({ transaction }) =>
+        selectCheckoutSessionById(oldPending.id, transaction)
+      )
+    ).unwrap()
     expect(s1.id).toBe(oldSucceeded.id)
     expect(s2.id).toBe(oldPending.id)
   })
@@ -186,12 +199,14 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     })
     const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
     const backdate = Date.now() - fifteenDaysMs
-    await adminTransaction(async ({ transaction }) => {
-      await transaction
-        .update(checkoutSessions)
-        .set({ createdAt: backdate })
-        .where(eq(checkoutSessions.id, old.id))
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await transaction
+          .update(checkoutSessions)
+          .set({ createdAt: backdate })
+          .where(eq(checkoutSessions.id, old.id))
+      })
+    ).unwrap()
     await setupFeeCalculation({
       checkoutSessionId: recent.id,
       organizationId,
@@ -203,17 +218,20 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       priceId,
     })
 
-    const deleted = await adminTransaction(async ({ transaction }) =>
-      deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
-    )
+    const deleted = (
+      await adminTransaction(async ({ transaction }) =>
+        deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
+      )
+    ).unwrap()
     expect(deleted.find((s) => s.id === old.id)).toMatchObject({
       id: old.id,
     })
     // Verify feeCalculation for old is gone by attempting to re-delete returns empty
-    const secondRun = await adminTransaction(
-      async ({ transaction }) =>
+    const secondRun = (
+      await adminTransaction(async ({ transaction }) =>
         deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
-    )
+      )
+    ).unwrap()
     expect(secondRun.find((s) => s.id === old.id)).toBeUndefined()
     expect(secondRun.find((s) => s.id === recent.id)).toBeUndefined()
   })
@@ -230,14 +248,17 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       quantity: 1,
       livemode: true,
     })
-    const result = await adminTransaction(async ({ transaction }) =>
-      deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
-    )
+    const result = (
+      await adminTransaction(async ({ transaction }) =>
+        deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
+      )
+    ).unwrap()
     expect(result.find((s) => s.id === recent.id)).toBeUndefined()
-    const stillThere = await adminTransaction(
-      async ({ transaction }) =>
+    const stillThere = (
+      await adminTransaction(async ({ transaction }) =>
         selectCheckoutSessionById(recent.id, transaction)
-    )
+      )
+    ).unwrap()
     expect(stillThere.id).toBe(recent.id)
   })
 
@@ -255,12 +276,14 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
         livemode: true,
       })
       const backdate = Date.now() - 15 * 24 * 60 * 60 * 1000
-      await adminTransaction(async ({ transaction }) => {
-        await transaction
-          .update(checkoutSessions)
-          .set({ createdAt: backdate })
-          .where(eq(checkoutSessions.id, s.id))
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await transaction
+            .update(checkoutSessions)
+            .set({ createdAt: backdate })
+            .where(eq(checkoutSessions.id, s.id))
+        })
+      ).unwrap()
       return s
     }
     const sOpen = await createOld(CheckoutSessionStatus.Open)
@@ -271,9 +294,11 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     )
     const sPending = await createOld(CheckoutSessionStatus.Pending)
 
-    const deleted = await adminTransaction(async ({ transaction }) =>
-      deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
-    )
+    const deleted = (
+      await adminTransaction(async ({ transaction }) =>
+        deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
+      )
+    ).unwrap()
     const deletedIds = deleted.map((s) => s.id)
     expect(deletedIds).toContain(sOpen.id)
     expect(deletedIds).toContain(sFailed.id)
@@ -296,16 +321,20 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     })
     // set createdAt to now - 14d + 60s ⇒ not older than cutoff
     const backdate = Date.now() - 14 * 24 * 60 * 60 * 1000 + 60 * 1000
-    await adminTransaction(async ({ transaction }) => {
-      await transaction
-        .update(checkoutSessions)
-        .set({ createdAt: backdate })
-        .where(eq(checkoutSessions.id, boundary.id))
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await transaction
+          .update(checkoutSessions)
+          .set({ createdAt: backdate })
+          .where(eq(checkoutSessions.id, boundary.id))
+      })
+    ).unwrap()
 
-    const deleted = await adminTransaction(async ({ transaction }) =>
-      deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
-    )
+    const deleted = (
+      await adminTransaction(async ({ transaction }) =>
+        deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
+      )
+    ).unwrap()
     expect(deleted.find((s) => s.id === boundary.id)).toBeUndefined()
   })
 
@@ -323,22 +352,28 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       livemode: true,
     })
     const backdate = Date.now() - 15 * 24 * 60 * 60 * 1000
-    await adminTransaction(async ({ transaction }) => {
-      await transaction
-        .update(checkoutSessions)
-        .set({ createdAt: backdate })
-        .where(eq(checkoutSessions.id, old.id))
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await transaction
+          .update(checkoutSessions)
+          .set({ createdAt: backdate })
+          .where(eq(checkoutSessions.id, old.id))
+      })
+    ).unwrap()
 
-    const first = await adminTransaction(async ({ transaction }) =>
-      deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
-    )
+    const first = (
+      await adminTransaction(async ({ transaction }) =>
+        deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
+      )
+    ).unwrap()
     expect(first.find((s) => s.id === old.id)).toMatchObject({
       id: old.id,
     })
-    const second = await adminTransaction(async ({ transaction }) =>
-      deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
-    )
+    const second = (
+      await adminTransaction(async ({ transaction }) =>
+        deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
+      )
+    ).unwrap()
     expect(second.find((s) => s.id === old.id)).toBeUndefined()
   })
 })

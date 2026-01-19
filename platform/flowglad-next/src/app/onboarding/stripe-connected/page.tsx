@@ -3,21 +3,23 @@ import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMe
 import { getConnectedAccount } from '@/utils/stripe'
 
 const StripeConnectedPage = async () => {
-  const organization = await authenticatedTransaction(
-    async ({ userId, transaction }) => {
-      const [membership] = await selectMembershipAndOrganizations(
-        {
-          userId,
-          focused: true,
-        },
-        transaction
-      )
-      if (!membership || !membership.organization) {
-        throw new Error('No organization found for this user')
+  const organization = (
+    await authenticatedTransaction(
+      async ({ userId, transaction }) => {
+        const [membership] = await selectMembershipAndOrganizations(
+          {
+            userId,
+            focused: true,
+          },
+          transaction
+        )
+        if (!membership || !membership.organization) {
+          throw new Error('No organization found for this user')
+        }
+        return membership.organization
       }
-      return membership.organization
-    }
-  )
+    )
+  ).unwrap()
   if (!organization.stripeAccountId) {
     return <div>No Stripe Account ID</div>
   }

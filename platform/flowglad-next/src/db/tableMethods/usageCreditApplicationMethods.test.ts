@@ -88,107 +88,113 @@ describe('Usage Credit Application Methods', () => {
 
   describe('insertUsageCreditApplication', () => {
     it('should successfully insert usage credit application and derive pricingModelId from usage credit', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Create a usage event first
-        const usageEvent = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          transactionId: `txn_${core.nanoid()}`,
-          amount: 100,
-          livemode: true,
-        })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Create a usage event first
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            transactionId: `txn_${core.nanoid()}`,
+            amount: 100,
+            livemode: true,
+          })
 
-        const usageCreditApplication =
-          await insertUsageCreditApplication(
-            {
-              organizationId: organization.id,
-              usageCreditId: usageCredit.id,
-              usageEventId: usageEvent.id,
-              amountApplied: 100,
-              appliedAt: Date.now(),
-              livemode: true,
-              status: UsageCreditApplicationStatus.Posted,
-            },
-            transaction
+          const usageCreditApplication =
+            await insertUsageCreditApplication(
+              {
+                organizationId: organization.id,
+                usageCreditId: usageCredit.id,
+                usageEventId: usageEvent.id,
+                amountApplied: 100,
+                appliedAt: Date.now(),
+                livemode: true,
+                status: UsageCreditApplicationStatus.Posted,
+              },
+              transaction
+            )
+
+          // Verify pricingModelId is correctly derived from usage credit
+          expect(usageCreditApplication.pricingModelId).toBe(
+            usageCredit.pricingModelId
           )
-
-        // Verify pricingModelId is correctly derived from usage credit
-        expect(usageCreditApplication.pricingModelId).toBe(
-          usageCredit.pricingModelId
-        )
-        expect(usageCreditApplication.pricingModelId).toBe(
-          usageMeter.pricingModelId
-        )
-        expect(usageCreditApplication.pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
+          expect(usageCreditApplication.pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+          expect(usageCreditApplication.pricingModelId).toBe(
+            pricingModel.id
+          )
+        })
+      ).unwrap()
     })
 
     it('should throw an error when usageCreditId does not exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const usageEvent = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          transactionId: `txn_${core.nanoid()}`,
-          amount: 100,
-          livemode: true,
-        })
-        const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            transactionId: `txn_${core.nanoid()}`,
+            amount: 100,
+            livemode: true,
+          })
+          const nonExistentUsageCreditId = `uc_${core.nanoid()}`
 
-        await expect(
-          insertUsageCreditApplication(
-            {
-              organizationId: organization.id,
-              usageCreditId: nonExistentUsageCreditId,
-              usageEventId: usageEvent.id,
-              amountApplied: 100,
-              appliedAt: Date.now(),
-              livemode: true,
-              status: UsageCreditApplicationStatus.Posted,
-            },
-            transaction
-          )
-        ).rejects.toThrow()
-      })
+          await expect(
+            insertUsageCreditApplication(
+              {
+                organizationId: organization.id,
+                usageCreditId: nonExistentUsageCreditId,
+                usageEventId: usageEvent.id,
+                amountApplied: 100,
+                appliedAt: Date.now(),
+                livemode: true,
+                status: UsageCreditApplicationStatus.Posted,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      ).unwrap()
     })
 
     it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const usageEvent = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          transactionId: `txn_${core.nanoid()}`,
-          amount: 100,
-          livemode: true,
-        })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const usageEvent = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            transactionId: `txn_${core.nanoid()}`,
+            amount: 100,
+            livemode: true,
+          })
 
-        const usageCreditApplication =
-          await insertUsageCreditApplication(
-            {
-              organizationId: organization.id,
-              usageCreditId: usageCredit.id,
-              usageEventId: usageEvent.id,
-              amountApplied: 100,
-              appliedAt: Date.now(),
-              livemode: true,
-              status: UsageCreditApplicationStatus.Posted,
-              pricingModelId: pricingModel.id, // explicitly provided
-            },
-            transaction
+          const usageCreditApplication =
+            await insertUsageCreditApplication(
+              {
+                organizationId: organization.id,
+                usageCreditId: usageCredit.id,
+                usageEventId: usageEvent.id,
+                amountApplied: 100,
+                appliedAt: Date.now(),
+                livemode: true,
+                status: UsageCreditApplicationStatus.Posted,
+                pricingModelId: pricingModel.id, // explicitly provided
+              },
+              transaction
+            )
+
+          // Verify the provided pricingModelId is used
+          expect(usageCreditApplication.pricingModelId).toBe(
+            pricingModel.id
           )
-
-        // Verify the provided pricingModelId is used
-        expect(usageCreditApplication.pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
+        })
+      ).unwrap()
     })
   })
 
@@ -208,70 +214,72 @@ describe('Usage Credit Application Methods', () => {
     })
 
     it('should bulk insert usage credit applications and derive pricingModelId for each', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        // Create usage events first
-        const usageEvent1 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          transactionId: `txn_${core.nanoid()}`,
-          amount: 100,
-          livemode: true,
-        })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Create usage events first
+          const usageEvent1 = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            transactionId: `txn_${core.nanoid()}`,
+            amount: 100,
+            livemode: true,
+          })
 
-        const usageEvent2 = await setupUsageEvent({
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          usageMeterId: usageMeter.id,
-          customerId: customer.id,
-          transactionId: `txn_${core.nanoid()}`,
-          amount: 200,
-          livemode: true,
-        })
+          const usageEvent2 = await setupUsageEvent({
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            usageMeterId: usageMeter.id,
+            customerId: customer.id,
+            transactionId: `txn_${core.nanoid()}`,
+            amount: 200,
+            livemode: true,
+          })
 
-        const usageCreditApplications =
-          await bulkInsertUsageCreditApplications(
-            [
-              {
-                organizationId: organization.id,
-                usageCreditId: usageCredit.id,
-                usageEventId: usageEvent1.id,
-                amountApplied: 100,
-                appliedAt: Date.now(),
-                livemode: true,
-                status: UsageCreditApplicationStatus.Posted,
-              },
-              {
-                organizationId: organization.id,
-                usageCreditId: usageCredit2.id,
-                usageEventId: usageEvent2.id,
-                amountApplied: 200,
-                appliedAt: Date.now(),
-                livemode: true,
-                status: UsageCreditApplicationStatus.Posted,
-              },
-            ],
-            transaction
+          const usageCreditApplications =
+            await bulkInsertUsageCreditApplications(
+              [
+                {
+                  organizationId: organization.id,
+                  usageCreditId: usageCredit.id,
+                  usageEventId: usageEvent1.id,
+                  amountApplied: 100,
+                  appliedAt: Date.now(),
+                  livemode: true,
+                  status: UsageCreditApplicationStatus.Posted,
+                },
+                {
+                  organizationId: organization.id,
+                  usageCreditId: usageCredit2.id,
+                  usageEventId: usageEvent2.id,
+                  amountApplied: 200,
+                  appliedAt: Date.now(),
+                  livemode: true,
+                  status: UsageCreditApplicationStatus.Posted,
+                },
+              ],
+              transaction
+            )
+
+          expect(usageCreditApplications).toHaveLength(2)
+
+          // Verify pricingModelId is correctly derived for each application
+          expect(usageCreditApplications[0]!.pricingModelId).toBe(
+            usageCredit.pricingModelId
+          )
+          expect(usageCreditApplications[0]!.pricingModelId).toBe(
+            pricingModel.id
           )
 
-        expect(usageCreditApplications).toHaveLength(2)
-
-        // Verify pricingModelId is correctly derived for each application
-        expect(usageCreditApplications[0]!.pricingModelId).toBe(
-          usageCredit.pricingModelId
-        )
-        expect(usageCreditApplications[0]!.pricingModelId).toBe(
-          pricingModel.id
-        )
-
-        expect(usageCreditApplications[1]!.pricingModelId).toBe(
-          usageCredit2.pricingModelId
-        )
-        expect(usageCreditApplications[1]!.pricingModelId).toBe(
-          pricingModel.id
-        )
-      })
+          expect(usageCreditApplications[1]!.pricingModelId).toBe(
+            usageCredit2.pricingModelId
+          )
+          expect(usageCreditApplications[1]!.pricingModelId).toBe(
+            pricingModel.id
+          )
+        })
+      ).unwrap()
     })
   })
 

@@ -19,14 +19,14 @@ export async function generateMetadata({
   const { priceId } = await params
 
   try {
-    const [{ product, organization }] = await adminTransaction(
-      async ({ transaction }) => {
+    const [{ product, organization }] = (
+      await adminTransaction(async ({ transaction }) => {
         return await selectPriceProductAndOrganizationByPriceWhere(
           { id: priceId },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     return {
       title: `${organization.name} | ${product.name}`,

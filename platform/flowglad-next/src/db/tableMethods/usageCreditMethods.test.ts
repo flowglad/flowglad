@@ -79,44 +79,12 @@ describe('Usage Credit Methods', () => {
 
   describe('insertUsageCredit', () => {
     it('should successfully insert usage credit and derive pricingModelId from usage meter', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const usageCredit = await insertUsageCredit(
-          {
-            organizationId: organization.id,
-            usageMeterId: usageMeter.id,
-            subscriptionId: subscription.id,
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-            issuedAmount: 1000,
-            issuedAt: Date.now(),
-            status: UsageCreditStatus.Posted,
-            sourceReferenceId: `src_ref_${core.nanoid()}`,
-            sourceReferenceType:
-              UsageCreditSourceReferenceType.InvoiceSettlement,
-            notes: 'Test usage credit',
-            metadata: {},
-            paymentId: null,
-          },
-          transaction
-        )
-
-        // Verify pricingModelId is correctly derived from usage meter
-        expect(usageCredit.pricingModelId).toBe(
-          usageMeter.pricingModelId
-        )
-        expect(usageCredit.pricingModelId).toBe(pricingModel.id)
-      })
-    })
-
-    it('should throw an error when usageMeterId does not exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentUsageMeterId = `um_${core.nanoid()}`
-
-        await expect(
-          insertUsageCredit(
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const usageCredit = await insertUsageCredit(
             {
               organizationId: organization.id,
-              usageMeterId: nonExistentUsageMeterId,
+              usageMeterId: usageMeter.id,
               subscriptionId: subscription.id,
               creditType: UsageCreditType.Grant,
               livemode: true,
@@ -132,36 +100,74 @@ describe('Usage Credit Methods', () => {
             },
             transaction
           )
-        ).rejects.toThrow()
-      })
+
+          // Verify pricingModelId is correctly derived from usage meter
+          expect(usageCredit.pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+          expect(usageCredit.pricingModelId).toBe(pricingModel.id)
+        })
+      ).unwrap()
+    })
+
+    it('should throw an error when usageMeterId does not exist', async () => {
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentUsageMeterId = `um_${core.nanoid()}`
+
+          await expect(
+            insertUsageCredit(
+              {
+                organizationId: organization.id,
+                usageMeterId: nonExistentUsageMeterId,
+                subscriptionId: subscription.id,
+                creditType: UsageCreditType.Grant,
+                livemode: true,
+                issuedAmount: 1000,
+                issuedAt: Date.now(),
+                status: UsageCreditStatus.Posted,
+                sourceReferenceId: `src_ref_${core.nanoid()}`,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.InvoiceSettlement,
+                notes: 'Test usage credit',
+                metadata: {},
+                paymentId: null,
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      ).unwrap()
     })
 
     it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const usageCredit = await insertUsageCredit(
-          {
-            organizationId: organization.id,
-            usageMeterId: usageMeter.id,
-            subscriptionId: subscription.id,
-            creditType: UsageCreditType.Grant,
-            livemode: true,
-            issuedAmount: 1000,
-            issuedAt: Date.now(),
-            status: UsageCreditStatus.Posted,
-            sourceReferenceId: `src_ref_${core.nanoid()}`,
-            sourceReferenceType:
-              UsageCreditSourceReferenceType.InvoiceSettlement,
-            notes: 'Test usage credit',
-            metadata: {},
-            paymentId: null,
-            pricingModelId: pricingModel.id, // explicitly provided
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const usageCredit = await insertUsageCredit(
+            {
+              organizationId: organization.id,
+              usageMeterId: usageMeter.id,
+              subscriptionId: subscription.id,
+              creditType: UsageCreditType.Grant,
+              livemode: true,
+              issuedAmount: 1000,
+              issuedAt: Date.now(),
+              status: UsageCreditStatus.Posted,
+              sourceReferenceId: `src_ref_${core.nanoid()}`,
+              sourceReferenceType:
+                UsageCreditSourceReferenceType.InvoiceSettlement,
+              notes: 'Test usage credit',
+              metadata: {},
+              paymentId: null,
+              pricingModelId: pricingModel.id, // explicitly provided
+            },
+            transaction
+          )
 
-        // Verify the provided pricingModelId is used
-        expect(usageCredit.pricingModelId).toBe(pricingModel.id)
-      })
+          // Verify the provided pricingModelId is used
+          expect(usageCredit.pricingModelId).toBe(pricingModel.id)
+        })
+      ).unwrap()
     })
   })
 
@@ -176,29 +182,33 @@ describe('Usage Credit Methods', () => {
         issuedAmount: 1000,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const pricingModelId =
-          await derivePricingModelIdFromUsageCredit(
-            usageCredit.id,
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelId =
+            await derivePricingModelIdFromUsageCredit(
+              usageCredit.id,
+              transaction
+            )
 
-        expect(pricingModelId).toBe(usageCredit.pricingModelId)
-        expect(pricingModelId).toBe(pricingModel.id)
-      })
+          expect(pricingModelId).toBe(usageCredit.pricingModelId)
+          expect(pricingModelId).toBe(pricingModel.id)
+        })
+      ).unwrap()
     })
 
     it('should throw an error when usage credit does not exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentUsageCreditId = `uc_${core.nanoid()}`
 
-        await expect(
-          derivePricingModelIdFromUsageCredit(
-            nonExistentUsageCreditId,
-            transaction
-          )
-        ).rejects.toThrow()
-      })
+          await expect(
+            derivePricingModelIdFromUsageCredit(
+              nonExistentUsageCreditId,
+              transaction
+            )
+          ).rejects.toThrow()
+        })
+      ).unwrap()
     })
   })
 
@@ -222,30 +232,34 @@ describe('Usage Credit Methods', () => {
         issuedAmount: 2000,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const pricingModelIdMap =
-          await pricingModelIdsForUsageCredits(
-            [usageCredit1.id, usageCredit2.id],
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelIdMap =
+            await pricingModelIdsForUsageCredits(
+              [usageCredit1.id, usageCredit2.id],
+              transaction
+            )
 
-        expect(pricingModelIdMap.size).toBe(2)
-        expect(pricingModelIdMap.get(usageCredit1.id)).toBe(
-          pricingModel.id
-        )
-        expect(pricingModelIdMap.get(usageCredit2.id)).toBe(
-          pricingModel.id
-        )
-      })
+          expect(pricingModelIdMap.size).toBe(2)
+          expect(pricingModelIdMap.get(usageCredit1.id)).toBe(
+            pricingModel.id
+          )
+          expect(pricingModelIdMap.get(usageCredit2.id)).toBe(
+            pricingModel.id
+          )
+        })
+      ).unwrap()
     })
 
     it('should return empty map when no usage credit IDs are provided', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const pricingModelIdMap =
-          await pricingModelIdsForUsageCredits([], transaction)
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const pricingModelIdMap =
+            await pricingModelIdsForUsageCredits([], transaction)
 
-        expect(pricingModelIdMap.size).toBe(0)
-      })
+          expect(pricingModelIdMap.size).toBe(0)
+        })
+      ).unwrap()
     })
 
     it('should only return entries for existing usage credits', async () => {
@@ -258,79 +272,87 @@ describe('Usage Credit Methods', () => {
         issuedAmount: 1000,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentUsageCreditId = `uc_${core.nanoid()}`
-        const pricingModelIdMap =
-          await pricingModelIdsForUsageCredits(
-            [usageCredit.id, nonExistentUsageCreditId],
-            transaction
-          )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const nonExistentUsageCreditId = `uc_${core.nanoid()}`
+          const pricingModelIdMap =
+            await pricingModelIdsForUsageCredits(
+              [usageCredit.id, nonExistentUsageCreditId],
+              transaction
+            )
 
-        expect(pricingModelIdMap.size).toBe(1)
-        expect(pricingModelIdMap.get(usageCredit.id)).toBe(
-          pricingModel.id
-        )
-        expect(pricingModelIdMap.has(nonExistentUsageCreditId)).toBe(
-          false
-        )
-      })
+          expect(pricingModelIdMap.size).toBe(1)
+          expect(pricingModelIdMap.get(usageCredit.id)).toBe(
+            pricingModel.id
+          )
+          expect(
+            pricingModelIdMap.has(nonExistentUsageCreditId)
+          ).toBe(false)
+        })
+      ).unwrap()
     })
   })
 
   describe('bulkInsertUsageCredits', () => {
     it('should bulk insert usage credits and derive pricingModelId for each', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const usageCredits = await bulkInsertUsageCredits(
-          [
-            {
-              organizationId: organization.id,
-              usageMeterId: usageMeter.id,
-              subscriptionId: subscription.id,
-              creditType: UsageCreditType.Grant,
-              livemode: true,
-              issuedAmount: 1000,
-              issuedAt: Date.now(),
-              status: UsageCreditStatus.Posted,
-              sourceReferenceId: `src_ref_${core.nanoid()}`,
-              sourceReferenceType:
-                UsageCreditSourceReferenceType.InvoiceSettlement,
-              notes: 'Test usage credit 1',
-              metadata: {},
-              paymentId: null,
-            },
-            {
-              organizationId: organization.id,
-              usageMeterId: usageMeter.id,
-              subscriptionId: subscription.id,
-              creditType: UsageCreditType.Grant,
-              livemode: true,
-              issuedAmount: 2000,
-              issuedAt: Date.now(),
-              status: UsageCreditStatus.Posted,
-              sourceReferenceId: `src_ref_${core.nanoid()}`,
-              sourceReferenceType:
-                UsageCreditSourceReferenceType.InvoiceSettlement,
-              notes: 'Test usage credit 2',
-              metadata: {},
-              paymentId: null,
-            },
-          ],
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const usageCredits = await bulkInsertUsageCredits(
+            [
+              {
+                organizationId: organization.id,
+                usageMeterId: usageMeter.id,
+                subscriptionId: subscription.id,
+                creditType: UsageCreditType.Grant,
+                livemode: true,
+                issuedAmount: 1000,
+                issuedAt: Date.now(),
+                status: UsageCreditStatus.Posted,
+                sourceReferenceId: `src_ref_${core.nanoid()}`,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.InvoiceSettlement,
+                notes: 'Test usage credit 1',
+                metadata: {},
+                paymentId: null,
+              },
+              {
+                organizationId: organization.id,
+                usageMeterId: usageMeter.id,
+                subscriptionId: subscription.id,
+                creditType: UsageCreditType.Grant,
+                livemode: true,
+                issuedAmount: 2000,
+                issuedAt: Date.now(),
+                status: UsageCreditStatus.Posted,
+                sourceReferenceId: `src_ref_${core.nanoid()}`,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.InvoiceSettlement,
+                notes: 'Test usage credit 2',
+                metadata: {},
+                paymentId: null,
+              },
+            ],
+            transaction
+          )
 
-        expect(usageCredits).toHaveLength(2)
+          expect(usageCredits).toHaveLength(2)
 
-        // Verify pricingModelId is correctly derived for each usage credit
-        expect(usageCredits[0]!.pricingModelId).toBe(
-          usageMeter.pricingModelId
-        )
-        expect(usageCredits[0]!.pricingModelId).toBe(pricingModel.id)
+          // Verify pricingModelId is correctly derived for each usage credit
+          expect(usageCredits[0]!.pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+          expect(usageCredits[0]!.pricingModelId).toBe(
+            pricingModel.id
+          )
 
-        expect(usageCredits[1]!.pricingModelId).toBe(
-          usageMeter.pricingModelId
-        )
-        expect(usageCredits[1]!.pricingModelId).toBe(pricingModel.id)
-      })
+          expect(usageCredits[1]!.pricingModelId).toBe(
+            usageMeter.pricingModelId
+          )
+          expect(usageCredits[1]!.pricingModelId).toBe(
+            pricingModel.id
+          )
+        })
+      ).unwrap()
     })
   })
 

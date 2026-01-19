@@ -109,13 +109,15 @@ describe('Single Free Subscription Constraint', () => {
         name: 'Second Free Sub',
       }
 
-      await adminTransaction(async ({ transaction }) => {
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).rejects.toThrow(
-          /already has an active free subscription.*Only one free subscription is allowed per customer/
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await expect(
+            verifyCanCreateSubscription(params, transaction)
+          ).rejects.toThrow(
+            /already has an active free subscription.*Only one free subscription is allowed per customer/
+          )
+        })
+      ).unwrap()
     })
 
     it('should allow creating a paid subscription when a free subscription exists', async () => {
@@ -155,21 +157,23 @@ describe('Single Free Subscription Constraint', () => {
         name: 'Paid Sub',
       }
 
-      await adminTransaction(async ({ transaction }) => {
-        // Update organization to allow multiple subscriptions
-        await updateOrganization(
-          {
-            id: organization.id,
-            allowMultipleSubscriptionsPerCustomer: true,
-          },
-          transaction
-        )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // Update organization to allow multiple subscriptions
+          await updateOrganization(
+            {
+              id: organization.id,
+              allowMultipleSubscriptionsPerCustomer: true,
+            },
+            transaction
+          )
 
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
-      })
+          // This should not throw
+          await expect(
+            verifyCanCreateSubscription(params, transaction)
+          ).resolves.not.toThrow()
+        })
+      ).unwrap()
     })
 
     it('should allow creating a free subscription when no active free subscription exists', async () => {
@@ -202,25 +206,29 @@ describe('Single Free Subscription Constraint', () => {
         name: 'New Free Sub',
       }
 
-      await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // This should not throw
+          await expect(
+            verifyCanCreateSubscription(params, transaction)
+          ).resolves.not.toThrow()
+        })
+      ).unwrap()
     })
 
     it('should allow multiple paid subscriptions when organization allows it', async () => {
       // Update organization to allow multiple subscriptions
-      await adminTransaction(async ({ transaction }) => {
-        await updateOrganization(
-          {
-            id: organization.id,
-            allowMultipleSubscriptionsPerCustomer: true,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateOrganization(
+            {
+              id: organization.id,
+              allowMultipleSubscriptionsPerCustomer: true,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       // Create first paid subscription
       const paymentMethod = await setupPaymentMethod({
@@ -258,12 +266,14 @@ describe('Single Free Subscription Constraint', () => {
         name: 'Second Paid Sub',
       }
 
-      await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          // This should not throw
+          await expect(
+            verifyCanCreateSubscription(params, transaction)
+          ).resolves.not.toThrow()
+        })
+      ).unwrap()
     })
   })
 })

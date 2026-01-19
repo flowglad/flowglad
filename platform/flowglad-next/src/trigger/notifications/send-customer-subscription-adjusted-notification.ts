@@ -50,7 +50,7 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
       }
     )
 
-    const { organization, customer, subscription, price } =
+    const { organization, customer, subscription, price } = (
       await adminTransaction(async ({ transaction }) => {
         const organization = await selectOrganizationById(
           payload.organizationId,
@@ -75,6 +75,7 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
           price,
         }
       })
+    ).unwrap()
 
     if (!organization || !customer || !subscription || !price) {
       throw new Error('Required data not found')

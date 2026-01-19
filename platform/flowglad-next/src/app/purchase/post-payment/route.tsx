@@ -52,7 +52,7 @@ const processPaymentIntent = async ({
   if (!paymentIntent) {
     throw new Error(`Payment intent not found: ${paymentIntentId}`)
   }
-  const { payment, purchase, invoice, checkoutSession } =
+  const { payment, purchase, invoice, checkoutSession } = (
     await comprehensiveAdminTransaction(async (ctx) => {
       const { transaction } = ctx
       const { payment } = await processPaymentIntentStatusUpdated(
@@ -103,6 +103,7 @@ const processPaymentIntent = async ({
         invoice,
       })
     })
+  ).unwrap()
   return {
     purchase,
     invoice,
@@ -131,8 +132,8 @@ const processCheckoutSession = async ({
   checkoutSessionId,
   request,
 }: ProcessCheckoutSessionParams): Promise<ProcessCheckoutSessionResult> => {
-  const result = await comprehensiveAdminTransaction(
-    async (params) => {
+  const result = (
+    await comprehensiveAdminTransaction(async (params) => {
       const { transaction } = params
       const [checkoutSession] = await selectCheckoutSessions(
         {
@@ -157,8 +158,8 @@ const processCheckoutSession = async ({
         purchase,
         invoice,
       })
-    }
-  )
+    })
+  ).unwrap()
 
   /**
    * If the purchase session has a success url, redirect to it.
@@ -194,11 +195,11 @@ const processSetupIntent = async ({
   checkoutSession: CheckoutSession.Record
 }> => {
   const setupIntent = await getSetupIntent(setupIntentId)
-  const setupSuceededResult = await comprehensiveAdminTransaction(
-    async (ctx) => {
+  const setupSuceededResult = (
+    await comprehensiveAdminTransaction(async (ctx) => {
       return processSetupIntentSucceeded(setupIntent, ctx)
-    }
-  )
+    })
+  ).unwrap()
 
   const { purchase, checkoutSession, type } = setupSuceededResult
   if (
@@ -300,8 +301,8 @@ export const GET = async (request: NextRequest) => {
      */
     if (purchase) {
       const priceId = purchase.priceId
-      const { product } = await adminTransaction(
-        async ({ transaction }) => {
+      const { product } = (
+        await adminTransaction(async ({ transaction }) => {
           // Usage prices have null productId, causing innerJoin to return empty array
           const results =
             await selectPriceProductAndOrganizationByPriceWhere(
@@ -313,8 +314,8 @@ export const GET = async (request: NextRequest) => {
           return {
             product: results.length > 0 ? results[0].product : null,
           }
-        }
-      )
+        })
+      ).unwrap()
 
       /**
        * As the purchase session cookie is no longer needed, delete it.

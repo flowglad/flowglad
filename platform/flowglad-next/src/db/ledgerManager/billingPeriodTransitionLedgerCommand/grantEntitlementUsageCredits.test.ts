@@ -238,8 +238,8 @@ describe('grantEntitlementUsageCredits', () => {
       baseSubscriptionItemFeature,
     ]
 
-    const { usageCredits, ledgerEntries } = await adminTransaction(
-      async ({ transaction }) => {
+    const { usageCredits, ledgerEntries } = (
+      await adminTransaction(async ({ transaction }) => {
         return await grantEntitlementUsageCredits(
           {
             ledgerAccountsByUsageMeterId,
@@ -248,8 +248,8 @@ describe('grantEntitlementUsageCredits', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(usageCredits.length).toBe(1)
     const usageCredit = usageCredits[0]
@@ -295,15 +295,17 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.sourceUsageCreditId).toBe(usageCredit.id)
     expect(ledgerEntry.billingPeriodId).toBe(newBillingPeriod.id)
 
-    await adminTransaction(async ({ transaction }) => {
-      const balance =
-        await aggregateBalanceForLedgerAccountFromEntries(
-          { ledgerAccountId: ledgerAccount1.id },
-          'available',
-          transaction
-        )
-      expect(balance).toBe(baseSubscriptionItemFeature.amount)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const balance =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount1.id },
+            'available',
+            transaction
+          )
+        expect(balance).toBe(baseSubscriptionItemFeature.amount)
+      })
+    ).unwrap()
   })
 
   it('should grant multiple entitlement usage credits and create corresponding ledger entries', async () => {
@@ -359,16 +361,18 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId,
-          ledgerTransaction: testLedgerTransaction,
-          command,
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(createdUsageCredits.length).toBe(2)
     // Sort by usageMeterId to ensure consistent order for assertions
@@ -465,22 +469,24 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry2!.sourceUsageCreditId).toBe(usageCredit2!.id)
     expect(ledgerEntry2!.billingPeriodId).toBe(newBillingPeriod.id)
 
-    await adminTransaction(async ({ transaction }) => {
-      const balance1 =
-        await aggregateBalanceForLedgerAccountFromEntries(
-          { ledgerAccountId: ledgerAccount1.id },
-          'available',
-          transaction
-        )
-      expect(balance1).toBe(amount1)
-      const balance2 =
-        await aggregateBalanceForLedgerAccountFromEntries(
-          { ledgerAccountId: ledgerAccount2.id },
-          'available',
-          transaction
-        )
-      expect(balance2).toBe(amount2)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const balance1 =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount1.id },
+            'available',
+            transaction
+          )
+        expect(balance1).toBe(amount1)
+        const balance2 =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount2.id },
+            'available',
+            transaction
+          )
+        expect(balance2).toBe(amount2)
+      })
+    ).unwrap()
   })
 
   it('should only process feature items with usageMeterIds', async () => {
@@ -519,16 +525,18 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId,
-          ledgerTransaction: testLedgerTransaction,
-          command,
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(createdUsageCredits.length).toBe(1)
     const usageCredit = createdUsageCredits[0]
@@ -566,15 +574,17 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.sourceUsageCreditId).toBe(usageCredit.id)
     expect(ledgerEntry.billingPeriodId).toBe(newBillingPeriod.id)
 
-    await adminTransaction(async ({ transaction }) => {
-      const balance =
-        await aggregateBalanceForLedgerAccountFromEntries(
-          { ledgerAccountId: ledgerAccount1.id },
-          'available',
-          transaction
-        )
-      expect(balance).toBe(amountWithMeter)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const balance =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount1.id },
+            'available',
+            transaction
+          )
+        expect(balance).toBe(amountWithMeter)
+      })
+    ).unwrap()
   })
 
   it('should handle cases with no feature items having usageMeterIds', async () => {
@@ -597,16 +607,18 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId,
-          ledgerTransaction: testLedgerTransaction,
-          command,
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Expects:
     // - Query the `usageCredits` table:
@@ -617,15 +629,17 @@ describe('grantEntitlementUsageCredits', () => {
     //   - Expect 0 LedgerEntry records of type CreditGrantRecognized.
     expect(createdLedgerEntries.length).toBe(0)
 
-    await adminTransaction(async ({ transaction }) => {
-      const balance =
-        await aggregateBalanceForLedgerAccountFromEntries(
-          { ledgerAccountId: ledgerAccount1.id },
-          'available',
-          transaction
-        )
-      expect(balance).toBe(0)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const balance =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount1.id },
+            'available',
+            transaction
+          )
+        expect(balance).toBe(0)
+      })
+    ).unwrap()
   })
 
   it('should correctly propagate livemode: false to usage credits and ledger entries', async () => {
@@ -641,16 +655,18 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId,
-          ledgerTransaction: testLedgerTransaction,
-          command, // command now has livemode: false
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command, // command now has livemode: false
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(createdUsageCredits.length).toBe(1)
     const usageCredit = createdUsageCredits[0]
@@ -691,15 +707,17 @@ describe('grantEntitlementUsageCredits', () => {
     expect(ledgerEntry.sourceUsageCreditId).toBe(usageCredit.id)
     expect(ledgerEntry.billingPeriodId).toBe(newBillingPeriod.id)
 
-    await adminTransaction(async ({ transaction }) => {
-      const balance =
-        await aggregateBalanceForLedgerAccountFromEntries(
-          { ledgerAccountId: ledgerAccount1.id },
-          'available',
-          transaction
-        )
-      expect(balance).toBe(testAmount)
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const balance =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: ledgerAccount1.id },
+            'available',
+            transaction
+          )
+        expect(balance).toBe(testAmount)
+      })
+    ).unwrap()
   })
 
   it('should create ledger accounts for usage meters that do not yet have accounts in this subscription', async () => {
@@ -755,17 +773,19 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      // The ledgerAccountsByUsageMeterId passed here is the original one from beforeEach
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId, // This map is intentionally missing usageMeter2's account
-          ledgerTransaction: testLedgerTransaction,
-          command,
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        // The ledgerAccountsByUsageMeterId passed here is the original one from beforeEach
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId, // This map is intentionally missing usageMeter2's account
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Assertions:
     // 1. Ledger Accounts
@@ -789,8 +809,8 @@ describe('grantEntitlementUsageCredits', () => {
     expect(newLedgerAccount?.subscriptionId).toBe(subscription.id)
     expect(newLedgerAccount?.usageMeterId).toBe(usageMeter2.id)
     expect(newLedgerAccount?.livemode).toBe(command.livemode)
-    const newBalance = await adminTransaction(
-      async ({ transaction }) => {
+    const newBalance = (
+      await adminTransaction(async ({ transaction }) => {
         return await aggregateBalanceForLedgerAccountFromEntries(
           {
             ledgerAccountId: newLedgerAccount?.id!,
@@ -798,8 +818,8 @@ describe('grantEntitlementUsageCredits', () => {
           'available',
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     expect(newBalance).toBe(amountForNewSif) // Initial balance after grant
 
     // 2. Usage Credits
@@ -849,23 +869,25 @@ describe('grantEntitlementUsageCredits', () => {
     expect(le2?.amount).toBe(amountForNewSif)
     expect(le2?.entryType).toBe(LedgerEntryType.CreditGrantRecognized)
 
-    await adminTransaction(async ({ transaction }) => {
-      const originalBalance =
-        await aggregateBalanceForLedgerAccountFromEntries(
-          { ledgerAccountId: originalLedgerAccount!.id },
-          'available',
-          transaction
-        )
-      expect(originalBalance).toBe(amountForBaseSif)
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const originalBalance =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: originalLedgerAccount!.id },
+            'available',
+            transaction
+          )
+        expect(originalBalance).toBe(amountForBaseSif)
 
-      const newBalance =
-        await aggregateBalanceForLedgerAccountFromEntries(
-          { ledgerAccountId: newLedgerAccount!.id },
-          'available',
-          transaction
-        )
-      expect(newBalance).toBe(amountForNewSif)
-    })
+        const newBalance =
+          await aggregateBalanceForLedgerAccountFromEntries(
+            { ledgerAccountId: newLedgerAccount!.id },
+            'available',
+            transaction
+          )
+        expect(newBalance).toBe(amountForNewSif)
+      })
+    ).unwrap()
   })
 
   describe('Grant Frequency Logic', () => {
@@ -932,8 +954,8 @@ describe('grantEntitlementUsageCredits', () => {
       // Ledger account for usageMeter2 will be auto-created
 
       // Action
-      const { usageCredits, ledgerEntries } = await adminTransaction(
-        async ({ transaction }) => {
+      const { usageCredits, ledgerEntries } = (
+        await adminTransaction(async ({ transaction }) => {
           return await grantEntitlementUsageCredits(
             {
               ledgerAccountsByUsageMeterId,
@@ -942,8 +964,8 @@ describe('grantEntitlementUsageCredits', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Assert
       expect(usageCredits.length).toBe(2)
@@ -965,35 +987,37 @@ describe('grantEntitlementUsageCredits', () => {
       ) // Recurring grants should expire
 
       // Verify balances
-      await adminTransaction(async ({ transaction }) => {
-        const balance1 =
-          await aggregateBalanceForLedgerAccountFromEntries(
-            { ledgerAccountId: ledgerAccount1.id },
-            'available',
-            transaction
-          )
-        expect(balance1).toBe(featureOnce.amount)
-
-        const ledgerAccount2 = (
-          await transaction
-            .select()
-            .from(ledgerAccounts)
-            .where(
-              and(
-                eq(ledgerAccounts.subscriptionId, subscription.id),
-                eq(ledgerAccounts.usageMeterId, usageMeter2.id)
-              )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const balance1 =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount1.id },
+              'available',
+              transaction
             )
-        )[0]
+          expect(balance1).toBe(featureOnce.amount)
 
-        const balance2 =
-          await aggregateBalanceForLedgerAccountFromEntries(
-            { ledgerAccountId: ledgerAccount2.id },
-            'available',
-            transaction
-          )
-        expect(balance2).toBe(featureEvery.amount)
-      })
+          const ledgerAccount2 = (
+            await transaction
+              .select()
+              .from(ledgerAccounts)
+              .where(
+                and(
+                  eq(ledgerAccounts.subscriptionId, subscription.id),
+                  eq(ledgerAccounts.usageMeterId, usageMeter2.id)
+                )
+              )
+          )[0]
+
+          const balance2 =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount2.id },
+              'available',
+              transaction
+            )
+          expect(balance2).toBe(featureEvery.amount)
+        })
+      ).unwrap()
     })
 
     it('should only grant "EveryBillingPeriod" credits on subsequent grants (previousBillingPeriod exists)', async () => {
@@ -1056,8 +1080,8 @@ describe('grantEntitlementUsageCredits', () => {
       command.payload.subscriptionFeatureItems = [sifOnce, sifEvery]
 
       // Action
-      const { usageCredits, ledgerEntries } = await adminTransaction(
-        async ({ transaction }) => {
+      const { usageCredits, ledgerEntries } = (
+        await adminTransaction(async ({ transaction }) => {
           return await grantEntitlementUsageCredits(
             {
               ledgerAccountsByUsageMeterId,
@@ -1066,8 +1090,8 @@ describe('grantEntitlementUsageCredits', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Assert
       expect(usageCredits.length).toBe(1)
@@ -1082,35 +1106,37 @@ describe('grantEntitlementUsageCredits', () => {
       ) // Recurring grants should expire
 
       // Verify balances
-      await adminTransaction(async ({ transaction }) => {
-        const balance1 =
-          await aggregateBalanceForLedgerAccountFromEntries(
-            { ledgerAccountId: ledgerAccount1.id },
-            'available',
-            transaction
-          )
-        expect(balance1).toBe(0) // No "Once" grant was issued
-
-        const ledgerAccount2 = (
-          await transaction
-            .select()
-            .from(ledgerAccounts)
-            .where(
-              and(
-                eq(ledgerAccounts.subscriptionId, subscription.id),
-                eq(ledgerAccounts.usageMeterId, usageMeter2.id)
-              )
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const balance1 =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount1.id },
+              'available',
+              transaction
             )
-        )[0]
+          expect(balance1).toBe(0) // No "Once" grant was issued
 
-        const balance2 =
-          await aggregateBalanceForLedgerAccountFromEntries(
-            { ledgerAccountId: ledgerAccount2.id },
-            'available',
-            transaction
-          )
-        expect(balance2).toBe(featureEvery.amount)
-      })
+          const ledgerAccount2 = (
+            await transaction
+              .select()
+              .from(ledgerAccounts)
+              .where(
+                and(
+                  eq(ledgerAccounts.subscriptionId, subscription.id),
+                  eq(ledgerAccounts.usageMeterId, usageMeter2.id)
+                )
+              )
+          )[0]
+
+          const balance2 =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount2.id },
+              'available',
+              transaction
+            )
+          expect(balance2).toBe(featureEvery.amount)
+        })
+      ).unwrap()
     })
 
     it('should grant no credits on a subsequent grant if only "Once" entitlements exist', async () => {
@@ -1142,8 +1168,8 @@ describe('grantEntitlementUsageCredits', () => {
       command.payload.subscriptionFeatureItems = [sifOnce]
 
       // Action
-      const { usageCredits, ledgerEntries } = await adminTransaction(
-        async ({ transaction }) => {
+      const { usageCredits, ledgerEntries } = (
+        await adminTransaction(async ({ transaction }) => {
           return await grantEntitlementUsageCredits(
             {
               ledgerAccountsByUsageMeterId,
@@ -1152,25 +1178,27 @@ describe('grantEntitlementUsageCredits', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Assert
       expect(usageCredits.length).toBe(0)
       expect(ledgerEntries.length).toBe(0)
 
       // Verify balance
-      await adminTransaction(async ({ transaction }) => {
-        const balance =
-          await aggregateBalanceForLedgerAccountFromEntries(
-            {
-              ledgerAccountId: ledgerAccount1.id,
-            },
-            'available',
-            transaction
-          )
-        expect(balance).toBe(0)
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          const balance =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              {
+                ledgerAccountId: ledgerAccount1.id,
+              },
+              'available',
+              transaction
+            )
+          expect(balance).toBe(0)
+        })
+      ).unwrap()
     })
   })
 })

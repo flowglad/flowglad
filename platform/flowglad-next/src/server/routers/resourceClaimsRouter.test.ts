@@ -156,8 +156,8 @@ describe('resourceClaimsRouter', () => {
     })
 
     // Create Resource features
-    const seatsFeature = await adminTransaction(
-      async ({ transaction }) => {
+    const seatsFeature = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeature(
           {
             organizationId: organization.id,
@@ -175,11 +175,11 @@ describe('resourceClaimsRouter', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const projectsFeature = await adminTransaction(
-      async ({ transaction }) => {
+    const projectsFeature = (
+      await adminTransaction(async ({ transaction }) => {
         return insertFeature(
           {
             organizationId: organization.id,
@@ -197,8 +197,8 @@ describe('resourceClaimsRouter', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     subscriptionItemFeature =
       await setupResourceSubscriptionItemFeature({

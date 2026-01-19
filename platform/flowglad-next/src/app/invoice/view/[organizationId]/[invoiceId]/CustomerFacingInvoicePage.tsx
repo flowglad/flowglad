@@ -16,43 +16,46 @@ export const CustomerFacingInvoicePage = (
     params: Promise<{ invoiceId: string; organizationId: string }>
   }) => {
     const { invoiceId, organizationId } = await params
-    const result = await adminTransaction(async ({ transaction }) => {
-      const invoicesWithLineItems =
-        await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { id: invoiceId },
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const invoicesWithLineItems =
+          await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+            { id: invoiceId },
+            transaction
+          )
+
+        if (invoicesWithLineItems.length === 0) {
+          return null
+        }
+        const customer = await selectCustomerById(
+          invoicesWithLineItems[0].invoice.customerId,
           transaction
         )
-
-      if (invoicesWithLineItems.length === 0) {
-        return null
-      }
-      const customer = await selectCustomerById(
-        invoicesWithLineItems[0].invoice.customerId,
-        transaction
-      )
-      const organization = await selectOrganizationById(
-        invoicesWithLineItems[0].invoice.organizationId,
-        transaction
-      )
-      const payments =
-        await selectPaymentsAndPaymentMethodsByPaymentsWhere(
-          { invoiceId: invoiceId },
+        const organization = await selectOrganizationById(
+          invoicesWithLineItems[0].invoice.organizationId,
           transaction
         )
+        const payments =
+          await selectPaymentsAndPaymentMethodsByPaymentsWhere(
+            { invoiceId: invoiceId },
+            transaction
+          )
 
-      // Fetch discount information if there's a billing period
-      const invoice = invoicesWithLineItems[0].invoice
-      const discountInfo = await fetchDiscountInfoForInvoice(invoice)
+        // Fetch discount information if there's a billing period
+        const invoice = invoicesWithLineItems[0].invoice
+        const discountInfo =
+          await fetchDiscountInfoForInvoice(invoice)
 
-      return {
-        invoice: invoice,
-        invoiceLineItems: invoicesWithLineItems[0].invoiceLineItems,
-        customer: customer,
-        organization: organization,
-        payments,
-        discountInfo,
-      }
-    })
+        return {
+          invoice: invoice,
+          invoiceLineItems: invoicesWithLineItems[0].invoiceLineItems,
+          customer: customer,
+          organization: organization,
+          payments,
+          discountInfo,
+        }
+      })
+    ).unwrap()
 
     if (!result) {
       notFound()

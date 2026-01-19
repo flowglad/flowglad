@@ -93,14 +93,14 @@ const commonOrgInvariants = async (
   expect(result.membership.focused).toBe(true)
 
   // Verify pricing models exist (livemode + testmode)
-  const pricingModels = await adminTransaction(
-    async ({ transaction }) => {
+  const pricingModels = (
+    await adminTransaction(async ({ transaction }) => {
       return selectPricingModels(
         { organizationId: result.organization.id },
         transaction
       )
-    }
-  )
+    })
+  ).unwrap()
   expect(pricingModels).toHaveLength(2)
   const livemodeModels = pricingModels.filter((pm) => pm.livemode)
   const testmodeModels = pricingModels.filter((pm) => !pm.livemode)
@@ -108,12 +108,14 @@ const commonOrgInvariants = async (
   expect(testmodeModels).toHaveLength(1)
 
   // Verify default products exist
-  const products = await adminTransaction(async ({ transaction }) => {
-    return selectProducts(
-      { organizationId: result.organization.id },
-      transaction
-    )
-  })
+  const products = (
+    await adminTransaction(async ({ transaction }) => {
+      return selectProducts(
+        { organizationId: result.organization.id },
+        transaction
+      )
+    })
+  ).unwrap()
   // Should have at least 2 products (one per mode)
   expect(products.length).toBeGreaterThanOrEqual(2)
 }
@@ -128,14 +130,14 @@ const authInvariants = async (result: AuthenticateUserResult) => {
   expect(result.user.email).toContain('@flowglad.com')
 
   // User has no memberships yet
-  const memberships = await adminTransaction(
-    async ({ transaction }) => {
+  const memberships = (
+    await adminTransaction(async ({ transaction }) => {
       return selectMemberships(
         { userId: result.user.id },
         transaction
       )
-    }
-  )
+    })
+  ).unwrap()
   expect(memberships).toHaveLength(0)
 }
 

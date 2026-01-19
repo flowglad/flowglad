@@ -88,15 +88,15 @@ describe('API Key RLS', () => {
     apiKeyOrgA = userApiKeyA.apiKey
 
     // Get the membership that was created by setupUserAndApiKey
-    membershipA_OrgA = await adminTransaction(
-      async ({ transaction }) => {
+    membershipA_OrgA = (
+      await adminTransaction(async ({ transaction }) => {
         const [membership] = await selectMemberships(
           { userId: userA.id, organizationId: orgA.id },
           transaction
         )
         return membership
-      }
-    )
+      })
+    ).unwrap()
 
     // Create another API key for orgB (different user)
     const userApiKeyB = await setupUserAndApiKey({
@@ -106,8 +106,8 @@ describe('API Key RLS', () => {
     apiKeyOrgB = userApiKeyB.apiKey
 
     // Add userA to orgB with focused = true (simulating user switched to orgB)
-    membershipA_OrgB = await adminTransaction(
-      async ({ transaction }) => {
+    membershipA_OrgB = (
+      await adminTransaction(async ({ transaction }) => {
         return insertMembership(
           {
             organizationId: orgB.id,
@@ -117,30 +117,32 @@ describe('API Key RLS', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Update userA's membership in orgA to be unfocused
-    await adminTransaction(async ({ transaction }) => {
-      await updateMembership(
-        {
-          ...membershipA_OrgA,
-          focused: false,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updateMembership(
+          {
+            ...membershipA_OrgA,
+            focused: false,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Refresh membershipA_OrgA after update
-    membershipA_OrgA = await adminTransaction(
-      async ({ transaction }) => {
+    membershipA_OrgA = (
+      await adminTransaction(async ({ transaction }) => {
         const [membership] = await selectMemberships(
           { userId: userA.id, organizationId: orgA.id },
           transaction
         )
         return membership
-      }
-    )
+      })
+    ).unwrap()
 
     // Create customers in each org
     customerInOrgA = await setupCustomer({
@@ -159,12 +161,14 @@ describe('API Key RLS', () => {
 
     it('should access organization record when membership is focused', async () => {
       // Use orgB's API key where userA has focused membership
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectOrganizations({}, transaction)
-        },
-        { apiKey: apiKeyOrgB.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectOrganizations({}, transaction)
+          },
+          { apiKey: apiKeyOrgB.token }
+        )
+      ).unwrap()
 
       expect(result.length).toBeGreaterThan(0)
       expect(result.some((org) => org.id === orgB.id)).toBe(true)
@@ -178,12 +182,14 @@ describe('API Key RLS', () => {
       // Verify precondition: userA's membership in orgA is unfocused
       expect(membershipA_OrgA.focused).toBe(false)
 
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectOrganizations({}, transaction)
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectOrganizations({}, transaction)
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       expect(result.length).toBeGreaterThan(0)
       expect(result.some((org) => org.id === orgA.id)).toBe(true)
@@ -193,12 +199,14 @@ describe('API Key RLS', () => {
       // Verify precondition
       expect(membershipA_OrgA.focused).toBe(false)
 
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectMemberships({}, transaction)
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectMemberships({}, transaction)
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       expect(result.length).toBeGreaterThan(0)
       expect(result.some((m) => m.id === membershipA_OrgA.id)).toBe(
@@ -209,12 +217,14 @@ describe('API Key RLS', () => {
     it('should access customers with unfocused membership', async () => {
       expect(membershipA_OrgA.focused).toBe(false)
 
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectCustomers({}, transaction)
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectCustomers({}, transaction)
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       expect(result.length).toBeGreaterThan(0)
       expect(result.some((c) => c.id === customerInOrgA.id)).toBe(
@@ -225,12 +235,14 @@ describe('API Key RLS', () => {
     it('should access products with unfocused membership', async () => {
       expect(membershipA_OrgA.focused).toBe(false)
 
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectProducts({}, transaction)
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectProducts({}, transaction)
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       expect(result.length).toBeGreaterThan(0)
       expect(result.some((p) => p.id === productInOrgA.id)).toBe(true)
@@ -239,12 +251,14 @@ describe('API Key RLS', () => {
     it('should return correct userId and organizationId in transaction context', async () => {
       expect(membershipA_OrgA.focused).toBe(false)
 
-      const result = await authenticatedTransaction(
-        async ({ userId, organizationId }) => {
-          return { userId, organizationId }
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ userId, organizationId }) => {
+            return { userId, organizationId }
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       expect(result.userId).toBe(userA.id)
       expect(result.organizationId).toBe(orgA.id)
@@ -256,12 +270,14 @@ describe('API Key RLS', () => {
     // orgA's API key should NOT access orgB's data
 
     it('should NOT access customers from different org', async () => {
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectCustomers({}, transaction)
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectCustomers({}, transaction)
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       // Should only see orgA's customers, NOT orgB's
       expect(result.some((c) => c.id === customerInOrgA.id)).toBe(
@@ -273,12 +289,14 @@ describe('API Key RLS', () => {
     })
 
     it('should NOT access products from different org', async () => {
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectProducts({}, transaction)
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectProducts({}, transaction)
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       // Should only see orgA's products, NOT orgB's
       expect(result.some((p) => p.id === productInOrgA.id)).toBe(true)
@@ -288,12 +306,14 @@ describe('API Key RLS', () => {
     })
 
     it('should NOT access organization record from different org', async () => {
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectOrganizations({}, transaction)
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectOrganizations({}, transaction)
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       // Should only see orgA, NOT orgB
       expect(result.some((org) => org.id === orgA.id)).toBe(true)
@@ -313,12 +333,14 @@ describe('API Key RLS', () => {
       expect(membershipA_OrgA.focused).toBe(false)
 
       // If this works, auth_type must be 'api_key'
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectMemberships({}, transaction)
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectMemberships({}, transaction)
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       expect(result.length).toBeGreaterThan(0)
     })
@@ -348,12 +370,14 @@ describe('API Key RLS', () => {
     })
 
     it('should NOT access livemode customers with testmode API key', async () => {
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectCustomers({}, transaction)
-        },
-        { apiKey: apiKeyOrgA.token } // testmode key
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectCustomers({}, transaction)
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap() // testmode key
 
       // Should see testmode customer but NOT livemode
       expect(result.some((c) => c.id === testmodeCustomer.id)).toBe(
@@ -365,12 +389,14 @@ describe('API Key RLS', () => {
     })
 
     it('should NOT access testmode customers with livemode API key', async () => {
-      const result = await authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectCustomers({}, transaction)
-        },
-        { apiKey: livemodeApiKey.token }
-      )
+      const result = (
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            return selectCustomers({}, transaction)
+          },
+          { apiKey: livemodeApiKey.token }
+        )
+      ).unwrap()
 
       // Should see livemode customer but NOT testmode
       expect(result.some((c) => c.id === livemodeCustomer.id)).toBe(
@@ -388,13 +414,15 @@ describe('API Key RLS', () => {
 
     it('orgA API key accesses only orgA data, orgB API key accesses only orgB data', async () => {
       // Using orgA's API key
-      const resultA = await authenticatedTransaction(
-        async ({ transaction, organizationId }) => {
-          const customers = await selectCustomers({}, transaction)
-          return { customers, organizationId }
-        },
-        { apiKey: apiKeyOrgA.token }
-      )
+      const resultA = (
+        await authenticatedTransaction(
+          async ({ transaction, organizationId }) => {
+            const customers = await selectCustomers({}, transaction)
+            return { customers, organizationId }
+          },
+          { apiKey: apiKeyOrgA.token }
+        )
+      ).unwrap()
 
       expect(resultA.organizationId).toBe(orgA.id)
       expect(
@@ -402,13 +430,15 @@ describe('API Key RLS', () => {
       ).toBe(true)
 
       // Using orgB's API key
-      const resultB = await authenticatedTransaction(
-        async ({ transaction, organizationId }) => {
-          const customers = await selectCustomers({}, transaction)
-          return { customers, organizationId }
-        },
-        { apiKey: apiKeyOrgB.token }
-      )
+      const resultB = (
+        await authenticatedTransaction(
+          async ({ transaction, organizationId }) => {
+            const customers = await selectCustomers({}, transaction)
+            return { customers, organizationId }
+          },
+          { apiKey: apiKeyOrgB.token }
+        )
+      ).unwrap()
 
       expect(resultB.organizationId).toBe(orgB.id)
       expect(
@@ -432,8 +462,8 @@ describe('API Key RLS', () => {
     beforeEach(async () => {
       // Create a livemode API key for authentication in DELETE tests
       const livemodeToken = `live_sk_auth_${core.nanoid()}`
-      livemodeApiKeyOrgA = await adminTransaction(
-        async ({ transaction }) => {
+      livemodeApiKeyOrgA = (
+        await adminTransaction(async ({ transaction }) => {
           const key = await insertApiKey(
             {
               organizationId: orgA.id,
@@ -447,12 +477,12 @@ describe('API Key RLS', () => {
             transaction
           )
           return { ...key, token: livemodeToken }
-        }
-      )
+        })
+      ).unwrap()
 
       // Create an additional livemode API key in orgA for testing deletion
-      apiKeyToDelete = await adminTransaction(
-        async ({ transaction }) => {
+      apiKeyToDelete = (
+        await adminTransaction(async ({ transaction }) => {
           return insertApiKey(
             {
               organizationId: orgA.id,
@@ -465,33 +495,35 @@ describe('API Key RLS', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
     })
 
     it('should ALLOW a user to delete API keys within their organization', async () => {
       // Use orgA's livemode API key to delete another livemode key in orgA
       // This should succeed because both keys belong to the same organization and livemode
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await deleteApiKey(apiKeyToDelete.id, transaction)
-        },
-        { apiKey: livemodeApiKeyOrgA.token }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            await deleteApiKey(apiKeyToDelete.id, transaction)
+          },
+          { apiKey: livemodeApiKeyOrgA.token }
+        )
+      ).unwrap()
 
       // Verify the key no longer exists
-      const remainingKeys = await adminTransaction(
-        async ({ transaction }) => {
+      const remainingKeys = (
+        await adminTransaction(async ({ transaction }) => {
           return selectApiKeys({ id: apiKeyToDelete.id }, transaction)
-        }
-      )
+        })
+      ).unwrap()
       expect(remainingKeys).toHaveLength(0)
     })
 
     it('should DENY a user from deleting API keys from another organization due to RLS', async () => {
       // Create a livemode API key in orgB
-      const orgBApiKeyToDelete = await adminTransaction(
-        async ({ transaction }) => {
+      const orgBApiKeyToDelete = (
+        await adminTransaction(async ({ transaction }) => {
           return insertApiKey(
             {
               organizationId: orgB.id,
@@ -504,34 +536,36 @@ describe('API Key RLS', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Try to delete orgB's key using orgA's livemode API key
       // RLS silently prevents the delete (no rows affected, no error thrown)
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await deleteApiKey(orgBApiKeyToDelete.id, transaction)
-        },
-        { apiKey: livemodeApiKeyOrgA.token }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            await deleteApiKey(orgBApiKeyToDelete.id, transaction)
+          },
+          { apiKey: livemodeApiKeyOrgA.token }
+        )
+      ).unwrap()
 
       // Verify the key still exists - RLS prevented the delete
-      const remainingKeys = await adminTransaction(
-        async ({ transaction }) => {
+      const remainingKeys = (
+        await adminTransaction(async ({ transaction }) => {
           return selectApiKeys(
             { id: orgBApiKeyToDelete.id },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       expect(remainingKeys).toHaveLength(1)
     })
 
     it('should DENY deleting API keys in different livemode', async () => {
       // Create a testmode API key in orgA
-      const testmodeApiKey = await adminTransaction(
-        async ({ transaction }) => {
+      const testmodeApiKey = (
+        await adminTransaction(async ({ transaction }) => {
           return insertApiKey(
             {
               organizationId: orgA.id,
@@ -544,52 +578,61 @@ describe('API Key RLS', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Try to delete testmode key using livemode API key (livemodeApiKeyOrgA is livemode)
       // RLS silently prevents the delete due to livemode mismatch (no rows affected, no error thrown)
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await deleteApiKey(testmodeApiKey.id, transaction)
-        },
-        { apiKey: livemodeApiKeyOrgA.token } // livemode key
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            await deleteApiKey(testmodeApiKey.id, transaction)
+          },
+          { apiKey: livemodeApiKeyOrgA.token }
+        )
+      ).unwrap() // livemode key;
 
       // Verify the key still exists - RLS livemode policy prevented the delete
-      const remainingKeys = await adminTransaction(
-        async ({ transaction }) => {
+      const remainingKeys = (
+        await adminTransaction(async ({ transaction }) => {
           return selectApiKeys({ id: testmodeApiKey.id }, transaction)
-        }
-      )
+        })
+      ).unwrap()
       expect(remainingKeys).toHaveLength(1)
     })
 
     it('should successfully delete via deleteSecretApiKeyTransaction for own organization', async () => {
       // Use the full deleteSecretApiKeyTransaction flow
-      await authenticatedTransaction(
-        async ({ transaction, userId, livemode, organizationId }) => {
-          await deleteSecretApiKeyTransaction(
-            { id: apiKeyToDelete.id },
-            { transaction, userId, livemode, organizationId }
-          )
-        },
-        { apiKey: livemodeApiKeyOrgA.token }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({
+            transaction,
+            userId,
+            livemode,
+            organizationId,
+          }) => {
+            await deleteSecretApiKeyTransaction(
+              { id: apiKeyToDelete.id },
+              { transaction, userId, livemode, organizationId }
+            )
+          },
+          { apiKey: livemodeApiKeyOrgA.token }
+        )
+      ).unwrap()
 
       // Verify the key no longer exists
-      const remainingKeys = await adminTransaction(
-        async ({ transaction }) => {
+      const remainingKeys = (
+        await adminTransaction(async ({ transaction }) => {
           return selectApiKeys({ id: apiKeyToDelete.id }, transaction)
-        }
-      )
+        })
+      ).unwrap()
       expect(remainingKeys).toHaveLength(0)
     })
 
     it('should DENY deleteSecretApiKeyTransaction for another organizations key', async () => {
       // Create an API key in orgB
-      const orgBSecretKey = await adminTransaction(
-        async ({ transaction }) => {
+      const orgBSecretKey = (
+        await adminTransaction(async ({ transaction }) => {
           return insertApiKey(
             {
               organizationId: orgB.id,
@@ -602,8 +645,8 @@ describe('API Key RLS', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Try to use deleteSecretApiKeyTransaction with orgA's context to delete orgB's key
       // This should fail because selectApiKeyById won't find the key (RLS prevents visibility)
@@ -625,11 +668,11 @@ describe('API Key RLS', () => {
       ).rejects.toThrow()
 
       // Verify the key still exists
-      const remainingKeys = await adminTransaction(
-        async ({ transaction }) => {
+      const remainingKeys = (
+        await adminTransaction(async ({ transaction }) => {
           return selectApiKeys({ id: orgBSecretKey.id }, transaction)
-        }
-      )
+        })
+      ).unwrap()
       expect(remainingKeys).toHaveLength(1)
     })
   })

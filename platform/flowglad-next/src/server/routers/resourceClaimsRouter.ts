@@ -1,9 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import {
-  type AuthenticatedProcedureTransactionParams,
-  authenticatedProcedureTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import {
@@ -187,18 +184,16 @@ const claimProcedure = protectedProcedure
   })
   .input(claimInputSchemaWithRequiredSubscription)
   .output(claimOutputSchema)
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
+  .mutation(async ({ input, ctx }) => {
+    const { organizationId, apiKey } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    return authenticatedTransaction(
+      async ({ transaction }) => {
         const { customerId } = await validateSubscriptionOwnership(
           { subscriptionId: input.subscriptionId, organizationId },
           transaction
@@ -214,9 +209,10 @@ const claimProcedure = protectedProcedure
         )
 
         return result
-      }
-    )
-  )
+      },
+      { apiKey }
+    ).then((r) => r.unwrap())
+  })
 
 const releaseProcedure = protectedProcedure
   .meta({
@@ -232,18 +228,16 @@ const releaseProcedure = protectedProcedure
   })
   .input(releaseInputSchemaWithRequiredSubscription)
   .output(releaseOutputSchema)
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
+  .mutation(async ({ input, ctx }) => {
+    const { organizationId, apiKey } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    return authenticatedTransaction(
+      async ({ transaction }) => {
         const { customerId } = await validateSubscriptionOwnership(
           { subscriptionId: input.subscriptionId, organizationId },
           transaction
@@ -259,9 +253,10 @@ const releaseProcedure = protectedProcedure
         )
 
         return result
-      }
-    )
-  )
+      },
+      { apiKey }
+    ).then((r) => r.unwrap())
+  })
 
 const getUsageProcedure = protectedProcedure
   .meta({
@@ -277,18 +272,16 @@ const getUsageProcedure = protectedProcedure
   })
   .input(getUsageInputSchemaWithRequiredSubscription)
   .output(getUsageOutputSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
+  .query(async ({ input, ctx }) => {
+    const { organizationId, apiKey } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    return authenticatedTransaction(
+      async ({ transaction }) => {
         const { subscription } = await validateSubscriptionOwnership(
           { subscriptionId: input.subscriptionId, organizationId },
           transaction
@@ -401,9 +394,10 @@ const getUsageProcedure = protectedProcedure
         )
 
         return { usage, claims }
-      }
-    )
-  )
+      },
+      { apiKey }
+    ).then((r) => r.unwrap())
+  })
 
 const listResourceUsagesInputSchema = z
   .object({
@@ -440,18 +434,16 @@ const listResourceUsagesProcedure = protectedProcedure
   })
   .input(listResourceUsagesInputSchema)
   .output(listResourceUsagesOutputSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
+  .query(async ({ input, ctx }) => {
+    const { organizationId, apiKey } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    return authenticatedTransaction(
+      async ({ transaction }) => {
         const { subscription } = await validateSubscriptionOwnership(
           { subscriptionId: input.subscriptionId, organizationId },
           transaction
@@ -584,9 +576,10 @@ const listResourceUsagesProcedure = protectedProcedure
           usage,
           claims: claimsByResourceId.get(usage.resourceId) ?? [],
         }))
-      }
-    )
-  )
+      },
+      { apiKey }
+    ).then((r) => r.unwrap())
+  })
 
 const listClaimsProcedure = protectedProcedure
   .meta({
@@ -602,18 +595,16 @@ const listClaimsProcedure = protectedProcedure
   })
   .input(listClaimsInputSchema)
   .output(listClaimsOutputSchema)
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { organizationId } = ctx
-        if (!organizationId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Organization ID is required for this operation.',
-          })
-        }
+  .query(async ({ input, ctx }) => {
+    const { organizationId, apiKey } = ctx
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    return authenticatedTransaction(
+      async ({ transaction }) => {
         const { subscription } = await validateSubscriptionOwnership(
           { subscriptionId: input.subscriptionId, organizationId },
           transaction
@@ -655,9 +646,10 @@ const listClaimsProcedure = protectedProcedure
         )
 
         return { claims }
-      }
-    )
-  )
+      },
+      { apiKey }
+    ).then((r) => r.unwrap())
+  })
 
 export const resourceClaimsRouter = router({
   claim: claimProcedure,

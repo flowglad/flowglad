@@ -1,9 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   createResourceSchema,
   editResourceSchema,
@@ -51,107 +48,120 @@ const listProcedure = protectedProcedure
       resources: z.array(resourcesClientSelectSchema),
     })
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const resources = await selectResources(
-          {
-            pricingModelId: input.pricingModelId,
-          },
-          transaction
-        )
-        return { resources }
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const resources = await selectResources(
+            {
+              pricingModelId: input.pricingModelId,
+            },
+            transaction
+          )
+          return { resources }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const getProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const resource = await selectResourceById(
-          input.id,
-          transaction
-        )
-        return { resource }
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const resource = await selectResourceById(
+            input.id,
+            transaction
+          )
+          return { resource }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const createProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createResourceSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const { livemode } = ctx
-        const userId = ctx.user?.id
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User authentication required',
-          })
-        }
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
+  .mutation(async ({ input, ctx }) => {
+    const { livemode } = ctx
+    const userId = ctx.user?.id
+    if (!userId) {
+      throw new TRPCError({
+        code: 'UNAUTHORIZED',
+        message: 'User authentication required',
+      })
+    }
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const [{ organization }] =
+            await selectMembershipAndOrganizations(
+              {
+                userId,
+                focused: true,
+              },
+              transaction
+            )
+          const resource = await insertResource(
             {
-              userId,
-              focused: true,
+              ...input.resource,
+              organizationId: organization.id,
+              livemode,
             },
             transaction
           )
-        const resource = await insertResource(
-          {
-            ...input.resource,
-            organizationId: organization.id,
-            livemode,
-          },
-          transaction
-        )
-        return { resource }
-      }
-    )
-  )
+          return { resource }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const updateProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editResourceSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const resource = await updateResource(
-          {
-            ...input.resource,
-            id: input.id,
-          },
-          transaction
-        )
-        return { resource }
-      }
-    )
-  )
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const resource = await updateResource(
+            {
+              ...input.resource,
+              id: input.id,
+            },
+            transaction
+          )
+          return { resource }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 const listPaginatedProcedure = protectedProcedure
   .input(resourcesPaginatedSelectSchema)
   .output(resourcesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectResourcesPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectResourcesPaginated(input, transaction)
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
   })
 
 const getTableRowsProcedure = protectedProcedure
@@ -166,14 +176,17 @@ const getTableRowsProcedure = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(resourcesTableRowOutputSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectResourcesTableRowData({ input, transaction })
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectResourcesTableRowData({ input, transaction })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const resourcesRouter = router({
   get: getProcedure,

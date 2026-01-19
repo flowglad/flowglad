@@ -32,8 +32,8 @@ describe('retryPaymentTransaction', () => {
       stripePaymentIntentId: `pi_retry_${organization.id}`,
     })
 
-    const updatedFailedPayment = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedFailedPayment = (
+      await adminTransaction(async ({ transaction }) => {
         return updatePayment(
           {
             id: failedPayment.id,
@@ -44,17 +44,17 @@ describe('retryPaymentTransaction', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const retriedPayment = await adminTransaction(
-      async ({ transaction }) => {
+    const retriedPayment = (
+      await adminTransaction(async ({ transaction }) => {
         return retryPaymentTransaction(
           { id: updatedFailedPayment.id },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(retriedPayment.id).not.toBe(updatedFailedPayment.id)
     expect(retriedPayment.stripeChargeId).not.toBe(

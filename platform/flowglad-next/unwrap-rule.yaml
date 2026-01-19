@@ -1,0 +1,5 @@
+id: unwrap-comprehensive-auth
+language: typescript
+rule:
+  pattern: await comprehensiveAuthenticatedTransaction($FN, $OPTS)
+fix: (await comprehensiveAuthenticatedTransaction($FN, $OPTS)).unwrap()

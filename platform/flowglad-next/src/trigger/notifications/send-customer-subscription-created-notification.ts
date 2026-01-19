@@ -44,37 +44,39 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
       subscription,
       price,
       paymentMethod,
-    } = await adminTransaction(async ({ transaction }) => {
-      const organization = await selectOrganizationById(
-        payload.organizationId,
-        transaction
-      )
-      const customer = await selectCustomerById(
-        payload.customerId,
-        transaction
-      )
-      const subscription = await selectSubscriptionById(
-        payload.subscriptionId,
-        transaction
-      )
-      const price = subscription.priceId
-        ? await selectPriceById(subscription.priceId, transaction)
-        : null
-      const paymentMethods = await selectPaymentMethods(
-        { customerId: payload.customerId },
-        transaction
-      )
-      const paymentMethod =
-        paymentMethods.find((pm) => pm.default) || paymentMethods[0]
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        const organization = await selectOrganizationById(
+          payload.organizationId,
+          transaction
+        )
+        const customer = await selectCustomerById(
+          payload.customerId,
+          transaction
+        )
+        const subscription = await selectSubscriptionById(
+          payload.subscriptionId,
+          transaction
+        )
+        const price = subscription.priceId
+          ? await selectPriceById(subscription.priceId, transaction)
+          : null
+        const paymentMethods = await selectPaymentMethods(
+          { customerId: payload.customerId },
+          transaction
+        )
+        const paymentMethod =
+          paymentMethods.find((pm) => pm.default) || paymentMethods[0]
 
-      return {
-        organization,
-        customer,
-        subscription,
-        price,
-        paymentMethod,
-      }
-    })
+        return {
+          organization,
+          customer,
+          subscription,
+          price,
+          paymentMethod,
+        }
+      })
+    ).unwrap()
 
     if (!organization || !customer || !subscription || !price) {
       throw new Error('Required data not found')

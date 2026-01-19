@@ -127,34 +127,38 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     })
 
     // Fix the default settings - paymentMethod1 should be default, paymentMethod2 should not
-    await adminTransaction(async ({ transaction }) => {
-      await updatePaymentMethod(
-        {
-          id: paymentMethod1.id,
-          default: true,
-        },
-        transaction
-      )
-      await updatePaymentMethod(
-        {
-          id: paymentMethod2.id,
-          default: false,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updatePaymentMethod(
+          {
+            id: paymentMethod1.id,
+            default: true,
+          },
+          transaction
+        )
+        await updatePaymentMethod(
+          {
+            id: paymentMethod2.id,
+            default: false,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Refresh the payment method records to get updated values
-    await adminTransaction(async ({ transaction }) => {
-      paymentMethod1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      paymentMethod2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        paymentMethod1 = await selectPaymentMethodById(
+          paymentMethod1.id,
+          transaction
+        )
+        paymentMethod2 = await selectPaymentMethodById(
+          paymentMethod2.id,
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Set up a subscription using the first payment method
     subscription1 = await setupSubscription({
@@ -169,23 +173,25 @@ describe('setDefaultPaymentMethodForCustomer', () => {
 
   it('should handle payment method that is already default', async () => {
     // Verify initial state - paymentMethod1 is already default
-    const initialPm1 = await adminTransaction(
-      async ({ transaction }) => {
+    const initialPm1 = (
+      await adminTransaction(async ({ transaction }) => {
         return await selectPaymentMethodById(
           paymentMethod1.id,
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     expect(initialPm1.default).toBe(true)
 
     // Call setDefaultPaymentMethodForCustomer with already-default payment method
-    const result = await adminTransaction(async ({ transaction }) => {
-      return await setDefaultPaymentMethodForCustomer(
-        { paymentMethodId: paymentMethod1.id },
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return await setDefaultPaymentMethodForCustomer(
+          { paymentMethodId: paymentMethod1.id },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Verify the result
     expect(result.success).toBe(true)
@@ -193,56 +199,62 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     expect(result.paymentMethod.default).toBe(true)
 
     // Verify payment methods in database
-    await adminTransaction(async ({ transaction }) => {
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const pm1 = await selectPaymentMethodById(
+          paymentMethod1.id,
+          transaction
+        )
+        const pm2 = await selectPaymentMethodById(
+          paymentMethod2.id,
+          transaction
+        )
 
-      expect(pm1.default).toBe(true)
-      expect(pm2.default).toBe(false)
+        expect(pm1.default).toBe(true)
+        expect(pm2.default).toBe(false)
 
-      // Verify subscription still uses paymentMethod1
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      expect(sub.defaultPaymentMethodId).toBe(paymentMethod1.id)
-    })
+        // Verify subscription still uses paymentMethod1
+        const sub = await selectSubscriptionById(
+          subscription1.id,
+          transaction
+        )
+        expect(sub.defaultPaymentMethodId).toBe(paymentMethod1.id)
+      })
+    ).unwrap()
   })
 
   it('should set a non-default payment method as default and update subscriptions', async () => {
     // Verify initial state
-    await adminTransaction(async ({ transaction }) => {
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
-      expect(pm1.default).toBe(true)
-      expect(pm2.default).toBe(false)
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const pm1 = await selectPaymentMethodById(
+          paymentMethod1.id,
+          transaction
+        )
+        const pm2 = await selectPaymentMethodById(
+          paymentMethod2.id,
+          transaction
+        )
+        expect(pm1.default).toBe(true)
+        expect(pm2.default).toBe(false)
 
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      expect(sub.defaultPaymentMethodId).toBe(paymentMethod1.id)
-    })
+        const sub = await selectSubscriptionById(
+          subscription1.id,
+          transaction
+        )
+        expect(sub.defaultPaymentMethodId).toBe(paymentMethod1.id)
+      })
+    ).unwrap()
 
     // Set paymentMethod2 as default
-    const result = await adminTransaction(async ({ transaction }) => {
-      return await setDefaultPaymentMethodForCustomer(
-        { paymentMethodId: paymentMethod2.id },
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return await setDefaultPaymentMethodForCustomer(
+          { paymentMethodId: paymentMethod2.id },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Verify the result
     expect(result.success).toBe(true)
@@ -250,26 +262,28 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     expect(result.paymentMethod.default).toBe(true)
 
     // Verify payment methods in database - pm2 is now default, pm1 is not
-    await adminTransaction(async ({ transaction }) => {
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const pm1 = await selectPaymentMethodById(
+          paymentMethod1.id,
+          transaction
+        )
+        const pm2 = await selectPaymentMethodById(
+          paymentMethod2.id,
+          transaction
+        )
 
-      expect(pm1.default).toBe(false)
-      expect(pm2.default).toBe(true)
+        expect(pm1.default).toBe(false)
+        expect(pm2.default).toBe(true)
 
-      // Verify subscription now uses paymentMethod2
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
-    })
+        // Verify subscription now uses paymentMethod2
+        const sub = await selectSubscriptionById(
+          subscription1.id,
+          transaction
+        )
+        expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
+      })
+    ).unwrap()
   })
 
   it('should handle customer with no subscriptions', async () => {
@@ -300,12 +314,14 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     })
 
     // Set the second payment method as default
-    const result = await adminTransaction(async ({ transaction }) => {
-      return await setDefaultPaymentMethodForCustomer(
-        { paymentMethodId: pm2NoSubs.id },
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return await setDefaultPaymentMethodForCustomer(
+          { paymentMethodId: pm2NoSubs.id },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Verify the result
     expect(result.success).toBe(true)
@@ -313,26 +329,28 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     expect(result.paymentMethod.default).toBe(true)
 
     // Verify payment methods in database
-    await adminTransaction(async ({ transaction }) => {
-      const pm1 = await selectPaymentMethodById(
-        pm1NoSubs.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        pm2NoSubs.id,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const pm1 = await selectPaymentMethodById(
+          pm1NoSubs.id,
+          transaction
+        )
+        const pm2 = await selectPaymentMethodById(
+          pm2NoSubs.id,
+          transaction
+        )
 
-      expect(pm1.default).toBe(false)
-      expect(pm2.default).toBe(true)
+        expect(pm1.default).toBe(false)
+        expect(pm2.default).toBe(true)
 
-      // Verify no subscriptions exist for this customer
-      const subs = await selectSubscriptions(
-        { customerId: customerNoSubs.id },
-        transaction
-      )
-      expect(subs.length).toBe(0)
-    })
+        // Verify no subscriptions exist for this customer
+        const subs = await selectSubscriptions(
+          { customerId: customerNoSubs.id },
+          transaction
+        )
+        expect(subs.length).toBe(0)
+      })
+    ).unwrap()
   })
 
   it('should update multiple subscriptions to new default payment method', async () => {
@@ -356,68 +374,74 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     })
 
     // Verify initial state
-    await adminTransaction(async ({ transaction }) => {
-      const sub1 = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      const sub2 = await selectSubscriptionById(
-        subscription2.id,
-        transaction
-      )
-      const sub3 = await selectSubscriptionById(
-        subscription3.id,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const sub1 = await selectSubscriptionById(
+          subscription1.id,
+          transaction
+        )
+        const sub2 = await selectSubscriptionById(
+          subscription2.id,
+          transaction
+        )
+        const sub3 = await selectSubscriptionById(
+          subscription3.id,
+          transaction
+        )
 
-      expect(sub1.defaultPaymentMethodId).toBe(paymentMethod1.id)
-      expect(sub2.defaultPaymentMethodId).toBe(paymentMethod1.id)
-      expect(sub3.defaultPaymentMethodId).toBe(paymentMethod2.id)
-    })
+        expect(sub1.defaultPaymentMethodId).toBe(paymentMethod1.id)
+        expect(sub2.defaultPaymentMethodId).toBe(paymentMethod1.id)
+        expect(sub3.defaultPaymentMethodId).toBe(paymentMethod2.id)
+      })
+    ).unwrap()
 
     // Set paymentMethod2 as default
-    const result = await adminTransaction(async ({ transaction }) => {
-      return await setDefaultPaymentMethodForCustomer(
-        { paymentMethodId: paymentMethod2.id },
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return await setDefaultPaymentMethodForCustomer(
+          { paymentMethodId: paymentMethod2.id },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Verify the result
     expect(result.success).toBe(true)
 
     // Verify all subscriptions now use paymentMethod2
-    await adminTransaction(async ({ transaction }) => {
-      const sub1 = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      const sub2 = await selectSubscriptionById(
-        subscription2.id,
-        transaction
-      )
-      const sub3 = await selectSubscriptionById(
-        subscription3.id,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const sub1 = await selectSubscriptionById(
+          subscription1.id,
+          transaction
+        )
+        const sub2 = await selectSubscriptionById(
+          subscription2.id,
+          transaction
+        )
+        const sub3 = await selectSubscriptionById(
+          subscription3.id,
+          transaction
+        )
 
-      expect(sub1.defaultPaymentMethodId).toBe(paymentMethod2.id)
-      expect(sub2.defaultPaymentMethodId).toBe(paymentMethod2.id)
-      expect(sub3.defaultPaymentMethodId).toBe(paymentMethod2.id)
+        expect(sub1.defaultPaymentMethodId).toBe(paymentMethod2.id)
+        expect(sub2.defaultPaymentMethodId).toBe(paymentMethod2.id)
+        expect(sub3.defaultPaymentMethodId).toBe(paymentMethod2.id)
 
-      // Verify payment methods
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+        // Verify payment methods
+        const pm1 = await selectPaymentMethodById(
+          paymentMethod1.id,
+          transaction
+        )
+        const pm2 = await selectPaymentMethodById(
+          paymentMethod2.id,
+          transaction
+        )
 
-      expect(pm1.default).toBe(false)
-      expect(pm2.default).toBe(true)
-    })
+        expect(pm1.default).toBe(false)
+        expect(pm2.default).toBe(true)
+      })
+    ).unwrap()
   })
 
   it('should only update active subscriptions when setting default', async () => {
@@ -442,50 +466,58 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     })
 
     // Set paymentMethod2 as default
-    const result = await adminTransaction(async ({ transaction }) => {
-      return await setDefaultPaymentMethodForCustomer(
-        { paymentMethodId: paymentMethod2.id },
-        createDiscardingEffectsContext(transaction)
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return await setDefaultPaymentMethodForCustomer(
+          { paymentMethodId: paymentMethod2.id },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(result.success).toBe(true)
 
     // Verify subscriptions
-    await adminTransaction(async ({ transaction }) => {
-      const canceled = await selectSubscriptionById(
-        canceledSub.id,
-        transaction
-      )
-      const active = await selectSubscriptionById(
-        activeSub.id,
-        transaction
-      )
-      const original = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const canceled = await selectSubscriptionById(
+          canceledSub.id,
+          transaction
+        )
+        const active = await selectSubscriptionById(
+          activeSub.id,
+          transaction
+        )
+        const original = await selectSubscriptionById(
+          subscription1.id,
+          transaction
+        )
 
-      // Canceled subscription should not be updated
-      expect(canceled.defaultPaymentMethodId).toBe(paymentMethod1.id)
+        // Canceled subscription should not be updated
+        expect(canceled.defaultPaymentMethodId).toBe(
+          paymentMethod1.id
+        )
 
-      // Active subscriptions should be updated
-      expect(active.defaultPaymentMethodId).toBe(paymentMethod2.id)
-      expect(original.defaultPaymentMethodId).toBe(paymentMethod2.id)
+        // Active subscriptions should be updated
+        expect(active.defaultPaymentMethodId).toBe(paymentMethod2.id)
+        expect(original.defaultPaymentMethodId).toBe(
+          paymentMethod2.id
+        )
 
-      // Verify payment methods
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+        // Verify payment methods
+        const pm1 = await selectPaymentMethodById(
+          paymentMethod1.id,
+          transaction
+        )
+        const pm2 = await selectPaymentMethodById(
+          paymentMethod2.id,
+          transaction
+        )
 
-      expect(pm1.default).toBe(false)
-      expect(pm2.default).toBe(true)
-    })
+        expect(pm1.default).toBe(false)
+        expect(pm2.default).toBe(true)
+      })
+    ).unwrap()
   })
 
   it('should throw error when payment method does not exist', async () => {
@@ -502,91 +534,97 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     ).rejects.toThrow()
 
     // Verify existing payment methods remain unchanged
-    await adminTransaction(async ({ transaction }) => {
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const pm1 = await selectPaymentMethodById(
+          paymentMethod1.id,
+          transaction
+        )
+        const pm2 = await selectPaymentMethodById(
+          paymentMethod2.id,
+          transaction
+        )
 
-      expect(pm1.default).toBe(true)
-      expect(pm2.default).toBe(false)
+        expect(pm1.default).toBe(true)
+        expect(pm2.default).toBe(false)
 
-      // Verify subscription remains unchanged
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      expect(sub.defaultPaymentMethodId).toBe(paymentMethod1.id)
-    })
+        // Verify subscription remains unchanged
+        const sub = await selectSubscriptionById(
+          subscription1.id,
+          transaction
+        )
+        expect(sub.defaultPaymentMethodId).toBe(paymentMethod1.id)
+      })
+    ).unwrap()
   })
 
   it('should handle setting same payment method as default multiple times', async () => {
     // First call - set paymentMethod2 as default
-    const result1 = await adminTransaction(
-      async ({ transaction }) => {
+    const result1 = (
+      await adminTransaction(async ({ transaction }) => {
         return await setDefaultPaymentMethodForCustomer(
           { paymentMethodId: paymentMethod2.id },
           createDiscardingEffectsContext(transaction)
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(result1.success).toBe(true)
     expect(result1.paymentMethod.default).toBe(true)
 
     // Verify state after first call
-    await adminTransaction(async ({ transaction }) => {
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
-      expect(pm2.default).toBe(true)
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const pm2 = await selectPaymentMethodById(
+          paymentMethod2.id,
+          transaction
+        )
+        expect(pm2.default).toBe(true)
 
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
-    })
+        const sub = await selectSubscriptionById(
+          subscription1.id,
+          transaction
+        )
+        expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
+      })
+    ).unwrap()
 
     // Second call - set paymentMethod2 as default again (already default)
-    const result2 = await adminTransaction(
-      async ({ transaction }) => {
+    const result2 = (
+      await adminTransaction(async ({ transaction }) => {
         return await setDefaultPaymentMethodForCustomer(
           { paymentMethodId: paymentMethod2.id },
           createDiscardingEffectsContext(transaction)
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(result2.success).toBe(true)
     expect(result2.paymentMethod.default).toBe(true)
 
     // Verify state remains the same after second call
-    await adminTransaction(async ({ transaction }) => {
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const pm1 = await selectPaymentMethodById(
+          paymentMethod1.id,
+          transaction
+        )
+        const pm2 = await selectPaymentMethodById(
+          paymentMethod2.id,
+          transaction
+        )
 
-      expect(pm1.default).toBe(false)
-      expect(pm2.default).toBe(true)
+        expect(pm1.default).toBe(false)
+        expect(pm2.default).toBe(true)
 
-      // Subscription should still use paymentMethod2
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
-    })
+        // Subscription should still use paymentMethod2
+        const sub = await selectSubscriptionById(
+          subscription1.id,
+          transaction
+        )
+        expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
+      })
+    ).unwrap()
   })
 
   describe('customerBillingTransaction - inactive price filtering', () => {
@@ -628,17 +666,19 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       })
       // setupPrice makes active=true and isDefault=true via safelyInsertPrice,
       // so we update price to be inactive and non-default
-      await adminTransaction(async ({ transaction }) => {
-        await safelyUpdatePrice(
-          {
-            id: inactivePrice.id,
-            type: PriceType.Subscription,
-            active: false,
-            isDefault: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await safelyUpdatePrice(
+            {
+              id: inactivePrice.id,
+              type: PriceType.Subscription,
+              active: false,
+              isDefault: false,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       // Create an active price
       activePrice = await setupPrice({
@@ -675,8 +715,8 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     })
 
     it('should filter out inactive prices from pricingModel in customerBillingTransaction', async () => {
-      const billingState = await adminTransaction(
-        async ({ transaction }) => {
+      const billingState = (
+        await adminTransaction(async ({ transaction }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
@@ -684,8 +724,8 @@ describe('setDefaultPaymentMethodForCustomer', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(billingState.pricingModel).toMatchObject({})
       expect(billingState.pricingModel.products).toHaveLength(2) // setupOrg + our test product
@@ -709,8 +749,8 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     })
 
     it('should preserve subscription items with inactive prices', async () => {
-      const billingState = await adminTransaction(
-        async ({ transaction }) => {
+      const billingState = (
+        await adminTransaction(async ({ transaction }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
@@ -718,8 +758,8 @@ describe('setDefaultPaymentMethodForCustomer', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(typeof billingState.subscriptions).toBe('object')
       expect(
@@ -752,8 +792,8 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     })
 
     it('should maintain all other billing data while filtering prices', async () => {
-      const billingState = await adminTransaction(
-        async ({ transaction }) => {
+      const billingState = (
+        await adminTransaction(async ({ transaction }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
@@ -761,8 +801,8 @@ describe('setDefaultPaymentMethodForCustomer', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(typeof billingState.customer).toBe('object')
       expect(billingState.customer.id).toBe(customer.id)
@@ -815,17 +855,19 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         trialPeriodDays: 0,
         active: false,
       })
-      await adminTransaction(async ({ transaction }) => {
-        await safelyUpdatePrice(
-          {
-            id: inactivePrice2.id,
-            type: PriceType.Subscription,
-            active: false,
-            isDefault: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await safelyUpdatePrice(
+            {
+              id: inactivePrice2.id,
+              type: PriceType.Subscription,
+              active: false,
+              isDefault: false,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
       const activePrice2 = await setupPrice({
         productId: productWithMixedPrices2.id,
@@ -861,20 +903,22 @@ describe('setDefaultPaymentMethodForCustomer', () => {
         trialPeriodDays: 0,
         active: false,
       })
-      await adminTransaction(async ({ transaction }) => {
-        await safelyUpdatePrice(
-          {
-            id: inactivePrice3.id,
-            type: PriceType.Subscription,
-            active: false,
-            isDefault: false,
-          },
-          transaction
-        )
-      })
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await safelyUpdatePrice(
+            {
+              id: inactivePrice3.id,
+              type: PriceType.Subscription,
+              active: false,
+              isDefault: false,
+            },
+            transaction
+          )
+        })
+      ).unwrap()
 
-      const billingState = await adminTransaction(
-        async ({ transaction }) => {
+      const billingState = (
+        await adminTransaction(async ({ transaction }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
@@ -882,8 +926,8 @@ describe('setDefaultPaymentMethodForCustomer', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       expect(billingState.pricingModel.products).toHaveLength(3) // setupOrg + 2 test products with active prices
 
@@ -963,20 +1007,22 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     customer = userAndCustomerSetup.customer
 
     // Update customer to have the pricing model
-    await adminTransaction(async ({ transaction }) => {
-      await updateCustomer(
-        {
-          id: customer.id,
-          pricingModelId: pricingModel.id,
-        },
-        transaction
-      )
-      const updatedCustomer = await selectCustomerById(
-        customer.id,
-        transaction
-      )
-      customer.pricingModelId = updatedCustomer.pricingModelId
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updateCustomer(
+          {
+            id: customer.id,
+            pricingModelId: pricingModel.id,
+          },
+          transaction
+        )
+        const updatedCustomer = await selectCustomerById(
+          customer.id,
+          transaction
+        )
+        customer.pricingModelId = updatedCustomer.pricingModelId
+      })
+    ).unwrap()
 
     // Mock the requestingCustomerAndUser to return our test data
     vi.spyOn(
@@ -1070,8 +1116,8 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   it('should succeed when price is accessible to customer', async () => {
     // Create a non-default product and price for this test since default products
     // cannot have checkout sessions created for them
-    const created = await adminTransaction(
-      async ({ transaction }) => {
+    const created = (
+      await adminTransaction(async ({ transaction }) => {
         const createdProduct = await insertProduct(
           {
             name: 'Non-Default Product',
@@ -1114,8 +1160,8 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
           nonDefaultProduct: createdProduct,
           nonDefaultPrice: createdPrice,
         }
-      }
-    )
+      })
+    ).unwrap()
 
     // Use the non-default price from same organization that customer has access to
     const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
@@ -1280,8 +1326,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       livemode: true,
     })
 
-    const billingState = await adminTransaction(
-      async ({ transaction }) => {
+    const billingState = (
+      await adminTransaction(async ({ transaction }) => {
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
@@ -1289,8 +1335,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(typeof billingState.currentSubscription).toBe('object')
     expect(billingState.currentSubscription.id).toBe(sub3.id)
@@ -1308,8 +1354,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       livemode: true,
     })
 
-    const billingState = await adminTransaction(
-      async ({ transaction }) => {
+    const billingState = (
+      await adminTransaction(async ({ transaction }) => {
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
@@ -1317,8 +1363,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(typeof billingState.currentSubscription).toBe('object')
     expect(billingState.currentSubscription.id).toBe(sub.id)
@@ -1347,8 +1393,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       livemode: true,
     })
 
-    const billingState = await adminTransaction(
-      async ({ transaction }) => {
+    const billingState = (
+      await adminTransaction(async ({ transaction }) => {
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
@@ -1356,8 +1402,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(typeof billingState.currentSubscription).toBe('object')
     expect(billingState.currentSubscription.id).toBe(activeSub.id)
@@ -1407,8 +1453,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
 
     // Note: In practice, createdAt will differ, but this test verifies
     // that if they were the same, updatedAt would be used as tiebreaker
-    const billingState = await adminTransaction(
-      async ({ transaction }) => {
+    const billingState = (
+      await adminTransaction(async ({ transaction }) => {
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
@@ -1416,8 +1462,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(typeof billingState.currentSubscription).toBe('object')
     // The most recently created/updated subscription should be selected
@@ -1441,8 +1487,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       await new Promise((resolve) => setTimeout(resolve, 10))
     }
 
-    const billingState = await adminTransaction(
-      async ({ transaction }) => {
+    const billingState = (
+      await adminTransaction(async ({ transaction }) => {
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
@@ -1450,8 +1496,8 @@ describe('customerBillingTransaction - currentSubscription field', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(typeof billingState.currentSubscription).toBe('object')
     // Should be the last created subscription

@@ -17,8 +17,8 @@ export const attemptTransitionBillingPeriodsTask = task({
       ctx,
     })
 
-    const billingPeriodsToTransition = await adminTransaction(
-      ({ transaction }) =>
+    const billingPeriodsToTransition = (
+      await adminTransaction(({ transaction }) =>
         selectBillingPeriodsDueForTransition(
           {
             rangeStart: payload.lastTimestamp,
@@ -26,7 +26,8 @@ export const attemptTransitionBillingPeriodsTask = task({
           },
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     if (billingPeriodsToTransition.length > 0) {
       await attemptBillingPeriodTransitionTask.batchTrigger(

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { dummyOrganization } from '@/stubs/organizationStubs'
@@ -60,7 +61,7 @@ export const stubbedCheckoutSession: CheckoutSession.Record = {
 }
 
 const clearDiscountCode: CheckoutPageContextValues['clearDiscountCode'] =
-  async () => false
+  async () => Result.ok(false)
 
 const functionStubs = {
   editCheckoutSession: async () =>

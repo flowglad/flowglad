@@ -58,11 +58,11 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     expect(putCall.key).toMatch(/^codebase-[a-f0-9]{64}\.md$/)
 
     // Verify database was updated with the hash
-    const updatedOrg = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedOrg = (
+      await adminTransaction(async ({ transaction }) => {
         return selectOrganizationById(organization.id, transaction)
-      }
-    )
+      })
+    ).unwrap()
     expect(updatedOrg?.codebaseMarkdownHash).toBe(
       putCall.key.replace('codebase-', '').replace('.md', '')
     )
@@ -98,11 +98,11 @@ describe('saveOrganizationCodebaseMarkdown', () => {
       securitySalt: organization.securitySalt,
     })
 
-    const updatedOrg = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedOrg = (
+      await adminTransaction(async ({ transaction }) => {
         return selectOrganizationById(organization.id, transaction)
-      }
-    )
+      })
+    ).unwrap()
     expect(updatedOrg?.codebaseMarkdownHash).toBe(expectedHash)
   })
 
@@ -127,11 +127,11 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     expect(putMarkdownFile).toHaveBeenCalledTimes(1)
 
     // Verify database was updated (which only happens after successful putMarkdownFile)
-    const updatedOrg = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedOrg = (
+      await adminTransaction(async ({ transaction }) => {
         return selectOrganizationById(organization.id, transaction)
-      }
-    )
+      })
+    ).unwrap()
     expect(typeof updatedOrg?.codebaseMarkdownHash).toBe('string')
   })
 
@@ -146,11 +146,11 @@ describe('saveOrganizationCodebaseMarkdown', () => {
       markdown: markdown1,
     })
 
-    const orgAfterFirst = await adminTransaction(
-      async ({ transaction }) => {
+    const orgAfterFirst = (
+      await adminTransaction(async ({ transaction }) => {
         return selectOrganizationById(organization.id, transaction)
-      }
-    )
+      })
+    ).unwrap()
     const firstHash = orgAfterFirst?.codebaseMarkdownHash
     expect(typeof firstHash).toBe('string')
 
@@ -164,11 +164,11 @@ describe('saveOrganizationCodebaseMarkdown', () => {
       markdown: markdown2,
     })
 
-    const orgAfterSecond = await adminTransaction(
-      async ({ transaction }) => {
+    const orgAfterSecond = (
+      await adminTransaction(async ({ transaction }) => {
         return selectOrganizationById(organization.id, transaction)
-      }
-    )
+      })
+    ).unwrap()
     const secondHash = orgAfterSecond?.codebaseMarkdownHash
     expect(typeof secondHash).toBe('string')
     expect(secondHash).not.toBe(firstHash)
@@ -192,15 +192,17 @@ describe('getOrganizationCodebaseMarkdown', () => {
     const expectedContent =
       '# Codebase Documentation\n\nThis is the content.'
     // Set codebaseMarkdownHash in database
-    await adminTransaction(async ({ transaction }) => {
-      await updateOrganization(
-        {
-          id: organization.id,
-          codebaseMarkdownHash: testHash,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: organization.id,
+            codebaseMarkdownHash: testHash,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     vi.mocked(getMarkdownFile).mockResolvedValue(expectedContent)
 
@@ -226,15 +228,17 @@ describe('getOrganizationCodebaseMarkdown', () => {
 
   it('should return null immediately when codebaseMarkdownHash is null', async () => {
     // Set codebaseMarkdownHash to null
-    await adminTransaction(async ({ transaction }) => {
-      await updateOrganization(
-        {
-          id: organization.id,
-          codebaseMarkdownHash: null,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: organization.id,
+            codebaseMarkdownHash: null,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     vi.mocked(getMarkdownFile).mockClear()
 
@@ -249,9 +253,11 @@ describe('getOrganizationCodebaseMarkdown', () => {
   it('should return null immediately when codebaseMarkdownHash is undefined', async () => {
     // Organization starts with codebaseMarkdownHash as undefined (not set)
     // Verify it's undefined or null
-    const org = await adminTransaction(async ({ transaction }) => {
-      return selectOrganizationById(organization.id, transaction)
-    })
+    const org = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectOrganizationById(organization.id, transaction)
+      })
+    ).unwrap()
     expect(org?.codebaseMarkdownHash).toBeNull()
 
     vi.mocked(getMarkdownFile).mockClear()
@@ -267,15 +273,17 @@ describe('getOrganizationCodebaseMarkdown', () => {
   it('should return null when R2 file is not found', async () => {
     const testHash = 'testhash123'
     // Set codebaseMarkdownHash in database
-    await adminTransaction(async ({ transaction }) => {
-      await updateOrganization(
-        {
-          id: organization.id,
-          codebaseMarkdownHash: testHash,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updateOrganization(
+          {
+            id: organization.id,
+            codebaseMarkdownHash: testHash,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     vi.mocked(getMarkdownFile).mockResolvedValue(null)
 
@@ -324,11 +332,11 @@ describe('savePricingModelIntegrationMarkdown', () => {
     )
 
     // Verify database was updated with the hash
-    const updatedPricingModel = await adminTransaction(
-      async ({ transaction }) => {
+    const updatedPricingModel = (
+      await adminTransaction(async ({ transaction }) => {
         return selectPricingModelById(pricingModel.id, transaction)
-      }
-    )
+      })
+    ).unwrap()
     expect(typeof updatedPricingModel?.integrationGuideHash).toBe(
       'string'
     )
@@ -377,15 +385,17 @@ describe('getPricingModelIntegrationMarkdown', () => {
     const expectedContent =
       '# Integration Guide\n\nThis is the content.'
     // Set integrationGuideHash in database
-    await adminTransaction(async ({ transaction }) => {
-      await updatePricingModel(
-        {
-          id: pricingModel.id,
-          integrationGuideHash: testHash,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updatePricingModel(
+          {
+            id: pricingModel.id,
+            integrationGuideHash: testHash,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     vi.mocked(getMarkdownFile).mockResolvedValue(expectedContent)
 
@@ -417,15 +427,17 @@ describe('getPricingModelIntegrationMarkdown', () => {
 
   it('should return null immediately when integrationGuideHash is null', async () => {
     // Set integrationGuideHash to null
-    await adminTransaction(async ({ transaction }) => {
-      await updatePricingModel(
-        {
-          id: pricingModel.id,
-          integrationGuideHash: null,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updatePricingModel(
+          {
+            id: pricingModel.id,
+            integrationGuideHash: null,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     vi.mocked(getMarkdownFile).mockClear()
 
@@ -441,9 +453,11 @@ describe('getPricingModelIntegrationMarkdown', () => {
   it('should return null immediately when integrationGuideHash is undefined', async () => {
     // Pricing model starts with integrationGuideHash as undefined (not set)
     // Verify it's undefined or null
-    const pm = await adminTransaction(async ({ transaction }) => {
-      return selectPricingModelById(pricingModel.id, transaction)
-    })
+    const pm = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectPricingModelById(pricingModel.id, transaction)
+      })
+    ).unwrap()
     expect(pm?.integrationGuideHash).toBeNull()
 
     vi.mocked(getMarkdownFile).mockClear()
@@ -460,15 +474,17 @@ describe('getPricingModelIntegrationMarkdown', () => {
   it('should return null when R2 file is not found', async () => {
     const testHash = 'testhash456'
     // Set integrationGuideHash in database
-    await adminTransaction(async ({ transaction }) => {
-      await updatePricingModel(
-        {
-          id: pricingModel.id,
-          integrationGuideHash: testHash,
-        },
-        transaction
-      )
-    })
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        await updatePricingModel(
+          {
+            id: pricingModel.id,
+            integrationGuideHash: testHash,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     vi.mocked(getMarkdownFile).mockResolvedValue(null)
 

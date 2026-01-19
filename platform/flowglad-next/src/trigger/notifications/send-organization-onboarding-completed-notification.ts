@@ -60,7 +60,7 @@ const sendOrganizationOnboardingCompletedNotificationTask = task({
       }
     )
 
-    const { organization, usersAndMemberships } =
+    const { organization, usersAndMemberships } = (
       await adminTransaction(async ({ transaction }) => {
         const organization = await selectOrganizationById(
           payload.organizationId,
@@ -78,6 +78,7 @@ const sendOrganizationOnboardingCompletedNotificationTask = task({
           usersAndMemberships,
         }
       })
+    ).unwrap()
 
     if (!organization) {
       throw new Error('Organization not found')

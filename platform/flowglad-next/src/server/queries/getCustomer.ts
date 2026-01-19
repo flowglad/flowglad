@@ -38,17 +38,19 @@ export const getCustomer = protectedProcedure
       })
     }
 
-    const customers = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectCustomers(
-          { ...input, organizationId },
-          transaction
-        )
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const customers = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectCustomers(
+            { ...input, organizationId },
+            transaction
+          )
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
 
     if (!customers.length) {
       throw new TRPCError({

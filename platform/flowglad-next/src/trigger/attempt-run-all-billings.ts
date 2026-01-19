@@ -10,22 +10,24 @@ export const attemptBillingRunsTask = task({
     const {
       livemodeBillingRunsToAttempt,
       testmodeBillingRunsToAttempt,
-    } = await adminTransaction(async ({ transaction }) => {
-      const livemodeBillingRunsToAttempt =
-        await selectBillingRunsDueForExecution(
-          { livemode: true },
-          transaction
-        )
-      const testmodeBillingRunsToAttempt =
-        await selectBillingRunsDueForExecution(
-          { livemode: false },
-          transaction
-        )
-      return {
-        livemodeBillingRunsToAttempt,
-        testmodeBillingRunsToAttempt,
-      }
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        const livemodeBillingRunsToAttempt =
+          await selectBillingRunsDueForExecution(
+            { livemode: true },
+            transaction
+          )
+        const testmodeBillingRunsToAttempt =
+          await selectBillingRunsDueForExecution(
+            { livemode: false },
+            transaction
+          )
+        return {
+          livemodeBillingRunsToAttempt,
+          testmodeBillingRunsToAttempt,
+        }
+      })
+    ).unwrap()
     if (livemodeBillingRunsToAttempt.length > 0) {
       /**
        * Ensure that billing runs are not attempted again if the cron job is retried

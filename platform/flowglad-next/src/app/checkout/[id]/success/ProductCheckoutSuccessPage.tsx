@@ -16,11 +16,11 @@ const ProductCheckoutSuccessPage = async ({
   // Get customer email from customer record (same source the email system uses)
   let customerEmail: string | null = null
   if (product.customerId) {
-    const customer = await adminTransaction(
-      async ({ transaction }) => {
+    const customer = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomerById(product.customerId!, transaction)
-      }
-    )
+      })
+    ).unwrap()
     customerEmail = customer?.email || null
   }
 
@@ -36,16 +36,16 @@ const ProductCheckoutSuccessPage = async ({
   }
 
   // Get the price and organization to check if it's a subscription
-  const { price, organization } = await adminTransaction(
-    async ({ transaction }) => {
+  const { price, organization } = (
+    await adminTransaction(async ({ transaction }) => {
       const [data] =
         await selectPriceProductAndOrganizationByPriceWhere(
           { id: product.priceId! },
           transaction
         )
       return { price: data.price, organization: data.organization }
-    }
-  )
+    })
+  ).unwrap()
 
   // If the price is a subscription or usage type, render the subscription success page
   if (

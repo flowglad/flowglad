@@ -16,7 +16,7 @@ const AddPaymentCheckoutSuccessPage = async ({
   const targetSubscriptionId = checkoutSession.targetSubscriptionId
   if (typeof targetSubscriptionId === 'string') {
     try {
-      const { subscription, price, organization } =
+      const { subscription, price, organization } = (
         await adminTransaction(async ({ transaction }) => {
           const subscription = await selectSubscriptionById(
             targetSubscriptionId,
@@ -38,6 +38,7 @@ const AddPaymentCheckoutSuccessPage = async ({
             organization: data.organization,
           }
         })
+      ).unwrap()
 
       return (
         <SubscriptionCheckoutSuccessPage

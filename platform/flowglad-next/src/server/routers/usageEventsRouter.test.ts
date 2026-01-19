@@ -473,19 +473,21 @@ describe('usageEventsRouter', () => {
 
     it('should create usage event with priceSlug', async () => {
       // First, update price1 to have a slug
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await updatePrice(
-            {
-              id: price1.id,
-              slug: 'test-price-slug',
-              type: price1.type,
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            await updatePrice(
+              {
+                id: price1.id,
+                slug: 'test-price-slug',
+                type: price1.type,
+              },
+              transaction
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
 
       const caller = createCaller(
         org1Data.organization,
@@ -708,18 +710,20 @@ describe('usageEventsRouter', () => {
 
     it('should create usage event with usageMeterSlug', async () => {
       // First, update usageMeter1 to have a slug
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await updateUsageMeter(
-            {
-              id: usageMeter1.id,
-              slug: 'test-usage-meter-slug',
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            await updateUsageMeter(
+              {
+                id: usageMeter1.id,
+                slug: 'test-usage-meter-slug',
+              },
+              transaction
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
 
       const caller = createCaller(
         org1Data.organization,
@@ -854,26 +858,28 @@ describe('usageEventsRouter', () => {
 
     it('should throw error when both priceSlug and usageMeterSlug are provided', async () => {
       // First, update price1 and usageMeter1 to have slugs
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await updatePrice(
-            {
-              id: price1.id,
-              slug: 'test-price-slug',
-              type: price1.type,
-            },
-            transaction
-          )
-          await updateUsageMeter(
-            {
-              id: usageMeter1.id,
-              slug: 'test-usage-meter-slug',
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            await updatePrice(
+              {
+                id: price1.id,
+                slug: 'test-price-slug',
+                type: price1.type,
+              },
+              transaction
+            )
+            await updateUsageMeter(
+              {
+                id: usageMeter1.id,
+                slug: 'test-usage-meter-slug',
+              },
+              transaction
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
 
       const caller = createCaller(
         org1Data.organization,
@@ -915,18 +921,20 @@ describe('usageEventsRouter', () => {
 
     it('should throw error when priceId and usageMeterSlug are provided', async () => {
       // First, update usageMeter1 to have a slug
-      await authenticatedTransaction(
-        async ({ transaction }) => {
-          await updateUsageMeter(
-            {
-              id: usageMeter1.id,
-              slug: 'test-usage-meter-slug',
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction }) => {
+            await updateUsageMeter(
+              {
+                id: usageMeter1.id,
+                slug: 'test-usage-meter-slug',
+              },
+              transaction
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
 
       const caller = createCaller(
         org1Data.organization,

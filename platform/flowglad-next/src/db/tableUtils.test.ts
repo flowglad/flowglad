@@ -70,14 +70,16 @@ describe('createCursorPaginatedSelectFunction', () => {
   })
 
   it('should return correct pagination metadata when there are more results', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          pageSize: 5,
-        },
-        transaction,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+          },
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     expect(result.items.length).toBe(5)
     expect(result.hasNextPage).toBe(true)
@@ -85,17 +87,19 @@ describe('createCursorPaginatedSelectFunction', () => {
   })
 
   it('should return correct pagination metadata when there are no more results', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          pageSize: 20,
-          filters: {
-            organizationId,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 20,
+            filters: {
+              organizationId,
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
     expect(result.items.length).toBe(15)
 
     expect(result.hasNextPage).toBe(false)
@@ -103,49 +107,55 @@ describe('createCursorPaginatedSelectFunction', () => {
   })
 
   it('should handle different page sizes correctly', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          pageSize: 3,
-        },
-        transaction,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 3,
+          },
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     expect(result.items.length).toBe(3)
     expect(result.hasNextPage).toBe(true)
   })
 
   it('should return empty result set when no records match filter', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          pageSize: 10,
-          pageAfter: '0',
-          filters: {
-            logoURL: 'not-a-url',
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 10,
+            pageAfter: '0',
+            filters: {
+              logoURL: 'not-a-url',
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
     expect(result.items.length).toBe(0)
     expect(result.hasNextPage).toBe(false)
     expect(result.endCursor).toMatchObject({})
   })
 
   it('should maintain correct order by creation date (newest first)', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          pageSize: 15,
-          filters: {
-            organizationId,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 15,
+            filters: {
+              organizationId,
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     // Verify records are ordered by creation date descending (newest first)
     for (let i = 0; i < result.items.length - 1; i++) {
@@ -157,8 +167,8 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should paginate to next page correctly', async () => {
     // Get first page
-    const firstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -168,12 +178,12 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Get second page using cursor from first page
-    const secondPage = await adminTransaction(
-      async ({ transaction }) => {
+    const secondPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -184,8 +194,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Verify no overlap between pages
     const firstPageIds = new Set(
@@ -202,8 +212,8 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should handle backward pagination correctly', async () => {
     // Get first page
-    const firstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -213,12 +223,12 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Get second page
-    const secondPage = await adminTransaction(
-      async ({ transaction }) => {
+    const secondPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -229,12 +239,12 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Go back to first page using pageBefore
-    const backToFirstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const backToFirstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -245,8 +255,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Verify we got back to the first page
     expect(backToFirstPage.items).toEqual(firstPage.items)
@@ -254,8 +264,8 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should return correct total count for filtered and unfiltered results', async () => {
     // Test unfiltered total (should be all 15 customers)
-    const unfilteredResult = await adminTransaction(
-      async ({ transaction }) => {
+    const unfilteredResult = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -265,13 +275,13 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
     expect(unfilteredResult.total).toBe(15)
 
     // Test filtered total (should be 8 customers with livemode true)
-    const filteredResult = await adminTransaction(
-      async ({ transaction }) => {
+    const filteredResult = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -282,13 +292,13 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
     expect(filteredResult.total).toBe(8)
 
     // Test filtered total with no matches
-    const noMatchesResult = await adminTransaction(
-      async ({ transaction }) => {
+    const noMatchesResult = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -298,15 +308,15 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
     expect(noMatchesResult.total).toBe(0)
   })
 
   it('should not return duplicate items when using pageAfter', async () => {
     // Get first page
-    const firstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -316,12 +326,12 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Get second page using pageAfter
-    const secondPage = await adminTransaction(
-      async ({ transaction }) => {
+    const secondPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -332,8 +342,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create sets of IDs for comparison
     const firstPageIds = new Set(
@@ -352,8 +362,8 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should not return duplicate items when using pageBefore', async () => {
     // Get first page
-    const firstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -363,12 +373,12 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Get second page using pageAfter
-    const secondPage = await adminTransaction(
-      async ({ transaction }) => {
+    const secondPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -379,12 +389,12 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Go back to first page using pageBefore
-    const backToFirstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const backToFirstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -395,8 +405,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Create sets of IDs for comparison
     const backToFirstPageIds = new Set(
@@ -414,18 +424,20 @@ describe('createCursorPaginatedSelectFunction', () => {
   })
 
   it('should navigate to first page when goToFirst is true', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          pageSize: 5,
-          goToFirst: true,
-          filters: {
-            organizationId,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToFirst: true,
+            filters: {
+              organizationId,
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     expect(result.items.length).toBe(5)
     expect(result.hasPreviousPage).toBe(false)
@@ -436,18 +448,20 @@ describe('createCursorPaginatedSelectFunction', () => {
   })
 
   it('should navigate to last page when goToLast is true', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          pageSize: 5,
-          goToLast: true,
-          filters: {
-            organizationId,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToLast: true,
+            filters: {
+              organizationId,
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     // Last page should have 15 % 5 = 0, so full page of 5
     expect(result.items.length).toBe(5)
@@ -469,18 +483,20 @@ describe('createCursorPaginatedSelectFunction', () => {
       email: `extra2-${core.nanoid()}@example.com`,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          pageSize: 5,
-          goToLast: true,
-          filters: {
-            organizationId,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 5,
+            goToLast: true,
+            filters: {
+              organizationId,
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     // Last page should have 17 % 5 = 2 items
     expect(result.items.length).toBe(2)
@@ -491,8 +507,8 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should handle goToFirst from middle page correctly', async () => {
     // First get to middle page
-    const firstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -502,11 +518,11 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
-    const secondPage = await adminTransaction(
-      async ({ transaction }) => {
+    const secondPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -517,12 +533,12 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Now go to first from second page
-    const backToFirst = await adminTransaction(
-      async ({ transaction }) => {
+    const backToFirst = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -533,8 +549,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Should be same as original first page
     expect(backToFirst.items).toEqual(firstPage.items)
@@ -543,8 +559,8 @@ describe('createCursorPaginatedSelectFunction', () => {
   })
 
   it('should handle goToLast from first page correctly', async () => {
-    const firstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -554,11 +570,11 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
-    const lastPage = await adminTransaction(
-      async ({ transaction }) => {
+    const lastPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -569,8 +585,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Should be different from first page
     expect(lastPage.items).not.toEqual(firstPage.items)
@@ -580,8 +596,8 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should handle goToFirst and goToLast with filtered results', async () => {
     // Filter to only livemode customers (8 total)
-    const firstPageFiltered = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPageFiltered = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 3,
@@ -593,16 +609,16 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     expect(firstPageFiltered.items.length).toBe(3)
     expect(firstPageFiltered.hasPreviousPage).toBe(false)
     expect(firstPageFiltered.hasNextPage).toBe(true)
     expect(firstPageFiltered.total).toBe(8)
 
-    const lastPageFiltered = await adminTransaction(
-      async ({ transaction }) => {
+    const lastPageFiltered = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 3,
@@ -614,8 +630,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Last page should have 8 % 3 = 2 items
     expect(lastPageFiltered.items.length).toBe(2)
@@ -625,8 +641,8 @@ describe('createCursorPaginatedSelectFunction', () => {
   })
 
   it('should handle goToFirst and goToLast with empty result set', async () => {
-    const firstPageEmpty = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPageEmpty = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -638,8 +654,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     expect(firstPageEmpty.items.length).toBe(0)
     expect(firstPageEmpty.hasPreviousPage).toBe(false)
@@ -648,8 +664,8 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(firstPageEmpty.startCursor).toBe(null)
     expect(firstPageEmpty.endCursor).toBe(null)
 
-    const lastPageEmpty = await adminTransaction(
-      async ({ transaction }) => {
+    const lastPageEmpty = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -661,8 +677,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     expect(lastPageEmpty.items.length).toBe(0)
     expect(lastPageEmpty.hasPreviousPage).toBe(false)
@@ -674,18 +690,20 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should handle goToLast with single page of results', async () => {
     // Test with page size larger than total results
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersCursorPaginatedWithTableRowData({
-        input: {
-          pageSize: 20,
-          goToLast: true,
-          filters: {
-            organizationId,
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input: {
+            pageSize: 20,
+            goToLast: true,
+            filters: {
+              organizationId,
+            },
           },
-        },
-        transaction,
+          transaction,
+        })
       })
-    })
+    ).unwrap()
 
     expect(result.items.length).toBe(15)
     expect(result.hasNextPage).toBe(false)
@@ -694,8 +712,8 @@ describe('createCursorPaginatedSelectFunction', () => {
   })
 
   it('should maintain correct order when using goToFirst and goToLast', async () => {
-    const firstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -706,11 +724,11 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
-    const lastPage = await adminTransaction(
-      async ({ transaction }) => {
+    const lastPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -721,8 +739,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Verify first page is ordered by creation date descending (newest first)
     for (let i = 0; i < firstPage.items.length - 1; i++) {
@@ -754,8 +772,8 @@ describe('createCursorPaginatedSelectFunction', () => {
 
   it('should ignore cursor parameters when goToFirst or goToLast are used', async () => {
     // Get a valid cursor first
-    const firstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -765,12 +783,12 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Use goToFirst with cursor parameters - should ignore cursors
-    const goToFirstWithCursor = await adminTransaction(
-      async ({ transaction }) => {
+    const goToFirstWithCursor = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -782,12 +800,12 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     // Should be same as normal goToFirst
-    const normalGoToFirst = await adminTransaction(
-      async ({ transaction }) => {
+    const normalGoToFirst = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersCursorPaginatedWithTableRowData({
           input: {
             pageSize: 5,
@@ -798,8 +816,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           },
           transaction,
         })
-      }
-    )
+      })
+    ).unwrap()
 
     expect(goToFirstWithCursor.items).toEqual(normalGoToFirst.items)
   })
@@ -849,7 +867,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             },
             customersSelectSchema,
             undefined, // no enrichment
-            [customers.email], // base search on email
+            [customers.email], // base search on email;
             ({ searchQuery }) => {
               // Additional search: match by customer ID or name
               return or(
@@ -860,8 +878,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           )
 
         // Search for customer ID - should find via additional search clause
-        const resultById = await adminTransaction(
-          async ({ transaction }) => {
+        const resultById = (
+          await adminTransaction(async ({ transaction }) => {
             return testSelectFunction({
               input: {
                 pageSize: 10,
@@ -870,16 +888,16 @@ describe('createCursorPaginatedSelectFunction', () => {
               },
               transaction,
             })
-          }
-        )
+          })
+        ).unwrap()
 
         expect(resultById.items.length).toBe(1)
         expect(resultById.items[0].id).toBe(testCustomer1.id)
         expect(resultById.items[0].name).toBe('Alice Smith')
 
         // Search for name - should find via additional search clause
-        const resultByName = await adminTransaction(
-          async ({ transaction }) => {
+        const resultByName = (
+          await adminTransaction(async ({ transaction }) => {
             return testSelectFunction({
               input: {
                 pageSize: 10,
@@ -888,16 +906,16 @@ describe('createCursorPaginatedSelectFunction', () => {
               },
               transaction,
             })
-          }
-        )
+          })
+        ).unwrap()
 
         expect(resultByName.items.length).toBe(1)
         expect(resultByName.items[0].id).toBe(testCustomer1.id)
         expect(resultByName.items[0].name).toBe('Alice Smith')
 
         // Search for email - should find via base search
-        const resultByEmail = await adminTransaction(
-          async ({ transaction }) => {
+        const resultByEmail = (
+          await adminTransaction(async ({ transaction }) => {
             return testSelectFunction({
               input: {
                 pageSize: 10,
@@ -906,8 +924,8 @@ describe('createCursorPaginatedSelectFunction', () => {
               },
               transaction,
             })
-          }
-        )
+          })
+        ).unwrap()
 
         expect(resultByEmail.items.length).toBe(1)
         expect(resultByEmail.items[0].id).toBe(testCustomer2.id)
@@ -949,8 +967,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           )
 
         // Filter by nameContains - should only return matching customers
-        const result = await adminTransaction(
-          async ({ transaction }) => {
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
             return testSelectFunction({
               input: {
                 pageSize: 10,
@@ -961,8 +979,8 @@ describe('createCursorPaginatedSelectFunction', () => {
               },
               transaction,
             })
-          }
-        )
+          })
+        ).unwrap()
 
         expect(result.items.length).toBe(1)
         expect(result.items[0].id).toBe(testCustomer1.id)
@@ -1001,8 +1019,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           )
 
         // Pass filters with both known (organizationId) and unknown (nameContains) keys
-        const result = await adminTransaction(
-          async ({ transaction }) => {
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
             return testSelectFunction({
               input: {
                 pageSize: 10,
@@ -1014,8 +1032,8 @@ describe('createCursorPaginatedSelectFunction', () => {
               },
               transaction,
             })
-          }
-        )
+          })
+        ).unwrap()
 
         // Should only return customer with name containing 'Brown'
         expect(result.items.length).toBe(1)
@@ -1038,7 +1056,7 @@ describe('createCursorPaginatedSelectFunction', () => {
             },
             customersSelectSchema,
             undefined,
-            [customers.email], // base search
+            [customers.email], // base search;
             ({ searchQuery }) => {
               // Additional search: match by name
               return sql`${customers.name} ilike ${`%${searchQuery}%`}`
@@ -1060,8 +1078,8 @@ describe('createCursorPaginatedSelectFunction', () => {
           )
 
         // Search for 'Alice' (should match via additional search) AND filter by nameContains 'Smith'
-        const result = await adminTransaction(
-          async ({ transaction }) => {
+        const result = (
+          await adminTransaction(async ({ transaction }) => {
             return testSelectFunction({
               input: {
                 pageSize: 10,
@@ -1073,8 +1091,8 @@ describe('createCursorPaginatedSelectFunction', () => {
               },
               transaction,
             })
-          }
-        )
+          })
+        ).unwrap()
 
         // Should return customer that matches both search (Alice) and filter (Smith)
         expect(result.items.length).toBe(1)
@@ -1107,151 +1125,155 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
   })
 
   it('should ALLOW a user to manage pricingModels, products, and prices within their organization', async () => {
-    await authenticatedTransaction(
-      async ({ transaction, userId, livemode }) => {
-        expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode should be false based on API key
+    ;(
+      await authenticatedTransaction(
+        async ({ transaction, userId, livemode }) => {
+          expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode should be false based on API key
 
-        const newPricingModelInput: PricingModel.Insert = {
-          name: 'Test Allowed RLS PricingModel',
-          organizationId: org1Data.organization.id,
-          livemode: org1UserApiKey.livemode, // PricingModel livemode matches session
-        }
+          const newPricingModelInput: PricingModel.Insert = {
+            name: 'Test Allowed RLS PricingModel',
+            organizationId: org1Data.organization.id,
+            livemode: org1UserApiKey.livemode, // PricingModel livemode matches session
+          }
 
-        // INSERT
-        const createdPricingModelResult = await transaction
-          .insert(pricingModels)
-          .values(newPricingModelInput)
-          .returning()
-        expect(createdPricingModelResult.length).toBe(1)
-        const createdPricingModel =
-          createdPricingModelResult[0] as typeof pricingModels.$inferSelect
-        expect(createdPricingModel.name).toBe(
-          'Test Allowed RLS PricingModel'
-        )
-        expect(createdPricingModel.organizationId).toBe(
-          org1Data.organization.id
-        )
-        const pricingModelId = createdPricingModel.id
-        // SELECT
-        const selectedPricingModels = await transaction
-          .select()
-          .from(pricingModels)
-          .where(eq(pricingModels.id, pricingModelId))
-        expect(selectedPricingModels.length).toBe(1)
-        expect(selectedPricingModels[0].id).toBe(pricingModelId)
+          // INSERT
+          const createdPricingModelResult = await transaction
+            .insert(pricingModels)
+            .values(newPricingModelInput)
+            .returning()
+          expect(createdPricingModelResult.length).toBe(1)
+          const createdPricingModel =
+            createdPricingModelResult[0] as typeof pricingModels.$inferSelect
+          expect(createdPricingModel.name).toBe(
+            'Test Allowed RLS PricingModel'
+          )
+          expect(createdPricingModel.organizationId).toBe(
+            org1Data.organization.id
+          )
+          const pricingModelId = createdPricingModel.id
+          // SELECT
+          const selectedPricingModels = await transaction
+            .select()
+            .from(pricingModels)
+            .where(eq(pricingModels.id, pricingModelId))
+          expect(selectedPricingModels.length).toBe(1)
+          expect(selectedPricingModels[0].id).toBe(pricingModelId)
 
-        // UPDATE
-        const updatedPricingModelResult = await transaction
-          .update(pricingModels)
-          .set({ name: 'Updated Allowed RLS PricingModel' })
-          .where(eq(pricingModels.id, pricingModelId))
-          .returning()
-        expect(updatedPricingModelResult.length).toBe(1)
-        expect(updatedPricingModelResult[0].name).toBe(
-          'Updated Allowed RLS PricingModel'
-        )
+          // UPDATE
+          const updatedPricingModelResult = await transaction
+            .update(pricingModels)
+            .set({ name: 'Updated Allowed RLS PricingModel' })
+            .where(eq(pricingModels.id, pricingModelId))
+            .returning()
+          expect(updatedPricingModelResult.length).toBe(1)
+          expect(updatedPricingModelResult[0].name).toBe(
+            'Updated Allowed RLS PricingModel'
+          )
 
-        const productInsert: Product.Insert = {
-          name: 'Test Product',
-          organizationId: org1Data.organization.id,
-          livemode,
-          description: 'Test product description',
-          imageURL: 'https://example.com/test-product.jpg',
-          singularQuantityLabel:
-            'Test product singular quantity label',
-          pluralQuantityLabel: 'Test product plural quantity label',
-          active: true,
-          externalId: null,
-          pricingModelId: org1Data.pricingModel.id,
-          default: false,
-          slug: `flowglad-test-product-price+${core.nanoid()}`,
-        }
-        const createdProduct = await insertProduct(
-          productInsert,
-          transaction
-        )
-
-        // Create a price to test RLS
-        const priceInput: Price.Insert = {
-          ...nulledPriceColumns,
-          name: 'Test Price',
-          livemode,
-          productId: createdProduct.id,
-          unitPrice: 1000,
-          currency: CurrencyCode.USD,
-          type: PriceType.SinglePayment,
-          active: true,
-          externalId: null,
-          isDefault: false,
-          slug: `flowglad-test-product-price+${core.nanoid()}`,
-        }
-
-        const createdPrice = await insertPrice(
-          priceInput,
-          transaction
-        )
-        expect(createdPrice.name).toBe('Test Price')
-
-        // Test price update
-        const updatedPrice = await updatePrice(
-          {
-            id: createdPrice.id,
-            name: 'Updated Test Price',
-            unitPrice: 2000,
-            type: PriceType.SinglePayment,
-            intervalUnit: null,
-            intervalCount: null,
+          const productInsert: Product.Insert = {
+            name: 'Test Product',
+            organizationId: org1Data.organization.id,
+            livemode,
+            description: 'Test product description',
+            imageURL: 'https://example.com/test-product.jpg',
+            singularQuantityLabel:
+              'Test product singular quantity label',
+            pluralQuantityLabel: 'Test product plural quantity label',
             active: true,
             externalId: null,
-            usageMeterId: null,
-            isDefault: false,
-          },
-          transaction
-        )
-        expect(updatedPrice.name).toBe('Updated Test Price')
-        expect(updatedPrice.unitPrice).toBe(2000)
+            pricingModelId: org1Data.pricingModel.id,
+            default: false,
+            slug: `flowglad-test-product-price+${core.nanoid()}`,
+          }
+          const createdProduct = await insertProduct(
+            productInsert,
+            transaction
+          )
 
-        // Test product update
-        const updatedProduct = await updateProduct(
-          {
-            id: createdProduct.id,
-            name: 'Updated Test Product',
-            description: 'Updated test product description',
-          },
-          transaction
-        )
-        expect(updatedProduct.name).toBe('Updated Test Product')
-        expect(updatedProduct.description).toBe(
-          'Updated test product description'
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+          // Create a price to test RLS
+          const priceInput: Price.Insert = {
+            ...nulledPriceColumns,
+            name: 'Test Price',
+            livemode,
+            productId: createdProduct.id,
+            unitPrice: 1000,
+            currency: CurrencyCode.USD,
+            type: PriceType.SinglePayment,
+            active: true,
+            externalId: null,
+            isDefault: false,
+            slug: `flowglad-test-product-price+${core.nanoid()}`,
+          }
+
+          const createdPrice = await insertPrice(
+            priceInput,
+            transaction
+          )
+          expect(createdPrice.name).toBe('Test Price')
+
+          // Test price update
+          const updatedPrice = await updatePrice(
+            {
+              id: createdPrice.id,
+              name: 'Updated Test Price',
+              unitPrice: 2000,
+              type: PriceType.SinglePayment,
+              intervalUnit: null,
+              intervalCount: null,
+              active: true,
+              externalId: null,
+              usageMeterId: null,
+              isDefault: false,
+            },
+            transaction
+          )
+          expect(updatedPrice.name).toBe('Updated Test Price')
+          expect(updatedPrice.unitPrice).toBe(2000)
+
+          // Test product update
+          const updatedProduct = await updateProduct(
+            {
+              id: createdProduct.id,
+              name: 'Updated Test Product',
+              description: 'Updated test product description',
+            },
+            transaction
+          )
+          expect(updatedProduct.name).toBe('Updated Test Product')
+          expect(updatedProduct.description).toBe(
+            'Updated test product description'
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
   })
 
   it('should DENY a user from creating a pricingModel for another organization due to RLS', async () => {
     const pricingModelNameAttempt =
       'Test Denied RLS PricingModel - Other Org'
     try {
-      await authenticatedTransaction(
-        async ({ transaction, livemode }) => {
-          expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode is true
-          const newPricingModelInput: PricingModel.Insert = {
-            name: pricingModelNameAttempt,
-            organizationId: org2Data.organization.id, // Attempting to use other org's ID
-            livemode, // PricingModel livemode matches session, but orgId is wrong
-          }
-          await transaction
-            .insert(pricingModels)
-            .values(newPricingModelInput)
-            .returning()
-          // Should not reach here
-          throw new Error(
-            'PricingModel insert was unexpectedly allowed for another organization'
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
+      ;(
+        await authenticatedTransaction(
+          async ({ transaction, livemode }) => {
+            expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode is true
+            const newPricingModelInput: PricingModel.Insert = {
+              name: pricingModelNameAttempt,
+              organizationId: org2Data.organization.id, // Attempting to use other org's ID
+              livemode, // PricingModel livemode matches session, but orgId is wrong
+            }
+            await transaction
+              .insert(pricingModels)
+              .values(newPricingModelInput)
+              .returning()
+            // Should not reach here
+            throw new Error(
+              'PricingModel insert was unexpectedly allowed for another organization'
+            )
+          },
+          { apiKey: org1ApiKeyToken }
+        )
+      ).unwrap()
     } catch (error: any) {
       expect(error.message).toContain(
         'Failed query: insert into "pricing_models"'
@@ -1259,8 +1281,8 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
     }
 
     // Verify (using admin) that the pricingModel was not actually created
-    const checkPricingModel = await adminTransaction(
-      async ({ transaction }) => {
+    const checkPricingModel = (
+      await adminTransaction(async ({ transaction }) => {
         return transaction
           .select()
           .from(pricingModels)
@@ -1273,8 +1295,8 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
               eq(pricingModels.name, pricingModelNameAttempt)
             )
           )
-      }
-    )
+      })
+    ).unwrap()
     expect(checkPricingModel.length).toBe(0)
   })
 })
@@ -1767,14 +1789,16 @@ describe('createPaginatedSelectFunction', () => {
   })
 
   it('should return first page with default limit', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersPaginated(
-        {
-          limit: 10,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersPaginated(
+          {
+            limit: 10,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.data.length).toBe(10)
     expect(result.hasMore).toBe(true)
@@ -1784,14 +1808,16 @@ describe('createPaginatedSelectFunction', () => {
   })
 
   it('should return correct page with custom limit', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersPaginated(
-        {
-          limit: 5,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersPaginated(
+          {
+            limit: 5,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.data.length).toBe(5)
     expect(result.hasMore).toBe(true)
@@ -1799,19 +1825,21 @@ describe('createPaginatedSelectFunction', () => {
 
   it('paginates forward across pages with stable order, cursor continuity, and no overlap', async () => {
     // Page 1 from start (filtered by organization)
-    const page1 = await adminTransaction(async ({ transaction }) => {
-      const initialCursor = encodeCursor({
-        parameters: { organizationId },
-        direction: 'forward',
+    const page1 = (
+      await adminTransaction(async ({ transaction }) => {
+        const initialCursor = encodeCursor({
+          parameters: { organizationId },
+          direction: 'forward',
+        })
+        return selectCustomersPaginated(
+          {
+            cursor: initialCursor,
+            limit: 10,
+          },
+          transaction
+        )
       })
-      return selectCustomersPaginated(
-        {
-          cursor: initialCursor,
-          limit: 10,
-        },
-        transaction
-      )
-    })
+    ).unwrap()
 
     expect(page1.data.length).toBeGreaterThan(0)
     expect(page1.hasMore).toBe(true)
@@ -1824,15 +1852,17 @@ describe('createPaginatedSelectFunction', () => {
     expect(decoded1.direction).toBe('forward')
 
     // Page 2 using nextCursor
-    const page2 = await adminTransaction(async ({ transaction }) => {
-      return selectCustomersPaginated(
-        {
-          cursor: page1.nextCursor!,
-          limit: 10,
-        },
-        transaction
-      )
-    })
+    const page2 = (
+      await adminTransaction(async ({ transaction }) => {
+        return selectCustomersPaginated(
+          {
+            cursor: page1.nextCursor!,
+            limit: 10,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Cursor continuity
     expect(page2.currentCursor).toBe(page1.nextCursor)
@@ -1868,19 +1898,21 @@ describe('createPaginatedSelectFunction', () => {
   })
 
   it('should return hasMore=false when on last page', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      const initialCursor = encodeCursor({
-        parameters: { organizationId }, // Required in tests (bypasses auth flow)
-        direction: 'forward',
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const initialCursor = encodeCursor({
+          parameters: { organizationId }, // Required in tests (bypasses auth flow)
+          direction: 'forward',
+        })
+        return selectCustomersPaginated(
+          {
+            cursor: initialCursor,
+            limit: 100,
+          },
+          transaction
+        )
       })
-      return selectCustomersPaginated(
-        {
-          cursor: initialCursor,
-          limit: 100,
-        },
-        transaction
-      )
-    })
+    ).unwrap()
 
     // If we request more items than exist, hasMore should be false
     expect(result.hasMore).toBe(false)
@@ -1890,22 +1922,24 @@ describe('createPaginatedSelectFunction', () => {
   it('should handle empty result set', async () => {
     // Since createPaginatedSelectFunction uses createdAt for cursor filtering,
     // not parameter filtering in the cursor, we'll test with a far future date
-    const result = await adminTransaction(async ({ transaction }) => {
-      // Use a future date that won't match any records
-      const cursor = encodeCursor({
-        parameters: {},
-        createdAt: new Date('2099-01-01'),
-        id: '0',
-        direction: 'forward',
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        // Use a future date that won't match any records
+        const cursor = encodeCursor({
+          parameters: {},
+          createdAt: new Date('2099-01-01'),
+          id: '0',
+          direction: 'forward',
+        })
+        return selectCustomersPaginated(
+          {
+            cursor,
+            limit: 10,
+          },
+          transaction
+        )
       })
-      return selectCustomersPaginated(
-        {
-          cursor,
-          limit: 10,
-        },
-        transaction
-      )
-    })
+    ).unwrap()
 
     expect(result.data.length).toBe(0)
     expect(result.hasMore).toBe(false)
@@ -1914,115 +1948,119 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should paginate deterministically when many rows share identical createdAt', async () => {
     const fixed = new Date('2020-01-01T00:00:00Z')
-    const result = await adminTransaction(async ({ transaction }) => {
-      // Force identical createdAt for at least 20 existing rows
-      const page = await selectCustomersPaginated(
-        { limit: 20 },
-        transaction
-      )
-      const ids = page.data.map((c) => c.id)
-      if (ids.length > 0) {
-        await transaction
-          .update(customers)
-          .set({
-            createdAt: sql`${fixed.toISOString()}::timestamptz`,
-          })
-          .where(inArray(customers.id, ids))
-      }
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        // Force identical createdAt for at least 20 existing rows
+        const page = await selectCustomersPaginated(
+          { limit: 20 },
+          transaction
+        )
+        const ids = page.data.map((c) => c.id)
+        if (ids.length > 0) {
+          await transaction
+            .update(customers)
+            .set({
+              createdAt: sql`${fixed.toISOString()}::timestamptz`,
+            })
+            .where(inArray(customers.id, ids))
+        }
 
-      const page1 = await selectCustomersPaginated(
-        { limit: 10 },
-        transaction
-      )
-      const page2 = await selectCustomersPaginated(
-        { limit: 10, cursor: page1.nextCursor! },
-        transaction
-      )
+        const page1 = await selectCustomersPaginated(
+          { limit: 10 },
+          transaction
+        )
+        const page2 = await selectCustomersPaginated(
+          { limit: 10, cursor: page1.nextCursor! },
+          transaction
+        )
 
-      // zero overlap due to (createdAt, id) keyset pagination
-      const set1 = new Set(page1.data.map((c) => c.id))
-      const set2 = new Set(page2.data.map((c) => c.id))
-      const overlap = [...set1].filter((id) => set2.has(id))
-      expect(overlap.length).toBe(0)
+        // zero overlap due to (createdAt, id) keyset pagination
+        const set1 = new Set(page1.data.map((c) => c.id))
+        const set2 = new Set(page2.data.map((c) => c.id))
+        const overlap = [...set1].filter((id) => set2.has(id))
+        expect(overlap.length).toBe(0)
 
-      // ordering by (createdAt, id) ascending in forward
-      const all = [...page1.data, ...page2.data]
-      for (let i = 0; i < all.length - 1; i++) {
-        const a = all[i]
-        const b = all[i + 1]
-        const ta = new Date(a.createdAt).getTime()
-        const tb = new Date(b.createdAt).getTime()
-        expect(ta <= tb || (ta === tb && a.id <= b.id)).toBe(true)
-      }
-      return true
-    })
+        // ordering by (createdAt, id) ascending in forward
+        const all = [...page1.data, ...page2.data]
+        for (let i = 0; i < all.length - 1; i++) {
+          const a = all[i]
+          const b = all[i + 1]
+          const ta = new Date(a.createdAt).getTime()
+          const tb = new Date(b.createdAt).getTime()
+          expect(ta <= tb || (ta === tb && a.id <= b.id)).toBe(true)
+        }
+        return true
+      })
+    ).unwrap()
     expect(result).toBe(true)
   })
 
   it('should handle backward pagination boundary with identical createdAt deterministically', async () => {
     const fixed = new Date('2020-01-02T00:00:00Z')
-    await adminTransaction(async ({ transaction }) => {
-      // Force many rows to share the same timestamp for a robust boundary test
-      const firstPage = await selectCustomersPaginated(
-        { limit: 20 },
-        transaction
-      )
-      const ids = firstPage.data.map((c) => c.id)
-      if (ids.length > 0) {
-        await transaction
-          .update(customers)
-          .set({
-            createdAt: sql`${fixed.toISOString()}::timestamptz`,
-          })
-          .where(inArray(customers.id, ids))
-      }
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        // Force many rows to share the same timestamp for a robust boundary test
+        const firstPage = await selectCustomersPaginated(
+          { limit: 20 },
+          transaction
+        )
+        const ids = firstPage.data.map((c) => c.id)
+        if (ids.length > 0) {
+          await transaction
+            .update(customers)
+            .set({
+              createdAt: sql`${fixed.toISOString()}::timestamptz`,
+            })
+            .where(inArray(customers.id, ids))
+        }
 
-      // Start from just after the fixed timestamp, direction backward
-      const cursor = encodeCursor({
-        parameters: {},
-        createdAt: new Date('2020-01-03T00:00:00Z'),
-        id: 'zzzzzzzz',
-        direction: 'backward',
+        // Start from just after the fixed timestamp, direction backward
+        const cursor = encodeCursor({
+          parameters: {},
+          createdAt: new Date('2020-01-03T00:00:00Z'),
+          id: 'zzzzzzzz',
+          direction: 'backward',
+        })
+        const page1 = await selectCustomersPaginated(
+          { limit: 10, cursor },
+          transaction
+        )
+        const page2 = await selectCustomersPaginated(
+          { limit: 10, cursor: page1.nextCursor! },
+          transaction
+        )
+
+        // zero overlap across backward pages
+        const set1 = new Set(page1.data.map((c) => c.id))
+        const set2 = new Set(page2.data.map((c) => c.id))
+        const overlap = [...set1].filter((id) => set2.has(id))
+        expect(overlap.length).toBe(0)
+
+        // ordering by (createdAt desc, id desc) in backward
+        const all = [...page1.data, ...page2.data]
+        for (let i = 0; i < all.length - 1; i++) {
+          const a = all[i]
+          const b = all[i + 1]
+          const ta = new Date(a.createdAt).getTime()
+          const tb = new Date(b.createdAt).getTime()
+          expect(ta >= tb || (ta === tb && a.id >= b.id)).toBe(true)
+        }
       })
-      const page1 = await selectCustomersPaginated(
-        { limit: 10, cursor },
-        transaction
-      )
-      const page2 = await selectCustomersPaginated(
-        { limit: 10, cursor: page1.nextCursor! },
-        transaction
-      )
-
-      // zero overlap across backward pages
-      const set1 = new Set(page1.data.map((c) => c.id))
-      const set2 = new Set(page2.data.map((c) => c.id))
-      const overlap = [...set1].filter((id) => set2.has(id))
-      expect(overlap.length).toBe(0)
-
-      // ordering by (createdAt desc, id desc) in backward
-      const all = [...page1.data, ...page2.data]
-      for (let i = 0; i < all.length - 1; i++) {
-        const a = all[i]
-        const b = all[i + 1]
-        const ta = new Date(a.createdAt).getTime()
-        const tb = new Date(b.createdAt).getTime()
-        expect(ta >= tb || (ta === tb && a.id >= b.id)).toBe(true)
-      }
-    })
+    ).unwrap()
   })
 
   it('accepts legacy cursor without id and continues pagination (createdAt-only fallback)', async () => {
     // Get a first page to establish an anchor
-    const firstPage = await adminTransaction(
-      async ({ transaction }) => {
+    const firstPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersPaginated(
           {
             limit: 10,
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(firstPage.data.length).toBeGreaterThan(0)
     const anchor = firstPage.data[firstPage.data.length - 1]
@@ -2035,8 +2073,8 @@ describe('createPaginatedSelectFunction', () => {
       direction: 'forward',
     })
 
-    const secondPage = await adminTransaction(
-      async ({ transaction }) => {
+    const secondPage = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersPaginated(
           {
             cursor: legacyCursor,
@@ -2044,8 +2082,8 @@ describe('createPaginatedSelectFunction', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Ensure we advanced and did not overlap with the first page
     const firstIds = new Set(firstPage.data.map((c) => c.id))
@@ -2062,22 +2100,24 @@ describe('createPaginatedSelectFunction', () => {
   })
 
   it('should handle backward pagination direction', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      // Create cursor with backward direction
-      const cursor = encodeCursor({
-        parameters: {},
-        createdAt: new Date(), // Start from now
-        direction: 'backward',
-      })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        // Create cursor with backward direction
+        const cursor = encodeCursor({
+          parameters: {},
+          createdAt: new Date(), // Start from now
+          direction: 'backward',
+        })
 
-      return selectCustomersPaginated(
-        {
-          cursor,
-          limit: 10,
-        },
-        transaction
-      )
-    })
+        return selectCustomersPaginated(
+          {
+            cursor,
+            limit: 10,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.data.length).toBeGreaterThan(0)
 
@@ -2092,27 +2132,27 @@ describe('createPaginatedSelectFunction', () => {
   })
 
   it('should return consistent results across multiple fetches without cursor', async () => {
-    const firstFetch = await adminTransaction(
-      async ({ transaction }) => {
+    const firstFetch = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersPaginated(
           {
             limit: 5,
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
-    const secondFetch = await adminTransaction(
-      async ({ transaction }) => {
+    const secondFetch = (
+      await adminTransaction(async ({ transaction }) => {
         return selectCustomersPaginated(
           {
             limit: 5,
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Without new data, the first page should be the same
     expect(firstFetch.data.map((c) => c.id)).toEqual(
@@ -2122,8 +2162,8 @@ describe('createPaginatedSelectFunction', () => {
 
   it('should handle limit at exact boundary of available records', async () => {
     // Get total count first
-    const totalResult = await adminTransaction(
-      async ({ transaction }) => {
+    const totalResult = (
+      await adminTransaction(async ({ transaction }) => {
         const cursor = encodeCursor({
           parameters: { organizationId }, // Required in tests (bypasses auth flow)
           createdAt: new Date(0),
@@ -2136,24 +2176,26 @@ describe('createPaginatedSelectFunction', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Request exactly the number of records that exist
-    const result = await adminTransaction(async ({ transaction }) => {
-      const cursor = encodeCursor({
-        parameters: { organizationId }, // Required in tests (bypasses auth flow)
-        createdAt: new Date(0),
-        direction: 'forward',
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        const cursor = encodeCursor({
+          parameters: { organizationId }, // Required in tests (bypasses auth flow)
+          createdAt: new Date(0),
+          direction: 'forward',
+        })
+        return selectCustomersPaginated(
+          {
+            cursor,
+            limit: Math.min(totalResult.data.length, 100),
+          },
+          transaction
+        )
       })
-      return selectCustomersPaginated(
-        {
-          cursor,
-          limit: Math.min(totalResult.data.length, 100),
-        },
-        transaction
-      )
-    })
+    ).unwrap()
 
     expect(result.data.length).toBe(
       Math.min(totalResult.data.length, 100)
@@ -2196,12 +2238,14 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
     // Walk pages until exhaustion
     // Collect names to assert full ordering and content
     while (true) {
-      const page = await adminTransaction(async ({ transaction }) =>
-        selectCustomersPaginated(
-          { cursor: currentCursor, limit: pageSize },
-          transaction
+      const page = (
+        await adminTransaction(async ({ transaction }) =>
+          selectCustomersPaginated(
+            { cursor: currentCursor, limit: pageSize },
+            transaction
+          )
         )
-      )
+      ).unwrap()
       seenNames.push(...page.data.map((c) => c.name))
       if (!page.nextCursor) break
       currentCursor = page.nextCursor
@@ -2226,9 +2270,11 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
       parameters: { organizationId },
       direction: 'forward',
     })
-    const result = await adminTransaction(async ({ transaction }) =>
-      selectCustomersPaginated({ cursor, limit: 3 }, transaction)
-    )
+    const result = (
+      await adminTransaction(async ({ transaction }) =>
+        selectCustomersPaginated({ cursor, limit: 3 }, transaction)
+      )
+    ).unwrap()
     expect(result.total).toBe(12)
   })
 })
@@ -2362,135 +2408,147 @@ describe('buildWhereClauses', () => {
   })
 
   it('should return undefined when no filters or search provided', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const result = await buildWhereClauses(
-        customers,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const result = await buildWhereClauses(
+          customers,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          transaction
+        )
 
-      expect(result.whereClauses).toBeUndefined()
-    })
+        expect(result.whereClauses).toBeUndefined()
+      })
+    ).unwrap()
   })
 
   it('should filter by base table columns and sanitize cross-table fields', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const filters = {
-        organizationId,
-        livemode: true,
-        email: customer1.email,
-        productName: 'Premium Plan', // Cross-table field, should be ignored
-      } as Record<string, unknown>
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const filters = {
+          organizationId,
+          livemode: true,
+          email: customer1.email,
+          productName: 'Premium Plan', // Cross-table field, should be ignored
+        } as Record<string, unknown>
 
-      const { whereClauses } = await buildWhereClauses(
-        customers,
-        filters,
-        undefined,
-        undefined,
-        undefined,
-        undefined,
-        transaction
-      )
+        const { whereClauses } = await buildWhereClauses(
+          customers,
+          filters,
+          undefined,
+          undefined,
+          undefined,
+          undefined,
+          transaction
+        )
 
-      const results = await transaction
-        .select()
-        .from(customers)
-        .where(whereClauses)
+        const results = await transaction
+          .select()
+          .from(customers)
+          .where(whereClauses)
 
-      expect(results.length).toBe(1)
-      expect(results[0].id).toBe(customer1.id)
-    })
+        expect(results.length).toBe(1)
+        expect(results[0].id).toBe(customer1.id)
+      })
+    ).unwrap()
   })
 
   it('should search across searchable columns', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const { whereClauses } = await buildWhereClauses(
-        customers,
-        { organizationId },
-        'alice',
-        [customers.email, customers.name],
-        undefined,
-        undefined,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const { whereClauses } = await buildWhereClauses(
+          customers,
+          { organizationId },
+          'alice',
+          [customers.email, customers.name],
+          undefined,
+          undefined,
+          transaction
+        )
 
-      const results = await transaction
-        .select()
-        .from(customers)
-        .where(whereClauses)
+        const results = await transaction
+          .select()
+          .from(customers)
+          .where(whereClauses)
 
-      expect(results.length).toBe(1)
-      expect(results[0].id).toBe(customer1.id)
-    })
+        expect(results.length).toBe(1)
+        expect(results[0].id).toBe(customer1.id)
+      })
+    ).unwrap()
   })
 
   it('should combine base filters with additional filter clauses using AND', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const { whereClauses } = await buildWhereClauses(
-        customers,
-        { organizationId },
-        undefined,
-        undefined,
-        async () => eq(customers.livemode, true),
-        undefined,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const { whereClauses } = await buildWhereClauses(
+          customers,
+          { organizationId },
+          undefined,
+          undefined,
+          async () => eq(customers.livemode, true),
+          undefined,
+          transaction
+        )
 
-      const results = await transaction
-        .select()
-        .from(customers)
-        .where(whereClauses)
+        const results = await transaction
+          .select()
+          .from(customers)
+          .where(whereClauses)
 
-      expect(results.length).toBe(2)
-      expect(results.every((c) => c.livemode === true)).toBe(true)
-    })
+        expect(results.length).toBe(2)
+        expect(results.every((c) => c.livemode === true)).toBe(true)
+      })
+    ).unwrap()
   })
 
   it('should combine base search with additional search using OR', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const { whereClauses } = await buildWhereClauses(
-        customers,
-        { organizationId },
-        'bob',
-        [customers.email],
-        undefined,
-        async () => sql`${customers.name} ILIKE ${'%bob%'}`,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const { whereClauses } = await buildWhereClauses(
+          customers,
+          { organizationId },
+          'bob',
+          [customers.email],
+          undefined,
+          async () => sql`${customers.name} ILIKE ${'%bob%'}`,
+          transaction
+        )
 
-      const results = await transaction
-        .select()
-        .from(customers)
-        .where(whereClauses)
+        const results = await transaction
+          .select()
+          .from(customers)
+          .where(whereClauses)
 
-      expect(results.length).toBe(1)
-      expect(results[0].id).toBe(customer2.id)
-    })
+        expect(results.length).toBe(1)
+        expect(results[0].id).toBe(customer2.id)
+      })
+    ).unwrap()
   })
 
   it('should combine all clauses with AND logic', async () => {
-    await adminTransaction(async ({ transaction }) => {
-      const { whereClauses } = await buildWhereClauses(
-        customers,
-        { organizationId, livemode: true },
-        'alice',
-        [customers.email],
-        async () => sql`${customers.name} IS NOT NULL`,
-        undefined,
-        transaction
-      )
+    ;(
+      await adminTransaction(async ({ transaction }) => {
+        const { whereClauses } = await buildWhereClauses(
+          customers,
+          { organizationId, livemode: true },
+          'alice',
+          [customers.email],
+          async () => sql`${customers.name} IS NOT NULL`,
+          undefined,
+          transaction
+        )
 
-      const results = await transaction
-        .select()
-        .from(customers)
-        .where(whereClauses)
+        const results = await transaction
+          .select()
+          .from(customers)
+          .where(whereClauses)
 
-      expect(results.length).toBe(1)
-      expect(results[0].id).toBe(customer1.id)
-    })
+        expect(results.length).toBe(1)
+        expect(results[0].id).toBe(customer1.id)
+      })
+    ).unwrap()
   })
 })

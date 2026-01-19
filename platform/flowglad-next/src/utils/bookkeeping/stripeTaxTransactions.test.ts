@@ -75,7 +75,7 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
       purchaseId: purchase.id,
     })
 
-    const { updatedPayment, updatedFeeCalculation } =
+    const { updatedPayment, updatedFeeCalculation } = (
       await adminTransaction(async ({ transaction }) => {
         const feeCalculation = await insertFeeCalculation(
           {
@@ -134,6 +134,7 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
         }
         return { updatedPayment, updatedFeeCalculation }
       })
+    ).unwrap()
 
     expect(updatedPayment.stripeTaxTransactionId).toMatch(/^tax_txn_/)
     expect(updatedFeeCalculation.stripeTaxTransactionId).toBe(
@@ -170,8 +171,8 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
       purchaseId: purchase.id,
     })
 
-    const stripeTaxTransactionId = await adminTransaction(
-      async ({ transaction }) => {
+    const stripeTaxTransactionId = (
+      await adminTransaction(async ({ transaction }) => {
         await insertFeeCalculation(
           {
             organizationId: organization.id,
@@ -214,8 +215,8 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
           { organization, payment, invoice },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(stripeTaxTransactionId).toBeNull()
   })

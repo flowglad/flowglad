@@ -23,14 +23,14 @@ export const createContext = async (
   let user: User.Record | undefined
 
   if (betterAuthUserId) {
-    const memberships = await adminTransaction(
-      async ({ transaction }) => {
+    const memberships = (
+      await adminTransaction(async ({ transaction }) => {
         return selectMembershipAndOrganizationsByBetterAuthUserId(
           betterAuthUserId,
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     const maybeMembership = memberships.find(
       (membership) => membership.membership.focused
     )
@@ -41,14 +41,14 @@ export const createContext = async (
       organizationId = organization.id
       user = maybeMembership.user
     } else {
-      const [maybeUser] = await adminTransaction(
-        async ({ transaction }) => {
+      const [maybeUser] = (
+        await adminTransaction(async ({ transaction }) => {
           return selectUsers(
             { betterAuthId: betterAuthUserId },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
       if (maybeUser) {
         user = maybeUser
       }
@@ -91,11 +91,11 @@ export const createApiContext = ({
       // @ts-expect-error - headers get
       .get('Authorization')
       ?.replace(/^Bearer\s/, '')
-    const organization = await adminTransaction(
-      async ({ transaction }) => {
+    const organization = (
+      await adminTransaction(async ({ transaction }) => {
         return selectOrganizationById(organizationId, transaction)
-      }
-    )
+      })
+    ).unwrap()
     return {
       apiKey,
       isApi: true,

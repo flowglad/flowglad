@@ -348,8 +348,8 @@ describe('Invoice Components', () => {
       })
 
       // Update the invoice with the correct subtotal and tax
-      const updatedInvoiceWithTax = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedInvoiceWithTax = (
+        await adminTransaction(async ({ transaction }) => {
           return await updateInvoice(
             {
               id: invoiceWithDiscountAndTax.id,
@@ -364,8 +364,8 @@ describe('Invoice Components', () => {
             } as any,
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const { getByTestId } = render(
         <InvoiceTemplate
@@ -460,8 +460,8 @@ describe('Invoice Components', () => {
   describe('InvoiceTemplate', () => {
     it('should render complete invoice with all components and correct totals', async () => {
       // Update customer with billing address
-      const updatedCustomer = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedCustomer = (
+        await adminTransaction(async ({ transaction }) => {
           return await updateCustomer(
             {
               id: customer.id,
@@ -478,8 +478,8 @@ describe('Invoice Components', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const { getByTestId, getAllByTestId } = render(
         <InvoiceTemplate
@@ -587,8 +587,8 @@ describe('Invoice Components', () => {
 
     it('should render BillingInfo when customer.billingAddress is defined', async () => {
       // Update customer with billing address
-      const updatedCustomer = await adminTransaction(
-        async ({ transaction }) => {
+      const updatedCustomer = (
+        await adminTransaction(async ({ transaction }) => {
           return await updateCustomer(
             {
               id: customer.id,
@@ -605,8 +605,8 @@ describe('Invoice Components', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const { getByTestId } = render(
         <InvoiceTemplate
@@ -634,8 +634,8 @@ describe('Invoice Components', () => {
   describe('InvoiceTemplate MoR Support', () => {
     describe('when isMoR is false (default)', () => {
       it('should display organization name as seller', async () => {
-        const updatedCustomer = await adminTransaction(
-          async ({ transaction }) => {
+        const updatedCustomer = (
+          await adminTransaction(async ({ transaction }) => {
             return await updateCustomer(
               {
                 id: customer.id,
@@ -651,8 +651,8 @@ describe('Invoice Components', () => {
               },
               transaction
             )
-          }
-        )
+          })
+        ).unwrap()
 
         const { getByTestId } = render(
           <InvoiceTemplate
@@ -676,8 +676,8 @@ describe('Invoice Components', () => {
 
     describe('when isMoR is true', () => {
       it('should display Flowglad LLC as seller with merchant info and customer billing', async () => {
-        const updatedCustomer = await adminTransaction(
-          async ({ transaction }) => {
+        const updatedCustomer = (
+          await adminTransaction(async ({ transaction }) => {
             return await updateCustomer(
               {
                 id: customer.id,
@@ -693,8 +693,8 @@ describe('Invoice Components', () => {
               },
               transaction
             )
-          }
-        )
+          })
+        ).unwrap()
 
         const { getByTestId } = render(
           <InvoiceTemplate

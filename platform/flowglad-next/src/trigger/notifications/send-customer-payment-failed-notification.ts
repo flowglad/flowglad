@@ -27,32 +27,34 @@ const sendCustomerPaymentFailedNotificationTask = task({
       customer,
       organization,
       payment,
-    } = await adminTransaction(async ({ transaction }) => {
-      const payment = await selectPaymentById(
-        payload.paymentId,
-        transaction
-      )
-      const [{ invoice, invoiceLineItems }] =
-        await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-          { id: payment.invoiceId },
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        const payment = await selectPaymentById(
+          payload.paymentId,
           transaction
         )
-      const customer = await selectCustomerById(
-        payment.customerId,
-        transaction
-      )
-      const organization = await selectOrganizationById(
-        customer.organizationId,
-        transaction
-      )
-      return {
-        payment,
-        invoice,
-        invoiceLineItems,
-        customer,
-        organization,
-      }
-    })
+        const [{ invoice, invoiceLineItems }] =
+          await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
+            { id: payment.invoiceId },
+            transaction
+          )
+        const customer = await selectCustomerById(
+          payment.customerId,
+          transaction
+        )
+        const organization = await selectOrganizationById(
+          customer.organizationId,
+          transaction
+        )
+        return {
+          payment,
+          invoice,
+          invoiceLineItems,
+          customer,
+          organization,
+        }
+      })
+    ).unwrap()
 
     if (!invoice.pdfURL) {
       await generateInvoicePdfTask.triggerAndWait({
@@ -61,7 +63,7 @@ const sendCustomerPaymentFailedNotificationTask = task({
     }
 
     // Fetch the latest invoice after the PDF generation task has completed
-    const { mostUpToDateInvoice, orgAndFirstMember } =
+    const { mostUpToDateInvoice, orgAndFirstMember } = (
       await adminTransaction(async ({ transaction }) => {
         const mostUpToDateInvoice = await selectInvoiceById(
           invoice.id,
@@ -74,6 +76,7 @@ const sendCustomerPaymentFailedNotificationTask = task({
           )
         return { mostUpToDateInvoice, orgAndFirstMember }
       })
+    ).unwrap()
 
     // Prepare failure reason from payment
     const failureReason =

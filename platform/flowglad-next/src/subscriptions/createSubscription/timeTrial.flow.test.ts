@@ -91,7 +91,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       livemode: true,
     })
     // 1. Create product and price via createProductTransaction
-    const { product: createdProduct, prices } =
+    const { product: createdProduct, prices } = (
       await comprehensiveAdminTransaction(
         async ({ transaction, invalidateCache }) => {
           const result = await createProductTransaction(
@@ -134,6 +134,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
           return Result.ok(result)
         }
       )
+    ).unwrap()
     // 2. Associate the toggle feature with the created product
     await setupProductFeature({
       organizationId: organization.id,
@@ -171,8 +172,8 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     expect(ci2.product.id).toBe(product.id)
     expect(ci2.price.id).toBe(price.id)
 
-    const checkoutSession = await comprehensiveAdminTransaction(
-      async (ctx) => {
+    const checkoutSession = (
+      await comprehensiveAdminTransaction(async (ctx) => {
         const { transaction } = ctx
         // 1. Create checkout session
         const checkoutSessionInput: CreateCheckoutSessionInput['checkoutSession'] =
@@ -231,73 +232,79 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
         )
         expect(feeCalculations).toHaveLength(1)
         return Result.ok(checkoutSession)
-      }
-    )
+      })
+    ).unwrap()
 
     // Intermediary: check checkout info by checkout session ID
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      const sessionInfo = await checkoutInfoForCheckoutSession(
-        checkoutSession.id,
-        transaction
-      )
-      expect(sessionInfo.checkoutSession.id).toBe(checkoutSession.id)
-      expect(sessionInfo.product.id).toBe(product.id)
-      expect(sessionInfo.price.id).toBe(price.id)
-      expect(typeof sessionInfo.feeCalculation).toBe('object')
-      return Result.ok(null)
-    })
-
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      // 5. Process setup intent
-      const setupIntent: CoreSripeSetupIntent = {
-        id: `si_${core.nanoid()}`,
-        status: 'succeeded',
-        customer: customer.stripeCustomerId,
-        payment_method: `pm_${core.nanoid()}`,
-        metadata: {
-          type: IntentMetadataType.CheckoutSession,
-          checkoutSessionId: checkoutSession.id,
-        },
-      }
-      await processSetupIntentSucceeded(
-        setupIntent,
-        createDiscardingEffectsContext(transaction)
-      )
-      // 6. Final billing state
-      const billingState = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id,
-        },
-        transaction
-      )
-      const sub = billingState.subscriptions[0]
-      expect(sub.status).toBe(SubscriptionStatus.Trialing)
-      expect(typeof sub.trialEnd).toBe('number')
-      const diff = sub.trialEnd! - Date.now()
-      expect(diff).toBeGreaterThanOrEqual(
-        trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
-      )
-      expect(diff).toBeLessThanOrEqual(
-        trialPeriodDays * 24 * 60 * 60 * 1000 + 1000
-      )
-      expect(
-        sub.experimental?.featureItems.some(
-          (fi) => fi.featureId === toggleFeature.id
+    ;(
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        const sessionInfo = await checkoutInfoForCheckoutSession(
+          checkoutSession.id,
+          transaction
         )
-      ).toBe(true)
-      expect(typeof sub.defaultPaymentMethodId).toBe('string')
-      expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(0)
+        expect(sessionInfo.checkoutSession.id).toBe(
+          checkoutSession.id
+        )
+        expect(sessionInfo.product.id).toBe(product.id)
+        expect(sessionInfo.price.id).toBe(price.id)
+        expect(typeof sessionInfo.feeCalculation).toBe('object')
+        return Result.ok(null)
+      })
+    ).unwrap()
 
-      // After processing setup intent, verify checkoutSession status
-      const finalSession = await selectCheckoutSessionById(
-        checkoutSession.id,
-        transaction
-      )
-      expect(finalSession.status).toBe(
-        CheckoutSessionStatus.Succeeded
-      )
-      return Result.ok(null)
-    })
+    ;(
+      await comprehensiveAdminTransaction(async ({ transaction }) => {
+        // 5. Process setup intent
+        const setupIntent: CoreSripeSetupIntent = {
+          id: `si_${core.nanoid()}`,
+          status: 'succeeded',
+          customer: customer.stripeCustomerId,
+          payment_method: `pm_${core.nanoid()}`,
+          metadata: {
+            type: IntentMetadataType.CheckoutSession,
+            checkoutSessionId: checkoutSession.id,
+          },
+        }
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
+        // 6. Final billing state
+        const billingState = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+        const sub = billingState.subscriptions[0]
+        expect(sub.status).toBe(SubscriptionStatus.Trialing)
+        expect(typeof sub.trialEnd).toBe('number')
+        const diff = sub.trialEnd! - Date.now()
+        expect(diff).toBeGreaterThanOrEqual(
+          trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
+        )
+        expect(diff).toBeLessThanOrEqual(
+          trialPeriodDays * 24 * 60 * 60 * 1000 + 1000
+        )
+        expect(
+          sub.experimental?.featureItems.some(
+            (fi) => fi.featureId === toggleFeature.id
+          )
+        ).toBe(true)
+        expect(typeof sub.defaultPaymentMethodId).toBe('string')
+        expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(0)
+
+        // After processing setup intent, verify checkoutSession status
+        const finalSession = await selectCheckoutSessionById(
+          checkoutSession.id,
+          transaction
+        )
+        expect(finalSession.status).toBe(
+          CheckoutSessionStatus.Succeeded
+        )
+        return Result.ok(null)
+      })
+    ).unwrap()
   })
 })

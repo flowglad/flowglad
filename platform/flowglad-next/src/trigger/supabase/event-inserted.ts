@@ -69,34 +69,36 @@ export const eventInsertedTask = task({
       result,
       organization,
       event: mostUpToDateEvent,
-    } = await adminTransaction(async ({ transaction }) => {
-      const existingEvent = await selectEventById(
-        event.id,
-        transaction
-      )
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        const existingEvent = await selectEventById(
+          event.id,
+          transaction
+        )
 
-      if (existingEvent?.processedAt) {
+        if (existingEvent?.processedAt) {
+          return {
+            eventId: event.id,
+            result: 'already_processed',
+          }
+        }
+
+        const updatedEvent = await updateEvent(
+          { id: event.id, processedAt: Date.now() },
+          transaction
+        )
+        const organization = await selectOrganizationById(
+          event.organizationId,
+          transaction
+        )
         return {
           eventId: event.id,
-          result: 'already_processed',
+          result: 'processed',
+          organization,
+          event: updatedEvent,
         }
-      }
-
-      const updatedEvent = await updateEvent(
-        { id: event.id, processedAt: Date.now() },
-        transaction
-      )
-      const organization = await selectOrganizationById(
-        event.organizationId,
-        transaction
-      )
-      return {
-        eventId: event.id,
-        result: 'processed',
-        organization,
-        event: updatedEvent,
-      }
-    })
+      })
+    ).unwrap()
     if (result === 'already_processed') {
       return result
     }

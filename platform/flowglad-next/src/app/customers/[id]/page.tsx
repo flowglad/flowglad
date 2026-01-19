@@ -17,47 +17,52 @@ const CustomerPage = async ({
   params: Promise<CustomerPageParams>
 }) => {
   const { id } = await params
-  const result = await authenticatedTransaction(
-    async ({ transaction, userId }) => {
-      await selectMembershipAndOrganizations(
-        {
-          userId,
-          focused: true,
-        },
-        transaction
-      )
+  const result = (
+    await authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        await selectMembershipAndOrganizations(
+          {
+            userId,
+            focused: true,
+          },
+          transaction
+        )
 
-      // Then, use the organizationId to fetch customer
-      const [customerResult] =
-        await selectCustomerAndCustomerTableRows({ id }, transaction)
-      if (!customerResult) {
-        return null
+        // Then, use the organizationId to fetch customer
+        const [customerResult] =
+          await selectCustomerAndCustomerTableRows(
+            { id },
+            transaction
+          )
+        if (!customerResult) {
+          return null
+        }
+        const paymentsForCustomer = await selectPayments(
+          {
+            customerId: customerResult.customer.id,
+          },
+          transaction
+        )
+        const prices = await selectPricesAndProductsForOrganization(
+          {},
+          customerResult.customer.organizationId,
+          transaction
+        )
+        const usageEvents = await selectUsageEvents(
+          {
+            customerId: customerResult.customer.id,
+          },
+          transaction
+        )
+        return {
+          customer: customerResult.customer,
+          prices,
+          paymentsForCustomer,
+          usageEvents,
+        }
       }
-      const paymentsForCustomer = await selectPayments(
-        {
-          customerId: customerResult.customer.id,
-        },
-        transaction
-      )
-      const prices = await selectPricesAndProductsForOrganization(
-        {},
-        customerResult.customer.organizationId,
-        transaction
-      )
-      const usageEvents = await selectUsageEvents(
-        {
-          customerId: customerResult.customer.id,
-        },
-        transaction
-      )
-      return {
-        customer: customerResult.customer,
-        prices,
-        paymentsForCustomer,
-        usageEvents,
-      }
-    }
-  )
+    )
+  ).unwrap()
 
   if (!result) {
     notFound()

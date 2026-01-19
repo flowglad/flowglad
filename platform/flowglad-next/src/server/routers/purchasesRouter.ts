@@ -32,14 +32,16 @@ const getPurchaseProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ purchase: purchaseClientSelectSchema }))
   .query(async ({ ctx, input }) => {
-    const purchase = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPurchaseById(input.id, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const purchase = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPurchaseById(input.id, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
     return { purchase }
   })
 

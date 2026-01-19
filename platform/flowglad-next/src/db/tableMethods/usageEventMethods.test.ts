@@ -184,18 +184,20 @@ describe('selectUsageEventsPaginated', () => {
     }
 
     // Call selectUsageEventsPaginated with org1 API key
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsPaginated(
-          {
-            cursor: undefined,
-            limit: 10,
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsPaginated(
+            {
+              cursor: undefined,
+              limit: 10,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Should return only the 5 usage events from organization 1
     expect(result.total).toBe(5)
@@ -215,18 +217,20 @@ describe('selectUsageEventsPaginated', () => {
   it('should handle empty results when no usage events exist', async () => {
     // Create no usage events for organization 1
     // Call selectUsageEventsPaginated with org1 API key
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsPaginated(
-          {
-            cursor: undefined,
-            limit: 10,
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsPaginated(
+            {
+              cursor: undefined,
+              limit: 10,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Should return empty array
     expect(result.data).toEqual([])
@@ -252,18 +256,20 @@ describe('selectUsageEventsPaginated', () => {
     }
 
     // Call selectUsageEventsPaginated with limit of 3
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsPaginated(
-          {
-            cursor: undefined,
-            limit: 3,
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsPaginated(
+            {
+              cursor: undefined,
+              limit: 3,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Should return exactly 3 usage events (limited by parameter)
     expect(result.total).toBe(10)
@@ -305,31 +311,35 @@ describe('selectUsageEventsPaginated', () => {
     }
 
     // First call with pageSize of 3
-    const firstResult = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsTableRowData({
-          input: {
-            pageSize: 3,
-          },
-          transaction,
-        })
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const firstResult = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsTableRowData({
+            input: {
+              pageSize: 3,
+            },
+            transaction,
+          })
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Second call using pageAfter from first result
-    const secondResult = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsTableRowData({
-          input: {
-            pageAfter: firstResult.endCursor ?? undefined,
-            pageSize: 3,
-          },
-          transaction,
-        })
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const secondResult = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsTableRowData({
+            input: {
+              pageAfter: firstResult.endCursor ?? undefined,
+              pageSize: 3,
+            },
+            transaction,
+          })
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // First call should return first 3 events
     expect(firstResult.hasNextPage).toBe(true)
@@ -386,18 +396,20 @@ describe('selectUsageEventsPaginated', () => {
     }
 
     // Call selectUsageEventsPaginated with invalid cursor - should treat as no cursor and return first page
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsPaginated(
-          {
-            cursor: 'eyJpbnZhbGlkIjogInZhbHVlIn0=', // base64 encoded '{"invalid": "value"}'
-            limit: 10,
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsPaginated(
+            {
+              cursor: 'eyJpbnZhbGlkIjogInZhbHVlIn0=', // base64 encoded '{"invalid": "value"}'
+              limit: 10,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Should return results (treating invalid cursor as "no cursor" = first page)
     expect(result.data.length).toBeGreaterThanOrEqual(3)
@@ -511,17 +523,19 @@ describe('selectUsageEventsTableRowData', () => {
     })
 
     // Call selectUsageEventsTableRowData with org1 API key
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsTableRowData({
-          input: {
-            pageSize: 10,
-          },
-          transaction,
-        })
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsTableRowData({
+            input: {
+              pageSize: 10,
+            },
+            transaction,
+          })
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     // Should return 4 enriched usage events (3 with prices, 1 without)
     expect(result.total).toBe(4)
@@ -691,15 +705,17 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
       },
     ]
 
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return bulkInsertOrDoNothingUsageEventsByTransactionId(
-          usageEventsData,
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return bulkInsertOrDoNothingUsageEventsByTransactionId(
+            usageEventsData,
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     expect(result).toHaveLength(2) // Should insert 2 new events
     expect(result[0].amount).toBe(100)
@@ -726,29 +742,33 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
     ]
 
     // First insert
-    const firstResult = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return bulkInsertOrDoNothingUsageEventsByTransactionId(
-          usageEventsData,
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const firstResult = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return bulkInsertOrDoNothingUsageEventsByTransactionId(
+            usageEventsData,
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
     expect(firstResult).toHaveLength(1)
     expect(firstResult[0].amount).toBe(100)
     expect(firstResult[0].transactionId).toBe(transactionId)
 
     // Second insert with same transaction ID should not insert duplicates
-    const secondResult = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return bulkInsertOrDoNothingUsageEventsByTransactionId(
-          usageEventsData,
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const secondResult = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return bulkInsertOrDoNothingUsageEventsByTransactionId(
+            usageEventsData,
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
     expect(secondResult).toHaveLength(0) // Should not insert any new events
   })
 })
@@ -893,18 +913,20 @@ describe('RLS Policies for usage_events table', () => {
     })
 
     // Query using org1 API key should return the event
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsPaginated(
-          {
-            cursor: undefined,
-            limit: 10,
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsPaginated(
+            {
+              cursor: undefined,
+              limit: 10,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     expect(result.data).toHaveLength(1)
     expect(result.data[0].id).toBe(usageEvent.id)
@@ -924,18 +946,20 @@ describe('RLS Policies for usage_events table', () => {
     })
 
     // Query using org1 API key should return empty results
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsPaginated(
-          {
-            cursor: undefined,
-            limit: 10,
-          },
-          transaction
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsPaginated(
+            {
+              cursor: undefined,
+              limit: 10,
+            },
+            transaction
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
 
     expect(result.data).toHaveLength(0)
     expect(result.total).toBe(0)
@@ -955,18 +979,20 @@ describe('RLS Policies for usage_events table', () => {
     })
 
     // Query using org2 API key should return the event
-    const result = await authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectUsageEventsPaginated(
-          {
-            cursor: undefined,
-            limit: 10,
-          },
-          transaction
-        )
-      },
-      { apiKey: org2ApiKeyToken }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectUsageEventsPaginated(
+            {
+              cursor: undefined,
+              limit: 10,
+            },
+            transaction
+          )
+        },
+        { apiKey: org2ApiKeyToken }
+      )
+    ).unwrap()
 
     expect(result.data).toHaveLength(1)
     expect(result.data[0].id).toBe(usageEvent.id)
@@ -1048,76 +1074,14 @@ describe('insertUsageEvent', () => {
   })
 
   it('should successfully insert usage event and derive pricingModelId from usage meter', async () => {
-    await authenticatedTransaction(
-      async ({ transaction }) => {
-        const usageEvent = await insertUsageEvent(
-          {
-            customerId: customer1.id,
-            subscriptionId: subscription1.id,
-            usageMeterId: usageMeter1.id,
-            priceId: price1.id,
-            billingPeriodId: billingPeriod1.id,
-            amount: 100,
-            transactionId: `txn_${core.nanoid()}`,
-            usageDate: Date.now(),
-            livemode: true,
-            properties: {},
-          },
-          transaction
-        )
-
-        // Verify pricingModelId is correctly derived from usage meter
-        expect(usageEvent.pricingModelId).toBe(
-          usageMeter1.pricingModelId
-        )
-        expect(usageEvent.pricingModelId).toBe(
-          org1Data.pricingModel.id
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
-  })
-
-  it('should use provided pricingModelId without derivation', async () => {
-    await authenticatedTransaction(
-      async ({ transaction }) => {
-        const usageEvent = await insertUsageEvent(
-          {
-            customerId: customer1.id,
-            subscriptionId: subscription1.id,
-            usageMeterId: usageMeter1.id,
-            priceId: price1.id,
-            billingPeriodId: billingPeriod1.id,
-            amount: 100,
-            transactionId: `txn_${core.nanoid()}`,
-            usageDate: Date.now(),
-            livemode: true,
-            properties: {},
-            pricingModelId: org1Data.pricingModel.id, // Pre-provided
-          },
-          transaction
-        )
-
-        // Verify the provided pricingModelId is used
-        expect(usageEvent.pricingModelId).toBe(
-          org1Data.pricingModel.id
-        )
-      },
-      { apiKey: org1ApiKeyToken }
-    )
-  })
-
-  it('should throw an error when usageMeterId does not exist', async () => {
-    await authenticatedTransaction(
-      async ({ transaction }) => {
-        const nonExistentUsageMeterId = `um_${core.nanoid()}`
-
-        await expect(
-          insertUsageEvent(
+    ;(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const usageEvent = await insertUsageEvent(
             {
               customerId: customer1.id,
               subscriptionId: subscription1.id,
-              usageMeterId: nonExistentUsageMeterId,
+              usageMeterId: usageMeter1.id,
               priceId: price1.id,
               billingPeriodId: billingPeriod1.id,
               amount: 100,
@@ -1128,9 +1092,77 @@ describe('insertUsageEvent', () => {
             },
             transaction
           )
-        ).rejects.toThrow()
-      },
-      { apiKey: org1ApiKeyToken }
-    )
+
+          // Verify pricingModelId is correctly derived from usage meter
+          expect(usageEvent.pricingModelId).toBe(
+            usageMeter1.pricingModelId
+          )
+          expect(usageEvent.pricingModelId).toBe(
+            org1Data.pricingModel.id
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
+  })
+
+  it('should use provided pricingModelId without derivation', async () => {
+    ;(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const usageEvent = await insertUsageEvent(
+            {
+              customerId: customer1.id,
+              subscriptionId: subscription1.id,
+              usageMeterId: usageMeter1.id,
+              priceId: price1.id,
+              billingPeriodId: billingPeriod1.id,
+              amount: 100,
+              transactionId: `txn_${core.nanoid()}`,
+              usageDate: Date.now(),
+              livemode: true,
+              properties: {},
+              pricingModelId: org1Data.pricingModel.id, // Pre-provided
+            },
+            transaction
+          )
+
+          // Verify the provided pricingModelId is used
+          expect(usageEvent.pricingModelId).toBe(
+            org1Data.pricingModel.id
+          )
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
+  })
+
+  it('should throw an error when usageMeterId does not exist', async () => {
+    ;(
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const nonExistentUsageMeterId = `um_${core.nanoid()}`
+
+          await expect(
+            insertUsageEvent(
+              {
+                customerId: customer1.id,
+                subscriptionId: subscription1.id,
+                usageMeterId: nonExistentUsageMeterId,
+                priceId: price1.id,
+                billingPeriodId: billingPeriod1.id,
+                amount: 100,
+                transactionId: `txn_${core.nanoid()}`,
+                usageDate: Date.now(),
+                livemode: true,
+                properties: {},
+              },
+              transaction
+            )
+          ).rejects.toThrow()
+        },
+        { apiKey: org1ApiKeyToken }
+      )
+    ).unwrap()
   })
 })

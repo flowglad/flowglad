@@ -29,7 +29,7 @@ interface AdminTransactionOptions {
 export async function adminTransaction<T>(
   fn: (params: AdminTransactionParams) => Promise<T>,
   options: AdminTransactionOptions = {}
-): Promise<T> {
+): Promise<Result<T, Error>> {
   return comprehensiveAdminTransaction(async (params) => {
     const result = await fn(params)
     return Result.ok(result)
@@ -114,7 +114,7 @@ const executeComprehensiveAdminTransaction = async <T>(
  * @param fn - Function that receives admin transaction parameters (including emitEvent, enqueueLedgerCommand,
  *   invalidateCache callbacks) and returns a Result containing the result
  * @param options - Transaction options including livemode flag
- * @returns Promise resolving to the result value from the transaction function
+ * @returns Promise resolving to a Result containing the value or error from the transaction function
  *
  * @example
  * ```ts
@@ -124,6 +124,8 @@ const executeComprehensiveAdminTransaction = async <T>(
  *   enqueueLedgerCommand({ type: 'credit', amount: 100 })
  *   return Result.ok(someValue)
  * })
+ * // Unwrap at the boundary if needed
+ * return result.unwrap()
  * ```
  */
 export async function comprehensiveAdminTransaction<T>(
@@ -131,7 +133,7 @@ export async function comprehensiveAdminTransaction<T>(
     params: ComprehensiveAdminTransactionParams
   ) => Promise<Result<T, Error>>,
   options: AdminTransactionOptions = {}
-): Promise<T> {
+): Promise<Result<T, Error>> {
   const { livemode = true } = options
   const effectiveLivemode = isNil(livemode) ? true : livemode
 
@@ -156,8 +158,5 @@ export async function comprehensiveAdminTransaction<T>(
     () => executeComprehensiveAdminTransaction(fn, effectiveLivemode)
   )()
 
-  if (output.status === 'error') {
-    throw output.error
-  }
-  return output.value
+  return output
 }

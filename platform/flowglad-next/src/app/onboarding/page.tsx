@@ -22,59 +22,62 @@ import { updateOrganizationOnboardingStatus } from '@/utils/processStripeEvents'
 import OnboardingStatusTable from './OnboardingStatusTable'
 
 const OnboardingPage = async () => {
-  const results = await authenticatedTransaction(
-    async ({ transaction, userId }) => {
-      const membershipsAndOrganizations =
-        await selectMembershipAndOrganizations(
-          {
-            userId,
-            focused: true,
-          },
+  const results = (
+    await authenticatedTransaction(
+      async ({ transaction, userId }) => {
+        const membershipsAndOrganizations =
+          await selectMembershipAndOrganizations(
+            {
+              userId,
+              focused: true,
+            },
+            transaction
+          )
+        if (membershipsAndOrganizations.length === 0) {
+          return {
+            organization: undefined,
+            products: undefined,
+            discounts: undefined,
+            pricingModels: undefined,
+          }
+        }
+        const organization =
+          membershipsAndOrganizations[0].organization
+        const products = await selectPricesAndProductsForOrganization(
+          {},
+          organization.id,
           transaction
         )
-      if (membershipsAndOrganizations.length === 0) {
+        const discounts = await selectDiscounts(
+          { organizationId: organization.id },
+          transaction
+        )
+        const pricingModels = await selectPricingModels(
+          { organizationId: organization.id },
+          transaction
+        )
         return {
-          organization: undefined,
-          products: undefined,
-          discounts: undefined,
-          pricingModels: undefined,
+          organization,
+          products,
+          discounts,
+          pricingModels,
         }
       }
-      const organization = membershipsAndOrganizations[0].organization
-      const products = await selectPricesAndProductsForOrganization(
-        {},
-        organization.id,
-        transaction
-      )
-      const discounts = await selectDiscounts(
-        { organizationId: organization.id },
-        transaction
-      )
-      const pricingModels = await selectPricingModels(
-        { organizationId: organization.id },
-        transaction
-      )
-      return {
-        organization,
-        products,
-        discounts,
-        pricingModels,
-      }
-    }
-  )
+    )
+  ).unwrap()
 
   if (!results.organization) {
     return redirect('/onboarding/business-details')
   }
   let organization = results.organization
-  const testmodeApiKeys: ApiKey.Record[] = await adminTransaction(
-    async ({ transaction }) => {
+  const testmodeApiKeys: ApiKey.Record[] = (
+    await adminTransaction(async ({ transaction }) => {
       return selectApiKeys(
         { organizationId: organization.id, livemode: false },
         transaction
       )
-    }
-  )
+    })
+  ).unwrap()
   let secretApiKey: ApiKey.Record | undefined = testmodeApiKeys.find(
     (key) => key.type === FlowgladApiKeyType.Secret
   )
@@ -85,31 +88,33 @@ const OnboardingPage = async () => {
     if (!betterAuthId) {
       throw new Error('User not found')
     }
-    secretApiKey = await adminTransaction(
-      async ({ transaction }): Promise<ApiKey.Record> => {
-        const [user] = await selectUsers(
-          {
-            betterAuthId,
-          },
-          transaction
-        )
-        const { apiKey } = await createSecretApiKeyTransaction(
-          {
-            apiKey: {
-              name: 'Secret Testmode Key',
-              type: FlowgladApiKeyType.Secret,
+    secretApiKey = (
+      await adminTransaction(
+        async ({ transaction }): Promise<ApiKey.Record> => {
+          const [user] = await selectUsers(
+            {
+              betterAuthId,
             },
-          },
-          {
-            transaction,
-            livemode: false,
-            userId: user!.id,
-            organizationId: organization.id,
-          }
-        )
-        return apiKey
-      }
-    )
+            transaction
+          )
+          const { apiKey } = await createSecretApiKeyTransaction(
+            {
+              apiKey: {
+                name: 'Secret Testmode Key',
+                type: FlowgladApiKeyType.Secret,
+              },
+            },
+            {
+              transaction,
+              livemode: false,
+              userId: user!.id,
+              organizationId: organization.id,
+            }
+          )
+          return apiKey
+        }
+      )
+    ).unwrap()
   }
   /**
    * Sync the organization's payouts enabled status if they have a stripe account

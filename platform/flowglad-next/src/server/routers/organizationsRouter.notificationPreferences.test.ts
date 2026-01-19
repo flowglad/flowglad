@@ -55,14 +55,14 @@ describe('organizationsRouter notification preferences', () => {
     user = userApiKeySetup.user
 
     // Get the membership that was created
-    const memberships = await adminTransaction(
-      async ({ transaction }) => {
+    const memberships = (
+      await adminTransaction(async ({ transaction }) => {
         return selectMemberships(
           { userId: user.id, organizationId: organization.id },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
     membership = memberships[0]
   })
 
@@ -109,18 +109,20 @@ describe('organizationsRouter notification preferences', () => {
 
     it('returns stored preferences merged with defaults', async () => {
       // Update membership with partial preferences
-      await adminTransaction(async ({ transaction }) => {
-        await updateMembership(
-          {
-            id: membership.id,
-            notificationPreferences: {
-              testModeNotifications: true,
-              subscriptionCreated: false,
+      ;(
+        await adminTransaction(async ({ transaction }) => {
+          await updateMembership(
+            {
+              id: membership.id,
+              notificationPreferences: {
+                testModeNotifications: true,
+                subscriptionCreated: false,
+              },
             },
-          },
-          transaction
-        )
-      })
+            transaction
+          )
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken, user)
 
@@ -168,8 +170,8 @@ describe('organizationsRouter notification preferences', () => {
 
     it('updates specified preferences while preserving unspecified ones', async () => {
       // First set some initial preferences
-      const adminUpdatedMembership = await adminTransaction(
-        async ({ transaction }) => {
+      const adminUpdatedMembership = (
+        await adminTransaction(async ({ transaction }) => {
           return updateMembership(
             {
               id: membership.id,
@@ -179,8 +181,8 @@ describe('organizationsRouter notification preferences', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       const caller = createCaller(organization, apiKeyToken, user)
 

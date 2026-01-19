@@ -1,9 +1,6 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import {
-  authenticatedProcedureTransaction,
-  authenticatedTransaction,
-} from '@/db/authenticatedTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
   createPriceSchema,
   editPriceSchema,
@@ -17,7 +14,6 @@ import {
 import {
   safelyUpdatePrice,
   selectPriceById,
-  selectPrices,
   selectPricesPaginated,
   selectPricesTableRowData,
 } from '@/db/tableMethods/priceMethods'
@@ -47,14 +43,17 @@ export const listPrices = protectedProcedure
   .input(pricesPaginatedSelectSchema)
   .output(pricesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        return selectPricesPaginated(input, transaction)
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPricesPaginated(input, transaction)
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
+    return result
   })
 
 const singlePriceOutputSchema = z.object({
@@ -66,29 +65,32 @@ export const createPrice = protectedProcedure
   .input(createPriceSchema)
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, livemode, organizationId, userId }) => {
-        const { price } = input
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction, livemode, organizationId, userId }) => {
+          const { price } = input
 
-        validateUsagePriceSlug(price)
+          validateUsagePriceSlug(price)
 
-        const newPrice = await createPriceTransaction(
-          { price },
-          {
-            transaction,
-            livemode,
-            organizationId,
-            userId,
+          const newPrice = await createPriceTransaction(
+            { price },
+            {
+              transaction,
+              livemode,
+              organizationId,
+              userId,
+            }
+          )
+          return {
+            price: newPrice,
           }
-        )
-        return {
-          price: newPrice,
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
+    return result
   })
 
 export const updatePrice = protectedProcedure
@@ -96,87 +98,90 @@ export const updatePrice = protectedProcedure
   .input(editPriceSchema)
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { price } = input
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const { price } = input
 
-        // Fetch the existing price and its product to check if it's a default price on a default product
-        const existingPrice = await selectPriceById(
-          price.id,
-          transaction
-        )
-        if (!existingPrice) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Price not found',
-          })
-        }
-
-        // Product validation only applies to non-usage prices.
-        // Usage prices don't have productId, so skip product-related validation.
-        let product = null
-        if (Price.hasProductId(existingPrice)) {
-          product = await selectProductById(
-            existingPrice.productId,
+          // Fetch the existing price and its product to check if it's a default price on a default product
+          const existingPrice = await selectPriceById(
+            price.id,
             transaction
           )
-          if (!product) {
+          if (!existingPrice) {
             throw new TRPCError({
               code: 'NOT_FOUND',
-              message: 'Product not found',
+              message: 'Price not found',
             })
           }
 
-          // Validate that default prices on default products maintain their constraints
-          validateDefaultPriceUpdate(price, existingPrice, product)
+          // Product validation only applies to non-usage prices.
+          // Usage prices don't have productId, so skip product-related validation.
+          let product = null
+          if (Price.hasProductId(existingPrice)) {
+            product = await selectProductById(
+              existingPrice.productId,
+              transaction
+            )
+            if (!product) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: 'Product not found',
+              })
+            }
 
-          // Disallow slug changes for the default price of a default product
+            // Validate that default prices on default products maintain their constraints
+            validateDefaultPriceUpdate(price, existingPrice, product)
+
+            // Disallow slug changes for the default price of a default product
+            if (
+              product.default &&
+              existingPrice.isDefault &&
+              price.slug !== undefined &&
+              price.slug !== existingPrice.slug
+            ) {
+              throw new TRPCError({
+                code: 'FORBIDDEN',
+                message:
+                  'Cannot change the slug of the default price for a default product',
+              })
+            }
+          }
+
+          // Validate reserved slug for usage prices being updated
           if (
-            product.default &&
-            existingPrice.isDefault &&
-            price.slug !== undefined &&
-            price.slug !== existingPrice.slug
+            existingPrice.type === PriceType.Usage &&
+            price.slug !== undefined
           ) {
-            throw new TRPCError({
-              code: 'FORBIDDEN',
-              message:
-                'Cannot change the slug of the default price for a default product',
+            validateUsagePriceSlug({
+              type: existingPrice.type,
+              slug: price.slug,
             })
           }
-        }
 
-        // Validate reserved slug for usage prices being updated
-        if (
-          existingPrice.type === PriceType.Usage &&
-          price.slug !== undefined
-        ) {
-          validateUsagePriceSlug({
-            type: existingPrice.type,
-            slug: price.slug,
+          // Validate immutable fields for ALL prices
+          validatePriceImmutableFields({
+            update: price,
+            existing: existingPrice,
           })
-        }
 
-        // Validate immutable fields for ALL prices
-        validatePriceImmutableFields({
-          update: price,
-          existing: existingPrice,
-        })
-
-        const updatedPrice = await safelyUpdatePrice(
-          {
-            ...price,
-            type: existingPrice.type,
-          },
-          transaction
-        )
-        return {
-          price: updatedPrice,
+          const updatedPrice = await safelyUpdatePrice(
+            {
+              ...price,
+              type: existingPrice.type,
+            },
+            transaction
+          )
+          return {
+            price: updatedPrice,
+          }
+        },
+        {
+          apiKey: ctx.apiKey,
         }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+      )
+    ).unwrap()
+    return result
   })
 
 export const getPrice = protectedProcedure
@@ -184,22 +189,25 @@ export const getPrice = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ price: pricesClientSelectSchema }))
   .query(async ({ input, ctx }) => {
-    const price = await authenticatedTransaction(
-      async ({ transaction }) => {
-        try {
-          return await selectPriceById(input.id, transaction)
-        } catch (error) {
-          if (error instanceof NotFoundError) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: 'Price not found',
-            })
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          try {
+            return await selectPriceById(input.id, transaction)
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: 'Price not found',
+              })
+            }
+            throw error
           }
-          throw error
-        }
-      },
-      { apiKey: ctx.apiKey }
-    )
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    const price = result
     return { price }
   })
 
@@ -233,48 +241,63 @@ export const getTableRows = protectedProcedure
   .output(
     createPaginatedTableRowOutputSchema(pricesTableRowDataSchema)
   )
-  .query(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        return selectPricesTableRowData({ input, transaction })
-      }
-    )
-  )
+  .query(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectPricesTableRowData({ input, transaction })
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const setPriceAsDefault = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ price: pricesClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const oldPrice = await selectPriceById(input.id, transaction)
-        const price = await safelyUpdatePrice(
-          { id: input.id, isDefault: true, type: oldPrice.type },
-          transaction
-        )
-        return { price }
-      }
-    )
-  )
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const oldPrice = await selectPriceById(
+            input.id,
+            transaction
+          )
+          const price = await safelyUpdatePrice(
+            { id: input.id, isDefault: true, type: oldPrice.type },
+            transaction
+          )
+          return { price }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 export const archivePrice = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ price: pricesClientSelectSchema }))
-  .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
-        const oldPrice = await selectPriceById(input.id, transaction)
-        const price = await safelyUpdatePrice(
-          { id: input.id, active: false, type: oldPrice.type },
-          transaction
-        )
-        return { price }
-      }
-    )
-  )
+  .mutation(async ({ input, ctx }) => {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction }) => {
+          const oldPrice = await selectPriceById(
+            input.id,
+            transaction
+          )
+          const price = await safelyUpdatePrice(
+            { id: input.id, active: false, type: oldPrice.type },
+            transaction
+          )
+          return { price }
+        },
+        { apiKey: ctx.apiKey }
+      )
+    ).unwrap()
+    return result
+  })
 
 /**
  * Atomically replaces a usage price by creating a new price and archiving the old one.
@@ -298,70 +321,73 @@ export const replaceUsagePrice = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    return authenticatedTransaction(
-      async ({ transaction, livemode, organizationId, userId }) => {
-        // Verify the old price exists and is a usage price
-        let oldPrice
-        try {
-          oldPrice = await selectPriceById(
-            input.oldPriceId,
-            transaction
-          )
-        } catch (error) {
-          if (error instanceof NotFoundError) {
+    const result = (
+      await authenticatedTransaction(
+        async ({ transaction, livemode, organizationId, userId }) => {
+          // Verify the old price exists and is a usage price
+          let oldPrice
+          try {
+            oldPrice = await selectPriceById(
+              input.oldPriceId,
+              transaction
+            )
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              throw new TRPCError({
+                code: 'NOT_FOUND',
+                message: `Price with id "${input.oldPriceId}" not found`,
+              })
+            }
+            throw error
+          }
+          if (oldPrice.type !== PriceType.Usage) {
             throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: `Price with id "${input.oldPriceId}" not found`,
+              code: 'BAD_REQUEST',
+              message:
+                'replaceUsagePrice can only be used with usage prices',
             })
           }
-          throw error
-        }
-        if (oldPrice.type !== PriceType.Usage) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'replaceUsagePrice can only be used with usage prices',
-          })
-        }
 
-        // Validate the new price belongs to the same usage meter
-        if (input.newPrice.usageMeterId !== oldPrice.usageMeterId) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'New price must belong to the same usage meter as the old price',
-          })
-        }
-
-        validateUsagePriceSlug(input.newPrice)
-
-        // Create the new price
-        const newPrice = await createPriceTransaction(
-          { price: input.newPrice },
-          {
-            transaction,
-            livemode,
-            organizationId,
-            userId,
+          // Validate the new price belongs to the same usage meter
+          if (input.newPrice.usageMeterId !== oldPrice.usageMeterId) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'New price must belong to the same usage meter as the old price',
+            })
           }
-        )
 
-        // Archive the old price
-        const archivedPrice = await safelyUpdatePrice(
-          {
-            id: input.oldPriceId,
-            active: false,
-            type: oldPrice.type,
-          },
-          transaction
-        )
+          validateUsagePriceSlug(input.newPrice)
 
-        return { newPrice, archivedPrice }
-      },
-      {
-        apiKey: ctx.apiKey,
-      }
-    )
+          // Create the new price
+          const newPrice = await createPriceTransaction(
+            { price: input.newPrice },
+            {
+              transaction,
+              livemode,
+              organizationId,
+              userId,
+            }
+          )
+
+          // Archive the old price
+          const archivedPrice = await safelyUpdatePrice(
+            {
+              id: input.oldPriceId,
+              active: false,
+              type: oldPrice.type,
+            },
+            transaction
+          )
+
+          return { newPrice, archivedPrice }
+        },
+        {
+          apiKey: ctx.apiKey,
+        }
+      )
+    ).unwrap()
+    return result
   })
 
 export const pricesRouter = router({
