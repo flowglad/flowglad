@@ -1,6 +1,8 @@
 import {
+  type AuthenticatedActionKey,
   FlowgladActionKey,
   flowgladActionValidators,
+  type HybridActionKey,
 } from '@flowglad/shared'
 import { describe, expect, it } from 'vitest'
 import {
@@ -106,16 +108,18 @@ describe('endpointKeyToActionKey exhaustiveness', () => {
    * Hybrid action keys that are handled separately from authenticated routes.
    * These routes attempt authentication but gracefully fall back to unauthenticated behavior.
    */
-  const hybridActionKeys = [FlowgladActionKey.GetPricingModel]
+  const hybridActionKeys: HybridActionKey[] = [
+    FlowgladActionKey.GetPricingModel,
+  ]
 
-  it('covers every AuthenticatedActionKey (excludes hybrid routes)', () => {
-    const allActionKeys = Object.values(FlowgladActionKey)
-    const mappedActionKeys = Object.values(endpointKeyToActionKey)
-
-    // Filter out hybrid keys to get authenticated keys
-    const authenticatedActionKeys = allActionKeys.filter(
-      (key) => !hybridActionKeys.includes(key)
+  it('covers every AuthenticatedActionKey value exactly once (excludes hybrid routes)', () => {
+    const authenticatedActionKeys = Object.values(
+      FlowgladActionKey
+    ).filter(
+      (key): key is AuthenticatedActionKey =>
+        !hybridActionKeys.includes(key as HybridActionKey)
     )
+    const mappedActionKeys = Object.values(endpointKeyToActionKey)
 
     // Every AuthenticatedActionKey must be in the mapping
     for (const actionKey of authenticatedActionKeys) {
@@ -127,7 +131,7 @@ describe('endpointKeyToActionKey exhaustiveness', () => {
       mappedActionKeys.length
     )
 
-    // Mapped keys should match authenticated keys count
+    // Same count: ensures bidirectional completeness for authenticated routes
     expect(mappedActionKeys.length).toBe(
       authenticatedActionKeys.length
     )
@@ -151,22 +155,9 @@ describe('endpointKeyToActionKey exhaustiveness', () => {
     }
   })
 
-  it('total endpoints = authenticated + hybrid + utility', () => {
+  it('has plugin endpoint for GetPricingModel hybrid route', () => {
     const plugin = flowgladPlugin({})
-    const authenticatedEndpointCount = Object.keys(
-      endpointKeyToActionKey
-    ).length
-    const hybridEndpointCount = hybridActionKeys.length
-    const utilityEndpointCount = 1 // getExternalId
-
-    // Note: GetPricingModel hybrid endpoint is not yet implemented in better-auth.ts
-    // so we only count the current endpoints
-    const expectedTotalEndpoints =
-      authenticatedEndpointCount + utilityEndpointCount
-
-    expect(Object.keys(plugin.endpoints).length).toBe(
-      expectedTotalEndpoints
-    )
+    expect(plugin.endpoints).toHaveProperty('getPricingModel')
   })
 })
 
@@ -196,6 +187,7 @@ describe('flowgladPlugin', () => {
       'claimResource',
       'releaseResource',
       'listResourceClaims',
+      'getPricingModel',
     ]
 
     for (const endpoint of expectedEndpoints) {

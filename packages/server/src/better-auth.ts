@@ -2,6 +2,7 @@ import {
   type AuthenticatedActionKey,
   FlowgladActionKey,
   flowgladActionValidators,
+  type HybridActionKey,
 } from '@flowglad/shared'
 import type { BetterAuthPlugin } from 'better-auth'
 import { getSessionFromCtx } from 'better-auth/api'
@@ -11,6 +12,7 @@ import {
 } from 'better-auth/plugins'
 import { z } from 'zod'
 import { FlowgladServer } from './FlowgladServer'
+import { FlowgladServerAdmin } from './FlowgladServerAdmin'
 import { routeToHandlerMap } from './subrouteHandlers'
 
 type InnerSession = {
@@ -104,6 +106,14 @@ const _actionKeyToEndpointKey = {
   AuthenticatedActionKey,
   keyof typeof endpointKeyToActionKey
 >
+
+/**
+ * Compile-time exhaustiveness check for hybrid routes.
+ * These routes attempt auth but gracefully fall back to unauthenticated behavior.
+ */
+const _hybridActionKeyToEndpointKey = {
+  [FlowgladActionKey.GetPricingModel]: 'getPricingModel',
+} satisfies Record<HybridActionKey, string>
 
 /**
  * Error response format for Better Auth endpoints.
@@ -517,6 +527,162 @@ export const flowgladPlugin = (
       listResourceClaims: createFlowgladBillingEndpoint(
         FlowgladActionKey.ListResourceClaims,
         options
+      ),
+
+      /**
+       * Hybrid endpoint: attempts authentication, falls back to default pricing.
+       *
+       * FALLBACK CONDITIONS (exhaustive):
+       * 1. getSessionFromCtx() returns null → no session exists
+       * 2. resolveCustomerExternalId() returns error → org billing without active org
+       *
+       * NO FALLBACK when:
+       * - FlowgladServer created successfully but getPricingModel() throws
+       * - Any error after authentication succeeds
+       */
+      getPricingModel: createAuthEndpoint(
+        '/flowglad/pricing-models/retrieve',
+        {
+          method: 'POST',
+          metadata: {
+            isAction: true,
+          },
+        },
+        async (ctx) => {
+          const apiKey =
+            options.apiKey || process.env.FLOWGLAD_SECRET_KEY
+          if (!apiKey) {
+            return ctx.json(
+              {
+                error: {
+                  code: 'CONFIGURATION_ERROR',
+                  message:
+                    'API key required. Provide apiKey option or set FLOWGLAD_SECRET_KEY.',
+                },
+              },
+              { status: 500 }
+            )
+          }
+
+          // ─────────────────────────────────────────────────────────────────────────
+          // FALLBACK CONDITION 1: No session exists
+          // getSessionFromCtx() returns null for unauthenticated requests
+          // ─────────────────────────────────────────────────────────────────────────
+          const sessionResult = await getSessionFromCtx(ctx)
+
+          if (sessionResult) {
+            // Session exists - attempt authenticated path
+            const session =
+              sessionResult as unknown as BetterAuthSessionResult
+            const customerResult = resolveCustomerExternalId(
+              options,
+              session
+            )
+
+            // ───────────────────────────────────────────────────────────────────────
+            // FALLBACK CONDITION 2: Org billing without active org
+            // resolveCustomerExternalId() returns { error: { code: 'NO_ACTIVE_ORGANIZATION' } }
+            // ───────────────────────────────────────────────────────────────────────
+            if (!('error' in customerResult)) {
+              // ═════════════════════════════════════════════════════════════════════
+              // AUTHENTICATED PATH - NO FALLBACK FROM THIS POINT
+              // Auth fully succeeded - MUST return customer pricing or 500 error
+              // ═════════════════════════════════════════════════════════════════════
+              const flowgladServerConfig: {
+                customerExternalId: string
+                getCustomerDetails: () => Promise<{
+                  name: string
+                  email: string
+                }>
+                apiKey?: string
+                baseURL?: string
+              } = {
+                customerExternalId: customerResult.externalId,
+                getCustomerDetails: async () => ({
+                  name: session.user.name || '',
+                  email: session.user.email || '',
+                }),
+              }
+              if (apiKey) {
+                flowgladServerConfig.apiKey = apiKey
+              }
+              if (options.baseURL) {
+                flowgladServerConfig.baseURL = options.baseURL
+              }
+
+              const flowgladServer = new FlowgladServer(
+                flowgladServerConfig
+              )
+
+              try {
+                const { pricingModel } =
+                  await flowgladServer.getPricingModel()
+                return ctx.json({
+                  data: { pricingModel, source: 'customer' as const },
+                })
+              } catch (error) {
+                // ⚠️ ERROR: Auth succeeded but pricing fetch failed
+                // ⚠️ DO NOT fall back - propagate error for debugging
+                console.error(
+                  '[better-auth:getPricingModel] Customer pricing fetch failed after successful auth:',
+                  error
+                )
+                return ctx.json(
+                  {
+                    error: {
+                      code: 'PRICING_MODEL_FETCH_FAILED',
+                      message:
+                        'Failed to retrieve customer pricing model',
+                      details:
+                        error instanceof Error
+                          ? error.message
+                          : undefined,
+                    },
+                  },
+                  { status: 500 }
+                )
+              }
+            }
+          }
+
+          // ═════════════════════════════════════════════════════════════════════════
+          // UNAUTHENTICATED PATH
+          // Reached when: no session (condition 1) OR org resolution failed (condition 2)
+          // ═════════════════════════════════════════════════════════════════════════
+          const flowgladServerAdmin = new FlowgladServerAdmin({
+            apiKey,
+            baseURL: options.baseURL,
+          })
+
+          try {
+            const result =
+              await flowgladServerAdmin.getDefaultPricingModel()
+            // Normalize response shape - handle both { pricingModel } wrapper and direct return
+            const pricingModel =
+              'pricingModel' in result ? result.pricingModel : result
+            return ctx.json({
+              data: { pricingModel, source: 'default' as const },
+            })
+          } catch (error) {
+            console.error(
+              '[better-auth:getPricingModel] Default pricing fetch failed:',
+              error
+            )
+            return ctx.json(
+              {
+                error: {
+                  code: 'DEFAULT_PRICING_MODEL_FETCH_FAILED',
+                  message: 'Failed to retrieve default pricing model',
+                  details:
+                    error instanceof Error
+                      ? error.message
+                      : undefined,
+                },
+              },
+              { status: 500 }
+            )
+          }
+        }
       ),
     },
     hooks: {
