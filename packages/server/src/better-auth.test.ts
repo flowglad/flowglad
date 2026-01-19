@@ -167,8 +167,8 @@ describe('flowgladPlugin', () => {
 
     expect(plugin.id).toBe('flowglad')
 
-    // Verify authenticated billing endpoints plus the getExternalId utility endpoint
-    // Note: GetPricingModel hybrid endpoint would be added when fully implemented
+    // Verify authenticated billing endpoints plus the getExternalId utility endpoint.
+    // Note: The GetPricingModel hybrid endpoint is already included in this list.
     const expectedEndpoints = [
       'getExternalId',
       'getCustomerBilling',

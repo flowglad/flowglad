@@ -622,14 +622,21 @@ export const flowgladPlugin = (
 
           // Map handler response to better-auth response format
           if (result.error) {
+            const errorJson = result.error.json
+            const message =
+              typeof errorJson?.message === 'string'
+                ? errorJson.message
+                : undefined
+            const details =
+              typeof errorJson?.details === 'string'
+                ? errorJson.details
+                : undefined
             return ctx.json(
               {
                 error: {
                   code: result.error.code,
-                  message: result.error.json.message as string,
-                  details: result.error.json.details as
-                    | string
-                    | undefined,
+                  message,
+                  details,
                 },
               },
               { status: result.status }
