@@ -643,6 +643,6 @@ export const flowgladActionValidators = {
   },
   [FlowgladActionKey.GetPricingModel]: {
     method: HTTPMethod.POST,
-    inputValidator: z.object({}),
+    inputValidator: z.object({}).strict(),
   },
 } as const satisfies FlowgladActionValidatorMap
