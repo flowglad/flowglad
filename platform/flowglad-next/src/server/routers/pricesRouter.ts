@@ -15,6 +15,7 @@ import {
   validateUsagePriceSlug,
 } from '@/db/schema/prices'
 import {
+  ensureUsageMeterHasDefaultPrice,
   safelyUpdatePrice,
   selectPriceById,
   selectPrices,
@@ -33,6 +34,7 @@ import { PriceType } from '@/types'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createPriceTransaction } from '@/utils/pricingModel'
+import { isNoChargePrice } from '@/utils/usage/noChargePriceHelpers'
 import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -112,6 +114,48 @@ export const updatePrice = protectedProcedure
           })
         }
 
+        // No_charge price protection - these checks must come BEFORE other validation
+        // No_charge prices can only have their name changed
+        // Note: Only usage prices can be no_charge prices
+        const existingIsNoCharge =
+          existingPrice.type === PriceType.Usage &&
+          existingPrice.slug &&
+          isNoChargePrice(existingPrice.slug)
+        if (existingIsNoCharge) {
+          // Reject archiving (setting active to false)
+          if (price.active === false) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'No charge prices cannot be archived. They are protected as fallback prices.',
+            })
+          }
+          // Reject slug changes
+          if (
+            price.slug !== undefined &&
+            price.slug !== existingPrice.slug
+          ) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'The slug of a no charge price is immutable. Only the name can be changed.',
+            })
+          }
+          // Reject unsetting isDefault on a no_charge price that is currently default
+          // Note: Internal cascade logic (setPricesForUsageMeterToNonDefault) bypasses this,
+          // so setting another price as default still works correctly
+          if (
+            price.isDefault === false &&
+            existingPrice.isDefault === true
+          ) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Default no_charge prices cannot be unset; isDefault is immutable for fallback prices.',
+            })
+          }
+        }
+
         // Product validation only applies to non-usage prices.
         // Usage prices don't have productId, so skip product-related validation.
         let product = null
@@ -169,6 +213,25 @@ export const updatePrice = protectedProcedure
           },
           transaction
         )
+
+        // Default cascade logic for usage prices:
+        // When a usage price is unset as default (isDefault: false) or deactivated (active: false),
+        // ensure the usage meter still has a default price by falling back to no_charge
+        if (
+          existingPrice.type === PriceType.Usage &&
+          existingPrice.usageMeterId
+        ) {
+          const wasDefault = existingPrice.isDefault
+          const isNoLongerDefault =
+            price.isDefault === false || price.active === false
+          if (wasDefault && isNoLongerDefault) {
+            await ensureUsageMeterHasDefaultPrice(
+              existingPrice.usageMeterId,
+              transaction
+            )
+          }
+        }
+
         return {
           price: updatedPrice,
         }
@@ -267,10 +330,39 @@ export const archivePrice = protectedProcedure
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
         const oldPrice = await selectPriceById(input.id, transaction)
+
+        // No_charge price protection - cannot be archived
+        // Note: Only usage prices can be no_charge prices
+        if (
+          oldPrice.type === PriceType.Usage &&
+          oldPrice.slug &&
+          isNoChargePrice(oldPrice.slug)
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'No charge prices cannot be archived. They are protected as fallback prices.',
+          })
+        }
+
         const price = await safelyUpdatePrice(
           { id: input.id, active: false, type: oldPrice.type },
           transaction
         )
+
+        // Default cascade logic for usage prices:
+        // When archiving a default usage price, ensure the meter still has a default
+        if (
+          oldPrice.type === PriceType.Usage &&
+          oldPrice.usageMeterId &&
+          oldPrice.isDefault
+        ) {
+          await ensureUsageMeterHasDefaultPrice(
+            oldPrice.usageMeterId,
+            transaction
+          )
+        }
+
         return { price }
       }
     )
