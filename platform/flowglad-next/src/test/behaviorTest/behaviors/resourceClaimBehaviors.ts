@@ -33,7 +33,6 @@ import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionIt
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { FeatureType } from '@/types'
-import { ResourceCapacityDep } from '../dependencies/resourceCapacityDependencies'
 import { ResourceClaimStateDep } from '../dependencies/resourceClaimStateDependencies'
 import { defineBehavior } from '../index'
 import type { SetupSubscriptionResult } from './subscriptionAdjustmentBehaviors'
@@ -139,9 +138,9 @@ async function findResourceSubscriptionItemFeature(
  */
 export const createResourceClaimsBehavior = defineBehavior({
   name: 'create resource claims',
-  dependencies: [ResourceClaimStateDep, ResourceCapacityDep],
+  dependencies: [ResourceClaimStateDep],
   run: async (
-    { resourceClaimStateDep, resourceCapacityDep },
+    { resourceClaimStateDep },
     prev: SetupSubscriptionResult
   ): Promise<CreateResourceClaimsResult> => {
     const { organization, subscription, pricingModel, features } =
@@ -174,10 +173,9 @@ export const createResourceClaimsBehavior = defineBehavior({
 
     const { subscriptionItemFeature } = featureInfo
 
-    // Use the capacity from the dependency, but default to the feature amount
-    // if the dependency is using the default (the feature.amount from setupSubscriptionBehavior)
-    const capacity =
-      subscriptionItemFeature.amount ?? resourceCapacityDep.amount
+    // Use the capacity from the subscription item feature
+    // This is set by setupResourceSubscriptionItemFeature in setupSubscriptionBehavior
+    const capacity = subscriptionItemFeature.amount ?? 0
 
     // Calculate how many claims to create based on occupancy
     const claimCount = Math.floor(

@@ -34,6 +34,7 @@ import {
 } from '../behaviors/resourceClaimBehaviors'
 import { completeStripeOnboardingBehavior } from '../behaviors/stripeOnboardingBehaviors'
 import { setupSubscriptionBehavior } from '../behaviors/subscriptionAdjustmentBehaviors'
+import { PaymentSimulationDep } from '../dependencies/paymentSimulationDependencies'
 import { ResourceClaimStateDep } from '../dependencies/resourceClaimStateDependencies'
 import { ResourceFeatureDep } from '../dependencies/resourceFeatureDependencies'
 import { SubscriptionStatusDep } from '../dependencies/subscriptionStatusDependencies'
@@ -76,18 +77,21 @@ behaviorTest({
       ResourceFeatureDep: 'present',
       ResourceClaimStateDep: 'no-claims',
       SubscriptionStatusDep: 'active',
+      PaymentSimulationDep: 'paid',
     },
     // Cancellation with partial claims
     {
       ResourceFeatureDep: 'present',
       ResourceClaimStateDep: 'partial-claims',
       SubscriptionStatusDep: 'active',
+      PaymentSimulationDep: 'paid',
     },
     // Cancellation at capacity
     {
       ResourceFeatureDep: 'present',
       ResourceClaimStateDep: 'at-capacity',
       SubscriptionStatusDep: 'active',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [
@@ -161,18 +165,21 @@ behaviorTest({
       ResourceFeatureDep: 'present',
       ResourceClaimStateDep: 'at-capacity',
       SubscriptionStatusDep: 'active',
+      PaymentSimulationDep: 'paid',
     },
     // Trialing subscription cancellation
     {
       ResourceFeatureDep: 'present',
       ResourceClaimStateDep: 'at-capacity',
       SubscriptionStatusDep: 'trialing',
+      PaymentSimulationDep: 'paid',
     },
     // PastDue subscription cancellation
     {
       ResourceFeatureDep: 'present',
       ResourceClaimStateDep: 'at-capacity',
       SubscriptionStatusDep: 'past-due',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [
@@ -227,6 +234,7 @@ behaviorTest({
       ResourceFeatureDep: 'not-present',
       ResourceClaimStateDep: 'no-claims',
       SubscriptionStatusDep: 'active',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [

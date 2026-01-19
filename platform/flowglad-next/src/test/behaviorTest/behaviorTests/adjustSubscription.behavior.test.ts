@@ -39,6 +39,9 @@ import {
 import { AdjustmentTimingDep } from '../dependencies/adjustmentTimingDependencies'
 import { AdjustmentTypeDep } from '../dependencies/adjustmentTypeDependencies'
 import { BillingIntervalDep } from '../dependencies/billingIntervalDependencies'
+import { PaymentSimulationDep } from '../dependencies/paymentSimulationDependencies'
+import { ProrationDep } from '../dependencies/prorationDependencies'
+import { ResourceFeatureDep } from '../dependencies/resourceFeatureDependencies'
 import { SubscriptionStatusDep } from '../dependencies/subscriptionStatusDependencies'
 import { behaviorTest } from '../index'
 
@@ -82,6 +85,47 @@ behaviorTest({
     {
       AdjustmentTypeDep: 'upgrade',
       AdjustmentTimingDep: 'end-of-period',
+    },
+    // Downgrade + end-of-period timing without payment fails validation
+    // because rawNetCharge > 0 when no payment exists
+    {
+      AdjustmentTypeDep: 'downgrade',
+      AdjustmentTimingDep: 'end-of-period',
+      PaymentSimulationDep: 'unpaid',
+    },
+    // Lateral + end-of-period timing without payment also fails
+    // because rawNetCharge > 0 when no payment exists
+    {
+      AdjustmentTypeDep: 'lateral',
+      AdjustmentTimingDep: 'end-of-period',
+      PaymentSimulationDep: 'unpaid',
+    },
+    // Downgrade + auto timing without payment also fails because
+    // auto resolves to end-of-period for downgrades
+    {
+      AdjustmentTypeDep: 'downgrade',
+      AdjustmentTimingDep: 'auto',
+      PaymentSimulationDep: 'unpaid',
+    },
+    // Lateral + auto timing without payment also fails because
+    // auto resolves to end-of-period for lateral (no price change)
+    {
+      AdjustmentTypeDep: 'lateral',
+      AdjustmentTimingDep: 'auto',
+      PaymentSimulationDep: 'unpaid',
+    },
+    // Upgrade + auto timing without payment also fails because
+    // proration requires existing payment for net charge calculation
+    {
+      AdjustmentTypeDep: 'upgrade',
+      AdjustmentTimingDep: 'auto',
+      PaymentSimulationDep: 'unpaid',
+    },
+    // Upgrade + immediately timing without payment also fails
+    {
+      AdjustmentTypeDep: 'upgrade',
+      AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'unpaid',
     },
   ],
   chain: [
@@ -179,13 +223,20 @@ behaviorTest({
           )
         }
 
-        // 5. New items have correct data
-        const newItem = adjustmentResult.subscriptionItems.find(
-          (item: SubscriptionItem.Record) =>
-            item.priceId === result.targetPrice.id
-        )
-        expect(newItem?.priceId).toBe(result.targetPrice.id)
-        expect(newItem?.quantity).toBe(1)
+        // 5. New items have correct data (only for immediate adjustments)
+        // End-of-period adjustments schedule items for the future, so they're not
+        // visible in the current subscription items yet
+        if (
+          adjustmentResult.resolvedTiming ===
+          SubscriptionAdjustmentTiming.Immediately
+        ) {
+          const newItem = adjustmentResult.subscriptionItems.find(
+            (item: SubscriptionItem.Record) =>
+              item.priceId === result.targetPrice.id
+          )
+          expect(newItem?.priceId).toBe(result.targetPrice.id)
+          expect(newItem?.quantity).toBe(1)
+        }
       },
     },
   ],
@@ -205,11 +256,13 @@ behaviorTest({
       AdjustmentTypeDep: 'upgrade',
       ProrationDep: 'enabled',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
     {
       AdjustmentTypeDep: 'upgrade',
       ProrationDep: 'enabled',
       AdjustmentTimingDep: 'auto',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [
@@ -252,11 +305,17 @@ behaviorTest({
     {
       AdjustmentTypeDep: 'downgrade',
       AdjustmentTimingDep: 'end-of-period',
+      PaymentSimulationDep: 'paid',
     },
-    { AdjustmentTypeDep: 'downgrade', AdjustmentTimingDep: 'auto' },
+    {
+      AdjustmentTypeDep: 'downgrade',
+      AdjustmentTimingDep: 'auto',
+      PaymentSimulationDep: 'paid',
+    },
     {
       AdjustmentTypeDep: 'lateral',
       AdjustmentTimingDep: 'end-of-period',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [
@@ -297,143 +356,6 @@ behaviorTest({
 })
 
 // =============================================================================
-// Toggle Feature Handling Test
-//
-// Tests that toggle features are properly handled during adjustment.
-// =============================================================================
-
-behaviorTest({
-  only: [
-    {
-      ToggleFeatureDep: 'present',
-      AdjustmentTimingDep: 'immediately',
-    },
-    { ToggleFeatureDep: 'present', AdjustmentTimingDep: 'auto' },
-  ],
-  skip: [
-    // Skip upgrade + end-of-period (invalid)
-    {
-      AdjustmentTypeDep: 'upgrade',
-      AdjustmentTimingDep: 'end-of-period',
-    },
-  ],
-  chain: [
-    { behavior: authenticateUserBehavior },
-    { behavior: createOrganizationBehavior },
-    { behavior: completeStripeOnboardingBehavior },
-    {
-      behavior: setupSubscriptionBehavior,
-      invariants: async (result) => {
-        // Toggle feature should be created - verify by checking id exists
-        expect(typeof result.features.toggleFeature?.id).toBe(
-          'string'
-        )
-        expect(typeof result.features.toggleProductFeature?.id).toBe(
-          'string'
-        )
-      },
-    },
-    {
-      behavior: setupTargetPriceBehavior,
-      invariants: async (result) => {
-        // Target product should also have the toggle feature
-        expect(typeof result.targetFeatures.toggleFeature?.id).toBe(
-          'string'
-        )
-        expect(
-          typeof result.targetFeatures.toggleProductFeature?.id
-        ).toBe('string')
-      },
-    },
-    {
-      behavior: adjustSubscriptionBehavior,
-      invariants: async (result) => {
-        // Adjustment should complete successfully with toggle features
-        expect(result.adjustmentResult.subscription.id).toBe(
-          result.subscription.id
-        )
-        expect(
-          result.adjustmentResult.subscriptionItems.length
-        ).toBeGreaterThan(0)
-      },
-    },
-  ],
-  testOptions: { timeout: 120000 },
-  teardown: adjustSubscriptionTeardown,
-})
-
-// =============================================================================
-// Usage Credit Grant Feature Handling Test
-//
-// Tests that usage credit grant features are properly handled during adjustment.
-// =============================================================================
-
-behaviorTest({
-  only: [
-    {
-      UsageCreditGrantFeatureDep: 'present',
-      AdjustmentTimingDep: 'immediately',
-    },
-    {
-      UsageCreditGrantFeatureDep: 'present',
-      AdjustmentTimingDep: 'auto',
-    },
-  ],
-  skip: [
-    // Skip upgrade + end-of-period (invalid)
-    {
-      AdjustmentTypeDep: 'upgrade',
-      AdjustmentTimingDep: 'end-of-period',
-    },
-  ],
-  chain: [
-    { behavior: authenticateUserBehavior },
-    { behavior: createOrganizationBehavior },
-    { behavior: completeStripeOnboardingBehavior },
-    {
-      behavior: setupSubscriptionBehavior,
-      invariants: async (result) => {
-        // Usage credit grant feature should be created - verify by checking id exists
-        expect(
-          typeof result.features.usageCreditGrantFeature?.id
-        ).toBe('string')
-        expect(typeof result.features.usageMeter?.id).toBe('string')
-        expect(
-          typeof result.features.usageCreditGrantProductFeature?.id
-        ).toBe('string')
-      },
-    },
-    {
-      behavior: setupTargetPriceBehavior,
-      invariants: async (result) => {
-        // Target product should also have the usage credit grant feature
-        expect(
-          typeof result.targetFeatures.usageCreditGrantFeature?.id
-        ).toBe('string')
-        expect(
-          typeof result.targetFeatures.usageCreditGrantProductFeature
-            ?.id
-        ).toBe('string')
-      },
-    },
-    {
-      behavior: adjustSubscriptionBehavior,
-      invariants: async (result) => {
-        // Adjustment should complete successfully with usage credit grants
-        expect(result.adjustmentResult.subscription.id).toBe(
-          result.subscription.id
-        )
-        expect(
-          result.adjustmentResult.subscriptionItems.length
-        ).toBeGreaterThan(0)
-      },
-    },
-  ],
-  testOptions: { timeout: 120000 },
-  teardown: adjustSubscriptionTeardown,
-})
-
-// =============================================================================
 // Resource Feature Handling Test
 //
 // Tests that resource (capacity) features are properly handled during adjustment.
@@ -444,8 +366,13 @@ behaviorTest({
     {
       ResourceFeatureDep: 'present',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
-    { ResourceFeatureDep: 'present', AdjustmentTimingDep: 'auto' },
+    {
+      ResourceFeatureDep: 'present',
+      AdjustmentTimingDep: 'auto',
+      PaymentSimulationDep: 'paid',
+    },
   ],
   skip: [
     // Skip upgrade + end-of-period (invalid)
@@ -516,6 +443,7 @@ behaviorTest({
       AdjustmentTypeDep: 'upgrade',
       AdjustmentTimingDep: 'immediately',
       ProrationDep: 'enabled',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [

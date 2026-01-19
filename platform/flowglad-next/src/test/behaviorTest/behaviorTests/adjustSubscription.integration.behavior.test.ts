@@ -51,10 +51,11 @@ import {
 } from '../behaviors/subscriptionAdjustmentBehaviors'
 import { AdjustmentTypeDep } from '../dependencies/adjustmentTypeDependencies'
 import { BillingIntervalDep } from '../dependencies/billingIntervalDependencies'
+import { ContractTypeDep } from '../dependencies/contractTypeDependencies'
+import { CountryDep } from '../dependencies/countryDependencies'
+import { PaymentSimulationDep } from '../dependencies/paymentSimulationDependencies'
 import { ResourceFeatureDep } from '../dependencies/resourceFeatureDependencies'
 import { SubscriptionStatusDep } from '../dependencies/subscriptionStatusDependencies'
-import { ToggleFeatureDep } from '../dependencies/toggleFeatureDependencies'
-import { UsageCreditGrantFeatureDep } from '../dependencies/usageCreditGrantFeatureDependencies'
 import { runBehavior } from '../index'
 
 // =============================================================================
@@ -82,10 +83,15 @@ afterAll(async () => {
 
 /**
  * Sets up a subscription with a target price for adjustment.
+ *
+ * @param params.adjustmentType - Type of adjustment (upgrade, downgrade, lateral)
+ * @param params.hasResourceFeature - Whether to include a resource feature
+ * @param params.simulatePayment - Whether to simulate initial payment (default: false for edge case tests)
  */
 async function setupTestSubscriptionWithTargetPrice(params?: {
   adjustmentType?: 'upgrade' | 'downgrade' | 'lateral'
   hasResourceFeature?: boolean
+  simulatePayment?: boolean
 }): Promise<SetupTargetPriceResult> {
   const authResult = await runBehavior(
     authenticateUserBehavior,
@@ -95,7 +101,10 @@ async function setupTestSubscriptionWithTargetPrice(params?: {
 
   const orgResult = await runBehavior(
     createOrganizationBehavior,
-    {},
+    {
+      countryDep: CountryDep.get('us'),
+      contractTypeDep: ContractTypeDep.get('platform'),
+    },
     authResult
   )
   orgsToCleanup.push(orgResult.organization.id)
@@ -110,13 +119,13 @@ async function setupTestSubscriptionWithTargetPrice(params?: {
     setupSubscriptionBehavior,
     {
       subscriptionStatusDep: SubscriptionStatusDep.get('active'),
-      toggleFeatureDep: ToggleFeatureDep.get('not-present'),
-      usageCreditGrantFeatureDep:
-        UsageCreditGrantFeatureDep.get('not-present'),
       resourceFeatureDep: ResourceFeatureDep.get(
         params?.hasResourceFeature ? 'present' : 'not-present'
       ),
       billingIntervalDep: BillingIntervalDep.get('monthly'),
+      paymentSimulationDep: PaymentSimulationDep.get(
+        params?.simulatePayment ? 'paid' : 'unpaid'
+      ),
     },
     stripeResult
   )

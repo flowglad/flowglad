@@ -30,16 +30,16 @@ import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
 import {
   setupBillingPeriod,
+  setupInvoice,
+  setupPayment,
   setupPaymentMethod,
   setupPrice,
   setupProductFeature,
   setupResource,
   setupResourceFeature,
+  setupResourceSubscriptionItemFeature,
   setupSubscription,
   setupSubscriptionItem,
-  setupToggleFeature,
-  setupUsageCreditGrantFeature,
-  setupUsageMeter,
 } from '@/../seedDatabase'
 import {
   adminTransaction,
@@ -56,7 +56,6 @@ import type { Product } from '@/db/schema/products'
 import type { Resource } from '@/db/schema/resources'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
-import type { UsageMeter } from '@/db/schema/usageMeters'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
 import { insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
@@ -67,8 +66,9 @@ import {
 } from '@/subscriptions/adjustSubscription'
 import {
   BillingPeriodStatus,
-  FeatureUsageGrantFrequency,
   IntervalUnit,
+  InvoiceStatus,
+  PaymentStatus,
   PriceType,
   SubscriptionAdjustmentTiming,
   SubscriptionStatus,
@@ -77,11 +77,10 @@ import core from '@/utils/core'
 import { AdjustmentTimingDep } from '../dependencies/adjustmentTimingDependencies'
 import { AdjustmentTypeDep } from '../dependencies/adjustmentTypeDependencies'
 import { BillingIntervalDep } from '../dependencies/billingIntervalDependencies'
+import { PaymentSimulationDep } from '../dependencies/paymentSimulationDependencies'
 import { ProrationDep } from '../dependencies/prorationDependencies'
 import { ResourceFeatureDep } from '../dependencies/resourceFeatureDependencies'
 import { SubscriptionStatusDep } from '../dependencies/subscriptionStatusDependencies'
-import { ToggleFeatureDep } from '../dependencies/toggleFeatureDependencies'
-import { UsageCreditGrantFeatureDep } from '../dependencies/usageCreditGrantFeatureDependencies'
 import { defineBehavior } from '../index'
 import type { CompleteStripeOnboardingResult } from './stripeOnboardingBehaviors'
 
@@ -93,13 +92,6 @@ import type { CompleteStripeOnboardingResult } from './stripeOnboardingBehaviors
  * Features that may be attached to a subscription based on dependencies.
  */
 interface SubscriptionFeatures {
-  /** Toggle feature, if present */
-  toggleFeature: Feature.ToggleRecord | null
-  toggleProductFeature: ProductFeature.Record | null
-  /** Usage credit grant feature, if present */
-  usageCreditGrantFeature: Feature.UsageCreditGrantRecord | null
-  usageCreditGrantProductFeature: ProductFeature.Record | null
-  usageMeter: UsageMeter.Record | null
   /** Resource feature, if present */
   resourceFeature: Feature.ResourceRecord | null
   resourceProductFeature: ProductFeature.Record | null
@@ -173,24 +165,22 @@ export interface AdjustSubscriptionBehaviorResult
  * - Subscription: In the appropriate status
  * - BillingPeriod: Current active billing period
  * - SubscriptionItems: Initial items for the subscription
- * - Features: Based on ToggleFeatureDep, UsageCreditGrantFeatureDep, ResourceFeatureDep
+ * - Features: Based on ResourceFeatureDep (resource features only)
  */
 export const setupSubscriptionBehavior = defineBehavior({
   name: 'setup subscription',
   dependencies: [
     SubscriptionStatusDep,
-    ToggleFeatureDep,
-    UsageCreditGrantFeatureDep,
     ResourceFeatureDep,
     BillingIntervalDep,
+    PaymentSimulationDep,
   ],
   run: async (
     {
       subscriptionStatusDep,
-      toggleFeatureDep,
-      usageCreditGrantFeatureDep,
       resourceFeatureDep,
       billingIntervalDep,
+      paymentSimulationDep,
     },
     prev: CompleteStripeOnboardingResult
   ): Promise<SetupSubscriptionResult> => {
@@ -246,56 +236,9 @@ export const setupSubscriptionBehavior = defineBehavior({
 
     // Create features based on dependencies
     const features: SubscriptionFeatures = {
-      toggleFeature: null,
-      toggleProductFeature: null,
-      usageCreditGrantFeature: null,
-      usageCreditGrantProductFeature: null,
-      usageMeter: null,
       resourceFeature: null,
       resourceProductFeature: null,
       resource: null,
-    }
-
-    // Create toggle feature if needed
-    if (toggleFeatureDep.hasFeature) {
-      const toggleFeature = (await setupToggleFeature({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-        name: `Toggle Feature ${nanoid}`,
-        livemode,
-      })) as Feature.ToggleRecord
-      features.toggleFeature = toggleFeature
-      features.toggleProductFeature = await setupProductFeature({
-        productId: product.id,
-        featureId: toggleFeature.id,
-        organizationId: organization.id,
-      })
-    }
-
-    // Create usage credit grant feature if needed
-    if (usageCreditGrantFeatureDep.hasFeature) {
-      features.usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
-        name: `Usage Meter ${nanoid}`,
-        livemode,
-      })
-      features.usageCreditGrantFeature =
-        await setupUsageCreditGrantFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: `Usage Credit Grant ${nanoid}`,
-          usageMeterId: features.usageMeter.id,
-          renewalFrequency:
-            FeatureUsageGrantFrequency.EveryBillingPeriod,
-          livemode,
-          amount: 1000,
-        })
-      features.usageCreditGrantProductFeature =
-        await setupProductFeature({
-          productId: product.id,
-          featureId: features.usageCreditGrantFeature.id,
-          organizationId: organization.id,
-        })
     }
 
     // Create resource feature if needed
@@ -378,14 +321,59 @@ export const setupSubscriptionBehavior = defineBehavior({
       livemode,
     })
 
+    // Optionally create invoice and payment for the billing period
+    // This simulates the initial subscription payment, which is needed for
+    // proration calculations during adjustments (especially downgrades)
+    if (paymentSimulationDep.createPayment) {
+      const invoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        status: InvoiceStatus.Paid,
+        livemode,
+        priceId: initialPrice.id,
+      })
+
+      // Create a succeeded payment for the full subscription amount
+      await setupPayment({
+        stripeChargeId: `ch_test_${core.nanoid()}`,
+        status: PaymentStatus.Succeeded,
+        amount: initialPrice.unitPrice,
+        livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        invoiceId: invoice.id,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: subscription.id,
+        paymentMethodId: paymentMethod.id,
+      })
+    }
+
     // Create subscription item
-    await setupSubscriptionItem({
+    const subscriptionItem = await setupSubscriptionItem({
       subscriptionId: subscription.id,
       name: initialPrice.name ?? `Test Price ${nanoid}`,
       quantity: 1,
       unitPrice: initialPrice.unitPrice,
       priceId: initialPrice.id,
     })
+
+    // Create subscription item features for resource features
+    // This is needed for resource claims to work correctly
+    if (
+      features.resourceFeature &&
+      features.resource &&
+      features.resourceProductFeature
+    ) {
+      await setupResourceSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: features.resourceFeature.id,
+        resourceId: features.resource.id,
+        pricingModelId: pricingModel.id,
+        productFeatureId: features.resourceProductFeature.id,
+        amount: features.resourceFeature.amount,
+      })
+    }
 
     // Get subscription items
     const subscriptionItems = await adminTransaction(
@@ -431,13 +419,8 @@ export const setupTargetPriceBehavior = defineBehavior({
     { adjustmentTypeDep },
     prev: SetupSubscriptionResult
   ): Promise<SetupTargetPriceResult> => {
-    const {
-      organization,
-      pricingModel,
-      initialPrice,
-      features,
-      billingPeriod,
-    } = prev
+    const { organization, pricingModel, initialPrice, features } =
+      prev
     const nanoid = core.nanoid()
     const livemode = true
 
@@ -478,39 +461,9 @@ export const setupTargetPriceBehavior = defineBehavior({
 
     // Create matching features for target product if they exist on source
     const targetFeatures: SubscriptionFeatures = {
-      toggleFeature: null,
-      toggleProductFeature: null,
-      usageCreditGrantFeature: null,
-      usageCreditGrantProductFeature: null,
-      usageMeter: null,
       resourceFeature: null,
       resourceProductFeature: null,
       resource: null,
-    }
-
-    // Copy toggle feature to target product
-    if (features.toggleFeature) {
-      targetFeatures.toggleFeature = features.toggleFeature
-      targetFeatures.toggleProductFeature = await setupProductFeature(
-        {
-          productId: targetProduct.id,
-          featureId: features.toggleFeature.id,
-          organizationId: organization.id,
-        }
-      )
-    }
-
-    // Copy usage credit grant feature to target product
-    if (features.usageCreditGrantFeature) {
-      targetFeatures.usageCreditGrantFeature =
-        features.usageCreditGrantFeature
-      targetFeatures.usageMeter = features.usageMeter
-      targetFeatures.usageCreditGrantProductFeature =
-        await setupProductFeature({
-          productId: targetProduct.id,
-          featureId: features.usageCreditGrantFeature.id,
-          organizationId: organization.id,
-        })
     }
 
     // Copy resource feature to target product

@@ -45,6 +45,7 @@ import {
 } from '../behaviors/subscriptionAdjustmentBehaviors'
 import { AdjustmentTimingDep } from '../dependencies/adjustmentTimingDependencies'
 import { AdjustmentTypeDep } from '../dependencies/adjustmentTypeDependencies'
+import { PaymentSimulationDep } from '../dependencies/paymentSimulationDependencies'
 import { ResourceClaimStateDep } from '../dependencies/resourceClaimStateDependencies'
 import { ResourceFeatureDep } from '../dependencies/resourceFeatureDependencies'
 import { SubscriptionStatusDep } from '../dependencies/subscriptionStatusDependencies'
@@ -94,6 +95,7 @@ behaviorTest({
       ResourceClaimStateDep: 'no-claims',
       AdjustmentTypeDep: 'downgrade',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
     // Test upgrade with claims at capacity - always succeeds
     {
@@ -101,6 +103,7 @@ behaviorTest({
       ResourceClaimStateDep: 'at-capacity',
       AdjustmentTypeDep: 'upgrade',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
     // Test upgrade with partial claims - always succeeds
     {
@@ -108,6 +111,7 @@ behaviorTest({
       ResourceClaimStateDep: 'partial-claims',
       AdjustmentTypeDep: 'upgrade',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
     // Test lateral move with claims - capacity unchanged
     {
@@ -115,6 +119,7 @@ behaviorTest({
       ResourceClaimStateDep: 'partial-claims',
       AdjustmentTypeDep: 'lateral',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [
@@ -225,6 +230,7 @@ behaviorTest({
       ResourceClaimStateDep: 'partial-claims',
       AdjustmentTypeDep: 'downgrade',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [
@@ -278,12 +284,14 @@ behaviorTest({
       ResourceClaimStateDep: 'at-capacity',
       AdjustmentTypeDep: 'downgrade',
       AdjustmentTimingDep: 'end-of-period',
+      PaymentSimulationDep: 'paid',
     },
     {
       ResourceFeatureDep: 'present',
       ResourceClaimStateDep: 'partial-claims',
       AdjustmentTypeDep: 'downgrade',
       AdjustmentTimingDep: 'end-of-period',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [
@@ -337,6 +345,7 @@ behaviorTest({
       ResourceClaimStateDep: 'at-capacity',
       AdjustmentTypeDep: 'upgrade',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [
@@ -389,6 +398,7 @@ behaviorTest({
       SubscriptionStatusDep: 'active',
       AdjustmentTypeDep: 'upgrade',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
     // Trialing subscription with claims
     {
@@ -397,6 +407,7 @@ behaviorTest({
       SubscriptionStatusDep: 'trialing',
       AdjustmentTypeDep: 'upgrade',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
     // PastDue subscription with claims
     {
@@ -405,6 +416,7 @@ behaviorTest({
       SubscriptionStatusDep: 'past-due',
       AdjustmentTypeDep: 'upgrade',
       AdjustmentTimingDep: 'immediately',
+      PaymentSimulationDep: 'paid',
     },
   ],
   chain: [
