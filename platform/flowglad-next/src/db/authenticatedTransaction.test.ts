@@ -56,22 +56,9 @@ const mockedAuth = vi.hoisted(
   } => ({ session: null })
 )
 
-const mockedCustomerBillingPortal = vi.hoisted(
-  (): {
-    organizationId: string | null
-  } => ({ organizationId: null })
-)
-
 vi.mock('@/utils/auth', () => {
   return {
     getSession: async () => mockedAuth.session,
-  }
-})
-
-vi.mock('@/utils/customerBillingPortalState', () => {
-  return {
-    getCustomerBillingPortalOrganizationId: async () =>
-      mockedCustomerBillingPortal.organizationId,
   }
 })
 
@@ -1901,25 +1888,23 @@ describe('cacheRecomputationContext derivation', () => {
       userId: user.id,
     })
 
-    // Configure mocks to simulate customer billing portal authentication:
-    // - session is set (user is logged in via Better Auth)
-    // - customerBillingPortal returns the organization ID (triggers customer JWT creation)
+    // Configure session mock to simulate logged-in user via Better Auth.
+    // Use __testOnlyOrganizationId to trigger the customer billing portal auth path
+    // via the built-in test escape hatch in getCustomerBillingPortalOrganizationId.
     mockedAuth.session = {
       user: { id: betterAuthId, email: user.email! },
     }
-    mockedCustomerBillingPortal.organizationId = organization.id
 
-    // Call comprehensiveAuthenticatedTransaction with customerId to verify
-    // the cacheRecomputationContext is correctly set to 'customer' type.
-    // Note: The fix ensures that even without explicitly passing customerId,
-    // the JWT role='customer' determines the context type.
+    // Call comprehensiveAuthenticatedTransaction WITHOUT explicit customerId
+    // to verify that the cacheRecomputationContext.customerId is derived from
+    // JWT metadata (jwtClaim.user_metadata.app_metadata.customer_id).
     const result = await comprehensiveAuthenticatedTransaction(
       async (params) => {
-        // Verify the cacheRecomputationContext is correctly derived
+        // Verify the cacheRecomputationContext is correctly derived from JWT role
         expect(params.cacheRecomputationContext.type).toBe('customer')
 
         if (params.cacheRecomputationContext.type === 'customer') {
-          // The customerId should be extracted from JWT metadata
+          // The customerId should be extracted from JWT metadata, not explicit param
           expect(params.cacheRecomputationContext.customerId).toBe(
             customer.id
           )
@@ -1933,14 +1918,15 @@ describe('cacheRecomputationContext derivation', () => {
 
         return Result.ok({ verified: true })
       },
-      { customerId: customer.id }
+      // Use __testOnlyOrganizationId to trigger customer billing portal auth path
+      // Do NOT pass customerId - let it be derived from JWT metadata
+      { __testOnlyOrganizationId: organization.id }
     )
 
     expect(result.verified).toBe(true)
 
-    // Reset mocks
+    // Reset session mock
     mockedAuth.session = null
-    mockedCustomerBillingPortal.organizationId = null
   })
 
   it('sets type to merchant when using API key auth (non-customer role)', async () => {
