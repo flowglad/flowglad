@@ -217,7 +217,7 @@ describe('validateSetupPricingModelInput', () => {
       ).not.toThrow()
     })
 
-    it('should set isDefault=false for all usage prices regardless of input', () => {
+    it('should preserve user-specified isDefault=true for usage prices (Patch 3)', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
@@ -229,8 +229,7 @@ describe('validateSetupPricingModelInput', () => {
             {
               type: PriceType.Usage,
               slug: 'usage-price',
-              // isDefault explicitly set to true - should be changed to false
-              // because usage prices don't use the isDefault concept
+              // isDefault explicitly set to true - should be preserved (Patch 3)
               isDefault: true,
               unitPrice: 100,
               intervalUnit: IntervalUnit.Month,
@@ -244,7 +243,7 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       const result = validateSetupPricingModelInput(input)
-      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(false)
+      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(true)
     })
 
     // Empty prices array is valid - usage meters can exist without prices
@@ -904,6 +903,65 @@ describe('setupUsageMeterPriceInputSchema', () => {
       const input = {
         ...createValidUsagePriceInput(),
         slug: undefined,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe('inactive default price validation', () => {
+    it('rejects usage price with isDefault=true and active=false', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        isDefault: true,
+        active: false,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const hasInactiveDefaultError = result.error.issues.some(
+          (issue) =>
+            issue.path.includes('isDefault') &&
+            issue.message.includes('inactive') &&
+            issue.message.includes('default')
+        )
+        expect(hasInactiveDefaultError).toBe(true)
+      }
+    })
+
+    it('accepts usage price with isDefault=true and active=true', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        isDefault: true,
+        active: true,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+    })
+
+    it('accepts usage price with isDefault=false and active=false', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        isDefault: false,
+        active: false,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+    })
+
+    it('accepts usage price with isDefault=false and active=true', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        isDefault: false,
+        active: true,
       }
 
       const result = setupUsageMeterPriceInputSchema.safeParse(input)

@@ -147,6 +147,15 @@ export const setupUsageMeterPriceInputSchema =
         path: ['slug'],
       }
     )
+    .refine(
+      // An inactive price cannot be the default - this would leave no active default
+      (data) => !(data.isDefault === true && data.active === false),
+      {
+        message:
+          'An inactive price cannot be set as default. Set active=true or isDefault=false.',
+        path: ['isDefault'],
+      }
+    )
 
 export type SetupUsageMeterPriceInput = z.infer<
   typeof setupUsageMeterPriceInputSchema

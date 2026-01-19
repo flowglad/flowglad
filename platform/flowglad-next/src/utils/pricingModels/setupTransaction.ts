@@ -274,14 +274,16 @@ export const setupPricingModelTransaction = async (
     }
   )
 
-  // Determine which usage meters have a user-specified default price
+  // Determine which usage meters have a user-specified ACTIVE default price
   // Now that validation no longer mutates isDefault (Patch 3), we can use validated input directly
   // No-charge prices should only be the default if no user price is set as default
+  // Note: validation now rejects isDefault=true with active=false, but we also check active here
+  // for defense in depth
   const metersWithUserDefaultPrice = new Set(
     input.usageMeters
       .filter((meterWithPrices) =>
         (meterWithPrices.prices || []).some(
-          (price) => price.isDefault
+          (price) => price.isDefault && price.active !== false
         )
       )
       .map((meterWithPrices) => meterWithPrices.usageMeter.slug)
