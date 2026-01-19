@@ -141,9 +141,16 @@ export const updatePrice = protectedProcedure
                 'The slug of a no charge price is immutable. Only the name can be changed.',
             })
           }
-          // Reject isDefault changes to false
-          // (no_charge prices can be set as default, but once default, unsetting it
-          // will trigger cascade which will set it back - handled below)
+          // Reject unsetting isDefault on a no_charge price that is currently default
+          // Note: Internal cascade logic (setPricesForUsageMeterToNonDefault) bypasses this,
+          // so setting another price as default still works correctly
+          if (price.isDefault === false && existingPrice.isDefault === true) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Default no_charge prices cannot be unset; isDefault is immutable for fallback prices.',
+            })
+          }
         }
 
         // Product validation only applies to non-usage prices.
