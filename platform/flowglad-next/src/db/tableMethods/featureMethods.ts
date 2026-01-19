@@ -24,6 +24,12 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import {
+  CacheDependency,
+  cached,
+  invalidateDependencies,
+} from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import type { PricingModel } from '../schema/pricingModels'
 import { selectPricingModels } from './pricingModelMethods'
 import {
@@ -46,21 +52,121 @@ const config: ORMMethodCreatorConfig<
 
 export const selectFeatureById = createSelectById(features, config)
 
-export const insertFeature = createInsertFunction(features, config)
-
-export const updateFeature = createUpdateFunction(features, config)
-
 export const selectFeatures = createSelectFunction(features, config)
 
-export const upsertFeatureByPricingModelIdAndSlug =
-  createUpsertFunction(
-    features,
-    [features.pricingModelId, features.slug],
-    config
+/**
+ * Select features by pricing model ID with caching.
+ * Cached by default; pass { ignoreCache: true } to bypass.
+ */
+export const selectFeaturesByPricingModelId = cached(
+  {
+    namespace: RedisKeyNamespace.FeaturesByPricingModel,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
+    schema: featuresClientSelectSchema.array(),
+    dependenciesFn: (_features, pricingModelId: string) => [
+      CacheDependency.featuresByPricingModel(pricingModelId),
+    ],
+  },
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction
+  ): Promise<Feature.ClientRecord[]> => {
+    const result = await selectFeatures(
+      { pricingModelId },
+      transaction
+    )
+    return result.map((feature) =>
+      featuresClientSelectSchema.parse(feature)
+    )
+  }
+)
+
+/**
+ * Invalidate features cache for a pricing model.
+ */
+export const invalidateFeaturesByPricingModelCache = async (
+  pricingModelId: string
+): Promise<void> => {
+  await invalidateDependencies([
+    CacheDependency.featuresByPricingModel(pricingModelId),
+  ])
+}
+
+const baseInsertFeature = createInsertFunction(features, config)
+
+export const insertFeature = async (
+  feature: Feature.Insert,
+  transaction: DbTransaction
+): Promise<Feature.Record> => {
+  const result = await baseInsertFeature(feature, transaction)
+  // Invalidate features cache for the pricing model
+  await invalidateFeaturesByPricingModelCache(result.pricingModelId)
+  return result
+}
+
+const baseUpdateFeature = createUpdateFunction(features, config)
+
+export const updateFeature = async (
+  feature: Feature.Update,
+  transaction: DbTransaction
+): Promise<Feature.Record> => {
+  const result = await baseUpdateFeature(feature, transaction)
+  // Invalidate features cache for the pricing model
+  await invalidateFeaturesByPricingModelCache(result.pricingModelId)
+  return result
+}
+
+const baseUpsertFeatureByPricingModelIdAndSlug = createUpsertFunction(
+  features,
+  [features.pricingModelId, features.slug],
+  config
+)
+
+export const upsertFeatureByPricingModelIdAndSlug = async (
+  feature: Feature.Insert,
+  transaction: DbTransaction
+): Promise<Feature.Record> => {
+  const result = await baseUpsertFeatureByPricingModelIdAndSlug(
+    feature,
+    transaction
+  )
+  // Invalidate features cache for the pricing model
+  // Use input pricingModelId since it's guaranteed and avoids discriminated union issues
+  await invalidateFeaturesByPricingModelCache(feature.pricingModelId)
+  // Parse through schema to ensure correct discriminated union type
+  return featuresSelectSchema.parse(result)
+}
+
+const baseBulkInsertOrDoNothingFeatures =
+  createBulkInsertOrDoNothingFunction(features, config)
+
+export const bulkInsertOrDoNothingFeatures = async (
+  inserts: Feature.Insert[],
+  conflictTarget: Parameters<
+    typeof baseBulkInsertOrDoNothingFeatures
+  >[1],
+  transaction: DbTransaction
+) => {
+  const results = await baseBulkInsertOrDoNothingFeatures(
+    inserts,
+    conflictTarget,
+    transaction
   )
 
-export const bulkInsertOrDoNothingFeatures =
-  createBulkInsertOrDoNothingFunction(features, config)
+  // Invalidate features cache for all affected pricing models
+  // Use inserts to get pricingModelIds since all variants have this field
+  const pricingModelIds = [
+    ...new Set(inserts.map((f) => f.pricingModelId)),
+  ]
+  if (pricingModelIds.length > 0) {
+    await Promise.all(
+      pricingModelIds.map(invalidateFeaturesByPricingModelCache)
+    )
+  }
+
+  return results
+}
 
 export const bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug =
   async (inserts: Feature.Insert[], transaction: DbTransaction) => {
@@ -75,10 +181,31 @@ export const bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug =
     )
   }
 
-export const bulkInsertFeatures = createBulkInsertFunction(
+const baseBulkInsertFeatures = createBulkInsertFunction(
   features,
   config
 )
+
+export const bulkInsertFeatures = async (
+  inserts: Feature.Insert[],
+  transaction: DbTransaction
+) => {
+  if (inserts.length === 0) {
+    return []
+  }
+  const results = await baseBulkInsertFeatures(inserts, transaction)
+
+  // Invalidate features cache for all affected pricing models
+  // Use inserts to get pricingModelIds since all variants have this field
+  const pricingModelIds = [
+    ...new Set(inserts.map((f) => f.pricingModelId)),
+  ]
+  await Promise.all(
+    pricingModelIds.map(invalidateFeaturesByPricingModelCache)
+  )
+
+  return results
+}
 
 export const selectFeaturesPaginated = createPaginatedSelectFunction(
   features,

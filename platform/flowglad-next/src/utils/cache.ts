@@ -1195,6 +1195,33 @@ export const CacheDependency = {
   /** Invalidate when invoices for this customer change */
   customerInvoices: (customerId: string): CacheDependencyKey =>
     `customerInvoices:${customerId}`,
+
+  // Pricing model cache atoms - keyed by pricingModelId
+  /** Invalidate when the pricing model record changes */
+  pricingModel: (pricingModelId: string): CacheDependencyKey =>
+    `pricingModel:${pricingModelId}`,
+  /** Invalidate when products for this pricing model change */
+  productsByPricingModel: (
+    pricingModelId: string
+  ): CacheDependencyKey => `productsByPricingModel:${pricingModelId}`,
+  /** Invalidate when prices for this pricing model change */
+  pricesByPricingModel: (
+    pricingModelId: string
+  ): CacheDependencyKey => `pricesByPricingModel:${pricingModelId}`,
+  /** Invalidate when features for this pricing model change */
+  featuresByPricingModel: (
+    pricingModelId: string
+  ): CacheDependencyKey => `featuresByPricingModel:${pricingModelId}`,
+  /** Invalidate when product-feature associations for this pricing model change */
+  productFeaturesByPricingModel: (
+    pricingModelId: string
+  ): CacheDependencyKey =>
+    `productFeaturesByPricingModel:${pricingModelId}`,
+  /** Invalidate when usage meters for this pricing model change */
+  usageMetersByPricingModel: (
+    pricingModelId: string
+  ): CacheDependencyKey =>
+    `usageMetersByPricingModel:${pricingModelId}`,
 } as const
 
 // NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'

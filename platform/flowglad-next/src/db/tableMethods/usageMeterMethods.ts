@@ -25,7 +25,11 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import { CacheDependency, cached } from '@/utils/cache'
+import {
+  CacheDependency,
+  cached,
+  invalidateDependencies,
+} from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { selectCustomerById } from './customerMethods'
 
@@ -65,15 +69,16 @@ export const derivePricingModelIdFromUsageMeter =
 export const pricingModelIdsForUsageMeters =
   createDerivePricingModelIds(usageMeters, config)
 
-export const insertUsageMeter = createInsertFunction(
-  usageMeters,
-  config
-)
-
-export const updateUsageMeter = createUpdateFunction(
-  usageMeters,
-  config
-)
+/**
+ * Invalidate usage meters cache for a pricing model.
+ */
+export const invalidateUsageMetersByPricingModelCache = async (
+  pricingModelId: string
+): Promise<void> => {
+  await invalidateDependencies([
+    CacheDependency.usageMetersByPricingModel(pricingModelId),
+  ])
+}
 
 export const selectUsageMeters = createSelectFunction(
   usageMeters,
@@ -87,20 +92,13 @@ export const selectUsageMeters = createSelectFunction(
  * This cache entry depends on pricingModelUsageMeters - invalidate when
  * usage meters for this pricing model are created, updated, or archived.
  *
- * Cache key includes livemode to prevent cross-mode data leakage, since RLS
- * filters usage meters by livemode and the same pricing model could have different
- * meters in live vs test mode.
- *
  * Returns UsageMeter.ClientRecord[] (client-safe schema) for use in customer-facing APIs.
  */
 export const selectUsageMetersByPricingModelId = cached(
   {
     namespace: RedisKeyNamespace.UsageMetersByPricingModel,
-    keyFn: (
-      pricingModelId: string,
-      _transaction: DbTransaction,
-      livemode: boolean
-    ) => `${pricingModelId}:${livemode}`,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
     schema: usageMetersClientSelectSchema.array(),
     /**
      * This cache entry depends on two types of dependencies:
@@ -112,7 +110,10 @@ export const selectUsageMetersByPricingModelId = cached(
      * - Updating a meter: invalidate usageMeter (content changed)
      * - Archiving/deleting a meter: invalidate pricingModelUsageMeters (set membership changed)
      */
-    dependenciesFn: (meters, pricingModelId: string) => [
+    dependenciesFn: (
+      meters: UsageMeter.ClientRecord[],
+      pricingModelId: string
+    ) => [
       // Set membership dependency - invalidate when meters are added/removed
       CacheDependency.pricingModelUsageMeters(pricingModelId),
       // Individual meter content dependencies - invalidate when any meter's content changes
@@ -121,10 +122,7 @@ export const selectUsageMetersByPricingModelId = cached(
   },
   async (
     pricingModelId: string,
-    transaction: DbTransaction,
-    // livemode is used by keyFn for cache key generation, not in the query itself
-    // (RLS filters by livemode context set on the transaction)
-    _livemode: boolean
+    transaction: DbTransaction
   ): Promise<UsageMeter.ClientRecord[]> => {
     const meters = await selectUsageMeters(
       { pricingModelId },
@@ -137,8 +135,63 @@ export const selectUsageMetersByPricingModelId = cached(
   }
 )
 
-export const bulkInsertOrDoNothingUsageMeters =
+const baseInsertUsageMeter = createInsertFunction(usageMeters, config)
+
+export const insertUsageMeter = async (
+  usageMeter: UsageMeter.Insert,
+  transaction: DbTransaction
+): Promise<UsageMeter.Record> => {
+  const result = await baseInsertUsageMeter(usageMeter, transaction)
+  // Invalidate usage meters cache for the pricing model
+  await invalidateUsageMetersByPricingModelCache(
+    result.pricingModelId
+  )
+  return result
+}
+
+const baseUpdateUsageMeter = createUpdateFunction(usageMeters, config)
+
+export const updateUsageMeter = async (
+  usageMeter: UsageMeter.Update,
+  transaction: DbTransaction
+): Promise<UsageMeter.Record> => {
+  const result = await baseUpdateUsageMeter(usageMeter, transaction)
+  // Invalidate usage meters cache for the pricing model
+  await invalidateUsageMetersByPricingModelCache(
+    result.pricingModelId
+  )
+  return result
+}
+
+const baseBulkInsertOrDoNothingUsageMeters =
   createBulkInsertOrDoNothingFunction(usageMeters, config)
+
+export const bulkInsertOrDoNothingUsageMeters = async (
+  inserts: UsageMeter.Insert[],
+  conflictTarget: Parameters<
+    typeof baseBulkInsertOrDoNothingUsageMeters
+  >[1],
+  transaction: DbTransaction
+) => {
+  const results = await baseBulkInsertOrDoNothingUsageMeters(
+    inserts,
+    conflictTarget,
+    transaction
+  )
+
+  // Invalidate usage meters cache for all affected pricing models
+  // Use inserts to get pricingModelIds
+  const pricingModelIds = [
+    ...new Set(inserts.map((um) => um.pricingModelId)),
+  ]
+  if (pricingModelIds.length > 0) {
+    await Promise.all(
+      pricingModelIds.map(invalidateUsageMetersByPricingModelCache)
+    )
+  }
+
+  return results
+}
 
 export const bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId =
   async (

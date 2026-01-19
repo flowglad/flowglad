@@ -34,6 +34,12 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
+import {
+  CacheDependency,
+  cached,
+  invalidateDependencies,
+} from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'
 import {
   type Feature,
@@ -221,10 +227,59 @@ export const bulkInsertPrices = async (
       priceInserts,
       transaction
     )
-  return baseBulkInsertPrices(pricesWithPricingModelId, transaction)
+  const results = await baseBulkInsertPrices(
+    pricesWithPricingModelId,
+    transaction
+  )
+
+  // Invalidate prices cache for all affected pricing models
+  const pricingModelIds = [
+    ...new Set(results.map((p) => p.pricingModelId)),
+  ]
+  await Promise.all(
+    pricingModelIds.map(invalidatePricesByPricingModelCache)
+  )
+
+  return results
 }
 
 export const selectPrices = createSelectFunction(prices, config)
+
+/**
+ * Select prices by pricing model ID with caching.
+ * Cached by default; pass { ignoreCache: true } to bypass.
+ */
+export const selectPricesByPricingModelId = cached(
+  {
+    namespace: RedisKeyNamespace.PricesByPricingModel,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
+    schema: pricesClientSelectSchema.array(),
+    dependenciesFn: (_prices, pricingModelId: string) => [
+      CacheDependency.pricesByPricingModel(pricingModelId),
+    ],
+  },
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction
+  ): Promise<Price.ClientRecord[]> => {
+    const result = await selectPrices({ pricingModelId }, transaction)
+    return result.map((price) =>
+      pricesClientSelectSchema.parse(price)
+    )
+  }
+)
+
+/**
+ * Invalidate prices cache for a pricing model.
+ */
+export const invalidatePricesByPricingModelCache = async (
+  pricingModelId: string
+): Promise<void> => {
+  await invalidateDependencies([
+    CacheDependency.pricesByPricingModel(pricingModelId),
+  ])
+}
 
 const baseInsertPrice = createInsertFunction(prices, config)
 
@@ -237,16 +292,29 @@ export const insertPrice = async (
     priceInsert,
     transaction
   )
-  return baseInsertPrice(
+  const result = await baseInsertPrice(
     {
       ...priceInsert,
       pricingModelId,
     },
     transaction
   )
+  // Invalidate prices cache for the pricing model
+  await invalidatePricesByPricingModelCache(result.pricingModelId)
+  return result
 }
 
-export const updatePrice = createUpdateFunction(prices, config)
+const baseUpdatePrice = createUpdateFunction(prices, config)
+
+export const updatePrice = async (
+  price: Price.Update,
+  transaction: DbTransaction
+): Promise<Price.Record> => {
+  const result = await baseUpdatePrice(price, transaction)
+  // Invalidate prices cache for the pricing model
+  await invalidatePricesByPricingModelCache(result.pricingModelId)
+  return result
+}
 
 /**
  * Selects prices and products for an organization.
@@ -781,11 +849,23 @@ export const bulkInsertOrDoNothingPricesByExternalId = async (
       priceInserts,
       transaction
     )
-  return bulkInsertOrDoNothingPrices(
+  const results = await bulkInsertOrDoNothingPrices(
     pricesWithPricingModelId,
     [prices.externalId, prices.productId],
     transaction
   )
+
+  // Invalidate prices cache for all affected pricing models
+  const pricingModelIds = [
+    ...new Set(results.map((p) => p.pricingModelId)),
+  ]
+  if (pricingModelIds.length > 0) {
+    await Promise.all(
+      pricingModelIds.map(invalidatePricesByPricingModelCache)
+    )
+  }
+
+  return results
 }
 
 const setPricesForProductToNonDefault = async (
@@ -985,13 +1065,16 @@ export const dangerouslyInsertPrice = async (
     priceInsert,
     transaction
   )
-  return baseDangerouslyInsertPrice(
+  const result = await baseDangerouslyInsertPrice(
     {
       ...priceInsert,
       pricingModelId,
     },
     transaction
   )
+  // Invalidate prices cache for the pricing model
+  await invalidatePricesByPricingModelCache(result.pricingModelId)
+  return result
 }
 
 /**

@@ -1,6 +1,8 @@
 import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   type ProductFeature,
+  productFeatureClientSelectSchema,
   productFeatures,
   productFeaturesInsertSchema,
   productFeaturesSelectSchema,
@@ -23,7 +25,12 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { CacheDependency } from '@/utils/cache'
+import {
+  CacheDependency,
+  cached,
+  invalidateDependencies,
+} from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
@@ -50,6 +57,50 @@ export const selectProductFeatureById = createSelectById(
   config
 )
 
+export const selectProductFeatures = createSelectFunction(
+  productFeatures,
+  config
+)
+
+/**
+ * Select product features by pricing model ID with caching.
+ * Cached by default; pass { ignoreCache: true } to bypass.
+ */
+export const selectProductFeaturesByPricingModelId = cached(
+  {
+    namespace: RedisKeyNamespace.ProductFeaturesByPricingModel,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
+    schema: productFeatureClientSelectSchema.array(),
+    dependenciesFn: (_productFeatures, pricingModelId: string) => [
+      CacheDependency.productFeaturesByPricingModel(pricingModelId),
+    ],
+  },
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction
+  ): Promise<ProductFeature.ClientRecord[]> => {
+    const result = await selectProductFeatures(
+      { pricingModelId },
+      transaction
+    )
+    return result.map((pf) =>
+      productFeatureClientSelectSchema.parse(pf)
+    )
+  }
+)
+
+/**
+ * Invalidate product features cache for a pricing model.
+ */
+export const invalidateProductFeaturesByPricingModelCache = async (
+  pricingModelId: string
+): Promise<void> => {
+  await invalidateDependencies([
+    CacheDependency.productFeaturesByPricingModel(pricingModelId),
+  ])
+}
+
 const baseInsertProductFeature = createInsertFunction(
   productFeatures,
   config
@@ -65,34 +116,72 @@ export const insertProductFeature = async (
         productFeatureInsert.productId,
         transaction
       )
-  return baseInsertProductFeature(
+  const result = await baseInsertProductFeature(
     {
       ...productFeatureInsert,
       pricingModelId,
     },
     transaction
   )
+  // Invalidate product features cache for the pricing model
+  await invalidateProductFeaturesByPricingModelCache(
+    result.pricingModelId
+  )
+  return result
 }
 
+const baseUpdateProductFeature = createUpdateFunction(
+  productFeatures,
+  config
+)
+
 /**
- * No need to "update" a product feature in our business logic,
+ * Update a product feature and invalidate caches.
  */
-export const updateProductFeature = createUpdateFunction(
-  productFeatures,
-  config
-)
+export const updateProductFeature = async (
+  productFeature: z.infer<typeof productFeaturesUpdateSchema>,
+  transaction: DbTransaction
+): Promise<ProductFeature.Record> => {
+  const result = await baseUpdateProductFeature(
+    productFeature,
+    transaction
+  )
+  // Invalidate product features cache for the pricing model
+  await invalidateProductFeaturesByPricingModelCache(
+    result.pricingModelId
+  )
+  return result
+}
 
-export const selectProductFeatures = createSelectFunction(
-  productFeatures,
-  config
-)
-
-export const upsertProductFeatureByProductIdAndFeatureId =
+const baseUpsertProductFeatureByProductIdAndFeatureId =
   createUpsertFunction(
     productFeatures,
     [productFeatures.productId, productFeatures.featureId],
     config
   )
+
+export const upsertProductFeatureByProductIdAndFeatureId = async (
+  productFeature: ProductFeature.Insert,
+  transaction: DbTransaction
+): Promise<ProductFeature.Record[]> => {
+  const results =
+    await baseUpsertProductFeatureByProductIdAndFeatureId(
+      productFeature,
+      transaction
+    )
+  // Invalidate product features cache for all affected pricing models
+  const pricingModelIds = [
+    ...new Set(results.map((pf) => pf.pricingModelId)),
+  ]
+  if (pricingModelIds.length > 0) {
+    await Promise.all(
+      pricingModelIds.map(
+        invalidateProductFeaturesByPricingModelCache
+      )
+    )
+  }
+  return results
+}
 
 export const selectProductFeaturesPaginated =
   createPaginatedSelectFunction(productFeatures, config)
@@ -140,10 +229,26 @@ export const expireProductFeaturesByFeatureId = async (
     )
   )
 
+  const parsedExpiredProductFeatures = productFeaturesSelectSchema
+    .array()
+    .parse(expiredProductFeature)
+
+  // Invalidate product features cache for all affected pricing models
+  const pricingModelIds = [
+    ...new Set(
+      parsedExpiredProductFeatures.map((pf) => pf.pricingModelId)
+    ),
+  ]
+  if (pricingModelIds.length > 0) {
+    await Promise.all(
+      pricingModelIds.map(
+        invalidateProductFeaturesByPricingModelCache
+      )
+    )
+  }
+
   return {
-    expiredProductFeature: productFeaturesSelectSchema
-      .array()
-      .parse(expiredProductFeature),
+    expiredProductFeature: parsedExpiredProductFeatures,
     detachedSubscriptionItemFeatures,
   }
 }
@@ -223,10 +328,24 @@ export const bulkInsertProductFeatures = async (
       }
     }
   )
-  return baseBulkInsertProductFeatures(
+  const results = await baseBulkInsertProductFeatures(
     productFeaturesWithPricingModelId,
     transaction
   )
+
+  // Invalidate product features cache for all affected pricing models
+  const pricingModelIds = [
+    ...new Set(results.map((pf) => pf.pricingModelId)),
+  ]
+  if (pricingModelIds.length > 0) {
+    await Promise.all(
+      pricingModelIds.map(
+        invalidateProductFeaturesByPricingModelCache
+      )
+    )
+  }
+
+  return results
 }
 
 const baseBulkInsertOrDoNothingProductFeatures =
@@ -257,11 +376,31 @@ export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
         }
       }
     )
-    return baseBulkInsertOrDoNothingProductFeatures(
+    const results = await baseBulkInsertOrDoNothingProductFeatures(
       productFeaturesWithPricingModelId,
       [productFeatures.productId, productFeatures.featureId],
       transaction
     )
+
+    // Invalidate product features cache for all affected pricing models
+    // Use the input inserts to get pricingModelIds since they're computed above
+    // Filter out undefined values (should not happen due to throw above, but TypeScript needs this)
+    const pricingModelIds = [
+      ...new Set(
+        productFeaturesWithPricingModelId
+          .map((pf) => pf.pricingModelId)
+          .filter((id): id is string => id !== undefined)
+      ),
+    ]
+    if (pricingModelIds.length > 0) {
+      await Promise.all(
+        pricingModelIds.map(
+          invalidateProductFeaturesByPricingModelCache
+        )
+      )
+    }
+
+    return results
   }
 
 export const unexpireProductFeatures = async (
@@ -288,7 +427,26 @@ export const unexpireProductFeatures = async (
       )
     )
     .returning()
-  return unExpired.map((pf) => productFeaturesSelectSchema.parse(pf))
+
+  const parsedUnexpired = unExpired.map((pf) =>
+    productFeaturesSelectSchema.parse(pf)
+  )
+
+  // Invalidate product features cache for all affected pricing models
+  const pricingModelIds = [
+    ...new Set(
+      parsedUnexpired.map((pf) => pf.pricingModelId).filter(Boolean)
+    ),
+  ] as string[]
+  if (pricingModelIds.length > 0) {
+    await Promise.all(
+      pricingModelIds.map(
+        invalidateProductFeaturesByPricingModelCache
+      )
+    )
+  }
+
+  return parsedUnexpired
 }
 
 /**
@@ -355,6 +513,20 @@ export const batchUnexpireProductFeatures = async (
       invalidateCache(
         ...subscriptionItemIds.map((id) =>
           CacheDependency.subscriptionItemFeatures(id)
+        )
+      )
+    }
+
+    // Invalidate product features cache for all affected pricing models
+    const pricingModelIds = [
+      ...new Set(
+        parsedUnexpired.map((pf) => pf.pricingModelId).filter(Boolean)
+      ),
+    ] as string[]
+    if (pricingModelIds.length > 0) {
+      await Promise.all(
+        pricingModelIds.map(
+          invalidateProductFeaturesByPricingModelCache
         )
       )
     }

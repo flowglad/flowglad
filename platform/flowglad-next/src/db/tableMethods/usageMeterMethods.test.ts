@@ -516,8 +516,7 @@ describe('usageMeterMethods', () => {
       await adminTransaction(async ({ transaction }) => {
         const result = await selectUsageMetersByPricingModelId(
           pricingModelId,
-          transaction,
-          true // livemode
+          transaction
         )
 
         expect(result.length).toBe(2)
@@ -542,8 +541,7 @@ describe('usageMeterMethods', () => {
       await adminTransaction(async ({ transaction }) => {
         const result = await selectUsageMetersByPricingModelId(
           emptyPricingModel.id,
-          transaction,
-          true
+          transaction
         )
 
         expect(result).toEqual([])
@@ -571,8 +569,7 @@ describe('usageMeterMethods', () => {
       await adminTransaction(async ({ transaction }) => {
         const result = await selectUsageMetersByPricingModelId(
           pricingModelId,
-          transaction,
-          true
+          transaction
         )
 
         expect(result.length).toBe(1)

@@ -36,7 +36,13 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import { PaymentStatus, PriceType } from '@/types'
+import {
+  CacheDependency,
+  cached,
+  invalidateDependencies,
+} from '@/utils/cache'
 import { groupBy } from '@/utils/core'
+import { RedisKeyNamespace } from '@/utils/redis'
 import type { DbTransaction } from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
 import {
@@ -64,6 +70,45 @@ export const selectProductById = createSelectById(products, config)
 export const selectProducts = createSelectFunction(products, config)
 
 /**
+ * Select products by pricing model ID with caching.
+ * Cached by default; pass { ignoreCache: true } to bypass.
+ */
+export const selectProductsByPricingModelId = cached(
+  {
+    namespace: RedisKeyNamespace.ProductsByPricingModel,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
+    schema: productsClientSelectSchema.array(),
+    dependenciesFn: (_products, pricingModelId: string) => [
+      CacheDependency.productsByPricingModel(pricingModelId),
+    ],
+  },
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction
+  ): Promise<Product.ClientRecord[]> => {
+    const result = await selectProducts(
+      { pricingModelId },
+      transaction
+    )
+    return result.map((product) =>
+      productsClientSelectSchema.parse(product)
+    )
+  }
+)
+
+/**
+ * Invalidate products cache for a pricing model.
+ */
+export const invalidateProductsByPricingModelCache = async (
+  pricingModelId: string
+): Promise<void> => {
+  await invalidateDependencies([
+    CacheDependency.productsByPricingModel(pricingModelId),
+  ])
+}
+
+/**
  * Derives pricingModelId from a product.
  * Used for prices and productFeatures.
  */
@@ -80,9 +125,29 @@ export const pricingModelIdsForProducts = createDerivePricingModelIds(
   config
 )
 
-export const insertProduct = createInsertFunction(products, config)
+const baseInsertProduct = createInsertFunction(products, config)
 
-export const updateProduct = createUpdateFunction(products, config)
+export const insertProduct = async (
+  product: Product.Insert,
+  transaction: DbTransaction
+): Promise<Product.Record> => {
+  const result = await baseInsertProduct(product, transaction)
+  // Invalidate products cache for the pricing model
+  await invalidateProductsByPricingModelCache(result.pricingModelId)
+  return result
+}
+
+const baseUpdateProduct = createUpdateFunction(products, config)
+
+export const updateProduct = async (
+  product: Product.Update,
+  transaction: DbTransaction
+): Promise<Product.Record> => {
+  const result = await baseUpdateProduct(product, transaction)
+  // Invalidate products cache for the pricing model
+  await invalidateProductsByPricingModelCache(result.pricingModelId)
+  return result
+}
 
 export const selectProductsPaginated = createPaginatedSelectFunction(
   products,
@@ -100,11 +165,49 @@ export const bulkInsertProducts = async (
     .insert(products)
     .values(productInserts)
     .returning()
-  return results.map((result) => productsSelectSchema.parse(result))
+  const parsedResults = results.map((result) =>
+    productsSelectSchema.parse(result)
+  )
+
+  // Invalidate products cache for all affected pricing models
+  const pricingModelIds = [
+    ...new Set(parsedResults.map((p) => p.pricingModelId)),
+  ]
+  await Promise.all(
+    pricingModelIds.map(invalidateProductsByPricingModelCache)
+  )
+
+  return parsedResults
 }
 
-export const bulkInsertOrDoNothingProducts =
+const baseBulkInsertOrDoNothingProducts =
   createBulkInsertOrDoNothingFunction(products, config)
+
+export const bulkInsertOrDoNothingProducts = async (
+  productInserts: Product.Insert[],
+  conflictTarget: Parameters<
+    typeof baseBulkInsertOrDoNothingProducts
+  >[1],
+  transaction: DbTransaction
+): Promise<Product.Record[]> => {
+  const results = await baseBulkInsertOrDoNothingProducts(
+    productInserts,
+    conflictTarget,
+    transaction
+  )
+
+  // Invalidate products cache for all affected pricing models
+  const pricingModelIds = [
+    ...new Set(results.map((p) => p.pricingModelId)),
+  ]
+  if (pricingModelIds.length > 0) {
+    await Promise.all(
+      pricingModelIds.map(invalidateProductsByPricingModelCache)
+    )
+  }
+
+  return results
+}
 
 export const bulkInsertOrDoNothingProductsByExternalId = (
   productInserts: Product.Insert[],
