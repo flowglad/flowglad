@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/react",
-  "version": "0.16.3",
+  "version": "0.16.4",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -18,7 +18,7 @@
     "test:watch": "vitest --passWithNoTests"
   },
   "dependencies": {
-    "@flowglad/node": "0.28.0",
+    "@flowglad/node": "0.29.0",
     "@flowglad/shared": "workspace:*",
     "@tanstack/react-query": "5.66.0",
     "clsx": "2.1.1",
