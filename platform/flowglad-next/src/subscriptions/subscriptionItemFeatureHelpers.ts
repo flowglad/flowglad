@@ -81,6 +81,61 @@ const getFeaturesByPriceId = async (
     return result
   }
 
+  /**
+   * Dedupe Resource features within a single product.
+   *
+   * A product can (accidentally or over time) have multiple active Resource features
+   * for the same `resourceId`. Those should not stack (it would double-count capacity).
+   * Instead, treat them as overrides and pick the most recently created one per resource.
+   */
+  const dedupeResourceFeaturesForProduct = (
+    dataForProduct: Array<{
+      feature: Feature.Record
+      productFeature: ProductFeature.Record
+    }>
+  ) => {
+    const nonResource = dataForProduct.filter(
+      (d) => d.feature.type !== FeatureType.Resource
+    )
+
+    const resource = dataForProduct.filter(
+      (
+        d
+      ): d is {
+        feature: Feature.ResourceRecord
+        productFeature: ProductFeature.Record
+      } => d.feature.type === FeatureType.Resource
+    )
+
+    const latestByResourceId = new Map<
+      string,
+      {
+        feature: Feature.ResourceRecord
+        productFeature: ProductFeature.Record
+      }
+    >()
+
+    for (const entry of resource) {
+      const resourceId = entry.feature.resourceId
+      if (!resourceId) {
+        continue
+      }
+      const existing = latestByResourceId.get(resourceId)
+      if (!existing) {
+        latestByResourceId.set(resourceId, entry)
+        continue
+      }
+      if (entry.feature.createdAt > existing.feature.createdAt) {
+        latestByResourceId.set(resourceId, entry)
+      }
+    }
+
+    return [
+      ...nonResource,
+      ...Array.from(latestByResourceId.values()),
+    ]
+  }
+
   pricesToFetchFeaturesFor.forEach((price) => {
     result.set(price.id, [])
   })
@@ -131,7 +186,10 @@ const getFeaturesByPriceId = async (
   for (const price of productPrices) {
     const dataForProduct = productIdToDataMap.get(price.productId)
     if (dataForProduct) {
-      result.set(price.id, dataForProduct)
+      result.set(
+        price.id,
+        dedupeResourceFeaturesForProduct(dataForProduct)
+      )
     }
   }
   return result
