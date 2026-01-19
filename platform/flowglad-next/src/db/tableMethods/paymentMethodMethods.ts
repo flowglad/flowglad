@@ -142,30 +142,67 @@ const setPaymentMethodsForCustomerToNonDefault = async (
   }
 }
 
+/**
+ * Invalidates cache entries when a payment method's customerId changes.
+ * Both the old customer (lost the payment method) and new customer (gained the payment method)
+ * need their set membership caches invalidated.
+ */
+const invalidateCacheForCustomerIdChange = (
+  oldCustomerId: string,
+  newCustomerId: string,
+  invalidateCache: (key: string) => void
+) => {
+  // Old customer lost this payment method
+  invalidateCache(
+    CacheDependency.customerPaymentMethods(oldCustomerId)
+  )
+  // New customer gained this payment method
+  invalidateCache(
+    CacheDependency.customerPaymentMethods(newCustomerId)
+  )
+}
+
 export const safelyUpdatePaymentMethod = async (
   paymentMethod: PaymentMethod.Update,
   ctx: TransactionEffectsContext
 ) => {
   const { transaction, invalidateCache } = ctx
-  /**
-   * If payment method is default
-   */
-  if (paymentMethod.default) {
-    const existingPaymentMethod = await selectPaymentMethodById(
-      paymentMethod.id,
-      transaction
-    )
+
+  // Fetch existing payment method if we need to handle default or customerId change
+  const existingPaymentMethod =
+    paymentMethod.default || paymentMethod.customerId
+      ? await selectPaymentMethodById(paymentMethod.id, transaction)
+      : null
+
+  // If payment method is becoming default, set existing defaults to non-default
+  if (paymentMethod.default && existingPaymentMethod) {
     await setPaymentMethodsForCustomerToNonDefault(
       existingPaymentMethod.customerId,
       ctx
     )
   }
+
   const updatedPaymentMethod = await updatePaymentMethod(
     paymentMethod,
     transaction
   )
+
   // Invalidate content for the updated payment method
   invalidateCache(CacheDependency.paymentMethod(paymentMethod.id))
+
+  // If customerId changed, invalidate both old and new customer's set membership caches
+  if (
+    paymentMethod.customerId &&
+    existingPaymentMethod &&
+    paymentMethod.customerId !== existingPaymentMethod.customerId
+  ) {
+    invalidateCacheForCustomerIdChange(
+      existingPaymentMethod.customerId,
+      paymentMethod.customerId,
+      invalidateCache
+    )
+  }
+
   return updatedPaymentMethod
 }
 

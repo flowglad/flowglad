@@ -1,36 +1,50 @@
 import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
+  setupCustomer,
+  setupInvoice,
+  setupInvoiceLineItem,
   setupOrg,
+  setupPayment,
   setupPrice,
   setupPricingModel,
   setupProduct,
+  setupPurchase,
 } from '@/../seedDatabase'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
 import type { Event } from '@/db/schema/events'
+import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
+import type { Payment } from '@/db/schema/payments'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
 import { UsageMeter } from '@/db/schema/usageMeters'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
+import { selectInvoiceById } from '@/db/tableMethods/invoiceMethods'
 import { insertOrganization } from '@/db/tableMethods/organizationMethods'
 import {
   selectDefaultPricingModel,
   selectPricingModelById,
   selectPricingModels,
 } from '@/db/tableMethods/pricingModelMethods'
+import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
   FlowgladEventType,
   IntervalUnit,
+  InvoiceStatus,
+  PaymentStatus,
   PriceType,
+  PurchaseStatus,
   StripeConnectContractType,
 } from '@/types'
 import core from '@/utils/core'
@@ -38,6 +52,8 @@ import {
   createCustomerBookkeeping,
   createFreePlanPriceInsert,
   createPricingModelBookkeeping,
+  updateInvoiceStatusToReflectLatestPayment,
+  updatePurchaseStatusToReflectLatestPayment,
 } from './bookkeeping'
 
 const livemode = true
@@ -2186,5 +2202,481 @@ describe('createFreePlanPriceInsert', () => {
       expect(result.intervalUnit).toMatchObject({})
       expect(result.intervalCount).toMatchObject({})
     })
+  })
+})
+
+describe('updatePurchaseStatusToReflectLatestPayment', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let purchase: Purchase.Record
+  let invoice: Invoice.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      unitPrice: 1000,
+      type: PriceType.SinglePayment,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `test+${core.nanoid()}@test.com`,
+      livemode: true,
+    })
+
+    purchase = await setupPurchase({
+      customerId: customer.id,
+      organizationId: organization.id,
+      livemode: true,
+      priceId: price.id,
+      status: PurchaseStatus.Open,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: InvoiceStatus.Draft,
+      purchaseId: purchase.id,
+    })
+  })
+
+  it('should update purchase status to Paid when payment status is Succeeded', async () => {
+    const payment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 1000,
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
+      purchaseId: purchase.id,
+      chargeDate: Date.now(),
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        await updatePurchaseStatusToReflectLatestPayment(payment, {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        })
+
+        // Verify purchase status was updated to Paid
+        const updatedPurchase = await selectPurchaseById(
+          purchase.id,
+          transaction
+        )
+        expect(updatedPurchase.status).toBe(PurchaseStatus.Paid)
+        expect(updatedPurchase.purchaseDate).toBe(payment.chargeDate)
+        return Result.ok(null)
+      }
+    )
+  })
+
+  it('should update purchase status to Failed when payment status is Canceled', async () => {
+    const payment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Canceled,
+      amount: 1000,
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
+      purchaseId: purchase.id,
+      chargeDate: Date.now(),
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        await updatePurchaseStatusToReflectLatestPayment(payment, {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        })
+
+        // Verify purchase status was updated to Failed
+        const updatedPurchase = await selectPurchaseById(
+          purchase.id,
+          transaction
+        )
+        expect(updatedPurchase.status).toBe(PurchaseStatus.Failed)
+        return Result.ok(null)
+      }
+    )
+  })
+
+  it('should update purchase status to Pending when payment status is Processing', async () => {
+    const payment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
+      purchaseId: purchase.id,
+      chargeDate: Date.now(),
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        await updatePurchaseStatusToReflectLatestPayment(payment, {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        })
+
+        // Verify purchase status was updated to Pending
+        const updatedPurchase = await selectPurchaseById(
+          purchase.id,
+          transaction
+        )
+        expect(updatedPurchase.status).toBe(PurchaseStatus.Pending)
+        return Result.ok(null)
+      }
+    )
+  })
+
+  it('should not update any purchase when payment has no purchaseId', async () => {
+    // Create a payment without a purchaseId
+    const paymentWithoutPurchase = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 1000,
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
+      // No purchaseId
+      chargeDate: Date.now(),
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        await updatePurchaseStatusToReflectLatestPayment(
+          paymentWithoutPurchase,
+          {
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }
+        )
+
+        // Verify purchase status was NOT updated (should remain Open)
+        const unchangedPurchase = await selectPurchaseById(
+          purchase.id,
+          transaction
+        )
+        expect(unchangedPurchase.status).toBe(PurchaseStatus.Open)
+        return Result.ok(null)
+      }
+    )
+  })
+})
+
+describe('updateInvoiceStatusToReflectLatestPayment', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let invoice: Invoice.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      unitPrice: 1000,
+      type: PriceType.SinglePayment,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `test+${core.nanoid()}@test.com`,
+      livemode: true,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: InvoiceStatus.Draft,
+    })
+  })
+
+  it('should update invoice to Paid when total payments meet invoice total', async () => {
+    const payment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 1000, // Matches the invoice line item price
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
+      chargeDate: Date.now(),
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        await updateInvoiceStatusToReflectLatestPayment(payment, {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        })
+
+        // Verify invoice status was updated to Paid
+        const updatedInvoice = await selectInvoiceById(
+          invoice.id,
+          transaction
+        )
+        expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
+        return Result.ok(null)
+      }
+    )
+  })
+
+  it('should not update invoice when payment status is not Succeeded', async () => {
+    const payment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
+      chargeDate: Date.now(),
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        await updateInvoiceStatusToReflectLatestPayment(payment, {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        })
+
+        // Verify invoice status was NOT updated (should remain Draft)
+        const unchangedInvoice = await selectInvoiceById(
+          invoice.id,
+          transaction
+        )
+        expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
+        return Result.ok(null)
+      }
+    )
+  })
+
+  it('should not update invoice when it is already Paid', async () => {
+    // First, create an invoice with Paid status
+    const paidInvoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: InvoiceStatus.Paid,
+    })
+
+    const payment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 1000,
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: paidInvoice.id,
+      chargeDate: Date.now(),
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        await updateInvoiceStatusToReflectLatestPayment(payment, {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        })
+
+        // Verify invoice status is still Paid (no change)
+        const unchangedInvoice = await selectInvoiceById(
+          paidInvoice.id,
+          transaction
+        )
+        expect(unchangedInvoice.status).toBe(InvoiceStatus.Paid)
+        return Result.ok(null)
+      }
+    )
+  })
+
+  it('should not update invoice when total payments are less than invoice total', async () => {
+    // Add another line item to increase the invoice total
+    await setupInvoiceLineItem({
+      invoiceId: invoice.id,
+      priceId: price.id,
+      quantity: 1,
+      price: 2000, // Additional 2000
+      livemode: true,
+    })
+
+    // Payment amount is less than total (1000 + 2000 = 3000)
+    const partialPayment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 1000, // Only partial payment
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
+      chargeDate: Date.now(),
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        await updateInvoiceStatusToReflectLatestPayment(
+          partialPayment,
+          {
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }
+        )
+
+        // Verify invoice status was NOT updated (should remain Draft)
+        const unchangedInvoice = await selectInvoiceById(
+          invoice.id,
+          transaction
+        )
+        expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
+        return Result.ok(null)
+      }
+    )
+  })
+
+  it('should update invoice to Paid when multiple payments cover the total', async () => {
+    // Add another line item to increase the invoice total
+    await setupInvoiceLineItem({
+      invoiceId: invoice.id,
+      priceId: price.id,
+      quantity: 1,
+      price: 1000, // Additional 1000, total = 2000
+      livemode: true,
+    })
+
+    // First payment - partial
+    await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 1000,
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
+      chargeDate: Date.now(),
+    })
+
+    // Second payment - completes the total
+    const secondPayment = await setupPayment({
+      stripeChargeId: `ch_${core.nanoid()}`,
+      status: PaymentStatus.Succeeded,
+      amount: 1000,
+      livemode: true,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: invoice.id,
+      chargeDate: Date.now(),
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        await updateInvoiceStatusToReflectLatestPayment(
+          secondPayment,
+          {
+            transaction,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }
+        )
+
+        // Verify invoice status was updated to Paid
+        const updatedInvoice = await selectInvoiceById(
+          invoice.id,
+          transaction
+        )
+        expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
+        return Result.ok(null)
+      }
+    )
   })
 })

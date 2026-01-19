@@ -337,7 +337,7 @@ export const setupPaymentMethod = async (params: {
           customerId: params.customerId,
           type: params.type ?? PaymentMethodType.Card,
           livemode: params.livemode ?? true,
-          default: true,
+          default: params.default ?? true,
           externalId: null,
           billingDetails: {
             name: 'Test',
