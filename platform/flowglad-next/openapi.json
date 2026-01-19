@@ -3869,7 +3869,20 @@
                 "type": "object",
                 "properties": {
                   "pricingModel": {
-                    "$ref": "#/components/schemas/PricingModelClientUpdateSchema"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "isDefault": {
+                        "type": "boolean"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": ["id", "name"]
                   }
                 },
                 "required": ["pricingModel"]
@@ -10269,21 +10282,6 @@
           "ZAR",
           "ZMW"
         ]
-      },
-      "PricingModelClientUpdateSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "isDefault": {
-            "type": "boolean"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": ["id"]
       },
       "AdjustSubscriptionImmediatelyInput": {
         "type": "object",
