@@ -35,10 +35,7 @@ import {
   selectPurchaseById,
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
-import type {
-  AuthenticatedTransactionParams,
-  TransactionEffectsContext,
-} from '@/db/types'
+import type { DbTransaction, TransactionEffectsContext } from '@/db/types'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import {
   type CurrencyCode,
@@ -435,7 +432,13 @@ export const createPricingModelBookkeeping = async (
     transaction,
     organizationId,
     livemode,
-  }: Omit<AuthenticatedTransactionParams, 'userId'>
+  }: {
+    transaction: DbTransaction
+    organizationId: string
+    livemode: boolean
+    // Allow extra properties to be passed (e.g., cacheRecomputationContext) without requiring them
+    [key: string]: unknown
+  }
 ): Promise<
   Result<
     {
