@@ -1,5 +1,12 @@
 import { FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 import type { FlowgladServer } from './FlowgladServer'
 import {
   RequestHandlerError,
@@ -79,6 +86,17 @@ describe('requestHandler', () => {
   })
 
   describe('hybrid route gating', () => {
+    beforeEach(() => {
+      // These tests assert behavior when no API key is configured, regardless of
+      // the environment (CI injects FLOWGLAD_SECRET_KEY).
+      vi.unstubAllEnvs()
+      vi.stubEnv('FLOWGLAD_SECRET_KEY', '')
+    })
+
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
     it('returns 500 for GetPricingModel hybrid route when apiKey is not configured', async () => {
       const getCustomerExternalId = vi.fn()
       const options = createMockOptions({ getCustomerExternalId })
@@ -303,6 +321,17 @@ describe('requestHandler', () => {
   })
 
   describe('hybrid route behavior (GetPricingModel)', () => {
+    beforeEach(() => {
+      // These tests assert behavior when no API key is configured, regardless of
+      // the environment (CI injects FLOWGLAD_SECRET_KEY).
+      vi.unstubAllEnvs()
+      vi.stubEnv('FLOWGLAD_SECRET_KEY', '')
+    })
+
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
     it('returns 500 for hybrid route when apiKey is not configured', async () => {
       const handler = requestHandler({
         getCustomerExternalId: async () => 'user_123',
