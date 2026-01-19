@@ -52,10 +52,12 @@ export {
   type ResourceUsage,
 } from './types/resource'
 export {
+  type AuthenticatedActionKey,
   type BillingWithChecks,
   type FeatureItem,
   FlowgladActionKey,
   HTTPMethod,
+  type HybridActionKey,
   type SubscriptionExperimentalFields,
   type UsageMeterBalance,
 } from './types/sdk'

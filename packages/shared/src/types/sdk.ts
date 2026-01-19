@@ -18,7 +18,24 @@ export enum FlowgladActionKey {
   ClaimResource = 'resources/claim',
   ReleaseResource = 'resources/release',
   ListResourceClaims = 'resources/claims',
+  GetPricingModel = 'pricing-models/retrieve',
 }
+
+/**
+ * Action keys that require authentication.
+ * These routes will return 401 if no valid session exists.
+ */
+export type AuthenticatedActionKey = Exclude<
+  FlowgladActionKey,
+  HybridActionKey
+>
+
+/**
+ * Action keys that attempt authentication but gracefully fall back.
+ * These routes return customer-specific data if authenticated,
+ * or default data if not.
+ */
+export type HybridActionKey = typeof FlowgladActionKey.GetPricingModel
 
 export enum HTTPMethod {
   GET = 'GET',
