@@ -146,12 +146,14 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
         }
       }
     }
+    // Unified subject line for Free → Paid upgrades (first-time paid subscription)
+    // per Apple-inspired patterns in subscription-email-improvements.md
     const result = await safeSend({
       from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
       bcc: getBccForLivemode(newSubscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(
-        'Payment method confirmed - Subscription upgraded',
+        'Your Subscription is Confirmed',
         newSubscription.livemode
       ),
       react: await CustomerSubscriptionUpgradedEmail({
@@ -176,6 +178,9 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
         paymentMethodLast4: (paymentMethod?.paymentMethodData as any)
           ?.last4,
         trialing,
+        dateConfirmed: newSubscription.createdAt
+          ? new Date(newSubscription.createdAt)
+          : new Date(),
       }),
     })
 

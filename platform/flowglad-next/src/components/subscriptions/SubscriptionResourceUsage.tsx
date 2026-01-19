@@ -4,6 +4,11 @@ import { ChartPie } from 'lucide-react'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { ResourceDetailModal } from '@/components/subscriptions/ResourceDetailModal'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
@@ -136,7 +141,19 @@ export const SubscriptionResourceUsage = ({
   }
 
   if (!data || data.length === 0) {
-    return null
+    return (
+      <Alert variant="secondary" className={className}>
+        <ChartPie className="size-4" />
+        <div className="flex flex-col gap-1 min-w-0 grow">
+          <AlertTitle>No resource usage</AlertTitle>
+          <AlertDescription>
+            This subscription doesn't have any resources configured,
+            or no resources have been claimed yet. Resources track
+            things like seats, API keys, or other limits.
+          </AlertDescription>
+        </div>
+      </Alert>
+    )
   }
 
   return (

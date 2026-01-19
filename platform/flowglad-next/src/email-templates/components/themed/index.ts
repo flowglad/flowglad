@@ -1,5 +1,6 @@
 export * from './DetailItem'
 export * from './DetailSection'
+export * from './DetailTable'
 export * from './DetailValue'
 export * from './EmailLayout'
 export * from './Header'
