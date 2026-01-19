@@ -16,7 +16,16 @@ import {
   type ORMMethodCreatorConfig,
   onConflictDoUpdateSetValues,
 } from '@/db/tableUtils'
-import type { DbTransaction } from '../types'
+import {
+  CacheDependency,
+  cached,
+  fromDependencies,
+} from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '../types'
 import {
   derivePricingModelIdFromCustomer,
   pricingModelIdsForCustomers,
@@ -72,6 +81,41 @@ export const updatePaymentMethod = createUpdateFunction(
 export const selectPaymentMethods = createSelectFunction(
   paymentMethods,
   config
+)
+
+/**
+ * Selects payment methods by customer ID with caching enabled by default.
+ * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ *
+ * This cache entry depends on customerPaymentMethods - invalidate when
+ * payment methods for this customer are created, updated, or deleted.
+ *
+ * Cache key includes livemode to prevent cross-mode data leakage, since RLS
+ * filters payment methods by livemode and the same customer could have different
+ * payment methods in live vs test mode.
+ */
+export const selectPaymentMethodsByCustomerId = cached(
+  {
+    namespace: RedisKeyNamespace.PaymentMethodsByCustomer,
+    keyFn: (
+      customerId: string,
+      _transaction: DbTransaction,
+      livemode: boolean
+    ) => `${customerId}:${livemode}`,
+    schema: paymentMethodsSelectSchema.array(),
+    dependenciesFn: fromDependencies(
+      CacheDependency.customerPaymentMethods
+    ),
+  },
+  async (
+    customerId: string,
+    transaction: DbTransaction,
+    // livemode is used by keyFn for cache key generation, not in the query itself
+    // (RLS filters by livemode context set on the transaction)
+    _livemode: boolean
+  ) => {
+    return selectPaymentMethods({ customerId }, transaction)
+  }
 )
 
 export const selectPaymentMethodsPaginated =
@@ -167,8 +211,9 @@ export const bulkInsertOrDoNothingPaymentMethodsByExternalId = async (
 
 export const bulkUpsertPaymentMethodsByExternalId = async (
   inserts: PaymentMethod.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   // Collect unique customerIds that need pricingModelId derivation
   const customerIdsNeedingDerivation = Array.from(
     new Set(
@@ -223,5 +268,14 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
         'billing_details',
       ]),
     })
-    .returning()
+
+  // Invalidate cache for all affected customers
+  const uniqueCustomerIds = Array.from(
+    new Set(inserts.map((insert) => insert.customerId))
+  )
+  for (const customerId of uniqueCustomerIds) {
+    invalidateCache(
+      CacheDependency.customerPaymentMethods(customerId)
+    )
+  }
 }
