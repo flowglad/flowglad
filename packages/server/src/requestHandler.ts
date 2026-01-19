@@ -2,13 +2,19 @@ import {
   type AuthenticatedActionKey,
   FlowgladActionKey,
   type HTTPMethod,
+  type HybridActionKey,
 } from '@flowglad/shared'
 import type { FlowgladServer } from './FlowgladServer'
+import { FlowgladServerAdmin } from './FlowgladServerAdmin'
 import {
+  hybridRouteToHandlerMap,
   isHybridActionKey,
   routeToHandlerMap,
 } from './subrouteHandlers'
-import type { SubRouteHandler } from './subrouteHandlers/types'
+import type {
+  HybridSubRouteHandler,
+  SubRouteHandler,
+} from './subrouteHandlers/types'
 
 /**
  * Input for the request handler.
@@ -71,6 +77,15 @@ export interface RequestHandlerOptions<TRequest> {
     customerExternalId: string
   ) => Promise<FlowgladServer> | FlowgladServer
   /**
+   * API key for hybrid routes (routes that work with or without authentication).
+   * Required for hybrid routes. Falls back to process.env.FLOWGLAD_SECRET_KEY.
+   */
+  apiKey?: string
+  /**
+   * Base URL for the Flowglad API.
+   */
+  baseURL?: string
+  /**
    * Function to run when an error occurs during request handling.
    */
   onError?: (error: unknown) => void
@@ -105,6 +120,8 @@ export const requestHandler = <TRequest = unknown>(
   const {
     getCustomerExternalId,
     flowglad,
+    apiKey,
+    baseURL,
     onError,
     beforeRequest,
     afterRequest,
@@ -119,9 +136,6 @@ export const requestHandler = <TRequest = unknown>(
         await beforeRequest()
       }
 
-      const customerExternalId = await getCustomerExternalId(request)
-      const flowgladServer = await flowglad(customerExternalId)
-
       const joinedPath = input.path.join('/') as FlowgladActionKey
 
       if (!Object.values(FlowgladActionKey).includes(joinedPath)) {
@@ -131,14 +145,78 @@ export const requestHandler = <TRequest = unknown>(
         )
       }
 
-      // Hybrid routes require additional configuration - handled in future patch
+      const data = input.method === 'GET' ? input.query : input.body
+
+      // ═══════════════════════════════════════════════════════════════════════
+      // HYBRID ROUTE HANDLING
+      // Check if this is a hybrid route (auth optional, graceful fallback)
+      // ═══════════════════════════════════════════════════════════════════════
       if (isHybridActionKey(joinedPath)) {
-        throw new RequestHandlerError(
-          `"${joinedPath}" requires apiKey configuration for hybrid route support`,
-          501
+        const resolvedApiKey =
+          apiKey || process.env.FLOWGLAD_SECRET_KEY
+        if (!resolvedApiKey) {
+          throw new RequestHandlerError(
+            'API key required for this route. Provide apiKey option or set FLOWGLAD_SECRET_KEY environment variable.',
+            500
+          )
+        }
+
+        const flowgladServerAdmin = new FlowgladServerAdmin({
+          apiKey: resolvedApiKey,
+          baseURL,
+        })
+
+        // ─────────────────────────────────────────────────────────────────────
+        // TRY/CATCH SCOPE: Only catches errors from auth layer
+        // These errors indicate "user is not authenticated" - expected behavior
+        // ─────────────────────────────────────────────────────────────────────
+        let flowgladServer: FlowgladServer | null = null
+        try {
+          const customerExternalId =
+            await getCustomerExternalId(request)
+          flowgladServer = await flowglad(customerExternalId)
+        } catch (authError) {
+          // ✓ CAUGHT: Auth failed - this is EXPECTED for hybrid routes
+          // flowgladServer remains null, handler will use default pricing path
+          //
+          // This catch block handles ALL errors from getCustomerExternalId and flowglad:
+          // - No session/token present
+          // - Invalid/expired session/token
+          // - Database errors looking up user
+          // - Any other auth-layer failure
+          //
+          // All of these result in the same behavior: treat as unauthenticated
+        }
+
+        const handler = hybridRouteToHandlerMap[joinedPath]
+        const result = await (
+          handler as HybridSubRouteHandler<typeof joinedPath>
+        )(
+          {
+            method: input.method as any,
+            data: data as any,
+          },
+          {
+            flowgladServer,
+            flowgladServerAdmin,
+          }
         )
+
+        if (afterRequest) {
+          await afterRequest()
+        }
+
+        return {
+          status: result.status,
+          data: result.data,
+          error: result.error,
+        }
       }
 
+      // ═══════════════════════════════════════════════════════════════════════
+      // AUTHENTICATED ROUTE HANDLING (existing behavior)
+      // NO TRY/CATCH here - auth errors propagate and return appropriate status
+      // ═══════════════════════════════════════════════════════════════════════
       const handler =
         routeToHandlerMap[joinedPath as AuthenticatedActionKey]
       if (!handler) {
@@ -148,7 +226,8 @@ export const requestHandler = <TRequest = unknown>(
         )
       }
 
-      const data = input.method === 'GET' ? input.query : input.body
+      const customerExternalId = await getCustomerExternalId(request)
+      const flowgladServer = await flowglad(customerExternalId)
 
       // We need to use a type assertion here because TypeScript cannot narrow the type
       // of joinedPath to a specific FlowgladActionKey at compile time, even though
