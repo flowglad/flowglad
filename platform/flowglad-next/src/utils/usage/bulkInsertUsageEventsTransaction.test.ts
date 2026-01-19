@@ -1,3 +1,6 @@
+import { DefaultLogger } from 'drizzle-orm/logger'
+import { drizzle } from 'drizzle-orm/postgres-js'
+import postgres from 'postgres'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
@@ -5,6 +8,8 @@ import {
   setupOrg,
   setupPaymentMethod,
   setupPrice,
+  setupPricingModel,
+  setupProduct,
   setupSubscription,
   setupUsageMeter,
 } from '@/../seedDatabase'
@@ -24,7 +29,52 @@ import {
   PriceType,
   UsageMeterAggregationType,
 } from '@/types'
+import core from '@/utils/core'
 import { bulkInsertUsageEventsTransaction } from './bulkInsertUsageEventsTransaction'
+
+/**
+ * Query capturing logger for testing database query optimization.
+ * Records all SQL queries executed during a test without mocking or spying.
+ */
+class QueryCapturingLogger extends DefaultLogger {
+  queries: Array<{ query: string; params: unknown[] }> = []
+
+  override logQuery(query: string, params: unknown[]): void {
+    this.queries.push({ query, params })
+  }
+
+  reset() {
+    this.queries = []
+  }
+
+  getCustomerSelectQueries() {
+    return this.queries.filter(
+      (q) =>
+        q.query.includes('from "customers"') ||
+        q.query.includes('FROM "customers"')
+    )
+  }
+
+  getCustomerBatchQueries() {
+    return this.getCustomerSelectQueries().filter(
+      (q) =>
+        q.query.includes(' in ') ||
+        q.query.includes(' IN ') ||
+        q.query.includes('= any(')
+    )
+  }
+
+  getCustomerSingleQueries() {
+    return this.getCustomerSelectQueries().filter(
+      (q) =>
+        !(
+          q.query.includes(' in ') ||
+          q.query.includes(' IN ') ||
+          q.query.includes('= any(')
+        )
+    )
+  }
+}
 
 describe('bulkInsertUsageEventsTransaction', () => {
   let organization: Organization.Record
@@ -816,6 +866,724 @@ describe('bulkInsertUsageEventsTransaction', () => {
           linkedEvent!.subscriptionId
         )
       })
+    })
+  })
+
+  describe('batch customer lookups', () => {
+    it('should batch fetch all customers upfront and process events correctly', async () => {
+      // Setup: Create 10 customers with different pricing models, each with their own subscription
+      const customersAndSubscriptions: Array<{
+        customer: Customer.Record
+        subscription: Subscription.Record
+        pricingModelId: string
+      }> = []
+
+      for (let i = 0; i < 10; i++) {
+        const customerData = await adminTransaction(
+          async ({ transaction }) =>
+            setupCustomer({
+              organizationId: organization.id,
+              pricingModelId,
+            })
+        )
+
+        const pmData = await adminTransaction(
+          async ({ transaction }) =>
+            setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customerData.id,
+            })
+        )
+
+        const subData = await adminTransaction(
+          async ({ transaction }) =>
+            setupSubscription({
+              organizationId: organization.id,
+              customerId: customerData.id,
+              paymentMethodId: pmData.id,
+              priceId: price.id,
+            })
+        )
+
+        // Create billing period for each subscription
+        await adminTransaction(async ({ transaction }) => {
+          const now = new Date()
+          const endDate = new Date(now)
+          endDate.setDate(endDate.getDate() + 30)
+          return setupBillingPeriod({
+            subscriptionId: subData.id,
+            startDate: now,
+            endDate,
+          })
+        })
+
+        customersAndSubscriptions.push({
+          customer: customerData,
+          subscription: subData,
+          pricingModelId,
+        })
+      }
+
+      // Execute: Create usage events for all 10 customers in a single bulk insert
+      const timestamp = Date.now()
+      const result = await adminTransaction(async ({ transaction }) =>
+        bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: customersAndSubscriptions.map(
+                ({ subscription }, index) => ({
+                  subscriptionId: subscription.id,
+                  priceId: price.id,
+                  amount: (index + 1) * 100,
+                  transactionId: `txn_batch_customer_${index}_${timestamp}`,
+                })
+              ),
+            },
+            livemode: true,
+          },
+          transaction
+        )
+      )
+
+      // Expectations: All events should be processed successfully
+      expect(result.result.usageEvents).toHaveLength(10)
+      expect(result.ledgerCommands?.length).toBe(10)
+
+      // Verify each event has the correct customer ID and amount
+      customersAndSubscriptions.forEach(({ customer }, index) => {
+        const event = result.result.usageEvents.find(
+          (e) => e.customerId === customer.id
+        )
+        expect(event).toMatchObject({
+          customerId: customer.id,
+          amount: (index + 1) * 100,
+          priceId: price.id,
+          usageMeterId: usageMeter.id,
+        })
+      })
+    })
+
+    it('should handle customers with explicit pricingModelId', async () => {
+      // Setup: Create a custom pricing model and assign it to a customer
+      const customPricingModel = await adminTransaction(
+        async ({ transaction }) =>
+          setupPricingModel({
+            organizationId: organization.id,
+            name: 'Custom Pricing Model',
+            isDefault: false,
+            livemode: true,
+          })
+      )
+
+      // Create a product and price for this pricing model
+      const customProduct = await adminTransaction(
+        async ({ transaction }) =>
+          setupProduct({
+            organizationId: organization.id,
+            pricingModelId: customPricingModel.id,
+            name: 'Custom Product',
+            livemode: true,
+          })
+      )
+
+      const customUsageMeter = await adminTransaction(
+        async ({ transaction }) =>
+          setupUsageMeter({
+            organizationId: organization.id,
+            name: 'Custom Usage Meter',
+            livemode: true,
+            pricingModelId: customPricingModel.id,
+          })
+      )
+
+      const customPrice = await adminTransaction(
+        async ({ transaction }) =>
+          setupPrice({
+            productId: customProduct.id,
+            name: 'Custom Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 20,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: customUsageMeter.id,
+          })
+      )
+
+      // Create customer with explicit pricingModelId
+      const customCustomer = await adminTransaction(
+        async ({ transaction }) =>
+          setupCustomer({
+            organizationId: organization.id,
+            pricingModelId: customPricingModel.id,
+          })
+      )
+
+      const customPaymentMethod = await adminTransaction(
+        async ({ transaction }) =>
+          setupPaymentMethod({
+            organizationId: organization.id,
+            customerId: customCustomer.id,
+          })
+      )
+
+      const customSubscription = await adminTransaction(
+        async ({ transaction }) =>
+          setupSubscription({
+            organizationId: organization.id,
+            customerId: customCustomer.id,
+            paymentMethodId: customPaymentMethod.id,
+            priceId: customPrice.id,
+          })
+      )
+
+      const now = new Date()
+      const endDate = new Date(now)
+      endDate.setDate(endDate.getDate() + 30)
+      await adminTransaction(async ({ transaction }) =>
+        setupBillingPeriod({
+          subscriptionId: customSubscription.id,
+          startDate: now,
+          endDate,
+        })
+      )
+
+      // Execute: Create usage event for customer with explicit pricing model
+      const result = await adminTransaction(async ({ transaction }) =>
+        bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: [
+                {
+                  subscriptionId: customSubscription.id,
+                  priceId: customPrice.id,
+                  amount: 500,
+                  transactionId: `txn_explicit_pm_${Date.now()}`,
+                },
+              ],
+            },
+            livemode: true,
+          },
+          transaction
+        )
+      )
+
+      // Expectations: Event should use the custom pricing model
+      expect(result.result.usageEvents).toHaveLength(1)
+      expect(result.result.usageEvents[0].customerId).toBe(
+        customCustomer.id
+      )
+      expect(result.result.usageEvents[0].priceId).toBe(
+        customPrice.id
+      )
+      expect(result.result.usageEvents[0].usageMeterId).toBe(
+        customUsageMeter.id
+      )
+      expect(result.ledgerCommands?.length).toBe(1)
+    })
+
+    it('should handle customers without explicit pricingModelId (uses default pricing model)', async () => {
+      // Setup: Create customer without pricingModelId (will use default)
+      // The default pricing model is already set up in beforeEach
+      const defaultCustomer = await adminTransaction(
+        async ({ transaction }) =>
+          setupCustomer({
+            organizationId: organization.id,
+            // pricingModelId not set - should use default
+          })
+      )
+
+      const defaultPaymentMethod = await adminTransaction(
+        async ({ transaction }) =>
+          setupPaymentMethod({
+            organizationId: organization.id,
+            customerId: defaultCustomer.id,
+          })
+      )
+
+      const defaultSubscription = await adminTransaction(
+        async ({ transaction }) =>
+          setupSubscription({
+            organizationId: organization.id,
+            customerId: defaultCustomer.id,
+            paymentMethodId: defaultPaymentMethod.id,
+            priceId: price.id,
+          })
+      )
+
+      const now = new Date()
+      const endDate = new Date(now)
+      endDate.setDate(endDate.getDate() + 30)
+      await adminTransaction(async ({ transaction }) =>
+        setupBillingPeriod({
+          subscriptionId: defaultSubscription.id,
+          startDate: now,
+          endDate,
+        })
+      )
+
+      // Execute: Create usage event for customer using default pricing model
+      const result = await adminTransaction(async ({ transaction }) =>
+        bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: [
+                {
+                  subscriptionId: defaultSubscription.id,
+                  priceId: price.id,
+                  amount: 300,
+                  transactionId: `txn_default_pm_${Date.now()}`,
+                },
+              ],
+            },
+            livemode: true,
+          },
+          transaction
+        )
+      )
+
+      // Expectations: Event should use the default pricing model
+      expect(result.result.usageEvents).toHaveLength(1)
+      expect(result.result.usageEvents[0].customerId).toBe(
+        defaultCustomer.id
+      )
+      expect(result.result.usageEvents[0].priceId).toBe(price.id)
+      expect(result.result.usageEvents[0].usageMeterId).toBe(
+        usageMeter.id
+      )
+      expect(result.ledgerCommands?.length).toBe(1)
+    })
+
+    it('should handle mix of customers with and without explicit pricingModelId', async () => {
+      // Setup: Create some customers with explicit pricing model, some without
+      const explicitPricingModel = await adminTransaction(
+        async ({ transaction }) =>
+          setupPricingModel({
+            organizationId: organization.id,
+            name: 'Explicit Pricing Model',
+            isDefault: false,
+            livemode: true,
+          })
+      )
+
+      const explicitProduct = await adminTransaction(
+        async ({ transaction }) =>
+          setupProduct({
+            organizationId: organization.id,
+            pricingModelId: explicitPricingModel.id,
+            name: 'Explicit Product',
+            livemode: true,
+          })
+      )
+
+      const explicitUsageMeter = await adminTransaction(
+        async ({ transaction }) =>
+          setupUsageMeter({
+            organizationId: organization.id,
+            name: 'Explicit Usage Meter',
+            livemode: true,
+            pricingModelId: explicitPricingModel.id,
+          })
+      )
+
+      const explicitPrice = await adminTransaction(
+        async ({ transaction }) =>
+          setupPrice({
+            productId: explicitProduct.id,
+            name: 'Explicit Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 15,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: explicitUsageMeter.id,
+          })
+      )
+
+      // Create 3 customers with explicit pricing model
+      const explicitCustomers = []
+      for (let i = 0; i < 3; i++) {
+        const customerData = await adminTransaction(
+          async ({ transaction }) =>
+            setupCustomer({
+              organizationId: organization.id,
+              pricingModelId: explicitPricingModel.id,
+            })
+        )
+
+        const pmData = await adminTransaction(
+          async ({ transaction }) =>
+            setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customerData.id,
+            })
+        )
+
+        const subData = await adminTransaction(
+          async ({ transaction }) =>
+            setupSubscription({
+              organizationId: organization.id,
+              customerId: customerData.id,
+              paymentMethodId: pmData.id,
+              priceId: explicitPrice.id,
+            })
+        )
+
+        await adminTransaction(async ({ transaction }) => {
+          const now = new Date()
+          const endDate = new Date(now)
+          endDate.setDate(endDate.getDate() + 30)
+          return setupBillingPeriod({
+            subscriptionId: subData.id,
+            startDate: now,
+            endDate,
+          })
+        })
+
+        explicitCustomers.push({
+          customer: customerData,
+          subscription: subData,
+          price: explicitPrice,
+          usageMeter: explicitUsageMeter,
+        })
+      }
+
+      // Create 3 customers with default pricing model
+      const defaultCustomers = []
+      for (let i = 0; i < 3; i++) {
+        const customerData = await adminTransaction(
+          async ({ transaction }) =>
+            setupCustomer({
+              organizationId: organization.id,
+              // No pricingModelId - uses default
+            })
+        )
+
+        const pmData = await adminTransaction(
+          async ({ transaction }) =>
+            setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customerData.id,
+            })
+        )
+
+        const subData = await adminTransaction(
+          async ({ transaction }) =>
+            setupSubscription({
+              organizationId: organization.id,
+              customerId: customerData.id,
+              paymentMethodId: pmData.id,
+              priceId: price.id,
+            })
+        )
+
+        await adminTransaction(async ({ transaction }) => {
+          const now = new Date()
+          const endDate = new Date(now)
+          endDate.setDate(endDate.getDate() + 30)
+          return setupBillingPeriod({
+            subscriptionId: subData.id,
+            startDate: now,
+            endDate,
+          })
+        })
+
+        defaultCustomers.push({
+          customer: customerData,
+          subscription: subData,
+          price,
+          usageMeter,
+        })
+      }
+
+      // Execute: Create usage events for all 6 customers in a single batch
+      const timestamp = Date.now()
+      const allEvents = [
+        ...explicitCustomers.map(
+          ({ subscription, price }, index) => ({
+            subscriptionId: subscription.id,
+            priceId: price.id,
+            amount: (index + 1) * 100,
+            transactionId: `txn_mixed_explicit_${index}_${timestamp}`,
+          })
+        ),
+        ...defaultCustomers.map(({ subscription, price }, index) => ({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          amount: (index + 4) * 100,
+          transactionId: `txn_mixed_default_${index}_${timestamp}`,
+        })),
+      ]
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: allEvents,
+            },
+            livemode: true,
+          },
+          transaction
+        )
+      )
+
+      // Expectations: All 6 events processed correctly
+      expect(result.result.usageEvents).toHaveLength(6)
+      expect(result.ledgerCommands?.length).toBe(6)
+
+      // Verify explicit pricing model customers
+      explicitCustomers.forEach(({ customer, price, usageMeter }) => {
+        const event = result.result.usageEvents.find(
+          (e) => e.customerId === customer.id
+        )
+        expect(event).toMatchObject({
+          customerId: customer.id,
+          priceId: price.id,
+          usageMeterId: usageMeter.id,
+        })
+      })
+
+      // Verify default pricing model customers
+      defaultCustomers.forEach(({ customer, price, usageMeter }) => {
+        const event = result.result.usageEvents.find(
+          (e) => e.customerId === customer.id
+        )
+        expect(event).toMatchObject({
+          customerId: customer.id,
+          priceId: price.id,
+          usageMeterId: usageMeter.id,
+        })
+      })
+    })
+  })
+
+  describe('batch customer lookups - query optimization verification', () => {
+    it('should execute exactly one batch query for customers when processing multiple subscriptions for the same customer, not N individual queries', async () => {
+      // Setup: Create query capturing logger
+      const queryLogger = new QueryCapturingLogger()
+      const client = postgres(core.TEST_DB_URL, {
+        max: 15,
+        idle_timeout: 5,
+        prepare: false,
+      })
+      const dbWithLogging = drizzle(client, { logger: queryLogger })
+
+      // Create 1 customer with 3 subscriptions
+      const sharedCustomer = await adminTransaction(
+        async ({ transaction }) =>
+          setupCustomer({
+            organizationId: organization.id,
+            pricingModelId,
+          })
+      )
+
+      const sharedPaymentMethod = await adminTransaction(
+        async ({ transaction }) =>
+          setupPaymentMethod({
+            organizationId: organization.id,
+            customerId: sharedCustomer.id,
+          })
+      )
+
+      const subscriptions: Subscription.Record[] = []
+      for (let i = 0; i < 3; i++) {
+        const sub = await adminTransaction(async ({ transaction }) =>
+          setupSubscription({
+            organizationId: organization.id,
+            customerId: sharedCustomer.id,
+            paymentMethodId: sharedPaymentMethod.id,
+            priceId: price.id,
+          })
+        )
+
+        await adminTransaction(async ({ transaction }) => {
+          const now = new Date()
+          const endDate = new Date(now)
+          endDate.setDate(endDate.getDate() + 30)
+          return setupBillingPeriod({
+            subscriptionId: sub.id,
+            startDate: now,
+            endDate,
+          })
+        })
+
+        subscriptions.push(sub)
+      }
+
+      // Reset query log before the operation we want to measure
+      queryLogger.reset()
+
+      // Execute: Run bulkInsertUsageEventsTransaction with logging
+      const timestamp = Date.now()
+      await dbWithLogging.transaction(async (transaction) => {
+        await bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: subscriptions.map((sub, i) => ({
+                subscriptionId: sub.id,
+                priceId: price.id,
+                amount: (i + 1) * 100,
+                transactionId: `txn_query_opt_${i}_${timestamp}`,
+              })),
+            },
+            livemode: true,
+          },
+          transaction as unknown as Parameters<
+            typeof bulkInsertUsageEventsTransaction
+          >[1]
+        )
+      })
+
+      // Expectations: Verify query patterns
+      const customerBatchQueries =
+        queryLogger.getCustomerBatchQueries()
+      const customerSingleQueries =
+        queryLogger.getCustomerSingleQueries()
+
+      // Should have exactly 1 batch query for customers (using IN or ANY)
+      expect(customerBatchQueries.length).toBe(1)
+
+      // Should have 0 individual customer queries (no sequential SELECT ... WHERE id = $1)
+      expect(customerSingleQueries.length).toBe(0)
+
+      // Verify the batch query uses IN clause or array parameter
+      const batchQuery = customerBatchQueries[0]
+      expect(
+        batchQuery.query.includes(' in ') ||
+          batchQuery.query.includes(' IN ') ||
+          batchQuery.query.includes('= any(')
+      ).toBe(true)
+
+      // Verify batch query includes exactly 1 unique customer ID (deduplication worked)
+      // Drizzle/postgres-js emits params as array for IN/ANY queries
+      const params = batchQuery.params
+      if (Array.isArray(params[0])) {
+        expect((params[0] as unknown[]).length).toBe(1)
+      }
+
+      // Cleanup
+      await client.end()
+    })
+
+    it('should batch fetch 10 different customers in a single query instead of 10 separate queries', async () => {
+      // Setup: Create query capturing logger
+      const queryLogger = new QueryCapturingLogger()
+      const client = postgres(core.TEST_DB_URL, {
+        max: 15,
+        idle_timeout: 5,
+        prepare: false,
+      })
+      const dbWithLogging = drizzle(client, { logger: queryLogger })
+
+      // Create 10 customers, each with their own subscription
+      const customersAndSubs: Array<{
+        customer: Customer.Record
+        subscription: Subscription.Record
+      }> = []
+
+      for (let i = 0; i < 10; i++) {
+        const customerData = await adminTransaction(
+          async ({ transaction }) =>
+            setupCustomer({
+              organizationId: organization.id,
+              pricingModelId,
+            })
+        )
+
+        const pmData = await adminTransaction(
+          async ({ transaction }) =>
+            setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customerData.id,
+            })
+        )
+
+        const subData = await adminTransaction(
+          async ({ transaction }) =>
+            setupSubscription({
+              organizationId: organization.id,
+              customerId: customerData.id,
+              paymentMethodId: pmData.id,
+              priceId: price.id,
+            })
+        )
+
+        await adminTransaction(async ({ transaction }) => {
+          const now = new Date()
+          const endDate = new Date(now)
+          endDate.setDate(endDate.getDate() + 30)
+          return setupBillingPeriod({
+            subscriptionId: subData.id,
+            startDate: now,
+            endDate,
+          })
+        })
+
+        customersAndSubs.push({
+          customer: customerData,
+          subscription: subData,
+        })
+      }
+
+      // Reset query log before the operation we want to measure
+      queryLogger.reset()
+
+      // Execute: Process all 10 events
+      const timestamp = Date.now()
+      await dbWithLogging.transaction(async (transaction) => {
+        await bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: customersAndSubs.map(
+                ({ subscription }, i) => ({
+                  subscriptionId: subscription.id,
+                  priceId: price.id,
+                  amount: (i + 1) * 100,
+                  transactionId: `txn_batch10_${i}_${timestamp}`,
+                })
+              ),
+            },
+            livemode: true,
+          },
+          transaction as unknown as Parameters<
+            typeof bulkInsertUsageEventsTransaction
+          >[1]
+        )
+      })
+
+      // Expectations: Still only 1 batch query despite 10 different customers
+      const customerBatchQueries =
+        queryLogger.getCustomerBatchQueries()
+      const customerSingleQueries =
+        queryLogger.getCustomerSingleQueries()
+
+      // Should have exactly 1 batch query for all 10 customers
+      expect(customerBatchQueries.length).toBe(1)
+
+      // Should have 0 individual customer queries
+      expect(customerSingleQueries.length).toBe(0)
+
+      // Verify the batch query includes multiple customer IDs
+      const batchQuery = customerBatchQueries[0]
+      expect(
+        batchQuery.query.includes(' in ') ||
+          batchQuery.query.includes(' IN ') ||
+          batchQuery.query.includes('= any(')
+      ).toBe(true)
+
+      // Verify batch query includes all 10 customer IDs
+      // Drizzle/postgres-js emits params as array for IN/ANY queries
+      const params = batchQuery.params
+      if (Array.isArray(params[0])) {
+        expect((params[0] as unknown[]).length).toBe(10)
+      }
+
+      // Cleanup
+      await client.end()
     })
   })
 })

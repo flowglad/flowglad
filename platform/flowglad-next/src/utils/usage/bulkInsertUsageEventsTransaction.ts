@@ -6,7 +6,10 @@ import {
   type UsageEvent,
 } from '@/db/schema/usageEvents'
 import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomerById,
+  selectCustomerPricingInfoBatch,
+} from '@/db/tableMethods/customerMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
@@ -84,6 +87,15 @@ export const bulkInsertUsageEventsTransaction = async (
     ])
   )
 
+  // Batch fetch customer pricing info upfront for all unique customers
+  const uniqueCustomerIds = [
+    ...new Set(subscriptions.map((s) => s.customerId)),
+  ]
+  const customersInfo = await selectCustomerPricingInfoBatch(
+    uniqueCustomerIds,
+    transaction
+  )
+
   type SlugResolutionEvent = {
     index: number
     slug: string
@@ -130,10 +142,21 @@ export const bulkInsertUsageEventsTransaction = async (
 
   const getPricingModelForCustomer = async (customerId: string) => {
     if (!pricingModelCache.has(customerId)) {
-      const customer = await selectCustomerById(
-        customerId,
-        transaction
-      )
+      // Use pre-fetched customer info instead of individual selectCustomerById call
+      const customerInfo = customersInfo.get(customerId)
+      if (!customerInfo) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Customer ${customerId} not found`,
+        })
+      }
+
+      // selectPricingModelForCustomer only uses: id, pricingModelId, organizationId, livemode
+      // We cast the minimal object to Customer.Record since it has all fields the function uses
+      const customer = customerInfo as unknown as Awaited<
+        ReturnType<typeof selectCustomerById>
+      >
+
       const pricingModel = await selectPricingModelForCustomer(
         customer,
         transaction
