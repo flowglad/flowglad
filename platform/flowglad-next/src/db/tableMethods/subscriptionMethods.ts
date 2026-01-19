@@ -146,8 +146,13 @@ export const selectSubscriptionsByCustomerId = cached(
       livemode: boolean
     ) => `${customerId}:${livemode}`,
     schema: subscriptionsSelectSchema.array(),
-    dependenciesFn: (customerId: string) => [
+    dependenciesFn: (subscriptions, customerId: string) => [
+      // Set membership: invalidate when subscriptions are added/removed for this customer
       CacheDependency.customerSubscriptions(customerId),
+      // Content: invalidate when any subscription's properties change
+      ...subscriptions.map((sub) =>
+        CacheDependency.subscription(sub.id)
+      ),
     ],
   },
   async (

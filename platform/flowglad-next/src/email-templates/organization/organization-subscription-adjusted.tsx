@@ -80,13 +80,11 @@ export const OrganizationSubscriptionAdjustedEmail = ({
   effectiveDate,
   livemode,
 }: OrganizationSubscriptionAdjustedEmailProps) => {
+  // Keep isUpgrade for internal logic (showing revenue direction in body)
+  // but use neutral title per Apple-inspired patterns in subscription-email-improvements.md
   const isUpgrade = adjustmentType === 'upgrade'
-  const title = isUpgrade
-    ? 'Subscription Upgraded'
-    : 'Subscription Downgraded'
-  const previewText = isUpgrade
-    ? `${customerName} upgraded their subscription`
-    : `${customerName} downgraded their subscription`
+  const title = 'Subscription Updated'
+  const previewText = `Subscription Updated - ${customerName}`
 
   const formattedPreviousTotal =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(
@@ -127,9 +125,7 @@ export const OrganizationSubscriptionAdjustedEmail = ({
           margin: 0,
         }}
       >
-        {isUpgrade
-          ? `${customerName} has upgraded their subscription.`
-          : `${customerName} has downgraded their subscription.`}
+        {`${customerName} has updated their subscription.`}
       </Paragraph>
       <DetailSection>
         <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>

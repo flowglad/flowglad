@@ -5,6 +5,7 @@ import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { AuthenticatedTransactionParams } from '@/db/types'
 import { IntervalUnit, PriceType } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { createNoChargePriceInsert } from '@/utils/usage/noChargePriceHelpers'
 
 /** Price fields used in usage meter creation/updates */
@@ -64,6 +65,11 @@ export const createUsageMeterTransaction = async (
       livemode,
     },
     transaction
+  )
+
+  // Invalidate the cached usage meters for this pricing model
+  invalidateCache(
+    CacheDependency.pricingModelUsageMeters(usageMeter.pricingModelId)
   )
 
   // Determine if user specified custom price values

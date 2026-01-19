@@ -336,8 +336,13 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
         livemode: boolean
       ) => `${subscriptionId}:${livemode}`,
       schema: subscriptionItemWithPriceSchema.array(),
-      dependenciesFn: (subscriptionId: string) => [
+      dependenciesFn: (items, subscriptionId: string) => [
+        // Set membership: invalidate when items are added/removed for this subscription
         CacheDependency.subscriptionItems(subscriptionId),
+        // Content: invalidate when any item's properties change
+        ...items.map((item) =>
+          CacheDependency.subscriptionItem(item.subscriptionItem.id)
+        ),
       ],
     },
     async (
@@ -426,8 +431,13 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIds =
         keyFn: (subscriptionId: string) =>
           `${subscriptionId}:${livemode}`,
         schema: subscriptionItemWithPriceSchema.array(),
-        dependenciesFn: (subscriptionId: string) => [
+        dependenciesFn: (items, subscriptionId: string) => [
+          // Set membership: invalidate when items are added/removed for this subscription
           CacheDependency.subscriptionItems(subscriptionId),
+          // Content: invalidate when any item's properties change
+          ...items.map((item) =>
+            CacheDependency.subscriptionItem(item.subscriptionItem.id)
+          ),
         ],
       },
       subscriptionIds,

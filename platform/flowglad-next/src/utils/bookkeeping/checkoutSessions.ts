@@ -66,6 +66,7 @@ import {
   calculateTotalDueAmount,
   calculateTotalFeeAmount,
 } from '@/utils/bookkeeping/fees/common'
+import { CacheDependency } from '@/utils/cache'
 import {
   createStripeCustomer,
   stripeIdFromObjectOrId,
@@ -76,8 +77,9 @@ import { createInitialInvoiceForPurchase } from './invoices'
 
 export const editCheckoutSession = async (
   input: EditCheckoutSessionInput,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   const { checkoutSession, purchaseId } = input
   const previousCheckoutSession = await selectCheckoutSessionById(
     checkoutSession.id,
@@ -146,6 +148,8 @@ export const editCheckoutSession = async (
       },
       transaction
     )
+    // Invalidate purchase cache after updating purchase content (billing address)
+    invalidateCache(CacheDependency.purchase(purchase.id))
   }
 
   const stripePaymentIntentId =
@@ -469,6 +473,10 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       transaction
     )
     purchase = result
+    // Invalidate purchase cache after creating/updating purchase
+    ctx.invalidateCache(
+      CacheDependency.customerPurchases(customer.id)
+    )
   }
   let discount: Discount.Record | null = null
   let discountRedemption: DiscountRedemption.Record | null = null

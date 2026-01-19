@@ -196,9 +196,16 @@ const migrateStripeCustomerDataToFlowglad = async (
             paymentMethods
           )
         })
+      // For migration scripts, we use a no-op context since cache invalidation
+      // isn't needed during one-time data migrations
       await bulkUpsertPaymentMethodsByExternalId(
         paymentMethodInserts,
-        transaction
+        {
+          transaction,
+          invalidateCache: () => {},
+          emitEvent: () => {},
+          enqueueLedgerCommand: () => {},
+        }
       )
       const paymentMethodRecords = await selectPaymentMethods(
         {

@@ -295,18 +295,23 @@ describe('SubscriptionResourceUsage', () => {
       ).toBeInTheDocument()
     })
 
-    it('returns null when subscription has no resource features', async () => {
+    it('shows empty state when subscription has no resource features', async () => {
       mockUseQuery.mockReturnValue({
         data: [],
         isLoading: false,
         error: null,
       })
 
-      const { container } = render(
-        <SubscriptionResourceUsage subscriptionId="sub_123" />
-      )
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
-      expect(container.firstChild).toBeNull()
+      expect(
+        screen.getByText('No resource usage')
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          /This subscription doesn't have any resources configured/
+        )
+      ).toBeInTheDocument()
     })
   })
 

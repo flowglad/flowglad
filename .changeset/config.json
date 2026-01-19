@@ -10,6 +10,7 @@
   "ignore": [
     "@flowglad/playground-express",
     "@flowglad/playground-generation-based-subscription",
-    "@flowglad/playground-react-native"
+    "@flowglad/playground-react-native",
+    "@flowglad/playground-seat-based-billing"
   ]
 }

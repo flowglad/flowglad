@@ -7,7 +7,7 @@ import {
   safelyInsertPaymentMethod,
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { PaymentMethodType } from '@/types'
 import { titleCase } from '@/utils/core'
 import { getStripePaymentMethod } from '@/utils/stripe'
@@ -62,8 +62,9 @@ export const paymentMethodForStripePaymentMethodId = async (
     livemode: boolean
     customerId: string
   },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<PaymentMethod.Record> => {
+  const { transaction } = ctx
   const stripePaymentMethod = await getStripePaymentMethod(
     stripePaymentMethodId,
     livemode
@@ -88,8 +89,9 @@ export const paymentMethodForStripePaymentMethodId = async (
       )
     paymentMethod = await safelyInsertPaymentMethod(
       paymentMethodInsert,
-      transaction
+      ctx
     )
+    // Note: safelyInsertPaymentMethod now handles set membership invalidation internally
   }
   return paymentMethod
 }

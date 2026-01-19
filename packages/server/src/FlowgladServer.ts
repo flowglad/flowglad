@@ -108,10 +108,10 @@ export class FlowgladServer {
       checkUsageBalance: constructCheckUsageBalance(
         currentSubscriptionsWithExperimental
       ),
-      getProduct: constructGetProduct(rawBilling.catalog),
-      getPrice: constructGetPrice(rawBilling.catalog),
+      getProduct: constructGetProduct(rawBilling.pricingModel),
+      getPrice: constructGetPrice(rawBilling.pricingModel),
       hasPurchased: constructHasPurchased(
-        rawBilling.catalog,
+        rawBilling.pricingModel,
         rawBilling.purchases
       ),
     }

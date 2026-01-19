@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
+  setupPricingModel,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -13,6 +14,7 @@ import {
   assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
   insertCustomer,
   selectCustomerById,
+  selectCustomerPricingInfoBatch,
   selectCustomers,
   selectCustomersCursorPaginatedWithTableRowData,
   setUserIdForCustomerRecords,
@@ -1536,5 +1538,169 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
         expect(resultUndefined.total).toBe(3)
       })
     })
+  })
+})
+
+describe('selectCustomerPricingInfoBatch', () => {
+  let organization: Organization.Record
+  let pricingModel1: { id: string }
+  let pricingModel2: { id: string }
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel1 = orgData.pricingModel
+
+    pricingModel2 = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Second Pricing Model',
+      isDefault: false,
+    })
+  })
+
+  it('should return only id, pricingModelId, organizationId, livemode fields', async () => {
+    // Create 10 customers with different pricingModelIds
+    // Track which customers have which pricing model
+    const pricingModel1CustomerIds: string[] = []
+    const pricingModel2CustomerIds: string[] = []
+
+    for (let i = 0; i < 5; i++) {
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+      })
+      pricingModel1CustomerIds.push(customer.id)
+    }
+    for (let i = 0; i < 5; i++) {
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel2.id,
+      })
+      pricingModel2CustomerIds.push(customer.id)
+    }
+
+    const customerIds = [
+      ...pricingModel1CustomerIds,
+      ...pricingModel2CustomerIds,
+    ]
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerPricingInfoBatch(customerIds, transaction)
+    })
+
+    // Verify all 10 customers returned
+    expect(result.size).toBe(10)
+
+    // Verify each customer has exactly 4 fields
+    for (const [customerId, customerInfo] of result) {
+      expect(Object.keys(customerInfo).sort()).toEqual([
+        'id',
+        'livemode',
+        'organizationId',
+        'pricingModelId',
+      ])
+      expect(customerInfo.id).toBe(customerId)
+      expect(customerInfo.organizationId).toBe(organization.id)
+      expect(typeof customerInfo.livemode).toBe('boolean')
+    }
+
+    // Verify specific customer-to-pricingModel mapping
+    for (const customerId of pricingModel1CustomerIds) {
+      expect(result.get(customerId)?.pricingModelId).toBe(
+        pricingModel1.id
+      )
+    }
+    for (const customerId of pricingModel2CustomerIds) {
+      expect(result.get(customerId)?.pricingModelId).toBe(
+        pricingModel2.id
+      )
+    }
+  })
+
+  it('returns an empty result map when no customerIds are provided', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerPricingInfoBatch([], transaction)
+    })
+
+    expect(result.size).toBe(0)
+    expect(result).toEqual(new Map())
+  })
+
+  it('should handle customers with different pricingModelIds', async () => {
+    // Note: pricingModelId cannot be null in the database schema (notNullStringForeignKey)
+    // setupCustomer automatically assigns default pricing model if undefined
+    const customer1 = await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel1.id,
+    })
+    const customer2 = await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel2.id,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerPricingInfoBatch(
+        [customer1.id, customer2.id],
+        transaction
+      )
+    })
+
+    expect(result.size).toBe(2)
+    expect(result.get(customer1.id)?.pricingModelId).toBe(
+      pricingModel1.id
+    )
+    expect(result.get(customer2.id)?.pricingModelId).toBe(
+      pricingModel2.id
+    )
+  })
+
+  it('should batch fetch all customers in single query', async () => {
+    // Create 100 customers
+    const customerIds: string[] = []
+    for (let i = 0; i < 100; i++) {
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId:
+          i % 2 === 0 ? pricingModel1.id : pricingModel2.id,
+      })
+      customerIds.push(customer.id)
+    }
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerPricingInfoBatch(customerIds, transaction)
+    })
+
+    // Verify all 100 customers returned
+    expect(result.size).toBe(100)
+
+    // Verify all customer IDs are present
+    for (const customerId of customerIds) {
+      expect(result.has(customerId)).toBe(true)
+    }
+  })
+
+  it('should handle mixed livemode values', async () => {
+    // Create customers with different livemode values
+    const customerLive = await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel1.id,
+      livemode: true,
+    })
+    const customerTest = await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel1.id,
+      livemode: false,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerPricingInfoBatch(
+        [customerLive.id, customerTest.id],
+        transaction
+      )
+    })
+
+    expect(result.size).toBe(2)
+    expect(result.get(customerLive.id)?.livemode).toBe(true)
+    expect(result.get(customerTest.id)?.livemode).toBe(false)
   })
 })

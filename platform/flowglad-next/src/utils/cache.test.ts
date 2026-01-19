@@ -235,7 +235,7 @@ describe('cached combinator', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: (customerId: string) => customerId,
         schema: testSchema,
-        dependenciesFn: (customerId: string) => [
+        dependenciesFn: (_result, customerId: string) => [
           CacheDependency.customerSubscriptions(customerId),
         ],
       },
@@ -257,7 +257,7 @@ describe('cached combinator', () => {
         namespace: RedisKeyNamespace.ItemsBySubscription,
         keyFn: (subId: string) => `items-${subId}`,
         schema: testSchema,
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       wrappedFn
     )
@@ -280,7 +280,7 @@ describe('cached combinator', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: () => 'key',
         schema: testSchema,
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       wrappedFn
     )
@@ -311,7 +311,7 @@ describe('cached combinator', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: () => 'test-key',
         schema: testSchema,
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       wrappedFn
     )
@@ -398,7 +398,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: (id: string) => id,
         schema: testSchema,
-        dependenciesFn: (id: string) => [
+        dependenciesFn: (_result, id: string) => [
           `dep:A:${id}`,
           `dep:B:${id}`,
         ],
@@ -429,7 +429,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: () => 'entry1',
         schema: testSchema,
-        dependenciesFn: () => ['dep:A'],
+        dependenciesFn: (_result) => ['dep:A'],
       },
       wrappedFn1
     )
@@ -439,7 +439,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.ItemsBySubscription,
         keyFn: () => 'entry2',
         schema: testSchema,
-        dependenciesFn: () => ['dep:A'],
+        dependenciesFn: (_result) => ['dep:A'],
       },
       wrappedFn2
     )
@@ -450,7 +450,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
         keyFn: () => 'entry3',
         schema: testSchema,
-        dependenciesFn: () => ['dep:B'],
+        dependenciesFn: (_result) => ['dep:B'],
       },
       wrappedFn3
     )
@@ -495,7 +495,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: () => 'cleanup-test',
         schema: testSchema,
-        dependenciesFn: () => ['dep:cleanup'],
+        dependenciesFn: (_result) => ['dep:cleanup'],
       },
       async () => ({ val: 'test' })
     )

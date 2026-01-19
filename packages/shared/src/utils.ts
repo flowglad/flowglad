@@ -107,10 +107,10 @@ export const constructCheckUsageBalance = (
 }
 
 export const constructGetProduct = (
-  catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog']
+  pricingModel: FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']
 ) => {
   const productsBySlug = new Map(
-    catalog.products.map((product) => [product.slug, product])
+    pricingModel.products.map((product) => [product.slug, product])
   )
   const getProduct = (productSlug: string) => {
     return productsBySlug.get(productSlug) ?? null
@@ -119,14 +119,14 @@ export const constructGetProduct = (
 }
 
 export const constructGetPrice = (
-  catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog']
+  pricingModel: FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']
 ) => {
   type Price =
-    FlowgladNode.CustomerRetrieveBillingResponse['catalog']['products'][number]['prices'][number]
+    FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']['products'][number]['prices'][number]
 
   // Collect prices from products (subscription and single payment prices)
   const productPrices: Array<readonly [string | null, Price]> =
-    catalog.products.flatMap((product) =>
+    pricingModel.products.flatMap((product) =>
       product.prices.map((price) => [price.slug, price] as const)
     )
 
@@ -137,7 +137,7 @@ export const constructGetPrice = (
     prices?: Price[]
   }
   const usageMeterPrices: Array<readonly [string | null, Price]> = (
-    catalog.usageMeters as UsageMeterWithPrices[]
+    pricingModel.usageMeters as UsageMeterWithPrices[]
   ).flatMap((usageMeter) =>
     (usageMeter.prices ?? []).map(
       (price) => [price.slug, price] as const
@@ -156,11 +156,11 @@ export const constructGetPrice = (
 }
 
 export const constructHasPurchased = (
-  catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog'],
+  pricingModel: FlowgladNode.CustomerRetrieveBillingResponse['pricingModel'],
   purchases: FlowgladNode.CustomerRetrieveBillingResponse['purchases']
 ) => {
   const productsBySlug = new Map(
-    catalog.products.map((product) => [product.slug, product])
+    pricingModel.products.map((product) => [product.slug, product])
   )
 
   // Create a set of all purchased price IDs for quick lookup

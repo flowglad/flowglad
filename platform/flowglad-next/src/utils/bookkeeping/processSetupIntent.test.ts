@@ -407,7 +407,7 @@ describe('Process setup intent', async () => {
         async ({ transaction }) => {
           return processAddPaymentMethodSetupIntentSucceeded(
             succeededSetupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -425,7 +425,7 @@ describe('Process setup intent', async () => {
         async ({ transaction }) => {
           return processAddPaymentMethodSetupIntentSucceeded(
             succeededSetupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -466,7 +466,7 @@ describe('Process setup intent', async () => {
       await adminTransaction(async ({ transaction }) => {
         await processAddPaymentMethodSetupIntentSucceeded(
           addPaymentMethodSetupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -527,7 +527,7 @@ describe('Process setup intent', async () => {
       await adminTransaction(async ({ transaction }) => {
         await processAddPaymentMethodSetupIntentSucceeded(
           addPaymentMethodSetupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -575,7 +575,7 @@ describe('Process setup intent', async () => {
       await adminTransaction(async ({ transaction }) => {
         await processAddPaymentMethodSetupIntentSucceeded(
           addPaymentMethodSetupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -650,7 +650,7 @@ describe('Process setup intent', async () => {
       await adminTransaction(async ({ transaction }) => {
         await processAddPaymentMethodSetupIntentSucceeded(
           addPaymentMethodSetupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 

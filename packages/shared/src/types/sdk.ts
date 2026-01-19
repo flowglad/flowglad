@@ -1,5 +1,5 @@
 import type { Flowglad as FlowgladNode } from '@flowglad/node'
-import type { Price } from './catalog'
+import type { Price } from './pricingModel'
 
 export enum FlowgladActionKey {
   GetCustomerBilling = 'customers/billing',
@@ -86,19 +86,19 @@ export type BillingWithChecks = CustomerRetrieveBillingResponse & {
 
   /**
    * @experimental
-   * Gets a product from the catalog
+   * Gets a product from the pricing model
    * @param productSlug - The slug of the product to get
    * @returns The product, or null if the product is not found
    */
   getProduct: (
     productSlug: string
   ) =>
-    | CustomerRetrieveBillingResponse['catalog']['products'][number]
+    | CustomerRetrieveBillingResponse['pricingModel']['products'][number]
     | null
 
   /**
    * @experimental
-   * Gets a price from the catalog
+   * Gets a price from the pricing model
    * @param priceSlug - The slug of the price to get
    * @returns The price, or null if the price is not found
    */

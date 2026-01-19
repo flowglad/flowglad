@@ -280,7 +280,7 @@ export const upsertPaymentForStripeCharge = async (
     await updatePaymentToReflectLatestChargeStatus(
       payment,
       charge,
-      transaction
+      ctx
     )
   return {
     payment: latestPayment,
@@ -290,7 +290,7 @@ export const upsertPaymentForStripeCharge = async (
 /**
  * An idempotent method to mark a payment as succeeded.
  * @param paymentId
- * @param transaction
+ * @param ctx
  * @returns
  */
 export const updatePaymentToReflectLatestChargeStatus = async (
@@ -299,8 +299,9 @@ export const updatePaymentToReflectLatestChargeStatus = async (
     Stripe.Charge,
     'status' | 'failure_code' | 'failure_message'
   >,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
   let updatedPayment: Payment.Record = payment
   updatedPayment = await safelyUpdatePaymentStatus(
@@ -344,7 +345,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
   if (payment.invoiceId) {
     await updateInvoiceStatusToReflectLatestPayment(
       updatedPayment,
-      transaction
+      ctx
     )
   }
   if (payment.purchaseId) {
@@ -353,7 +354,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
      */
     await updatePurchaseStatusToReflectLatestPayment(
       updatedPayment,
-      transaction
+      ctx
     )
   }
   if (!payment.invoiceId && !payment.purchaseId) {

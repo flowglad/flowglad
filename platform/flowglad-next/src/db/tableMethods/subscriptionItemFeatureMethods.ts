@@ -172,8 +172,13 @@ const selectSubscriptionItemFeaturesWithFeatureSlugCachedInternal =
         livemode: boolean
       ) => `${subscriptionItemId}:${livemode}`,
       schema: subscriptionItemFeaturesClientSelectSchema.array(),
-      dependenciesFn: (subscriptionItemId: string) => [
+      dependenciesFn: (features, subscriptionItemId: string) => [
+        // Set membership: invalidate when features are added/removed for this subscription item
         CacheDependency.subscriptionItemFeatures(subscriptionItemId),
+        // Content: invalidate when any feature's properties change
+        ...features.map((feature) =>
+          CacheDependency.subscriptionItemFeature(feature.id)
+        ),
       ],
     },
     selectSubscriptionItemFeaturesWithFeatureSlugFromDb
@@ -308,8 +313,13 @@ export const selectSubscriptionItemFeaturesWithFeatureSlugs = async (
       keyFn: (subscriptionItemId: string) =>
         `${subscriptionItemId}:${livemode}`,
       schema: subscriptionItemFeaturesClientSelectSchema.array(),
-      dependenciesFn: (subscriptionItemId: string) => [
+      dependenciesFn: (features, subscriptionItemId: string) => [
+        // Set membership: invalidate when features are added/removed for this subscription item
         CacheDependency.subscriptionItemFeatures(subscriptionItemId),
+        // Content: invalidate when any feature's properties change
+        ...features.map((feature) =>
+          CacheDependency.subscriptionItemFeature(feature.id)
+        ),
       ],
     },
     subscriptionItemIds,
