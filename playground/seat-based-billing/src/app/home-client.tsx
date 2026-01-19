@@ -156,12 +156,37 @@ export function HomeClient() {
       return
     }
 
+    // Derive slug from current subscription's priceId using catalog
+    const currentSubscription = billing.currentSubscriptions?.[0]
+    const currentPriceId = currentSubscription?.priceId
+    if (!currentPriceId || !billing.catalog) {
+      setError('Unable to determine current subscription plan.')
+      return
+    }
+
+    // Find the price slug from the catalog
+    let priceSlug: string | null = null
+    for (const product of billing.catalog.products) {
+      const price = product.prices.find(
+        (p) => p.id === currentPriceId
+      )
+      if (price?.slug) {
+        priceSlug = price.slug
+        break
+      }
+    }
+
+    if (!priceSlug) {
+      setError('Unable to find price slug for current subscription.')
+      return
+    }
+
     setIsAdjustingSeats(true)
     setError(null)
 
     try {
       await billing.adjustSubscription({
-        priceSlug: 'pro_monthly',
+        priceSlug,
         quantity: newQuantity,
       })
       // Reset initialized flag so the useEffect will update newQuantity after reload

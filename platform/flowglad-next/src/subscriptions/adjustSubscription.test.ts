@@ -5782,7 +5782,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -5825,7 +5824,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalIds: ['user-1', 'user-2'],
               },
@@ -5934,7 +5933,7 @@ describe('adjustSubscription Integration Tests', async () => {
                 organizationId: organization.id,
                 customerId: customer.id,
                 input: {
-                  resourceSlug: 'seats',
+                  resourceSlug: resource.slug,
                   subscriptionId: subscription.id,
                   quantity: 1,
                 },
@@ -5966,7 +5965,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -6009,7 +6007,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalIds: ['user-1', 'user-2'],
               },
@@ -6125,7 +6123,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalIds: ['user-3'],
               },
