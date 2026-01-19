@@ -55,9 +55,9 @@ export const resourceClaims = pgTable(
      * Used when a claim is made during an interim period (e.g., between
      * scheduling a downgrade and when it takes effect). The claim remains
      * active until this timestamp, after which it's considered expired.
-     * Active claims: releasedAt IS NULL AND (expiresAt IS NULL OR expiresAt > NOW())
+     * Active claims: releasedAt IS NULL AND (expiredAt IS NULL OR expiredAt > NOW())
      */
-    expiresAt: timestampWithTimezoneColumn('expires_at'),
+    expiredAt: timestampWithTimezoneColumn('expired_at'),
     metadata: jsonb('metadata'),
   },
   livemodePolicyTable(TABLE_NAME, (table) => [

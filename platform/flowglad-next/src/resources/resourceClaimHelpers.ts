@@ -227,7 +227,7 @@ const resourceClaimRawRowSchema = z.object({
   claimed_at: z.number(),
   released_at: z.number().nullable(),
   release_reason: z.string().nullable(),
-  expires_at: z.number().nullable(),
+  expired_at: z.number().nullable(),
 })
 
 type ResourceClaimRawRow = z.infer<typeof resourceClaimRawRowSchema>
@@ -254,7 +254,7 @@ const transformRawRowToRecord = (
   claimedAt: row.claimed_at,
   releasedAt: row.released_at,
   releaseReason: row.release_reason,
-  expiresAt: row.expires_at,
+  expiredAt: row.expired_at,
 })
 
 // ============================================================================
