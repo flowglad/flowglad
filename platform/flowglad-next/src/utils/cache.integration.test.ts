@@ -847,9 +847,9 @@ describeIfRedisKey(
       const result1 = await adminTransaction(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
-            customer.id,
+            { customerId: customer.id, livemode },
             transaction,
-            livemode
+            { type: 'admin', livemode }
           )
         }
       )
@@ -866,9 +866,9 @@ describeIfRedisKey(
       const result2 = await adminTransaction(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
-            customer.id,
+            { customerId: customer.id, livemode },
             transaction,
-            livemode
+            { type: 'admin', livemode }
           )
         }
       )
@@ -898,9 +898,9 @@ describeIfRedisKey(
       const result = await adminTransaction(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
-            customerWithNoSubs.id,
+            { customerId: customerWithNoSubs.id, livemode },
             transaction,
-            livemode
+            { type: 'admin', livemode }
           )
         }
       )
@@ -958,9 +958,9 @@ describeIfRedisKey(
       // Populate cache
       await adminTransaction(async ({ transaction, livemode }) => {
         return selectSubscriptionsByCustomerId(
-          customer.id,
+          { customerId: customer.id, livemode },
           transaction,
-          livemode
+          { type: 'admin', livemode }
         )
       })
 
@@ -1825,9 +1825,9 @@ describeIfRedisKey(
       // Populate cache by calling the function
       await adminTransaction(async ({ transaction, livemode }) => {
         return selectSubscriptionsByCustomerId(
-          customer.id,
+          { customerId: customer.id, livemode },
           transaction,
-          livemode
+          { type: 'admin', livemode }
         )
       })
 
@@ -1835,15 +1835,23 @@ describeIfRedisKey(
       const cachedValue = await client.get(cacheKey)
       expect(Array.isArray(cachedValue)).toBe(true)
 
-      // Note: selectSubscriptionsByCustomerId now uses cached() not cachedRecomputable(),
-      // so recompute metadata is not stored. This test verifies basic caching works.
-      const metadataValue = await client.get(metadataKey)
-      expect(metadataValue).toBeNull() // No metadata for cached() functions
+      // Verify recompute metadata is stored (since it now uses cachedRecomputable())
+      const metadataValue = (await client.get(
+        metadataKey
+      )) as CacheRecomputeMetadata | null
+      expect(typeof metadataValue).toBe('object')
+      expect(metadataValue?.namespace).toBe(
+        RedisKeyNamespace.SubscriptionsByCustomer
+      )
+      expect(metadataValue?.params).toEqual({
+        customerId: customer.id,
+        livemode: true,
+      })
+      expect(metadataValue?.cacheRecomputationContext).toEqual({
+        type: 'admin',
+        livemode: true,
+      })
     })
-
-    // Note: Recomputation tests for selectSubscriptionsByCustomerId have been removed
-    // since this function now uses cached() instead of cachedRecomputable().
-    // See selectSubscriptionItemsWithPricesBySubscriptionId tests below for recomputation coverage.
   }
 )
 
