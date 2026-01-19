@@ -39,6 +39,7 @@ import {
 } from '@/types'
 import {
   CacheDependency,
+  type CacheRecomputeMetadata,
   cached,
   cachedBulkLookup,
   invalidateDependencies,
@@ -1764,23 +1765,24 @@ describeIfRedisKey(
 
       // Verify cache is populated
       const cachedValue = await client.get(cacheKey)
-      expect(typeof cachedValue).toBe('string')
+      expect(Array.isArray(cachedValue)).toBe(true)
 
       // Verify recompute metadata is stored with correct params
-      const metadataValue = await client.get(metadataKey)
-      expect(typeof metadataValue).toBe('string')
+      const metadataValue = (await client.get(
+        metadataKey
+      )) as CacheRecomputeMetadata
+      expect(typeof metadataValue).toBe('object')
 
-      const metadata = JSON.parse(metadataValue as string)
-      expect(metadata.namespace).toBe(
+      expect(metadataValue.namespace).toBe(
         RedisKeyNamespace.SubscriptionsByCustomer
       )
-      expect(metadata.params).toEqual({
+      expect(metadataValue.params).toEqual({
         customerId: customer.id,
         livemode: true,
       })
-      expect(metadata.transactionContext.type).toBe('admin')
-      expect(metadata.transactionContext.livemode).toBe(true)
-      expect(metadata.createdAt).toBeGreaterThan(0)
+      expect(metadataValue.transactionContext.type).toBe('admin')
+      expect(metadataValue.transactionContext.livemode).toBe(true)
+      expect(metadataValue.createdAt).toBeGreaterThan(0)
     })
 
     it('recomputation handler fetches fresh data and repopulates cache after invalidation', async () => {
