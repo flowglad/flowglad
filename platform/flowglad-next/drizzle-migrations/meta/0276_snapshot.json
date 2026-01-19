@@ -1,5 +1,5 @@
 {
-  "id": "37370599-37b6-403a-9fcd-fc51a1763b12",
+  "id": "814dba56-ed86-49f9-a58e-ae1221024009",
   "prevId": "b9f9c30e-601a-4ebf-aafa-4576f3eb1e37",
   "version": "7",
   "dialect": "postgresql",
@@ -8178,6 +8178,12 @@
         "release_reason": {
           "name": "release_reason",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "timestamptz",
           "primaryKey": false,
           "notNull": false
         },

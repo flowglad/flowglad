@@ -50,6 +50,14 @@ export const resourceClaims = pgTable(
       .default(sql`now()`),
     releasedAt: timestampWithTimezoneColumn('released_at'),
     releaseReason: text('release_reason'),
+    /**
+     * Optional expiration timestamp for temporary claims.
+     * Used when a claim is made during an interim period (e.g., between
+     * scheduling a downgrade and when it takes effect). The claim remains
+     * active until this timestamp, after which it's considered expired.
+     * Active claims: releasedAt IS NULL AND (expiresAt IS NULL OR expiresAt > NOW())
+     */
+    expiresAt: timestampWithTimezoneColumn('expires_at'),
     metadata: jsonb('metadata'),
   },
   livemodePolicyTable(TABLE_NAME, (table) => [
