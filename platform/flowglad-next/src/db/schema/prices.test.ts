@@ -5,6 +5,7 @@ import {
   usageDummyPrice,
 } from '@/stubs/priceStubs'
 import {
+  isReservedPriceSlug,
   type Price,
   pricesSelectSchema,
   singlePaymentPriceDefaultColumns,
@@ -113,5 +114,28 @@ describe('Price Defaults', () => {
       usagePriceDefaultColumns,
       pricesSelectSchema
     )
+  })
+})
+
+describe('isReservedPriceSlug', () => {
+  it('returns true for slugs ending with _no_charge, including various prefixes and the bare suffix', () => {
+    expect(isReservedPriceSlug('api_requests_no_charge')).toBe(true)
+    expect(isReservedPriceSlug('storage_gb_no_charge')).toBe(true)
+    expect(isReservedPriceSlug('meter_no_charge')).toBe(true)
+    expect(isReservedPriceSlug('_no_charge')).toBe(true)
+  })
+
+  it('returns false for slugs that do not end with _no_charge, including those that contain it in the middle, start with no_charge, or are empty', () => {
+    expect(isReservedPriceSlug('api_requests')).toBe(false)
+    expect(isReservedPriceSlug('no_charge_extra')).toBe(false)
+    expect(isReservedPriceSlug('my_no_charge_price')).toBe(false)
+    expect(isReservedPriceSlug('no_charge')).toBe(false)
+    expect(isReservedPriceSlug('')).toBe(false)
+  })
+
+  it('is case-sensitive (only lowercase _no_charge suffix is reserved)', () => {
+    expect(isReservedPriceSlug('meter_NO_CHARGE')).toBe(false)
+    expect(isReservedPriceSlug('meter_No_Charge')).toBe(false)
+    expect(isReservedPriceSlug('meter_no_charge')).toBe(true)
   })
 })

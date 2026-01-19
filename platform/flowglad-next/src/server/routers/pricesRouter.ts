@@ -12,6 +12,7 @@ import {
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
   pricesTableRowDataSchema,
+  validateUsagePriceSlug,
 } from '@/db/schema/prices'
 import {
   safelyUpdatePrice,
@@ -68,6 +69,9 @@ export const createPrice = protectedProcedure
     return authenticatedTransaction(
       async ({ transaction, livemode, organizationId, userId }) => {
         const { price } = input
+
+        validateUsagePriceSlug(price)
+
         const newPrice = await createPriceTransaction(
           { price },
           {
@@ -317,6 +321,8 @@ export const replaceUsagePrice = protectedProcedure
               'New price must belong to the same usage meter as the old price',
           })
         }
+
+        validateUsagePriceSlug(input.newPrice)
 
         // Create the new price
         const newPrice = await createPriceTransaction(
