@@ -80,20 +80,28 @@ async function waitForCachePopulation<T>(
 
   return new Promise<T>((resolve, reject) => {
     const checkCache = async () => {
-      const value = await client.get(cacheKey)
-      if (value !== null) {
-        return resolve(value as T)
-      }
+      try {
+        const value = await client.get(cacheKey)
+        if (value !== null) {
+          return resolve(value as T)
+        }
 
-      if (Date.now() - startTime >= timeoutMs) {
+        if (Date.now() - startTime >= timeoutMs) {
+          return reject(
+            new Error(
+              `Timeout waiting for cache key "${cacheKey}" to be populated after ${timeoutMs}ms`
+            )
+          )
+        }
+
+        setTimeout(checkCache, intervalMs)
+      } catch (error) {
         return reject(
           new Error(
-            `Timeout waiting for cache key "${cacheKey}" to be populated after ${timeoutMs}ms`
+            `Redis error while waiting for cache key "${cacheKey}" to be populated: ${error instanceof Error ? error.message : String(error)}`
           )
         )
       }
-
-      setTimeout(checkCache, intervalMs)
     }
 
     checkCache()
@@ -114,20 +122,28 @@ async function waitForCacheInvalidation(
 
   return new Promise<void>((resolve, reject) => {
     const checkCache = async () => {
-      const value = await client.get(cacheKey)
-      if (value === null) {
-        return resolve()
-      }
+      try {
+        const value = await client.get(cacheKey)
+        if (value === null) {
+          return resolve()
+        }
 
-      if (Date.now() - startTime >= timeoutMs) {
+        if (Date.now() - startTime >= timeoutMs) {
+          return reject(
+            new Error(
+              `Timeout waiting for cache key "${cacheKey}" to be invalidated after ${timeoutMs}ms`
+            )
+          )
+        }
+
+        setTimeout(checkCache, intervalMs)
+      } catch (error) {
         return reject(
           new Error(
-            `Timeout waiting for cache key "${cacheKey}" to be invalidated after ${timeoutMs}ms`
+            `Redis error while waiting for cache key "${cacheKey}" to be invalidated: ${error instanceof Error ? error.message : String(error)}`
           )
         )
       }
-
-      setTimeout(checkCache, intervalMs)
     }
 
     checkCache()
