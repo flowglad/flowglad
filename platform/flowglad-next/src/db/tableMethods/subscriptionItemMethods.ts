@@ -34,7 +34,6 @@ import {
 import { cachedRecomputable } from '@/utils/cache-recomputable'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
-import { getCurrentTransactionContext } from '@/utils/transactionContext'
 import {
   type Price,
   prices,
@@ -542,12 +541,14 @@ const isSubscriptionItemActive = (item: {
  * @param whereConditions - Conditions to filter the subscriptions
  * @param transaction - Database transaction to use for all queries
  * @param livemode - Required for caching - must match the transaction's livemode context
+ * @param transactionContext - Optional transaction context for cache recomputation
  * @returns Array of rich subscriptions with their active items, features, and meter balances
  */
 export const selectRichSubscriptionsAndActiveItems = async (
   whereConditions: SelectConditions<typeof subscriptions>,
   transaction: DbTransaction,
-  livemode: boolean
+  livemode: boolean,
+  transactionContext?: TransactionContext
 ): Promise<RichSubscription[]> => {
   // Step 1: Fetch subscriptions
   // Use cached query when filtering by single customerId (hot path for customer billing)
@@ -557,23 +558,15 @@ export const selectRichSubscriptionsAndActiveItems = async (
     typeof customerId === 'string' &&
     Object.keys(whereConditions).length === 1
 
-  if (isSimpleCustomerIdQuery) {
-    // Get transaction context for cache recomputation
-    const transactionContext = getCurrentTransactionContext()
-    if (!transactionContext) {
-      // Fallback to uncached query if no transaction context available
-      subscriptionRecords = await selectSubscriptions(
-        whereConditions,
-        transaction
-      )
-    } else {
-      subscriptionRecords = await selectSubscriptionsByCustomerId(
-        { customerId, livemode },
-        transaction,
-        transactionContext
-      )
-    }
+  if (isSimpleCustomerIdQuery && transactionContext) {
+    // Use cached query with transaction context for recomputation
+    subscriptionRecords = await selectSubscriptionsByCustomerId(
+      { customerId, livemode },
+      transaction,
+      transactionContext
+    )
   } else {
+    // Fallback to uncached query if no transaction context or complex query
     subscriptionRecords = await selectSubscriptions(
       whereConditions,
       transaction

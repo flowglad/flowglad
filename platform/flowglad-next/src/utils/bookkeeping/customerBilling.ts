@@ -28,7 +28,10 @@ import type {
 } from '@/db/types'
 import type { RichSubscription } from '@/subscriptions/schemas'
 import { CheckoutSessionType } from '@/types'
-import { CacheDependency } from '@/utils/cache'
+import {
+  CacheDependency,
+  type TransactionContext,
+} from '@/utils/cache'
 import { customerBillingPortalURL } from '@/utils/core'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
 
@@ -37,13 +40,15 @@ export const customerBillingTransaction = async (
     externalId: string
     organizationId: string
   },
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  transactionContext?: TransactionContext
 ) => {
   const [customer] = await selectCustomers(params, transaction)
   const subscriptions = await selectRichSubscriptionsAndActiveItems(
     { customerId: customer.id },
     transaction,
-    customer.livemode
+    customer.livemode,
+    transactionContext
   )
   const pricingModel = await selectPricingModelForCustomer(
     customer,

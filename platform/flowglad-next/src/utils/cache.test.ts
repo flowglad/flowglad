@@ -28,10 +28,6 @@ import {
   RedisKeyNamespace,
   trackAndEvictLRU,
 } from './redis'
-import {
-  getCurrentTransactionContext,
-  runWithTransactionContext,
-} from './transactionContext'
 
 // In-memory mock Redis client for testing
 function createMockRedisClient() {
@@ -1289,30 +1285,6 @@ describe('cachedRecomputable', () => {
 
     expect(mockRedis.sets[depKey1]?.has(expectedCacheKey)).toBe(true)
     expect(mockRedis.sets[depKey2]?.has(expectedCacheKey)).toBe(true)
-  })
-})
-
-describe('transactionContext', () => {
-  it('runWithTransactionContext makes context available via getCurrentTransactionContext', () => {
-    const context: TransactionContext = {
-      type: 'merchant',
-      livemode: true,
-      organizationId: 'org_test',
-      userId: 'user_test',
-    }
-
-    let capturedContext: TransactionContext | undefined
-
-    runWithTransactionContext(context, () => {
-      capturedContext = getCurrentTransactionContext()
-    })
-
-    expect(capturedContext).toEqual(context)
-  })
-
-  it('getCurrentTransactionContext returns undefined outside of context', () => {
-    const context = getCurrentTransactionContext()
-    expect(context).toBeUndefined()
   })
 })
 
