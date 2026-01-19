@@ -237,6 +237,7 @@ interface ResourceClaim {
   claimedAt: number                               // Unix timestamp (ms)
   releasedAt: number | null                       // null = active
   releaseReason: string | null                    // Why it was released
+  expiredAt: number | null                        // Auto-expires at this time (for interim claims)
   metadata: Record<string, string | number | boolean> | null
   createdAt: number                               // Unix timestamp (ms)
   updatedAt: number                               // Unix timestamp (ms)
@@ -299,6 +300,8 @@ Release 3 claims before downgrading.
 ```
 
 The customer must first release enough resources before the downgrade can proceed.
+
+**Scheduled Downgrade Interim Period:** When a downgrade is scheduled for the end of the billing period (rather than immediately), customers retain their current capacity until the change takes effect. During this interim, claims that exceed the *future* capacity are allowed but marked as temporary—they have an `expiredAt` timestamp set to the billing period end and automatically expire when the downgrade executes.
 
 ### Auto-Resolution
 

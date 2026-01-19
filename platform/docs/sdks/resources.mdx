@@ -442,6 +442,7 @@ interface ResourceClaim {
   claimedAt: number                               // Unix timestamp (ms)
   releasedAt: number | null                       // null if active
   releaseReason: string | null                    // Why it was released
+  expiredAt: number | null                        // Auto-expires at this time (for interim claims)
   metadata: Record<string, string | number | boolean> | null
   createdAt: number                               // Unix timestamp (ms)
   updatedAt: number                               // Unix timestamp (ms)
