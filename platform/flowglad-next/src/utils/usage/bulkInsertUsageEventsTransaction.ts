@@ -10,10 +10,7 @@ import {
 } from '@/db/schema/usageEvents'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
-import {
-  selectCustomerById,
-  selectCustomerPricingInfoBatch,
-} from '@/db/tableMethods/customerMethods'
+import { selectCustomerPricingInfoBatch } from '@/db/tableMethods/customerMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
@@ -230,14 +227,10 @@ async function collectSlugResolutionEvents(
       })
     }
 
-    // selectPricingModelForCustomer only uses: id, pricingModelId, organizationId, livemode
-    // We cast the minimal object to Customer.Record since it has all fields the function uses
-    const customer = customerInfo as unknown as Awaited<
-      ReturnType<typeof selectCustomerById>
-    >
-
+    // customerInfo from selectCustomerPricingInfoBatch has exactly the fields needed
+    // for selectPricingModelForCustomer (id, pricingModelId, organizationId, livemode)
     const pricingModel = await selectPricingModelForCustomer(
-      customer,
+      customerInfo,
       transaction
     )
     pricingModelCache.set(customerId, pricingModel)

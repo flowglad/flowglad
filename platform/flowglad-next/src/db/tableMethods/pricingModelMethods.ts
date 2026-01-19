@@ -35,6 +35,7 @@ import {
   type PricingModelWithProductsAndUsageMeters,
   type ProductWithPrices,
   prices,
+  type UsageMeterWithPrices,
   usagePriceClientSelectSchema,
 } from '../schema/prices'
 import { type ProductFeature } from '../schema/productFeatures'
@@ -436,14 +437,66 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
   }
 
 /**
+ * Minimal customer data required for pricing model selection.
+ * Customer.Record satisfies this type, as does the return type from selectCustomerPricingInfoBatch.
+ */
+export type CustomerForPricingModel = {
+  id: string
+  pricingModelId: string
+  organizationId: string
+  livemode: boolean
+}
+
+/**
+ * Helper to compute active prices and resolve the default price.
+ * Ensures defaultPrice always points to an active price.
+ * For products, defaultPrice is always defined (falls back to first active price).
+ * For usage meters, defaultPrice can be undefined if no active prices exist.
+ */
+function computeActivePricesAndDefaultForProduct(
+  product: ProductWithPrices
+): {
+  activePrices: Price.ClientRecord[]
+  activeDefaultPrice: Price.ClientRecord
+} {
+  const activePrices = product.prices.filter((price) => price.active)
+  const activeDefaultPrice = product.defaultPrice?.active
+    ? product.defaultPrice
+    : (activePrices.find((p) => p.isDefault) ?? activePrices[0])!
+  return { activePrices, activeDefaultPrice }
+}
+
+/**
+ * Helper to compute active usage prices and resolve the default price for usage meters.
+ * Returns undefined for defaultPrice if no active prices exist.
+ */
+function computeActivePricesAndDefaultForUsageMeter(usageMeter: {
+  prices: z.infer<typeof usagePriceClientSelectSchema>[]
+  defaultPrice?: z.infer<typeof usagePriceClientSelectSchema>
+}): {
+  activePrices: z.infer<typeof usagePriceClientSelectSchema>[]
+  activeDefaultPrice:
+    | z.infer<typeof usagePriceClientSelectSchema>
+    | undefined
+} {
+  const activePrices = usageMeter.prices.filter(
+    (price) => price.active
+  )
+  const activeDefaultPrice = usageMeter.defaultPrice?.active
+    ? usageMeter.defaultPrice
+    : (activePrices.find((p) => p.isDefault) ?? activePrices[0])
+  return { activePrices, activeDefaultPrice }
+}
+
+/**
  * Gets the pricingModel for a customer. If no pricingModel explicitly associated,
  * returns the default pricingModel for the organization.
- * @param customer
+ * @param customer - Minimal customer data with id, pricingModelId, organizationId, and livemode
  * @param transaction
  * @returns
  */
 export const selectPricingModelForCustomer = async (
-  customer: Customer.Record,
+  customer: CustomerForPricingModel,
   transaction: DbTransaction
 ): Promise<PricingModelWithProductsAndUsageMeters> => {
   if (customer.pricingModelId) {
@@ -458,24 +511,22 @@ export const selectPricingModelForCustomer = async (
         ...pricingModel,
         products: pricingModel.products
           .filter((product: ProductWithPrices) => product.active)
-          .map((product: ProductWithPrices) => ({
-            ...product,
-            prices: product.prices.filter(
-              (price: Price.ClientRecord) => price.active
-            ),
-          }))
+          .map((product: ProductWithPrices) => {
+            const { activePrices, activeDefaultPrice } =
+              computeActivePricesAndDefaultForProduct(product)
+            return {
+              ...product,
+              prices: activePrices,
+              defaultPrice: activeDefaultPrice,
+            }
+          })
           .filter(
             (product: ProductWithPrices) => product.prices.length > 0
           ), // Filter out products with no active prices
         usageMeters: pricingModel.usageMeters
           .map((usageMeter) => {
-            const activePrices = usageMeter.prices.filter(
-              (price) => price.active
-            )
-            const activeDefaultPrice = usageMeter.defaultPrice?.active
-              ? usageMeter.defaultPrice
-              : (activePrices.find((p) => p.isDefault) ??
-                activePrices[0])
+            const { activePrices, activeDefaultPrice } =
+              computeActivePricesAndDefaultForUsageMeter(usageMeter)
             return {
               ...usageMeter,
               prices: activePrices,
@@ -506,23 +557,22 @@ export const selectPricingModelForCustomer = async (
     ...pricingModel,
     products: pricingModel.products
       .filter((product: ProductWithPrices) => product.active)
-      .map((product: ProductWithPrices) => ({
-        ...product,
-        prices: product.prices.filter(
-          (price: Price.ClientRecord) => price.active
-        ),
-      }))
+      .map((product: ProductWithPrices) => {
+        const { activePrices, activeDefaultPrice } =
+          computeActivePricesAndDefaultForProduct(product)
+        return {
+          ...product,
+          prices: activePrices,
+          defaultPrice: activeDefaultPrice,
+        }
+      })
       .filter(
         (product: ProductWithPrices) => product.prices.length > 0
       ), // Filter out products with no active prices
     usageMeters: pricingModel.usageMeters
       .map((usageMeter) => {
-        const activePrices = usageMeter.prices.filter(
-          (price) => price.active
-        )
-        const activeDefaultPrice = usageMeter.defaultPrice?.active
-          ? usageMeter.defaultPrice
-          : (activePrices.find((p) => p.isDefault) ?? activePrices[0])
+        const { activePrices, activeDefaultPrice } =
+          computeActivePricesAndDefaultForUsageMeter(usageMeter)
         return {
           ...usageMeter,
           prices: activePrices,

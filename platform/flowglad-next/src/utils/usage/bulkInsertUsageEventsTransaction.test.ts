@@ -1628,100 +1628,102 @@ describe('bulkInsertUsageEventsTransaction', () => {
         prepare: false,
       })
       const dbWithLogging = drizzle(client, { logger: queryLogger })
-
-      // Create 1 customer with 3 subscriptions
-      const sharedCustomer = await adminTransaction(
-        async ({ transaction }) =>
-          setupCustomer({
-            organizationId: organization.id,
-            pricingModelId,
-          })
-      )
-
-      const sharedPaymentMethod = await adminTransaction(
-        async ({ transaction }) =>
-          setupPaymentMethod({
-            organizationId: organization.id,
-            customerId: sharedCustomer.id,
-          })
-      )
-
-      const subscriptions: Subscription.Record[] = []
-      for (let i = 0; i < 3; i++) {
-        const sub = await adminTransaction(async ({ transaction }) =>
-          setupSubscription({
-            organizationId: organization.id,
-            customerId: sharedCustomer.id,
-            paymentMethodId: sharedPaymentMethod.id,
-            priceId: price.id,
-          })
+      try {
+        // Create 1 customer with 3 subscriptions
+        const sharedCustomer = await adminTransaction(
+          async ({ transaction }) =>
+            setupCustomer({
+              organizationId: organization.id,
+              pricingModelId,
+            })
         )
 
-        await adminTransaction(async ({ transaction }) => {
-          const now = new Date()
-          const endDate = new Date(now)
-          endDate.setDate(endDate.getDate() + 30)
-          return setupBillingPeriod({
-            subscriptionId: sub.id,
-            startDate: now,
-            endDate,
+        const sharedPaymentMethod = await adminTransaction(
+          async ({ transaction }) =>
+            setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: sharedCustomer.id,
+            })
+        )
+
+        const subscriptions: Subscription.Record[] = []
+        for (let i = 0; i < 3; i++) {
+          const sub = await adminTransaction(
+            async ({ transaction }) =>
+              setupSubscription({
+                organizationId: organization.id,
+                customerId: sharedCustomer.id,
+                paymentMethodId: sharedPaymentMethod.id,
+                priceId: price.id,
+              })
+          )
+
+          await adminTransaction(async ({ transaction }) => {
+            const now = new Date()
+            const endDate = new Date(now)
+            endDate.setDate(endDate.getDate() + 30)
+            return setupBillingPeriod({
+              subscriptionId: sub.id,
+              startDate: now,
+              endDate,
+            })
           })
+
+          subscriptions.push(sub)
+        }
+
+        // Reset query log before the operation we want to measure
+        queryLogger.reset()
+
+        // Execute: Run bulkInsertUsageEventsTransaction with logging
+        const timestamp = Date.now()
+        await dbWithLogging.transaction(async (transaction) => {
+          await bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: subscriptions.map((sub, i) => ({
+                  subscriptionId: sub.id,
+                  priceId: price.id,
+                  amount: (i + 1) * 100,
+                  transactionId: `txn_query_opt_${i}_${timestamp}`,
+                })),
+              },
+              livemode: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
         })
 
-        subscriptions.push(sub)
+        // Expectations: Verify query patterns
+        const customerBatchQueries =
+          queryLogger.getCustomerBatchQueries()
+        const customerSingleQueries =
+          queryLogger.getCustomerSingleQueries()
+
+        // Should have exactly 1 batch query for customers (using IN or ANY)
+        expect(customerBatchQueries.length).toBe(1)
+
+        // Should have 0 individual customer queries (no sequential SELECT ... WHERE id = $1)
+        expect(customerSingleQueries.length).toBe(0)
+
+        // Verify the batch query uses IN clause or array parameter
+        const batchQuery = customerBatchQueries[0]
+        expect(
+          batchQuery.query.includes(' in ') ||
+            batchQuery.query.includes(' IN ') ||
+            batchQuery.query.includes('= any(')
+        ).toBe(true)
+
+        // Verify batch query includes exactly 1 unique customer ID (deduplication worked)
+        // Drizzle/postgres-js emits params as array for IN/ANY queries
+        const params = batchQuery.params
+        if (Array.isArray(params[0])) {
+          expect((params[0] as unknown[]).length).toBe(1)
+        }
+      } finally {
+        // Cleanup
+        await client.end()
       }
-
-      // Reset query log before the operation we want to measure
-      queryLogger.reset()
-
-      // Execute: Run bulkInsertUsageEventsTransaction with logging
-      const timestamp = Date.now()
-      await dbWithLogging.transaction(async (transaction) => {
-        await bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: subscriptions.map((sub, i) => ({
-                subscriptionId: sub.id,
-                priceId: price.id,
-                amount: (i + 1) * 100,
-                transactionId: `txn_query_opt_${i}_${timestamp}`,
-              })),
-            },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
-
-      // Expectations: Verify query patterns
-      const customerBatchQueries =
-        queryLogger.getCustomerBatchQueries()
-      const customerSingleQueries =
-        queryLogger.getCustomerSingleQueries()
-
-      // Should have exactly 1 batch query for customers (using IN or ANY)
-      expect(customerBatchQueries.length).toBe(1)
-
-      // Should have 0 individual customer queries (no sequential SELECT ... WHERE id = $1)
-      expect(customerSingleQueries.length).toBe(0)
-
-      // Verify the batch query uses IN clause or array parameter
-      const batchQuery = customerBatchQueries[0]
-      expect(
-        batchQuery.query.includes(' in ') ||
-          batchQuery.query.includes(' IN ') ||
-          batchQuery.query.includes('= any(')
-      ).toBe(true)
-
-      // Verify batch query includes exactly 1 unique customer ID (deduplication worked)
-      // Drizzle/postgres-js emits params as array for IN/ANY queries
-      const params = batchQuery.params
-      if (Array.isArray(params[0])) {
-        expect((params[0] as unknown[]).length).toBe(1)
-      }
-
-      // Cleanup
-      await client.end()
     })
 
     it('should batch fetch 10 different customers in a single query instead of 10 separate queries', async () => {
