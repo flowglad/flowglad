@@ -50,6 +50,18 @@ export interface OrganizationMembersNotificationContext
   }>
 }
 
+/**
+ * Notification context with organization members but no customer.
+ * Used for organization-only notifications like payouts enabled, onboarding completed.
+ */
+export interface OrganizationOnlyMembersNotificationContext
+  extends BaseNotificationContext {
+  usersAndMemberships: Array<{
+    user: User.Record
+    membership: Membership.Record
+  }>
+}
+
 // Parameters for different fetch scenarios
 interface BaseParams {
   organizationId: string
@@ -85,6 +97,18 @@ export async function buildNotificationContext(
   },
   transaction: DbTransaction
 ): Promise<SubscriptionNotificationContext>
+
+/**
+ * Builds notification context with organization members (no customer).
+ * Returns organization and users/memberships for the organization.
+ */
+export async function buildNotificationContext(
+  params: {
+    organizationId: string
+    include: ['usersAndMemberships']
+  },
+  transaction: DbTransaction
+): Promise<OrganizationOnlyMembersNotificationContext>
 
 /**
  * Builds notification context with organization members.
@@ -179,6 +203,7 @@ export async function buildNotificationContext(
   | CustomerNotificationContext
   | SubscriptionNotificationContext
   | OrganizationMembersNotificationContext
+  | OrganizationOnlyMembersNotificationContext
 > {
   // Fetch organization (required for all contexts)
   const organization = await selectOrganizationById(
@@ -268,6 +293,13 @@ export async function buildNotificationContext(
     return {
       organization,
       customer,
+      usersAndMemberships,
+    }
+  }
+
+  if (usersAndMemberships && !customer) {
+    return {
+      organization,
       usersAndMemberships,
     }
   }

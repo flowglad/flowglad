@@ -8,6 +8,7 @@ import {
   DetailItem,
   DetailSection,
   EmailLayout,
+  Footer,
   Header,
   LineItem,
   Paragraph,
@@ -123,6 +124,12 @@ export const PaymentFailedEmail = ({
         support team for assistance.
       </Paragraph>
       <Signature greeting="Best," name={organizationName} />
+
+      <Footer
+        organizationName={organizationName}
+        variant="customer"
+        billingPortalUrl={customerPortalUrl}
+      />
     </EmailLayout>
   )
 }

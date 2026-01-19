@@ -1,4 +1,3 @@
-import { kebabCase } from 'change-case'
 import {
   type CreateEmailOptions,
   type CreateEmailRequestOptions,
@@ -30,6 +29,7 @@ import SendPurchaseAccessSessionTokenEmail from '@/email-templates/send-purchase
 import type { CurrencyCode } from '@/types'
 import { resendTraced } from '@/utils/tracing'
 import core from './core'
+import { getFromAddress } from './email/fromAddress'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
@@ -155,9 +155,12 @@ export const sendReceiptEmail = async (params: {
     return
   }
 
-  const fromAddress = isMoR
-    ? `Flowglad Billing <billing@flowglad.com>`
-    : `${params.organizationName} Billing <${kebabCase(params.organizationName)}-notifications@flowglad.com>`
+  // For MoR invoices, use Flowglad branding (no organizationName).
+  // For non-MoR invoices, use organization branding.
+  const fromAddress = getFromAddress({
+    recipientType: 'customer',
+    organizationName: isMoR ? undefined : params.organizationName,
+  })
 
   const subject = isMoR
     ? `Order Receipt #${invoice.invoiceNumber} from ${FLOWGLAD_LEGAL_ENTITY.name} for ${params.organizationName}`
@@ -230,10 +233,14 @@ export const sendPurchaseAccessSessionTokenEmail = async (params: {
   magicLink: string
   replyTo?: string | null
   livemode: boolean
+  organizationName?: string
 }) => {
   return safeSend(
     {
-      from: 'notifications@flowglad.com',
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName: params.organizationName,
+      }),
       to: params.to.map(safeTo),
       bcc: getBccForLivemode(params.livemode),
       replyTo: params.replyTo ?? undefined,
@@ -281,7 +288,10 @@ export const sendPaymentFailedEmail = async (params: {
 }) => {
   return safeSend(
     {
-      from: 'notifications@flowglad.com',
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName: params.organizationName,
+      }),
       to: params.to.map(safeTo),
       bcc: getBccForLivemode(params.livemode),
       replyTo: params.replyTo ?? undefined,
@@ -439,7 +449,10 @@ export const sendCustomerBillingPortalMagicLink = async ({
 }) => {
   return safeSend(
     {
-      from: 'notifications@flowglad.com',
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName,
+      }),
       to: to.map(safeTo),
       subject: formatEmailSubject(
         `Sign in to your ${organizationName} billing portal`,
@@ -472,7 +485,10 @@ export const sendCustomerBillingPortalOTP = async ({
 }) => {
   return safeSend(
     {
-      from: 'notifications@flowglad.com',
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName,
+      }),
       to: to.map(safeTo),
       subject: formatEmailSubject(
         `${otp} is your ${organizationName} billing portal code`,
