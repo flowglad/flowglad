@@ -197,6 +197,61 @@ export type GetResourceUsageInput = z.infer<
 >
 
 // ============================================================================
+// Raw SQL Result Schemas (for runtime validation)
+// ============================================================================
+
+/**
+ * Schema for validating raw SQL results from resource_claims table.
+ * Uses snake_case to match PostgreSQL column names.
+ */
+const resourceClaimRawRowSchema = z.object({
+  id: z.string(),
+  created_at: z.number(),
+  updated_at: z.number(),
+  created_by_commit: z.string().nullable(),
+  updated_by_commit: z.string().nullable(),
+  position: z.number(),
+  organization_id: z.string(),
+  resource_id: z.string(),
+  subscription_id: z.string(),
+  pricing_model_id: z.string(),
+  external_id: z.string().nullable(),
+  metadata: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+    .nullable(),
+  livemode: z.boolean(),
+  claimed_at: z.number(),
+  released_at: z.number().nullable(),
+  release_reason: z.string().nullable(),
+})
+
+type ResourceClaimRawRow = z.infer<typeof resourceClaimRawRowSchema>
+
+/**
+ * Transform a validated raw row to the camelCase ResourceClaim.Record format
+ */
+const transformRawRowToRecord = (
+  row: ResourceClaimRawRow
+): ResourceClaim.Record => ({
+  id: row.id,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+  createdByCommit: row.created_by_commit,
+  updatedByCommit: row.updated_by_commit,
+  position: row.position,
+  organizationId: row.organization_id,
+  resourceId: row.resource_id,
+  subscriptionId: row.subscription_id,
+  pricingModelId: row.pricing_model_id,
+  externalId: row.external_id,
+  metadata: row.metadata,
+  livemode: row.livemode,
+  claimedAt: row.claimed_at,
+  releasedAt: row.released_at,
+  releaseReason: row.release_reason,
+})
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -538,24 +593,7 @@ const insertClaimsWithOptimisticLock = async (
       c.metadata ? JSON.stringify(c.metadata) : null
     )
 
-    const result = await transaction.execute<{
-      id: string
-      created_at: number
-      updated_at: number
-      created_by_commit: string | null
-      updated_by_commit: string | null
-      position: number
-      organization_id: string
-      resource_id: string
-      subscription_id: string
-      pricing_model_id: string
-      external_id: string | null
-      metadata: Record<string, string | number | boolean> | null
-      livemode: boolean
-      claimed_at: number
-      released_at: number | null
-      release_reason: string | null
-    }>(sql`
+    const result = await transaction.execute(sql`
       INSERT INTO ${resourceClaims} (
         organization_id, resource_id, subscription_id,
         pricing_model_id, external_id, metadata, livemode
@@ -581,48 +619,12 @@ const insertClaimsWithOptimisticLock = async (
       RETURNING *
     `)
 
-    // Drizzle's execute returns the rows directly
-    const rows = result as unknown as Array<{
-      id: string
-      created_at: number
-      updated_at: number
-      created_by_commit: string | null
-      updated_by_commit: string | null
-      position: number
-      organization_id: string
-      resource_id: string
-      subscription_id: string
-      pricing_model_id: string
-      external_id: string | null
-      metadata: Record<string, string | number | boolean> | null
-      livemode: boolean
-      claimed_at: number
-      released_at: number | null
-      release_reason: string | null
-    }>
+    // Validate raw SQL results with Zod for runtime safety
+    const rows = z.array(resourceClaimRawRowSchema).parse(result)
 
     // 4. Check if all claims were inserted (atomic - all or nothing)
     if (rows.length === claimsToInsert.length) {
-      const insertedClaims: ResourceClaim.Record[] = rows.map(
-        (insertedRow) => ({
-          id: insertedRow.id,
-          createdAt: insertedRow.created_at,
-          updatedAt: insertedRow.updated_at,
-          createdByCommit: insertedRow.created_by_commit,
-          updatedByCommit: insertedRow.updated_by_commit,
-          position: insertedRow.position,
-          organizationId: insertedRow.organization_id,
-          resourceId: insertedRow.resource_id,
-          subscriptionId: insertedRow.subscription_id,
-          pricingModelId: insertedRow.pricing_model_id,
-          externalId: insertedRow.external_id,
-          metadata: insertedRow.metadata,
-          livemode: insertedRow.livemode,
-          claimedAt: insertedRow.claimed_at,
-          releasedAt: insertedRow.released_at,
-          releaseReason: insertedRow.release_reason,
-        })
-      )
+      const insertedClaims = rows.map(transformRawRowToRecord)
       return { success: true, claims: insertedClaims }
     }
 
