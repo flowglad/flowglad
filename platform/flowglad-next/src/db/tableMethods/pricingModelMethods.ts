@@ -377,18 +377,29 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
     >()
 
     productResults.forEach(({ prices, ...product }) => {
+      // Filter to only include active products with active prices
+      if (!product.active) {
+        return
+      }
+      const activePrices = prices.filter((price) => price.active)
+      if (activePrices.length === 0) {
+        return // Skip products with no active prices
+      }
+      const defaultPrice =
+        activePrices.find((price) => price.isDefault) ??
+        activePrices[0]
+
       productsByPricingModelId.set(product.pricingModelId, [
         ...(productsByPricingModelId.get(product.pricingModelId) ||
           []),
         {
           ...product,
-          prices,
+          prices: activePrices,
           features:
             productFeaturesAndFeaturesByProductId
               .get(product.id)
               ?.map((p) => p.feature) ?? [],
-          defaultPrice:
-            prices.find((price) => price.isDefault) ?? prices[0],
+          defaultPrice,
         },
       ])
     })
@@ -404,11 +415,13 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         (usageMeter) => {
           const meterPrices =
             usagePricesByUsageMeterId.get(usageMeter.id) ?? []
+          // Filter to only active prices and recalculate default price
+          const activePrices = meterPrices.filter((p) => p.active)
           const defaultPrice =
-            meterPrices.find((p) => p.isDefault) ?? meterPrices[0]
+            activePrices.find((p) => p.isDefault) ?? activePrices[0]
           return {
             ...usageMeter,
-            prices: meterPrices,
+            prices: activePrices,
             defaultPrice,
           }
         }
@@ -427,40 +440,10 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
   }
 
 /**
- * Filters a pricing model to only include active products, prices, and usage meters.
- * Products without active prices are removed.
- * Usage meters keep their prices but filter to only active ones.
- */
-const filterActivePricingModelContent = (
-  pricingModel: PricingModelWithProductsAndUsageMeters
-): PricingModelWithProductsAndUsageMeters => {
-  return {
-    ...pricingModel,
-    products: pricingModel.products
-      .filter((product) => product.active)
-      .map((product) => ({
-        ...product,
-        prices: product.prices.filter((price) => price.active),
-      }))
-      .filter((product) => product.prices.length > 0), // Filter out products with no active prices
-    usageMeters: pricingModel.usageMeters.map((usageMeter) => {
-      const activePrices = usageMeter.prices.filter(
-        (price) => price.active
-      )
-      const defaultPrice =
-        activePrices.find((p) => p.isDefault) ?? activePrices[0]
-      return {
-        ...usageMeter,
-        prices: activePrices,
-        defaultPrice,
-      }
-    }),
-  }
-}
-
-/**
  * Gets the pricingModel for a customer. If no pricingModel explicitly associated,
  * returns the default pricingModel for the organization.
+ * Note: The returned pricing model already has inactive products and prices filtered out
+ * by selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere.
  * @param customer
  * @param transaction
  * @returns
@@ -477,7 +460,7 @@ export const selectPricingModelForCustomer = async (
       )
 
     if (pricingModel) {
-      return filterActivePricingModelContent(pricingModel)
+      return pricingModel
     }
   }
   const [pricingModel] =
@@ -496,5 +479,5 @@ export const selectPricingModelForCustomer = async (
     )
   }
 
-  return filterActivePricingModelContent(pricingModel)
+  return pricingModel
 }
