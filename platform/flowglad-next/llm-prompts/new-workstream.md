@@ -64,7 +64,7 @@ Once milestones are identified, work out the order:
 
 Each milestone should have:
 
-```
+```markdown
 ### Milestone N: [Gameplan Name]
 
 **Definition of Done**:
