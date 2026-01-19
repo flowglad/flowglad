@@ -39,6 +39,13 @@ platform/flowglad-next/src/
 - [ ] Indexes exist for query patterns
 - [ ] No N+1 query patterns
 - [ ] Proper error handling for constraint violations
+- [ ] No raw Drizzle calls in business logic (use tableMethods instead)
+
+### Table Methods (`db/tableMethods/`)
+- [ ] All inputs validated with Zod schemas
+- [ ] All outputs validated with Zod schemas
+- [ ] Validation applied even for "obvious" types (see rationale below)
+- [ ] No redundant methods (e.g., `selectFooById` when `selectFoos` suffices)
 
 ### Business Logic (`server/`, `subscriptions/`)
 - [ ] Edge cases handled
@@ -127,7 +134,90 @@ Use typed errors with `better-result` patterns. Functions return `Result<T, Erro
 Zod schemas for all external input.
 
 ### Database Access
-Drizzle ORM with typed queries.
+**Never use raw Drizzle calls in business logic.** All database access in `server/`, `subscriptions/`, `trigger/`, and other business logic should go through `db/tableMethods/` methods.
+
+Raw Drizzle calls are only acceptable inside `db/tableMethods/` itself. This ensures:
+- Consistent validation at the data access boundary
+- Centralized query logic that's easier to audit and optimize
+- Clear separation between business logic and data access
+
+```typescript
+// WRONG - raw Drizzle in business logic
+const customer = await db.query.customers.findFirst({ where: eq(customers.id, id) })
+
+// CORRECT - use tableMethods
+const customer = await selectCustomerById({ customerId: id })
+```
+
+### Table Methods Zod Validation
+**All methods in `db/tableMethods/` must have Zod validation for both inputs and outputs.**
+
+This ensures full unity between runtime behavior and the type system. Apply validation even when it seems redundant or "silly" — the goal is consistency and runtime safety, not minimal code.
+
+**Why this matters:**
+- TypeScript types are erased at runtime; Zod provides runtime guarantees
+- Database queries can return unexpected shapes (nulls, missing fields, wrong types from raw SQL)
+- Drizzle's type inference isn't always accurate, especially with complex joins or raw queries
+- Consistent validation catches bugs at the boundary, not deep in business logic
+- Makes refactoring safer — schema changes surface immediately as validation errors
+
+**Pattern:**
+```typescript
+// Input validation - even for simple queries
+const getCustomerByIdInputSchema = z.object({
+  customerId: z.string().uuid(),
+})
+
+// Output validation - even when Drizzle provides types
+const customerOutputSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  // ... all fields explicitly validated
+})
+
+export const getCustomerById = async (input: unknown) => {
+  const { customerId } = getCustomerByIdInputSchema.parse(input)
+  const result = await db.query.customers.findFirst({ where: eq(customers.id, customerId) })
+  return customerOutputSchema.parse(result)
+}
+```
+
+**Review guidance:**
+- Reject PRs that add table methods without Zod validation
+- "The types are already correct" is not a valid reason to skip validation
+- Output validation is just as important as input validation
+
+### Avoiding Redundant Table Methods
+**Do not create new table methods when existing ones suffice.**
+
+The most common violation is creating `selectFooById` or `selectFooByBar` methods when a general `selectFoos` method with filtering already exists.
+
+```typescript
+// WRONG - creating a redundant method (even with proper Zod validation)
+const selectCustomerByEmailInputSchema = z.object({
+  email: z.string().email(),
+})
+
+export const selectCustomerByEmail = async (input: unknown) => {
+  const { email } = selectCustomerByEmailInputSchema.parse(input)
+  const result = await db.query.customers.findFirst({ where: eq(customers.email, email) })
+  return selectCustomerSchema.parse(result)
+}
+// This method is redundant because selectCustomers already supports email filtering
+
+// CORRECT - use the existing selectCustomers with a filter
+const customer = await selectCustomers({ filters: { email } })
+```
+
+**When a new method IS appropriate:**
+- Complex joins or aggregations that don't fit the existing method's pattern
+- Performance-critical paths that need specialized queries
+- Queries that return a fundamentally different shape than the general method
+
+**Review guidance:**
+- Before approving a new `selectFooByX` method, check if `selectFoos` already supports that filter
+- Ask: "Could this be a parameter on an existing method instead?"
 
 ### State Management
 React contexts for client state, server state via React Query patterns.
@@ -352,3 +442,12 @@ Both `Processing` and `Succeeded` statuses count toward existing payments in pro
 
 ### 7. End-of-Period Adjustments
 Only allowed for downgrades (netCharge <= 0). Upgrades must apply immediately.
+
+### 8. Table Methods Must Have Zod Validation
+All methods in `db/tableMethods/` require Zod validation for inputs AND outputs, even when it seems unnecessary. This ensures runtime/type system unity. "The types already cover this" is not an acceptable justification for skipping validation.
+
+### 9. No Raw Drizzle in Business Logic
+Business logic (`server/`, `subscriptions/`, `trigger/`) must never contain raw Drizzle calls. Always go through `db/tableMethods/`. Raw Drizzle is only acceptable inside tableMethods itself.
+
+### 10. Avoid Redundant Table Methods
+Before creating `selectFooById` or `selectFooByBar`, check if `selectFoos` already supports that query pattern. Prefer adding parameters to existing methods over creating specialized variants.
