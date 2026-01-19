@@ -117,7 +117,9 @@ export async function downgradeWithResourceCheck(params: {
 
   // Check current seat usage before downgrading
   const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
-  const newCapacity = 5  // New plan's seat limit
+
+  // The new plan's capacity - in production, fetch this from your pricing config
+  const newCapacity = 5
 
   if (usage.claimed > newCapacity) {
     // Must release excess claims first

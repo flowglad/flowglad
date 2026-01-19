@@ -287,7 +287,7 @@ This aggregation happens automatically when calculating usage. The `getResourceU
 
 ### Subscription Lifecycle
 
-**On Cancellation:** When a subscription is canceled, all associated resource claims are automatically released with `releaseReason: "subscription_canceled"`. This ensures clean capacity management without manual cleanup.
+**On Cancellation:** When a subscription is canceled, all associated resource claims are automatically released with a `releaseReason` of `"subscription_canceled"`. This ensures clean capacity management without manual cleanup.
 
 **Claims Persist Across Adjustments:** Resource claims are scoped to the subscription and resource, not to individual subscription items. This means claims survive subscription adjustments—when you upgrade or downgrade plans, existing claims are preserved as long as they fit within the new capacity.
 
@@ -450,7 +450,9 @@ export async function downgradeToStarterPlan(params: {
 
   // Step 1: Check current usage
   const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
-  const newCapacity = 5  // Starter plan capacity
+
+  // The new plan's capacity - in production, fetch this from your pricing config
+  const newCapacity = 5
 
   if (usage.claimed > newCapacity) {
     // Step 2: Release excess claims before downgrading
@@ -500,13 +502,15 @@ export async function validatePlanChange(params: {
   if (usage.claimed > params.newSeatCapacity) {
     const seatsToRelease = usage.claimed - params.newSeatCapacity
 
-    // Return info about which members would need to be removed
+    // Identify which members would need to be removed.
+    // This example uses FIFO order—customize this logic based on your needs
+    // (e.g., let admins choose, exclude certain roles, use last-in-first-out, etc.)
     const affectedMembers = claims
       .filter(c => c.externalId !== null)
       .slice(0, seatsToRelease)
       .map(c => ({
         userId: c.externalId!,
-        email: c.metadata?.email as string
+        email: (c.metadata?.email as string) ?? 'unknown'
       }))
 
     return {
@@ -546,6 +550,30 @@ curl -X POST https://api.flowglad.com/api/v1/resource-claims/{subscriptionId}/cl
   }'
 ```
 
+**Response:**
+
+```json
+{
+  "claims": [{
+    "id": "claim_abc123",
+    "resourceId": "resource_xyz",
+    "subscriptionId": "sub_123",
+    "externalId": "user_123",
+    "claimedAt": 1705000000000,
+    "releasedAt": null,
+    "releaseReason": null,
+    "metadata": { "email": "user@example.com" }
+  }],
+  "usage": {
+    "resourceSlug": "seats",
+    "resourceId": "resource_xyz",
+    "capacity": 10,
+    "claimed": 3,
+    "available": 7
+  }
+}
+```
+
 ### Release Resource
 
 ```bash
@@ -558,11 +586,53 @@ curl -X POST https://api.flowglad.com/api/v1/resource-claims/{subscriptionId}/re
   }'
 ```
 
+**Response:**
+
+```json
+{
+  "releasedClaims": [{
+    "id": "claim_abc123",
+    "resourceId": "resource_xyz",
+    "subscriptionId": "sub_123",
+    "externalId": "user_123",
+    "claimedAt": 1705000000000,
+    "releasedAt": 1705100000000,
+    "releaseReason": "released"
+  }],
+  "usage": {
+    "resourceSlug": "seats",
+    "resourceId": "resource_xyz",
+    "capacity": 10,
+    "claimed": 2,
+    "available": 8
+  }
+}
+```
+
 ### Get Resource Usage
 
 ```bash
 curl https://api.flowglad.com/api/v1/resource-claims/{subscriptionId}/usage?resourceSlug=seats \
   -H "Authorization: Bearer your-api-key"
+```
+
+**Response:**
+
+```json
+{
+  "usage": {
+    "resourceSlug": "seats",
+    "resourceId": "resource_xyz",
+    "capacity": 10,
+    "claimed": 3,
+    "available": 7
+  },
+  "claims": [
+    { "id": "claim_1", "externalId": "user_1", "claimedAt": 1705000000000 },
+    { "id": "claim_2", "externalId": "user_2", "claimedAt": 1705050000000 },
+    { "id": "claim_3", "externalId": "user_3", "claimedAt": 1705100000000 }
+  ]
+}
 ```
 
 ### List All Resource Usages
@@ -572,11 +642,63 @@ curl https://api.flowglad.com/api/v1/resource-claims/{subscriptionId}/usages \
   -H "Authorization: Bearer your-api-key"
 ```
 
+**Response:**
+
+```json
+{
+  "resources": [
+    {
+      "resourceSlug": "seats",
+      "resourceId": "resource_seats",
+      "capacity": 10,
+      "claimed": 3,
+      "available": 7
+    },
+    {
+      "resourceSlug": "api_keys",
+      "resourceId": "resource_keys",
+      "capacity": 5,
+      "claimed": 2,
+      "available": 3
+    }
+  ]
+}
+```
+
 ### List Active Claims
 
 ```bash
 curl https://api.flowglad.com/api/v1/resource-claims/{subscriptionId}/claims?resourceSlug=seats \
   -H "Authorization: Bearer your-api-key"
+```
+
+**Response:**
+
+```json
+{
+  "claims": [
+    {
+      "id": "claim_1",
+      "resourceId": "resource_xyz",
+      "subscriptionId": "sub_123",
+      "externalId": "user_1",
+      "claimedAt": 1705000000000,
+      "releasedAt": null,
+      "releaseReason": null,
+      "metadata": { "email": "user1@example.com" }
+    },
+    {
+      "id": "claim_2",
+      "resourceId": "resource_xyz",
+      "subscriptionId": "sub_123",
+      "externalId": "user_2",
+      "claimedAt": 1705050000000,
+      "releasedAt": null,
+      "releaseReason": null,
+      "metadata": { "email": "user2@example.com" }
+    }
+  ]
+}
 ```
 
 ## Related
