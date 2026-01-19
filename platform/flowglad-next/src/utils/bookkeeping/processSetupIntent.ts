@@ -521,10 +521,8 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
-    // Invalidate purchase cache after updating purchase status
-    ctx.invalidateCache(
-      CacheDependency.customerPurchases(customer.id)
-    )
+    // Invalidate purchase cache after updating purchase content (status)
+    ctx.invalidateCache(CacheDependency.purchase(updatedPurchase.id))
 
     // Emit purchase completed event
     emitEvent({

@@ -231,10 +231,17 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
    * Declare what dependency keys this cache entry depends on.
    * When any of these dependencies are invalidated, this cache entry is invalidated.
    *
-   * Example: A subscription items cache entry for subscription "sub_123" might
-   * declare dependencies: ["subscription:sub_123", "subscriptionItems:sub_123"]
+   * Receives both the fetched result and the original arguments, allowing
+   * dependencies to be computed based on the actual data returned.
+   *
+   * Example: A usage meters cache might depend on:
+   * - pricingModelUsageMeters(pricingModelId) for set membership changes
+   * - usageMeter(meterId) for each meter in the result, for content changes
    */
-  dependenciesFn: (...args: TArgs) => CacheDependencyKey[]
+  dependenciesFn: (
+    result: TResult,
+    ...args: TArgs
+  ) => CacheDependencyKey[]
 }
 
 export interface CacheOptions {
@@ -536,7 +543,6 @@ export function cached<TArgs extends unknown[], TResult>(
 
       const key = config.keyFn(...fnArgs)
       const fullKey = `${config.namespace}:${key}`
-      const dependencies = config.dependenciesFn(...fnArgs)
       const span = trace.getActiveSpan()
 
       // If ignoreCache is set, skip cache lookup entirely
@@ -561,6 +567,9 @@ export function cached<TArgs extends unknown[], TResult>(
       // Cache miss - call wrapped function
       const result = await fn(...fnArgs)
 
+      // Compute dependencies based on the result
+      const dependencies = config.dependenciesFn(result, ...fnArgs)
+
       // Store in cache and register dependencies (fire-and-forget)
       await populateCache({
         fullKey,
@@ -584,8 +593,12 @@ export interface BulkCacheConfig<TKey, TResult> {
   keyFn: (key: TKey) => string
   /** Zod schema for validating cached data */
   schema: z.ZodType<TResult>
-  /** Get dependencies for a single key */
-  dependenciesFn: (key: TKey) => CacheDependencyKey[]
+  /**
+   * Get dependencies for a single key's cached items.
+   * Receives the items array and the key, allowing dependencies to be computed
+   * based on actual item IDs (e.g., individual item content dependencies).
+   */
+  dependenciesFn: (items: TResult, key: TKey) => CacheDependencyKey[]
 }
 
 /**
@@ -796,7 +809,8 @@ async function cachedBulkLookupImpl<TKey, TResult>(
         // Write to cache (fire-and-forget)
         const suffix = config.keyFn(key)
         const fullKey = `${config.namespace}:${suffix}`
-        const dependencies = config.dependenciesFn(key)
+        // Compute dependencies based on the actual items fetched
+        const dependencies = config.dependenciesFn(items, key)
 
         try {
           await writeClient.set(fullKey, JSON.stringify(items), {
@@ -1077,17 +1091,59 @@ export async function recomputeDependencies(
  * - etc.
  */
 export const CacheDependency = {
-  /** Invalidate when subscriptions for this customer change (create/update/delete) */
+  // === SET MEMBERSHIP DEPENDENCIES ===
+  // These track when items are added to or removed from a collection
+
+  /** Invalidate when subscriptions for this customer change (create/delete, but NOT content updates) */
   customerSubscriptions: (customerId: string): CacheDependencyKey =>
     `customerSubscriptions:${customerId}`,
-  /** Invalidate when items for this subscription change */
+  /** Invalidate when items for this subscription change (create/delete, but NOT content updates) */
   subscriptionItems: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionItems:${subscriptionId}`,
-  /** Invalidate when features for this subscription item change */
+  /** Invalidate when features for this subscription item change (create/delete, but NOT content updates) */
   subscriptionItemFeatures: (
     subscriptionItemId: string
   ): CacheDependencyKey =>
     `subscriptionItemFeatures:${subscriptionItemId}`,
+  /** Invalidate when usage meters for this pricing model change (create/archive, but NOT content updates) */
+  pricingModelUsageMeters: (
+    pricingModelId: string
+  ): CacheDependencyKey =>
+    `pricingModelUsageMeters:${pricingModelId}`,
+
+  // === CONTENT DEPENDENCIES ===
+  // These track when a specific item's properties change
+
+  /** Invalidate when this specific subscription's content changes (status, dates, etc.) */
+  subscription: (subscriptionId: string): CacheDependencyKey =>
+    `subscription:${subscriptionId}`,
+  /** Invalidate when this specific subscription item's content changes (quantity, etc.) */
+  subscriptionItem: (
+    subscriptionItemId: string
+  ): CacheDependencyKey => `subscriptionItem:${subscriptionItemId}`,
+  /** Invalidate when this specific subscription item feature's content changes (quantity, etc.) */
+  subscriptionItemFeature: (
+    subscriptionItemFeatureId: string
+  ): CacheDependencyKey =>
+    `subscriptionItemFeature:${subscriptionItemFeatureId}`,
+  /** Invalidate when this specific usage meter's content changes (name, slug, etc.) */
+  usageMeter: (usageMeterId: string): CacheDependencyKey =>
+    `usageMeter:${usageMeterId}`,
+  /** Invalidate when this specific purchase's content changes */
+  purchase: (purchaseId: string): CacheDependencyKey =>
+    `purchase:${purchaseId}`,
+  /** Invalidate when this specific payment method's content changes */
+  paymentMethod: (paymentMethodId: string): CacheDependencyKey =>
+    `paymentMethod:${paymentMethodId}`,
+  /** Invalidate when this specific invoice's content changes */
+  invoice: (invoiceId: string): CacheDependencyKey =>
+    `invoice:${invoiceId}`,
+  /** Invalidate when this specific invoice line item's content changes */
+  invoiceLineItem: (invoiceLineItemId: string): CacheDependencyKey =>
+    `invoiceLineItem:${invoiceLineItemId}`,
+
+  // === OTHER DEPENDENCIES ===
+
   /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionLedger:${subscriptionId}`,
@@ -1101,28 +1157,6 @@ export const CacheDependency = {
   customerInvoices: (customerId: string): CacheDependencyKey =>
     `customerInvoices:${customerId}`,
 } as const
-
-/**
- * Higher-order function that creates a dependenciesFn from an array of dependency functions.
- * Simplifies the common pattern of passing a key to multiple CacheDependency functions.
- *
- * @example
- * // Before:
- * dependenciesFn: (customerId: string) => [
- *   CacheDependency.customerPurchases(customerId),
- *   CacheDependency.customerInvoices(customerId),
- * ]
- *
- * // After:
- * dependenciesFn: fromDependencies(
- *   CacheDependency.customerPurchases,
- *   CacheDependency.customerInvoices,
- * )
- */
-export const fromDependencies =
-  <K>(...fns: Array<(key: K) => CacheDependencyKey>) =>
-  (key: K): CacheDependencyKey[] =>
-    fns.map((fn) => fn(key))
 
 // NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'
 // Import from there for server-only code that needs recomputation support.
