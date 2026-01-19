@@ -125,7 +125,20 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
     })
 
-    it('should resolve usageMeterSlug to usageMeterId', async () => {
+    it('should resolve usageMeterSlug to usageMeterId with default price', async () => {
+      // Create a default price for the usage meter
+      const defaultPrice = await setupPrice({
+        name: 'Default Price for Meter Slug Test',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
       const result = await adminTransaction(async ({ transaction }) =>
         bulkInsertUsageEventsTransaction(
           {
@@ -146,7 +159,10 @@ describe('bulkInsertUsageEventsTransaction', () => {
       )
 
       expect(result.unwrap().usageEvents).toHaveLength(1)
-      expect(result.unwrap().usageEvents[0].priceId).toBeNull()
+      // Should resolve to the default price for the usage meter
+      expect(result.unwrap().usageEvents[0].priceId).toBe(
+        defaultPrice.id
+      )
       expect(result.unwrap().usageEvents[0].usageMeterId).toBe(
         usageMeter.id
       )
@@ -318,6 +334,19 @@ describe('bulkInsertUsageEventsTransaction', () => {
     })
 
     it('should correctly resolve usageMeterSlugs when different customers have meters with the same slug', async () => {
+      // Create a default price for org1's usage meter
+      const defaultPrice1 = await setupPrice({
+        name: 'Default Price for Org1 Meter',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
       // Create a second organization with its own pricing model
       const org2Setup = await setupOrg()
       const org2 = org2Setup.organization
@@ -343,7 +372,20 @@ describe('bulkInsertUsageEventsTransaction', () => {
         slug: usageMeter.slug ?? undefined,
       })
 
-      // Create a price for org2 that uses usageMeter2
+      // Create a default price for org2's usage meter
+      const defaultPrice2 = await setupPrice({
+        name: 'Default Price for Org2 Meter',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter2.id,
+      })
+
+      // Create a non-default price for org2's subscription
       const price2 = await setupPrice({
         name: 'Org2 Usage Price For Meter Slug Test',
         type: PriceType.Usage,
@@ -415,16 +457,18 @@ describe('bulkInsertUsageEventsTransaction', () => {
         (e) => e.subscriptionId === subscription2.id
       )
 
-      // Each event should resolve to the correct meter for its customer
+      // Each event should resolve to the correct meter and default price for its customer
       // Using toMatchObject to verify the relevant fields without non-null assertions
       expect(event1).toMatchObject({
         usageMeterId: usageMeter.id,
         customerId: customer.id,
+        priceId: defaultPrice1.id,
       })
 
       expect(event2).toMatchObject({
         usageMeterId: usageMeter2.id,
         customerId: customer2.id,
+        priceId: defaultPrice2.id,
       })
     })
   })
@@ -573,7 +617,23 @@ describe('bulkInsertUsageEventsTransaction', () => {
           })
       )
 
-      // Create a usage price for the count distinct meter
+      // Create a default price for the count distinct meter (required for meter ID resolution)
+      const countDistinctDefaultPrice = await adminTransaction(
+        async ({ transaction }) =>
+          setupPrice({
+            name: 'Count Distinct Default Price',
+            type: PriceType.Usage,
+            unitPrice: 0,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: true,
+            currency: CurrencyCode.USD,
+            usageMeterId: countDistinctMeter.id,
+          })
+      )
+
+      // Create a non-default usage price for the subscription
       const countDistinctPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
@@ -632,6 +692,22 @@ describe('bulkInsertUsageEventsTransaction', () => {
             pricingModelId,
             aggregationType:
               UsageMeterAggregationType.CountDistinctProperties,
+          })
+      )
+
+      // Create a default price for the count distinct meter (required for meter ID resolution)
+      const countDistinctDefaultPrice = await adminTransaction(
+        async ({ transaction }) =>
+          setupPrice({
+            name: 'Count Distinct Default Price Empty Props',
+            type: PriceType.Usage,
+            unitPrice: 0,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: true,
+            currency: CurrencyCode.USD,
+            usageMeterId: countDistinctMeter.id,
           })
       )
 
