@@ -99,15 +99,23 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     }
 
     return withRLS(transaction, { jwtClaim, livemode }, async () => {
-      // Construct transaction context based on auth type
+      // Construct transaction context based on JWT role, not the optional customerId parameter.
+      // This is important because customer billing portal auth sets role='customer' in the JWT
+      // even when customerId is not explicitly passed as a parameter.
       const cacheRecomputationContext: CacheRecomputationContext =
-        customerId
+        jwtClaim.role === 'customer'
           ? {
               type: 'customer',
               livemode,
               organizationId,
               userId,
-              customerId,
+              // Prefer explicit customerId parameter, fall back to JWT metadata
+              customerId:
+                customerId ??
+                (jwtClaim.user_metadata.app_metadata?.customer_id as
+                  | string
+                  | undefined) ??
+                '',
             }
           : {
               type: 'merchant',

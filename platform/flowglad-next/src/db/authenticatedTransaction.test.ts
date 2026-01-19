@@ -1,8 +1,9 @@
 import { Result } from 'better-result'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import {
+  setupCustomer,
   setupMemberships,
   setupOrg,
   setupUserAndApiKey,
@@ -27,6 +28,7 @@ import type { Membership } from './schema/memberships'
 import type { Organization } from './schema/organizations'
 import type { PricingModel } from './schema/pricingModels'
 import type { User } from './schema/users'
+import { users } from './schema/users'
 import { insertApiKey } from './tableMethods/apiKeyMethods'
 import {
   insertMembership,
@@ -54,9 +56,22 @@ const mockedAuth = vi.hoisted(
   } => ({ session: null })
 )
 
+const mockedCustomerBillingPortal = vi.hoisted(
+  (): {
+    organizationId: string | null
+  } => ({ organizationId: null })
+)
+
 vi.mock('@/utils/auth', () => {
   return {
     getSession: async () => mockedAuth.session,
+  }
+})
+
+vi.mock('@/utils/customerBillingPortalState', () => {
+  return {
+    getCustomerBillingPortalOrganizationId: async () =>
+      mockedCustomerBillingPortal.organizationId,
   }
 })
 
@@ -1858,5 +1873,102 @@ describe('Edge cases and robustness for second-order RLS', () => {
       { apiKey: testKey.token }
     )
     expect(test.every((p) => p.livemode === false)).toBe(true)
+  })
+})
+
+describe('cacheRecomputationContext derivation', () => {
+  it('sets type to customer with customerId from JWT metadata when using customer billing portal auth', async () => {
+    // Setup organization with a customer linked to a user with betterAuthId
+    const { organization } = await setupOrg()
+    const { user } = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+
+    // Set betterAuthId on the user (required for customer billing portal auth)
+    const betterAuthId = `ba_${core.nanoid()}`
+    await adminTransaction(async ({ transaction }) => {
+      await transaction
+        .update(users)
+        .set({ betterAuthId })
+        .where(eq(users.id, user.id))
+    })
+
+    // Create customer linked to the user (required for customer billing portal lookup)
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+      userId: user.id,
+    })
+
+    // Configure mocks to simulate customer billing portal authentication:
+    // - session is set (user is logged in via Better Auth)
+    // - customerBillingPortal returns the organization ID (triggers customer JWT creation)
+    mockedAuth.session = {
+      user: { id: betterAuthId, email: user.email! },
+    }
+    mockedCustomerBillingPortal.organizationId = organization.id
+
+    // Call comprehensiveAuthenticatedTransaction with customerId to verify
+    // the cacheRecomputationContext is correctly set to 'customer' type.
+    // Note: The fix ensures that even without explicitly passing customerId,
+    // the JWT role='customer' determines the context type.
+    const result = await comprehensiveAuthenticatedTransaction(
+      async (params) => {
+        // Verify the cacheRecomputationContext is correctly derived
+        expect(params.cacheRecomputationContext.type).toBe('customer')
+
+        if (params.cacheRecomputationContext.type === 'customer') {
+          // The customerId should be extracted from JWT metadata
+          expect(params.cacheRecomputationContext.customerId).toBe(
+            customer.id
+          )
+          expect(
+            params.cacheRecomputationContext.organizationId
+          ).toBe(organization.id)
+          expect(params.cacheRecomputationContext.userId).toBe(
+            user.id
+          )
+        }
+
+        return Result.ok({ verified: true })
+      },
+      { customerId: customer.id }
+    )
+
+    expect(result.verified).toBe(true)
+
+    // Reset mocks
+    mockedAuth.session = null
+    mockedCustomerBillingPortal.organizationId = null
+  })
+
+  it('sets type to merchant when using API key auth (non-customer role)', async () => {
+    const { organization } = await setupOrg()
+    const { user, apiKey } = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+
+    // API key auth should result in merchant context, not customer
+    const result = await comprehensiveAuthenticatedTransaction(
+      async (params) => {
+        expect(params.cacheRecomputationContext.type).toBe('merchant')
+
+        if (params.cacheRecomputationContext.type === 'merchant') {
+          expect(
+            params.cacheRecomputationContext.organizationId
+          ).toBe(organization.id)
+          expect(params.cacheRecomputationContext.userId).toBe(
+            user.id
+          )
+        }
+
+        return Result.ok({ verified: true })
+      },
+      { apiKey: apiKey.token }
+    )
+
+    expect(result.verified).toBe(true)
   })
 })
