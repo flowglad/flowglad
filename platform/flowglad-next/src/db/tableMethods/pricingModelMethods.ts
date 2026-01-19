@@ -264,16 +264,21 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
     transaction: DbTransaction
   ): Promise<PricingModelWithProductsAndUsageMeters[]> => {
     /**
-     * Implementation note:
-     * it is actually fairly important to do this in two steps,
-     * because pricingModels are one-to-many with products, so we couldn't
-     * easily describe our desired "limit" result.
-     * But in two steps, we can limit the pricingModels, and then get the
-     * products for each pricingModel.
-     * This COULD create a performance issue if there are a lot of products
-     * to fetch, but in practice it should be fine.
+     * Why two queries instead of a JOIN?
      *
-     * Usage meters are now fetched via a cached query (selectUsageMetersByPricingModelId)
+     * A single JOIN query with LIMIT 100 would limit the *joined rows*, not
+     * the pricing models. For example, if one pricing model has 50 products,
+     * that's 50 rows — so LIMIT 100 might only return 2 pricing models.
+     *
+     * By splitting into two queries:
+     * 1. Fetch pricing models with LIMIT 100 → guarantees up to 100 pricing models
+     * 2. Fetch all products for those pricing model IDs → no limit needed
+     *
+     * Trade-off: If a pricing model has thousands of products, the second query
+     * could be slow. In practice, this is acceptable since pricing models typically
+     * have a reasonable number of products.
+     *
+     * Usage meters are fetched via a cached query (selectUsageMetersByPricingModelId)
      * rather than a JOIN, enabling per-pricing-model caching of usage meter config data.
      */
     const pricingModelResults = await transaction

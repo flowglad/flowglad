@@ -175,9 +175,12 @@ export const safelyUpdatePaymentMethod = async (
       : null
 
   // If payment method is becoming default, set existing defaults to non-default
+  // Use the new customerId if provided (payment method is moving), otherwise use existing
   if (paymentMethod.default && existingPaymentMethod) {
+    const targetCustomerId =
+      paymentMethod.customerId ?? existingPaymentMethod.customerId
     await setPaymentMethodsForCustomerToNonDefault(
-      existingPaymentMethod.customerId,
+      targetCustomerId,
       ctx
     )
   }
