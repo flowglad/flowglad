@@ -116,8 +116,11 @@ export const updatePrice = protectedProcedure
 
         // No_charge price protection - these checks must come BEFORE other validation
         // No_charge prices can only have their name changed
+        // Note: Only usage prices can be no_charge prices
         const existingIsNoCharge =
-          existingPrice.slug && isNoChargePrice(existingPrice.slug)
+          existingPrice.type === PriceType.Usage &&
+          existingPrice.slug &&
+          isNoChargePrice(existingPrice.slug)
         if (existingIsNoCharge) {
           // Reject archiving (setting active to false)
           if (price.active === false) {
@@ -319,7 +322,12 @@ export const archivePrice = protectedProcedure
         const oldPrice = await selectPriceById(input.id, transaction)
 
         // No_charge price protection - cannot be archived
-        if (oldPrice.slug && isNoChargePrice(oldPrice.slug)) {
+        // Note: Only usage prices can be no_charge prices
+        if (
+          oldPrice.type === PriceType.Usage &&
+          oldPrice.slug &&
+          isNoChargePrice(oldPrice.slug)
+        ) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
