@@ -12,11 +12,33 @@ The goal is to produce a markdown file that the team can review and "approve", s
 
 Note that this should be easy to review, and not super voluminuous - the whole idea is that it's 5-10x easier to scrutinize a markdown describe planned code than reviewing the actual lines of code themselves!
 
+## Workstream Context (Optional)
+
+A gameplan can be **standalone** or part of a **workstream**. A workstream is a larger project spanning weeks or months, broken into multiple gameplans as milestones.
+
+**If the user provides a workstream reference** (a Notion URL or workstream name):
+1. Fetch the workstream from Notion to understand the broader project context
+2. Identify which milestone this gameplan corresponds to
+3. Review the milestone's "Definition of Done" - this should inform your acceptance criteria
+4. Consider what prior milestones have been completed and what this gameplan unlocks
+5. Ensure your gameplan leaves the codebase in a consistent state (a key workstream requirement)
+
+**If no workstream is provided**, treat this as a standalone gameplan. Most gameplans are self-contained.
+
+When part of a workstream, include a "Workstream" field in your output (see format below).
+
 Roughly, the shape should be:
 
 - Project Name
   A short, kebab-case identifier for this gameplan (e.g., `subscription-adjustments`, `usage-billing-v2`).
   This name is used in branch names and PR titles to identify which gameplan a patch belongs to.
+
+- Workstream (if applicable)
+  If this gameplan is part of a workstream, include:
+  - **Name**: The workstream name
+  - **Milestone**: Which milestone this gameplan fulfills (e.g., "Milestone 3: refactor-billing-engine")
+  - **Prior milestones**: Brief note on what's already been completed
+  - **This milestone unlocks**: What becomes possible after this gameplan
 
 - Problem Statement
   A concise (2-4 sentences) description of what problem we're solving and why.
@@ -91,3 +113,12 @@ Roughly, the shape should be:
 - Be explicit rather than wishy washy. It should be easy to pick up the markdown and execute its instructions patch-by-patch using a coding agent that has none of your context window, but just has access to the codebase
 - If there are new functions or functions whose signatures will be modified, always include the proposed function signatures. This helps the team build explicit understanding of what we're going to do
 - Don't make it overly verbose. The gameplan should be 10x easier for a human to review and provide pointed feedback about than the code that gets produced as a result
+- **Workstream gameplans**: If part of a workstream, ensure the gameplan's acceptance criteria align with the milestone's "Definition of Done". The gameplan must leave the codebase in a consistent, functional state - even if the overall workstream is incomplete.
+
+# Recording in Notion
+
+When the gameplan is approved, create an entry in the Gameplans database:
+- **Gameplan**: The project name
+- **Status**: "Ready to Execute"
+- **Workstream**: Link to the workstream (if applicable)
+- **Markdown**: Attach the gameplan markdown file

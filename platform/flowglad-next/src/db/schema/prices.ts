@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
@@ -63,6 +64,52 @@ const createOnlyColumns = {
 } as const
 
 export const priceImmutableFields = Object.keys(createOnlyColumns)
+
+/**
+ * Reserved suffix for auto-generated fallback prices on usage meters.
+ * When a usage meter has no explicitly configured price, the system
+ * generates a fallback price with this suffix (e.g., "api_requests_no_charge").
+ *
+ * Users cannot manually create usage prices with slugs ending in this suffix.
+ */
+export const RESERVED_USAGE_PRICE_SLUG_SUFFIX = '_no_charge' as const
+
+/**
+ * Check if a price slug uses the reserved `_no_charge` suffix.
+ * This suffix is reserved for auto-generated fallback prices on usage meters.
+ *
+ * Note: This restriction applies ONLY to usage prices.
+ * Subscription and single_payment prices can use any slug including `_no_charge` suffix.
+ *
+ * @param slug - The slug to check
+ * @returns true if the slug ends with `_no_charge`
+ */
+export const isReservedPriceSlug = (slug: string): boolean => {
+  return slug.endsWith(RESERVED_USAGE_PRICE_SLUG_SUFFIX)
+}
+
+/**
+ * Validates that a usage price slug doesn't use reserved suffixes.
+ * Throws TRPCError if validation fails.
+ *
+ * @param price - Price input with type and optional slug
+ * @throws TRPCError with BAD_REQUEST if slug uses reserved suffix
+ */
+export const validateUsagePriceSlug = (price: {
+  type: (typeof PriceType)[keyof typeof PriceType]
+  slug?: string | null
+}): void => {
+  if (
+    price.type === PriceType.Usage &&
+    price.slug &&
+    isReservedPriceSlug(price.slug)
+  ) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: `Usage price slugs ending with "${RESERVED_USAGE_PRICE_SLUG_SUFFIX}" are reserved for auto-generated fallback prices`,
+    })
+  }
+}
 
 const hiddenColumns = {
   externalId: true,
