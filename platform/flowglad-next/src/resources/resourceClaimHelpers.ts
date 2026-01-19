@@ -382,8 +382,12 @@ const MAX_OPTIMISTIC_LOCK_RETRIES = 3
  * This function:
  * 1. Reads the current claim count
  * 2. Validates capacity
- * 3. Uses a conditional INSERT that only succeeds if the count hasn't changed
+ * 3. Uses a batched conditional INSERT that only succeeds if the count hasn't changed
  * 4. Retries on conflict (another transaction modified the count)
+ *
+ * IMPORTANT: All claims are inserted in a single atomic statement using UNNEST.
+ * This ensures either ALL claims are inserted or NONE are, preventing partial
+ * inserts that could cause duplicates on retry.
  *
  * This approach avoids blocking (unlike SELECT ... FOR UPDATE) and provides
  * better throughput for low-contention scenarios (which resource claims are).
@@ -440,110 +444,103 @@ const insertClaimsWithOptimisticLock = async (
       )
     }
 
-    // 3. Conditional insert - only succeeds if count hasn't changed
-    // We use a CTE with the count check as a guard
-    const insertedClaims: ResourceClaim.Record[] = []
+    // 3. Batched conditional insert - all claims in one atomic statement
+    // Uses UNNEST to expand arrays into rows, ensuring either ALL claims
+    // are inserted or NONE are (prevents partial insert bug on retry)
+    const externalIds = claimsToInsert.map((c) => c.externalId)
+    const metadataJsonStrings = claimsToInsert.map((c) =>
+      c.metadata ? JSON.stringify(c.metadata) : null
+    )
 
-    for (const claim of claimsToInsert) {
-      // We use raw SQL for the conditional INSERT
-      // The table will auto-generate: id, created_at, updated_at, position, created_by_commit, updated_by_commit
-      const result = await transaction.execute<{
-        id: string
-        created_at: number
-        updated_at: number
-        created_by_commit: string | null
-        updated_by_commit: string | null
-        position: number
-        organization_id: string
-        resource_id: string
-        subscription_id: string
-        pricing_model_id: string
-        external_id: string | null
-        metadata: Record<string, string | number | boolean> | null
-        livemode: boolean
-        claimed_at: number
-        released_at: number | null
-        release_reason: string | null
-      }>(sql`
-        INSERT INTO ${resourceClaims} (
-          organization_id, resource_id, subscription_id,
-          pricing_model_id, external_id, metadata, livemode
-        )
-        SELECT
-          ${organizationId},
-          ${resourceId},
-          ${subscriptionId},
-          ${pricingModelId},
-          ${claim.externalId},
-          ${claim.metadata ? JSON.stringify(claim.metadata) : null}::jsonb,
-          ${livemode}
-        WHERE (
-          SELECT COUNT(*) FROM ${resourceClaims}
-          WHERE subscription_id = ${subscriptionId}
-            AND resource_id = ${resourceId}
-            AND released_at IS NULL
-        ) = ${currentCount + insertedClaims.length}
-        RETURNING *
-      `)
+    const result = await transaction.execute<{
+      id: string
+      created_at: number
+      updated_at: number
+      created_by_commit: string | null
+      updated_by_commit: string | null
+      position: number
+      organization_id: string
+      resource_id: string
+      subscription_id: string
+      pricing_model_id: string
+      external_id: string | null
+      metadata: Record<string, string | number | boolean> | null
+      livemode: boolean
+      claimed_at: number
+      released_at: number | null
+      release_reason: string | null
+    }>(sql`
+      INSERT INTO ${resourceClaims} (
+        organization_id, resource_id, subscription_id,
+        pricing_model_id, external_id, metadata, livemode
+      )
+      SELECT
+        ${organizationId},
+        ${resourceId},
+        ${subscriptionId},
+        ${pricingModelId},
+        ext_id,
+        meta::jsonb,
+        ${livemode}
+      FROM UNNEST(
+        ${externalIds}::text[],
+        ${metadataJsonStrings}::text[]
+      ) AS t(ext_id, meta)
+      WHERE (
+        SELECT COUNT(*) FROM ${resourceClaims}
+        WHERE subscription_id = ${subscriptionId}
+          AND resource_id = ${resourceId}
+          AND released_at IS NULL
+      ) = ${currentCount}
+      RETURNING *
+    `)
 
-      // Drizzle's execute returns the rows directly
-      const rows = result as unknown as Array<{
-        id: string
-        created_at: number
-        updated_at: number
-        created_by_commit: string | null
-        updated_by_commit: string | null
-        position: number
-        organization_id: string
-        resource_id: string
-        subscription_id: string
-        pricing_model_id: string
-        external_id: string | null
-        metadata: Record<string, string | number | boolean> | null
-        livemode: boolean
-        claimed_at: number
-        released_at: number | null
-        release_reason: string | null
-      }>
+    // Drizzle's execute returns the rows directly
+    const rows = result as unknown as Array<{
+      id: string
+      created_at: number
+      updated_at: number
+      created_by_commit: string | null
+      updated_by_commit: string | null
+      position: number
+      organization_id: string
+      resource_id: string
+      subscription_id: string
+      pricing_model_id: string
+      external_id: string | null
+      metadata: Record<string, string | number | boolean> | null
+      livemode: boolean
+      claimed_at: number
+      released_at: number | null
+      release_reason: string | null
+    }>
 
-      if (rows.length === 0) {
-        // Conflict detected - another transaction modified the count
-        // Break out of the claim loop to retry from the beginning
-        break
-      }
-
-      // Parse and add the inserted claim
-      const insertedRow = rows[0]
-
-      insertedClaims.push({
-        id: insertedRow.id,
-        createdAt: insertedRow.created_at,
-        updatedAt: insertedRow.updated_at,
-        createdByCommit: insertedRow.created_by_commit,
-        updatedByCommit: insertedRow.updated_by_commit,
-        position: insertedRow.position,
-        organizationId: insertedRow.organization_id,
-        resourceId: insertedRow.resource_id,
-        subscriptionId: insertedRow.subscription_id,
-        pricingModelId: insertedRow.pricing_model_id,
-        externalId: insertedRow.external_id,
-        metadata: insertedRow.metadata,
-        livemode: insertedRow.livemode,
-        claimedAt: insertedRow.claimed_at,
-        releasedAt: insertedRow.released_at,
-        releaseReason: insertedRow.release_reason,
-      })
-    }
-
-    // 4. Check if all claims were inserted
-    if (insertedClaims.length === claimsToInsert.length) {
+    // 4. Check if all claims were inserted (atomic - all or nothing)
+    if (rows.length === claimsToInsert.length) {
+      const insertedClaims: ResourceClaim.Record[] = rows.map(
+        (insertedRow) => ({
+          id: insertedRow.id,
+          createdAt: insertedRow.created_at,
+          updatedAt: insertedRow.updated_at,
+          createdByCommit: insertedRow.created_by_commit,
+          updatedByCommit: insertedRow.updated_by_commit,
+          position: insertedRow.position,
+          organizationId: insertedRow.organization_id,
+          resourceId: insertedRow.resource_id,
+          subscriptionId: insertedRow.subscription_id,
+          pricingModelId: insertedRow.pricing_model_id,
+          externalId: insertedRow.external_id,
+          metadata: insertedRow.metadata,
+          livemode: insertedRow.livemode,
+          claimedAt: insertedRow.claimed_at,
+          releasedAt: insertedRow.released_at,
+          releaseReason: insertedRow.release_reason,
+        })
+      )
       return { success: true, claims: insertedClaims }
     }
 
-    // 5. Conflict detected - another transaction modified, retry
-    // Note: Any partial inserts will be rolled back if we eventually fail,
-    // but within a transaction they'll be visible to our retries so we
-    // should read fresh counts on each attempt
+    // 5. Conflict detected - count changed, nothing was inserted, retry
     if (attempt < MAX_OPTIMISTIC_LOCK_RETRIES - 1) {
       // eslint-disable-next-line no-console
       console.log(
