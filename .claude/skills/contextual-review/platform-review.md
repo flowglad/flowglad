@@ -40,6 +40,11 @@ platform/flowglad-next/src/
 - [ ] No N+1 query patterns
 - [ ] Proper error handling for constraint violations
 
+### Table Methods (`db/tableMethods/`)
+- [ ] All inputs validated with Zod schemas
+- [ ] All outputs validated with Zod schemas
+- [ ] Validation applied even for "obvious" types (see rationale below)
+
 ### Business Logic (`server/`, `subscriptions/`)
 - [ ] Edge cases handled
 - [ ] State transitions are valid
@@ -128,6 +133,45 @@ Zod schemas for all external input.
 
 ### Database Access
 Drizzle ORM with typed queries.
+
+### Table Methods Zod Validation
+**All methods in `db/tableMethods/` must have Zod validation for both inputs and outputs.**
+
+This ensures full unity between runtime behavior and the type system. Apply validation even when it seems redundant or "silly" — the goal is consistency and runtime safety, not minimal code.
+
+**Why this matters:**
+- TypeScript types are erased at runtime; Zod provides runtime guarantees
+- Database queries can return unexpected shapes (nulls, missing fields, wrong types from raw SQL)
+- Drizzle's type inference isn't always accurate, especially with complex joins or raw queries
+- Consistent validation catches bugs at the boundary, not deep in business logic
+- Makes refactoring safer — schema changes surface immediately as validation errors
+
+**Pattern:**
+```typescript
+// Input validation - even for simple queries
+const getCustomerByIdInputSchema = z.object({
+  customerId: z.string().uuid(),
+})
+
+// Output validation - even when Drizzle provides types
+const customerOutputSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  // ... all fields explicitly validated
+})
+
+export const getCustomerById = async (input: unknown) => {
+  const { customerId } = getCustomerByIdInputSchema.parse(input)
+  const result = await db.query.customers.findFirst({ where: eq(customers.id, customerId) })
+  return customerOutputSchema.parse(result)
+}
+```
+
+**Review guidance:**
+- Reject PRs that add table methods without Zod validation
+- "The types are already correct" is not a valid reason to skip validation
+- Output validation is just as important as input validation
 
 ### State Management
 React contexts for client state, server state via React Query patterns.
@@ -352,3 +396,6 @@ Both `Processing` and `Succeeded` statuses count toward existing payments in pro
 
 ### 7. End-of-Period Adjustments
 Only allowed for downgrades (netCharge <= 0). Upgrades must apply immediately.
+
+### 8. Table Methods Must Have Zod Validation
+All methods in `db/tableMethods/` require Zod validation for inputs AND outputs, even when it seems unnecessary. This ensures runtime/type system unity. "The types already cover this" is not an acceptable justification for skipping validation.
