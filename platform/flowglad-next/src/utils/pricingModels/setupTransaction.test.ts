@@ -812,11 +812,9 @@ describe('setupPricingModelTransaction (integration)', () => {
       expect(noChargePrice?.slug).toBe('compute_no_charge')
       expect(userPrice?.slug).toBe('compute_standard')
 
-      // Note: Validation in setupSchemas.ts sets all usage prices' isDefault to false
-      // to avoid unique constraint issues. The user's original intent (isDefault: true)
-      // is used to determine whether the no_charge price should be default.
-      expect(userPrice?.isDefault).toBe(false)
-      // No-charge should not be default when user originally specified a default price
+      // With Patch 3, user-specified isDefault: true is preserved
+      expect(userPrice?.isDefault).toBe(true)
+      // No-charge should not be default when user specified a default price
       expect(noChargePrice?.isDefault).toBe(false)
     })
 
