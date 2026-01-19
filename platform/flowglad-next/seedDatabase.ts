@@ -319,34 +319,47 @@ export const setupPaymentMethod = async (params: {
   stripePaymentMethodId?: string
   type?: PaymentMethodType
 }) => {
-  return adminTransaction(async ({ transaction }) => {
-    return safelyInsertPaymentMethod(
-      {
-        customerId: params.customerId,
-        type: params.type ?? PaymentMethodType.Card,
-        livemode: params.livemode ?? true,
-        default: true,
-        externalId: null,
-        billingDetails: {
-          name: 'Test',
-          email: 'test@test.com',
-          address: {
-            line1: '123 Test St',
-            line2: 'Apt 1',
-            country: 'US',
-            city: 'Test City',
-            state: 'Test State',
-            postal_code: '12345',
+  return adminTransaction(
+    async ({
+      transaction,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+    }) => {
+      const ctx = {
+        transaction,
+        invalidateCache: invalidateCache!,
+        emitEvent: emitEvent!,
+        enqueueLedgerCommand: enqueueLedgerCommand!,
+      }
+      return safelyInsertPaymentMethod(
+        {
+          customerId: params.customerId,
+          type: params.type ?? PaymentMethodType.Card,
+          livemode: params.livemode ?? true,
+          default: params.default ?? true,
+          externalId: null,
+          billingDetails: {
+            name: 'Test',
+            email: 'test@test.com',
+            address: {
+              line1: '123 Test St',
+              line2: 'Apt 1',
+              country: 'US',
+              city: 'Test City',
+              state: 'Test State',
+              postal_code: '12345',
+            },
           },
+          paymentMethodData: params.paymentMethodData ?? {},
+          metadata: {},
+          stripePaymentMethodId:
+            params.stripePaymentMethodId ?? `pm_${core.nanoid()}`,
         },
-        paymentMethodData: params.paymentMethodData ?? {},
-        metadata: {},
-        stripePaymentMethodId:
-          params.stripePaymentMethodId ?? `pm_${core.nanoid()}`,
-      },
-      transaction
-    )
-  })
+        ctx
+      )
+    }
+  )
 }
 
 interface SetupCustomerParams {

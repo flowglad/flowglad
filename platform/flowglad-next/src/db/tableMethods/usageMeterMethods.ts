@@ -1,7 +1,8 @@
-import { eq, inArray } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import {
   type UsageMeter,
   usageMeters,
+  usageMetersClientSelectSchema,
   usageMetersInsertSchema,
   usageMetersSelectSchema,
   usageMetersTableRowDataSchema,
@@ -24,6 +25,8 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { CacheDependency, cached } from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import { selectCustomerById } from './customerMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -75,6 +78,63 @@ export const updateUsageMeter = createUpdateFunction(
 export const selectUsageMeters = createSelectFunction(
   usageMeters,
   config
+)
+
+/**
+ * Selects usage meters by pricing model ID with caching enabled by default.
+ * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ *
+ * This cache entry depends on pricingModelUsageMeters - invalidate when
+ * usage meters for this pricing model are created, updated, or archived.
+ *
+ * Cache key includes livemode to prevent cross-mode data leakage, since RLS
+ * filters usage meters by livemode and the same pricing model could have different
+ * meters in live vs test mode.
+ *
+ * Returns UsageMeter.ClientRecord[] (client-safe schema) for use in customer-facing APIs.
+ */
+export const selectUsageMetersByPricingModelId = cached(
+  {
+    namespace: RedisKeyNamespace.UsageMetersByPricingModel,
+    keyFn: (
+      pricingModelId: string,
+      _transaction: DbTransaction,
+      livemode: boolean
+    ) => `${pricingModelId}:${livemode}`,
+    schema: usageMetersClientSelectSchema.array(),
+    /**
+     * This cache entry depends on two types of dependencies:
+     * 1. pricingModelUsageMeters - set membership changes (meters added/removed from pricing model)
+     * 2. usageMeter - individual meter content changes (name, slug, etc.)
+     *
+     * Mutations should invalidate the appropriate dependency:
+     * - Creating a meter: invalidate pricingModelUsageMeters (set membership changed)
+     * - Updating a meter: invalidate usageMeter (content changed)
+     * - Archiving/deleting a meter: invalidate pricingModelUsageMeters (set membership changed)
+     */
+    dependenciesFn: (meters, pricingModelId: string) => [
+      // Set membership dependency - invalidate when meters are added/removed
+      CacheDependency.pricingModelUsageMeters(pricingModelId),
+      // Individual meter content dependencies - invalidate when any meter's content changes
+      ...meters.map((meter) => CacheDependency.usageMeter(meter.id)),
+    ],
+  },
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction,
+    // livemode is used by keyFn for cache key generation, not in the query itself
+    // (RLS filters by livemode context set on the transaction)
+    _livemode: boolean
+  ): Promise<UsageMeter.ClientRecord[]> => {
+    const meters = await selectUsageMeters(
+      { pricingModelId },
+      transaction
+    )
+    // Parse through client schema to ensure we return client-safe data
+    return meters.map((meter) =>
+      usageMetersClientSelectSchema.parse(meter)
+    )
+  }
 )
 
 export const bulkInsertOrDoNothingUsageMeters =

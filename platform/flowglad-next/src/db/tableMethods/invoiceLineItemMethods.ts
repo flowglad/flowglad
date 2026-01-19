@@ -22,11 +22,7 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { InvoiceStatus } from '@/types'
-import {
-  CacheDependency,
-  cached,
-  fromDependencies,
-} from '@/utils/cache'
+import { CacheDependency, cached } from '@/utils/cache'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
@@ -320,9 +316,20 @@ export const selectCustomerFacingInvoicesWithLineItems = cached(
       livemode: boolean
     ) => `${customerId}:${livemode}`,
     schema: invoiceWithLineItemsSchema.array(),
-    dependenciesFn: fromDependencies(
-      CacheDependency.customerInvoices
-    ),
+    dependenciesFn: (invoicesWithLineItems, customerId: string) => [
+      // Set membership: invalidate when invoices are added/removed for this customer
+      CacheDependency.customerInvoices(customerId),
+      // Content: invalidate when any invoice's properties change
+      ...invoicesWithLineItems.map((item) =>
+        CacheDependency.invoice(item.invoice.id)
+      ),
+      // Content: invalidate when any line item's properties change
+      ...invoicesWithLineItems.flatMap((item) =>
+        item.invoiceLineItems.map((lineItem) =>
+          CacheDependency.invoiceLineItem(lineItem.id)
+        )
+      ),
+    ],
   },
   async (
     customerId: string,

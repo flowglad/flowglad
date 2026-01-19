@@ -23,6 +23,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
+import { CacheDependency } from '@/utils/cache'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createUsageMeterTransaction } from '@/utils/usage'
 import { protectedProcedure, router } from '../trpc'
@@ -98,9 +99,9 @@ const updateUsageMeter = protectedProcedure
   .input(editUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+        const { transaction, invalidateCache } = transactionCtx
         try {
           const usageMeter = await updateUsageMeterDB(
             {
@@ -109,7 +110,12 @@ const updateUsageMeter = protectedProcedure
             },
             transaction
           )
-          return { usageMeter }
+
+          // Invalidate cache for this specific meter's content change
+          // (not pricingModelUsageMeters since set membership hasn't changed)
+          invalidateCache(CacheDependency.usageMeter(input.id))
+
+          return Result.ok({ usageMeter })
         } catch (error) {
           errorHandlers.usageMeter.handle(error, {
             operation: 'update',

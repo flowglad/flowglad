@@ -262,19 +262,51 @@ The order of effect processing is **critical** for correctness:
 
 ## Caching Patterns
 
+### Key Review Question for Mutations
+**When reviewing any mutating logic, always ask: "Does this need cache invalidations?"**
+
+If the mutation changes data that could be cached elsewhere, invalidation is required. Missing invalidations cause stale data bugs that are hard to reproduce and debug.
+
 ### Fail-Open Pattern
 The codebase uses a "fail-open" pattern for Redis:
 - Redis errors become cache misses, **never** request failures
 - Don't add error handling that throws on cache failures
 - Cache reads validate against Zod schemas
 
+### Dependency Types
+Cache dependencies come in two flavors:
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| **Set membership** | Invalidate when items are added/removed from a collection | `customerPaymentMethods(customerId)` |
+| **Content** | Invalidate when a specific item's properties change | `paymentMethod(paymentMethodId)` |
+
+A cached query typically depends on both:
+- Set membership dep for the collection being queried
+- Content deps for each item in the result
+
 ### CacheDependency Keys
 Predefined dependency keys for cache invalidation:
 
 ```typescript
+// Set membership dependencies
 CacheDependency.customerSubscriptions(customerId)
+CacheDependency.customerPaymentMethods(customerId)
+CacheDependency.customerPurchases(customerId)
+CacheDependency.customerInvoices(customerId)
 CacheDependency.subscriptionItems(subscriptionId)
 CacheDependency.subscriptionItemFeatures(subscriptionItemId)
+CacheDependency.pricingModelUsageMeters(pricingModelId)
+
+// Content dependencies
+CacheDependency.subscription(subscriptionId)
+CacheDependency.subscriptionItem(subscriptionItemId)
+CacheDependency.subscriptionItemFeature(subscriptionItemFeatureId)
+CacheDependency.paymentMethod(paymentMethodId)
+CacheDependency.usageMeter(usageMeterId)
+CacheDependency.invoice(invoiceId)
+CacheDependency.invoiceLineItem(invoiceLineItemId)
+CacheDependency.purchase(purchaseId)
 CacheDependency.subscriptionLedger(subscriptionId)
 ```
 
@@ -283,11 +315,87 @@ The `cached()` combinator adds caching with schema validation:
 
 ```typescript
 const getCachedData = cached(
-  fetchData,
-  { ttl: 3600, dependencies: [CacheDependency.customerSubscriptions(id)] },
-  dataSchema
+  {
+    namespace: RedisKeyNamespace.SomeNamespace,
+    keyFn: (id: string) => id,
+    schema: dataSchema,
+    dependenciesFn: (result, id) => [
+      CacheDependency.someCollection(id),      // Set membership
+      ...result.map(item => CacheDependency.someItem(item.id)),  // Content
+    ],
+  },
+  async (id: string, transaction: DbTransaction) => {
+    return fetchData(id, transaction)
+  }
 )
 ```
+
+### Review Checklist for Cache Invalidation
+
+When reviewing mutating functions, verify:
+
+- [ ] **Inserts**: Invalidate set membership for the parent collection
+  ```typescript
+  // When inserting a payment method
+  invalidateCache(CacheDependency.customerPaymentMethods(customerId))
+  ```
+
+- [ ] **Updates**: Invalidate content for the updated item
+  ```typescript
+  // When updating a payment method
+  invalidateCache(CacheDependency.paymentMethod(paymentMethodId))
+  ```
+
+- [ ] **Deletes**: Invalidate both set membership AND content
+  ```typescript
+  // When deleting a payment method
+  invalidateCache(CacheDependency.customerPaymentMethods(customerId))
+  invalidateCache(CacheDependency.paymentMethod(paymentMethodId))
+  ```
+
+- [ ] **Moves** (changing parent): Invalidate set membership for BOTH old and new parent
+  ```typescript
+  // When moving payment method from customerA to customerB
+  invalidateCache(CacheDependency.customerPaymentMethods(oldCustomerId))
+  invalidateCache(CacheDependency.customerPaymentMethods(newCustomerId))
+  invalidateCache(CacheDependency.paymentMethod(paymentMethodId))
+  ```
+
+- [ ] **Cascading changes**: If an update affects other records, invalidate those too
+  ```typescript
+  // When setting a payment method as default, other payment methods lose default status
+  for (const pm of paymentMethodsThatLostDefault) {
+    invalidateCache(CacheDependency.paymentMethod(pm.id))
+  }
+  ```
+
+### Common Cache Invalidation Bugs
+
+1. **Forgetting to invalidate on insert**: New items don't appear in cached lists
+2. **Forgetting content invalidation on update**: Updated properties show stale values
+3. **Invalidating wrong parent on move**: Item "disappears" from new parent's cached list
+4. **Missing cascading invalidation**: Related items show stale state (e.g., old default still shows as default)
+5. **Invalidating before commit**: Race condition where cache is re-populated with stale data before transaction commits
+
+### TransactionEffectsContext Pattern
+Mutating functions that need cache invalidation should accept `TransactionEffectsContext`:
+
+```typescript
+export const safelyUpdateFoo = async (
+  foo: Foo.Update,
+  ctx: TransactionEffectsContext
+) => {
+  const { transaction, invalidateCache } = ctx
+
+  const updated = await updateFoo(foo, transaction)
+
+  invalidateCache(CacheDependency.foo(foo.id))
+
+  return updated
+}
+```
+
+The `invalidateCache` callback queues invalidations to run **after** the transaction commits, preventing race conditions.
 
 ## Subscription & Billing Patterns
 
@@ -451,3 +559,10 @@ Business logic (`server/`, `subscriptions/`, `trigger/`) must never contain raw 
 
 ### 10. Avoid Redundant Table Methods
 Before creating `selectFooById` or `selectFooByBar`, check if `selectFoos` already supports that query pattern. Prefer adding parameters to existing methods over creating specialized variants.
+
+### 11. Mutations Require Cache Invalidation Review
+When reviewing any mutating function (insert, update, delete), ask: "Does this need cache invalidations?" Check for:
+- Set membership invalidation for inserts/deletes
+- Content invalidation for updates
+- Both old AND new parent invalidation for moves
+- Cascading invalidation when updates affect related records
