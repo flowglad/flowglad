@@ -102,12 +102,20 @@ describe('resolveCustomerExternalId', () => {
 })
 
 describe('endpointKeyToActionKey exhaustiveness', () => {
-  it('covers every FlowgladActionKey value exactly once', () => {
+  // Hybrid routes are tracked separately and don't require authentication
+  const hybridActionKeys: FlowgladActionKey[] = [
+    FlowgladActionKey.GetPricingModel,
+  ]
+
+  it('covers every AuthenticatedActionKey (excludes hybrid routes)', () => {
     const allActionKeys = Object.values(FlowgladActionKey)
     const mappedActionKeys = Object.values(endpointKeyToActionKey)
+    const authenticatedActionKeys = allActionKeys.filter(
+      (key) => !hybridActionKeys.includes(key)
+    )
 
-    // Every FlowgladActionKey must be in the mapping
-    for (const actionKey of allActionKeys) {
+    // Every AuthenticatedActionKey must be in the mapping
+    for (const actionKey of authenticatedActionKeys) {
       expect(mappedActionKeys).toContain(actionKey)
     }
 
@@ -116,8 +124,10 @@ describe('endpointKeyToActionKey exhaustiveness', () => {
       mappedActionKeys.length
     )
 
-    // Same count: ensures bidirectional completeness
-    expect(mappedActionKeys.length).toBe(allActionKeys.length)
+    // Same count: ensures bidirectional completeness for authenticated routes
+    expect(mappedActionKeys.length).toBe(
+      authenticatedActionKeys.length
+    )
   })
 
   it('has a corresponding plugin endpoint for each mapped action key', () => {
@@ -127,6 +137,11 @@ describe('endpointKeyToActionKey exhaustiveness', () => {
     for (const endpointKey of endpointKeys) {
       expect(plugin.endpoints).toHaveProperty(endpointKey)
     }
+  })
+
+  it('has plugin endpoint for GetPricingModel hybrid route', () => {
+    const plugin = flowgladPlugin({})
+    expect(plugin.endpoints).toHaveProperty('getPricingModel')
   })
 })
 
@@ -155,6 +170,7 @@ describe('flowgladPlugin', () => {
       'claimResource',
       'releaseResource',
       'listResourceClaims',
+      'getPricingModel',
     ]
 
     for (const endpoint of expectedEndpoints) {
