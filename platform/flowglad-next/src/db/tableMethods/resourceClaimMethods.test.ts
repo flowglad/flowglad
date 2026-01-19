@@ -4,41 +4,34 @@ import {
   setupOrg,
   setupPaymentMethod,
   setupPrice,
-  setupPricingModel,
   setupProduct,
   setupResource,
-  setupResourceSubscriptionItemFeature,
   setupSubscription,
   setupSubscriptionItem,
-  setupToggleFeature,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { ResourceClaim } from '@/db/schema/resourceClaims'
 import type { Resource } from '@/db/schema/resources'
-import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import type { Subscription } from '@/db/schema/subscriptions'
-import { FeatureType, IntervalUnit, PriceType } from '@/types'
-import { insertFeature } from './featureMethods'
+import { IntervalUnit, PriceType } from '@/types'
 import {
-  countActiveClaimsForSubscriptionItemFeature,
+  countActiveResourceClaims,
+  countActiveResourceClaimsBatch,
   insertResourceClaim,
-  releaseAllClaimsForSubscriptionItemFeature,
   releaseResourceClaim,
   selectActiveClaimByExternalId,
   selectActiveResourceClaims,
   selectResourceClaimById,
   selectResourceClaims,
 } from './resourceClaimMethods'
-import { insertResource } from './resourceMethods'
 
 describe('resourceClaimMethods', () => {
   let organization: Organization.Record
   let pricingModel: PricingModel.Record
   let resource: Resource.Record
   let subscription: Subscription.Record
-  let subscriptionItemFeature: SubscriptionItemFeature.ResourceRecord
 
   beforeEach(async () => {
     const orgData = await setupOrg()
@@ -91,44 +84,12 @@ describe('resourceClaimMethods', () => {
       intervalCount: 1,
     })
 
-    const subscriptionItem = await setupSubscriptionItem({
+    await setupSubscriptionItem({
       subscriptionId: subscription.id,
       name: 'Resource Subscription Item',
       quantity: 1,
       unitPrice: 1000,
     })
-
-    // Create a Resource feature first
-    const resourceFeature = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeature(
-          {
-            organizationId: organization.id,
-            pricingModelId: pricingModel.id,
-            type: FeatureType.Resource,
-            name: 'Seats Feature',
-            slug: 'seats-feature',
-            description: 'Resource feature for seats',
-            amount: 5,
-            usageMeterId: null,
-            renewalFrequency: null,
-            resourceId: resource.id,
-            livemode: true,
-            active: true,
-          },
-          transaction
-        )
-      }
-    )
-
-    subscriptionItemFeature =
-      await setupResourceSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: resourceFeature.id,
-        resourceId: resource.id,
-        pricingModelId: pricingModel.id,
-        amount: 5,
-      })
   })
 
   const createResourceClaimInsert = (params?: {
@@ -136,7 +97,6 @@ describe('resourceClaimMethods', () => {
     metadata?: Record<string, string | number | boolean> | null
   }): ResourceClaim.Insert => ({
     organizationId: organization.id,
-    subscriptionItemFeatureId: subscriptionItemFeature.id,
     resourceId: resource.id,
     subscriptionId: subscription.id,
     pricingModelId: pricingModel.id,
@@ -157,9 +117,6 @@ describe('resourceClaimMethods', () => {
 
         expect(inserted.id).toMatch(/^res_claim_/)
         expect(inserted.organizationId).toBe(organization.id)
-        expect(inserted.subscriptionItemFeatureId).toBe(
-          subscriptionItemFeature.id
-        )
         expect(inserted.resourceId).toBe(resource.id)
         expect(inserted.subscriptionId).toBe(subscription.id)
         expect(inserted.pricingModelId).toBe(pricingModel.id)
@@ -200,10 +157,23 @@ describe('resourceClaimMethods', () => {
     })
   })
 
-  describe('selectActiveResourceClaims and countActiveClaimsForSubscriptionItemFeature', () => {
-    it('should count only active claims where releasedAt IS NULL', async () => {
+  describe('countActiveResourceClaims', () => {
+    it('returns 0 when no claims exist for the subscription+resource', async () => {
       await adminTransaction(async ({ transaction }) => {
-        // Insert 3 active claims
+        const count = await countActiveResourceClaims(
+          {
+            subscriptionId: subscription.id,
+            resourceId: resource.id,
+          },
+          transaction
+        )
+        expect(count).toBe(0)
+      })
+    })
+
+    it('returns correct count of active claims, excluding released claims', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Insert 3 claims
         await insertResourceClaim(
           createResourceClaimInsert({ externalId: 'active-1' }),
           transaction
@@ -218,11 +188,13 @@ describe('resourceClaimMethods', () => {
         )
 
         // Verify initial count is 3
-        const initialCount =
-          await countActiveClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            transaction
-          )
+        const initialCount = await countActiveResourceClaims(
+          {
+            subscriptionId: subscription.id,
+            resourceId: resource.id,
+          },
+          transaction
+        )
         expect(initialCount).toBe(3)
 
         // Release one claim
@@ -232,16 +204,21 @@ describe('resourceClaimMethods', () => {
         )
 
         // Verify count is now 2
-        const finalCount =
-          await countActiveClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            transaction
-          )
+        const finalCount = await countActiveResourceClaims(
+          {
+            subscriptionId: subscription.id,
+            resourceId: resource.id,
+          },
+          transaction
+        )
         expect(finalCount).toBe(2)
 
         // Verify selectActiveResourceClaims also returns only 2
         const activeClaims = await selectActiveResourceClaims(
-          { subscriptionItemFeatureId: subscriptionItemFeature.id },
+          {
+            subscriptionId: subscription.id,
+            resourceId: resource.id,
+          },
           transaction
         )
         expect(activeClaims.length).toBe(2)
@@ -251,7 +228,64 @@ describe('resourceClaimMethods', () => {
       })
     })
 
-    it('should return all claims (active and released) from selectResourceClaims', async () => {
+    it('only counts claims for the specified subscription and resource', async () => {
+      // Create a second resource for the same org
+      const resource2 = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'projects',
+        name: 'Projects',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        // Create claims for the first resource
+        await insertResourceClaim(
+          createResourceClaimInsert({ externalId: 'seat-1' }),
+          transaction
+        )
+        await insertResourceClaim(
+          createResourceClaimInsert({ externalId: 'seat-2' }),
+          transaction
+        )
+
+        // Create a claim for the second resource
+        await insertResourceClaim(
+          {
+            organizationId: organization.id,
+            resourceId: resource2.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: 'project-1',
+            metadata: null,
+            livemode: true,
+          },
+          transaction
+        )
+
+        // Count should only include claims for the specified resource
+        const seatCount = await countActiveResourceClaims(
+          {
+            subscriptionId: subscription.id,
+            resourceId: resource.id,
+          },
+          transaction
+        )
+        expect(seatCount).toBe(2)
+
+        const projectCount = await countActiveResourceClaims(
+          {
+            subscriptionId: subscription.id,
+            resourceId: resource2.id,
+          },
+          transaction
+        )
+        expect(projectCount).toBe(1)
+      })
+    })
+  })
+
+  describe('selectActiveResourceClaims and selectResourceClaims', () => {
+    it('returns all claims (active and released) from selectResourceClaims, but only active from selectActiveResourceClaims', async () => {
       await adminTransaction(async ({ transaction }) => {
         await insertResourceClaim(
           createResourceClaimInsert({ externalId: 'claim-a' }),
@@ -267,14 +301,20 @@ describe('resourceClaimMethods', () => {
 
         // selectResourceClaims returns ALL claims
         const allClaims = await selectResourceClaims(
-          { subscriptionItemFeatureId: subscriptionItemFeature.id },
+          {
+            subscriptionId: subscription.id,
+            resourceId: resource.id,
+          },
           transaction
         )
         expect(allClaims.length).toBe(2)
 
         // selectActiveResourceClaims returns only active
         const activeClaims = await selectActiveResourceClaims(
-          { subscriptionItemFeatureId: subscriptionItemFeature.id },
+          {
+            subscriptionId: subscription.id,
+            resourceId: resource.id,
+          },
           transaction
         )
         expect(activeClaims.length).toBe(1)
@@ -487,127 +527,175 @@ describe('resourceClaimMethods', () => {
     })
   })
 
-  describe('releaseAllClaimsForSubscriptionItemFeature', () => {
-    it('should release all active claims for a subscriptionItemFeatureId with provided reason', async () => {
+  describe('countActiveResourceClaimsBatch', () => {
+    it('returns counts for multiple resources in a single query', async () => {
+      // Create additional resources
+      const resource2 = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'projects',
+        name: 'Projects',
+      })
+      const resource3 = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'teams',
+        name: 'Teams',
+      })
+
       await adminTransaction(async ({ transaction }) => {
-        // Create 3 active claims
+        // Create 2 claims for resource 1
         await insertResourceClaim(
-          createResourceClaimInsert({ externalId: 'bulk-release-1' }),
+          createResourceClaimInsert({ externalId: 'seat-1' }),
           transaction
         )
         await insertResourceClaim(
-          createResourceClaimInsert({ externalId: 'bulk-release-2' }),
+          createResourceClaimInsert({ externalId: 'seat-2' }),
+          transaction
+        )
+
+        // Create 3 claims for resource 2
+        await insertResourceClaim(
+          {
+            organizationId: organization.id,
+            resourceId: resource2.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: 'project-1',
+            metadata: null,
+            livemode: true,
+          },
           transaction
         )
         await insertResourceClaim(
-          createResourceClaimInsert({ externalId: 'bulk-release-3' }),
+          {
+            organizationId: organization.id,
+            resourceId: resource2.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: 'project-2',
+            metadata: null,
+            livemode: true,
+          },
+          transaction
+        )
+        await insertResourceClaim(
+          {
+            organizationId: organization.id,
+            resourceId: resource2.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: 'project-3',
+            metadata: null,
+            livemode: true,
+          },
           transaction
         )
 
-        // Verify we have 3 active claims
-        const activeBeforeCount =
-          await countActiveClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            transaction
-          )
-        expect(activeBeforeCount).toBe(3)
+        // Create 1 claim for resource 3
+        await insertResourceClaim(
+          {
+            organizationId: organization.id,
+            resourceId: resource3.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: 'team-1',
+            metadata: null,
+            livemode: true,
+          },
+          transaction
+        )
 
-        const beforeRelease = Date.now()
+        // Batch count all resources
+        const counts = await countActiveResourceClaimsBatch(
+          {
+            subscriptionId: subscription.id,
+            resourceIds: [resource.id, resource2.id, resource3.id],
+          },
+          transaction
+        )
 
-        // Release all claims
-        const releasedClaims =
-          await releaseAllClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'Feature detached from subscription',
-            transaction
-          )
-
-        const afterRelease = Date.now()
-
-        // All claims should be released
-        expect(releasedClaims.length).toBe(3)
-        for (const claim of releasedClaims) {
-          expect(claim.releaseReason).toBe(
-            'Feature detached from subscription'
-          )
-          expect(claim.releasedAt).toBeGreaterThanOrEqual(
-            beforeRelease
-          )
-          expect(claim.releasedAt).toBeLessThanOrEqual(
-            afterRelease + 1000
-          )
-        }
-
-        // Verify no active claims remain
-        const activeAfterCount =
-          await countActiveClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            transaction
-          )
-        expect(activeAfterCount).toBe(0)
+        expect(counts.get(resource.id)).toBe(2)
+        expect(counts.get(resource2.id)).toBe(3)
+        expect(counts.get(resource3.id)).toBe(1)
       })
     })
 
-    it('should return empty array when no active claims exist for the subscriptionItemFeatureId', async () => {
+    it('returns 0 for resources with no claims', async () => {
+      const resource2 = await setupResource({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        slug: 'projects',
+        name: 'Projects',
+      })
+
       await adminTransaction(async ({ transaction }) => {
-        // Don't create any claims
+        // Create claims only for resource 1
+        await insertResourceClaim(
+          createResourceClaimInsert({ externalId: 'seat-1' }),
+          transaction
+        )
 
-        const releasedClaims =
-          await releaseAllClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'Cleanup',
-            transaction
-          )
+        // Batch count both resources
+        const counts = await countActiveResourceClaimsBatch(
+          {
+            subscriptionId: subscription.id,
+            resourceIds: [resource.id, resource2.id],
+          },
+          transaction
+        )
 
-        expect(releasedClaims.length).toBe(0)
+        expect(counts.get(resource.id)).toBe(1)
+        expect(counts.get(resource2.id)).toBe(0)
       })
     })
 
-    it('should only release active claims and not affect already-released claims', async () => {
+    it('returns empty map when resourceIds array is empty', async () => {
       await adminTransaction(async ({ transaction }) => {
-        // Create claims
-        const claim1 = await insertResourceClaim(
-          createResourceClaimInsert({ externalId: 'active-claim' }),
-          transaction
-        )
-        const claim2 = await insertResourceClaim(
-          createResourceClaimInsert({
-            externalId: 'already-released',
-          }),
+        const counts = await countActiveResourceClaimsBatch(
+          {
+            subscriptionId: subscription.id,
+            resourceIds: [],
+          },
           transaction
         )
 
-        // Release one claim manually first
-        const manuallyReleased = await releaseResourceClaim(
-          { id: claim2.id, releaseReason: 'Manually released' },
+        expect(counts.size).toBe(0)
+      })
+    })
+
+    it('excludes released claims from the count', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        // Create 3 claims
+        await insertResourceClaim(
+          createResourceClaimInsert({ externalId: 'seat-1' }),
           transaction
         )
-        const manualReleaseTime = manuallyReleased.releasedAt
-
-        // Now bulk release - should only affect active claims
-        const releasedClaims =
-          await releaseAllClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'Bulk release',
-            transaction
-          )
-
-        // Only the active claim should be in the result
-        expect(releasedClaims.length).toBe(1)
-        expect(releasedClaims[0].id).toBe(claim1.id)
-        expect(releasedClaims[0].releaseReason).toBe('Bulk release')
-
-        // Verify the manually released claim still has its original reason/timestamp
-        const manuallyReleasedAfter = await selectResourceClaimById(
-          claim2.id,
+        const claimToRelease = await insertResourceClaim(
+          createResourceClaimInsert({ externalId: 'seat-2' }),
           transaction
         )
-        expect(manuallyReleasedAfter.releaseReason).toBe(
-          'Manually released'
+        await insertResourceClaim(
+          createResourceClaimInsert({ externalId: 'seat-3' }),
+          transaction
         )
-        expect(manuallyReleasedAfter.releasedAt).toBe(
-          manualReleaseTime
+
+        // Release one claim
+        await releaseResourceClaim(
+          { id: claimToRelease.id, releaseReason: 'Released' },
+          transaction
         )
+
+        // Batch count should only include active claims
+        const counts = await countActiveResourceClaimsBatch(
+          {
+            subscriptionId: subscription.id,
+            resourceIds: [resource.id],
+          },
+          transaction
+        )
+
+        expect(counts.get(resource.id)).toBe(2)
       })
     })
   })
