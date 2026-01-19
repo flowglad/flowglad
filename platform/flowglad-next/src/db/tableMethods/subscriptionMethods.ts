@@ -170,8 +170,13 @@ export const selectSubscriptionsByCustomerId = cachedRecomputable<
     paramsSchema: selectSubscriptionsByCustomerParamsSchema,
     keyFn: (params) => `${params.customerId}:${params.livemode}`,
     schema: subscriptionsSelectSchema.array(),
-    dependenciesFn: (params) => [
+    dependenciesFn: (params, subscriptions) => [
+      // Set membership: invalidate when subscriptions are added/removed for this customer
       CacheDependency.customerSubscriptions(params.customerId),
+      // Content: invalidate when any subscription's properties change
+      ...subscriptions.map((subscription) =>
+        CacheDependency.subscription(subscription.id)
+      ),
     ],
   },
   async (params, transaction, _cacheRecomputationContext) => {

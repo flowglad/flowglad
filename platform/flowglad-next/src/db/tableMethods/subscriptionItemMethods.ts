@@ -361,8 +361,13 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
       keyFn: (params) =>
         `${params.subscriptionId}:${params.livemode}`,
       schema: subscriptionItemWithPriceSchema.array(),
-      dependenciesFn: (params) => [
+      dependenciesFn: (params, items) => [
+        // Set membership: invalidate when items are added/removed for this subscription
         CacheDependency.subscriptionItems(params.subscriptionId),
+        // Content: invalidate when any item's properties change
+        ...items.map((item) =>
+          CacheDependency.subscriptionItem(item.subscriptionItem.id)
+        ),
       ],
     },
     async (params, transaction, _cacheRecomputationContext) => {

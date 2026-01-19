@@ -255,8 +255,19 @@ export interface RecomputableCacheConfig<
   keyFn: (params: TParams) => string
   /** Zod schema for validating cached data */
   schema: z.ZodType<TResult>
-  /** Declare dependency keys for invalidation */
-  dependenciesFn: (params: TParams) => CacheDependencyKey[]
+  /**
+   * Declare dependency keys for invalidation.
+   *
+   * Receives both params and result, allowing for comprehensive dependency tracking:
+   * - SET MEMBERSHIP: Dependencies based on params (e.g., CacheDependency.subscriptionItems(subscriptionId))
+   * - CONTENT: Dependencies based on result items (e.g., CacheDependency.subscriptionItem(item.id))
+   *
+   * Note: On cache hits, result comes from cache. On misses, result comes from the database fetch.
+   */
+  dependenciesFn: (
+    params: TParams,
+    result: TResult
+  ) => CacheDependencyKey[]
 }
 
 /**
@@ -314,7 +325,6 @@ export function cachedRecomputable<
     ): Promise<TResult> => {
       const key = config.keyFn(params)
       const fullKey = `${config.namespace}:${key}`
-      const dependencies = config.dependenciesFn(params)
 
       // Try to get from cache
       const cacheResult = await tryGetFromCache(
@@ -333,6 +343,12 @@ export function cachedRecomputable<
         transaction,
         cacheRecomputationContext
       )
+
+      // Compute dependencies using both params and result
+      // This enables comprehensive dependency tracking:
+      // - SET MEMBERSHIP: based on params (invalidate when items added/removed)
+      // - CONTENT: based on result (invalidate when individual item properties change)
+      const dependencies = config.dependenciesFn(params, result)
 
       // Store in cache, metadata, and register dependencies (fire-and-forget)
       await populateRecomputableCache({

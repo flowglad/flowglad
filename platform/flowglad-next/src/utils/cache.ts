@@ -1113,9 +1113,7 @@ export const CacheDependency = {
   ): CacheDependencyKey =>
     `subscriptionItemFeatures:${subscriptionItemId}`,
   /** Invalidate when usage meters for this pricing model change (create/archive, but NOT content updates) */
-  pricingModelUsageMeters: (
-    pricingModelId: string
-  ): CacheDependencyKey =>
+  pricingModelUsageMeters: (pricingModelId: string): CacheDependencyKey =>
     `pricingModelUsageMeters:${pricingModelId}`,
 
   // === CONTENT DEPENDENCIES ===
@@ -1125,9 +1123,8 @@ export const CacheDependency = {
   subscription: (subscriptionId: string): CacheDependencyKey =>
     `subscription:${subscriptionId}`,
   /** Invalidate when this specific subscription item's content changes (quantity, etc.) */
-  subscriptionItem: (
-    subscriptionItemId: string
-  ): CacheDependencyKey => `subscriptionItem:${subscriptionItemId}`,
+  subscriptionItem: (subscriptionItemId: string): CacheDependencyKey =>
+    `subscriptionItem:${subscriptionItemId}`,
   /** Invalidate when this specific subscription item feature's content changes (quantity, etc.) */
   subscriptionItemFeature: (
     subscriptionItemFeatureId: string
