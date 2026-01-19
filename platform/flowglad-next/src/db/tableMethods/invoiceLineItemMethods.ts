@@ -316,8 +316,13 @@ export const selectCustomerFacingInvoicesWithLineItems = cached(
       livemode: boolean
     ) => `${customerId}:${livemode}`,
     schema: invoiceWithLineItemsSchema.array(),
-    dependenciesFn: (_result, customerId: string) => [
+    dependenciesFn: (invoicesWithLineItems, customerId: string) => [
+      // Set membership: invalidate when invoices are added/removed for this customer
       CacheDependency.customerInvoices(customerId),
+      // Content: invalidate when any invoice's properties change
+      ...invoicesWithLineItems.map((item) =>
+        CacheDependency.invoice(item.invoice.id)
+      ),
     ],
   },
   async (

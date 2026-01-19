@@ -103,8 +103,11 @@ export const selectPurchasesByCustomerId = cached(
       livemode: boolean
     ) => `${customerId}:${livemode}`,
     schema: purchasesSelectSchema.array(),
-    dependenciesFn: (_result, customerId: string) => [
+    dependenciesFn: (purchases, customerId: string) => [
+      // Set membership: invalidate when purchases are added/removed for this customer
       CacheDependency.customerPurchases(customerId),
+      // Content: invalidate when any purchase's properties change
+      ...purchases.map((p) => CacheDependency.purchase(p.id)),
     ],
   },
   async (

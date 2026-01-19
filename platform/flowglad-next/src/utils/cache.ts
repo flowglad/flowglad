@@ -1129,6 +1129,15 @@ export const CacheDependency = {
   /** Invalidate when this specific usage meter's content changes (name, slug, etc.) */
   usageMeter: (usageMeterId: string): CacheDependencyKey =>
     `usageMeter:${usageMeterId}`,
+  /** Invalidate when this specific purchase's content changes */
+  purchase: (purchaseId: string): CacheDependencyKey =>
+    `purchase:${purchaseId}`,
+  /** Invalidate when this specific payment method's content changes */
+  paymentMethod: (paymentMethodId: string): CacheDependencyKey =>
+    `paymentMethod:${paymentMethodId}`,
+  /** Invalidate when this specific invoice's content changes */
+  invoice: (invoiceId: string): CacheDependencyKey =>
+    `invoice:${invoiceId}`,
 
   // === OTHER DEPENDENCIES ===
 

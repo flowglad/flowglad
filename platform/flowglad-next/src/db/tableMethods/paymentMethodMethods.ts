@@ -99,8 +99,13 @@ export const selectPaymentMethodsByCustomerId = cached(
       livemode: boolean
     ) => `${customerId}:${livemode}`,
     schema: paymentMethodsSelectSchema.array(),
-    dependenciesFn: (_result, customerId: string) => [
+    dependenciesFn: (paymentMethods, customerId: string) => [
+      // Set membership: invalidate when payment methods are added/removed for this customer
       CacheDependency.customerPaymentMethods(customerId),
+      // Content: invalidate when any payment method's properties change
+      ...paymentMethods.map((pm) =>
+        CacheDependency.paymentMethod(pm.id)
+      ),
     ],
   },
   async (
