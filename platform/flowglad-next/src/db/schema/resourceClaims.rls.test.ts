@@ -19,7 +19,6 @@ import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { ResourceClaim } from '@/db/schema/resourceClaims'
 import type { Resource } from '@/db/schema/resources'
-import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import type { Subscription } from '@/db/schema/subscriptions'
 import {
   insertResourceClaim,
@@ -45,7 +44,6 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
   let apiKey: ApiKey.Record
   let resource: Resource.Record
   let subscription: Subscription.Record
-  let subscriptionItemFeature: SubscriptionItemFeature.Record
 
   beforeEach(async () => {
     // Set up organization with pricing model
@@ -140,23 +138,21 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
       livemode: true,
     })
 
-    // Create subscription item feature using the helper
-    subscriptionItemFeature =
-      await setupResourceSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: feature.id,
-        resourceId: resource.id,
-        pricingModelId: pricingModel.id,
-        productFeatureId: productFeature.id,
-        livemode: true,
-      })
+    // Create subscription item feature to provide capacity for the resource
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: feature.id,
+      resourceId: resource.id,
+      pricingModelId: pricingModel.id,
+      productFeatureId: productFeature.id,
+      livemode: true,
+    })
   })
 
   describe('insertResourceClaim via authenticatedTransaction (merchant role)', () => {
     it('inserts a resource claim when merchant role has sequence permissions', async () => {
       const claimInsert: ResourceClaim.Insert = {
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         resourceId: resource.id,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,
@@ -174,9 +170,6 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
       expect(inserted.id).toMatch(/^res_claim_/)
       expect(inserted.resourceId).toBe(resource.id)
       expect(inserted.subscriptionId).toBe(subscription.id)
-      expect(inserted.subscriptionItemFeatureId).toBe(
-        subscriptionItemFeature.id
-      )
       expect(inserted.organizationId).toBe(organization.id)
       expect(inserted.pricingModelId).toBe(pricingModel.id)
       expect(inserted.externalId).toBe('test-claim-1')
@@ -192,7 +185,6 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
           return insertResourceClaim(
             {
               organizationId: organization.id,
-              subscriptionItemFeatureId: subscriptionItemFeature.id,
               resourceId: resource.id,
               subscriptionId: subscription.id,
               pricingModelId: pricingModel.id,
@@ -229,7 +221,6 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
           await insertResourceClaim(
             {
               organizationId: organization.id,
-              subscriptionItemFeatureId: subscriptionItemFeature.id,
               resourceId: resource.id,
               subscriptionId: subscription.id,
               pricingModelId: pricingModel.id,
@@ -241,7 +232,6 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
           await insertResourceClaim(
             {
               organizationId: organization.id,
-              subscriptionItemFeatureId: subscriptionItemFeature.id,
               resourceId: resource.id,
               subscriptionId: subscription.id,
               pricingModelId: pricingModel.id,

@@ -22,7 +22,6 @@ const mockResourceUsage = {
 
 const mockResourceClaim = {
   id: 'claim_123',
-  subscriptionItemFeatureId: 'sif_123',
   resourceId: 'res_123',
   subscriptionId: 'sub_test_123',
   pricingModelId: 'pm_123',

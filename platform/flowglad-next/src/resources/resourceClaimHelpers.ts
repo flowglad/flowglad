@@ -217,7 +217,10 @@ const resourceClaimRawRowSchema = z.object({
   pricing_model_id: z.string(),
   external_id: z.string().nullable(),
   metadata: z
-    .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+    .record(
+      z.string(),
+      z.union([z.string(), z.number(), z.boolean()])
+    )
     .nullable(),
   livemode: z.boolean(),
   claimed_at: z.number(),
