@@ -45,7 +45,8 @@
     "db:clone:staging:schema": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --staging --schema-only",
     "db:clone:prod:schema": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --prod --schema-only",
     "db:clone:staging:migrate": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --staging --run-migrations",
-    "db:clone:prod:migrate": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --prod --run-migrations"
+    "db:clone:prod:migrate": "dotenvx run -f .env.local -- bun run src/scripts/cloneDatabase.ts --prod --run-migrations",
+    "cache:graph": "bun run src/scripts/generateCacheDependencyGraph.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.69",

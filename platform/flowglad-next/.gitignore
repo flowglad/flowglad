@@ -61,3 +61,9 @@ supabase/.temp
 
 # Database dump files
 .supabase-dumps/
+
+# Cache dependency graph artifacts
+cache-dependency-graph.dot
+cache-dependency-graph-summary.md
+cache-dependency-graph.png
+cache-dependency-graph.svg
