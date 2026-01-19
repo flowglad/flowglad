@@ -264,7 +264,6 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
         'billing_details',
       ]),
     })
-    .returning()
 
   // Invalidate cache for all affected customers
   const uniqueCustomerIds = Array.from(

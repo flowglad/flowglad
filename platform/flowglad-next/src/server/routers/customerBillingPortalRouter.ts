@@ -27,6 +27,7 @@ import {
   setUserIdForCustomerRecords,
 } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   isSubscriptionCurrent,
   isSubscriptionInTerminalState,
@@ -590,6 +591,19 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
         emitEvent,
         enqueueLedgerCommand,
       }) => {
+        // Verify ownership BEFORE making any mutations
+        const existingPaymentMethod = await selectPaymentMethodById(
+          paymentMethodId,
+          transaction
+        )
+        if (existingPaymentMethod.customerId !== customer.id) {
+          throw new TRPCError({
+            code: 'FORBIDDEN',
+            message:
+              'You do not have permission to update this payment method',
+          })
+        }
+
         const effectsCtx = {
           transaction,
           invalidateCache,
@@ -603,14 +617,6 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
             },
             effectsCtx
           )
-
-        if (paymentMethod.customerId !== customer.id) {
-          throw new TRPCError({
-            code: 'FORBIDDEN',
-            message:
-              'You do not have permission to update this payment method',
-          })
-        }
 
         return Result.ok({
           success: true,
