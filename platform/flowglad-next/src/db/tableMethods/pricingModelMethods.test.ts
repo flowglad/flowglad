@@ -1460,6 +1460,295 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
   })
 })
 
+describe('Inactive Product and Price Filtering at SQL Level', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+  })
+
+  it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere excludes inactive products at the SQL level', async () => {
+    // Create an active product with an active price
+    const activeProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Active Product',
+      active: true,
+    })
+
+    await setupPrice({
+      productId: activeProduct.id,
+      name: 'Active Product Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    // Create an inactive product with an active price
+    const inactiveProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Inactive Product',
+      active: false,
+    })
+
+    await setupPrice({
+      productId: inactiveProduct.id,
+      name: 'Inactive Product Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 2000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    // Query using the base function (not via selectPricingModelForCustomer)
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+
+    // Verify inactive product is excluded
+    const productIds = pricingModelResult.products.map((p) => p.id)
+    expect(productIds).toContain(activeProduct.id)
+    expect(productIds).not.toContain(inactiveProduct.id)
+
+    // Verify all returned products are active
+    expect(pricingModelResult.products.every((p) => p.active)).toBe(
+      true
+    )
+  })
+
+  it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere excludes inactive prices at the SQL level', async () => {
+    // Create an active product
+    const product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Product with Mixed Prices',
+      active: true,
+    })
+
+    // Note: safelyInsertPrice (used by setupPrice) sets existing prices to inactive
+    // when creating a new price for the same product. So:
+    // - After creating price1: price1 is active=true
+    // - After creating price2: price1 becomes active=false, price2 is active=true
+    const price1 = await setupPrice({
+      productId: product.id,
+      name: 'Price 1',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    const price2 = await setupPrice({
+      productId: product.id,
+      name: 'Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Year,
+      intervalCount: 1,
+      unitPrice: 10000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      trialPeriodDays: 0,
+    })
+
+    // At this point: price1 is inactive (due to safelyInsertPrice behavior), price2 is active
+
+    // Query using the base function (not via selectPricingModelForCustomer)
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+
+    // Find our test product
+    const testProduct = pricingModelResult.products.find(
+      (p) => p.id === product.id
+    )
+    expect(testProduct?.id).toBe(product.id)
+
+    // Verify inactive price (price1) is excluded and active price (price2) is included
+    const priceIds = testProduct!.prices.map((p) => p.id)
+    expect(priceIds).not.toContain(price1.id) // price1 was made inactive when price2 was created
+    expect(priceIds).toContain(price2.id) // price2 is the active price
+
+    // Verify all returned prices are active
+    expect(testProduct!.prices.every((p) => p.active)).toBe(true)
+  })
+
+  it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere excludes products with only inactive prices', async () => {
+    // Create an active product with ONLY inactive prices
+    const productWithOnlyInactivePrices = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Product with Only Inactive Prices',
+      active: true,
+    })
+
+    const inactivePrice1 = await setupPrice({
+      productId: productWithOnlyInactivePrices.id,
+      name: 'Inactive Price 1',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    const inactivePrice2 = await setupPrice({
+      productId: productWithOnlyInactivePrices.id,
+      name: 'Inactive Price 2',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Year,
+      intervalCount: 1,
+      unitPrice: 10000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      trialPeriodDays: 0,
+    })
+
+    // Deactivate both prices
+    await adminTransaction(async ({ transaction }) => {
+      await safelyUpdatePrice(
+        {
+          id: inactivePrice1.id,
+          type: PriceType.Subscription,
+          active: false,
+          isDefault: false,
+        },
+        transaction
+      )
+      await safelyUpdatePrice(
+        {
+          id: inactivePrice2.id,
+          type: PriceType.Subscription,
+          active: false,
+          isDefault: false,
+        },
+        transaction
+      )
+    })
+
+    // Query using the base function
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+
+    // Verify the product with only inactive prices is excluded
+    // (because the INNER JOIN on active prices means it won't appear)
+    const productIds = pricingModelResult.products.map((p) => p.id)
+    expect(productIds).not.toContain(productWithOnlyInactivePrices.id)
+  })
+
+  it('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere excludes inactive usage prices at the SQL level', async () => {
+    // Create a usage meter
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Test Usage Meter',
+    })
+
+    // Create two usage prices (both active initially via setupPrice)
+    const usagePrice1 = await setupPrice({
+      name: 'Usage Price 1',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 10,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: usageMeter.id,
+    })
+
+    const usagePrice2 = await setupPrice({
+      name: 'Usage Price 2',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 5,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: false,
+      usageMeterId: usageMeter.id,
+    })
+
+    // Deactivate usagePrice2 via safelyUpdatePrice (since setupPrice doesn't respect active: false)
+    await adminTransaction(async ({ transaction }) => {
+      await safelyUpdatePrice(
+        {
+          id: usagePrice2.id,
+          type: PriceType.Usage,
+          active: false,
+          isDefault: false,
+        },
+        transaction
+      )
+    })
+
+    // Query using the base function
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
+        { id: pricingModel.id },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    const pricingModelResult = result[0]
+
+    // Find our usage meter
+    const testUsageMeter = pricingModelResult.usageMeters.find(
+      (m) => m.id === usageMeter.id
+    )
+    expect(testUsageMeter?.id).toBe(usageMeter.id)
+
+    // Verify inactive usage price is excluded and active one is included
+    const usagePriceIds = testUsageMeter!.prices.map((p) => p.id)
+    expect(usagePriceIds).toContain(usagePrice1.id)
+    expect(usagePriceIds).not.toContain(usagePrice2.id)
+
+    // Verify all returned usage prices are active
+    expect(testUsageMeter!.prices.every((p) => p.active)).toBe(true)
+  })
+})
+
 describe('Usage Meter Prices in Pricing Model Response', () => {
   let organization: Organization.Record
   let pricingModel: PricingModel.Record
