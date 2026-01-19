@@ -9,19 +9,10 @@ export const rotateApiKeyProcedure = protectedProcedure
   .input(rotateApiKeySchema)
   .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
-      async ({
-        transaction,
-        userId,
-        livemode,
-        organizationId,
-        cacheRecomputationContext,
-      }) => {
+      async ({ transaction, userId }) => {
         return rotateSecretApiKeyTransaction(input, {
           transaction,
           userId,
-          livemode,
-          organizationId,
-          cacheRecomputationContext,
         })
       },
       {
