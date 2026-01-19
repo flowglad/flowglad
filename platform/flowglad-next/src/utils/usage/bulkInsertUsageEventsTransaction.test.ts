@@ -1735,110 +1735,111 @@ describe('bulkInsertUsageEventsTransaction', () => {
         prepare: false,
       })
       const dbWithLogging = drizzle(client, { logger: queryLogger })
+      try {
+        // Create 10 customers, each with their own subscription
+        const customersAndSubs: Array<{
+          customer: Customer.Record
+          subscription: Subscription.Record
+        }> = []
 
-      // Create 10 customers, each with their own subscription
-      const customersAndSubs: Array<{
-        customer: Customer.Record
-        subscription: Subscription.Record
-      }> = []
+        for (let i = 0; i < 10; i++) {
+          const customerData = await adminTransaction(
+            async ({ transaction }) =>
+              setupCustomer({
+                organizationId: organization.id,
+                pricingModelId,
+              })
+          )
 
-      for (let i = 0; i < 10; i++) {
-        const customerData = await adminTransaction(
-          async ({ transaction }) =>
-            setupCustomer({
-              organizationId: organization.id,
-              pricingModelId,
+          const pmData = await adminTransaction(
+            async ({ transaction }) =>
+              setupPaymentMethod({
+                organizationId: organization.id,
+                customerId: customerData.id,
+              })
+          )
+
+          const subData = await adminTransaction(
+            async ({ transaction }) =>
+              setupSubscription({
+                organizationId: organization.id,
+                customerId: customerData.id,
+                paymentMethodId: pmData.id,
+                priceId: price.id,
+              })
+          )
+
+          await adminTransaction(async ({ transaction }) => {
+            const now = new Date()
+            const endDate = new Date(now)
+            endDate.setDate(endDate.getDate() + 30)
+            return setupBillingPeriod({
+              subscriptionId: subData.id,
+              startDate: now,
+              endDate,
             })
-        )
-
-        const pmData = await adminTransaction(
-          async ({ transaction }) =>
-            setupPaymentMethod({
-              organizationId: organization.id,
-              customerId: customerData.id,
-            })
-        )
-
-        const subData = await adminTransaction(
-          async ({ transaction }) =>
-            setupSubscription({
-              organizationId: organization.id,
-              customerId: customerData.id,
-              paymentMethodId: pmData.id,
-              priceId: price.id,
-            })
-        )
-
-        await adminTransaction(async ({ transaction }) => {
-          const now = new Date()
-          const endDate = new Date(now)
-          endDate.setDate(endDate.getDate() + 30)
-          return setupBillingPeriod({
-            subscriptionId: subData.id,
-            startDate: now,
-            endDate,
           })
-        })
 
-        customersAndSubs.push({
-          customer: customerData,
-          subscription: subData,
-        })
-      }
+          customersAndSubs.push({
+            customer: customerData,
+            subscription: subData,
+          })
+        }
 
-      // Reset query log before the operation we want to measure
-      queryLogger.reset()
+        // Reset query log before the operation we want to measure
+        queryLogger.reset()
 
-      // Execute: Process all 10 events
-      const timestamp = Date.now()
-      await dbWithLogging.transaction(async (transaction) => {
-        await bulkInsertUsageEventsTransaction(
-          {
-            input: {
-              usageEvents: customersAndSubs.map(
-                ({ subscription }, i) => ({
-                  subscriptionId: subscription.id,
-                  priceId: price.id,
-                  amount: (i + 1) * 100,
-                  transactionId: `txn_batch10_${i}_${timestamp}`,
-                })
-              ),
+        // Execute: Process all 10 events
+        const timestamp = Date.now()
+        await dbWithLogging.transaction(async (transaction) => {
+          await bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: customersAndSubs.map(
+                  ({ subscription }, i) => ({
+                    subscriptionId: subscription.id,
+                    priceId: price.id,
+                    amount: (i + 1) * 100,
+                    transactionId: `txn_batch10_${i}_${timestamp}`,
+                  })
+                ),
+              },
+              livemode: true,
             },
-            livemode: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
+            createDiscardingEffectsContext(transaction)
+          )
+        })
 
-      // Expectations: Still only 1 batch query despite 10 different customers
-      const customerBatchQueries =
-        queryLogger.getCustomerBatchQueries()
-      const customerSingleQueries =
-        queryLogger.getCustomerSingleQueries()
+        // Expectations: Still only 1 batch query despite 10 different customers
+        const customerBatchQueries =
+          queryLogger.getCustomerBatchQueries()
+        const customerSingleQueries =
+          queryLogger.getCustomerSingleQueries()
 
-      // Should have exactly 1 batch query for all 10 customers
-      expect(customerBatchQueries.length).toBe(1)
+        // Should have exactly 1 batch query for all 10 customers
+        expect(customerBatchQueries.length).toBe(1)
 
-      // Should have 0 individual customer queries
-      expect(customerSingleQueries.length).toBe(0)
+        // Should have 0 individual customer queries
+        expect(customerSingleQueries.length).toBe(0)
 
-      // Verify the batch query includes multiple customer IDs
-      const batchQuery = customerBatchQueries[0]
-      expect(
-        batchQuery.query.includes(' in ') ||
-          batchQuery.query.includes(' IN ') ||
-          batchQuery.query.includes('= any(')
-      ).toBe(true)
+        // Verify the batch query includes multiple customer IDs
+        const batchQuery = customerBatchQueries[0]
+        expect(
+          batchQuery.query.includes(' in ') ||
+            batchQuery.query.includes(' IN ') ||
+            batchQuery.query.includes('= any(')
+        ).toBe(true)
 
-      // Verify batch query includes all 10 customer IDs
-      // Drizzle/postgres-js emits params as array for IN/ANY queries
-      const params = batchQuery.params
-      if (Array.isArray(params[0])) {
-        expect((params[0] as unknown[]).length).toBe(10)
+        // Verify batch query includes all 10 customer IDs
+        // Drizzle/postgres-js emits params as array for IN/ANY queries
+        const params = batchQuery.params
+        if (Array.isArray(params[0])) {
+          expect((params[0] as unknown[]).length).toBe(10)
+        }
+      } finally {
+        // Cleanup
+        await client.end()
       }
-
-      // Cleanup
-      await client.end()
     })
   })
 })
