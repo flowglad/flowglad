@@ -14,6 +14,7 @@ import {
 } from '@/db/tableMethods/productMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { TRPCApiContext } from '@/server/trpcContext'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -48,12 +49,11 @@ describe('pricesRouter - Default Price Constraints', () => {
             isDefault: false, // Can't have multiple defaults per org
           },
         },
-        {
+        withAdminCacheContext({
           transaction,
-          cacheRecomputationContext: { type: 'admin', livemode },
           organizationId: organization.id,
           livemode,
-        }
+        })
       )
 
       // Create a regular product with a regular price for comparison
@@ -563,12 +563,11 @@ describe('pricesRouter - Default Price Constraints', () => {
                 isDefault: false,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
-            }
+            })
           )
 
           const product = await insertProduct(
@@ -714,12 +713,11 @@ describe('prices.getTableRows (usage-meter filters)', () => {
             isDefault: false,
           },
         },
-        {
+        withAdminCacheContext({
           transaction,
-          cacheRecomputationContext: { type: 'admin', livemode },
           organizationId: organization.id,
           livemode,
-        }
+        })
       )
 
       const pricingModelId =
@@ -1089,12 +1087,11 @@ describe('pricesRouter - API Contract Updates', () => {
             isDefault: false,
           },
         },
-        {
+        withAdminCacheContext({
           transaction,
-          cacheRecomputationContext: { type: 'admin', livemode },
           organizationId: organization.id,
           livemode,
-        }
+        })
       )
 
       const pricingModelId =
@@ -1314,12 +1311,11 @@ describe('pricesRouter.replaceUsagePrice', () => {
             isDefault: false,
           },
         },
-        {
+        withAdminCacheContext({
           transaction,
-          cacheRecomputationContext: { type: 'admin', livemode },
           organizationId: organization.id,
           livemode,
-        }
+        })
       )
 
       const pricingModelId =

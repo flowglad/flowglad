@@ -36,6 +36,7 @@ import {
 } from '@/db/tableMethods/pricingModelMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
@@ -119,15 +120,14 @@ describe('createCustomerBookkeeping', () => {
                 externalId: `ext_${core.nanoid()}`,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent: capturingEmitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -229,18 +229,14 @@ describe('createCustomerBookkeeping', () => {
                 pricingModelId: customPricingModel.id,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: customProduct.livemode,
-              },
               organizationId: organization.id,
               livemode: customProduct.livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -322,15 +318,14 @@ describe('createCustomerBookkeeping', () => {
                 pricingModelId: emptyPricingModel.id,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent: capturingEmitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -430,15 +425,14 @@ describe('createCustomerBookkeeping', () => {
                 pricingModelId: pricingModelNoDefaultPrice.id,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent: capturingEmitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -499,15 +493,14 @@ describe('createCustomerBookkeeping', () => {
                 externalId: `ext_${core.nanoid()}`,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -595,18 +588,14 @@ describe('createCustomerBookkeeping', () => {
                   externalId: `ext_${core.nanoid()}`,
                 },
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId: minimalOrg.id,
                 livemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
-              }
+              })
             )
             return Result.ok(null)
           }
@@ -646,18 +635,14 @@ describe('createCustomerBookkeeping', () => {
                   externalId: `ext_${core.nanoid()}`,
                 },
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId: organization.id, // Auth context org
                 livemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
-              }
+              })
             )
             return Result.ok(null)
           }
@@ -687,15 +672,14 @@ describe('createCustomerBookkeeping', () => {
                 externalId: `ext_${core.nanoid()}`,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -742,12 +726,11 @@ describe('createCustomerBookkeeping', () => {
               },
               // No defaultPlanIntervalUnit - creates SinglePayment price
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -776,15 +759,14 @@ describe('createCustomerBookkeeping', () => {
                 // No pricingModelId - will use default
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -824,12 +806,11 @@ describe('createCustomerBookkeeping', () => {
               },
               defaultPlanIntervalUnit: IntervalUnit.Month, // Creates Subscription price
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -858,15 +839,14 @@ describe('createCustomerBookkeeping', () => {
                 // No pricingModelId - will use default
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -914,12 +894,11 @@ describe('createCustomerBookkeeping', () => {
               },
               // No interval - SinglePayment
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -935,12 +914,11 @@ describe('createCustomerBookkeeping', () => {
               },
               defaultPlanIntervalUnit: IntervalUnit.Year, // Subscription with Year
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -967,18 +945,14 @@ describe('createCustomerBookkeeping', () => {
                       .id,
                 },
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId: organization.id,
                 livemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
-              }
+              })
             )
             return Result.ok(output)
           }
@@ -1011,18 +985,14 @@ describe('createCustomerBookkeeping', () => {
                     subscriptionPricingModel.unwrap().pricingModel.id,
                 },
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId: organization.id,
                 livemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
-              }
+              })
             )
             return Result.ok(output)
           }
@@ -1089,12 +1059,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1152,12 +1121,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false, // Can't create another default, setupOrg already created one
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1183,12 +1151,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1229,12 +1196,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1291,15 +1257,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: false,
-              },
               organizationId,
               livemode: false,
-            }
+            })
           )
           return output.unwrap().pricingModel
         }
@@ -1335,15 +1297,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
               organizationId,
               livemode: true,
-            }
+            })
           )
           return output.unwrap().pricingModel
         }
@@ -1440,12 +1398,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: eurOrganization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1495,12 +1452,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: gbpOrganization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1527,12 +1483,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1568,12 +1523,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1639,15 +1593,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: testLivemode,
-              },
               organizationId: testOrganization.id,
               livemode: testLivemode,
-            }
+            })
           )
           return output
         }
@@ -1675,15 +1625,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Month,
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1717,15 +1663,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Year,
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1755,15 +1697,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Week,
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1791,15 +1729,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Day,
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1877,15 +1811,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 // No defaultPlanIntervalUnit provided
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1920,15 +1850,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: intervalUnit,
               },
-              {
+              withAdminCacheContext({
                 transaction,
-                cacheRecomputationContext: {
-                  type: 'admin',
-                  livemode,
-                },
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }

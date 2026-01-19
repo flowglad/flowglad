@@ -65,6 +65,7 @@ import {
   createDiscardingEffectsContext,
   noopEmitEvent,
   noopInvalidateCache,
+  withAdminCacheContext,
 } from '@/test-utils/transactionCallbacks'
 import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-cancellation-scheduled-notification'
 import {
@@ -1757,16 +1758,13 @@ describe('Subscription Cancellation Test Suite', async () => {
               },
             },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
+              livemode: true,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
+            }),
           }
         )
 
@@ -1809,16 +1807,13 @@ describe('Subscription Cancellation Test Suite', async () => {
             ctx: {
               apiKey: undefined,
             },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
+              livemode: true,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
+            }),
           }
         )
 
@@ -3697,16 +3692,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           await uncancelSubscriptionProcedureTransaction({
             input: { id: subscription.id },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
+              livemode: true,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
+            }),
           })
 
         expect(response.unwrap().subscription.id).toBe(
@@ -4219,16 +4211,13 @@ describe('Subscription cancellation cache invalidations', async () => {
               },
             },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
+              livemode: true,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
+            }),
           })
           return effects
         }

@@ -40,7 +40,6 @@ import {
 import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import type { AuthenticatedTransactionParams } from '@/db/types'
 import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import {
   CurrencyCode,
@@ -2066,16 +2065,12 @@ describe('createPriceTransaction', () => {
 
     const createdPrice = await adminTransaction(
       async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
-          cacheRecomputationContext: {
-            type: 'admin',
-            livemode: true,
-          },
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
         return createPriceTransaction(
           {
             price: {
@@ -2105,16 +2100,12 @@ describe('createPriceTransaction', () => {
   it('rejects creating additional prices for a default product', async () => {
     await expect(
       adminTransaction(async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
-          cacheRecomputationContext: {
-            type: 'admin',
-            livemode: true,
-          },
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
         return createPriceTransaction(
           {
             price: {
@@ -2148,16 +2139,12 @@ describe('createPriceTransaction', () => {
     })
     const firstPrice = await adminTransaction(
       async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
-          cacheRecomputationContext: {
-            type: 'admin',
-            livemode: true,
-          },
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
 
         return createPriceTransaction(
           {
@@ -2186,16 +2173,12 @@ describe('createPriceTransaction', () => {
     const updatedUnitPrice = 3500
     const updatedPrice = await adminTransaction(
       async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
-          cacheRecomputationContext: {
-            type: 'admin',
-            livemode: true,
-          },
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
 
         return createPriceTransaction(
           {
@@ -2235,13 +2218,12 @@ describe('createPriceTransaction', () => {
     })
 
     await adminTransaction(async ({ transaction }) => {
-      const params: AuthenticatedTransactionParams =
-        withAdminCacheContext({
-          transaction,
-          livemode: true,
-          organizationId: organization.id,
-          userId,
-        })
+      const params = withAdminCacheContext({
+        transaction,
+        livemode: true,
+        organizationId: organization.id,
+        userId,
+      })
 
       return createPriceTransaction(
         {
@@ -2265,16 +2247,12 @@ describe('createPriceTransaction', () => {
 
     await expect(
       adminTransaction(async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
-          cacheRecomputationContext: {
-            type: 'admin',
-            livemode: true,
-          },
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
 
         return createPriceTransaction(
           {

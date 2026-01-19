@@ -15,6 +15,7 @@ import {
 } from '@/db/tableMethods/apiKeyMethods'
 import { updateMembership } from '@/db/tableMethods/membershipMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 import {
@@ -57,16 +58,15 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            cacheRecomputationContext: {
-              type: 'admin',
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
               livemode: false,
-            },
-            userId,
-            livemode: false,
-            organizationId: organization.id,
-          })
+              organizationId: organization.id,
+            })
+          )
         }
       )
 
@@ -99,16 +99,15 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            cacheRecomputationContext: {
-              type: 'admin',
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
               livemode: false,
-            },
-            userId,
-            livemode: false,
-            organizationId: organization.id,
-          })
+              organizationId: organization.id,
+            })
+          )
         })
       ).rejects.toThrow('No focused membership found')
     })
@@ -134,16 +133,15 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            cacheRecomputationContext: {
-              type: 'admin',
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
               livemode: true,
-            },
-            userId,
-            livemode: true,
-            organizationId: organization.id,
-          })
+              organizationId: organization.id,
+            })
+          )
         })
       ).rejects.toThrow(
         'createApiKey: Cannot create livemode secret key'
@@ -171,16 +169,15 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            cacheRecomputationContext: {
-              type: 'admin',
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
               livemode: false,
-            },
-            userId,
-            livemode: false,
-            organizationId: organization.id,
-          })
+              organizationId: organization.id,
+            })
+          )
         }
       )
 
@@ -211,16 +208,15 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            cacheRecomputationContext: {
-              type: 'admin',
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
               livemode: true,
-            },
-            userId,
-            livemode: true,
-            organizationId: organization.id,
-          })
+              organizationId: organization.id,
+            })
+          )
         })
       ).rejects.toThrow(
         'createSecretApiKeyTransaction: Only secret keys are supported. Received type: publishable'
@@ -267,16 +263,12 @@ describe('apiKeyHelpers', () => {
       await adminTransaction(async ({ transaction }) => {
         await deleteSecretApiKeyTransaction(
           { id: secretApiKey.id },
-          {
+          withAdminCacheContext({
             transaction,
-            cacheRecomputationContext: {
-              type: 'admin',
-              livemode: true,
-            },
             userId,
             livemode: true,
             organizationId: organization.id,
-          }
+          })
         )
       })
 
@@ -295,16 +287,12 @@ describe('apiKeyHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           await deleteSecretApiKeyTransaction(
             { id: nonExistentId },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
               userId,
               livemode: true,
               organizationId: organization.id,
-            }
+            })
           )
         })
       ).rejects.toThrow()
@@ -332,16 +320,12 @@ describe('apiKeyHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           await deleteSecretApiKeyTransaction(
             { id: publishableApiKey.id },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
               userId,
               livemode: true,
               organizationId: organization.id,
-            }
+            })
           )
         })
       ).rejects.toThrow(
@@ -373,16 +357,12 @@ describe('apiKeyHelpers', () => {
       await adminTransaction(async ({ transaction }) => {
         await deleteSecretApiKeyTransaction(
           { id: legacyApiKey.id },
-          {
+          withAdminCacheContext({
             transaction,
-            cacheRecomputationContext: {
-              type: 'admin',
-              livemode: true,
-            },
             userId,
             livemode: true,
             organizationId: organization.id,
-          }
+          })
         )
       })
 
@@ -417,16 +397,12 @@ describe('apiKeyHelpers', () => {
       await adminTransaction(async ({ transaction }) => {
         await deleteSecretApiKeyTransaction(
           { id: apiKeyNoHash.id },
-          {
+          withAdminCacheContext({
             transaction,
-            cacheRecomputationContext: {
-              type: 'admin',
-              livemode: true,
-            },
             userId,
             livemode: true,
             organizationId: organization.id,
-          }
+          })
         )
       })
 
@@ -481,16 +457,12 @@ describe('apiKeyHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           await deleteSecretApiKeyTransaction(
             { id: apiKeyWithUnkeyId.id },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
               userId,
               livemode: true,
               organizationId: organization.id,
-            }
+            })
           )
         })
       ).rejects.toThrow('Failed to delete API key from Unkey')
