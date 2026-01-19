@@ -1,6 +1,7 @@
 import type {
   FlowgladActionKey,
   flowgladActionValidators,
+  PricingModel,
 } from '@flowglad/shared'
 import type { z } from 'zod'
 import type { FlowgladServer } from '../FlowgladServer'
@@ -36,7 +37,7 @@ export type SubRouteHandlerResultData<T extends FlowgladActionKey> =
  * Both authenticated and unauthenticated paths MUST return this exact shape.
  */
 export interface GetPricingModelResponse {
-  pricingModel: unknown // The actual PricingModel type from @flowglad/node
+  pricingModel: PricingModel
   source: 'customer' | 'default'
 }
 

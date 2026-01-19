@@ -119,9 +119,8 @@ export const requestHandler = <TRequest = unknown>(
         await beforeRequest()
       }
 
-      const customerExternalId = await getCustomerExternalId(request)
-      const flowgladServer = await flowglad(customerExternalId)
-
+      // Validate path BEFORE attempting auth - this allows hybrid routes to
+      // return proper errors without auth throwing first
       const joinedPath = input.path.join('/') as FlowgladActionKey
 
       if (!Object.values(FlowgladActionKey).includes(joinedPath)) {
@@ -138,6 +137,10 @@ export const requestHandler = <TRequest = unknown>(
           501
         )
       }
+
+      // Auth work happens AFTER path validation and hybrid route check
+      const customerExternalId = await getCustomerExternalId(request)
+      const flowgladServer = await flowglad(customerExternalId)
 
       const handler =
         routeToHandlerMap[joinedPath as AuthenticatedActionKey]
