@@ -3949,7 +3949,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -3991,7 +3990,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalIds: ['user-1', 'user-2', 'user-3'],
               },
@@ -4108,7 +4107,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -4150,7 +4148,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 quantity: 8,
               },
@@ -4263,7 +4261,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -4307,7 +4304,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalIds: ['user-1', 'user-2', 'user-3'],
               },
@@ -4420,7 +4417,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -4439,9 +4435,21 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
+        const premiumPrice = await setupPrice({
+          productId: product.id,
+          name: 'Premium Plan',
+          type: PriceType.Subscription,
+          unitPrice: 2000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
-          priceId: price.id,
+          priceId: premiumPrice.id,
           name: 'Premium Plan',
           quantity: 1,
           unitPrice: 2000,
@@ -4462,7 +4470,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 quantity: 3,
               },
@@ -4572,7 +4580,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -4591,9 +4598,21 @@ describe('adjustSubscription Integration Tests', async () => {
           organizationId: organization.id,
         })
 
+        const premiumPrice = await setupPrice({
+          productId: product.id,
+          name: 'Premium Plan',
+          type: PriceType.Subscription,
+          unitPrice: 2000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
         const subscriptionItem = await setupSubscriptionItem({
           subscriptionId: subscription.id,
-          priceId: price.id,
+          priceId: premiumPrice.id,
           name: 'Premium Plan',
           quantity: 1,
           unitPrice: 2000,
@@ -4614,7 +4633,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 quantity: 5,
               },
@@ -4737,7 +4756,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -4779,7 +4797,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 quantity: 5,
               },
@@ -4789,8 +4807,15 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Create a plan with capacity less than current claims
+        const tinyProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Tiny Product',
+          pricingModelId: pricingModel.id,
+          livemode: subscription.livemode,
+        })
+
         const tinyPrice = await setupPrice({
-          productId: product.id,
+          productId: tinyProduct.id,
           name: 'Tiny Plan',
           type: PriceType.Subscription,
           unitPrice: 100,
@@ -4811,7 +4836,7 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         await setupProductFeature({
-          productId: product.id,
+          productId: tinyProduct.id,
           featureId: tinyResourceFeature.id,
           organizationId: organization.id,
         })
@@ -4884,7 +4909,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -4926,7 +4950,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalIds: ['user-1', 'user-2', 'user-3'],
               },
@@ -4936,8 +4960,15 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Create a plan with capacity >= current claims
+        const basicProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Basic Product',
+          pricingModelId: pricingModel.id,
+          livemode: subscription.livemode,
+        })
+
         const basicPrice = await setupPrice({
-          productId: product.id,
+          productId: basicProduct.id,
           name: 'Basic Plan',
           type: PriceType.Subscription,
           unitPrice: 500,
@@ -4958,7 +4989,7 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         await setupProductFeature({
-          productId: product.id,
+          productId: basicProduct.id,
           featureId: basicResourceFeature.id,
           organizationId: organization.id,
         })
@@ -5050,7 +5081,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -5144,7 +5174,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 quantity: 4,
               },
@@ -5223,7 +5253,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -5317,7 +5346,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 quantity: 2,
               },
@@ -5409,7 +5438,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -5451,7 +5479,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalIds: ['user-1', 'user-2'],
               },
@@ -5473,20 +5501,9 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const newResourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'New Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 5, // Same capacity
-        })
-
-        await setupProductFeature({
-          productId: product.id,
-          featureId: newResourceFeature.id,
-          organizationId: organization.id,
-        })
+        // Note: The new price is for the same product, and the product already
+        // has a seats feature. We intentionally do NOT attach a second seats
+        // feature, otherwise capacity would double (5 + 5) after adjustment.
 
         await comprehensiveAdminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -5549,7 +5566,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalIds: ['user-3', 'user-4'],
               },
@@ -5594,7 +5611,6 @@ describe('adjustSubscription Integration Tests', async () => {
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
-          slug: 'seats',
           name: 'Seats',
         })
 
@@ -5636,7 +5652,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalIds: ['user-1', 'user-2', 'user-3'],
               },
@@ -5658,20 +5674,9 @@ describe('adjustSubscription Integration Tests', async () => {
           currency: organization.defaultCurrency,
         })
 
-        const newResourceFeature = await setupResourceFeature({
-          organizationId: organization.id,
-          pricingModelId: pricingModel.id,
-          name: 'New Seats Feature',
-          resourceId: resource.id,
-          livemode: subscription.livemode,
-          amount: 5,
-        })
-
-        await setupProductFeature({
-          productId: product.id,
-          featureId: newResourceFeature.id,
-          organizationId: organization.id,
-        })
+        // Note: The new price is for the same product, and the product already
+        // has a seats feature. We intentionally do NOT attach a second seats
+        // feature, otherwise capacity would double (5 + 5) after adjustment.
 
         await comprehensiveAdminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -5723,7 +5728,7 @@ describe('adjustSubscription Integration Tests', async () => {
               organizationId: organization.id,
               customerId: customer.id,
               input: {
-                resourceSlug: 'seats',
+                resourceSlug: resource.slug,
                 subscriptionId: subscription.id,
                 externalId: 'user-2',
               },

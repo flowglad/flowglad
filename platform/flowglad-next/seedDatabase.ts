@@ -2764,7 +2764,7 @@ export const setupResource = async (params: {
       {
         organizationId: params.organizationId,
         pricingModelId: params.pricingModelId,
-        slug: params.slug ?? 'seats',
+        slug: params.slug ?? `resource-${core.nanoid()}`,
         name: params.name ?? 'Seats',
         livemode: true,
         active: params.active ?? true,
