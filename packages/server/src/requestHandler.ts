@@ -136,6 +136,8 @@ export const requestHandler = <TRequest = unknown>(
         await beforeRequest()
       }
 
+      // Validate path BEFORE attempting auth - this allows hybrid routes to
+      // return proper errors without auth throwing first
       const joinedPath = input.path.join('/') as FlowgladActionKey
 
       if (!Object.values(FlowgladActionKey).includes(joinedPath)) {

@@ -6,6 +6,8 @@ import type { z } from 'zod'
 import type { FlowgladServer } from '../FlowgladServer'
 import type { FlowgladServerAdmin } from '../FlowgladServerAdmin'
 
+export type { GetPricingModelResponse } from '@flowglad/shared'
+
 export type InferRouteHandlerParams<T extends FlowgladActionKey> = {
   method: (typeof flowgladActionValidators)[T]['method']
   data: z.infer<
@@ -30,15 +32,6 @@ export type SubRouteHandlerResult<T extends FlowgladActionKey> =
 
 export type SubRouteHandlerResultData<T extends FlowgladActionKey> =
   SubRouteHandlerResult<T>['data']
-
-/**
- * Standard response shape for GetPricingModel endpoint.
- * Both authenticated and unauthenticated paths MUST return this exact shape.
- */
-export interface GetPricingModelResponse {
-  pricingModel: unknown // The actual PricingModel type from @flowglad/node
-  source: 'customer' | 'default'
-}
 
 /**
  * Handler for routes that attempt authentication but gracefully fall back
