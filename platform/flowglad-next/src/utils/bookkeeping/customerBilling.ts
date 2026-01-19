@@ -4,7 +4,6 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
-import { Price } from '@/db/schema/prices'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectCustomerFacingInvoicesWithLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
@@ -142,7 +141,7 @@ export const setDefaultPaymentMethodForCustomer = async (
         id: paymentMethodId,
         default: true,
       },
-      transaction
+      ctx
     )
     await safelyUpdateSubscriptionsForCustomerToNewPaymentMethod(
       updatedPaymentMethod,

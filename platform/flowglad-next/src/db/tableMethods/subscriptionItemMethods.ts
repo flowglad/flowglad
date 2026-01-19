@@ -30,7 +30,6 @@ import {
   CacheDependency,
   cached,
   cachedBulkLookup,
-  fromDependencies,
 } from '@/utils/cache'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -337,9 +336,14 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
         livemode: boolean
       ) => `${subscriptionId}:${livemode}`,
       schema: subscriptionItemWithPriceSchema.array(),
-      dependenciesFn: fromDependencies(
-        CacheDependency.subscriptionItems
-      ),
+      dependenciesFn: (items, subscriptionId: string) => [
+        // Set membership: invalidate when items are added/removed for this subscription
+        CacheDependency.subscriptionItems(subscriptionId),
+        // Content: invalidate when any item's properties change
+        ...items.map((item) =>
+          CacheDependency.subscriptionItem(item.subscriptionItem.id)
+        ),
+      ],
     },
     async (
       subscriptionId: string,
@@ -427,9 +431,14 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIds =
         keyFn: (subscriptionId: string) =>
           `${subscriptionId}:${livemode}`,
         schema: subscriptionItemWithPriceSchema.array(),
-        dependenciesFn: fromDependencies(
-          CacheDependency.subscriptionItems
-        ),
+        dependenciesFn: (items, subscriptionId: string) => [
+          // Set membership: invalidate when items are added/removed for this subscription
+          CacheDependency.subscriptionItems(subscriptionId),
+          // Content: invalidate when any item's properties change
+          ...items.map((item) =>
+            CacheDependency.subscriptionItem(item.subscriptionItem.id)
+          ),
+        ],
       },
       subscriptionIds,
       // Bulk fetch function for cache misses

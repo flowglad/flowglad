@@ -5,6 +5,7 @@ import { safelyInsertPrice } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { AuthenticatedTransactionParams } from '@/db/types'
 import { IntervalUnit, PriceType } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 
 /** Price fields used in usage meter creation/updates */
 type UsageMeterPriceFields = {
@@ -58,6 +59,11 @@ export const createUsageMeterTransaction = async (
       livemode,
     },
     transaction
+  )
+
+  // Invalidate the cached usage meters for this pricing model
+  invalidateCache(
+    CacheDependency.pricingModelUsageMeters(usageMeter.pricingModelId)
   )
 
   // Use provided price values or defaults

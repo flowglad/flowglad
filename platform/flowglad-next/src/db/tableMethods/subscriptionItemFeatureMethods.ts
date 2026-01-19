@@ -22,7 +22,6 @@ import {
   CacheDependency,
   cached,
   cachedBulkLookup,
-  fromDependencies,
 } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { features } from '../schema/features'
@@ -173,9 +172,14 @@ const selectSubscriptionItemFeaturesWithFeatureSlugCachedInternal =
         livemode: boolean
       ) => `${subscriptionItemId}:${livemode}`,
       schema: subscriptionItemFeaturesClientSelectSchema.array(),
-      dependenciesFn: fromDependencies(
-        CacheDependency.subscriptionItemFeatures
-      ),
+      dependenciesFn: (features, subscriptionItemId: string) => [
+        // Set membership: invalidate when features are added/removed for this subscription item
+        CacheDependency.subscriptionItemFeatures(subscriptionItemId),
+        // Content: invalidate when any feature's properties change
+        ...features.map((feature) =>
+          CacheDependency.subscriptionItemFeature(feature.id)
+        ),
+      ],
     },
     selectSubscriptionItemFeaturesWithFeatureSlugFromDb
   )
@@ -309,9 +313,14 @@ export const selectSubscriptionItemFeaturesWithFeatureSlugs = async (
       keyFn: (subscriptionItemId: string) =>
         `${subscriptionItemId}:${livemode}`,
       schema: subscriptionItemFeaturesClientSelectSchema.array(),
-      dependenciesFn: fromDependencies(
-        CacheDependency.subscriptionItemFeatures
-      ),
+      dependenciesFn: (features, subscriptionItemId: string) => [
+        // Set membership: invalidate when features are added/removed for this subscription item
+        CacheDependency.subscriptionItemFeatures(subscriptionItemId),
+        // Content: invalidate when any feature's properties change
+        ...features.map((feature) =>
+          CacheDependency.subscriptionItemFeature(feature.id)
+        ),
+      ],
     },
     subscriptionItemIds,
     async (missedSubscriptionItemIds: string[]) => {
