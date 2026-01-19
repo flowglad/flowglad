@@ -36,14 +36,12 @@ export function HomeClient() {
   } = useResource('seats')
 
   const [inviteEmail, setInviteEmail] = useState('')
-  // FIXME: Uncomment when subscriptionItemFeatureId is removed from resourceClaims
-  // const [newQuantity, setNewQuantity] = useState(1)
+  const [newQuantity, setNewQuantity] = useState(1)
   const [isClaimingLoading, setIsClaimingLoading] = useState(false)
   const [isReleasingId, setIsReleasingId] = useState<string | null>(
     null
   )
-  // FIXME: Uncomment when subscriptionItemFeatureId is removed from resourceClaims
-  // const [isAdjustingSeats, setIsAdjustingSeats] = useState(false)
+  const [isAdjustingSeats, setIsAdjustingSeats] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const previousUserIdRef = useRef<string | undefined>(undefined)
@@ -64,15 +62,14 @@ export function HomeClient() {
     }
   }, [session?.user?.id, billing])
 
-  // FIXME: Uncomment when subscriptionItemFeatureId is removed from resourceClaims
   // Initialize newQuantity when seat usage loads (only run once when capacity becomes available)
-  // const hasInitializedQuantity = useRef(false)
-  // useEffect(() => {
-  //   if (seatUsage?.capacity && !hasInitializedQuantity.current) {
-  //     setNewQuantity(seatUsage.capacity)
-  //     hasInitializedQuantity.current = true
-  //   }
-  // }, [seatUsage?.capacity])
+  const hasInitializedQuantity = useRef(false)
+  useEffect(() => {
+    if (seatUsage?.capacity && !hasInitializedQuantity.current) {
+      setNewQuantity(seatUsage.capacity)
+      hasInitializedQuantity.current = true
+    }
+  }, [seatUsage?.capacity])
 
   // Check if user is on free plan and redirect to pricing page
   useEffect(() => {
@@ -147,41 +144,40 @@ export function HomeClient() {
     }
   }
 
-  // FIXME: Uncomment when subscriptionItemFeatureId is removed from resourceClaims
-  // const handleAdjustSeats = async () => {
-  //   if (!billing.adjustSubscription) return
-  //
-  //   // Block reducing below claimed count
-  //   const claimedCount = seatUsage?.claimed ?? 0
-  //   if (newQuantity < claimedCount) {
-  //     setError(
-  //       `Cannot reduce seats below ${claimedCount}. Release some seats first.`
-  //     )
-  //     return
-  //   }
-  //
-  //   setIsAdjustingSeats(true)
-  //   setError(null)
-  //
-  //   try {
-  //     await billing.adjustSubscription({
-  //       priceSlug: 'pro_monthly',
-  //       quantity: newQuantity,
-  //     })
-  //     // Reset initialized flag so the useEffect will update newQuantity after reload
-  //     hasInitializedQuantity.current = false
-  //     // Reload billing to get updated subscription
-  //     await billing.reload()
-  //   } catch (err) {
-  //     setError(
-  //       err instanceof Error
-  //         ? err.message
-  //         : 'Failed to adjust seats. Please try again.'
-  //     )
-  //   } finally {
-  //     setIsAdjustingSeats(false)
-  //   }
-  // }
+  const handleAdjustSeats = async () => {
+    if (!billing.adjustSubscription) return
+
+    // Block reducing below claimed count
+    const claimedCount = seatUsage?.claimed ?? 0
+    if (newQuantity < claimedCount) {
+      setError(
+        `Cannot reduce seats below ${claimedCount}. Release some seats first.`
+      )
+      return
+    }
+
+    setIsAdjustingSeats(true)
+    setError(null)
+
+    try {
+      await billing.adjustSubscription({
+        priceSlug: 'pro_monthly',
+        quantity: newQuantity,
+      })
+      // Reset initialized flag so the useEffect will update newQuantity after reload
+      hasInitializedQuantity.current = false
+      // Reload billing to get updated subscription
+      await billing.reload()
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to adjust seats. Please try again.'
+      )
+    } finally {
+      setIsAdjustingSeats(false)
+    }
+  }
 
   // Calculate progress percentage
   const capacity = seatUsage?.capacity ?? 0
@@ -324,7 +320,7 @@ export function HomeClient() {
             </CardContent>
           </Card>
 
-          {/* FIXME: Adjust Seat Count UI - Waiting for removal of subscriptionItemFeatureId from resourceClaims
+          {/* Adjust Seat Count UI */}
           <Card>
             <CardHeader>
               <CardTitle>Adjust Seat Count</CardTitle>
@@ -419,7 +415,6 @@ export function HomeClient() {
               </div>
             </CardContent>
           </Card>
-          */}
 
           {/* Error Display */}
           {error && (
