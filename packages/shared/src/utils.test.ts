@@ -2,10 +2,12 @@ import type { Flowglad as FlowgladNode } from '@flowglad/node'
 import { describe, expect, it } from 'vitest'
 import { constructGetPrice, constructGetProduct } from './utils'
 
-type Catalog = FlowgladNode.CustomerRetrieveBillingResponse['catalog']
+type PricingModel =
+  FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']
 type Product =
-  FlowgladNode.CustomerRetrieveBillingResponse['catalog']['products'][number]
+  FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']['products'][number]
 type Price = Product['prices'][number]
+type UsagePrice = FlowgladNode.UsagePriceClientSelectSchema
 
 // Helper to create a minimal price fixture
 const createPrice = (overrides: Partial<Price> = {}): Price =>
@@ -20,6 +22,32 @@ const createPrice = (overrides: Partial<Price> = {}): Price =>
     ...overrides,
   }) as Price
 
+// Helper to create a minimal usage price fixture
+const createUsagePrice = (
+  overrides: Partial<UsagePrice> = {}
+): UsagePrice =>
+  ({
+    id: 'price_default_usage',
+    slug: 'default-usage-price',
+    type: 'usage',
+    name: 'Default Usage Price',
+    livemode: false,
+    createdAt: 1704067200000,
+    updatedAt: 1704067200000,
+    active: true,
+    currency: 'USD',
+    intervalCount: 1,
+    intervalUnit: 'month',
+    isDefault: false,
+    pricingModelId: 'pm_default',
+    productId: null,
+    trialPeriodDays: null,
+    unitPrice: 100,
+    usageEventsPerUnit: 1,
+    usageMeterId: 'meter_default',
+    ...overrides,
+  }) as UsagePrice
+
 // Helper to create a minimal product fixture
 const createProduct = (overrides: Partial<Product> = {}): Product =>
   ({
@@ -33,12 +61,12 @@ const createProduct = (overrides: Partial<Product> = {}): Product =>
     ...overrides,
   }) as Product
 
-type UsageMeter = Catalog['usageMeters'][number]
+type UsageMeter = PricingModel['usageMeters'][number]
 
-// Helper to create a minimal usage meter fixture with prices
+// Helper to create a minimal usage meter fixture (usage meters no longer have prices directly)
 const createUsageMeter = (
-  overrides: Partial<UsageMeter> & { prices?: Price[] } = {}
-): UsageMeter & { prices?: Price[] } =>
+  overrides: Partial<UsageMeter> = {}
+): UsageMeter =>
   ({
     id: 'meter_default',
     slug: 'default-meter',
@@ -50,30 +78,28 @@ const createUsageMeter = (
     organizationId: 'org_default',
     pricingModelId: 'pm_default',
     ...overrides,
-  }) as UsageMeter & { prices?: Price[] }
+  }) as UsageMeter
 
-// Helper to create a minimal catalog fixture
-const createCatalog = (
-  overrides: Partial<Catalog> & {
-    usageMeters?: Array<UsageMeter & { prices?: Price[] }>
-  } = {}
-): Catalog =>
+// Helper to create a minimal pricing model fixture
+const createPricingModel = (
+  overrides: Partial<PricingModel> = {}
+): PricingModel =>
   ({
-    id: 'catalog_default',
+    id: 'pm_default',
     products: [],
     usageMeters: [],
     ...overrides,
-  }) as unknown as Catalog
+  }) as unknown as PricingModel
 
 describe('constructGetProduct', () => {
-  it('returns the product when the catalog contains a product with the given slug', () => {
+  it('returns the product when the pricing model contains a product with the given slug', () => {
     const product = createProduct({
       id: 'prod_123',
       slug: 'pro-plan',
       name: 'Pro Plan',
     })
-    const catalog = createCatalog({ products: [product] })
-    const getProduct = constructGetProduct(catalog)
+    const pricingModel = createPricingModel({ products: [product] })
+    const getProduct = constructGetProduct(pricingModel)
 
     const result = getProduct('pro-plan')
 
@@ -82,26 +108,26 @@ describe('constructGetProduct', () => {
     expect(result?.name).toBe('Pro Plan')
   })
 
-  it('returns null when the catalog does not contain a product with the given slug', () => {
+  it('returns null when the pricing model does not contain a product with the given slug', () => {
     const product = createProduct({ slug: 'existing-product' })
-    const catalog = createCatalog({ products: [product] })
-    const getProduct = constructGetProduct(catalog)
+    const pricingModel = createPricingModel({ products: [product] })
+    const getProduct = constructGetProduct(pricingModel)
 
     const result = getProduct('non-existent-product')
 
     expect(result).toBeNull()
   })
 
-  it('returns null when the catalog has no products', () => {
-    const catalog = createCatalog({ products: [] })
-    const getProduct = constructGetProduct(catalog)
+  it('returns null when the pricing model has no products', () => {
+    const pricingModel = createPricingModel({ products: [] })
+    const getProduct = constructGetProduct(pricingModel)
 
     const result = getProduct('any-slug')
 
     expect(result).toBeNull()
   })
 
-  it('returns the correct product when the catalog contains multiple products', () => {
+  it('returns the correct product when the pricing model contains multiple products', () => {
     const freeProduct = createProduct({
       id: 'prod_free',
       slug: 'free-plan',
@@ -117,10 +143,10 @@ describe('constructGetProduct', () => {
       slug: 'enterprise-plan',
       name: 'Enterprise Plan',
     })
-    const catalog = createCatalog({
+    const pricingModel = createPricingModel({
       products: [freeProduct, proProduct, enterpriseProduct],
     })
-    const getProduct = constructGetProduct(catalog)
+    const getProduct = constructGetProduct(pricingModel)
 
     const freeResult = getProduct('free-plan')
     const proResult = getProduct('pro-plan')
@@ -134,7 +160,7 @@ describe('constructGetProduct', () => {
 
 describe('constructGetPrice', () => {
   describe('product prices', () => {
-    it('returns the price when the catalog contains a product with a price matching the given slug', () => {
+    it('returns the price when the pricing model contains a product with a price matching the given slug', () => {
       const price = createPrice({
         id: 'price_pro_monthly',
         slug: 'pro-monthly',
@@ -144,8 +170,8 @@ describe('constructGetPrice', () => {
         slug: 'pro-plan',
         prices: [price],
       })
-      const catalog = createCatalog({ products: [product] })
-      const getPrice = constructGetPrice(catalog)
+      const pricingModel = createPricingModel({ products: [product] })
+      const getPrice = constructGetPrice(pricingModel)
 
       const result = getPrice('pro-monthly')
 
@@ -157,8 +183,8 @@ describe('constructGetPrice', () => {
     it('returns null when no product price matches the given slug', () => {
       const price = createPrice({ slug: 'existing-price' })
       const product = createProduct({ prices: [price] })
-      const catalog = createCatalog({ products: [product] })
-      const getPrice = constructGetPrice(catalog)
+      const pricingModel = createPricingModel({ products: [product] })
+      const getPrice = constructGetPrice(pricingModel)
 
       const result = getPrice('non-existent-price')
 
@@ -186,10 +212,10 @@ describe('constructGetPrice', () => {
         slug: 'pro-plan',
         prices: [proMonthlyPrice, proYearlyPrice],
       })
-      const catalog = createCatalog({
+      const pricingModel = createPricingModel({
         products: [freeProduct, proProduct],
       })
-      const getPrice = constructGetPrice(catalog)
+      const getPrice = constructGetPrice(pricingModel)
 
       expect(getPrice('free-monthly')?.id).toBe('price_free')
       expect(getPrice('pro-monthly')?.id).toBe('price_pro_monthly')
@@ -197,23 +223,26 @@ describe('constructGetPrice', () => {
     })
   })
 
-  describe('usage meter prices', () => {
-    it('returns the price when a usage meter contains a price matching the given slug', () => {
-      const usagePrice = createPrice({
+  describe('usage prices', () => {
+    it('returns the usage price when a product contains a usage price matching the given slug', () => {
+      const usagePrice = createUsagePrice({
         id: 'price_api_calls',
         slug: 'api-calls-price',
-        type: 'usage',
+        usageMeterId: 'meter_api_calls',
+      })
+      const product = createProduct({
+        slug: 'usage-product',
+        prices: [usagePrice as unknown as Price],
       })
       const usageMeter = createUsageMeter({
         id: 'meter_api_calls',
         slug: 'api-calls',
-        prices: [usagePrice],
       })
-      const catalog = createCatalog({
-        products: [],
+      const pricingModel = createPricingModel({
+        products: [product],
         usageMeters: [usageMeter],
       })
-      const getPrice = constructGetPrice(catalog)
+      const getPrice = constructGetPrice(pricingModel)
 
       const result = getPrice('api-calls-price')
 
@@ -222,69 +251,62 @@ describe('constructGetPrice', () => {
       expect(result?.type).toBe('usage')
     })
 
-    it('returns null when no usage meter price matches the given slug', () => {
-      const usagePrice = createPrice({
+    it('returns null when no usage price matches the given slug', () => {
+      const usagePrice = createUsagePrice({
         slug: 'existing-usage-price',
-        type: 'usage',
+        usageMeterId: 'meter_1',
+      })
+      const product = createProduct({
+        slug: 'usage-product',
+        prices: [usagePrice as unknown as Price],
       })
       const usageMeter = createUsageMeter({
         id: 'meter_1',
         slug: 'some-meter',
-        prices: [usagePrice],
       })
-      const catalog = createCatalog({
+      const pricingModel = createPricingModel({
+        products: [product],
         usageMeters: [usageMeter],
       })
-      const getPrice = constructGetPrice(catalog)
+      const getPrice = constructGetPrice(pricingModel)
 
       const result = getPrice('non-existent-usage-price')
 
       expect(result).toBeNull()
     })
 
-    it('handles usage meters without prices array gracefully', () => {
-      const usageMeterWithoutPrices = createUsageMeter({
-        id: 'meter_no_prices',
-        slug: 'meter-no-prices',
-        // No prices property - using createUsageMeter defaults
-      })
-      // Remove the prices property to test the graceful handling
-      delete (usageMeterWithoutPrices as { prices?: Price[] }).prices
-      const catalog = createCatalog({
-        usageMeters: [usageMeterWithoutPrices],
-      })
-      const getPrice = constructGetPrice(catalog)
-
-      const result = getPrice('any-slug')
-
-      expect(result).toBeNull()
-    })
-
-    it('returns the correct price when multiple usage meters have prices', () => {
-      const apiCallsPrice = createPrice({
+    it('returns the correct price when multiple products have usage prices', () => {
+      const apiCallsPrice = createUsagePrice({
         id: 'price_api_calls',
         slug: 'api-calls-per-request',
-        type: 'usage',
+        usageMeterId: 'meter_api',
       })
-      const storagePrice = createPrice({
+      const storagePrice = createUsagePrice({
         id: 'price_storage',
         slug: 'storage-per-gb',
-        type: 'usage',
+        usageMeterId: 'meter_storage',
+      })
+      const apiProduct = createProduct({
+        slug: 'api-product',
+        prices: [apiCallsPrice as unknown as Price],
+      })
+      const storageProduct = createProduct({
+        slug: 'storage-product',
+        prices: [storagePrice as unknown as Price],
       })
       const apiMeter = createUsageMeter({
         id: 'meter_api',
         slug: 'api-calls',
-        prices: [apiCallsPrice],
       })
       const storageMeter = createUsageMeter({
         id: 'meter_storage',
         slug: 'storage',
-        prices: [storagePrice],
       })
-      const catalog = createCatalog({
+      const pricingModel = createPricingModel({
+        products: [apiProduct, storageProduct],
         usageMeters: [apiMeter, storageMeter],
       })
-      const getPrice = constructGetPrice(catalog)
+      const getPrice = constructGetPrice(pricingModel)
 
       expect(getPrice('api-calls-per-request')?.id).toBe(
         'price_api_calls'
@@ -293,32 +315,35 @@ describe('constructGetPrice', () => {
     })
   })
 
-  describe('combined product and usage meter prices', () => {
-    it('returns prices from both products and usage meters', () => {
+  describe('combined subscription and usage prices', () => {
+    it('returns both subscription and usage prices from products', () => {
       const subscriptionPrice = createPrice({
         id: 'price_sub',
         slug: 'pro-monthly',
         type: 'subscription',
       })
-      const usagePrice = createPrice({
+      const usagePrice = createUsagePrice({
         id: 'price_usage',
         slug: 'api-calls-price',
-        type: 'usage',
+        usageMeterId: 'meter_api',
       })
-      const product = createProduct({
+      const subscriptionProduct = createProduct({
         slug: 'pro-plan',
         prices: [subscriptionPrice],
+      })
+      const usageProduct = createProduct({
+        slug: 'usage-plan',
+        prices: [usagePrice as unknown as Price],
       })
       const usageMeter = createUsageMeter({
         id: 'meter_api',
         slug: 'api-calls',
-        prices: [usagePrice],
       })
-      const catalog = createCatalog({
-        products: [product],
+      const pricingModel = createPricingModel({
+        products: [subscriptionProduct, usageProduct],
         usageMeters: [usageMeter],
       })
-      const getPrice = constructGetPrice(catalog)
+      const getPrice = constructGetPrice(pricingModel)
 
       const subResult = getPrice('pro-monthly')
       const usageResult = getPrice('api-calls-price')
@@ -329,50 +354,53 @@ describe('constructGetPrice', () => {
       expect(usageResult?.type).toBe('usage')
     })
 
-    it('returns null when the catalog has no products and no usage meter prices', () => {
-      const catalog = createCatalog({
+    it('returns null when the pricing model has no products', () => {
+      const pricingModel = createPricingModel({
         products: [],
         usageMeters: [],
       })
-      const getPrice = constructGetPrice(catalog)
+      const getPrice = constructGetPrice(pricingModel)
 
       const result = getPrice('any-slug')
 
       expect(result).toBeNull()
     })
 
-    it('handles a catalog with products but empty usage meters', () => {
+    it('handles a pricing model with products but empty usage meters', () => {
       const price = createPrice({
         id: 'price_only_product',
         slug: 'product-price',
       })
       const product = createProduct({ prices: [price] })
-      const catalog = createCatalog({
+      const pricingModel = createPricingModel({
         products: [product],
         usageMeters: [],
       })
-      const getPrice = constructGetPrice(catalog)
+      const getPrice = constructGetPrice(pricingModel)
 
       expect(getPrice('product-price')?.id).toBe('price_only_product')
       expect(getPrice('non-existent')).toBeNull()
     })
 
-    it('handles a catalog with usage meters but no products', () => {
-      const usagePrice = createPrice({
+    it('handles a pricing model with usage product and usage meters', () => {
+      const usagePrice = createUsagePrice({
         id: 'price_only_usage',
         slug: 'usage-price',
-        type: 'usage',
+        usageMeterId: 'meter_1',
+      })
+      const usageProduct = createProduct({
+        slug: 'usage-plan',
+        prices: [usagePrice as unknown as Price],
       })
       const usageMeter = createUsageMeter({
         id: 'meter_1',
         slug: 'meter',
-        prices: [usagePrice],
       })
-      const catalog = createCatalog({
-        products: [],
+      const pricingModel = createPricingModel({
+        products: [usageProduct],
         usageMeters: [usageMeter],
       })
-      const getPrice = constructGetPrice(catalog)
+      const getPrice = constructGetPrice(pricingModel)
 
       expect(getPrice('usage-price')?.id).toBe('price_only_usage')
       expect(getPrice('non-existent')).toBeNull()
@@ -386,41 +414,47 @@ describe('constructGetPrice', () => {
         slug: null as unknown as string,
       })
       const product = createProduct({ prices: [priceWithNullSlug] })
-      const catalog = createCatalog({ products: [product] })
-      const getPrice = constructGetPrice(catalog)
+      const pricingModel = createPricingModel({ products: [product] })
+      const getPrice = constructGetPrice(pricingModel)
 
       // Cannot retrieve a price with null slug using any string
       expect(getPrice('')).toBeNull()
       expect(getPrice('null')).toBeNull()
     })
 
-    it('returns the last price when duplicate slugs exist across products and usage meters', () => {
+    it('returns the last price when duplicate slugs exist across multiple products', () => {
       // This tests the Map behavior where later entries override earlier ones
       const productPrice = createPrice({
-        id: 'price_from_product',
+        id: 'price_from_first_product',
         slug: 'duplicate-slug',
         type: 'subscription',
       })
-      const usagePrice = createPrice({
-        id: 'price_from_usage_meter',
+      const usagePrice = createUsagePrice({
+        id: 'price_from_second_product',
         slug: 'duplicate-slug',
-        type: 'usage',
+        usageMeterId: 'meter_1',
       })
-      const product = createProduct({ prices: [productPrice] })
+      const firstProduct = createProduct({
+        slug: 'first-product',
+        prices: [productPrice],
+      })
+      const secondProduct = createProduct({
+        slug: 'second-product',
+        prices: [usagePrice as unknown as Price],
+      })
       const usageMeter = createUsageMeter({
         id: 'meter_1',
         slug: 'meter',
-        prices: [usagePrice],
       })
-      const catalog = createCatalog({
-        products: [product],
+      const pricingModel = createPricingModel({
+        products: [firstProduct, secondProduct],
         usageMeters: [usageMeter],
       })
-      const getPrice = constructGetPrice(catalog)
+      const getPrice = constructGetPrice(pricingModel)
 
-      // Usage meter prices are added after product prices, so they override
+      // Second product's price overrides first product's price with same slug
       const result = getPrice('duplicate-slug')
-      expect(result?.id).toBe('price_from_usage_meter')
+      expect(result?.id).toBe('price_from_second_product')
     })
   })
 })

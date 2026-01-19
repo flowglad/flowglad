@@ -1,0 +1,498 @@
+---
+title: "Resources"
+description: "Claim and manage resource allocations with the Flowglad SDK"
+---
+
+## Overview
+
+Resources let you manage claimable capacity like seats, API keys, and project limits. Use `getResourceUsages` and `getResourceUsage` to check capacity, `claimResource` to reserve allocations, `releaseResource` to free them, and `listResourceClaims` to see active claims.
+
+### How to use
+
+- **`getResourceUsages`**: Returns all resources and their usage stats for a subscription
+- **`getResourceUsage`**: Returns usage for a single resource by slug or ID
+- **`claimResource`**: Reserves capacity. Use `quantity` for anonymous claims, `externalId` for named claims
+- **`releaseResource`**: Frees capacity. Use `quantity` for FIFO release, `externalId` for named release
+- **`listResourceClaims`**: Returns all active claims, optionally filtered by resource
+
+### What you can do
+
+- Check available capacity before allowing users to claim resources
+- Track who has claimed what using named claims with `externalId`
+- Reserve bulk capacity with anonymous claims
+- Release resources when users leave or resources are deleted
+- Display capacity usage in your UI
+
+### Example: Check Resource Capacity
+
+```ts lib/flowglad-utils.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function checkCapacity(customerExternalId: string) {
+  const server = flowglad(customerExternalId)
+
+  // Get all resource usages
+  const { resources } = await server.getResourceUsages()
+
+  // Or get a single resource
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  return {
+    resources,
+    seatCapacity: usage.capacity,
+    seatsClaimed: usage.claimed,
+    seatsAvailable: usage.available
+  }
+}
+```
+
+### Example: Claim a Resource (Named)
+
+Named claims use an `externalId` to track exactly what each allocation is for. They're idempotent—claiming the same ID twice returns the existing claim.
+
+```ts lib/team-management.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function addTeamMember(params: {
+  orgId: string
+  userId: string
+  userEmail: string
+}) {
+  const server = flowglad(params.orgId)
+
+  const result = await server.claimResource({
+    resourceSlug: 'seats',
+    externalId: params.userId,
+    metadata: {
+      email: params.userEmail,
+      addedAt: new Date().toISOString()
+    }
+  })
+
+  return {
+    claim: result.claims[0],
+    seatsRemaining: result.usage.available
+  }
+}
+```
+
+### Example: Claim Resources (Anonymous)
+
+Anonymous claims don't track individual identifiers—just reserve a quantity:
+
+```ts lib/connection-pool.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function reserveConnections(params: {
+  customerExternalId: string
+  quantity: number
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  const result = await server.claimResource({
+    resourceSlug: 'connections',
+    quantity: params.quantity
+  })
+
+  return result.claims
+}
+```
+
+### Example: Release a Resource (Named)
+
+Release a specific claim by its `externalId`:
+
+```ts lib/team-management.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function removeTeamMember(params: { orgId: string; userId: string }) {
+  const server = flowglad(params.orgId)
+
+  const result = await server.releaseResource({
+    resourceSlug: 'seats',
+    externalId: params.userId
+  })
+
+  return {
+    wasReleased: result.releasedClaims.length > 0,
+    seatsNowAvailable: result.usage.available
+  }
+}
+```
+
+### Example: Release Resources (Anonymous)
+
+Release anonymous claims by quantity:
+
+```ts lib/connection-pool.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function releaseConnections(params: {
+  customerExternalId: string
+  quantity: number
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  const result = await server.releaseResource({
+    resourceSlug: 'connections',
+    quantity: params.quantity
+  })
+
+  return result.releasedClaims
+}
+```
+
+### Example: List Active Claims
+
+Get all active claims for a resource:
+
+```ts lib/team-management.ts
+import { flowglad } from '@/utils/flowglad'
+
+export async function getTeamMembers(params: { orgId: string }) {
+  const server = flowglad(params.orgId)
+
+  const { claims } = await server.listResourceClaims({
+    resourceSlug: 'seats'
+  })
+
+  return claims.map(claim => ({
+    userId: claim.externalId,
+    email: claim.metadata?.email,
+    claimedAt: new Date(claim.claimedAt)
+  }))
+}
+```
+
+## Server SDK Methods
+
+### `getResourceUsages`
+
+Get all resources and their usage for the customer's subscription.
+
+```ts
+const { resources } = await flowglad(customerExternalId).getResourceUsages()
+// Optional: specify subscription
+const { resources } = await flowglad(customerExternalId).getResourceUsages({
+  subscriptionId: 'sub_123'
+})
+```
+
+**Returns:** `{ resources: ResourceUsage[] }`
+
+### `getResourceUsage`
+
+Get usage for a single resource.
+
+```ts
+const { usage } = await flowglad(customerExternalId).getResourceUsage({
+  resourceSlug: 'seats'
+})
+// Or by ID
+const { usage } = await flowglad(customerExternalId).getResourceUsage({
+  resourceId: 'resource_uuid'
+})
+```
+
+**Returns:** `{ usage: ResourceUsage, claims: ResourceClaim[] }`
+
+### `claimResource`
+
+Reserve resource capacity. Do so with either named or anonymous resource claims:
+
+```ts
+// Named claim (idempotent)
+const result = await flowglad(customerExternalId).claimResource({
+  resourceSlug: 'seats',
+  externalId: 'user_123',
+  metadata: { name: 'John Doe' }  // optional
+})
+
+// Batch named claims
+const result = await flowglad(customerExternalId).claimResource({
+  resourceSlug: 'seats',
+  externalIds: ['user_123', 'user_456', 'user_789']
+})
+
+// Anonymous claims
+const result = await flowglad(customerExternalId).claimResource({
+  resourceSlug: 'seats',
+  quantity: 3
+})
+```
+
+**Returns:** `{ claims: ResourceClaim[], usage: ResourceUsage }`
+
+### `releaseResource`
+
+Free resource capacity. Choose ONE mode:
+
+```ts
+// Release by external ID
+const result = await flowglad(customerExternalId).releaseResource({
+  resourceSlug: 'seats',
+  externalId: 'user_123'
+})
+
+// Release multiple by external IDs
+const result = await flowglad(customerExternalId).releaseResource({
+  resourceSlug: 'seats',
+  externalIds: ['user_123', 'user_456']
+})
+
+// Release by quantity (FIFO)
+const result = await flowglad(customerExternalId).releaseResource({
+  resourceSlug: 'seats',
+  quantity: 2
+})
+
+// Release by claim IDs
+const result = await flowglad(customerExternalId).releaseResource({
+  resourceSlug: 'seats',
+  claimIds: ['claim_abc', 'claim_def']
+})
+```
+
+**Returns:** `{ releasedClaims: ResourceClaim[], usage: ResourceUsage }`
+
+### `listResourceClaims`
+
+List active claims for the subscription.
+
+```ts
+// All claims
+const { claims } = await flowglad(customerExternalId).listResourceClaims()
+
+// Filter by resource
+const { claims } = await flowglad(customerExternalId).listResourceClaims({
+  resourceSlug: 'seats'
+})
+
+// Specific subscription
+const { claims } = await flowglad(customerExternalId).listResourceClaims({
+  subscriptionId: 'sub_123',
+  resourceSlug: 'seats'
+})
+```
+
+**Returns:** `{ claims: ResourceClaim[] }`
+
+## React SDK Hooks
+
+The `@flowglad/react` package provides React hooks for managing resources in client-side applications. These hooks handle data fetching, caching, and automatic UI updates when resources change.
+
+### `useResources`
+
+Hook to access all resources for the current customer's subscription. Fetches resource usage on mount and provides claim/release mutations that automatically invalidate the cache.
+
+```tsx
+import { useResources } from '@flowglad/react'
+
+function ResourceDashboard() {
+  const { resources, claim, release, isLoading, error } = useResources()
+
+  if (isLoading) return <Spinner />
+  if (error) return <div>Error: {error.message}</div>
+
+  return (
+    <div>
+      {resources?.map(resource => (
+        <div key={resource.resourceId}>
+          <h3>{resource.resourceSlug}</h3>
+          <p>{resource.claimed} / {resource.capacity} used</p>
+          <p>{resource.available} available</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+```
+
+**Returns:**
+
+```typescript
+interface UseResourcesResult {
+  resources: ResourceUsage[] | undefined  // All resources with usage data
+  isLoading: boolean                      // Loading state for initial fetch
+  error: Error | null                     // Error if fetch failed
+  claim: (params: ClaimResourceParams) => Promise<{ claims: ResourceClaim[], usage: ResourceUsage }>
+  release: (params: ReleaseResourceParams) => Promise<{ releasedClaims: ResourceClaim[], usage: ResourceUsage }>
+}
+```
+
+**Example: Claim with useResources**
+
+```tsx
+function AddSeatButton() {
+  const { claim, resources } = useResources()
+  const seats = resources?.find(r => r.resourceSlug === 'seats')
+
+  const handleAddSeat = async () => {
+    await claim({
+      resourceSlug: 'seats',
+      externalId: 'user_123',
+      metadata: { email: 'user@example.com' }
+    })
+    // UI automatically updates via cache invalidation
+  }
+
+  return (
+    <button onClick={handleAddSeat} disabled={seats?.available === 0}>
+      Add Seat ({seats?.available} remaining)
+    </button>
+  )
+}
+```
+
+### `useResource`
+
+Convenience hook for working with a single resource type. Pre-binds the `resourceSlug` to claim/release functions and fetches claims for the specific resource.
+
+```tsx
+import { useResource } from '@flowglad/react'
+
+function SeatManager() {
+  const { usage, claims, claim, release, isLoading, isLoadingClaims } = useResource('seats')
+
+  if (isLoading) return <Spinner />
+
+  return (
+    <div>
+      <h2>Team Seats</h2>
+      <p>{usage?.claimed} / {usage?.capacity} seats used</p>
+
+      <h3>Active Claims</h3>
+      <ul>
+        {claims.map(c => (
+          <li key={c.id}>
+            {c.externalId ?? 'Anonymous'} - claimed {new Date(c.claimedAt).toLocaleDateString()}
+            <button onClick={() => release({ claimIds: [c.id] })}>
+              Remove
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <button
+        onClick={() => claim({ quantity: 1 })}
+        disabled={usage?.available === 0}
+      >
+        Add Seat
+      </button>
+    </div>
+  )
+}
+```
+
+**Returns:**
+
+```typescript
+interface UseResourceResult {
+  usage: ResourceUsage | undefined        // Usage for this specific resource
+  claims: ResourceClaim[]                 // Active claims (always an array, never undefined)
+  isLoading: boolean                      // Loading state for usage fetch
+  isLoadingClaims: boolean                // Loading state for claims fetch
+  error: Error | null                     // Error if fetch failed
+  claim: (params: Omit<ClaimResourceParams, 'resourceSlug'>) => Promise<{ claims: ResourceClaim[], usage: ResourceUsage }>
+  release: (params: Omit<ReleaseResourceParams, 'resourceSlug'>) => Promise<{ releasedClaims: ResourceClaim[], usage: ResourceUsage }>
+}
+```
+
+**Example: Named Claims with useResource**
+
+```tsx
+function AssignSeat({ userId, userEmail }: { userId: string; userEmail: string }) {
+  const { claim, claims, usage } = useResource('seats')
+
+  // Check if user already has a seat (named claims are idempotent)
+  const userHasSeat = claims.some(c => c.externalId === userId)
+
+  const handleAssign = async () => {
+    // Safe to call multiple times - idempotent for same externalId
+    await claim({
+      externalId: userId,
+      metadata: { email: userEmail, assignedAt: Date.now() }
+    })
+  }
+
+  return (
+    <button onClick={handleAssign} disabled={userHasSeat || usage?.available === 0}>
+      {userHasSeat ? 'Seat Assigned' : 'Assign Seat'}
+    </button>
+  )
+}
+```
+
+## TypeScript Types
+
+```typescript
+interface ResourceUsage {
+  resourceSlug: string    // e.g., "seats"
+  resourceId: string      // UUID
+  capacity: number        // Total limit
+  claimed: number         // Currently reserved
+  available: number       // capacity - claimed
+}
+
+interface ResourceClaim {
+  id: string                                      // Claim ID
+  resourceId: string                              // Resource UUID
+  subscriptionId: string                          // Subscription UUID
+  subscriptionItemFeatureId: string               // Link to subscription feature
+  externalId: string | null                       // Your identifier (null for anonymous)
+  claimedAt: number                               // Unix timestamp (ms)
+  releasedAt: number | null                       // null if active
+  releaseReason: string | null                    // Why it was released
+  metadata: Record<string, string | number | boolean> | null
+  createdAt: number                               // Unix timestamp (ms)
+  updatedAt: number                               // Unix timestamp (ms)
+  livemode: boolean                               // true = production mode
+  organizationId: string                          // Owning organization
+  pricingModelId: string                          // Associated pricing model
+}
+```
+
+## Handling Errors
+
+### Capacity Exceeded
+
+When a claim would exceed available capacity:
+
+```ts
+try {
+  await server.claimResource({ resourceSlug: 'seats', externalId: userId })
+} catch (error) {
+  if (error.message.includes('capacity')) {
+    // Handle capacity exceeded - prompt user to upgrade
+    return { error: 'CAPACITY_EXCEEDED', message: 'Upgrade to add more seats' }
+  }
+  throw error
+}
+```
+
+### Multiple Subscriptions
+
+When a customer has multiple active subscriptions:
+
+```ts
+try {
+  await server.claimResource({ resourceSlug: 'seats', externalId: userId })
+} catch (error) {
+  if (error.message.includes('multiple active subscriptions')) {
+    // Must specify subscriptionId
+    const billing = await server.getBilling()
+    const subscriptionId = billing.currentSubscriptions[0].id  // or let user choose
+    await server.claimResource({
+      resourceSlug: 'seats',
+      externalId: userId,
+      subscriptionId
+    })
+  }
+}
+```
+
+## Related
+
+- [Resources Feature](/features/resources) - Conceptual overview and setup
+- [Server SDK](/sdks/server) - Full server SDK documentation
+- [Feature Access & Usage](/sdks/feature-access-usage) - Related entitlement checking

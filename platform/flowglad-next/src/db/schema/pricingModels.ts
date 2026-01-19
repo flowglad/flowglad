@@ -129,7 +129,9 @@ export type CreatePricingModelInput = z.infer<
 
 export const editPricingModelSchema = z.object({
   id: z.string(),
-  pricingModel: pricingModelsClientUpdateSchema,
+  pricingModel: pricingModelsClientUpdateSchema.extend({
+    name: z.string().min(1, 'Name is required'),
+  }),
 })
 
 export type EditPricingModelInput = z.infer<

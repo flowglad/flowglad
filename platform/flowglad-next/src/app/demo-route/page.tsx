@@ -13,9 +13,17 @@ import {
   BillingPortalMagicLinkPreview,
   BillingPortalOTPPreview,
   ForgotPasswordPreview,
+  OrgCsvExportReadyPreview,
+  OrgOnboardingCompletedPreview,
+  OrgPaymentFailedPreview,
+  OrgPaymentPendingPreview,
+  OrgPaymentReceivedPreview,
+  OrgPayoutsEnabledPreview,
+  OrgSubscriptionAdjustedPreview,
   OrgSubscriptionCanceledPreview,
   OrgSubscriptionCancellationScheduledPreview,
   OrgSubscriptionCreatedPreview,
+  OrgTeamInvitationPreview,
   PaymentFailedPreview,
   PurchaseAccessTokenPreview,
   SubscriptionAdjustedPreview,
@@ -23,6 +31,7 @@ import {
   SubscriptionCancellationScheduledPreview,
   SubscriptionCreatedPreview,
   SubscriptionUpgradedPreview,
+  TrialExpiredNoPaymentPreview,
 } from './SubscriptionEmailPreviews'
 
 // ============================================================================
@@ -36,6 +45,7 @@ interface SearchParams {
   testMode?: string
   hasRetry?: string
   view?: string
+  hasPayment?: string
 }
 
 // ============================================================================
@@ -102,9 +112,37 @@ const emailPreviewMap: Record<EmailType, EmailPreviewRenderer> = {
       livemode={livemode}
     />
   ),
+  'org-subscription-adjusted': ({ livemode }) => (
+    <OrgSubscriptionAdjustedPreview livemode={livemode} />
+  ),
+  'org-payment-received': ({ livemode }) => (
+    <OrgPaymentReceivedPreview livemode={livemode} />
+  ),
+  'org-payment-failed': ({ livemode }) => (
+    <OrgPaymentFailedPreview livemode={livemode} />
+  ),
+  'org-payment-pending': ({ livemode }) => (
+    <OrgPaymentPendingPreview livemode={livemode} />
+  ),
+  'org-payouts-enabled': ({ livemode }) => (
+    <OrgPayoutsEnabledPreview livemode={livemode} />
+  ),
+  'org-onboarding-completed': ({ livemode }) => (
+    <OrgOnboardingCompletedPreview livemode={livemode} />
+  ),
+  'org-team-invitation': ({ livemode }) => (
+    <OrgTeamInvitationPreview livemode={livemode} />
+  ),
+  'org-csv-export-ready': ({ livemode }) => (
+    <OrgCsvExportReadyPreview livemode={livemode} />
+  ),
   // Purchase access
   'purchase-access-token': ({ livemode }) => (
     <PurchaseAccessTokenPreview livemode={livemode} />
+  ),
+  // Trial-related emails
+  'trial-expired-no-payment': ({ livemode }) => (
+    <TrialExpiredNoPaymentPreview livemode={livemode} />
   ),
 }
 
@@ -119,6 +157,7 @@ const parseSearchParams = (params: SearchParams): ParsedParams => ({
   livemode: params.testMode !== 'true', // Invert once at source
   hasRetry: params.hasRetry !== 'false', // default to true
   viewType: getViewType(params.view),
+  hasPaymentMethod: params.hasPayment !== 'false', // default to true
 })
 
 // ============================================================================

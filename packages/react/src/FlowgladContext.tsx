@@ -170,6 +170,9 @@ export interface NonPresentContextValues {
   pricingModel: null
   billingPortalUrl: null
   reload: null
+  /**
+   * @deprecated Use `pricingModel` instead. This property is kept for backward compatibility.
+   */
   catalog: null
   invoices: []
   paymentMethods: []
@@ -707,8 +710,8 @@ export const FlowgladContextProvider = (
 
   if (isDevMode) {
     const billingData = devModeProps.billingMocks
-    const getProduct = constructGetProduct(billingData.catalog)
-    const getPrice = constructGetPrice(billingData.catalog)
+    const getProduct = constructGetProduct(billingData.pricingModel)
+    const getPrice = constructGetPrice(billingData.pricingModel)
     const checkFeatureAccess = constructCheckFeatureAccess(
       billingData.currentSubscriptions ?? []
     )
@@ -716,7 +719,7 @@ export const FlowgladContextProvider = (
       billingData.currentSubscriptions ?? []
     )
     const hasPurchased = constructHasPurchased(
-      billingData.catalog,
+      billingData.pricingModel,
       billingData.purchases
     )
 
@@ -876,9 +879,10 @@ export const FlowgladContextProvider = (
           paymentMethods: billingData.paymentMethods,
           currentSubscription: billingData.currentSubscription,
           currentSubscriptions: billingData.currentSubscriptions,
-          catalog: billingData.catalog,
           billingPortalUrl: billingData.billingPortalUrl,
           pricingModel: billingData.pricingModel,
+          // catalog is kept for SDK type compatibility (same data as pricingModel)
+          catalog: billingData.catalog,
         }}
       >
         {props.children}
@@ -971,10 +975,10 @@ export const FlowgladContextProvider = (
           queryKey: [FlowgladActionKey.GetCustomerBilling],
         })
       }
-      const getProduct = constructGetProduct(billingData.catalog)
-      const getPrice = constructGetPrice(billingData.catalog)
+      const getProduct = constructGetProduct(billingData.pricingModel)
+      const getPrice = constructGetPrice(billingData.pricingModel)
       const hasPurchased = constructHasPurchased(
-        billingData.catalog,
+        billingData.pricingModel,
         billingData.purchases
       )
       const adjustSubscription = constructAdjustSubscription({
@@ -1005,7 +1009,6 @@ export const FlowgladContextProvider = (
         checkUsageBalance: constructCheckUsageBalance(
           billingData.currentSubscriptions ?? []
         ),
-        catalog: billingData.catalog,
         subscriptions: billingData.subscriptions,
         purchases: billingData.purchases,
         errors: null,
@@ -1016,6 +1019,8 @@ export const FlowgladContextProvider = (
         currentSubscriptions: billingData.currentSubscriptions,
         billingPortalUrl: billingData.billingPortalUrl,
         pricingModel: billingData.pricingModel,
+        // catalog is kept for SDK type compatibility (same data as pricingModel)
+        catalog: billingData.catalog,
       }
     } else {
       value = {
@@ -1053,6 +1058,14 @@ export const FlowgladContextProvider = (
 
 export const useBilling = () => useContext(FlowgladContext)
 
+export const usePricingModel = () => {
+  const { pricingModel } = useBilling()
+  return pricingModel
+}
+
+/**
+ * @deprecated Use `usePricingModel` instead. This hook is kept for backward compatibility.
+ */
 export const useCatalog = () => {
   const { catalog } = useBilling()
   return catalog
