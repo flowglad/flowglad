@@ -19458,9 +19458,6 @@
           "organizationId": {
             "type": "string"
           },
-          "subscriptionItemFeatureId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "string"
           },
@@ -19526,7 +19523,6 @@
           "updatedAt",
           "livemode",
           "organizationId",
-          "subscriptionItemFeatureId",
           "resourceId",
           "subscriptionId",
           "pricingModelId",
