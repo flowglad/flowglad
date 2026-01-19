@@ -150,7 +150,9 @@ export const selectSubscriptionsByCustomerId = cached(
       // Set membership: invalidate when subscriptions are added/removed for this customer
       CacheDependency.customerSubscriptions(customerId),
       // Content: invalidate when any subscription's properties change
-      ...subscriptions.map((sub) => CacheDependency.subscription(sub.id)),
+      ...subscriptions.map((sub) =>
+        CacheDependency.subscription(sub.id)
+      ),
     ],
   },
   async (

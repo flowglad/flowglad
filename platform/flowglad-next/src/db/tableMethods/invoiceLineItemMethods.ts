@@ -22,11 +22,7 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { InvoiceStatus } from '@/types'
-import {
-  CacheDependency,
-  cached,
-  fromDependencies,
-} from '@/utils/cache'
+import { CacheDependency, cached } from '@/utils/cache'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
@@ -320,9 +316,9 @@ export const selectCustomerFacingInvoicesWithLineItems = cached(
       livemode: boolean
     ) => `${customerId}:${livemode}`,
     schema: invoiceWithLineItemsSchema.array(),
-    dependenciesFn: fromDependencies(
-      CacheDependency.customerInvoices
-    ),
+    dependenciesFn: (_result, customerId: string) => [
+      CacheDependency.customerInvoices(customerId),
+    ],
   },
   async (
     customerId: string,

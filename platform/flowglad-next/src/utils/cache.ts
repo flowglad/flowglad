@@ -1146,27 +1146,5 @@ export const CacheDependency = {
     `customerInvoices:${customerId}`,
 } as const
 
-/**
- * Higher-order function that creates a dependenciesFn from an array of dependency functions.
- * Simplifies the common pattern of passing a key to multiple CacheDependency functions.
- *
- * @example
- * // Before:
- * dependenciesFn: (customerId: string) => [
- *   CacheDependency.customerPurchases(customerId),
- *   CacheDependency.customerInvoices(customerId),
- * ]
- *
- * // After:
- * dependenciesFn: fromDependencies(
- *   CacheDependency.customerPurchases,
- *   CacheDependency.customerInvoices,
- * )
- */
-export const fromDependencies =
-  <K>(...fns: Array<(key: K) => CacheDependencyKey>) =>
-  (key: K): CacheDependencyKey[] =>
-    fns.map((fn) => fn(key))
-
 // NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'
 // Import from there for server-only code that needs recomputation support.

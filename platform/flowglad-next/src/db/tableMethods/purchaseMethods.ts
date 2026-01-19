@@ -31,11 +31,7 @@ import {
   PriceType,
   PurchaseStatus,
 } from '@/types'
-import {
-  CacheDependency,
-  cached,
-  fromDependencies,
-} from '@/utils/cache'
+import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { checkoutSessionClientSelectSchema } from '../schema/checkoutSessions'
 import {
@@ -107,9 +103,9 @@ export const selectPurchasesByCustomerId = cached(
       livemode: boolean
     ) => `${customerId}:${livemode}`,
     schema: purchasesSelectSchema.array(),
-    dependenciesFn: fromDependencies(
-      CacheDependency.customerPurchases
-    ),
+    dependenciesFn: (_result, customerId: string) => [
+      CacheDependency.customerPurchases(customerId),
+    ],
   },
   async (
     customerId: string,
