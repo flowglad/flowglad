@@ -197,12 +197,7 @@ export const createOrganizationTransaction = async (
           isDefault: true,
         },
       },
-      {
-        transaction,
-        cacheRecomputationContext,
-        organizationId,
-        livemode: true,
-      }
+      { transaction, organizationId, livemode: true }
     )
   ).unwrap()
 
@@ -214,12 +209,7 @@ export const createOrganizationTransaction = async (
           isDefault: true,
         },
       },
-      {
-        transaction,
-        cacheRecomputationContext,
-        organizationId,
-        livemode: false,
-      }
+      { transaction, organizationId, livemode: false }
     )
   ).unwrap()
 

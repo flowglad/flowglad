@@ -1770,15 +1770,7 @@ describe('createPricingModelBookkeeping', () => {
                   },
                   defaultPlanIntervalUnit: intervalUnit,
                 },
-                {
-                  transaction,
-                  cacheRecomputationContext: {
-                    type: 'admin',
-                    livemode,
-                  },
-                  organizationId,
-                  livemode,
-                }
+                { transaction, organizationId, livemode }
               )
               return output
             }

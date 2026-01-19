@@ -39,12 +39,7 @@ describe('productsRouter - Default Product Constraints', () => {
           },
           defaultPlanIntervalUnit: IntervalUnit.Month, // Create a subscription price
         },
-        {
-          transaction,
-          cacheRecomputationContext: { type: 'admin', livemode },
-          organizationId: organization.id,
-          livemode,
-        }
+        { transaction, organizationId: organization.id, livemode }
       )
 
       // Also create a regular product for comparison

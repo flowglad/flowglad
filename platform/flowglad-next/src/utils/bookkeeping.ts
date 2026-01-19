@@ -420,6 +420,17 @@ export const createCustomerBookkeeping = async (
 /**
  * Creates a pricing model with a default "Base Plan" product and a default price of 0
  */
+/**
+ * Minimal transaction context for bookkeeping operations that don't need
+ * userId or cacheRecomputationContext. Callers can pass full transaction
+ * params objects - TypeScript's structural typing allows extra properties.
+ */
+interface BookkeepingTransactionContext {
+  transaction: DbTransaction
+  organizationId: string
+  livemode: boolean
+}
+
 export const createPricingModelBookkeeping = async (
   payload: {
     pricingModel: Omit<
@@ -432,13 +443,7 @@ export const createPricingModelBookkeeping = async (
     transaction,
     organizationId,
     livemode,
-  }: {
-    transaction: DbTransaction
-    organizationId: string
-    livemode: boolean
-    // Allow extra properties to be passed (e.g., cacheRecomputationContext) without requiring them
-    [key: string]: unknown
-  }
+  }: BookkeepingTransactionContext
 ): Promise<
   Result<
     {
