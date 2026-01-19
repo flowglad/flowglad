@@ -628,7 +628,7 @@ export const selectPricingModelSlugResolutionData = async (
     return []
   }
 
-  // Query 2: Fetch prices with minimal fields (skip products entirely)
+  // Query 2a: Fetch product-linked prices with minimal fields
   // Only fetch prices where the product is active
   const priceResults = await transaction
     .select({
@@ -650,12 +650,36 @@ export const selectPricingModelSlugResolutionData = async (
       )
     )
 
+  // Query 2b: Fetch usage meter-linked prices (productId is NULL)
+  // These are prices directly attached to usage meters
+  const usageMeterPriceResults = await transaction
+    .select({
+      priceId: prices.id,
+      priceSlug: prices.slug,
+      priceType: prices.type,
+      priceUsageMeterId: prices.usageMeterId,
+      priceActive: prices.active,
+      productPricingModelId: usageMeters.pricingModelId,
+      productActive: sql<boolean>`true`.as('productActive'), // No product to check, always true
+    })
+    .from(prices)
+    .innerJoin(usageMeters, eq(prices.usageMeterId, usageMeters.id))
+    .where(
+      and(
+        inArray(usageMeters.pricingModelId, pricingModelIds),
+        eq(prices.active, true) // Only active prices
+      )
+    )
+
+  // Merge both product and usage meter prices
+  const combinedPrices = priceResults.concat(usageMeterPriceResults)
+
   // Group prices by pricing model
   // De-duplicate by price ID in case of any edge cases
   const pricesByPricingModelId = new Map<string, PriceSlugInfo[]>()
   const seenPriceIds = new Set<string>()
 
-  priceResults.forEach((row) => {
+  combinedPrices.forEach((row) => {
     // Skip if already seen (de-dupe)
     if (seenPriceIds.has(row.priceId)) {
       return
