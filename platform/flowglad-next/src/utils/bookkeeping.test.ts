@@ -102,6 +102,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -215,6 +216,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -300,6 +302,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -407,6 +410,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -480,6 +484,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -575,6 +580,7 @@ describe('createCustomerBookkeeping', () => {
         await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -622,6 +628,7 @@ describe('createCustomerBookkeeping', () => {
         comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -659,6 +666,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -745,6 +753,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -825,6 +834,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -929,6 +939,7 @@ describe('createCustomerBookkeeping', () => {
         await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -970,6 +981,7 @@ describe('createCustomerBookkeeping', () => {
         await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -2266,12 +2278,14 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updatePurchaseStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2305,12 +2319,14 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updatePurchaseStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2343,12 +2359,14 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updatePurchaseStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2382,6 +2400,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
@@ -2390,6 +2409,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
           paymentWithoutPurchase,
           {
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -2461,12 +2481,14 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updateInvoiceStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2498,12 +2520,14 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updateInvoiceStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2543,12 +2567,14 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updateInvoiceStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2590,6 +2616,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
@@ -2598,6 +2625,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
           partialPayment,
           {
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -2652,6 +2680,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
@@ -2660,6 +2689,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
           secondPayment,
           {
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
