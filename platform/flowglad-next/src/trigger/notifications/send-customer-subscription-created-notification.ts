@@ -6,7 +6,10 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
-import { CustomerSubscriptionCreatedEmail } from '@/email-templates/customer-subscription-created'
+import {
+  CustomerSubscriptionCreatedEmail,
+  type TrialInfo,
+} from '@/email-templates/customer-subscription-created'
 import { SubscriptionStatus } from '@/types'
 import {
   createTriggerIdempotencyKey,
@@ -87,6 +90,32 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
       }
     }
 
+    // Determine if this is a trial subscription with payment method
+    const isTrialWithPaymentMethod =
+      subscription.status === SubscriptionStatus.Trialing &&
+      subscription.trialEnd &&
+      (subscription.defaultPaymentMethodId ||
+        subscription.backupPaymentMethodId ||
+        paymentMethod)
+
+    // Calculate trial info if this is a trial subscription
+    let trialInfo: TrialInfo | undefined
+    if (isTrialWithPaymentMethod && subscription.trialEnd) {
+      const trialStartDate = subscription.createdAt
+        ? new Date(subscription.createdAt)
+        : new Date()
+      const trialEndDate = new Date(subscription.trialEnd)
+      const trialDurationMs =
+        trialEndDate.getTime() - trialStartDate.getTime()
+      const trialDurationDays = Math.ceil(
+        trialDurationMs / (1000 * 60 * 60 * 24)
+      )
+      trialInfo = {
+        trialEndDate,
+        trialDurationDays,
+      }
+    }
+
     // Calculate next billing date based on subscription start and interval
     let nextBillingDate: Date | undefined
     if (price.intervalUnit) {
@@ -119,14 +148,16 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
         }
       }
     }
+
+    // Unified subject line for all subscription confirmations (trial and non-trial)
+    // per Apple-inspired patterns in subscription-email-improvements.md
+    const subjectLine = 'Your Subscription is Confirmed'
+
     const result = await safeSend({
       from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
       bcc: getBccForLivemode(subscription.livemode),
       to: [customer.email],
-      subject: formatEmailSubject(
-        'Payment method confirmed - Subscription active',
-        subscription.livemode
-      ),
+      subject: formatEmailSubject(subjectLine, subscription.livemode),
       react: await CustomerSubscriptionCreatedEmail({
         customerName: customer.name,
         organizationName: organization.name,
@@ -140,6 +171,10 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
         nextBillingDate: nextBillingDate || undefined,
         paymentMethodLast4: (paymentMethod?.paymentMethodData as any)
           ?.last4,
+        trial: trialInfo,
+        dateConfirmed: subscription.createdAt
+          ? new Date(subscription.createdAt)
+          : new Date(),
       }),
     })
 

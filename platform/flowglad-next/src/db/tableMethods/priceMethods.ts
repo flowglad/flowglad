@@ -9,7 +9,6 @@ import {
 import { z } from 'zod'
 import {
   Price,
-  type PricingModelWithProductsAndUsageMeters,
   type ProductWithPrices,
   prices,
   pricesClientSelectSchema,
@@ -622,32 +621,9 @@ export const selectPriceBySlugForDefaultPricingModel = async (
     )
   }
 
-  // Filter to active products and prices, similar to selectPricingModelForCustomer
-  const filteredProducts: PricingModelWithProductsAndUsageMeters['products'] =
-    pricingModel.products
-      .filter(
-        (
-          product: PricingModelWithProductsAndUsageMeters['products'][number]
-        ) => product.active
-      )
-      .map(
-        (
-          product: PricingModelWithProductsAndUsageMeters['products'][number]
-        ) => ({
-          ...product,
-          prices: product.prices.filter(
-            (price: Price.ClientRecord) => price.active
-          ),
-        })
-      )
-      .filter(
-        (
-          product: PricingModelWithProductsAndUsageMeters['products'][number]
-        ) => product.prices.length > 0
-      )
-
   // Search through all products in the pricing model to find a price with the matching slug
-  for (const product of filteredProducts) {
+  // (inactive products and prices are already filtered out by selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere)
+  for (const product of pricingModel.products) {
     const price = product.prices.find(
       (p: Price.ClientRecord) => p.slug === params.slug
     )

@@ -27,7 +27,7 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
   }
 
   describe('upgrade emails', () => {
-    it('renders title, proration amount, previous items, new items, and effective date', () => {
+    it('renders unified title, proration amount, previous items, new items, and effective date', () => {
       const { getByTestId, getByText } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -36,12 +36,15 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
         />
       )
 
-      // Title and body text
+      // Title and body text - now uses unified "Subscription Updated" for all cases
+      // per Apple-inspired patterns in subscription-email-improvements.md
       expect(getByTestId('email-title')).toHaveTextContent(
-        'Your subscription has been upgraded'
+        'Subscription Updated'
       )
       expect(
-        getByText('Your subscription has been successfully upgraded.')
+        getByText(
+          'Your subscription has been updated. Here are the details:'
+        )
       ).toBeInTheDocument()
 
       // Proration amount
@@ -72,11 +75,16 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       expect(getByTestId('effective-date').textContent).toContain(
         '2025'
       )
+
+      // Auto-renewal transparency notice
+      expect(getByTestId('auto-renew-notice')).toHaveTextContent(
+        'Your subscription automatically renews until canceled.'
+      )
     })
   })
 
   describe('downgrade emails', () => {
-    it('renders title, no proration, no-charge notice, and previous/new plan pricing', () => {
+    it('renders unified title, no proration, no-charge notice, and previous/new plan pricing', () => {
       const { getByTestId, getByText, queryByTestId } = render(
         <CustomerSubscriptionAdjustedEmail
           {...baseProps}
@@ -93,12 +101,15 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
         />
       )
 
-      // Title and body text
+      // Title and body text - now uses unified "Subscription Updated" for all cases
+      // per Apple-inspired patterns in subscription-email-improvements.md
       expect(getByTestId('email-title')).toHaveTextContent(
-        'Your subscription has been updated'
+        'Subscription Updated'
       )
       expect(
-        getByText('Your subscription has been successfully updated.')
+        getByText(
+          'Your subscription has been updated. Here are the details:'
+        )
       ).toBeInTheDocument()
 
       // No proration for downgrade
@@ -123,6 +134,11 @@ describe('CustomerSubscriptionAdjustedEmail', () => {
       )
       expect(getByTestId('new-item-0')).toHaveTextContent(
         '• Basic Plan: $10.00/month'
+      )
+
+      // Auto-renewal transparency notice
+      expect(getByTestId('auto-renew-notice')).toHaveTextContent(
+        'Your subscription automatically renews until canceled.'
       )
     })
   })

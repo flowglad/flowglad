@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/playground-seat-based-billing",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Next.js playground for seat-based billing with BetterAuth and Flowglad",
   "private": true,
   "packageManager": "bun@1.3.1",

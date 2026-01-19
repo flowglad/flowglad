@@ -1,3 +1,4 @@
+import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import { OrderReceiptEmail } from '@/email-templates/customer-order-receipt'
 import { EmailPreviewWrapper } from './EmailPreviewWrapper'
 import {
@@ -28,10 +29,21 @@ export const MoREmailPreview = ({
   )
   const taxAmount = Math.round(subtotal * 0.08) // 8% tax for demo
 
+  // Subject line depends on MoR status
+  const subject = isMoR
+    ? `Order Receipt #INV-2024-001 from ${FLOWGLAD_LEGAL_ENTITY.name} for ${commonOrganizationProps.organizationName}`
+    : `${commonOrganizationProps.organizationName} Order Receipt: #INV-2024-001`
+
+  const previewText = isMoR
+    ? `Thanks for your order with ${commonOrganizationProps.organizationName}!`
+    : 'Thanks for your order!'
+
   return (
     <EmailPreviewWrapper
       templateName="customer-order-receipt"
       scenario={scenario}
+      subject={subject}
+      previewText={previewText}
       livemode={livemode}
       emailType="order-receipt"
     >

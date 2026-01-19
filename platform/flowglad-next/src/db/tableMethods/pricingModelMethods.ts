@@ -1,6 +1,17 @@
-import { and, eq, inArray, notExists, sql } from 'drizzle-orm'
+import {
+  and,
+  eq,
+  type InferSelectModel,
+  inArray,
+  notExists,
+  sql,
+} from 'drizzle-orm'
 import { z } from 'zod'
 import type { Customer } from '@/db/schema/customers'
+import {
+  features,
+  featuresClientSelectSchema,
+} from '@/db/schema/features'
 import {
   type PricingModel,
   pricingModels,
@@ -11,6 +22,7 @@ import {
 } from '@/db/schema/pricingModels'
 import {
   createCursorPaginatedSelectFunction,
+  createDateNotPassedFilter,
   createInsertFunction,
   createPaginatedSelectFunction,
   createSelectById,
@@ -22,25 +34,22 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { PriceType } from '@/types'
-import { type Feature } from '../schema/features'
 import {
-  type Price,
   type PricingModelWithProductsAndUsageMeters,
+  type ProductWithPrices,
   prices,
+  pricesClientSelectSchema,
   usagePriceClientSelectSchema,
 } from '../schema/prices'
-import { type ProductFeature } from '../schema/productFeatures'
-import { products } from '../schema/products'
+import { productFeatures } from '../schema/productFeatures'
 import {
-  type UsageMeter,
+  products,
+  productsClientSelectSchema,
+} from '../schema/products'
+import {
   usageMeters,
   usageMetersClientSelectSchema,
 } from '../schema/usageMeters'
-import {
-  selectPrices,
-  selectPricesAndProductsByProductWhere,
-} from './priceMethods'
-import { selectFeaturesByProductFeatureWhere } from './productFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof pricingModels,
@@ -260,15 +269,16 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
     transaction: DbTransaction
   ): Promise<PricingModelWithProductsAndUsageMeters[]> => {
     /**
-     * Implementation note:
-     * it is actually fairly important to do this in two steps,
-     * because pricingModels are one-to-many with products, so we couldn't
-     * easily describe our desired "limit" result.
-     * But in two steps, we can limit the pricingModels, and then get the
-     * products for each pricingModel.
-     * This COULD create a performance issue if there are a lot of products
-     * to fetch, but in practice it should be fine.
+     * Optimized implementation using 3 queries:
+     * 1. Pricing models with usage meters (sequential - provides IDs for subsequent queries)
+     * 2. Active products with active prices and non-expired features (parallel with 3)
+     * 3. Active usage prices for usage meters (parallel with 2)
+     *
+     * All filtering (active products, active prices, non-expired features)
+     * is done at the SQL level to minimize data transfer.
      */
+
+    // Query 1: Get pricing models with their usage meters
     const pricingModelResults = await transaction
       .select({
         pricingModel: pricingModels,
@@ -283,22 +293,24 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       .limit(100)
       .orderBy(pricingModels.createdAt)
 
+    // Build maps for pricing models and usage meters
     const uniquePricingModelsMap = new Map<
       string,
       PricingModel.ClientRecord
     >()
     const usageMetersByPricingModelId = new Map<
       string,
-      UsageMeter.ClientRecord[]
+      z.infer<typeof usageMetersClientSelectSchema>[]
     >()
+
     pricingModelResults.forEach(({ pricingModel, usageMeter }) => {
       uniquePricingModelsMap.set(
         pricingModel.id,
         pricingModelsClientSelectSchema.parse(pricingModel)
       )
-      const oldMeters =
-        usageMetersByPricingModelId.get(pricingModel.id) ?? []
       if (usageMeter) {
+        const oldMeters =
+          usageMetersByPricingModelId.get(pricingModel.id) ?? []
         usageMetersByPricingModelId.set(pricingModel.id, [
           ...oldMeters,
           usageMetersClientSelectSchema.parse(usageMeter),
@@ -306,39 +318,147 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       }
     })
 
-    const productResults =
-      await selectPricesAndProductsByProductWhere(
-        { pricingModelId: Array.from(uniquePricingModelsMap.keys()) },
-        transaction
-      )
-    const productFeaturesAndFeatures =
-      await selectFeaturesByProductFeatureWhere(
-        { productId: productResults.map((product) => product.id) },
-        transaction
-      )
+    const pricingModelIds = Array.from(uniquePricingModelsMap.keys())
+    if (pricingModelIds.length === 0) {
+      return []
+    }
 
-    // Fetch usage prices for usage meters (usage prices have productId = null)
-    // Get all usage meter IDs across all pricing models
+    // Get all usage meter IDs for query 3
     const allUsageMeterIds = Array.from(
       usageMetersByPricingModelId.values()
     ).flatMap((meters) => meters.map((m) => m.id))
-    const usagePricesResults =
-      allUsageMeterIds.length > 0
-        ? await selectPrices(
-            { usageMeterId: allUsageMeterIds, type: PriceType.Usage },
-            transaction
-          )
-        : []
 
-    // Group usage prices by usage meter ID
+    // Run queries 2 and 3 in parallel since they only depend on query 1 results
+    const [productPriceFeatureResults, usagePricesResults] =
+      await Promise.all([
+        // Query 2: Get active products with active prices and non-expired features
+        // Uses INNER JOIN on prices to ensure only products with at least one active price
+        // are returned (products with only inactive prices are excluded)
+        transaction
+          .select({
+            product: products,
+            price: prices,
+            feature: features,
+          })
+          .from(products)
+          .innerJoin(
+            prices,
+            and(
+              eq(prices.productId, products.id),
+              eq(prices.active, true) // Only active prices
+            )
+          )
+          .leftJoin(
+            productFeatures,
+            and(
+              eq(productFeatures.productId, products.id),
+              createDateNotPassedFilter(productFeatures.expiredAt) // Only non-expired features
+            )
+          )
+          .leftJoin(
+            features,
+            eq(features.id, productFeatures.featureId)
+          )
+          .where(
+            and(
+              inArray(products.pricingModelId, pricingModelIds),
+              eq(products.active, true) // Only active products
+            )
+          ),
+
+        // Query 3: Get active usage prices for usage meters
+        allUsageMeterIds.length > 0
+          ? transaction
+              .select()
+              .from(prices)
+              .where(
+                and(
+                  inArray(prices.usageMeterId, allUsageMeterIds),
+                  eq(prices.type, PriceType.Usage),
+                  eq(prices.active, true) // Only active usage prices
+                )
+              )
+          : Promise.resolve([]),
+      ])
+
+    // Aggregate products with their prices and features
+    const productMap = new Map<
+      string,
+      {
+        product: z.infer<typeof productsClientSelectSchema>
+        prices: z.infer<typeof pricesClientSelectSchema>[]
+        features: z.infer<typeof featuresClientSelectSchema>[]
+      }
+    >()
+
+    productPriceFeatureResults.forEach(
+      ({ product, price, feature }) => {
+        const existing = productMap.get(product.id)
+        if (!existing) {
+          productMap.set(product.id, {
+            product: productsClientSelectSchema.parse(product),
+            prices: [pricesClientSelectSchema.parse(price)],
+            features: feature
+              ? [featuresClientSelectSchema.parse(feature)]
+              : [],
+          })
+        } else {
+          // Add price if not already present
+          if (!existing.prices.some((p) => p.id === price.id)) {
+            existing.prices.push(
+              pricesClientSelectSchema.parse(price)
+            )
+          }
+          // Add feature if not already present and not null
+          if (
+            feature &&
+            !existing.features.some((f) => f.id === feature.id)
+          ) {
+            existing.features.push(
+              featuresClientSelectSchema.parse(feature)
+            )
+          }
+        }
+      }
+    )
+
+    // Group products by pricing model
+    const productsByPricingModelId = new Map<
+      string,
+      PricingModelWithProductsAndUsageMeters['products']
+    >()
+
+    productMap.forEach(
+      ({ product, prices: productPrices, features }) => {
+        // defaultPrice is guaranteed to exist because the INNER JOIN ensures
+        // at least one active price per product
+        const defaultPrice =
+          productPrices.find((p) => p.isDefault) ?? productPrices[0]
+
+        const productWithPrices = {
+          ...product,
+          prices: productPrices,
+          features,
+          defaultPrice,
+        }
+
+        const existing =
+          productsByPricingModelId.get(product.pricingModelId) ?? []
+        productsByPricingModelId.set(product.pricingModelId, [
+          ...existing,
+          productWithPrices,
+        ])
+      }
+    )
+
+    // Process usage prices results
     const usagePricesByUsageMeterId = new Map<
       string,
-      Price.ClientUsageRecord[]
+      z.infer<typeof usagePriceClientSelectSchema>[]
     >()
+
     usagePricesResults.forEach((price) => {
-      if (price.type !== PriceType.Usage || !price.usageMeterId) {
-        return
-      }
+      if (!price.usageMeterId) return
       const parsedPrice = usagePriceClientSelectSchema.parse(price)
       const existing =
         usagePricesByUsageMeterId.get(price.usageMeterId) ?? []
@@ -348,71 +468,23 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       ])
     })
 
-    const productFeaturesAndFeaturesByProductId = new Map<
-      string,
-      {
-        productFeature: ProductFeature.Record
-        feature: Feature.Record
-      }[]
-    >()
-    productFeaturesAndFeatures.forEach(
-      ({ productFeature, feature }) => {
-        productFeaturesAndFeaturesByProductId.set(
-          productFeature.productId,
-          [
-            ...(productFeaturesAndFeaturesByProductId.get(
-              productFeature.productId
-            ) || []),
-            {
-              productFeature,
-              feature,
-            },
-          ]
-        )
-      }
-    )
-    const productsByPricingModelId = new Map<
-      string,
-      PricingModelWithProductsAndUsageMeters['products']
-    >()
-
-    productResults.forEach(({ prices, ...product }) => {
-      productsByPricingModelId.set(product.pricingModelId, [
-        ...(productsByPricingModelId.get(product.pricingModelId) ||
-          []),
-        {
-          ...product,
-          prices,
-          features:
-            productFeaturesAndFeaturesByProductId
-              .get(product.id)
-              ?.map((p) => p.feature) ?? [],
-          defaultPrice:
-            prices.find((price) => price.isDefault) ?? prices[0],
-        },
-      ])
-    })
-
     const uniquePricingModels = Array.from(
       uniquePricingModelsMap.values()
     )
     return uniquePricingModels.map((pricingModel) => {
-      // Get usage meters with their prices
-      const usageMetersForPricingModel =
+      const usageMeters =
         usageMetersByPricingModelId.get(pricingModel.id) ?? []
-      const usageMetersWithPrices = usageMetersForPricingModel.map(
-        (usageMeter) => {
-          const meterPrices =
-            usagePricesByUsageMeterId.get(usageMeter.id) ?? []
-          const defaultPrice =
-            meterPrices.find((p) => p.isDefault) ?? meterPrices[0]
-          return {
-            ...usageMeter,
-            prices: meterPrices,
-            defaultPrice,
-          }
+      const usageMetersWithPrices = usageMeters.map((usageMeter) => {
+        const prices =
+          usagePricesByUsageMeterId.get(usageMeter.id) ?? []
+        const defaultPrice =
+          prices.find((price) => price.isDefault) ?? prices[0]
+        return {
+          ...usageMeter,
+          prices,
+          defaultPrice,
         }
-      )
+      })
 
       return {
         ...pricingModel,
@@ -421,7 +493,8 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         defaultProduct:
           productsByPricingModelId
             .get(pricingModel.id)
-            ?.find((product) => product.default) ?? undefined,
+            ?.find((product: ProductWithPrices) => product.default) ??
+          undefined,
       }
     })
   }
@@ -461,6 +534,8 @@ const filterActivePricingModelContent = (
 /**
  * Gets the pricingModel for a customer. If no pricingModel explicitly associated,
  * returns the default pricingModel for the organization.
+ * Note: The returned pricing model already has inactive products and prices filtered out
+ * by selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere.
  * @param customer
  * @param transaction
  * @returns
@@ -477,7 +552,7 @@ export const selectPricingModelForCustomer = async (
       )
 
     if (pricingModel) {
-      return filterActivePricingModelContent(pricingModel)
+      return pricingModel
     }
   }
   const [pricingModel] =
@@ -497,4 +572,208 @@ export const selectPricingModelForCustomer = async (
   }
 
   return filterActivePricingModelContent(pricingModel)
+}
+
+/**
+ * Minimal price data needed for slug resolution in bulk usage event processing.
+ * Only contains fields required to map price slugs to IDs.
+ *
+ * Note: type uses the inferred type from drizzle-orm's InferSelectModel
+ *
+ */
+export type PriceSlugInfo = {
+  id: string
+  slug: string | null
+  type: InferSelectModel<typeof prices>['type']
+  usageMeterId: string | null
+  active: boolean
+}
+
+/**
+ * Minimal usage meter data needed for slug resolution and validation.
+ * Only contains fields required to map usage meter slugs to IDs.
+ */
+export type UsageMeterSlugInfo = {
+  id: string
+  slug: string
+}
+
+/**
+ * Contains only the price and usage meter fields needed for:
+ * 1. Resolving price slugs to IDs
+ * 2. Resolving usage meter slugs to IDs
+ * 3. Validating usage meter membership in pricing model
+ */
+export type PricingModelSlugResolutionData = {
+  id: string
+  organizationId: string
+  livemode: boolean
+  isDefault: boolean
+  prices: PriceSlugInfo[]
+  usageMeters: UsageMeterSlugInfo[]
+}
+
+/**
+ * Performance-optimized query to fetch minimal pricing model data for slug resolution.
+ * Only selects fields needed for:
+ * - Price slug → ID resolution
+ * - Usage meter slug → ID resolution
+ * - Pricing model membership validation
+ *
+ * @param where - Pricing model filter conditions
+ * @param transaction - Database transaction
+ * @returns Array of lightweight pricing model data
+ */
+export const selectPricingModelSlugResolutionData = async (
+  where: SelectConditions<typeof pricingModels>,
+  transaction: DbTransaction
+): Promise<PricingModelSlugResolutionData[]> => {
+  // Query 1: Fetch pricing models with usage meters (minimal fields)
+  const pricingModelResults = await transaction
+    .select({
+      pricingModelId: pricingModels.id,
+      pricingModelOrganizationId: pricingModels.organizationId,
+      pricingModelLivemode: pricingModels.livemode,
+      pricingModelIsDefault: pricingModels.isDefault,
+      usageMeterId: usageMeters.id,
+      usageMeterSlug: usageMeters.slug,
+    })
+    .from(pricingModels)
+    .leftJoin(
+      usageMeters,
+      eq(pricingModels.id, usageMeters.pricingModelId)
+    )
+    .where(whereClauseFromObject(pricingModels, where))
+    .orderBy(pricingModels.createdAt)
+
+  // Build maps for pricing models and their usage meters
+  // Use a Set to track seen usage meter IDs for de-duplication (LEFT JOIN can produce duplicates)
+  const pricingModelMap = new Map<
+    string,
+    {
+      id: string
+      organizationId: string
+      livemode: boolean
+      isDefault: boolean
+      usageMeters: UsageMeterSlugInfo[]
+      seenUsageMeterIds: Set<string> // Track seen IDs to de-dupe
+    }
+  >()
+
+  pricingModelResults.forEach((row) => {
+    if (!pricingModelMap.has(row.pricingModelId)) {
+      pricingModelMap.set(row.pricingModelId, {
+        id: row.pricingModelId,
+        organizationId: row.pricingModelOrganizationId,
+        livemode: row.pricingModelLivemode,
+        isDefault: row.pricingModelIsDefault,
+        usageMeters: [],
+        seenUsageMeterIds: new Set(),
+      })
+    }
+
+    const pm = pricingModelMap.get(row.pricingModelId)!
+
+    // Only add usage meter if:
+    // 1. usageMeterId is not null (from LEFT JOIN)
+    // 2. usageMeterSlug is not null and not whitespace-only
+    // 3. We haven't already seen this usage meter ID (de-dupe)
+    const trimmedSlug = row.usageMeterSlug?.trim() ?? ''
+    if (
+      trimmedSlug.length > 0 &&
+      row.usageMeterId &&
+      !pm.seenUsageMeterIds.has(row.usageMeterId)
+    ) {
+      pm.seenUsageMeterIds.add(row.usageMeterId)
+      pm.usageMeters.push({
+        id: row.usageMeterId,
+        slug: trimmedSlug,
+      })
+    }
+  })
+
+  const pricingModelIds = Array.from(pricingModelMap.keys())
+  if (pricingModelIds.length === 0) {
+    return []
+  }
+
+  // Query 2a: Fetch product-linked prices with minimal fields
+  // Only fetch prices where the product is active
+  const priceResults = await transaction
+    .select({
+      priceId: prices.id,
+      priceSlug: prices.slug,
+      priceType: prices.type,
+      priceUsageMeterId: prices.usageMeterId,
+      priceActive: prices.active,
+      productPricingModelId: products.pricingModelId,
+      productActive: products.active,
+    })
+    .from(prices)
+    .innerJoin(products, eq(prices.productId, products.id))
+    .where(
+      and(
+        inArray(products.pricingModelId, pricingModelIds),
+        eq(products.active, true), // Only active products
+        eq(prices.active, true) // Only active prices
+      )
+    )
+
+  // Query 2b: Fetch usage meter-linked prices (productId is NULL)
+  // These are prices directly attached to usage meters
+  const usageMeterPriceResults = await transaction
+    .select({
+      priceId: prices.id,
+      priceSlug: prices.slug,
+      priceType: prices.type,
+      priceUsageMeterId: prices.usageMeterId,
+      priceActive: prices.active,
+      productPricingModelId: usageMeters.pricingModelId,
+      productActive: sql<boolean>`true`.as('productActive'), // No product to check, always true
+    })
+    .from(prices)
+    .innerJoin(usageMeters, eq(prices.usageMeterId, usageMeters.id))
+    .where(
+      and(
+        inArray(usageMeters.pricingModelId, pricingModelIds),
+        eq(prices.active, true) // Only active prices
+      )
+    )
+
+  // Merge both product and usage meter prices
+  const combinedPrices = priceResults.concat(usageMeterPriceResults)
+
+  // Group prices by pricing model
+  // De-duplicate by price ID in case of any edge cases
+  const pricesByPricingModelId = new Map<string, PriceSlugInfo[]>()
+  const seenPriceIds = new Set<string>()
+
+  combinedPrices.forEach((row) => {
+    // Skip if already seen (de-dupe)
+    if (seenPriceIds.has(row.priceId)) {
+      return
+    }
+    seenPriceIds.add(row.priceId)
+
+    if (!pricesByPricingModelId.has(row.productPricingModelId)) {
+      pricesByPricingModelId.set(row.productPricingModelId, [])
+    }
+    pricesByPricingModelId.get(row.productPricingModelId)!.push({
+      id: row.priceId,
+      slug: row.priceSlug,
+      type: row.priceType,
+      usageMeterId: row.priceUsageMeterId,
+      active: row.priceActive,
+    })
+  })
+
+  // Combine into final result (strip out the seenUsageMeterIds tracking field)
+  return Array.from(pricingModelMap.values()).map((pm) => ({
+    id: pm.id,
+    organizationId: pm.organizationId,
+    livemode: pm.livemode,
+    isDefault: pm.isDefault,
+    usageMeters: pm.usageMeters,
+    prices: pricesByPricingModelId.get(pm.id) ?? [],
+  }))
 }
