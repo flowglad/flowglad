@@ -28,7 +28,9 @@ import {
 import type { SubscriptionStatus } from '@/types'
 import {
   CacheDependency,
+  type CacheRecomputationContext,
   cachedBulkLookup,
+  fromDependencies,
   type TransactionContext,
 } from '@/utils/cache'
 import { cachedRecomputable } from '@/utils/cache-recomputable'
@@ -363,7 +365,7 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
         CacheDependency.subscriptionItems(params.subscriptionId),
       ],
     },
-    async (params, transaction, _transactionContext) => {
+    async (params, transaction, _cacheRecomputationContext) => {
       return selectSubscriptionItemsWithPricesInternal(
         [params.subscriptionId],
         transaction
@@ -377,7 +379,7 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
  *
  * @param subscriptionId - The subscription ID to fetch items for
  * @param transaction - Database transaction
- * @param transactionContext - Transaction context (includes livemode for cache key scoping)
+ * @param cacheRecomputationContext - Transaction context (includes livemode for cache key scoping)
  * @param options.ignoreCache - If true, bypasses cache and fetches directly from database
  * @returns Array of subscription items with their prices
  */
@@ -385,7 +387,7 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
   async (
     subscriptionId: string,
     transaction: DbTransaction,
-    transactionContext: TransactionContext,
+    cacheRecomputationContext: CacheRecomputationContext,
     options: { ignoreCache?: boolean } = {}
   ) => {
     if (options.ignoreCache) {
@@ -395,9 +397,12 @@ export const selectSubscriptionItemsWithPricesBySubscriptionId =
       )
     }
     return selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal(
-      { subscriptionId, livemode: transactionContext.livemode },
+      {
+        subscriptionId,
+        livemode: cacheRecomputationContext.livemode,
+      },
       transaction,
-      transactionContext
+      cacheRecomputationContext
     )
   }
 
@@ -541,14 +546,14 @@ const isSubscriptionItemActive = (item: {
  * @param whereConditions - Conditions to filter the subscriptions
  * @param transaction - Database transaction to use for all queries
  * @param livemode - Required for caching - must match the transaction's livemode context
- * @param transactionContext - Optional transaction context for cache recomputation
+ * @param cacheRecomputationContext - Transaction context for cache recomputation
  * @returns Array of rich subscriptions with their active items, features, and meter balances
  */
 export const selectRichSubscriptionsAndActiveItems = async (
   whereConditions: SelectConditions<typeof subscriptions>,
   transaction: DbTransaction,
   livemode: boolean,
-  transactionContext?: TransactionContext
+  cacheRecomputationContext: CacheRecomputationContext
 ): Promise<RichSubscription[]> => {
   // Step 1: Fetch subscriptions
   // Use cached query when filtering by single customerId (hot path for customer billing)
@@ -558,15 +563,15 @@ export const selectRichSubscriptionsAndActiveItems = async (
     typeof customerId === 'string' &&
     Object.keys(whereConditions).length === 1
 
-  if (isSimpleCustomerIdQuery && transactionContext) {
+  if (isSimpleCustomerIdQuery) {
     // Use cached query with transaction context for recomputation
     subscriptionRecords = await selectSubscriptionsByCustomerId(
       { customerId, livemode },
       transaction,
-      transactionContext
+      cacheRecomputationContext
     )
   } else {
-    // Fallback to uncached query if no transaction context or complex query
+    // Fallback to uncached query for complex queries
     subscriptionRecords = await selectSubscriptions(
       whereConditions,
       transaction

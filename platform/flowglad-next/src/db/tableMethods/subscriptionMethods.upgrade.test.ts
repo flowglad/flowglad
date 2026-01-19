@@ -25,6 +25,7 @@ import {
 } from '@/types'
 import { calculateSubscriberBreakdown } from '@/utils/billing-dashboard/subscriberCalculationHelpers'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { selectActiveBillingPeriodsForDateRange } from './billingPeriodMethods'
 import {
@@ -1665,7 +1666,11 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
         // Mark free as upgraded
         await updateSubscription(
           {
@@ -1685,7 +1690,8 @@ describe('Subscription Upgrade Selection Logic', () => {
             externalId: customer.externalId,
             organizationId: organization.id,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
 
         // CurrentSubscriptions should only contain paid subscription
@@ -1735,7 +1741,11 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
         await updateSubscription(
           {
             id: freeSubscription.id,
@@ -1766,7 +1776,8 @@ describe('Subscription Upgrade Selection Logic', () => {
             externalId: customer.externalId,
             organizationId: organization.id,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
 
         // Only premium subscription should be current
@@ -1815,14 +1826,19 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async ({ transaction, livemode }) => {
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
         // Get billing details multiple times
         const billingDetails1 = await customerBillingTransaction(
           {
             externalId: customer.externalId,
             organizationId: organization.id,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
 
         const billingDetails2 = await customerBillingTransaction(
@@ -1830,7 +1846,8 @@ describe('Subscription Upgrade Selection Logic', () => {
             externalId: customer.externalId,
             organizationId: organization.id,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
 
         // Should return all active subscriptions

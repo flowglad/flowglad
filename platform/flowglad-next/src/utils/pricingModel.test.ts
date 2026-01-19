@@ -41,6 +41,7 @@ import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { AuthenticatedTransactionParams } from '@/db/types'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import {
   CurrencyCode,
   DestinationEnvironment,
@@ -2067,6 +2068,10 @@ describe('createPriceTransaction', () => {
       async ({ transaction }) => {
         const params: AuthenticatedTransactionParams = {
           transaction,
+          cacheRecomputationContext: {
+            type: 'admin',
+            livemode: true,
+          },
           livemode: true,
           organizationId: organization.id,
           userId,
@@ -2102,6 +2107,10 @@ describe('createPriceTransaction', () => {
       adminTransaction(async ({ transaction }) => {
         const params: AuthenticatedTransactionParams = {
           transaction,
+          cacheRecomputationContext: {
+            type: 'admin',
+            livemode: true,
+          },
           livemode: true,
           organizationId: organization.id,
           userId,
@@ -2141,6 +2150,10 @@ describe('createPriceTransaction', () => {
       async ({ transaction }) => {
         const params: AuthenticatedTransactionParams = {
           transaction,
+          cacheRecomputationContext: {
+            type: 'admin',
+            livemode: true,
+          },
           livemode: true,
           organizationId: organization.id,
           userId,
@@ -2175,6 +2188,10 @@ describe('createPriceTransaction', () => {
       async ({ transaction }) => {
         const params: AuthenticatedTransactionParams = {
           transaction,
+          cacheRecomputationContext: {
+            type: 'admin',
+            livemode: true,
+          },
           livemode: true,
           organizationId: organization.id,
           userId,
@@ -2218,12 +2235,13 @@ describe('createPriceTransaction', () => {
     })
 
     await adminTransaction(async ({ transaction }) => {
-      const params: AuthenticatedTransactionParams = {
-        transaction,
-        livemode: true,
-        organizationId: organization.id,
-        userId,
-      }
+      const params: AuthenticatedTransactionParams =
+        withAdminCacheContext({
+          transaction,
+          livemode: true,
+          organizationId: organization.id,
+          userId,
+        })
 
       return createPriceTransaction(
         {
@@ -2249,6 +2267,10 @@ describe('createPriceTransaction', () => {
       adminTransaction(async ({ transaction }) => {
         const params: AuthenticatedTransactionParams = {
           transaction,
+          cacheRecomputationContext: {
+            type: 'admin',
+            livemode: true,
+          },
           livemode: true,
           organizationId: organization.id,
           userId,
@@ -2351,13 +2373,13 @@ describe('createProductTransaction', () => {
               },
             ],
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -2423,13 +2445,13 @@ describe('createProductTransaction', () => {
             ],
             featureIds,
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -2486,13 +2508,13 @@ describe('createProductTransaction', () => {
               },
             ],
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -2560,13 +2582,13 @@ describe('createProductTransaction', () => {
               ],
               featureIds, // This should cause an error
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: org1ApiKey.livemode,
               organizationId: organization.id,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },
@@ -2624,13 +2646,13 @@ describe('createProductTransaction', () => {
             ],
             // featureIds intentionally omitted - should be allowed for usage prices
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -2727,13 +2749,13 @@ describe('createProductTransaction', () => {
               ],
               featureIds: toggleFeatureIds,
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: org1ApiKey.livemode,
               organizationId: organization.id,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },
@@ -2801,13 +2823,13 @@ describe('createProductTransaction', () => {
             ],
             featureIds: [usageCreditGrantFeature.id],
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: org1ApiKey.livemode,
             organizationId: organization.id,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -2893,13 +2915,13 @@ describe('editProductTransaction - Feature Updates', () => {
             product: { id: product.id, name: 'Updated Product' },
             featureIds,
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -2935,13 +2957,13 @@ describe('editProductTransaction - Feature Updates', () => {
             product: { id: product.id },
             featureIds: [features[0].id, features[1].id],
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -2961,13 +2983,13 @@ describe('editProductTransaction - Feature Updates', () => {
             product: { id: product.id },
             featureIds: [features[0].id],
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -3008,13 +3030,13 @@ describe('editProductTransaction - Feature Updates', () => {
             product: { id: product.id },
             featureIds: [features[0].id, features[1].id],
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -3033,13 +3055,13 @@ describe('editProductTransaction - Feature Updates', () => {
           {
             product: { id: product.id, name: 'New Name' },
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -3092,13 +3114,13 @@ describe('editProductTransaction - Feature Updates', () => {
               product: { id: singlePaymentProduct.id },
               featureIds: toggleFeatureIds,
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: true,
               organizationId,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },
@@ -3158,13 +3180,13 @@ describe('editProductTransaction - Feature Updates', () => {
             product: { id: singlePaymentProduct.id },
             featureIds: [usageCreditGrantFeature.id],
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -3301,13 +3323,13 @@ describe('editProductTransaction - Price Updates', () => {
             },
             price: modifiedPrice,
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -3362,13 +3384,13 @@ describe('editProductTransaction - Price Updates', () => {
               default: true,
             },
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -3438,13 +3460,13 @@ describe('editProductTransaction - Price Updates', () => {
             },
             price: modifiedPrice,
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -3530,13 +3552,13 @@ describe('editProductTransaction - Price Updates', () => {
             },
             price: modifiedPrice,
           },
-          {
+          withAdminCacheContext({
             userId,
             transaction,
             livemode: true,
             organizationId,
             invalidateCache,
-          }
+          })
         )
         return Result.ok(txResult)
       },
@@ -3636,13 +3658,13 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 default: false,
               },
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: true,
               organizationId,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },
@@ -3724,13 +3746,13 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               },
               price: modifiedPrice,
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: true,
               organizationId,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },
@@ -3782,13 +3804,13 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 default: false,
               },
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: true,
               organizationId,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },
@@ -3875,13 +3897,13 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 default: false,
               },
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: true,
               organizationId,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },
@@ -3961,13 +3983,13 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                   default: false,
                 },
               },
-              {
+              withAdminCacheContext({
                 userId,
                 transaction,
                 livemode: true,
                 organizationId,
                 invalidateCache,
-              }
+              })
             )
             return Result.ok(txResult)
           },
@@ -4016,13 +4038,13 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                   default: true,
                 },
               },
-              {
+              withAdminCacheContext({
                 userId,
                 transaction,
                 livemode: true,
                 organizationId,
                 invalidateCache,
-              }
+              })
             )
             return Result.ok(txResult)
           },
@@ -4100,13 +4122,13 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 default: false,
               },
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: true,
               organizationId,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },
@@ -4176,13 +4198,13 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               },
               price: modifiedPrice,
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: true,
               organizationId,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },
@@ -4260,13 +4282,13 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               },
               price: modifiedPrice,
             },
-            {
+            withAdminCacheContext({
               userId,
               transaction,
               livemode: true,
               organizationId,
               invalidateCache,
-            }
+            })
           )
           return Result.ok(txResult)
         },

@@ -20,12 +20,13 @@ const SubscriptionPage = async ({
 }) => {
   const { id } = await params
   const result = await authenticatedTransaction(
-    async ({ transaction, livemode }) => {
+    async ({ transaction, livemode, cacheRecomputationContext }) => {
       const [subscription] =
         await selectRichSubscriptionsAndActiveItems(
           { id },
           transaction,
-          livemode
+          livemode,
+          cacheRecomputationContext
         )
 
       if (!subscription) {

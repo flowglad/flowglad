@@ -54,6 +54,7 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
 import {
@@ -676,13 +677,19 @@ describe('setDefaultPaymentMethodForCustomer', () => {
 
     it('should filter out inactive prices from pricingModel in customerBillingTransaction', async () => {
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            cacheRecomputationContext
           )
         }
       )
@@ -710,13 +717,19 @@ describe('setDefaultPaymentMethodForCustomer', () => {
 
     it('should preserve subscription items with inactive prices', async () => {
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            cacheRecomputationContext
           )
         }
       )
@@ -753,13 +766,19 @@ describe('setDefaultPaymentMethodForCustomer', () => {
 
     it('should maintain all other billing data while filtering prices', async () => {
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            cacheRecomputationContext
           )
         }
       )
@@ -874,13 +893,19 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       })
 
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            cacheRecomputationContext
           )
         }
       )
@@ -1281,13 +1306,18 @@ describe('customerBillingTransaction - currentSubscription field', () => {
     })
 
     const billingState = await adminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, livemode }) => {
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
             organizationId: organization.id,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       }
     )
@@ -1309,13 +1339,18 @@ describe('customerBillingTransaction - currentSubscription field', () => {
     })
 
     const billingState = await adminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, livemode }) => {
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
             organizationId: organization.id,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       }
     )
@@ -1348,13 +1383,18 @@ describe('customerBillingTransaction - currentSubscription field', () => {
     })
 
     const billingState = await adminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, livemode }) => {
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
             organizationId: organization.id,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       }
     )
@@ -1408,13 +1448,18 @@ describe('customerBillingTransaction - currentSubscription field', () => {
     // Note: In practice, createdAt will differ, but this test verifies
     // that if they were the same, updatedAt would be used as tiebreaker
     const billingState = await adminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, livemode }) => {
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
             organizationId: organization.id,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       }
     )
@@ -1442,13 +1487,18 @@ describe('customerBillingTransaction - currentSubscription field', () => {
     }
 
     const billingState = await adminTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, livemode }) => {
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
         return await customerBillingTransaction(
           {
             externalId: customer.externalId,
             organizationId: organization.id,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       }
     )

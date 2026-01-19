@@ -787,7 +787,8 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            livemode,
+            { type: 'admin', livemode }
           )
         expect(richSubscriptions.length).toBe(1)
         const subWithItems = richSubscriptions[0]
@@ -838,7 +839,8 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            livemode,
+            { type: 'admin', livemode }
           )
         expect(richSubscriptions.length).toBe(1)
         expect(richSubscriptions[0].current).toBe(false)
@@ -925,7 +927,8 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            livemode,
+            { type: 'admin', livemode }
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1022,7 +1025,8 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            livemode,
+            { type: 'admin', livemode }
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1117,7 +1121,8 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: scenario1.organization.id },
             transaction,
-            livemode
+            livemode,
+            { type: 'admin', livemode }
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1176,7 +1181,8 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            livemode,
+            { type: 'admin', livemode }
           )
 
         expect(richSubscriptions.length).toBe(2) // Original + new empty subscription

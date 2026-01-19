@@ -24,6 +24,7 @@ import {
 } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
@@ -66,7 +67,8 @@ const defaultStripeConnectContractTypeForCountry = (
 export const createOrganizationTransaction = async (
   input: CreateOrganizationInput,
   user: { id: string; fullName?: string; email: string },
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  cacheRecomputationContext: CacheRecomputationContext
 ) => {
   const userId = user.id
   const { organization } = input
@@ -197,6 +199,7 @@ export const createOrganizationTransaction = async (
       },
       {
         transaction,
+        cacheRecomputationContext,
         organizationId,
         livemode: true,
       }
@@ -213,6 +216,7 @@ export const createOrganizationTransaction = async (
       },
       {
         transaction,
+        cacheRecomputationContext,
         organizationId,
         livemode: false,
       }
@@ -231,6 +235,7 @@ export const createOrganizationTransaction = async (
     },
     {
       transaction,
+      cacheRecomputationContext,
       livemode: false,
       userId,
       organizationId,

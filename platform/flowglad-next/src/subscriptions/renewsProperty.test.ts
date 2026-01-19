@@ -386,12 +386,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         const result = await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
           }) => {
             const ctx = {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -467,12 +469,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         const result = await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
           }) => {
             const ctx = {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -529,12 +533,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         const result = await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
           }) => {
             const ctx = {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -598,12 +604,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         const result = await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
           }) => {
             const ctx = {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -690,12 +698,14 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           comprehensiveAdminTransaction(
             async ({
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
             }) => {
               const ctx = {
                 transaction,
+                cacheRecomputationContext,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,

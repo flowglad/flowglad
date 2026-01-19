@@ -121,6 +121,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
@@ -230,6 +231,10 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: customProduct.livemode,
+              },
               organizationId: organization.id,
               livemode: customProduct.livemode,
               invalidateCache,
@@ -319,6 +324,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
@@ -426,6 +432,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
@@ -494,6 +501,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
@@ -589,6 +597,10 @@ describe('createCustomerBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId: minimalOrg.id,
                 livemode,
                 invalidateCache,
@@ -636,6 +648,10 @@ describe('createCustomerBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId: organization.id, // Auth context org
                 livemode,
                 invalidateCache,
@@ -673,6 +689,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
@@ -727,6 +744,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
             }
@@ -760,6 +778,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
@@ -807,6 +826,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
             }
@@ -840,6 +860,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
               invalidateCache,
@@ -895,6 +916,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
             }
@@ -915,6 +937,7 @@ describe('createCustomerBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: organization.id,
               livemode,
             }
@@ -946,6 +969,10 @@ describe('createCustomerBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId: organization.id,
                 livemode,
                 invalidateCache,
@@ -986,6 +1013,10 @@ describe('createCustomerBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId: organization.id,
                 livemode,
                 invalidateCache,
@@ -1060,6 +1091,7 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
             }
@@ -1122,6 +1154,7 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
             }
@@ -1152,6 +1185,7 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
             }
@@ -1197,6 +1231,7 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
             }
@@ -1258,6 +1293,10 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: false,
+              },
               organizationId,
               livemode: false,
             }
@@ -1298,6 +1337,10 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               organizationId,
               livemode: true,
             }
@@ -1399,6 +1442,7 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: eurOrganization.id,
               livemode,
             }
@@ -1453,6 +1497,7 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId: gbpOrganization.id,
               livemode,
             }
@@ -1484,6 +1529,7 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
             }
@@ -1524,6 +1570,7 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
             }
@@ -1594,6 +1641,10 @@ describe('createPricingModelBookkeeping', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: testLivemode,
+              },
               organizationId: testOrganization.id,
               livemode: testLivemode,
             }
@@ -1626,6 +1677,10 @@ describe('createPricingModelBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId,
                 livemode,
               }
@@ -1664,6 +1719,10 @@ describe('createPricingModelBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId,
                 livemode,
               }
@@ -1698,6 +1757,10 @@ describe('createPricingModelBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId,
                 livemode,
               }
@@ -1730,6 +1793,10 @@ describe('createPricingModelBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId,
                 livemode,
               }
@@ -1771,6 +1838,10 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext: {
+                    type: 'admin',
+                    livemode,
+                  },
                   organizationId,
                   livemode,
                 }
@@ -1808,6 +1879,10 @@ describe('createPricingModelBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId,
                 livemode,
               }
@@ -1847,6 +1922,10 @@ describe('createPricingModelBookkeeping', () => {
               },
               {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode,
+                },
                 organizationId,
                 livemode,
               }

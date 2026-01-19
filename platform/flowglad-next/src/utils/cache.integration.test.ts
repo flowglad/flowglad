@@ -830,14 +830,14 @@ describeIfRedisKey(
       // First call - should cache the result
       const result1 = await adminTransaction(
         async ({ transaction, livemode }) => {
-          const transactionContext = {
+          const cacheRecomputationContext = {
             type: 'admin' as const,
             livemode,
           }
           return selectSubscriptionsByCustomerId(
             { customerId: customer.id, livemode },
             transaction,
-            transactionContext
+            cacheRecomputationContext
           )
         }
       )
@@ -853,14 +853,14 @@ describeIfRedisKey(
       // Second call - should return cached result
       const result2 = await adminTransaction(
         async ({ transaction, livemode }) => {
-          const transactionContext = {
+          const cacheRecomputationContext = {
             type: 'admin' as const,
             livemode,
           }
           return selectSubscriptionsByCustomerId(
             { customerId: customer.id, livemode },
             transaction,
-            transactionContext
+            cacheRecomputationContext
           )
         }
       )
@@ -889,14 +889,14 @@ describeIfRedisKey(
       // First call - should cache the empty result
       const result = await adminTransaction(
         async ({ transaction, livemode }) => {
-          const transactionContext = {
+          const cacheRecomputationContext = {
             type: 'admin' as const,
             livemode,
           }
           return selectSubscriptionsByCustomerId(
             { customerId: customerWithNoSubs.id, livemode },
             transaction,
-            transactionContext
+            cacheRecomputationContext
           )
         }
       )
@@ -953,14 +953,14 @@ describeIfRedisKey(
 
       // Populate cache
       await adminTransaction(async ({ transaction, livemode }) => {
-        const transactionContext = {
+        const cacheRecomputationContext = {
           type: 'admin' as const,
           livemode,
         }
         return selectSubscriptionsByCustomerId(
           { customerId: customer.id, livemode },
           transaction,
-          transactionContext
+          cacheRecomputationContext
         )
       })
 
@@ -1824,14 +1824,14 @@ describeIfRedisKey(
 
       // Populate cache by calling the function
       await adminTransaction(async ({ transaction, livemode }) => {
-        const transactionContext = {
+        const cacheRecomputationContext = {
           type: 'admin' as const,
           livemode,
         }
         return selectSubscriptionsByCustomerId(
           { customerId: customer.id, livemode },
           transaction,
-          transactionContext
+          cacheRecomputationContext
         )
       })
 
@@ -1852,8 +1852,12 @@ describeIfRedisKey(
         customerId: customer.id,
         livemode: true,
       })
-      expect(metadataValue.transactionContext.type).toBe('admin')
-      expect(metadataValue.transactionContext.livemode).toBe(true)
+      expect(metadataValue.cacheRecomputationContext.type).toBe(
+        'admin'
+      )
+      expect(metadataValue.cacheRecomputationContext.livemode).toBe(
+        true
+      )
       expect(metadataValue.createdAt).toBeGreaterThan(0)
     })
 
@@ -1904,14 +1908,14 @@ describeIfRedisKey(
       // Populate cache
       const initialResult = await adminTransaction(
         async ({ transaction, livemode }) => {
-          const transactionContext = {
+          const cacheRecomputationContext = {
             type: 'admin' as const,
             livemode,
           }
           return selectSubscriptionsByCustomerId(
             { customerId: customer.id, livemode },
             transaction,
-            transactionContext
+            cacheRecomputationContext
           )
         }
       )
@@ -2012,14 +2016,14 @@ describeIfRedisKey(
 
       // Populate cache by calling the function
       await adminTransaction(async ({ transaction, livemode }) => {
-        const transactionContext = {
+        const cacheRecomputationContext = {
           type: 'admin' as const,
           livemode,
         }
         return selectSubscriptionItemsWithPricesBySubscriptionId(
           subscription.id,
           transaction,
-          transactionContext
+          cacheRecomputationContext
         )
       })
 
@@ -2040,8 +2044,12 @@ describeIfRedisKey(
         subscriptionId: subscription.id,
         livemode: true,
       })
-      expect(metadataValue.transactionContext.type).toBe('admin')
-      expect(metadataValue.transactionContext.livemode).toBe(true)
+      expect(metadataValue.cacheRecomputationContext.type).toBe(
+        'admin'
+      )
+      expect(metadataValue.cacheRecomputationContext.livemode).toBe(
+        true
+      )
       expect(metadataValue.createdAt).toBeGreaterThan(0)
     })
   }

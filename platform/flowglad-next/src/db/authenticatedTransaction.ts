@@ -5,6 +5,7 @@ import type {
   ComprehensiveAuthenticatedTransactionParams,
   TransactionEffectsContext,
 } from '@/db/types'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -98,12 +99,29 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     }
 
     return withRLS(transaction, { jwtClaim, livemode }, async () => {
+      // Construct transaction context based on auth type
+      const cacheRecomputationContext: CacheRecomputationContext =
+        customerId
+          ? {
+              type: 'customer',
+              livemode,
+              organizationId,
+              userId,
+              customerId,
+            }
+          : {
+              type: 'merchant',
+              livemode,
+              organizationId,
+              userId,
+            }
       const paramsForFn: ComprehensiveAuthenticatedTransactionParams =
         {
           transaction,
           userId,
           livemode,
           organizationId,
+          cacheRecomputationContext,
           effects,
           invalidateCache,
           emitEvent,
@@ -237,6 +255,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
       (params) => {
         const transactionCtx: TransactionEffectsContext = {
           transaction: params.transaction,
+          cacheRecomputationContext: params.cacheRecomputationContext,
           invalidateCache: params.invalidateCache,
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,

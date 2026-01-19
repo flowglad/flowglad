@@ -108,6 +108,7 @@ export const confirmCheckoutSessionTransaction = async (
         },
         {
           transaction,
+          cacheRecomputationContext: ctx.cacheRecomputationContext,
           organizationId: checkoutSession.organizationId,
           livemode: checkoutSession.livemode,
           invalidateCache: ctx.invalidateCache,

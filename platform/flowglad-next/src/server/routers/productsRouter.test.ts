@@ -41,6 +41,7 @@ describe('productsRouter - Default Product Constraints', () => {
         },
         {
           transaction,
+          cacheRecomputationContext: { type: 'admin', livemode },
           organizationId: organization.id,
           livemode,
         }

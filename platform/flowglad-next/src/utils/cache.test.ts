@@ -10,6 +10,7 @@ import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
 import {
   CacheDependency,
+  type CacheRecomputationContext,
   type CacheRecomputeMetadata,
   cached,
   getRecomputeHandler,
@@ -20,7 +21,6 @@ import {
   recomputeDependencies,
   registerRecomputeHandler,
   type SerializableParams,
-  type TransactionContext,
 } from './cache'
 import { cachedRecomputable } from './cache-recomputable'
 import {
@@ -516,12 +516,12 @@ function createTestHandler(): {
   handler: RecomputeHandler
   calls: Array<{
     params: SerializableParams
-    context: TransactionContext
+    context: CacheRecomputationContext
   }>
 } {
   const calls: Array<{
     params: SerializableParams
-    context: TransactionContext
+    context: CacheRecomputationContext
   }> = []
   const handler: RecomputeHandler = async (params, context) => {
     calls.push({ params, context })
@@ -534,12 +534,12 @@ function createThrowingHandler(): {
   handler: RecomputeHandler
   calls: Array<{
     params: SerializableParams
-    context: TransactionContext
+    context: CacheRecomputationContext
   }>
 } {
   const calls: Array<{
     params: SerializableParams
-    context: TransactionContext
+    context: CacheRecomputationContext
   }> = []
   const handler: RecomputeHandler = async (params, context) => {
     calls.push({ params, context })
@@ -581,7 +581,7 @@ describe('invalidateDependencies with recomputation', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.SubscriptionsByCustomer,
       params: { customerId: 'cust_123' },
-      transactionContext: { type: 'admin', livemode: true },
+      cacheRecomputationContext: { type: 'admin', livemode: true },
       createdAt: Date.now(),
     }
     const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
@@ -649,13 +649,13 @@ describe('invalidateDependencies with recomputation', () => {
     const metadata1: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
       params: { featureId: 'feat_1' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
     const metadata2: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
       params: { featureId: 'feat_2' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
 
@@ -692,7 +692,7 @@ describe('invalidateDependencies with recomputation', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.BannerDismissals,
       params: { bannerId: 'banner_1' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
     mockRedis.store[
@@ -765,7 +765,7 @@ describe('recomputeCacheEntry', () => {
     _setTestRedisClient(null)
   })
 
-  it('calls handler with params and transactionContext from metadata', async () => {
+  it('calls handler with params and cacheRecomputationContext from metadata', async () => {
     const mockHandler: RecomputeHandler = vi
       .fn()
       .mockResolvedValue({})
@@ -778,14 +778,14 @@ describe('recomputeCacheEntry', () => {
       subscriptionId: 'sub_123',
       livemode: true,
     }
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'admin',
       livemode: true,
     }
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.ItemsBySubscription,
       params,
-      transactionContext,
+      cacheRecomputationContext,
       createdAt: Date.now(),
     }
 
@@ -798,7 +798,7 @@ describe('recomputeCacheEntry', () => {
     expect(mockHandler).toHaveBeenCalledTimes(1)
     expect(mockHandler).toHaveBeenCalledWith(
       params,
-      transactionContext
+      cacheRecomputationContext
     )
   })
 
@@ -822,7 +822,7 @@ describe('recomputeCacheEntry', () => {
   it('logs warning when handler not registered for namespace but does not throw', async () => {
     // Use a unique namespace that definitely has no handler registered
     const params: SerializableParams = { id: 'test' }
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'merchant',
       livemode: false,
       organizationId: 'org_123',
@@ -831,7 +831,7 @@ describe('recomputeCacheEntry', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.BannerDismissals, // No handler for this
       params,
-      transactionContext,
+      cacheRecomputationContext,
       createdAt: Date.now(),
     }
 
@@ -857,7 +857,7 @@ describe('recomputeCacheEntry', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.StripeOAuthCsrfToken,
       params: { key: 'value' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
 
@@ -905,13 +905,13 @@ describe('recomputeDependencies', () => {
     const metadata1: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.CacheDependencyRegistry,
       params: { keyId: 'key1' },
-      transactionContext: { type: 'admin', livemode: true },
+      cacheRecomputationContext: { type: 'admin', livemode: true },
       createdAt: Date.now(),
     }
     const metadata2: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.CacheDependencyRegistry,
       params: { keyId: 'key2' },
-      transactionContext: { type: 'admin', livemode: true },
+      cacheRecomputationContext: { type: 'admin', livemode: true },
       createdAt: Date.now(),
     }
 
@@ -953,7 +953,7 @@ describe('recomputeDependencies', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.Telemetry,
       params: { id: 'shared' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
 
@@ -1060,7 +1060,7 @@ describe('cachedRecomputable', () => {
       wrappedFn
     )
 
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'admin',
       livemode: true,
     }
@@ -1069,7 +1069,7 @@ describe('cachedRecomputable', () => {
     await cachedFn(
       { subId: 'sub_123' },
       mockTransaction,
-      transactionContext
+      cacheRecomputationContext
     )
 
     // Verify cache value was stored
@@ -1127,7 +1127,7 @@ describe('cachedRecomputable', () => {
       tags: ['premium', 'active'],
     }
 
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'merchant',
       livemode: true,
       organizationId: 'org_123',
@@ -1135,7 +1135,11 @@ describe('cachedRecomputable', () => {
     }
 
     const mockTransaction = {} as DbTransaction
-    await cachedFn(inputParams, mockTransaction, transactionContext)
+    await cachedFn(
+      inputParams,
+      mockTransaction,
+      cacheRecomputationContext
+    )
 
     const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:cust_1:true`
     const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
@@ -1170,7 +1174,7 @@ describe('cachedRecomputable', () => {
       wrappedFn
     )
 
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'merchant',
       livemode: false,
       organizationId: 'org_test_123',
@@ -1181,7 +1185,7 @@ describe('cachedRecomputable', () => {
     await cachedFn(
       { id: 'meter_123' },
       mockTransaction,
-      transactionContext
+      cacheRecomputationContext
     )
 
     const cacheKey = `${RedisKeyNamespace.MeterBalancesBySubscription}:meter_123`
@@ -1191,14 +1195,18 @@ describe('cachedRecomputable', () => {
     ) as CacheRecomputeMetadata
 
     // Transaction context should be preserved exactly
-    expect(metadata.transactionContext).toEqual(transactionContext)
-    expect(metadata.transactionContext.type).toBe('merchant')
-    if (metadata.transactionContext.type === 'merchant') {
-      expect(metadata.transactionContext.organizationId).toBe(
+    expect(metadata.cacheRecomputationContext).toEqual(
+      cacheRecomputationContext
+    )
+    expect(metadata.cacheRecomputationContext.type).toBe('merchant')
+    if (metadata.cacheRecomputationContext.type === 'merchant') {
+      expect(metadata.cacheRecomputationContext.organizationId).toBe(
         'org_test_123'
       )
-      expect(metadata.transactionContext.userId).toBe('user_test_456')
-      expect(metadata.transactionContext.livemode).toBe(false)
+      expect(metadata.cacheRecomputationContext.userId).toBe(
+        'user_test_456'
+      )
+      expect(metadata.cacheRecomputationContext.livemode).toBe(false)
     }
   })
 
@@ -1227,14 +1235,14 @@ describe('cachedRecomputable', () => {
     mockRedis.store[cacheKey] = JSON.stringify({ cached: true })
 
     const mockTransaction = {} as DbTransaction
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'admin',
       livemode: true,
     }
     const result = await cachedFn(
       { key: 'hit-test' },
       mockTransaction,
-      transactionContext
+      cacheRecomputationContext
     )
 
     // Should return cached value
@@ -1266,7 +1274,7 @@ describe('cachedRecomputable', () => {
       wrappedFn
     )
 
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'admin',
       livemode: true,
     }
@@ -1275,7 +1283,7 @@ describe('cachedRecomputable', () => {
     await cachedFn(
       { customerId: 'cust_deps' },
       mockTransaction,
-      transactionContext
+      cacheRecomputationContext
     )
 
     // Verify dependencies were registered

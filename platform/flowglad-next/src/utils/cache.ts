@@ -50,7 +50,7 @@ const serializableParamsSchema = z.record(
  * - 'merchant': Merchant dashboard context with organization-scoped RLS
  * - 'customer': Customer billing portal context with customer-scoped RLS
  */
-export type TransactionContext =
+export type CacheRecomputationContext =
   | { type: 'admin'; livemode: boolean }
   | {
       type: 'merchant'
@@ -67,7 +67,7 @@ export type TransactionContext =
     }
 
 // Zod schema for transaction context (discriminated union)
-const transactionContextSchema = z.discriminatedUnion('type', [
+const cacheRecomputationContextSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('admin'),
     livemode: z.boolean(),
@@ -90,7 +90,7 @@ const transactionContextSchema = z.discriminatedUnion('type', [
 export interface CacheRecomputeMetadata {
   namespace: RedisKeyNamespace // Used to look up handler in registry
   params: SerializableParams // The params object (sans transaction)
-  transactionContext: TransactionContext
+  cacheRecomputationContext: CacheRecomputationContext
   createdAt: number
 }
 
@@ -98,13 +98,13 @@ export interface CacheRecomputeMetadata {
 const cacheRecomputeMetadataSchema = z.object({
   namespace: z.nativeEnum(RedisKeyNamespace),
   params: serializableParamsSchema,
-  transactionContext: transactionContextSchema,
+  cacheRecomputationContext: cacheRecomputationContextSchema,
   createdAt: z.number(),
 })
 
 export type RecomputeHandler = (
   params: SerializableParams,
-  transactionContext: TransactionContext
+  cacheRecomputationContext: CacheRecomputationContext
 ) => Promise<unknown>
 
 // In-memory registry for recompute handlers. Each process has its own registry,
@@ -1016,7 +1016,7 @@ export async function recomputeCacheEntry(
     }
 
     // Call handler with stored params and context
-    await handler(metadata.params, metadata.transactionContext)
+    await handler(metadata.params, metadata.cacheRecomputationContext)
 
     logger.debug('Recomputed cache entry', {
       cacheKey,

@@ -59,6 +59,10 @@ describe('apiKeyHelpers', () => {
         async ({ transaction }) => {
           return createSecretApiKeyTransaction(input, {
             transaction,
+            cacheRecomputationContext: {
+              type: 'admin',
+              livemode: false,
+            },
             userId,
             livemode: false,
             organizationId: organization.id,
@@ -97,6 +101,10 @@ describe('apiKeyHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           return createSecretApiKeyTransaction(input, {
             transaction,
+            cacheRecomputationContext: {
+              type: 'admin',
+              livemode: false,
+            },
             userId,
             livemode: false,
             organizationId: organization.id,
@@ -128,6 +136,10 @@ describe('apiKeyHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           return createSecretApiKeyTransaction(input, {
             transaction,
+            cacheRecomputationContext: {
+              type: 'admin',
+              livemode: true,
+            },
             userId,
             livemode: true,
             organizationId: organization.id,
@@ -161,6 +173,10 @@ describe('apiKeyHelpers', () => {
         async ({ transaction }) => {
           return createSecretApiKeyTransaction(input, {
             transaction,
+            cacheRecomputationContext: {
+              type: 'admin',
+              livemode: false,
+            },
             userId,
             livemode: false,
             organizationId: organization.id,
@@ -197,6 +213,10 @@ describe('apiKeyHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           return createSecretApiKeyTransaction(input, {
             transaction,
+            cacheRecomputationContext: {
+              type: 'admin',
+              livemode: true,
+            },
             userId,
             livemode: true,
             organizationId: organization.id,
@@ -249,6 +269,10 @@ describe('apiKeyHelpers', () => {
           { id: secretApiKey.id },
           {
             transaction,
+            cacheRecomputationContext: {
+              type: 'admin',
+              livemode: true,
+            },
             userId,
             livemode: true,
             organizationId: organization.id,
@@ -273,6 +297,10 @@ describe('apiKeyHelpers', () => {
             { id: nonExistentId },
             {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               userId,
               livemode: true,
               organizationId: organization.id,
@@ -306,6 +334,10 @@ describe('apiKeyHelpers', () => {
             { id: publishableApiKey.id },
             {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               userId,
               livemode: true,
               organizationId: organization.id,
@@ -343,6 +375,10 @@ describe('apiKeyHelpers', () => {
           { id: legacyApiKey.id },
           {
             transaction,
+            cacheRecomputationContext: {
+              type: 'admin',
+              livemode: true,
+            },
             userId,
             livemode: true,
             organizationId: organization.id,
@@ -383,6 +419,10 @@ describe('apiKeyHelpers', () => {
           { id: apiKeyNoHash.id },
           {
             transaction,
+            cacheRecomputationContext: {
+              type: 'admin',
+              livemode: true,
+            },
             userId,
             livemode: true,
             organizationId: organization.id,
@@ -443,6 +483,10 @@ describe('apiKeyHelpers', () => {
             { id: apiKeyWithUnkeyId.id },
             {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               userId,
               livemode: true,
               organizationId: organization.id,

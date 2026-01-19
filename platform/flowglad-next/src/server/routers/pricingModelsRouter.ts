@@ -132,13 +132,23 @@ const createPricingModelProcedure = protectedProcedure
   )
   .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
-      async ({ transaction, organizationId, livemode }) => {
+      async ({
+        transaction,
+        organizationId,
+        livemode,
+        cacheRecomputationContext,
+      }) => {
         return createPricingModelBookkeeping(
           {
             pricingModel: input.pricingModel,
             defaultPlanIntervalUnit: input.defaultPlanIntervalUnit,
           },
-          { transaction, organizationId, livemode }
+          {
+            transaction,
+            organizationId,
+            livemode,
+            cacheRecomputationContext,
+          }
         )
       },
       {

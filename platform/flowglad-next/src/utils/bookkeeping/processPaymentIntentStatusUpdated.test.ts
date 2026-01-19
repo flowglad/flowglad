@@ -3021,11 +3021,13 @@ describe('Process payment intent status updated', async () => {
             emitEvent,
             enqueueLedgerCommand,
             invalidateCache,
+            cacheRecomputationContext,
           } = ctx
           const res = await processPaymentIntentStatusUpdated(
             paymentIntent,
             {
               transaction,
+              cacheRecomputationContext,
               emitEvent,
               enqueueLedgerCommand: (cmd) => {
                 enqueuedLedgerCommands.push(cmd)

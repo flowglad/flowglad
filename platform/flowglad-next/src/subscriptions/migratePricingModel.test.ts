@@ -63,7 +63,10 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
-import { CacheDependency } from '@/utils/cache'
+import {
+  CacheDependency,
+  type CacheRecomputationContext,
+} from '@/utils/cache'
 
 describe('Pricing Model Migration Test Suite', async () => {
   const { organization, price: orgDefaultPrice } = await setupOrg()
@@ -573,13 +576,19 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Verify billing state via customerBillingTransaction
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            cacheRecomputationContext
           )
         }
       )
@@ -674,13 +683,19 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Get billing state
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            cacheRecomputationContext
           )
         }
       )
@@ -801,13 +816,19 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Get billing state
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            cacheRecomputationContext
           )
         }
       )
@@ -925,13 +946,19 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Get billing state
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            cacheRecomputationContext
           )
         }
       )
@@ -1309,6 +1336,10 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode: true,
+                },
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1354,6 +1385,10 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode: true,
+                },
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1379,6 +1414,10 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode: true,
+                },
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1406,6 +1445,10 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode: true,
+                },
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1438,6 +1481,10 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode: true,
+                },
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1510,6 +1557,10 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: {
                 transaction,
+                cacheRecomputationContext: {
+                  type: 'admin',
+                  livemode: true,
+                },
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1738,6 +1789,10 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             transactionCtx: {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,

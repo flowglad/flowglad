@@ -5,6 +5,7 @@ import type {
   AdminTransactionParams,
   ComprehensiveAdminTransactionParams,
 } from '@/db/types'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -68,10 +69,15 @@ const executeComprehensiveAdminTransaction = async <T>(
     )
     // Admin transactions typically run with higher privileges, no specific role needs to be set via JWT claims normally.
 
+    const cacheRecomputationContext: CacheRecomputationContext = {
+      type: 'admin',
+      livemode: effectiveLivemode,
+    }
     const paramsForFn: ComprehensiveAdminTransactionParams = {
       transaction,
       userId: 'ADMIN',
       livemode: effectiveLivemode,
+      cacheRecomputationContext,
       effects,
       invalidateCache,
       emitEvent,

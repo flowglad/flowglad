@@ -171,7 +171,7 @@ export const selectSubscriptionsByCustomerId = cachedRecomputable<
       CacheDependency.customerSubscriptions(params.customerId),
     ],
   },
-  async (params, transaction, _transactionContext) => {
+  async (params, transaction, _cacheRecomputationContext) => {
     return selectSubscriptions(
       { customerId: params.customerId },
       transaction

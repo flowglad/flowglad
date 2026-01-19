@@ -615,6 +615,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
 > => {
   const {
     transaction,
+    cacheRecomputationContext,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
@@ -622,6 +623,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
   // Construct context for internal function calls
   const ctx: TransactionEffectsContext = {
     transaction,
+    cacheRecomputationContext,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
@@ -931,12 +933,14 @@ export const uncancelSubscriptionProcedureTransaction = async ({
 > => {
   const {
     transaction,
+    cacheRecomputationContext,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
   } = transactionCtx
   const ctx: TransactionEffectsContext = {
     transaction,
+    cacheRecomputationContext,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,

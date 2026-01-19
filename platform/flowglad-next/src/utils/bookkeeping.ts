@@ -257,6 +257,7 @@ export const createCustomerBookkeeping = async (
 }> => {
   const {
     transaction,
+    cacheRecomputationContext,
     organizationId,
     livemode,
     invalidateCache,
@@ -392,6 +393,7 @@ export const createCustomerBookkeeping = async (
             },
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,

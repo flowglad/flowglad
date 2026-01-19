@@ -1759,6 +1759,10 @@ describe('Subscription Cancellation Test Suite', async () => {
             ctx: { apiKey: undefined },
             transactionCtx: {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
@@ -1807,6 +1811,10 @@ describe('Subscription Cancellation Test Suite', async () => {
             },
             transactionCtx: {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
@@ -2421,6 +2429,10 @@ describe('Subscription Cancellation Test Suite', async () => {
             ctx: { apiKey: undefined },
             transactionCtx: {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
@@ -2481,6 +2493,10 @@ describe('Subscription Cancellation Test Suite', async () => {
             ctx: { apiKey: undefined },
             transactionCtx: {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
@@ -2545,6 +2561,10 @@ describe('Subscription Cancellation Test Suite', async () => {
             ctx: { apiKey: undefined },
             transactionCtx: {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
@@ -3679,6 +3699,10 @@ describe('Subscription Cancellation Test Suite', async () => {
             ctx: { apiKey: undefined },
             transactionCtx: {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
@@ -3733,6 +3757,10 @@ describe('Subscription Cancellation Test Suite', async () => {
             ctx: { apiKey: undefined },
             transactionCtx: {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
@@ -4193,6 +4221,10 @@ describe('Subscription cancellation cache invalidations', async () => {
             ctx: { apiKey: undefined },
             transactionCtx: {
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,

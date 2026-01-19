@@ -50,6 +50,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         },
         {
           transaction,
+          cacheRecomputationContext: { type: 'admin', livemode },
           organizationId: organization.id,
           livemode,
         }
@@ -564,6 +565,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             },
             {
               transaction,
+              cacheRecomputationContext: { type: 'admin', livemode },
               organizationId,
               livemode,
             }
@@ -714,6 +716,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
         },
         {
           transaction,
+          cacheRecomputationContext: { type: 'admin', livemode },
           organizationId: organization.id,
           livemode,
         }
@@ -1088,6 +1091,7 @@ describe('pricesRouter - API Contract Updates', () => {
         },
         {
           transaction,
+          cacheRecomputationContext: { type: 'admin', livemode },
           organizationId: organization.id,
           livemode,
         }
@@ -1312,6 +1316,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
         },
         {
           transaction,
+          cacheRecomputationContext: { type: 'admin', livemode },
           organizationId: organization.id,
           livemode,
         }
