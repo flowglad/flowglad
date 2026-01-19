@@ -363,7 +363,6 @@ const getUsageProcedure = protectedProcedure
           transaction
         )
 
-        // Check if any features provide this resource
         const resourceFeature = allFeatures.find(
           (
             feature
@@ -379,7 +378,7 @@ const getUsageProcedure = protectedProcedure
           })
         }
 
-        // Get aggregated capacity from all features for this resource
+        // Get aggregated capacity across all active features for this resource
         const { totalCapacity } = await getAggregatedResourceCapacity(
           {
             subscriptionId: input.subscriptionId,
@@ -388,7 +387,7 @@ const getUsageProcedure = protectedProcedure
           transaction
         )
 
-        // Count active claims by (subscriptionId, resourceId)
+        // Count claims by (subscriptionId, resourceId)
         const claimed = await countActiveResourceClaims(
           {
             subscriptionId: input.subscriptionId,
@@ -529,25 +528,13 @@ const listResourceUsagesProcedure = protectedProcedure
           )
         }
 
+        // Get unique resource IDs from filtered resources
+        const filteredResourceIds = filteredResources.map((r) => r.id)
         const resourcesById = new Map(
           filteredResources.map((r) => [r.id, r])
         )
 
-        // Get unique resource IDs that match our filters
-        const filteredResourceIds = Array.from(resourcesById.keys())
-
-        // Get aggregated capacity using the batch helper
-        // This correctly filters for active subscription items and non-expired features
-        const capacityByResourceId =
-          await getAggregatedResourceCapacityBatch(
-            {
-              subscriptionId: input.subscriptionId,
-              resourceIds: filteredResourceIds,
-            },
-            transaction
-          )
-
-        // Batch count active claims by (subscriptionId, resourceId)
+        // Batch count claims by (subscriptionId, resourceId)
         const claimCountsByResourceId =
           await countActiveResourceClaimsBatch(
             {
@@ -557,37 +544,32 @@ const listResourceUsagesProcedure = protectedProcedure
             transaction
           )
 
-        // Build usage results - one entry per unique resource
-        const usageResults = filteredResourceIds
-          .map((resourceId) => {
-            const resource = resourcesById.get(resourceId)
-            if (!resource) {
-              return null
-            }
-
-            const capacity = capacityByResourceId.get(resourceId) ?? 0
-            const claimed =
-              claimCountsByResourceId.get(resourceId) ?? 0
-
-            return {
-              resourceSlug: resource.slug,
-              resourceId: resource.id,
-              capacity,
-              claimed,
-              available: capacity - claimed,
-            }
-          })
-          .filter(
-            (
-              result
-            ): result is {
-              resourceSlug: string
-              resourceId: string
-              capacity: number
-              claimed: number
-              available: number
-            } => result !== null
+        // Batch fetch aggregated capacity for all resources (avoids N+1 queries)
+        const capacityByResourceId =
+          await getAggregatedResourceCapacityBatch(
+            {
+              subscriptionId: input.subscriptionId,
+              resourceIds: filteredResourceIds,
+            },
+            transaction
           )
+
+        // Build usage results from the batched data
+        const usageResults = filteredResources.map((resource) => {
+          const { totalCapacity } = capacityByResourceId.get(
+            resource.id
+          ) ?? { totalCapacity: 0 }
+          const claimed =
+            claimCountsByResourceId.get(resource.id) ?? 0
+
+          return {
+            resourceSlug: resource.slug,
+            resourceId: resource.id,
+            capacity: totalCapacity,
+            claimed,
+            available: totalCapacity - claimed,
+          }
+        })
 
         const usageResourceIds = usageResults.map((u) => u.resourceId)
         const claims =

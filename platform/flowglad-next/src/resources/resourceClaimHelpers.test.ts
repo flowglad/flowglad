@@ -361,6 +361,145 @@ describe('resourceClaimHelpers', () => {
       })
       expect(result.usage.resourceId).toBe(resource.id)
     })
+
+    describe('optimistic locking behavior', () => {
+      it('when claiming multiple resources atomically, either all claims succeed or none do (no partial inserts)', async () => {
+        // Pre-fill 4 of 5 capacity slots
+        for (let i = 0; i < 4; i++) {
+          await setupResourceClaim({
+            organizationId: organization.id,
+            resourceId: resource.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: `prefill-${i}`,
+          })
+        }
+
+        // Try to claim 2 resources when only 1 slot available
+        // Should fail completely - no partial insert
+        await expect(
+          adminTransaction(async ({ transaction }) => {
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 2,
+                },
+              },
+              transaction
+            )
+          })
+        ).rejects.toThrow('No available capacity')
+
+        // Verify no partial claims were created - should still have exactly 4
+        const activeClaims = await adminTransaction(
+          async ({ transaction }) => {
+            return selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          }
+        )
+        expect(activeClaims.length).toBe(4)
+        // All should be our prefill claims
+        expect(
+          activeClaims.every((c) =>
+            c.externalId?.startsWith('prefill-')
+          )
+        ).toBe(true)
+      })
+
+      it('when batch claim succeeds, all claims are inserted atomically', async () => {
+        // Claim 3 resources atomically
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-a', 'user-b', 'user-c'],
+                },
+              },
+              transaction
+            )
+          }
+        )
+
+        // All 3 should be created
+        expect(result.claims.length).toBe(3)
+        expect(result.claims.map((c) => c.externalId).sort()).toEqual(
+          ['user-a', 'user-b', 'user-c']
+        )
+
+        // Verify in database
+        const activeClaims = await adminTransaction(
+          async ({ transaction }) => {
+            return selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          }
+        )
+        expect(activeClaims.length).toBe(3)
+      })
+
+      it('when exact capacity is requested, succeeds without over-claiming', async () => {
+        // Claim exactly 5 (full capacity)
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 5,
+                },
+              },
+              transaction
+            )
+          }
+        )
+
+        expect(result.claims.length).toBe(5)
+        expect(result.usage).toMatchObject({
+          capacity: 5,
+          claimed: 5,
+          available: 0,
+        })
+
+        // Trying to claim one more should fail
+        await expect(
+          adminTransaction(async ({ transaction }) => {
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 1,
+                },
+              },
+              transaction
+            )
+          })
+        ).rejects.toThrow('No available capacity')
+      })
+    })
   })
 
   describe('releaseResourceTransaction', () => {
