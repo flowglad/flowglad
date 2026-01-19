@@ -79,7 +79,7 @@ describe('requestHandler', () => {
   })
 
   describe('hybrid route gating', () => {
-    it('returns 501 for GetPricingModel hybrid route with message indicating apiKey configuration required', async () => {
+    it('returns 500 for GetPricingModel hybrid route when apiKey is not configured', async () => {
       const getCustomerExternalId = vi.fn()
       const options = createMockOptions({ getCustomerExternalId })
       const handler = requestHandler(options)
@@ -92,9 +92,10 @@ describe('requestHandler', () => {
 
       const result = await handler(input, { headers: {} })
 
-      expect(result.status).toBe(501)
+      expect(result.status).toBe(500)
       expect(result.error).toEqual({
-        message: `"${FlowgladActionKey.GetPricingModel}" requires apiKey configuration for hybrid route support`,
+        message:
+          'API key required for this route. Provide apiKey option or set FLOWGLAD_SECRET_KEY environment variable.',
       })
     })
 
@@ -302,7 +303,7 @@ describe('requestHandler', () => {
   })
 
   describe('hybrid route behavior (GetPricingModel)', () => {
-    it('returns 501 for hybrid route without apiKey configuration', async () => {
+    it('returns 500 for hybrid route when apiKey is not configured', async () => {
       const handler = requestHandler({
         getCustomerExternalId: async () => 'user_123',
         flowglad: async () => ({}) as FlowgladServer,
@@ -317,10 +318,10 @@ describe('requestHandler', () => {
         {}
       )
 
-      expect(result.status).toBe(501)
+      expect(result.status).toBe(500)
       expect(result.error).toEqual({
         message:
-          '"pricing-models/retrieve" requires apiKey configuration for hybrid route support',
+          'API key required for this route. Provide apiKey option or set FLOWGLAD_SECRET_KEY environment variable.',
       })
     })
 

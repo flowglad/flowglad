@@ -2,6 +2,7 @@ import {
   type AuthenticatedActionKey,
   FlowgladActionKey,
   flowgladActionValidators,
+  HTTPMethod,
   type HybridActionKey,
 } from '@flowglad/shared'
 import type { BetterAuthPlugin } from 'better-auth'
@@ -14,6 +15,7 @@ import { z } from 'zod'
 import { FlowgladServer } from './FlowgladServer'
 import { FlowgladServerAdmin } from './FlowgladServerAdmin'
 import { routeToHandlerMap } from './subrouteHandlers'
+import { getPricingModel } from './subrouteHandlers/pricingModelHandlers'
 
 type InnerSession = {
   user: {
@@ -531,6 +533,7 @@ export const flowgladPlugin = (
 
       /**
        * Hybrid endpoint: attempts authentication, falls back to default pricing.
+       * Delegates to the shared getPricingModel handler to avoid code duplication.
        *
        * FALLBACK CONDITIONS (exhaustive):
        * 1. getSessionFromCtx() returns null → no session exists
@@ -564,14 +567,17 @@ export const flowgladPlugin = (
             )
           }
 
-          // ─────────────────────────────────────────────────────────────────────────
-          // FALLBACK CONDITION 1: No session exists
-          // getSessionFromCtx() returns null for unauthenticated requests
-          // ─────────────────────────────────────────────────────────────────────────
-          const sessionResult = await getSessionFromCtx(ctx)
+          // Create FlowgladServerAdmin (always needed for fallback)
+          const flowgladServerAdmin = new FlowgladServerAdmin({
+            apiKey,
+            baseURL: options.baseURL,
+          })
 
+          // Attempt authentication to determine if we have an authenticated user
+          let flowgladServer: FlowgladServer | null = null
+
+          const sessionResult = await getSessionFromCtx(ctx)
           if (sessionResult) {
-            // Session exists - attempt authenticated path
             const session =
               sessionResult as unknown as BetterAuthSessionResult
             const customerResult = resolveCustomerExternalId(
@@ -579,15 +585,8 @@ export const flowgladPlugin = (
               session
             )
 
-            // ───────────────────────────────────────────────────────────────────────
-            // FALLBACK CONDITION 2: Org billing without active org
-            // resolveCustomerExternalId() returns { error: { code: 'NO_ACTIVE_ORGANIZATION' } }
-            // ───────────────────────────────────────────────────────────────────────
+            // Only create FlowgladServer if customer resolution succeeded
             if (!('error' in customerResult)) {
-              // ═════════════════════════════════════════════════════════════════════
-              // AUTHENTICATED PATH - NO FALLBACK FROM THIS POINT
-              // Auth fully succeeded - MUST return customer pricing or 500 error
-              // ═════════════════════════════════════════════════════════════════════
               const flowgladServerConfig: {
                 customerExternalId: string
                 getCustomerDetails: () => Promise<{
@@ -609,79 +608,35 @@ export const flowgladPlugin = (
               if (options.baseURL) {
                 flowgladServerConfig.baseURL = options.baseURL
               }
-
-              const flowgladServer = new FlowgladServer(
+              flowgladServer = new FlowgladServer(
                 flowgladServerConfig
               )
-
-              try {
-                const { pricingModel } =
-                  await flowgladServer.getPricingModel()
-                return ctx.json({
-                  data: { pricingModel, source: 'customer' as const },
-                })
-              } catch (error) {
-                // ⚠️ ERROR: Auth succeeded but pricing fetch failed
-                // ⚠️ DO NOT fall back - propagate error for debugging
-                console.error(
-                  '[better-auth:getPricingModel] Customer pricing fetch failed after successful auth:',
-                  error
-                )
-                return ctx.json(
-                  {
-                    error: {
-                      code: 'PRICING_MODEL_FETCH_FAILED',
-                      message:
-                        'Failed to retrieve customer pricing model',
-                      details:
-                        error instanceof Error
-                          ? error.message
-                          : undefined,
-                    },
-                  },
-                  { status: 500 }
-                )
-              }
             }
           }
 
-          // ═════════════════════════════════════════════════════════════════════════
-          // UNAUTHENTICATED PATH
-          // Reached when: no session (condition 1) OR org resolution failed (condition 2)
-          // ═════════════════════════════════════════════════════════════════════════
-          const flowgladServerAdmin = new FlowgladServerAdmin({
-            apiKey,
-            baseURL: options.baseURL,
-          })
+          // Delegate to the shared handler
+          const result = await getPricingModel(
+            { method: HTTPMethod.POST, data: {} },
+            { flowgladServer, flowgladServerAdmin }
+          )
 
-          try {
-            const result =
-              await flowgladServerAdmin.getDefaultPricingModel()
-            // Normalize response shape - handle both { pricingModel } wrapper and direct return
-            const pricingModel =
-              'pricingModel' in result ? result.pricingModel : result
-            return ctx.json({
-              data: { pricingModel, source: 'default' as const },
-            })
-          } catch (error) {
-            console.error(
-              '[better-auth:getPricingModel] Default pricing fetch failed:',
-              error
-            )
+          // Map handler response to better-auth response format
+          if (result.error) {
             return ctx.json(
               {
                 error: {
-                  code: 'DEFAULT_PRICING_MODEL_FETCH_FAILED',
-                  message: 'Failed to retrieve default pricing model',
-                  details:
-                    error instanceof Error
-                      ? error.message
-                      : undefined,
+                  code: result.error.code,
+                  message: result.error.json.message as string,
+                  details: result.error.json.details as
+                    | string
+                    | undefined,
                 },
               },
-              { status: 500 }
+              { status: result.status }
             )
           }
+
+          return ctx.json({ data: result.data })
         }
       ),
     },

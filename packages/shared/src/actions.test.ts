@@ -1461,18 +1461,18 @@ describe('GetPricingModel validator', () => {
     expect(result.success).toBe(true)
   })
 
-  it('strips unknown fields from input', () => {
+  it('rejects unknown fields due to strict() validation', () => {
     const validator =
       flowgladActionValidators[FlowgladActionKey.GetPricingModel]
         .inputValidator
     const result = validator.safeParse({
-      unknownField: 'should be stripped',
+      unknownField: 'should be rejected',
       anotherField: 123,
     })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      // Zod strips unknown fields by default
-      expect(result.data).toEqual({})
+    // strict() causes validation to fail when unknown fields are present
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe('unrecognized_keys')
     }
   })
 })
