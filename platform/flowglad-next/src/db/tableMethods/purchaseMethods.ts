@@ -493,13 +493,14 @@ export const selectPurchasesTableRowData =
 
       return purchasesResult.map((purchase) => {
         const rawPrice = pricesById.get(purchase.priceId)
-        // Usage prices (with null productId) are filtered out by the innerJoin above.
-        // If a purchase references a usage price, this is a data integrity issue
-        // since purchases should only be created for product-backed prices.
+        // The price lookup can fail if:
+        // 1. The price was deleted (data integrity issue)
+        // 2. The price is a usage price with null productId (filtered out by innerJoin)
+        // Either case indicates a data integrity problem since purchases should
+        // only reference active, product-backed prices.
         if (!rawPrice) {
           throw new Error(
-            `Purchase ${purchase.id} references price ${purchase.priceId} which was not found. ` +
-              `This may indicate a usage price was incorrectly associated with a purchase.`
+            `Purchase ${purchase.id} references price ${purchase.priceId} which was not found in the query results.`
           )
         }
         // Parse price early so Price.hasProductId type guard works.

@@ -323,7 +323,7 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
     }
   })
 
-  await transaction
+  const upsertedPaymentMethods = await transaction
     .insert(paymentMethods)
     .values(parsedData)
     .onConflictDoUpdate({
@@ -335,8 +335,9 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
         'billing_details',
       ]),
     })
+    .returning()
 
-  // Invalidate cache for all affected customers
+  // Invalidate cache for all affected customers (set membership)
   const uniqueCustomerIds = Array.from(
     new Set(inserts.map((insert) => insert.customerId))
   )
@@ -344,5 +345,10 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
     invalidateCache(
       CacheDependency.customerPaymentMethods(customerId)
     )
+  }
+
+  // Invalidate content for each upserted payment method
+  for (const pm of upsertedPaymentMethods) {
+    invalidateCache(CacheDependency.paymentMethod(pm.id))
   }
 }
