@@ -24,6 +24,7 @@ import {
   type SetupPricingModelProductInput,
   validateSetupPricingModelInput,
 } from '@/utils/pricingModels/setupSchemas'
+import { createNoChargePriceInsert } from '@/utils/usage/noChargePriceHelpers'
 
 export const externalIdFromProductData = (
   product: SetupPricingModelProductInput,
@@ -273,10 +274,44 @@ export const setupPricingModelTransaction = async (
     }
   )
 
-  // Combine product prices and usage prices
+  // Determine which usage meters have a user-specified ACTIVE default price
+  // Now that validation no longer mutates isDefault (Patch 3), we can use validated input directly
+  // No-charge prices should only be the default if no user price is set as default
+  // Note: validation now rejects isDefault=true with active=false, but we also check active here
+  // for defense in depth
+  const metersWithUserDefaultPrice = new Set(
+    input.usageMeters
+      .filter((meterWithPrices) =>
+        (meterWithPrices.prices || []).some(
+          (price) => price.isDefault && price.active !== false
+        )
+      )
+      .map((meterWithPrices) => meterWithPrices.usageMeter.slug)
+  )
+
+  // Create no-charge prices for ALL usage meters
+  // These serve as fallback prices when no other price is configured
+  const noChargePriceInserts: Price.Insert[] = usageMeters.map(
+    (usageMeter) => {
+      const hasUserDefaultPrice = metersWithUserDefaultPrice.has(
+        usageMeter.slug
+      )
+      const noChargePrice = createNoChargePriceInsert(usageMeter, {
+        currency: organization.defaultCurrency,
+      })
+      return {
+        ...noChargePrice,
+        // Only set as default if no user price is default
+        isDefault: !hasUserDefaultPrice,
+      }
+    }
+  )
+
+  // Combine product prices, user-specified usage prices, and auto-generated no-charge prices
   const priceInserts: Price.Insert[] = [
     ...productPriceInserts,
     ...usagePriceInserts,
+    ...noChargePriceInserts,
   ]
 
   // Auto-generate default plan if none provided

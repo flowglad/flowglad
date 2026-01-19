@@ -1,10 +1,11 @@
 import type { Price } from '@/db/schema/prices'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { safelyInsertPrice } from '@/db/tableMethods/priceMethods'
+import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { AuthenticatedTransactionParams } from '@/db/types'
 import { IntervalUnit, PriceType } from '@/types'
+import { createNoChargePriceInsert } from '@/utils/usage/noChargePriceHelpers'
 
 /** Price fields used in usage meter creation/updates */
 type UsageMeterPriceFields = {
@@ -14,9 +15,13 @@ type UsageMeterPriceFields = {
 }
 
 /**
- * Creates a usage meter along with a corresponding usage price.
- * The price will have the same slug as the usage meter and have productId: null.
- * The price defaults to $0.00 per usage event unless custom price values are provided.
+ * Creates a usage meter along with a no-charge fallback price and optionally a custom price.
+ *
+ * Behavior:
+ * - A no-charge price (slug: `{meterSlug}_no_charge`) is ALWAYS created for every usage meter
+ * - If the user provides custom price values (unitPrice or usageEventsPerUnit), a custom price is also created
+ * - When no custom values are provided, `price` and `noChargePrice` are the SAME object
+ * - The no-charge price is the default (`isDefault: true`) only when no custom price is provided
  *
  * Note: Usage prices don't belong to products - they belong directly to usage meters.
  */
@@ -36,6 +41,7 @@ export const createUsageMeterTransaction = async (
 ): Promise<{
   usageMeter: UsageMeter.Record
   price: Price.Record
+  noChargePrice: Price.Record
 }> => {
   if (!organizationId) {
     throw new Error(
@@ -60,33 +66,75 @@ export const createUsageMeterTransaction = async (
     transaction
   )
 
-  // Use provided price values or defaults
-  const unitPrice = priceInput?.unitPrice ?? 0
-  const usageEventsPerUnit = priceInput?.usageEventsPerUnit ?? 1
+  // Determine if user specified custom price values
+  // If they did, we create both a custom price AND a no-charge price
+  // If they didn't, we only create the no-charge price (which serves as both)
+  const hasUserSpecifiedPrice =
+    priceInput?.unitPrice !== undefined ||
+    priceInput?.usageEventsPerUnit !== undefined
 
-  // Create usage price directly with productId: null
-  // Usage prices belong to usage meters, not products
-  const price = await safelyInsertPrice(
-    {
+  // Create no_charge price insert (always created)
+  const noChargePriceInsert: Price.UsageInsert = {
+    ...createNoChargePriceInsert(usageMeter, {
+      currency: organization.defaultCurrency,
+    }),
+    // No-charge is default only if no user price is specified
+    isDefault: !hasUserSpecifiedPrice,
+  }
+
+  // Build price inserts array
+  const priceInserts: Price.Insert[] = []
+
+  if (hasUserSpecifiedPrice) {
+    // User specified custom price values - create their custom price first
+    const userPriceInsert: Price.UsageInsert = {
       type: PriceType.Usage,
       name: usageMeter.name,
       slug: usageMeter.slug,
       productId: null,
       pricingModelId: usageMeter.pricingModelId,
       usageMeterId: usageMeter.id,
-      unitPrice,
+      unitPrice: priceInput?.unitPrice ?? 0,
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
-      usageEventsPerUnit,
+      usageEventsPerUnit: priceInput?.usageEventsPerUnit ?? 1,
       trialPeriodDays: null,
       livemode,
       currency: organization.defaultCurrency,
-    },
+      externalId: null,
+      isDefault: true, // User's price is the default
+      active: true,
+    }
+    priceInserts.push(userPriceInsert)
+  }
+
+  // Always add the no-charge price
+  priceInserts.push(noChargePriceInsert)
+
+  const insertedPrices = await bulkInsertPrices(
+    priceInserts,
     transaction
   )
+
+  // Resolve prices by slug instead of relying on array index order
+  // This makes the intent explicit and protects against future refactoring mistakes
+  const noChargePrice = insertedPrices.find(
+    (p) => p.slug === noChargePriceInsert.slug
+  )
+  if (!noChargePrice) {
+    throw new Error('Failed to resolve no-charge usage price')
+  }
+
+  const price = hasUserSpecifiedPrice
+    ? insertedPrices.find((p) => p.slug === usageMeter.slug)
+    : noChargePrice
+  if (!price) {
+    throw new Error('Failed to resolve inserted usage price')
+  }
 
   return {
     usageMeter,
     price,
+    noChargePrice,
   }
 }
