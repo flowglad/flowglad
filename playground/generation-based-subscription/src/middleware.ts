@@ -7,7 +7,8 @@ export async function middleware(request: NextRequest) {
     request.nextUrl.pathname.startsWith('/api/auth') ||
     request.nextUrl.pathname === '/sign-in' ||
     request.nextUrl.pathname === '/sign-up' ||
-    request.nextUrl.pathname === '/api/health'
+    request.nextUrl.pathname === '/api/health' ||
+    request.nextUrl.pathname.startsWith('/api/flowglad')
   ) {
     return NextResponse.next()
   }
