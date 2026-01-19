@@ -1,3 +1,4 @@
+import BigNumber from 'bignumber.js'
 import Stripe from 'stripe'
 import { z } from 'zod'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -554,6 +555,8 @@ export const createAccountOnboardingLink = async (
  *
  * This should never be the FINAL calculation, as we will need
  * to confirm the payment method first.
+ *
+ * Uses BigNumber for precise decimal arithmetic to avoid floating point errors.
  * @param params
  * @returns
  */
@@ -563,8 +566,19 @@ export const calculatePlatformApplicationFee = (params: {
   currency: CurrencyCode
 }) => {
   const { organization, subtotal } = params
-  const takeRate = parseFloat(organization.feePercentage) / 100
-  return Math.ceil(subtotal * (takeRate + 0.029) + 50)
+  // Use BigNumber to avoid floating point precision issues
+  // e.g., parseFloat("0.65") / 100 = 0.006500000000000001
+  const takeRate = new BigNumber(
+    organization.feePercentage
+  ).dividedBy(100)
+  const stripeFeeRate = new BigNumber('0.029')
+  const fixedFeeCents = new BigNumber(50)
+
+  return new BigNumber(subtotal)
+    .times(takeRate.plus(stripeFeeRate))
+    .plus(fixedFeeCents)
+    .integerValue(BigNumber.ROUND_CEIL)
+    .toNumber()
 }
 
 export const stripeIdFromObjectOrId = (
@@ -881,13 +895,11 @@ export const createStripeTaxCalculationByPrice = async ({
   price,
   billingAddress,
   discountInclusiveAmount,
-  product,
   livemode,
 }: {
   price: Price.Record
   billingAddress: BillingAddress
   discountInclusiveAmount: number
-  product: Product.Record
   livemode: boolean
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
@@ -942,7 +954,6 @@ export const createStripeTaxCalculationByPurchase = async ({
   billingAddress: BillingAddress
   discountInclusiveAmount: number
   price: Price.Record
-  product: Product.Record
   livemode: boolean
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
@@ -1189,7 +1200,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     ? calculateTotalFeeAmount(feeCalculation)
     : calculatePlatformApplicationFee({
         organization,
-        subtotal: price.unitPrice,
+        subtotal: price.unitPrice * checkoutSession.quantity,
         currency: price.currency,
       })
 

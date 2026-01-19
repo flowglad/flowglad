@@ -3415,7 +3415,7 @@
                                   ]
                                 },
                                 "isDefault": {
-                                  "description": "Whether or not this price is the default price for the product.",
+                                  "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
                                   "type": "boolean"
                                 },
                                 "unitPrice": {
@@ -3486,7 +3486,7 @@
                                   "type": "null"
                                 },
                                 "isDefault": {
-                                  "description": "Whether or not this price is the default price for the product.",
+                                  "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
                                   "type": "boolean"
                                 },
                                 "unitPrice": {
@@ -3529,87 +3529,6 @@
                                 "isDefault",
                                 "unitPrice"
                               ]
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "intervalUnit": {
-                                  "type": "string",
-                                  "enum": [
-                                    "day",
-                                    "week",
-                                    "month",
-                                    "year"
-                                  ]
-                                },
-                                "name": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 255
-                                },
-                                "intervalCount": {
-                                  "description": "A positive integer",
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 9007199254740991
-                                },
-                                "type": {
-                                  "type": "string",
-                                  "const": "usage"
-                                },
-                                "trialPeriodDays": {
-                                  "description": "Omitted.",
-                                  "type": "null"
-                                },
-                                "isDefault": {
-                                  "description": "Whether or not this price is the default price for the product.",
-                                  "type": "boolean"
-                                },
-                                "unitPrice": {
-                                  "description": "The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.",
-                                  "anyOf": [
-                                    {
-                                      "description": "A positive integer",
-                                      "type": "integer",
-                                      "exclusiveMinimum": 0,
-                                      "maximum": 9007199254740991
-                                    },
-                                    {
-                                      "type": "number",
-                                      "const": 0
-                                    }
-                                  ]
-                                },
-                                "usageEventsPerUnit": {
-                                  "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 9007199254740991
-                                },
-                                "active": {
-                                  "type": "boolean"
-                                },
-                                "slug": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 255
-                                },
-                                "usageMeterSlug": {
-                                  "type": "string"
-                                },
-                                "currency": {
-                                  "$ref": "#/components/schemas/CurrencyCode"
-                                }
-                              },
-                              "required": [
-                                "intervalUnit",
-                                "intervalCount",
-                                "type",
-                                "isDefault",
-                                "unitPrice",
-                                "usageEventsPerUnit",
-                                "usageMeterSlug"
-                              ]
                             }
                           ],
                           "type": "object"
@@ -3628,22 +3547,112 @@
                   "usageMeters": {
                     "type": "array",
                     "items": {
-                      "description": "The usage meters to add to the pricingModel. If the pricingModel has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.",
                       "type": "object",
                       "properties": {
-                        "name": {
-                          "type": "string"
+                        "usageMeter": {
+                          "description": "The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.",
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            },
+                            "aggregationType": {
+                              "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+                              "type": "string",
+                              "enum": [
+                                "sum",
+                                "count_distinct_properties"
+                              ]
+                            }
+                          },
+                          "required": ["name", "slug"]
                         },
-                        "slug": {
-                          "type": "string"
-                        },
-                        "aggregationType": {
-                          "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
-                          "type": "string",
-                          "enum": ["sum", "count_distinct_properties"]
+                        "prices": {
+                          "description": "The prices for this usage meter. Each price defines how usage on this meter is billed.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "intervalUnit": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "week",
+                                  "month",
+                                  "year"
+                                ]
+                              },
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "intervalCount": {
+                                "description": "A positive integer",
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "type": {
+                                "type": "string",
+                                "const": "usage"
+                              },
+                              "trialPeriodDays": {
+                                "description": "Omitted.",
+                                "type": "null"
+                              },
+                              "isDefault": {
+                                "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
+                                "type": "boolean"
+                              },
+                              "unitPrice": {
+                                "description": "The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.",
+                                "anyOf": [
+                                  {
+                                    "description": "A positive integer",
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "number",
+                                    "const": 0
+                                  }
+                                ]
+                              },
+                              "usageEventsPerUnit": {
+                                "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "active": {
+                                "type": "boolean"
+                              },
+                              "slug": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "currency": {
+                                "$ref": "#/components/schemas/CurrencyCode"
+                              }
+                            },
+                            "required": [
+                              "intervalUnit",
+                              "intervalCount",
+                              "type",
+                              "isDefault",
+                              "unitPrice",
+                              "usageEventsPerUnit"
+                            ]
+                          }
                         }
                       },
-                      "required": ["name", "slug"]
+                      "required": ["usageMeter"]
                     }
                   },
                   "resources": {
@@ -7188,7 +7197,7 @@
         }
       }
     },
-    "/api/v1/product-feature/{id}/expire": {
+    "/api/v1/product-features/{id}/expire": {
       "post": {
         "operationId": "productFeatures-expire",
         "summary": "Expire Product Feature",
@@ -8742,8 +8751,10 @@
             "type": "string"
           },
           "quantity": {
-            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.",
-            "type": "number"
+            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Must be a positive integer. Defaults to 1 if not provided.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
           },
           "anonymous": {
             "type": "boolean",
@@ -8823,8 +8834,10 @@
             "type": "string"
           },
           "quantity": {
-            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.",
-            "type": "number"
+            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Must be a positive integer. Defaults to 1 if not provided.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
           },
           "anonymous": {
             "type": "boolean",
@@ -9082,7 +9095,7 @@
             ]
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9160,7 +9173,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9234,7 +9247,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9426,7 +9439,7 @@
             ]
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9449,6 +9462,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for subscription prices.",
             "type": "string"
           },
           "active": {
@@ -9508,7 +9522,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9531,6 +9545,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for single payment prices.",
             "type": "string"
           },
           "active": {
@@ -9585,7 +9600,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9610,7 +9625,8 @@
             "maximum": 9007199254740991
           },
           "productId": {
-            "type": "string"
+            "description": "Omitted.",
+            "type": "null"
           },
           "active": {
             "type": "boolean"
@@ -9637,7 +9653,6 @@
           "isDefault",
           "unitPrice",
           "usageEventsPerUnit",
-          "productId",
           "usageMeterId"
         ]
       },
@@ -9684,7 +9699,7 @@
             "const": "subscription"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "active": {
@@ -9724,7 +9739,7 @@
             "const": "single_payment"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "active": {
@@ -9764,7 +9779,7 @@
             "const": "usage"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "active": {
@@ -9988,6 +10003,9 @@
       "DefaultDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -10027,6 +10045,9 @@
       "NumberOfPaymentsDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -10070,6 +10091,9 @@
       "ForeverDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -13948,7 +13972,7 @@
             ]
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -13971,6 +13995,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for subscription prices.",
             "type": "string"
           },
           "active": {
@@ -14066,7 +14091,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -14089,6 +14114,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for single payment prices.",
             "type": "string"
           },
           "active": {
@@ -14182,7 +14208,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -14207,7 +14233,7 @@
             "maximum": 9007199254740991
           },
           "productId": {
-            "type": "string"
+            "type": "null"
           },
           "active": {
             "type": "boolean"
@@ -18559,7 +18585,7 @@
           "usageMeters": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/UsageMeterClientSelectSchema"
+              "$ref": "#/components/schemas/UsageMeterWithPricesRecord"
             }
           },
           "defaultProduct": {
@@ -18580,7 +18606,7 @@
         ],
         "additionalProperties": false
       },
-      "UsageMeterClientSelectSchema": {
+      "UsageMeterWithPricesRecord": {
         "type": "object",
         "properties": {
           "id": {
@@ -18623,6 +18649,16 @@
             "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
             "type": "string",
             "enum": ["sum", "count_distinct_properties"]
+          },
+          "prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsagePriceClientSelectSchema"
+            }
+          },
+          "defaultPrice": {
+            "description": "The default price for the usage meter. If no price is explicitly set as default, will return the first price.",
+            "$ref": "#/components/schemas/UsagePriceClientSelectSchema"
           }
         },
         "required": [
@@ -18634,7 +18670,8 @@
           "name",
           "pricingModelId",
           "slug",
-          "aggregationType"
+          "aggregationType",
+          "prices"
         ],
         "additionalProperties": false
       },
@@ -18675,6 +18712,9 @@
           "organizationId": {
             "type": "string"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -18711,6 +18751,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "code",
           "amount",
@@ -18742,6 +18783,9 @@
             "type": "boolean"
           },
           "organizationId": {
+            "type": "string"
+          },
+          "pricingModelId": {
             "type": "string"
           },
           "name": {
@@ -18783,6 +18827,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "code",
           "amount",
@@ -18815,6 +18860,9 @@
             "type": "boolean"
           },
           "organizationId": {
+            "type": "string"
+          },
+          "pricingModelId": {
             "type": "string"
           },
           "name": {
@@ -18853,6 +18901,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "code",
           "amount",
@@ -19114,6 +19163,64 @@
           "subscriptionItems",
           "resolvedTiming",
           "isUpgrade"
+        ],
+        "additionalProperties": false
+      },
+      "UsageMeterClientSelectSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "livemode": {
+            "type": "boolean"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the usage meter",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "pricingModelId": {
+            "type": "string"
+          },
+          "slug": {
+            "description": "The slug of the usage meter",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "aggregationType": {
+            "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+            "type": "string",
+            "enum": ["sum", "count_distinct_properties"]
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "updatedAt",
+          "livemode",
+          "organizationId",
+          "name",
+          "pricingModelId",
+          "slug",
+          "aggregationType"
         ],
         "additionalProperties": false
       },

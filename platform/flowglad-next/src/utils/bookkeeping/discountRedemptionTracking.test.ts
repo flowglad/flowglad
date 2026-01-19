@@ -46,11 +46,16 @@ describe('Discount Redemption Tracking', () => {
   let discountRedemption: DiscountRedemption.Record
   let invoice: Invoice.Record
   let purchase: Purchase.Record
+  let pricingModel: Awaited<
+    ReturnType<typeof setupOrg>
+  >['pricingModel']
+
   beforeEach(async () => {
     // Set up common test data
     const setupResult = await setupOrg()
     organization = setupResult.organization
     price = setupResult.price
+    pricingModel = setupResult.pricingModel
 
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -80,6 +85,7 @@ describe('Discount Redemption Tracking', () => {
 
     discount = await setupDiscount({
       organizationId: organization.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Discount',
       amount: 10,
       code: 'TEST10',

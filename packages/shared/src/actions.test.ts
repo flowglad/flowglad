@@ -15,6 +15,7 @@ import {
   listResourceClaimsSchema,
   releaseResourceSchema,
   subscriptionAdjustmentTiming,
+  subscriptionAdjustmentTimingSchema,
   terseSubscriptionItemSchema,
   updateCustomerInputSchema,
   updateCustomerSchema,
@@ -1353,7 +1354,8 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.CreateSubscription,
       FlowgladActionKey.UpdateCustomer,
       FlowgladActionKey.CreateUsageEvent,
-      FlowgladActionKey.GetResources,
+      FlowgladActionKey.GetResourceUsages,
+      FlowgladActionKey.GetResourceUsage,
       FlowgladActionKey.ClaimResource,
       FlowgladActionKey.ReleaseResource,
       FlowgladActionKey.ListResourceClaims,
@@ -1371,7 +1373,6 @@ describe('flowgladActionValidators', () => {
       )
     }
   })
-
   it('all validators use POST method', () => {
     for (const key of Object.keys(
       flowgladActionValidators
@@ -1381,7 +1382,6 @@ describe('flowgladActionValidators', () => {
       )
     }
   })
-
   it('GetCustomerBilling validator accepts externalId', () => {
     const validator =
       flowgladActionValidators[FlowgladActionKey.GetCustomerBilling]
@@ -1443,5 +1443,91 @@ describe('flowgladActionValidators', () => {
       timing: 'immediately',
     })
     expect(result.success).toBe(true)
+  })
+})
+
+describe('subscriptionAdjustmentTimingSchema', () => {
+  it('parses "immediately" as valid timing and returns the exact value', () => {
+    const result =
+      subscriptionAdjustmentTimingSchema.safeParse('immediately')
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toBe('immediately')
+    }
+  })
+
+  it('parses "at_end_of_current_billing_period" as valid timing and returns the exact value', () => {
+    const result = subscriptionAdjustmentTimingSchema.safeParse(
+      'at_end_of_current_billing_period'
+    )
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toBe('at_end_of_current_billing_period')
+    }
+  })
+
+  it('parses "auto" as valid timing and returns the exact value', () => {
+    const result =
+      subscriptionAdjustmentTimingSchema.safeParse('auto')
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toBe('auto')
+    }
+  })
+
+  it('rejects the old timing value "at_end_of_period" which was changed in a breaking update', () => {
+    const result = subscriptionAdjustmentTimingSchema.safeParse(
+      'at_end_of_period'
+    )
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects arbitrary invalid timing strings', () => {
+    const result =
+      subscriptionAdjustmentTimingSchema.safeParse('next_week')
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects non-string values', () => {
+    const resultNumber =
+      subscriptionAdjustmentTimingSchema.safeParse(123)
+    expect(resultNumber.success).toBe(false)
+
+    const resultNull =
+      subscriptionAdjustmentTimingSchema.safeParse(null)
+    expect(resultNull.success).toBe(false)
+
+    const resultObject = subscriptionAdjustmentTimingSchema.safeParse(
+      {
+        timing: 'immediately',
+      }
+    )
+    expect(resultObject.success).toBe(false)
+  })
+})
+
+describe('subscriptionAdjustmentTiming constant values', () => {
+  it('Immediately equals "immediately"', () => {
+    expect(subscriptionAdjustmentTiming.Immediately).toBe(
+      'immediately'
+    )
+  })
+
+  it('AtEndOfCurrentBillingPeriod equals "at_end_of_current_billing_period"', () => {
+    expect(
+      subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+    ).toBe('at_end_of_current_billing_period')
+  })
+
+  it('Auto equals "auto"', () => {
+    expect(subscriptionAdjustmentTiming.Auto).toBe('auto')
+  })
+
+  it('contains exactly three timing options', () => {
+    const keys = Object.keys(subscriptionAdjustmentTiming)
+    expect(keys).toHaveLength(3)
+    expect(keys).toContain('Immediately')
+    expect(keys).toContain('AtEndOfCurrentBillingPeriod')
+    expect(keys).toContain('Auto')
   })
 })

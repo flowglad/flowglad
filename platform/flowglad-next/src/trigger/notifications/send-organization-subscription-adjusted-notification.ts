@@ -131,15 +131,14 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
       0
     )
 
-    const isUpgrade = adjustmentType === 'upgrade'
-    const subjectAction = isUpgrade ? 'upgraded' : 'downgraded'
-
+    // Unified subject line with customer name for all adjustments
+    // per Apple-inspired patterns in subscription-email-improvements.md
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
-        `Subscription ${subjectAction}: ${customer.name} ${subjectAction} their subscription`,
+        `Subscription Updated - ${customer.name || customer.email}`,
         subscription.livemode
       ),
       react: await OrganizationSubscriptionAdjustedEmail({

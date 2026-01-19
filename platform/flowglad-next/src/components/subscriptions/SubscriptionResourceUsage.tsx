@@ -1,7 +1,14 @@
 'use client'
 
-import { Database } from 'lucide-react'
+import { ChartPie } from 'lucide-react'
+import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
+import { ResourceDetailModal } from '@/components/subscriptions/ResourceDetailModal'
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert'
 import { Progress } from '@/components/ui/progress'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
@@ -16,6 +23,7 @@ interface ResourceUsageItemProps {
   capacity: number
   claimed: number
   available: number
+  onClick: () => void
 }
 
 /**
@@ -25,30 +33,32 @@ const ResourceUsageItem = ({
   resourceSlug,
   capacity,
   claimed,
-  available,
-}: ResourceUsageItemProps) => {
+  onClick,
+}: Omit<ResourceUsageItemProps, 'available'>) => {
   const usagePercentage =
     capacity > 0 ? Math.min((claimed / capacity) * 100, 100) : 0
 
+  // Show ratio for small capacities, percentage for large ones
+  const usageDisplay =
+    capacity < 100
+      ? `${claimed} of ${capacity} claimed`
+      : `${Math.round(usagePercentage)}% used`
+
   return (
-    <div className="flex flex-col gap-2 p-3 rounded-md border border-border bg-card">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Database className="h-4 w-4 text-muted-foreground" />
-          <span className="font-medium text-sm">{resourceSlug}</span>
-        </div>
-        <span className="text-xs text-muted-foreground">
-          {available} available
-        </span>
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex flex-col gap-3 p-3 w-full rounded-md border border-border bg-card text-left hover:bg-accent/50 transition-colors cursor-pointer"
+    >
+      <div className="flex items-center gap-2">
+        <ChartPie className="h-4 w-4 text-muted-foreground" />
+        <span className="font-medium text-sm">{resourceSlug}</span>
       </div>
       <Progress value={usagePercentage} className="h-2" />
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>
-          {claimed} / {capacity} claimed
-        </span>
-        <span>{Math.round(usagePercentage)}% used</span>
-      </div>
-    </div>
+      <span className="text-xs text-muted-foreground">
+        {usageDisplay}
+      </span>
+    </button>
   )
 }
 
@@ -56,19 +66,13 @@ const ResourceUsageItem = ({
  * Loading skeleton for resource usage items
  */
 const ResourceUsageSkeleton = () => (
-  <div className="flex flex-col gap-2 p-3 rounded-md border border-border bg-card">
-    <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        <Skeleton className="h-4 w-4" />
-        <Skeleton className="h-4 w-24" />
-      </div>
-      <Skeleton className="h-3 w-16" />
+  <div className="flex flex-col gap-3 p-3 w-full rounded-md border border-border bg-card">
+    <div className="flex items-center gap-2">
+      <Skeleton className="h-4 w-4" />
+      <Skeleton className="h-4 w-16" />
     </div>
     <Skeleton className="h-2 w-full" />
-    <div className="flex items-center justify-between">
-      <Skeleton className="h-3 w-20" />
-      <Skeleton className="h-3 w-12" />
-    </div>
+    <Skeleton className="h-3 w-24" />
   </div>
 )
 
@@ -84,18 +88,39 @@ const ResourceUsageSkeleton = () => (
  * <SubscriptionResourceUsage subscriptionId="sub_123" />
  * ```
  */
+interface SelectedResource {
+  resourceSlug: string
+  capacity: number
+  claimed: number
+  available: number
+}
+
 export const SubscriptionResourceUsage = ({
   subscriptionId,
   className,
 }: SubscriptionResourceUsageProps) => {
+  const [selectedResource, setSelectedResource] =
+    React.useState<SelectedResource | null>(null)
+  const [modalOpen, setModalOpen] = React.useState(false)
+
   const { data, isLoading, error } =
     trpc.resourceClaims.listResourceUsages.useQuery({
       subscriptionId,
     })
 
+  const handleResourceClick = (resource: SelectedResource) => {
+    setSelectedResource(resource)
+    setModalOpen(true)
+  }
+
   if (isLoading) {
     return (
-      <div className={cn('flex flex-col gap-3', className)}>
+      <div
+        className={cn(
+          'grid grid-cols-1 sm:grid-cols-2 gap-2 w-full',
+          className
+        )}
+      >
         <ResourceUsageSkeleton />
         <ResourceUsageSkeleton />
       </div>
@@ -116,20 +141,57 @@ export const SubscriptionResourceUsage = ({
   }
 
   if (!data || data.length === 0) {
-    return null
+    return (
+      <Alert variant="secondary" className={className}>
+        <ChartPie className="size-4" />
+        <div className="flex flex-col gap-1 min-w-0 grow">
+          <AlertTitle>No resource usage</AlertTitle>
+          <AlertDescription>
+            This subscription doesn't have any resources configured,
+            or no resources have been claimed yet. Resources track
+            things like seats, API keys, or other limits.
+          </AlertDescription>
+        </div>
+      </Alert>
+    )
   }
 
   return (
-    <div className={cn('flex flex-col gap-3', className)}>
-      {data.map(({ usage }) => (
-        <ResourceUsageItem
-          key={usage.resourceId}
-          resourceSlug={usage.resourceSlug}
-          capacity={usage.capacity}
-          claimed={usage.claimed}
-          available={usage.available}
+    <>
+      <div
+        className={cn(
+          'grid grid-cols-1 sm:grid-cols-2 gap-2 w-full',
+          className
+        )}
+      >
+        {data.map(({ usage }) => (
+          <ResourceUsageItem
+            key={usage.resourceId}
+            resourceSlug={usage.resourceSlug}
+            capacity={usage.capacity}
+            claimed={usage.claimed}
+            onClick={() =>
+              handleResourceClick({
+                resourceSlug: usage.resourceSlug,
+                capacity: usage.capacity,
+                claimed: usage.claimed,
+                available: usage.available,
+              })
+            }
+          />
+        ))}
+      </div>
+
+      {selectedResource && (
+        <ResourceDetailModal
+          resourceSlug={selectedResource.resourceSlug}
+          capacity={selectedResource.capacity}
+          claimed={selectedResource.claimed}
+          available={selectedResource.available}
+          open={modalOpen}
+          onOpenChange={setModalOpen}
         />
-      ))}
-    </div>
+      )}
+    </>
   )
 }

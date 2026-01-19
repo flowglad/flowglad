@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCheckoutSession,
@@ -32,10 +33,15 @@ describe('processNonPaymentCheckoutSession', () => {
   let customer: Customer.Record
   let checkoutSession: CheckoutSession.Record
 
+  let pricingModel: Awaited<
+    ReturnType<typeof setupOrg>
+  >['pricingModel']
+
   beforeEach(async () => {
     const setupData = await setupOrg()
     organization = setupData.organization
     product = setupData.product
+    pricingModel = setupData.pricingModel
 
     // Create a single payment price (not subscription) since processNonPaymentCheckoutSession
     // does not support subscriptions
@@ -69,6 +75,7 @@ describe('processNonPaymentCheckoutSession', () => {
       // Create a 100% off discount that equals the full price amount
       const fullDiscount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'FULL100',
         code: core.nanoid().slice(0, 10),
         amount: price.unitPrice, // Full price coverage
@@ -87,7 +94,7 @@ describe('processNonPaymentCheckoutSession', () => {
               } as CheckoutSession.Update,
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -97,18 +104,18 @@ describe('processNonPaymentCheckoutSession', () => {
           updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        return { result }
+        return Result.ok(result)
       })
 
       // Process the non-payment checkout session
       const result = await comprehensiveAdminTransaction(
         async (params) => {
-          return {
-            result: await processNonPaymentCheckoutSession(
+          return Result.ok(
+            await processNonPaymentCheckoutSession(
               updatedCheckoutSession,
               createProcessingEffectsContext(params)
-            ),
-          }
+            )
+          )
         }
       )
 
@@ -139,18 +146,18 @@ describe('processNonPaymentCheckoutSession', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        return { result }
+        return Result.ok(result)
       })
 
       // Attempt to process non-payment checkout should fail
       await expect(
         comprehensiveAdminTransaction(async (params) => {
-          return {
-            result: await processNonPaymentCheckoutSession(
+          return Result.ok(
+            await processNonPaymentCheckoutSession(
               checkoutSession,
               createProcessingEffectsContext(params)
-            ),
-          }
+            )
+          )
         })
       ).rejects.toThrow('Total due for purchase session')
     })

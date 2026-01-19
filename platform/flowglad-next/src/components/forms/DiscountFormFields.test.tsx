@@ -10,7 +10,10 @@ import {
 } from '@testing-library/react'
 import { FormProvider, useForm } from 'react-hook-form'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { useAuthenticatedContext } from '@/contexts/authContext'
+import {
+  useAuthContext,
+  useAuthenticatedContext,
+} from '@/contexts/authContext'
 import type { CreateDiscountFormSchema } from '@/db/schema/discounts'
 import { DiscountAmountType, DiscountDuration } from '@/types'
 import DiscountFormFields from './DiscountFormFields'
@@ -18,6 +21,16 @@ import DiscountFormFields from './DiscountFormFields'
 // Mock the auth context
 vi.mock('@/contexts/authContext', () => ({
   useAuthenticatedContext: vi.fn(),
+  useAuthContext: vi.fn(),
+}))
+
+// Mock the PricingModelSelect component to avoid trpc calls
+vi.mock('@/components/forms/PricingModelSelect', () => ({
+  default: () => (
+    <div data-testid="pricing-model-select">
+      Mocked PricingModelSelect
+    </div>
+  ),
 }))
 
 // Mock the currency character function
@@ -96,6 +109,11 @@ describe('DiscountFormFields', () => {
 
   beforeEach(() => {
     vi.mocked(useAuthenticatedContext).mockReturnValue({
+      organization: mockOrganization as any,
+      user: undefined as any,
+      apiKey: undefined as any,
+    } as any)
+    vi.mocked(useAuthContext).mockReturnValue({
       organization: mockOrganization as any,
       user: undefined as any,
       apiKey: undefined as any,

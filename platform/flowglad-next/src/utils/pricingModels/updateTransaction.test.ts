@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
@@ -11,7 +12,6 @@ import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -37,35 +37,41 @@ afterEach(async () => {
 
 /**
  * Helper to create a basic pricing model for testing updates.
- * Automatically adds usage price products for any usage meters in overrides.
+ * Usage prices belong to usage meters, not products.
  */
 const createBasicPricingModel = async (
   overrides: Partial<SetupPricingModelInput> = {}
 ) => {
-  // If usage meters are provided, create corresponding usage price products
-  const usageMeterProducts: SetupPricingModelInput['products'] = (
-    overrides.usageMeters ?? []
-  ).map((meter) => ({
-    product: {
-      name: `${meter.name} Usage`,
-      slug: `${meter.slug}-usage`,
-      default: false,
-      active: true,
-    },
-    price: {
-      type: PriceType.Usage,
-      slug: `${meter.slug}-usage-price`,
-      unitPrice: 10,
-      isDefault: true,
-      active: true,
-      intervalCount: 1,
-      intervalUnit: IntervalUnit.Month,
-      usageMeterSlug: meter.slug,
-      usageEventsPerUnit: 100,
-      trialPeriodDays: null,
-    },
-    features: [],
-  }))
+  // Usage meters have nested structure with prices
+  // Transform any old-style flat usage meters to nested structure with default prices
+  const processedUsageMeters: SetupPricingModelInput['usageMeters'] =
+    (overrides.usageMeters ?? []).map((meter) => {
+      // If already in new format (has usageMeter property), use as-is
+      if ('usageMeter' in meter) {
+        return meter
+      }
+      // Otherwise, transform from old flat format
+      const meterData = meter as { slug: string; name: string }
+      return {
+        usageMeter: {
+          slug: meterData.slug,
+          name: meterData.name,
+        },
+        prices: [
+          {
+            type: PriceType.Usage as const,
+            slug: `${meterData.slug}-usage-price`,
+            unitPrice: 10,
+            isDefault: true,
+            active: true,
+            intervalCount: 1,
+            intervalUnit: IntervalUnit.Month,
+            usageEventsPerUnit: 100,
+            trialPeriodDays: null,
+          },
+        ],
+      }
+    })
 
   const baseProducts: SetupPricingModelInput['products'] = [
     {
@@ -77,12 +83,14 @@ const createBasicPricingModel = async (
       },
       price: {
         type: PriceType.Subscription,
+        name: undefined,
         slug: 'starter-monthly',
         unitPrice: 1999,
         isDefault: true,
         active: true,
         intervalCount: 1,
         intervalUnit: IntervalUnit.Month,
+        trialPeriodDays: undefined,
         usageMeterId: null,
         usageEventsPerUnit: null,
       },
@@ -90,15 +98,13 @@ const createBasicPricingModel = async (
     },
   ]
 
-  // Determine final products list
-  const finalProducts = overrides.products
-    ? overrides.products
-    : [...baseProducts, ...usageMeterProducts]
+  // Products only contain subscription/single payment prices
+  // No more usage price products - usage prices live under usage meters
+  const finalProducts = overrides.products ?? baseProducts
 
   const input: SetupPricingModelInput = {
     name: 'Test Pricing Model',
     isDefault: false,
-    usageMeters: [],
     features: [
       {
         type: FeatureType.Toggle,
@@ -109,6 +115,7 @@ const createBasicPricingModel = async (
       },
     ],
     ...overrides,
+    usageMeters: processedUsageMeters,
     products: finalProducts,
   }
 
@@ -175,7 +182,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -236,7 +243,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -248,7 +255,24 @@ describe('updatePricingModelTransaction', () => {
   describe('usage meter updates', () => {
     it('creates new usage meters', async () => {
       const setupResult = await createBasicPricingModel({
-        usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
+        usageMeters: [
+          {
+            usageMeter: { slug: 'api-calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api-calls-usage-price',
+                unitPrice: 10,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 100,
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
       })
 
       const updateResult = await comprehensiveAdminTransaction(
@@ -260,8 +284,41 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [
-                  { slug: 'api-calls', name: 'API Calls' },
-                  { slug: 'storage', name: 'Storage' },
+                  {
+                    usageMeter: {
+                      slug: 'api-calls',
+                      name: 'API Calls',
+                    },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'api-calls-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
+                  {
+                    usageMeter: { slug: 'storage', name: 'Storage' },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'storage-usage-price',
+                        unitPrice: 5,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 1000,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
                 ],
                 features: [
                   {
@@ -272,6 +329,7 @@ describe('updatePricingModelTransaction', () => {
                     active: true,
                   },
                 ],
+                // Products only have subscription/single payment prices
                 products: [
                   {
                     product: {
@@ -293,54 +351,12 @@ describe('updatePricingModelTransaction', () => {
                     },
                     features: ['feature-a'],
                   },
-                  {
-                    product: {
-                      name: 'API Calls Usage',
-                      slug: 'api-calls-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-calls-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
-                  },
-                  {
-                    product: {
-                      name: 'Storage Usage',
-                      slug: 'storage-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'storage-usage-price',
-                      unitPrice: 5,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'storage',
-                      usageEventsPerUnit: 1000,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
-                  },
                 ],
               },
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -348,11 +364,39 @@ describe('updatePricingModelTransaction', () => {
       expect(updateResult.usageMeters.created).toHaveLength(1)
       expect(updateResult.usageMeters.created[0].slug).toBe('storage')
       expect(updateResult.usageMeters.created[0].name).toBe('Storage')
+
+      // Verify usage meter prices were also created
+      // The new "storage" meter should have its price created
+      const storageUsagePrice = updateResult.prices.created.find(
+        (p) => p.slug === 'storage-usage-price'
+      )
+      expect(storageUsagePrice?.type).toBe(PriceType.Usage)
+      expect(storageUsagePrice?.unitPrice).toBe(5)
+      expect(storageUsagePrice?.usageMeterId).toBe(
+        updateResult.usageMeters.created[0].id
+      )
     })
 
     it('updates existing usage meter name', async () => {
       const setupResult = await createBasicPricingModel({
-        usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
+        usageMeters: [
+          {
+            usageMeter: { slug: 'api-calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api-calls-usage-price',
+                unitPrice: 10,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 100,
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
       })
 
       const updateResult = await comprehensiveAdminTransaction(
@@ -364,7 +408,25 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [
-                  { slug: 'api-calls', name: 'API Requests' },
+                  {
+                    usageMeter: {
+                      slug: 'api-calls',
+                      name: 'API Requests',
+                    },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'api-calls-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
                 ],
                 features: [
                   {
@@ -396,33 +458,12 @@ describe('updatePricingModelTransaction', () => {
                     },
                     features: ['feature-a'],
                   },
-                  {
-                    product: {
-                      name: 'API Calls Usage',
-                      slug: 'api-calls-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-calls-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
-                  },
                 ],
               },
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -436,8 +477,38 @@ describe('updatePricingModelTransaction', () => {
     it('throws when trying to remove usage meters', async () => {
       const setupResult = await createBasicPricingModel({
         usageMeters: [
-          { slug: 'api-calls', name: 'API Calls' },
-          { slug: 'storage', name: 'Storage' },
+          {
+            usageMeter: { slug: 'api-calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api-calls-usage-price',
+                unitPrice: 10,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 100,
+                trialPeriodDays: null,
+              },
+            ],
+          },
+          {
+            usageMeter: { slug: 'storage', name: 'Storage' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'storage-usage-price',
+                unitPrice: 5,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 1,
+                trialPeriodDays: null,
+              },
+            ],
+          },
         ],
       })
 
@@ -451,7 +522,25 @@ describe('updatePricingModelTransaction', () => {
                   name: 'Test Pricing Model',
                   isDefault: false,
                   usageMeters: [
-                    { slug: 'api-calls', name: 'API Calls' },
+                    {
+                      usageMeter: {
+                        slug: 'api-calls',
+                        name: 'API Calls',
+                      },
+                      prices: [
+                        {
+                          type: PriceType.Usage,
+                          slug: 'api-calls-usage-price',
+                          unitPrice: 10,
+                          isDefault: true,
+                          active: true,
+                          intervalCount: 1,
+                          intervalUnit: IntervalUnit.Month,
+                          usageEventsPerUnit: 100,
+                          trialPeriodDays: null,
+                        },
+                      ],
+                    },
                   ],
                   features: [
                     {
@@ -483,33 +572,12 @@ describe('updatePricingModelTransaction', () => {
                       },
                       features: ['feature-a'],
                     },
-                    {
-                      product: {
-                        name: 'API Calls Usage',
-                        slug: 'api-calls-usage',
-                        default: false,
-                        active: true,
-                      },
-                      price: {
-                        type: PriceType.Usage,
-                        slug: 'api-calls-usage-price',
-                        unitPrice: 10,
-                        isDefault: true,
-                        active: true,
-                        intervalCount: 1,
-                        intervalUnit: IntervalUnit.Month,
-                        usageMeterSlug: 'api-calls',
-                        usageEventsPerUnit: 100,
-                        trialPeriodDays: null,
-                      },
-                      features: [],
-                    },
                   ],
                 },
               },
               { transaction, invalidateCache }
             )
-            return { result }
+            return Result.ok(result)
           },
           { livemode: false }
         )
@@ -570,7 +638,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -619,23 +687,25 @@ describe('updatePricingModelTransaction', () => {
                     },
                     price: {
                       type: PriceType.Subscription,
+                      name: undefined,
                       slug: 'starter-monthly',
                       unitPrice: 1999,
                       isDefault: true,
                       active: true,
                       intervalCount: 1,
                       intervalUnit: IntervalUnit.Month,
+                      trialPeriodDays: undefined,
                       usageMeterId: null,
                       usageEventsPerUnit: null,
                     },
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInput,
+              },
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -670,12 +740,14 @@ describe('updatePricingModelTransaction', () => {
                     },
                     price: {
                       type: PriceType.Subscription,
+                      name: undefined,
                       slug: 'starter-monthly',
                       unitPrice: 1999,
                       isDefault: true,
                       active: true,
                       intervalCount: 1,
                       intervalUnit: IntervalUnit.Month,
+                      trialPeriodDays: undefined,
                       usageMeterId: null,
                       usageEventsPerUnit: null,
                     },
@@ -686,7 +758,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -747,11 +819,11 @@ describe('updatePricingModelTransaction', () => {
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInput,
+              },
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -802,7 +874,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -862,23 +934,25 @@ describe('updatePricingModelTransaction', () => {
                     },
                     price: {
                       type: PriceType.Subscription,
+                      name: undefined,
                       slug: 'starter-monthly',
                       unitPrice: 1999,
                       isDefault: true,
                       active: true,
                       intervalCount: 1,
                       intervalUnit: IntervalUnit.Month,
+                      trialPeriodDays: undefined,
                       usageMeterId: null,
                       usageEventsPerUnit: null,
                     },
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInput,
+              },
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -915,23 +989,25 @@ describe('updatePricingModelTransaction', () => {
                     },
                     price: {
                       type: PriceType.Subscription,
+                      name: undefined,
                       slug: 'starter-monthly',
                       unitPrice: 1999,
                       isDefault: true,
                       active: true,
                       intervalCount: 1,
                       intervalUnit: IntervalUnit.Month,
+                      trialPeriodDays: undefined,
                       usageMeterId: null,
                       usageEventsPerUnit: null,
                     },
                     features: ['feature-a'],
                   },
                 ],
-              } as SetupPricingModelInput,
+              },
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -948,50 +1024,54 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add a resource first
-      await adminTransaction(async ({ transaction }) =>
-        updatePricingModelTransaction(
-          {
-            pricingModelId: setupResult.pricingModel.id,
-            proposedInput: {
-              name: 'Test Pricing Model',
-              isDefault: false,
-              usageMeters: [],
-              resources: [{ slug: 'seats', name: 'Seats' }],
-              features: [
-                {
-                  type: FeatureType.Toggle,
-                  slug: 'feature-a',
-                  name: 'Feature A',
-                  description: 'A toggle feature',
-                  active: true,
-                },
-              ],
-              products: [
-                {
-                  product: {
-                    name: 'Starter Plan',
-                    slug: 'starter',
-                    default: false,
+      await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [{ slug: 'seats', name: 'Seats' }],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
                     active: true,
                   },
-                  price: {
-                    type: PriceType.Subscription,
-                    slug: 'starter-monthly',
-                    unitPrice: 1999,
-                    isDefault: true,
-                    active: true,
-                    intervalCount: 1,
-                    intervalUnit: IntervalUnit.Month,
-                    usageMeterId: null,
-                    usageEventsPerUnit: null,
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
                   },
-                  features: ['feature-a'],
-                },
-              ],
+                ],
+              },
             },
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+            { transaction, invalidateCache }
+          )
+          return Result.ok(result)
+        },
+        { livemode: false }
       )
 
       // Get the resource ID
@@ -1005,9 +1085,9 @@ describe('updatePricingModelTransaction', () => {
       const seatsResource = resources.find((r) => r.slug === 'seats')
 
       // Now add a Resource feature referencing the resource
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1057,8 +1137,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            { transaction, invalidateCache }
           )
+          return Result.ok(result)
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.created).toHaveLength(1)
@@ -1076,63 +1159,67 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add resources and a Resource feature
-      await adminTransaction(async ({ transaction }) =>
-        updatePricingModelTransaction(
-          {
-            pricingModelId: setupResult.pricingModel.id,
-            proposedInput: {
-              name: 'Test Pricing Model',
-              isDefault: false,
-              usageMeters: [],
-              resources: [
-                { slug: 'seats', name: 'Seats' },
-                { slug: 'projects', name: 'Projects' },
-              ],
-              features: [
-                {
-                  type: FeatureType.Toggle,
-                  slug: 'feature-a',
-                  name: 'Feature A',
-                  description: 'A toggle feature',
-                  active: true,
-                },
-                {
-                  type: FeatureType.Resource,
-                  slug: 'resource-grant',
-                  name: 'Resource Grant',
-                  description:
-                    'Grants a resource to the subscription',
-                  resourceSlug: 'seats',
-                  amount: 5,
-                  active: true,
-                },
-              ],
-              products: [
-                {
-                  product: {
-                    name: 'Starter Plan',
-                    slug: 'starter',
-                    default: false,
+      await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [
+                  { slug: 'seats', name: 'Seats' },
+                  { slug: 'projects', name: 'Projects' },
+                ],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
                     active: true,
                   },
-                  price: {
-                    type: PriceType.Subscription,
-                    slug: 'starter-monthly',
-                    unitPrice: 1999,
-                    isDefault: true,
+                  {
+                    type: FeatureType.Resource,
+                    slug: 'resource-grant',
+                    name: 'Resource Grant',
+                    description:
+                      'Grants a resource to the subscription',
+                    resourceSlug: 'seats',
+                    amount: 5,
                     active: true,
-                    intervalCount: 1,
-                    intervalUnit: IntervalUnit.Month,
-                    usageMeterId: null,
-                    usageEventsPerUnit: null,
                   },
-                  features: ['feature-a', 'resource-grant'],
-                },
-              ],
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a', 'resource-grant'],
+                  },
+                ],
+              },
             },
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+            { transaction, invalidateCache }
+          )
+          return Result.ok(result)
+        },
+        { livemode: false }
       )
 
       // Get the resource IDs
@@ -1148,9 +1235,9 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Now update the Resource feature to reference projects instead of seats
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1203,8 +1290,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            { transaction, invalidateCache }
           )
+          return Result.ok(result)
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.updated).toHaveLength(1)
@@ -1219,56 +1309,129 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add a resource first
-      await adminTransaction(async ({ transaction }) =>
-        updatePricingModelTransaction(
-          {
-            pricingModelId: setupResult.pricingModel.id,
-            proposedInput: {
-              name: 'Test Pricing Model',
-              isDefault: false,
-              usageMeters: [],
-              resources: [{ slug: 'seats', name: 'Seats' }],
-              features: [
-                {
-                  type: FeatureType.Toggle,
-                  slug: 'feature-a',
-                  name: 'Feature A',
-                  description: 'A toggle feature',
-                  active: true,
-                },
-              ],
-              products: [
-                {
-                  product: {
-                    name: 'Starter Plan',
-                    slug: 'starter',
-                    default: false,
+      await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
+            {
+              pricingModelId: setupResult.pricingModel.id,
+              proposedInput: {
+                name: 'Test Pricing Model',
+                isDefault: false,
+                usageMeters: [],
+                resources: [{ slug: 'seats', name: 'Seats' }],
+                features: [
+                  {
+                    type: FeatureType.Toggle,
+                    slug: 'feature-a',
+                    name: 'Feature A',
+                    description: 'A toggle feature',
                     active: true,
                   },
-                  price: {
-                    type: PriceType.Subscription,
-                    slug: 'starter-monthly',
-                    unitPrice: 1999,
-                    isDefault: true,
-                    active: true,
-                    intervalCount: 1,
-                    intervalUnit: IntervalUnit.Month,
-                    usageMeterId: null,
-                    usageEventsPerUnit: null,
+                ],
+                products: [
+                  {
+                    product: {
+                      name: 'Starter Plan',
+                      slug: 'starter',
+                      default: false,
+                      active: true,
+                    },
+                    price: {
+                      type: PriceType.Subscription,
+                      slug: 'starter-monthly',
+                      unitPrice: 1999,
+                      isDefault: true,
+                      active: true,
+                      intervalCount: 1,
+                      intervalUnit: IntervalUnit.Month,
+                      usageMeterId: null,
+                      usageEventsPerUnit: null,
+                    },
+                    features: ['feature-a'],
                   },
-                  features: ['feature-a'],
-                },
-              ],
+                ],
+              },
             },
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+            { transaction, invalidateCache }
+          )
+          return Result.ok(result)
+        },
+        { livemode: false }
       )
 
       // Try to add a Resource feature referencing a non-existent resource
       await expect(
-        adminTransaction(async ({ transaction }) =>
-          updatePricingModelTransaction(
+        comprehensiveAdminTransaction(
+          async ({ transaction, invalidateCache }) => {
+            const result = await updatePricingModelTransaction(
+              {
+                pricingModelId: setupResult.pricingModel.id,
+                proposedInput: {
+                  name: 'Test Pricing Model',
+                  isDefault: false,
+                  usageMeters: [],
+                  resources: [{ slug: 'seats', name: 'Seats' }],
+                  features: [
+                    {
+                      type: FeatureType.Toggle,
+                      slug: 'feature-a',
+                      name: 'Feature A',
+                      description: 'A toggle feature',
+                      active: true,
+                    },
+                    {
+                      type: FeatureType.Resource,
+                      slug: 'invalid-grant',
+                      name: 'Invalid Grant',
+                      description:
+                        'References a non-existent resource',
+                      resourceSlug: 'non-existent-resource',
+                      amount: 5,
+                      active: true,
+                    },
+                  ],
+                  products: [
+                    {
+                      product: {
+                        name: 'Starter Plan',
+                        slug: 'starter',
+                        default: false,
+                        active: true,
+                      },
+                      price: {
+                        type: PriceType.Subscription,
+                        slug: 'starter-monthly',
+                        unitPrice: 1999,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageMeterId: null,
+                        usageEventsPerUnit: null,
+                      },
+                      features: ['feature-a', 'invalid-grant'],
+                    },
+                  ],
+                },
+              },
+              { transaction, invalidateCache }
+            )
+            return Result.ok(result)
+          },
+          { livemode: false }
+        )
+      ).rejects.toThrow(
+        'Resource with slug non-existent-resource does not exist'
+      )
+    })
+
+    it('deactivates Resource features when removed from proposed input', async () => {
+      const setupResult = await createBasicPricingModel()
+
+      // Add a resource and Resource feature
+      await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1286,10 +1449,10 @@ describe('updatePricingModelTransaction', () => {
                   },
                   {
                     type: FeatureType.Resource,
-                    slug: 'invalid-grant',
-                    name: 'Invalid Grant',
-                    description: 'References a non-existent resource',
-                    resourceSlug: 'non-existent-resource',
+                    slug: 'seat-grant',
+                    name: 'Seat Grant',
+                    description: 'Grants seats',
+                    resourceSlug: 'seats',
                     amount: 5,
                     active: true,
                   },
@@ -1313,82 +1476,22 @@ describe('updatePricingModelTransaction', () => {
                       usageMeterId: null,
                       usageEventsPerUnit: null,
                     },
-                    features: ['feature-a', 'invalid-grant'],
+                    features: ['feature-a', 'seat-grant'],
                   },
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            { transaction, invalidateCache }
           )
-        )
-      ).rejects.toThrow(
-        'Resource with slug non-existent-resource does not exist'
-      )
-    })
-
-    it('deactivates Resource features when removed from proposed input', async () => {
-      const setupResult = await createBasicPricingModel()
-
-      // Add a resource and Resource feature
-      await adminTransaction(async ({ transaction }) =>
-        updatePricingModelTransaction(
-          {
-            pricingModelId: setupResult.pricingModel.id,
-            proposedInput: {
-              name: 'Test Pricing Model',
-              isDefault: false,
-              usageMeters: [],
-              resources: [{ slug: 'seats', name: 'Seats' }],
-              features: [
-                {
-                  type: FeatureType.Toggle,
-                  slug: 'feature-a',
-                  name: 'Feature A',
-                  description: 'A toggle feature',
-                  active: true,
-                },
-                {
-                  type: FeatureType.Resource,
-                  slug: 'seat-grant',
-                  name: 'Seat Grant',
-                  description: 'Grants seats',
-                  resourceSlug: 'seats',
-                  amount: 5,
-                  active: true,
-                },
-              ],
-              products: [
-                {
-                  product: {
-                    name: 'Starter Plan',
-                    slug: 'starter',
-                    default: false,
-                    active: true,
-                  },
-                  price: {
-                    type: PriceType.Subscription,
-                    slug: 'starter-monthly',
-                    unitPrice: 1999,
-                    isDefault: true,
-                    active: true,
-                    intervalCount: 1,
-                    intervalUnit: IntervalUnit.Month,
-                    usageMeterId: null,
-                    usageEventsPerUnit: null,
-                  },
-                  features: ['feature-a', 'seat-grant'],
-                },
-              ],
-            },
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+          return Result.ok(result)
+        },
+        { livemode: false }
       )
 
       // Now remove the Resource feature
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1430,8 +1533,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            { transaction, invalidateCache }
           )
+          return Result.ok(result)
+        },
+        { livemode: false }
       )
 
       expect(updateResult.features.deactivated).toHaveLength(1)
@@ -1458,9 +1564,9 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       // Add both resources and Resource features in a single update
-      const updateResult = await adminTransaction(
-        async ({ transaction }) =>
-          updatePricingModelTransaction(
+      const updateResult = await comprehensiveAdminTransaction(
+        async ({ transaction, invalidateCache }) => {
+          const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
               proposedInput: {
@@ -1526,8 +1632,11 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            createDiscardingEffectsContext(transaction)
+            { transaction, invalidateCache }
           )
+          return Result.ok(result)
+        },
+        { livemode: false }
       )
 
       // Verify resources created
@@ -1616,7 +1725,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1672,7 +1781,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1769,7 +1878,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1783,7 +1892,24 @@ describe('updatePricingModelTransaction', () => {
 
     it('throws when trying to change feature type', async () => {
       const setupResult = await createBasicPricingModel({
-        usageMeters: [{ slug: 'api-calls', name: 'API Calls' }],
+        usageMeters: [
+          {
+            usageMeter: { slug: 'api-calls', name: 'API Calls' },
+            prices: [
+              {
+                type: PriceType.Usage,
+                slug: 'api-calls-usage-price',
+                unitPrice: 10,
+                isDefault: true,
+                active: true,
+                intervalCount: 1,
+                intervalUnit: IntervalUnit.Month,
+                usageEventsPerUnit: 100,
+                trialPeriodDays: null,
+              },
+            ],
+          },
+        ],
       })
 
       await expect(
@@ -1796,7 +1922,25 @@ describe('updatePricingModelTransaction', () => {
                   name: 'Test Pricing Model',
                   isDefault: false,
                   usageMeters: [
-                    { slug: 'api-calls', name: 'API Calls' },
+                    {
+                      usageMeter: {
+                        slug: 'api-calls',
+                        name: 'API Calls',
+                      },
+                      prices: [
+                        {
+                          type: PriceType.Usage,
+                          slug: 'api-calls-usage-price',
+                          unitPrice: 10,
+                          isDefault: true,
+                          active: true,
+                          intervalCount: 1,
+                          intervalUnit: IntervalUnit.Month,
+                          usageEventsPerUnit: 100,
+                          trialPeriodDays: null,
+                        },
+                      ],
+                    },
                   ],
                   features: [
                     {
@@ -1832,33 +1976,12 @@ describe('updatePricingModelTransaction', () => {
                       },
                       features: ['feature-a'],
                     },
-                    {
-                      product: {
-                        name: 'API Calls Usage',
-                        slug: 'api-calls-usage',
-                        default: false,
-                        active: true,
-                      },
-                      price: {
-                        type: PriceType.Usage,
-                        slug: 'api-calls-usage-price',
-                        unitPrice: 10,
-                        isDefault: true,
-                        active: true,
-                        intervalCount: 1,
-                        intervalUnit: IntervalUnit.Month,
-                        usageMeterSlug: 'api-calls',
-                        usageEventsPerUnit: 100,
-                        trialPeriodDays: null,
-                      },
-                      features: [],
-                    },
                   ],
                 },
               },
               { transaction, invalidateCache }
             )
-            return { result }
+            return Result.ok(result)
           },
           { livemode: false }
         )
@@ -1934,7 +2057,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -1999,7 +2122,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2109,7 +2232,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2179,7 +2302,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2299,7 +2422,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2401,7 +2524,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2457,7 +2580,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2542,7 +2665,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2578,7 +2701,25 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Test Pricing Model',
                 isDefault: false,
                 usageMeters: [
-                  { slug: 'api-calls', name: 'API Calls' },
+                  {
+                    usageMeter: {
+                      slug: 'api-calls',
+                      name: 'API Calls',
+                    },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'api-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
                 ],
                 features: [
                   {
@@ -2621,33 +2762,12 @@ describe('updatePricingModelTransaction', () => {
                     },
                     features: ['feature-a', 'api-credits'],
                   },
-                  {
-                    product: {
-                      name: 'API Usage',
-                      slug: 'api-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
-                  },
                 ],
               },
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2804,7 +2924,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -2912,7 +3032,25 @@ describe('updatePricingModelTransaction', () => {
                 name: 'Updated Pricing Model',
                 isDefault: false,
                 usageMeters: [
-                  { slug: 'api-calls', name: 'API Calls' },
+                  {
+                    usageMeter: {
+                      slug: 'api-calls',
+                      name: 'API Calls',
+                    },
+                    prices: [
+                      {
+                        type: PriceType.Usage,
+                        slug: 'api-usage-price',
+                        unitPrice: 10,
+                        isDefault: true,
+                        active: true,
+                        intervalCount: 1,
+                        intervalUnit: IntervalUnit.Month,
+                        usageEventsPerUnit: 100,
+                        trialPeriodDays: null,
+                      },
+                    ],
+                  },
                 ],
                 features: [
                   {
@@ -2951,33 +3089,12 @@ describe('updatePricingModelTransaction', () => {
                     },
                     features: ['feature-a', 'feature-b'],
                   },
-                  {
-                    product: {
-                      name: 'API Usage',
-                      slug: 'api-usage',
-                      default: false,
-                      active: true,
-                    },
-                    price: {
-                      type: PriceType.Usage,
-                      slug: 'api-usage-price',
-                      unitPrice: 10,
-                      isDefault: true,
-                      active: true,
-                      intervalCount: 1,
-                      intervalUnit: IntervalUnit.Month,
-                      usageMeterSlug: 'api-calls',
-                      usageEventsPerUnit: 100,
-                      trialPeriodDays: null,
-                    },
-                    features: [],
-                  },
                 ],
               },
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -3142,7 +3259,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -3243,7 +3360,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -3371,7 +3488,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )
@@ -3530,7 +3647,7 @@ describe('updatePricingModelTransaction', () => {
             },
             { transaction, invalidateCache }
           )
-          return { result }
+          return Result.ok(result)
         },
         { livemode: false }
       )

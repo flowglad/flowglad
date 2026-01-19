@@ -31,6 +31,7 @@ import {
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
 import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
 import { protectedProcedure } from '@/server/trpc'
+import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { router } from '../trpc'
 
@@ -54,9 +55,21 @@ export const createDiscount = protectedProcedure
             },
             transaction
           )
+
+        // Validate and resolve pricingModelId (uses default if not provided)
+        const pricingModelId = await validateAndResolvePricingModelId(
+          {
+            pricingModelId: input.discount.pricingModelId,
+            organizationId: organization.id,
+            livemode,
+            transaction,
+          }
+        )
+
         return insertDiscount(
           {
             ...input.discount,
+            pricingModelId,
             organizationId: organization.id,
             livemode,
           },
@@ -111,6 +124,7 @@ const getTableRowsProcedure = protectedProcedure
     createPaginatedTableRowInputSchema(
       z.object({
         active: z.boolean().optional(),
+        pricingModelId: z.string().optional(),
       })
     )
   )

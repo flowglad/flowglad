@@ -3,7 +3,7 @@ import omit from 'ramda/src/omit'
 import type { Feature } from '@/db/schema/features'
 import {
   type CreateProductPriceInput,
-  type Price,
+  Price,
   type ProductWithPrices,
   priceImmutableFields,
   pricesInsertSchema,
@@ -44,6 +44,7 @@ import {
 } from '@/db/tableMethods/productMethods'
 import {
   bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
+  derivePricingModelIdFromUsageMeter,
   selectUsageMeters,
 } from '@/db/tableMethods/usageMeterMethods'
 import type {
@@ -57,6 +58,10 @@ import {
   PriceType,
 } from '@/types'
 import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
+import {
+  validatePriceTypeProductIdConsistency,
+  validateProductPriceConstraints,
+} from '@/utils/priceValidation'
 
 export const isPriceChanged = (
   newPrice: Price.ClientInsert,
@@ -145,46 +150,25 @@ export const createPriceTransaction = async (
     })
   }
 
-  // Get product to check if it's a default product
-  const product = await selectProductById(
-    price.productId,
-    transaction
-  )
+  // Validate price type and productId consistency (pure validation, no DB needed)
+  validatePriceTypeProductIdConsistency(price)
 
-  // Get all prices for this product to validate constraints
-  const existingPrices = await selectPrices(
-    { productId: price.productId },
-    transaction
-  )
-
-  // Forbid creating additional prices for default products
-  if (product.default && existingPrices.length > 0) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'Cannot create additional prices for the default plan',
-    })
-  }
-
-  // Validate that default prices on default products must have unitPrice = 0
-  if (price.isDefault && product.default && price.unitPrice !== 0) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message:
-        'Default prices on default products must have unitPrice = 0',
-    })
-  }
-
-  // Forbid creating price of a different type
-  if (
-    existingPrices.length > 0 &&
-    existingPrices.some(
-      (existingPrice) => existingPrice.type !== price.type
+  // Product validation only applies to non-usage prices.
+  // Usage prices don't have productId, so skip product-related validation.
+  if (Price.clientInsertHasProductId(price)) {
+    const product = await selectProductById(
+      price.productId,
+      transaction
     )
-  ) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Cannot create price of a different type than the existing prices for the product',
+    const existingPrices = await selectPrices(
+      { productId: price.productId },
+      transaction
+    )
+
+    validateProductPriceConstraints({
+      price,
+      product,
+      existingPrices,
     })
   }
 
@@ -193,10 +177,20 @@ export const createPriceTransaction = async (
     transaction
   )
 
+  // For usage prices, derive pricingModelId from usageMeterId
+  let pricingModelId: string | undefined
+  if (price.type === PriceType.Usage && price.usageMeterId) {
+    pricingModelId = await derivePricingModelIdFromUsageMeter(
+      price.usageMeterId,
+      transaction
+    )
+  }
+
   // for now, created prices have default = true and active = true
   const newPrice = await safelyInsertPrice(
     {
       ...price,
+      ...(pricingModelId ? { pricingModelId } : {}),
       livemode: livemode ?? false,
       currency: organization.defaultCurrency,
       externalId: null,
@@ -232,9 +226,11 @@ export const createProductTransaction = async (
   transactionParams: Omit<
     AuthenticatedTransactionParams,
     'invalidateCache'
-  >
+  > &
+    Pick<TransactionEffectsContext, 'invalidateCache'>
 ) => {
-  const { userId, transaction, livemode } = transactionParams
+  const { userId, transaction, livemode, invalidateCache } =
+    transactionParams
   // Validate that usage prices are not created with featureIds
   if (payload.featureIds && payload.featureIds.length > 0) {
     const hasUsagePrice = payload.prices.some(
@@ -290,7 +286,7 @@ export const createProductTransaction = async (
         product: createdProduct,
         desiredFeatureIds: payload.featureIds,
       },
-      { transaction }
+      { transaction, invalidateCache }
     )
   }
   const pricesWithSafelyDefaultPrice = payload.prices.some(
@@ -305,13 +301,21 @@ export const createProductTransaction = async (
         ...payload.prices.slice(1),
       ]
   // Use bulk insert instead of multiple individual inserts
-  const priceInserts = pricesWithSafelyDefaultPrice.map((price) => ({
-    ...price,
-    productId: createdProduct.id,
-    livemode,
-    currency: defaultCurrency,
-    externalId: null,
-  }))
+  // Usage prices have productId: null and need explicit pricingModelId
+  // Non-usage prices have productId set to the created product
+  const priceInserts = pricesWithSafelyDefaultPrice.map((price) => {
+    const isUsagePrice = price.type === PriceType.Usage
+    return {
+      ...price,
+      productId: isUsagePrice ? null : createdProduct.id,
+      pricingModelId: isUsagePrice
+        ? createdProduct.pricingModelId
+        : undefined,
+      livemode,
+      currency: defaultCurrency,
+      externalId: null,
+    }
+  }) as Price.Insert[]
   const createdPrices = await bulkInsertPrices(
     priceInserts,
     transaction
@@ -331,9 +335,11 @@ export const editProductTransaction = async (
   transactionParams: Omit<
     AuthenticatedTransactionParams,
     'invalidateCache'
-  >
+  > &
+    Pick<TransactionEffectsContext, 'invalidateCache'>
 ) => {
-  const { transaction, livemode, organizationId } = transactionParams
+  const { transaction, livemode, organizationId, invalidateCache } =
+    transactionParams
   const { product, featureIds, price } = payload
 
   // Fetch the existing product to check if it's a default product
@@ -396,7 +402,7 @@ export const editProductTransaction = async (
         product: updatedProduct,
         desiredFeatureIds: featureIds,
       },
-      { transaction }
+      { transaction, invalidateCache }
     )
   }
   /**

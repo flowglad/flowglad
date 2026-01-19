@@ -407,7 +407,7 @@ describe('Process setup intent', async () => {
         async ({ transaction }) => {
           return processAddPaymentMethodSetupIntentSucceeded(
             succeededSetupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -425,7 +425,7 @@ describe('Process setup intent', async () => {
         async ({ transaction }) => {
           return processAddPaymentMethodSetupIntentSucceeded(
             succeededSetupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -466,7 +466,7 @@ describe('Process setup intent', async () => {
       await adminTransaction(async ({ transaction }) => {
         await processAddPaymentMethodSetupIntentSucceeded(
           addPaymentMethodSetupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -527,7 +527,7 @@ describe('Process setup intent', async () => {
       await adminTransaction(async ({ transaction }) => {
         await processAddPaymentMethodSetupIntentSucceeded(
           addPaymentMethodSetupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -575,7 +575,7 @@ describe('Process setup intent', async () => {
       await adminTransaction(async ({ transaction }) => {
         await processAddPaymentMethodSetupIntentSucceeded(
           addPaymentMethodSetupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -650,7 +650,7 @@ describe('Process setup intent', async () => {
       await adminTransaction(async ({ transaction }) => {
         await processAddPaymentMethodSetupIntentSucceeded(
           addPaymentMethodSetupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -1306,10 +1306,12 @@ describe('Process setup intent', async () => {
               localFirstCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
-            const { result } = await processSetupIntentSucceeded(
-              localFirstSetupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+            const result = (
+              await processSetupIntentSucceeded(
+                localFirstSetupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+            ).unwrap()
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
             }
@@ -1369,14 +1371,15 @@ describe('Process setup intent', async () => {
                 localSecondSetupIntent,
                 createDiscardingEffectsContext(transaction)
               )
-            const { result } =
+            const result = (
               await createSubscriptionFromSetupIntentableCheckoutSession(
                 {
                   ...initialResult,
-                  setupIntent: localFirstSetupIntent,
+                  setupIntent: localSecondSetupIntent,
                 },
                 createDiscardingEffectsContext(transaction)
               )
+            ).unwrap()
             return {
               ...result,
               subscription: await selectSubscriptionById(
@@ -1419,10 +1422,12 @@ describe('Process setup intent', async () => {
               newCheckoutSession as CheckoutSession.FeeReadyRecord,
               transaction
             )
-            const { result } = await processSetupIntentSucceeded(
-              newSetupIntent,
-              createDiscardingEffectsContext(transaction)
-            )
+            const result = (
+              await processSetupIntentSucceeded(
+                newSetupIntent,
+                createDiscardingEffectsContext(transaction)
+              )
+            ).unwrap()
             if (!('billingRun' in result)) {
               throw new Error('Billing run not found')
             }

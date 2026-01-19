@@ -10,6 +10,7 @@ import {
 import type { SetupPricingModelInput } from './setupSchemas'
 import {
   setupPricingModelSchema,
+  setupUsageMeterPriceInputSchema,
   validateSetupPricingModelInput,
 } from './setupSchemas'
 
@@ -44,64 +45,9 @@ describe('validateSetupPricingModelInput', () => {
     usageMeters: [],
   })
 
-  it('should throw if a usage meter has no associated usage price', () => {
-    const templateWithUsageMeter = PRICING_MODEL_TEMPLATES.find(
-      (template) => template.input.usageMeters.length > 0
-    )
-
-    if (!templateWithUsageMeter) {
-      throw new Error(
-        'Expected at least one template with a usage meter for this test'
-      )
-    }
-
-    const invalidInput = JSON.parse(
-      JSON.stringify(templateWithUsageMeter.input)
-    )
-
-    invalidInput.products = invalidInput.products.map(
-      (product: any) => {
-        const prices = Array.isArray(product.prices)
-          ? product.prices
-          : [product.price]
-        const nonUsagePrice = prices.find(
-          (price: any) => price.type !== PriceType.Usage
-        )
-        // If no non-usage price, create a dummy one
-        if (!nonUsagePrice) {
-          return {
-            ...product,
-            price: {
-              type: PriceType.Subscription,
-              slug: 'dummy-price',
-              isDefault: true,
-              unitPrice: 0,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-              usageMeterId: null,
-              usageEventsPerUnit: null,
-              active: true,
-            },
-          }
-        }
-        // Return the non-usage price (ensuring it's active and default)
-        return {
-          ...product,
-          price: {
-            ...nonUsagePrice,
-            active: true,
-            isDefault: true,
-          },
-        }
-      }
-    )
-
-    expect(() =>
-      validateSetupPricingModelInput(invalidInput)
-    ).toThrow(
-      /Usage meter with slug .+ must have at least one usage price associated with it/
-    )
-  })
+  // Usage prices are optional for usage meters.
+  // A usage meter can exist without prices (e.g., for meters that only track usage
+  // for credit grants, not billing).
 
   describe('feature existence validation', () => {
     it('should throw when a product references a feature slug that does not exist', () => {
@@ -154,12 +100,29 @@ describe('validateSetupPricingModelInput', () => {
       )
     })
 
+    // Usage prices live under usage meters, not products
     it('should accept when UsageCreditGrant feature references an existing usage meter', () => {
       const input = createMinimalValidInput()
+      // Usage meters have nested prices
       input.usageMeters = [
         {
-          slug: 'test-meter',
-          name: 'Test Meter',
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
       ]
       input.features = [
@@ -175,19 +138,6 @@ describe('validateSetupPricingModelInput', () => {
         },
       ]
       input.products[0].features = ['credit-feature']
-      // Add a usage price so the meter is valid
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price',
-        isDefault: true,
-        unitPrice: 100,
-        usageMeterSlug: 'test-meter',
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -235,105 +185,75 @@ describe('validateSetupPricingModelInput', () => {
     })
   })
 
-  describe('usage price usageMeterSlug requirement', () => {
-    it('should throw when a usage price is missing usageMeterSlug', () => {
+  // Usage prices live under usage meters, not products
+  // The usageMeterSlug field is no longer needed since prices are nested under meters
+  describe('usage meter prices validation', () => {
+    it('should accept when usage prices are nested under usage meters', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
-          slug: 'test-meter',
-          name: 'Test Meter',
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
       ]
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price',
-        isDefault: true,
-        unitPrice: 100,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      } as any
-
-      // Schema validation will catch this first, so we expect a ZodError
-      expect(() => validateSetupPricingModelInput(input)).toThrow()
-    })
-
-    it('should accept when usage prices have usageMeterSlug', () => {
-      const input = createMinimalValidInput()
-      input.usageMeters = [
-        {
-          slug: 'test-meter',
-          name: 'Test Meter',
-        },
-      ]
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price',
-        isDefault: true,
-        unitPrice: 100,
-        usageMeterSlug: 'test-meter',
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
       ).not.toThrow()
     })
-  })
 
-  describe('usage meter existence for usage prices', () => {
-    it('should throw when a usage price references a non-existent usage meter', () => {
-      const input = createMinimalValidInput()
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price',
-        isDefault: true,
-        unitPrice: 100,
-        usageMeterSlug: 'non-existent-meter',
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      }
-
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Usage meter with slug non-existent-meter does not exist'
-      )
-    })
-
-    it('should accept when usage prices reference existing usage meters', () => {
+    it('should set isDefault=false for all usage prices regardless of input', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
-          slug: 'test-meter',
-          name: 'Test Meter',
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price',
+              // isDefault explicitly set to true - should be changed to false
+              // because usage prices don't use the isDefault concept
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
       ]
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price',
-        isDefault: true,
-        unitPrice: 100,
-        usageMeterSlug: 'test-meter',
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      }
 
-      expect(() =>
-        validateSetupPricingModelInput(input)
-      ).not.toThrow()
+      const result = validateSetupPricingModelInput(input)
+      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(false)
     })
+
+    // Empty prices array is valid - usage meters can exist without prices
+    // (e.g., meters that only track usage for credit grants, not billing)
   })
+
+  // This describe block is obsolete - usage prices are nested under usage meters
+  // directly, so there's no need to validate usage meter references via usageMeterSlug
+  // The validation is now implicit - a usage price exists under a specific meter
 
   describe('price slug uniqueness across products', () => {
     it('should throw when multiple products have prices with the same slug', () => {
@@ -475,12 +395,28 @@ describe('validateSetupPricingModelInput', () => {
       ).not.toThrow()
     })
 
+    // Usage prices live under usage meters, not products
     it('should accept UsageCreditGrant features with required fields', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
-          slug: 'test-meter',
-          name: 'Test Meter',
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
       ]
       input.features = [
@@ -496,19 +432,6 @@ describe('validateSetupPricingModelInput', () => {
         },
       ]
       input.products[0].features = ['credit-feature']
-      // Add a usage price so the meter is valid
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price',
-        isDefault: true,
-        unitPrice: 100,
-        usageMeterSlug: 'test-meter',
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -551,26 +474,30 @@ describe('validateSetupPricingModelInput', () => {
       ).not.toThrow()
     })
 
-    it('should accept usage prices with required fields', () => {
+    // Usage prices live under usage meters, not products
+    it('should accept usage prices with required fields when nested under usage meters', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
-          slug: 'test-meter',
-          name: 'Test Meter',
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'usage-price',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
         },
       ]
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price',
-        isDefault: true,
-        unitPrice: 100,
-        usageMeterSlug: 'test-meter',
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      }
 
       expect(() =>
         validateSetupPricingModelInput(input)
@@ -652,14 +579,7 @@ describe('validateSetupPricingModelInput', () => {
 
     it('should throw when Resource feature references a non-existent resource slug', () => {
       const input = createMinimalValidInput()
-      // Provide a resource with a different slug than what the feature references
-      input.resources = [
-        {
-          slug: 'existing-resource',
-          name: 'Existing Resource',
-          active: true,
-        },
-      ]
+      input.resources = []
       input.features = [
         {
           type: FeatureType.Resource,
@@ -675,27 +595,6 @@ describe('validateSetupPricingModelInput', () => {
 
       expect(() => validateSetupPricingModelInput(input)).toThrow(
         'Resource with slug non-existent-resource does not exist'
-      )
-    })
-
-    it('should throw early when Resource features exist but resources array is empty', () => {
-      const input = createMinimalValidInput()
-      input.resources = []
-      input.features = [
-        {
-          type: FeatureType.Resource,
-          slug: 'resource-feature',
-          name: 'Resource Feature',
-          description: 'Test Description',
-          resourceSlug: 'any-resource',
-          amount: 5,
-          active: true,
-        },
-      ]
-      input.products[0].features = ['resource-feature']
-
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Resource features are defined but no resources array was provided'
       )
     })
 
@@ -792,8 +691,10 @@ describe('validateSetupPricingModelInput', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
-          slug: 'test-meter',
-          name: 'Test Meter',
+          usageMeter: {
+            slug: 'test-meter',
+            name: 'Test Meter',
+          },
         },
       ]
       input.resources = [
@@ -836,25 +737,178 @@ describe('validateSetupPricingModelInput', () => {
         'credit-feature',
         'resource-feature',
       ]
-      // Add a usage price so the meter is valid
-      input.products[0].price = {
-        type: PriceType.Usage,
-        slug: 'usage-price',
-        isDefault: true,
-        unitPrice: 100,
-        usageMeterSlug: 'test-meter',
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        trialPeriodDays: null,
-        usageEventsPerUnit: 1,
-        active: true,
-      }
+      // Product keeps its default subscription price from createMinimalValidInput
 
       expect(() =>
         validateSetupPricingModelInput(input)
       ).not.toThrow()
       const result = validateSetupPricingModelInput(input)
       expect(result.features).toHaveLength(3)
+    })
+  })
+
+  describe('reserved slug validation for usage prices', () => {
+    it('rejects usage price with slug ending in _no_charge via Zod schema validation', () => {
+      const input = createMinimalValidInput()
+      input.usageMeters = [
+        {
+          usageMeter: { slug: 'api-calls', name: 'API Calls' },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'api-calls_no_charge',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const hasReservedSlugError = result.error.issues.some(
+          (issue) =>
+            issue.message.includes('_no_charge') &&
+            issue.message.includes('reserved')
+        )
+        expect(hasReservedSlugError).toBe(true)
+      }
+    })
+
+    it('accepts usage price with slug containing _no_charge but not as suffix', () => {
+      const input = createMinimalValidInput()
+      input.usageMeters = [
+        {
+          usageMeter: { slug: 'api-calls', name: 'API Calls' },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'meter_no_charge_extra',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
+        },
+      ]
+
+      expect(() =>
+        validateSetupPricingModelInput(input)
+      ).not.toThrow()
+    })
+
+    it('accepts subscription price with _no_charge suffix (restriction only for usage prices)', () => {
+      const input = createMinimalValidInput()
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'promo_no_charge',
+        isDefault: true,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+      }
+
+      expect(() =>
+        validateSetupPricingModelInput(input)
+      ).not.toThrow()
+    })
+
+    it('accepts single_payment price with _no_charge suffix (restriction only for usage prices)', () => {
+      const input = createMinimalValidInput()
+      input.products[0].price = {
+        type: PriceType.SinglePayment,
+        slug: 'trial_no_charge',
+        isDefault: true,
+        unitPrice: 0,
+        active: true,
+      }
+
+      expect(() =>
+        validateSetupPricingModelInput(input)
+      ).not.toThrow()
+    })
+  })
+})
+
+describe('setupUsageMeterPriceInputSchema', () => {
+  const createValidUsagePriceInput = () => ({
+    type: PriceType.Usage as const,
+    slug: 'api-calls-price',
+    isDefault: true,
+    unitPrice: 100,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
+    trialPeriodDays: null,
+    usageEventsPerUnit: 1,
+    active: true,
+  })
+
+  describe('reserved slug validation', () => {
+    it('rejects usage price with slug ending in _no_charge via direct schema safeParse', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        slug: 'api-calls_no_charge',
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues).toHaveLength(1)
+        expect(result.error.issues[0].path).toEqual(['slug'])
+        expect(result.error.issues[0].message).toBe(
+          'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices'
+        )
+      }
+    })
+
+    it('accepts usage price with valid slug not ending in _no_charge', () => {
+      const input = createValidUsagePriceInput()
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.slug).toBe('api-calls-price')
+      }
+    })
+
+    it('accepts usage price with slug containing _no_charge in the middle', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        slug: 'no_charge_api_calls',
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.slug).toBe('no_charge_api_calls')
+      }
+    })
+
+    it('accepts usage price with undefined slug (optional field)', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        slug: undefined,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
     })
   })
 })

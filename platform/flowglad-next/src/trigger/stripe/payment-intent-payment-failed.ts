@@ -1,4 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import type { TransactionEffectsContext } from '@/db/types'
@@ -27,7 +28,7 @@ export const stripePaymentIntentPaymentFailedTask = task({
               { input: payload },
               effectsCtx
             )
-            return { result }
+            return Result.ok(result)
           })
         } else {
           logger.log(

@@ -1,11 +1,15 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   checkoutSessionClientSelectSchema,
   customerBillingCreatePricedCheckoutSessionInputSchema,
@@ -23,6 +27,7 @@ import {
   setUserIdForCustomerRecords,
 } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   isSubscriptionCurrent,
   isSubscriptionInTerminalState,
@@ -291,18 +296,15 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
           input,
           ctx
         )
-        return {
-          result: {
-            subscription: {
-              ...subscription,
-              current: isSubscriptionCurrent(
-                subscription.status,
-                subscription.cancellationReason
-              ),
-            },
+        return Result.ok({
+          subscription: {
+            ...subscription,
+            current: isSubscriptionCurrent(
+              subscription.status,
+              subscription.cancellationReason
+            ),
           },
-          eventsToInsert: [],
-        }
+        })
       },
       {
         livemode,
@@ -385,20 +387,20 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
           input.id,
           transaction
         )
-        const { result: updatedSubscription } =
-          await uncancelSubscription(subscription, ctx)
-        return {
-          result: {
-            subscription: {
-              ...updatedSubscription,
-              current: isSubscriptionCurrent(
-                updatedSubscription.status,
-                updatedSubscription.cancellationReason
-              ),
-            },
+        const uncancelResult = await uncancelSubscription(
+          subscription,
+          ctx
+        )
+        const updatedSubscription = uncancelResult.unwrap()
+        return Result.ok({
+          subscription: {
+            ...updatedSubscription,
+            current: isSubscriptionCurrent(
+              updatedSubscription.status,
+              updatedSubscription.cancellationReason
+            ),
           },
-          eventsToInsert: [],
-        }
+        })
       },
       {
         livemode,
@@ -582,17 +584,19 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     const { customer } = ctx
     const { paymentMethodId } = input
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { paymentMethod } =
-          await setDefaultPaymentMethodForCustomer(
-            {
-              paymentMethodId,
-            },
-            transaction
-          )
-
-        if (paymentMethod.customerId !== customer.id) {
+    return comprehensiveAuthenticatedTransaction(
+      async ({
+        transaction,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        // Verify ownership BEFORE making any mutations
+        const existingPaymentMethod = await selectPaymentMethodById(
+          paymentMethodId,
+          transaction
+        )
+        if (existingPaymentMethod.customerId !== customer.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
             message:
@@ -600,10 +604,24 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
           })
         }
 
-        return {
+        const effectsCtx = {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
+        const { paymentMethod } =
+          await setDefaultPaymentMethodForCustomer(
+            {
+              paymentMethodId,
+            },
+            effectsCtx
+          )
+
+        return Result.ok({
           success: true,
           paymentMethod,
-        }
+        })
       },
       {
         apiKey: ctx.apiKey,

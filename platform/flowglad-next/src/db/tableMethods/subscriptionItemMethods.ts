@@ -30,6 +30,7 @@ import {
   CacheDependency,
   cached,
   cachedBulkLookup,
+  fromDependencies,
 } from '@/utils/cache'
 import core from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -336,9 +337,9 @@ const selectSubscriptionItemsWithPricesBySubscriptionIdCachedInternal =
         livemode: boolean
       ) => `${subscriptionId}:${livemode}`,
       schema: subscriptionItemWithPriceSchema.array(),
-      dependenciesFn: (subscriptionId: string) => [
-        CacheDependency.subscriptionItems(subscriptionId),
-      ],
+      dependenciesFn: fromDependencies(
+        CacheDependency.subscriptionItems
+      ),
     },
     async (
       subscriptionId: string,
@@ -426,9 +427,9 @@ export const selectSubscriptionItemsWithPricesBySubscriptionIds =
         keyFn: (subscriptionId: string) =>
           `${subscriptionId}:${livemode}`,
         schema: subscriptionItemWithPriceSchema.array(),
-        dependenciesFn: (subscriptionId: string) => [
-          CacheDependency.subscriptionItems(subscriptionId),
-        ],
+        dependenciesFn: fromDependencies(
+          CacheDependency.subscriptionItems
+        ),
       },
       subscriptionIds,
       // Bulk fetch function for cache misses
@@ -582,7 +583,8 @@ export const selectRichSubscriptionsAndActiveItems = async (
   const allSubscriptionItemFeaturesPromise =
     selectSubscriptionItemFeaturesWithFeatureSlugs(
       activeSubscriptionItemIds,
-      transaction
+      transaction,
+      livemode
     )
 
   const [allSubscriptionItemFeatures, usageMeterBalances] =

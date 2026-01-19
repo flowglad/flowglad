@@ -11,7 +11,7 @@ import type { TRPCContext } from '@/server/trpcContext'
 import { CountryCode, StripeConnectContractType } from '@/types'
 import { getSession } from '@/utils/auth'
 import core from '@/utils/core'
-import { stripeServer } from '../../../mocks/stripeServer'
+import { server } from '../../../mocks/server'
 
 vi.mock('next/headers', () => ({
   headers: vi.fn(() => new Headers()),
@@ -101,7 +101,7 @@ describe('requestStripeConnectOnboardingLink mutation', () => {
     const { ctx } = await createAuthedContext({ organization })
 
     let lastAccountCreateBody: URLSearchParams | undefined
-    stripeServer.use(
+    server.use(
       http.post(
         'https://api.stripe.com/v1/accounts',
         async ({ request }) => {
@@ -147,7 +147,7 @@ describe('requestStripeConnectOnboardingLink mutation', () => {
     const { ctx } = await createAuthedContext({ organization })
 
     let lastAccountCreateBody: URLSearchParams | undefined
-    stripeServer.use(
+    server.use(
       http.post(
         'https://api.stripe.com/v1/accounts',
         async ({ request }) => {
@@ -198,7 +198,7 @@ describe('requestStripeConnectOnboardingLink mutation', () => {
     const { ctx } = await createAuthedContext({ organization })
 
     let lastAccountCreateBody: URLSearchParams | undefined
-    stripeServer.use(
+    server.use(
       http.post(
         'https://api.stripe.com/v1/accounts',
         async ({ request }) => {

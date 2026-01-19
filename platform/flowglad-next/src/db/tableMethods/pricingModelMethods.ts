@@ -35,6 +35,7 @@ import {
   type PricingModelWithProductsAndUsageMeters,
   type ProductWithPrices,
   prices,
+  usagePriceClientSelectSchema,
 } from '../schema/prices'
 import { type ProductFeature } from '../schema/productFeatures'
 import { products } from '../schema/products'
@@ -43,7 +44,10 @@ import {
   usageMeters,
   usageMetersClientSelectSchema,
 } from '../schema/usageMeters'
-import { selectPricesAndProductsByProductWhere } from './priceMethods'
+import {
+  selectPrices,
+  selectPricesAndProductsByProductWhere,
+} from './priceMethods'
 import { selectFeaturesByProductFeatureWhere } from './productFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -321,6 +325,37 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         transaction
       )
 
+    // Fetch usage prices for usage meters (usage prices have productId = null)
+    // Get all usage meter IDs across all pricing models
+    const allUsageMeterIds = Array.from(
+      usageMetersByPricingModelId.values()
+    ).flatMap((meters) => meters.map((m) => m.id))
+    const usagePricesResults =
+      allUsageMeterIds.length > 0
+        ? await selectPrices(
+            { usageMeterId: allUsageMeterIds, type: PriceType.Usage },
+            transaction
+          )
+        : []
+
+    // Group usage prices by usage meter ID
+    const usagePricesByUsageMeterId = new Map<
+      string,
+      Price.ClientUsageRecord[]
+    >()
+    usagePricesResults.forEach((price) => {
+      if (price.type !== PriceType.Usage || !price.usageMeterId) {
+        return
+      }
+      const parsedPrice = usagePriceClientSelectSchema.parse(price)
+      const existing =
+        usagePricesByUsageMeterId.get(price.usageMeterId) ?? []
+      usagePricesByUsageMeterId.set(price.usageMeterId, [
+        ...existing,
+        parsedPrice,
+      ])
+    })
+
     const productFeaturesAndFeaturesByProductId = new Map<
       string,
       {
@@ -381,6 +416,38 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         undefined,
     }))
   }
+
+/**
+ * Filters a pricing model to only include active products, prices, and usage meters.
+ * Products without active prices are removed.
+ * Usage meters keep their prices but filter to only active ones.
+ */
+const filterActivePricingModelContent = (
+  pricingModel: PricingModelWithProductsAndUsageMeters
+): PricingModelWithProductsAndUsageMeters => {
+  return {
+    ...pricingModel,
+    products: pricingModel.products
+      .filter((product) => product.active)
+      .map((product) => ({
+        ...product,
+        prices: product.prices.filter((price) => price.active),
+      }))
+      .filter((product) => product.prices.length > 0), // Filter out products with no active prices
+    usageMeters: pricingModel.usageMeters.map((usageMeter) => {
+      const activePrices = usageMeter.prices.filter(
+        (price) => price.active
+      )
+      const defaultPrice =
+        activePrices.find((p) => p.isDefault) ?? activePrices[0]
+      return {
+        ...usageMeter,
+        prices: activePrices,
+        defaultPrice,
+      }
+    }),
+  }
+}
 
 /**
  * Gets the pricingModel for a customer. If no pricingModel explicitly associated,

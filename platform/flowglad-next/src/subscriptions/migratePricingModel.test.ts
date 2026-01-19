@@ -158,30 +158,28 @@ describe('Pricing Model Migration Test Suite', async () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify customer's pricingModelId was updated
-      expect(result.result.customer.pricingModelId).toBe(
-        pricingModel2.id
-      )
+      expect(unwrapped.customer.pricingModelId).toBe(pricingModel2.id)
 
       // Verify old subscription was canceled
-      expect(result.result.canceledSubscriptions).toHaveLength(1)
-      expect(result.result.canceledSubscriptions[0].id).toBe(
+      expect(unwrapped.canceledSubscriptions).toHaveLength(1)
+      expect(unwrapped.canceledSubscriptions[0].id).toBe(
         freeSubscription.id
       )
-      expect(result.result.canceledSubscriptions[0].status).toBe(
+      expect(unwrapped.canceledSubscriptions[0].status).toBe(
         SubscriptionStatus.Canceled
       )
       expect(
-        result.result.canceledSubscriptions[0].cancellationReason
+        unwrapped.canceledSubscriptions[0].cancellationReason
       ).toBe(CancellationReason.PricingModelMigration)
 
       // Verify new subscription was created
-      expect(result.result.newSubscription).toMatchObject({})
-      expect(result.result.newSubscription.customerId).toBe(
-        customer.id
-      )
-      expect(result.result.newSubscription.priceId).toBe(price2.id)
-      expect(result.result.newSubscription.status).toBe(
+      expect(unwrapped.newSubscription).toMatchObject({})
+      expect(unwrapped.newSubscription.customerId).toBe(customer.id)
+      expect(unwrapped.newSubscription.priceId).toBe(price2.id)
+      expect(unwrapped.newSubscription.status).toBe(
         SubscriptionStatus.Active
       )
 
@@ -248,26 +246,26 @@ describe('Pricing Model Migration Test Suite', async () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify customer's pricingModelId was updated
-      expect(result.result.customer.pricingModelId).toBe(
-        pricingModel2.id
-      )
+      expect(unwrapped.customer.pricingModelId).toBe(pricingModel2.id)
 
       // Verify both free and paid subscriptions were canceled
-      expect(result.result.canceledSubscriptions).toHaveLength(2)
-      const canceledIds = result.result.canceledSubscriptions
+      expect(unwrapped.canceledSubscriptions).toHaveLength(2)
+      const canceledIds = unwrapped.canceledSubscriptions
         .map((s) => s.id)
         .sort()
       expect(canceledIds).toEqual(
         [freeSubscription.id, paidSubscription.id].sort()
       )
       expect(
-        result.result.canceledSubscriptions.every(
+        unwrapped.canceledSubscriptions.every(
           (s) => s.status === SubscriptionStatus.Canceled
         )
       ).toBe(true)
       expect(
-        result.result.canceledSubscriptions.every(
+        unwrapped.canceledSubscriptions.every(
           (s) =>
             s.cancellationReason ===
             CancellationReason.PricingModelMigration
@@ -275,8 +273,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       ).toBe(true)
 
       // Verify new free subscription was created on new pricing model
-      expect(result.result.newSubscription.priceId).toBe(price2.id)
-      expect(result.result.newSubscription.status).toBe(
+      expect(unwrapped.newSubscription.priceId).toBe(price2.id)
+      expect(unwrapped.newSubscription.status).toBe(
         SubscriptionStatus.Active
       )
     })
@@ -356,15 +354,15 @@ describe('Pricing Model Migration Test Suite', async () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify customer's pricingModelId was updated
-      expect(result.result.customer.pricingModelId).toBe(
-        pricingModel2.id
-      )
+      expect(unwrapped.customer.pricingModelId).toBe(pricingModel2.id)
 
       // Verify all subscriptions (1 free + 2 paid) were canceled
-      expect(result.result.canceledSubscriptions).toHaveLength(3)
+      expect(unwrapped.canceledSubscriptions).toHaveLength(3)
       expect(
-        result.result.canceledSubscriptions.map((s) => s.id).sort()
+        unwrapped.canceledSubscriptions.map((s) => s.id).sort()
       ).toEqual(
         [
           freeSubscription.id,
@@ -374,7 +372,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify all were canceled with migration reason
-      for (const sub of result.result.canceledSubscriptions) {
+      for (const sub of unwrapped.canceledSubscriptions) {
         expect(sub.status).toBe(SubscriptionStatus.Canceled)
         expect(sub.cancellationReason).toBe(
           CancellationReason.PricingModelMigration
@@ -382,8 +380,8 @@ describe('Pricing Model Migration Test Suite', async () => {
       }
 
       // Verify only one new subscription was created
-      expect(result.result.newSubscription).toMatchObject({})
-      expect(result.result.newSubscription.priceId).toBe(price2.id)
+      expect(unwrapped.newSubscription).toMatchObject({})
+      expect(unwrapped.newSubscription.priceId).toBe(price2.id)
     })
 
     it('should migrate customer with no subscriptions to a default subscription on the new pricing model', async () => {
@@ -404,18 +402,18 @@ describe('Pricing Model Migration Test Suite', async () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify customer's pricingModelId was updated
-      expect(result.result.customer.pricingModelId).toBe(
-        pricingModel2.id
-      )
+      expect(unwrapped.customer.pricingModelId).toBe(pricingModel2.id)
 
       // Verify no subscriptions were canceled
-      expect(result.result.canceledSubscriptions).toHaveLength(0)
+      expect(unwrapped.canceledSubscriptions).toHaveLength(0)
 
       // Verify new subscription was created
-      expect(result.result.newSubscription).toMatchObject({})
-      expect(result.result.newSubscription.priceId).toBe(price2.id)
-      expect(result.result.newSubscription.status).toBe(
+      expect(unwrapped.newSubscription).toMatchObject({})
+      expect(unwrapped.newSubscription.priceId).toBe(price2.id)
+      expect(unwrapped.newSubscription.status).toBe(
         SubscriptionStatus.Active
       )
 
@@ -442,9 +440,9 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      // Execute migration - should throw error
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // Execute migration - should return Result.err
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -453,8 +451,15 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('No default product found for pricing model')
+        }
+      )
+
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          'No default product found for pricing model'
+        )
+      }
     })
 
     it('should handle customer already on target pricing model as no-op', async () => {
@@ -495,16 +500,16 @@ describe('Pricing Model Migration Test Suite', async () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify no subscriptions were canceled
-      expect(result.result.canceledSubscriptions).toHaveLength(0)
+      expect(unwrapped.canceledSubscriptions).toHaveLength(0)
 
       // Verify existing subscription is returned
-      expect(result.result.newSubscription.id).toBe(subscription.id)
+      expect(unwrapped.newSubscription.id).toBe(subscription.id)
 
       // Verify customer's pricingModelId remains on target model
-      expect(result.result.customer.pricingModelId).toBe(
-        pricingModel2.id
-      )
+      expect(unwrapped.customer.pricingModelId).toBe(pricingModel2.id)
 
       // Verify no events were generated
       expect(effects.events).toHaveLength(0)
@@ -562,7 +567,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify customer's pricingModelId was updated
-      expect(migrationResult.result.customer.pricingModelId).toBe(
+      expect(migrationResult.unwrap().customer.pricingModelId).toBe(
         pricingModel2.id
       )
 
@@ -663,7 +668,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify customer's pricingModelId was updated
-      expect(migrationResult.result.customer.pricingModelId).toBe(
+      expect(migrationResult.unwrap().customer.pricingModelId).toBe(
         pricingModel2.id
       )
 
@@ -790,7 +795,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify customer's pricingModelId was updated
-      expect(migrationResult.result.customer.pricingModelId).toBe(
+      expect(migrationResult.unwrap().customer.pricingModelId).toBe(
         pricingModel2.id
       )
 
@@ -914,7 +919,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify customer's pricingModelId was updated
-      expect(migrationResult.result.customer.pricingModelId).toBe(
+      expect(migrationResult.unwrap().customer.pricingModelId).toBe(
         pricingModel2.id
       )
 
@@ -1142,7 +1147,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-          return result.result.canceledSubscriptions[0].canceledAt
+          return result.unwrap().canceledSubscriptions[0].canceledAt
         }
       )
 
@@ -1232,7 +1237,9 @@ describe('Pricing Model Migration Test Suite', async () => {
   })
 
   describe('Validation', () => {
-    it('should fail when new pricing model does not exist', async () => {
+    it('should throw when new pricing model does not exist', async () => {
+      // Note: selectPricingModelById throws NotFoundError, which is not
+      // converted to Result.err (database methods throw for not found)
       await expect(
         adminTransaction(async ({ transaction }) => {
           return await migratePricingModelForCustomer(
@@ -1247,7 +1254,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       ).rejects.toThrow('No pricing models found with id')
     })
 
-    it('should fail when new pricing model belongs to different organization', async () => {
+    it('should return Result.err when new pricing model belongs to different organization', async () => {
       // Setup: Create pricing model for different organization
       const { organization: org2 } = await setupOrg()
       const otherPricingModel = await setupPricingModel({
@@ -1255,8 +1262,8 @@ describe('Pricing Model Migration Test Suite', async () => {
         name: 'Other Org Pricing Model',
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -1265,8 +1272,15 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('does not belong to organization')
+        }
+      )
+
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          'does not belong to organization'
+        )
+      }
     })
   })
 
@@ -1304,17 +1318,17 @@ describe('Pricing Model Migration Test Suite', async () => {
         }
       )
 
+      const unwrapped = result.unwrap()
+
       // Verify customer's pricingModelId was updated
-      expect(result.result.customer.pricingModelId).toBe(
-        pricingModel2.id
-      )
+      expect(unwrapped.customer.pricingModelId).toBe(pricingModel2.id)
 
       // Verify subscriptions were handled correctly
-      expect(result.result.canceledSubscriptions).toHaveLength(1)
-      expect(result.result.canceledSubscriptions[0].id).toBe(
+      expect(unwrapped.canceledSubscriptions).toHaveLength(1)
+      expect(unwrapped.canceledSubscriptions[0].id).toBe(
         subscription.id
       )
-      expect(result.result.newSubscription.priceId).toBe(price2.id)
+      expect(unwrapped.newSubscription.priceId).toBe(price2.id)
 
       // Verify customer in database was updated
       const updatedCustomer = await adminTransaction(

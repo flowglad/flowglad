@@ -1,4 +1,5 @@
-import { adminTransaction } from '@/db/adminTransaction'
+import { Result } from 'better-result'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import { productIdOrPurchaseIdSchema } from '@/db/schema/discounts'
 import { publicProcedure } from '@/server/trpc'
 import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
@@ -10,7 +11,8 @@ import {
 export const clearDiscountCode = publicProcedure
   .input(productIdOrPurchaseIdSchema)
   .mutation(async ({ input }) => {
-    return adminTransaction(async ({ transaction }) => {
+    return comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // FIXME: find a more elegant way to model this.
       const checkoutSession =
         'productId' in input
@@ -23,11 +25,11 @@ export const clearDiscountCode = publicProcedure
               transaction
             )
       if (!checkoutSession) {
-        return false
+        return Result.ok(false)
       }
       const maybePurchaseId = (input as { purchaseId: string })
         .purchaseId
-      return editCheckoutSession(
+      await editCheckoutSession(
         {
           checkoutSession: {
             ...checkoutSession,
@@ -35,7 +37,8 @@ export const clearDiscountCode = publicProcedure
           },
           purchaseId: maybePurchaseId,
         },
-        transaction
+        ctx
       )
+      return Result.ok(true)
     })
   })

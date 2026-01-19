@@ -18,6 +18,7 @@ import type { DbTransaction } from '@/db/types'
 import { FeatureType, IntervalUnit, PriceType } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import { validateDefaultProductSchema } from '@/utils/defaultProductValidation'
+import { createProductPriceInsert } from '@/utils/pricingModels/setupHelpers'
 import {
   type SetupPricingModelInput,
   type SetupPricingModelProductInput,
@@ -83,14 +84,14 @@ export const setupPricingModelTransaction = async (
     transaction
   )
   const usageMeterInserts: UsageMeter.Insert[] =
-    input.usageMeters.map((usageMeter) => ({
-      slug: usageMeter.slug,
-      name: usageMeter.name,
+    input.usageMeters.map((meterWithPrices) => ({
+      slug: meterWithPrices.usageMeter.slug,
+      name: meterWithPrices.usageMeter.name,
       livemode,
       organizationId,
       pricingModelId: pricingModel.id,
-      ...(usageMeter.aggregationType && {
-        aggregationType: usageMeter.aggregationType,
+      ...(meterWithPrices.usageMeter.aggregationType && {
+        aggregationType: meterWithPrices.usageMeter.aggregationType,
       }),
     }))
   const usageMeters =
@@ -221,7 +222,8 @@ export const setupPricingModelTransaction = async (
     products.map((product) => [product.externalId, product])
   )
 
-  const priceInserts: Price.Insert[] = input.products.map(
+  // Build product price inserts (subscription and single payment only)
+  const productPriceInserts: Price.Insert[] = input.products.map(
     (product) => {
       const productId = productsByExternalId.get(
         externalIdFromProductData(product, pricingModel.id)
@@ -229,81 +231,53 @@ export const setupPricingModelTransaction = async (
       if (!productId) {
         throw new Error(`Product ${product.product.name} not found`)
       }
-      const price = product.price
-      switch (price.type) {
-        case PriceType.Usage: {
-          const usageMeterId = usageMetersBySlug.get(
-            price.usageMeterSlug
-          )?.id
-          if (!usageMeterId) {
-            throw new Error(
-              `Usage meter ${price.usageMeterSlug} not found`
-            )
-          }
-          return {
-            type: PriceType.Usage,
-            name: price.name ?? null,
-            slug: price.slug ?? null,
-            unitPrice: price.unitPrice,
-            isDefault: price.isDefault,
-            active: price.active,
-            intervalCount: price.intervalCount,
-            intervalUnit: price.intervalUnit,
-            trialPeriodDays: price.trialPeriodDays,
-            usageEventsPerUnit: price.usageEventsPerUnit,
-            currency: organization.defaultCurrency,
-            productId,
-            livemode,
-            externalId: null,
-            usageMeterId,
-          }
-        }
-
-        case PriceType.Subscription:
-          return {
-            type: PriceType.Subscription,
-            name: price.name ?? null,
-            slug: price.slug ?? null,
-            unitPrice: price.unitPrice,
-            isDefault: price.isDefault,
-            active: price.active,
-            intervalCount: price.intervalCount,
-            intervalUnit: price.intervalUnit,
-            trialPeriodDays: price.trialPeriodDays,
-            usageEventsPerUnit: price.usageEventsPerUnit,
-            currency: organization.defaultCurrency,
-            productId,
-            livemode,
-            externalId: null,
-            usageMeterId: null,
-          }
-
-        case PriceType.SinglePayment:
-          return {
-            type: PriceType.SinglePayment,
-            name: price.name ?? null,
-            slug: price.slug ?? null,
-            unitPrice: price.unitPrice,
-            isDefault: price.isDefault,
-            active: price.active,
-            intervalCount: null,
-            intervalUnit: null,
-            trialPeriodDays: price.trialPeriodDays,
-            usageEventsPerUnit: price.usageEventsPerUnit,
-            currency: organization.defaultCurrency,
-            productId,
-            livemode,
-            externalId: null,
-            usageMeterId: null,
-          }
-
-        default:
-          throw new Error(
-            `Unknown or unhandled price type on price: ${price}`
-          )
-      }
+      return createProductPriceInsert(product.price, {
+        productId,
+        currency: organization.defaultCurrency,
+        livemode,
+      })
     }
   )
+
+  // Build usage price inserts from usageMeters[].prices
+  // Usage prices belong directly to usage meters, not products
+  const usagePriceInserts: Price.Insert[] = input.usageMeters.flatMap(
+    (meterWithPrices) => {
+      const usageMeter = usageMetersBySlug.get(
+        meterWithPrices.usageMeter.slug
+      )
+      if (!usageMeter) {
+        throw new Error(
+          `Usage meter ${meterWithPrices.usageMeter.slug} not found`
+        )
+      }
+
+      return (meterWithPrices.prices || []).map((price) => ({
+        type: PriceType.Usage as const,
+        name: price.name ?? null,
+        slug: price.slug ?? null,
+        unitPrice: price.unitPrice,
+        isDefault: price.isDefault,
+        active: price.active,
+        intervalCount: price.intervalCount,
+        intervalUnit: price.intervalUnit,
+        trialPeriodDays: null, // Usage prices don't have trial periods
+        usageEventsPerUnit: price.usageEventsPerUnit,
+        currency: organization.defaultCurrency,
+        productId: null, // Usage prices don't have productId
+        pricingModelId: pricingModel.id, // Explicit for usage prices
+        livemode,
+        externalId: null,
+        usageMeterId: usageMeter.id,
+      }))
+    }
+  )
+
+  // Combine product prices and usage prices
+  const priceInserts: Price.Insert[] = [
+    ...productPriceInserts,
+    ...usagePriceInserts,
+  ]
 
   // Auto-generate default plan if none provided
   if (defaultProducts.length === 0) {
@@ -341,9 +315,11 @@ export const setupPricingModelTransaction = async (
       defaultProduct
     )
 
-    // Create the default price
-    const defaultPriceInsert: Price.Insert = {
-      type: defaultPlanConfig.price.type,
+    // Create the default price.
+    // Type assertion needed because defaultPlanConfig.price.type is not
+    // narrowed to a specific PriceType, but default products always use subscription prices.
+    const defaultPriceInsert: Price.SubscriptionInsert = {
+      type: PriceType.Subscription,
       name: defaultPlanConfig.price.name,
       slug: defaultPlanConfig.price.slug,
       unitPrice: defaultPlanConfig.price.unitPrice,

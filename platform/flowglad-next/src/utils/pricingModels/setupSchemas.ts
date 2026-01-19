@@ -7,6 +7,8 @@ import {
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'
 import {
+  isReservedPriceSlug,
+  RESERVED_USAGE_PRICE_SLUG_SUFFIX,
   singlePaymentPriceClientInsertSchema,
   subscriptionPriceClientInsertSchema,
   usagePriceClientInsertSchema,
@@ -15,7 +17,7 @@ import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
 import { productsClientInsertSchema } from '@/db/schema/products'
 import { resourcesClientInsertSchema } from '@/db/schema/resources'
 import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
-import { CurrencyCode, FeatureType, PriceType } from '@/types'
+import { FeatureType, PriceType } from '@/types'
 import core, { safeZodSanitizedString } from '../core'
 
 /**
@@ -100,6 +102,10 @@ const priceOptionalFieldSchema = {
   slug: safeZodSanitizedString.optional(),
 } as const
 
+/**
+ * Schema for product prices (subscription and single payment).
+ * Usage prices are NOT included here - they belong to usage meters.
+ */
 export const setupPricingModelProductPriceInputSchema = z
   .discriminatedUnion('type', [
     subscriptionPriceClientInsertSchema.omit(omitProductId).extend({
@@ -108,15 +114,6 @@ export const setupPricingModelProductPriceInputSchema = z
     singlePaymentPriceClientInsertSchema.omit(omitProductId).extend({
       ...priceOptionalFieldSchema,
     }),
-    usagePriceClientInsertSchema
-      .omit(omitProductId)
-      .omit({
-        usageMeterId: true,
-      })
-      .extend({
-        usageMeterSlug: z.string(),
-        ...priceOptionalFieldSchema,
-      }),
   ])
   .refine(
     (price) => price.active === true && price.isDefault === true,
@@ -127,6 +124,56 @@ export const setupPricingModelProductPriceInputSchema = z
 
 export type SetupPricingModelProductPriceInput = z.infer<
   typeof setupPricingModelProductPriceInputSchema
+>
+
+/**
+ * Schema for usage prices that belong to usage meters.
+ * Usage prices do NOT have productId - they belong to usage meters directly.
+ */
+export const setupUsageMeterPriceInputSchema =
+  usagePriceClientInsertSchema
+    .omit({
+      productId: true,
+      usageMeterId: true,
+    })
+    .extend({
+      ...priceOptionalFieldSchema,
+    })
+    .refine(
+      // Only validate if slug is provided - undefined/null slugs are allowed
+      (data) => !data.slug || !isReservedPriceSlug(data.slug),
+      {
+        message: `Usage price slugs ending with "${RESERVED_USAGE_PRICE_SLUG_SUFFIX}" are reserved for auto-generated fallback prices`,
+        path: ['slug'],
+      }
+    )
+
+export type SetupUsageMeterPriceInput = z.infer<
+  typeof setupUsageMeterPriceInputSchema
+>
+
+/**
+ * Schema for a usage meter with its prices.
+ * Usage prices belong directly to usage meters, not products.
+ */
+export const setupUsageMeterWithPricesInputSchema = z.object({
+  usageMeter: usageMetersClientInsertSchema
+    .omit({
+      pricingModelId: true,
+    })
+    .describe(
+      'The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.'
+    ),
+  prices: z
+    .array(setupUsageMeterPriceInputSchema)
+    .optional()
+    .describe(
+      'The prices for this usage meter. Each price defines how usage on this meter is billed.'
+    ),
+})
+
+export type SetupUsageMeterWithPricesInput = z.infer<
+  typeof setupUsageMeterWithPricesInputSchema
 >
 
 const setupPricingModelProductInputSchema = z.object({
@@ -189,19 +236,19 @@ export const setupPricingModelSchema =
           message: 'Products must have unique slugs',
         }
       ),
+    /**
+     * Usage meters with their prices.
+     * Usage prices belong directly to usage meters, not products.
+     * This replaces the old pattern of putting usage prices under products.
+     */
     usageMeters: z
-      .array(
-        usageMetersClientInsertSchema
-          .omit({
-            pricingModelId: true,
-          })
-          .describe(
-            'The usage meters to add to the pricingModel. If the pricingModel has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.'
-          )
-      )
-      .refine(slugsAreUnique, {
-        message: 'Usage meters must have unique slugs',
-      }),
+      .array(setupUsageMeterWithPricesInputSchema)
+      .refine(
+        (meters) => slugsAreUnique(meters.map((m) => m.usageMeter)),
+        {
+          message: 'Usage meters must have unique slugs',
+        }
+      ),
     resources: z
       .array(resourcePricingModelSetupSchema)
       .optional()
@@ -267,7 +314,7 @@ export const validateSetupPricingModelInput = (
 
   const featuresBySlug = core.groupBy(R.prop('slug'), parsed.features)
   const usageMetersBySlug = core.groupBy(
-    R.prop('slug'),
+    (m) => m.usageMeter.slug,
     parsed.usageMeters
   )
   const resourcesBySlug = core.groupBy(
@@ -275,24 +322,10 @@ export const validateSetupPricingModelInput = (
     parsed.resources ?? []
   )
 
-  // Early validation: fail fast if Resource features exist but no resources provided
-  const hasResourceFeatures = parsed.features.some(
-    (f) => f.type === FeatureType.Resource
-  )
-  if (
-    hasResourceFeatures &&
-    (!parsed.resources || parsed.resources.length === 0)
-  ) {
-    throw new Error(
-      'Resource features are defined but no resources array was provided'
-    )
-  }
+  // Collect all price slugs for uniqueness validation
+  const allPriceSlugs = new Set<string>()
 
-  const pricesBySlug = core.groupBy(
-    R.propOr(null, 'slug'),
-    parsed.products.map((p) => p.price)
-  )
-  const usagePriceMeterSlugs = new Set<string>()
+  // Validate product prices
   parsed.products.forEach((product) => {
     // Validate features
     product.features.forEach((featureSlug) => {
@@ -321,40 +354,42 @@ export const validateSetupPricingModelInput = (
       }
     })
 
-    // Validate price
+    // Validate product price (subscription or single payment)
     const price = product.price
     if (!price.slug) {
       throw new Error(
         `Price slug is required. Received ${JSON.stringify(price)}`
       )
     }
-    if (price.type === PriceType.Usage) {
-      if (!price.usageMeterSlug) {
-        throw new Error(
-          `Usage meter slug is required for usage price`
-        )
-      }
-      const usageArr = usageMetersBySlug[price.usageMeterSlug] || []
-      const usageMeter = usageArr[0]
-      if (!usageMeter) {
-        throw new Error(
-          `Usage meter with slug ${price.usageMeterSlug} does not exist`
-        )
-      }
-      usagePriceMeterSlugs.add(price.usageMeterSlug)
-    }
-    const priceSlugs = pricesBySlug[price.slug]
-    if (priceSlugs && priceSlugs.length > 1) {
+    if (allPriceSlugs.has(price.slug)) {
       throw new Error(`Price with slug ${price.slug} already exists`)
     }
+    allPriceSlugs.add(price.slug)
   })
-  const usageMeterSlugs = Object.keys(usageMetersBySlug)
-  usageMeterSlugs.forEach((slug) => {
-    if (!usagePriceMeterSlugs.has(slug)) {
-      throw new Error(
-        `Usage meter with slug ${slug} must have at least one usage price associated with it`
-      )
-    }
+
+  // Validate usage meter prices and implement implicit default logic
+  parsed.usageMeters.forEach((meterWithPrices) => {
+    const prices = meterWithPrices.prices || []
+
+    // Validate each price in the meter
+    prices.forEach((price) => {
+      if (price.slug) {
+        if (allPriceSlugs.has(price.slug)) {
+          throw new Error(
+            `Price with slug ${price.slug} already exists`
+          )
+        }
+        allPriceSlugs.add(price.slug)
+      }
+    })
+
+    // Usage prices don't use isDefault - always set to false
+    // This avoids unique constraint issues and aligns with the data model where
+    // usage prices don't have a "default" concept (unlike product prices)
+    prices.forEach((price) => {
+      price.isDefault = false
+    })
   })
+
   return parsed
 }

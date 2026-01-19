@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
 import { beforeEach, describe, expect, it } from 'vitest'
@@ -32,7 +33,10 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import type { DbTransaction } from '@/db/types'
 import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
-import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
+import {
+  createDiscardingEffectsContext,
+  createProcessingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -156,7 +160,7 @@ const mockFailedCharge = (
 
 describe('Checkout Sessions', async () => {
   // Common variables for all tests
-  const { organization, price } = await setupOrg()
+  const { organization, price, pricingModel } = await setupOrg()
   let customer: Customer.Record
   let checkoutSession: CheckoutSession.Record
   let purchase: Purchase.Record
@@ -198,6 +202,7 @@ describe('Checkout Sessions', async () => {
 
     discount = await setupDiscount({
       organizationId: organization.id,
+      pricingModelId: pricingModel.id,
       name: 'TEST10',
       code: `${Date.now()}`,
       amount: 10,
@@ -322,7 +327,7 @@ describe('Checkout Sessions', async () => {
                 automaticallyUpdateSubscriptions: null,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('Checkout session is not open')
@@ -355,7 +360,7 @@ describe('Checkout Sessions', async () => {
                 type: CheckoutSessionType.Product,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -388,7 +393,7 @@ describe('Checkout Sessions', async () => {
             {
               checkoutSession: updatedCheckoutSession,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -438,7 +443,7 @@ describe('Checkout Sessions', async () => {
                 priceId: price.id,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -473,7 +478,7 @@ describe('Checkout Sessions', async () => {
                 type: CheckoutSessionType.Product,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -516,7 +521,7 @@ describe('Checkout Sessions', async () => {
               },
               purchaseId: purchase.id,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('Purchase is not pending')
@@ -549,7 +554,7 @@ describe('Checkout Sessions', async () => {
             },
             purchaseId: purchase.id,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -594,7 +599,7 @@ describe('Checkout Sessions', async () => {
                 automaticallyUpdateSubscriptions: null,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -612,6 +617,7 @@ describe('Checkout Sessions', async () => {
       // Create a 100% off discount that equals the full price amount (10000 cents = $100)
       const fullDiscount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'FULL100',
         code: core.nanoid().slice(0, 10), // Short unique code
         amount: 10000, // $100.00 in cents - full price coverage
@@ -660,6 +666,7 @@ describe('Checkout Sessions', async () => {
       // Create a 100% off discount
       const fullDiscount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'FULL100_PI',
         code: core.nanoid().slice(0, 10), // Short unique code
         amount: 10000, // $100.00 in cents - full price coverage
@@ -698,7 +705,7 @@ describe('Checkout Sessions', async () => {
                 discountId: fullDiscount.id,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -757,7 +764,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result }
+          return Result.ok(result)
         }
       )
 
@@ -837,7 +844,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: bookkeeping }
+          return Result.ok(bookkeeping)
         }
       )
 
@@ -855,7 +862,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: bookkeeping }
+          return Result.ok(bookkeeping)
         }
       )
 
@@ -884,7 +891,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: bookkeeping }
+          return Result.ok(bookkeeping)
         })
       ).rejects.toThrow('Attempting to process checkout session')
     })
@@ -900,7 +907,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: bookkeeping }
+          return Result.ok(bookkeeping)
         }
       )
 
@@ -931,7 +938,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: bookkeeping }
+          return Result.ok(bookkeeping)
         }
       )
 
@@ -963,7 +970,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: bookkeeping }
+          return Result.ok(bookkeeping)
         }
       )
       expect(result.customer.stripeCustomerId).toMatchObject({})
@@ -992,7 +999,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: bookkeeping }
+          return Result.ok(bookkeeping)
         }
       )
 
@@ -1028,7 +1035,7 @@ describe('Checkout Sessions', async () => {
         )
         expect(typeof discountRedemption).toBe('object')
         expect(discountRedemption.discountId).toEqual(discount.id)
-        return { result: discountRedemption }
+        return Result.ok(discountRedemption)
       })
     })
 
@@ -1051,9 +1058,10 @@ describe('Checkout Sessions', async () => {
               },
               transaction
             )
-          return {
-            result: { latestFeeCalculation, bookkeepingResult },
-          }
+          return Result.ok({
+            latestFeeCalculation,
+            bookkeepingResult,
+          })
         })
 
       expect(latestFeeCalculation?.purchaseId).toEqual(
@@ -1077,7 +1085,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: bookkeeping }
+          return Result.ok(bookkeeping)
         })
       ).rejects.toThrow()
     })
@@ -1132,7 +1140,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: chargeResult }
+          return Result.ok(chargeResult)
         }
       )
 
@@ -1159,7 +1167,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: chargeResult }
+          return Result.ok(chargeResult)
         }
       )
 
@@ -1188,7 +1196,7 @@ describe('Checkout Sessions', async () => {
               },
               createProcessingEffectsContext(params)
             )
-          return { result: chargeResult }
+          return Result.ok(chargeResult)
         }
       )
 

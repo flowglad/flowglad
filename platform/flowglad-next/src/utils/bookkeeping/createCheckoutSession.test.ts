@@ -163,6 +163,34 @@ describe('checkoutSessionInsertFromInput', () => {
     expect(result.preserveBillingCycleAnchor).toBe(true)
   })
 
+  it('includes quantity in the insert when provided for product checkouts', () => {
+    const input = buildProductCheckoutInput({
+      quantity: 5,
+    })
+
+    const result = checkoutSessionInsertFromInput({
+      checkoutSessionInput: input,
+      customer,
+      organizationId: DEFAULT_ORGANIZATION_ID,
+      livemode: false,
+    })
+
+    expect(result.quantity).toBe(5)
+  })
+
+  it('defaults quantity to 1 when not provided for product checkouts', () => {
+    const input = buildProductCheckoutInput()
+
+    const result = checkoutSessionInsertFromInput({
+      checkoutSessionInput: input,
+      customer,
+      organizationId: DEFAULT_ORGANIZATION_ID,
+      livemode: false,
+    })
+
+    expect(result.quantity).toBe(1)
+  })
+
   it('allows anonymous product checkouts without a customer record', () => {
     const input = buildProductCheckoutInput({
       anonymous: true,
@@ -379,7 +407,6 @@ describe('createCheckoutSessionTransaction', () => {
       isDefault: false,
     })
     usagePrice = await setupPrice({
-      productId: nonDefaultProduct.id,
       type: PriceType.Usage,
       name: 'Usage Price',
       unitPrice: 100,
@@ -485,31 +512,30 @@ describe('createCheckoutSessionTransaction', () => {
     )
   })
 
-  // FIXME: Re-enable this once usage price checkouts are fully deprecated
-  // it('should throw an error when trying to create a checkout session for a Usage-based product', async () => {
-  //   const checkoutSessionInput: CreateCheckoutSessionObject = {
-  //     customerExternalId: customer.externalId,
-  //     type: CheckoutSessionType.Product,
-  //     successUrl: 'http://success.url',
-  //     cancelUrl: 'http://cancel.url',
-  //     priceId: usagePrice.id,
-  //   }
+  it('throws error when creating checkout session for usage price (which has null product)', async () => {
+    const checkoutSessionInput: CreateCheckoutSessionObject = {
+      customerExternalId: customer.externalId,
+      type: CheckoutSessionType.Product,
+      successUrl: 'http://success.url',
+      cancelUrl: 'http://cancel.url',
+      priceId: usagePrice.id,
+    }
 
-  //   await expect(
-  //     adminTransaction(async ({ transaction }) =>
-  //       createCheckoutSessionTransaction(
-  //         {
-  //           checkoutSessionInput,
-  //           organizationId: organization.id,
-  //           livemode: false,
-  //         },
-  //         transaction
-  //       )
-  //     )
-  //   ).rejects.toThrow(
-  //     `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for checkout sessions.`
-  //   )
-  // })
+    await expect(
+      adminTransaction(async ({ transaction }) =>
+        createCheckoutSessionTransaction(
+          {
+            checkoutSessionInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
+        )
+      )
+    ).rejects.toThrow(
+      'Checkout sessions are only supported for product prices (subscription/single payment), not usage prices'
+    )
+  })
 
   it('should create a checkout session for AddPaymentMethod', async () => {
     const checkoutSessionInput: CreateCheckoutSessionObject = {

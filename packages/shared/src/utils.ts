@@ -107,10 +107,10 @@ export const constructCheckUsageBalance = (
 }
 
 export const constructGetProduct = (
-  catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog']
+  pricingModel: FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']
 ) => {
   const productsBySlug = new Map(
-    catalog.products.map((product) => [product.slug, product])
+    pricingModel.products.map((product) => [product.slug, product])
   )
   const getProduct = (productSlug: string) => {
     return productsBySlug.get(productSlug) ?? null
@@ -119,25 +119,40 @@ export const constructGetProduct = (
 }
 
 export const constructGetPrice = (
-  catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog']
+  pricingModel: FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']
 ) => {
-  const pricesBySlug = new Map(
-    catalog.products.flatMap((product) =>
-      product.prices.map((price) => [price.slug, price])
+  type Price =
+    FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']['products'][number]['prices'][number]
+
+  // Collect prices from products (subscription and single payment prices)
+  const productPrices: Array<readonly [string | null, Price]> =
+    pricingModel.products.flatMap((product) =>
+      product.prices.map((price) => [price.slug, price] as const)
     )
-  )
-  const getPrice = (priceSlug: string) => {
+
+  // Collect prices from usage meters (usage prices)
+  const usageMeterPrices: Array<readonly [string | null, Price]> =
+    pricingModel.usageMeters.flatMap((usageMeter) =>
+      usageMeter.prices.map((price) => [price.slug, price] as const)
+    )
+
+  const pricesBySlug = new Map<string | null, Price>([
+    ...productPrices,
+    ...usageMeterPrices,
+  ])
+
+  const getPrice = (priceSlug: string): Price | null => {
     return pricesBySlug.get(priceSlug) ?? null
   }
   return getPrice
 }
 
 export const constructHasPurchased = (
-  catalog: FlowgladNode.CustomerRetrieveBillingResponse['catalog'],
+  pricingModel: FlowgladNode.CustomerRetrieveBillingResponse['pricingModel'],
   purchases: FlowgladNode.CustomerRetrieveBillingResponse['purchases']
 ) => {
   const productsBySlug = new Map(
-    catalog.products.map((product) => [product.slug, product])
+    pricingModel.products.map((product) => [product.slug, product])
   )
 
   // Create a set of all purchased price IDs for quick lookup
