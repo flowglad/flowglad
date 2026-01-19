@@ -165,7 +165,7 @@ export const requestHandler = <TRequest = unknown>(
 
         const flowgladServerAdmin = new FlowgladServerAdmin({
           apiKey: resolvedApiKey,
-          baseURL,
+          baseURL: baseURL || process.env.FLOWGLAD_BASE_URL,
         })
 
         // ─────────────────────────────────────────────────────────────────────
