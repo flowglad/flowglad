@@ -11,6 +11,7 @@ import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
 import type { CurrencyCode } from '@/types'
 import { FeatureType, PriceType } from '@/types'
+import { isNoChargePrice } from '@/utils/usage/noChargePriceHelpers'
 import {
   type SetupPricingModelInput,
   type SetupPricingModelProductPriceInput,
@@ -144,13 +145,16 @@ export async function getPricingModelSetupData(
 
   // Fetch usage prices that don't have products (productId: null)
   // These are associated with usage meters directly
+  // Filter out auto-generated no-charge prices - they'll be re-created during setup
   const allPrices = await selectPrices(
     { pricingModelId: pricingModel.id, active: true },
     transaction
   )
   const usagePricesWithoutProducts = allPrices.filter(
     (price) =>
-      price.type === PriceType.Usage && price.productId === null
+      price.type === PriceType.Usage &&
+      price.productId === null &&
+      (!price.slug || !isNoChargePrice(price.slug))
   )
 
   // Fetch all product-feature relationships
