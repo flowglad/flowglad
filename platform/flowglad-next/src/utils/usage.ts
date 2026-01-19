@@ -116,13 +116,21 @@ export const createUsageMeterTransaction = async (
     transaction
   )
 
-  // Return the appropriate prices
-  // When user specified custom values: first is user price, second is no-charge
-  // When no custom values: only one price exists, which is the no-charge price
-  const price = insertedPrices[0]
-  const noChargePrice = hasUserSpecifiedPrice
-    ? insertedPrices[1]
-    : insertedPrices[0]
+  // Resolve prices by slug instead of relying on array index order
+  // This makes the intent explicit and protects against future refactoring mistakes
+  const noChargePrice = insertedPrices.find(
+    (p) => p.slug === noChargePriceInsert.slug
+  )
+  if (!noChargePrice) {
+    throw new Error('Failed to resolve no-charge usage price')
+  }
+
+  const price = hasUserSpecifiedPrice
+    ? insertedPrices.find((p) => p.slug === usageMeter.slug)
+    : noChargePrice
+  if (!price) {
+    throw new Error('Failed to resolve inserted usage price')
+  }
 
   return {
     usageMeter,
