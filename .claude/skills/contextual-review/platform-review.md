@@ -194,10 +194,17 @@ export const getCustomerById = async (input: unknown) => {
 The most common violation is creating `selectFooById` or `selectFooByBar` methods when a general `selectFoos` method with filtering already exists.
 
 ```typescript
-// WRONG - creating a redundant method
-export const selectCustomerByEmail = async (email: string) => {
-  return db.query.customers.findFirst({ where: eq(customers.email, email) })
+// WRONG - creating a redundant method (even with proper Zod validation)
+const selectCustomerByEmailInputSchema = z.object({
+  email: z.string().email(),
+})
+
+export const selectCustomerByEmail = async (input: unknown) => {
+  const { email } = selectCustomerByEmailInputSchema.parse(input)
+  const result = await db.query.customers.findFirst({ where: eq(customers.email, email) })
+  return selectCustomerSchema.parse(result)
 }
+// This method is redundant because selectCustomers already supports email filtering
 
 // CORRECT - use the existing selectCustomers with a filter
 const customer = await selectCustomers({ filters: { email } })
