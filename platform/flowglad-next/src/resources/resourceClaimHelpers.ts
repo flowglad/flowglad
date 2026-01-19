@@ -1,4 +1,5 @@
 import { sql } from 'drizzle-orm'
+import * as core from 'nanoid'
 import { z } from 'zod'
 import type { ResourceClaim } from '@/db/schema/resourceClaims'
 import { resourceClaims } from '@/db/schema/resourceClaims'
@@ -563,6 +564,10 @@ const insertClaimsWithOptimisticLock = async (
     claimsToInsert,
   } = params
 
+  if (claimsToInsert.length === 0) {
+    return { success: true, claims: [] }
+  }
+
   for (
     let attempt = 0;
     attempt < MAX_OPTIMISTIC_LOCK_RETRIES;
@@ -591,17 +596,25 @@ const insertClaimsWithOptimisticLock = async (
     // 3. Batched conditional insert - all claims in one atomic statement
     // Uses UNNEST to expand arrays into rows, ensuring either ALL claims
     // are inserted or NONE are (prevents partial insert bug on retry)
-    const externalIds = claimsToInsert.map((c) => c.externalId)
-    const metadataJsonStrings = claimsToInsert.map((c) =>
-      c.metadata ? JSON.stringify(c.metadata) : null
+    const valuesSql = sql.join(
+      claimsToInsert.map((claim) => {
+        const meta = claim.metadata
+          ? JSON.stringify(claim.metadata)
+          : null
+        const id = `res_claim_${core.nanoid()}`
+        return sql`(${id}, ${claim.externalId}, ${meta})`
+      }),
+      sql`, `
     )
 
     const result = await transaction.execute(sql`
       INSERT INTO ${resourceClaims} (
+        id,
         organization_id, resource_id, subscription_id,
         pricing_model_id, external_id, metadata, livemode
       )
       SELECT
+        id,
         ${organizationId},
         ${resourceId},
         ${subscriptionId},
@@ -609,17 +622,36 @@ const insertClaimsWithOptimisticLock = async (
         ext_id,
         meta::jsonb,
         ${livemode}
-      FROM UNNEST(
-        ${externalIds}::text[],
-        ${metadataJsonStrings}::text[]
-      ) AS t(ext_id, meta)
+      FROM (
+        VALUES ${valuesSql}
+      ) AS t(id, ext_id, meta)
       WHERE (
         SELECT COUNT(*) FROM ${resourceClaims}
         WHERE subscription_id = ${subscriptionId}
           AND resource_id = ${resourceId}
           AND released_at IS NULL
       ) = ${currentCount}
-      RETURNING *
+      RETURNING
+        id,
+        (extract(epoch from created_at) * 1000)::double precision as created_at,
+        (extract(epoch from updated_at) * 1000)::double precision as updated_at,
+        created_by_commit,
+        updated_by_commit,
+        position::double precision as position,
+        organization_id,
+        resource_id,
+        subscription_id,
+        pricing_model_id,
+        external_id,
+        metadata,
+        livemode,
+        (extract(epoch from claimed_at) * 1000)::double precision as claimed_at,
+        case
+          when released_at is null
+            then null
+          else (extract(epoch from released_at) * 1000)::double precision
+        end as released_at,
+        release_reason
     `)
 
     // Validate raw SQL results with Zod for runtime safety
