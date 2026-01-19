@@ -254,14 +254,16 @@ async function backfillNoChargePricesAndUsageEvents(
       // eslint-disable-next-line no-console
       console.log(`Created ${insertedPrices.length} no_charge prices`)
 
-      // Map inserted prices back to their meters by slug
-      const insertedPricesBySlug = new Map(
-        insertedPrices.map((p) => [p.slug, p])
+      // Map inserted prices back to their meters by usageMeterId
+      // Note: We key by usageMeterId (not slug) because slugs are only unique
+      // per (organizationId, pricingModelId), so different orgs/pricing models
+      // could have meters with identical slugs that would collide in a slug-keyed Map
+      const insertedPricesByMeterId = new Map(
+        insertedPrices.map((p) => [p.usageMeterId, p])
       )
 
       for (const meter of metersNeedingPrices) {
-        const noChargeSlug = getNoChargeSlugForMeter(meter.slug)
-        const noChargePrice = insertedPricesBySlug.get(noChargeSlug)
+        const noChargePrice = insertedPricesByMeterId.get(meter.id)
         if (noChargePrice) {
           metersWithNoChargePrice.push({
             meter,
