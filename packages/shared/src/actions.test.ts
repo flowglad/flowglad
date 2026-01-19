@@ -1359,6 +1359,7 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.ClaimResource,
       FlowgladActionKey.ReleaseResource,
       FlowgladActionKey.ListResourceClaims,
+      FlowgladActionKey.GetPricingModel,
     ]
 
     for (const key of expectedKeys) {
@@ -1443,6 +1444,36 @@ describe('flowgladActionValidators', () => {
       timing: 'immediately',
     })
     expect(result.success).toBe(true)
+  })
+})
+
+describe('GetPricingModel validator', () => {
+  it('uses POST method and accepts empty object as input', () => {
+    // Setup: Get validator for FlowgladActionKey.GetPricingModel
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.GetPricingModel]
+
+    // Assert: validator.method === HTTPMethod.POST
+    expect(validator.method).toBe(HTTPMethod.POST)
+
+    // Assert: validator.inputValidator.safeParse({}).success === true
+    const result = validator.inputValidator.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('strips unknown fields from input', () => {
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.GetPricingModel]
+        .inputValidator
+    const result = validator.safeParse({
+      unknownField: 'should be stripped',
+      anotherField: 123,
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      // Zod strips unknown fields by default
+      expect(result.data).toEqual({})
+    }
   })
 })
 
