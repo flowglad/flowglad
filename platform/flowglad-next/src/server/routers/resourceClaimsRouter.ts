@@ -7,7 +7,8 @@ import {
 import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import {
-  countActiveClaimsForSubscriptionItemFeatures,
+  countActiveResourceClaims,
+  countActiveResourceClaimsBatch,
   selectActiveResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
@@ -18,6 +19,7 @@ import type { DbTransaction } from '@/db/types'
 import {
   claimResourceInputSchema,
   claimResourceTransaction,
+  getAggregatedResourceCapacity,
   getResourceUsageInputSchema,
   releaseResourceInputSchema,
   releaseResourceTransaction,
@@ -375,21 +377,30 @@ const getUsageProcedure = protectedProcedure
           })
         }
 
-        const claimed =
-          (
-            await countActiveClaimsForSubscriptionItemFeatures(
-              [resourceFeature.id],
-              transaction
-            )
-          ).get(resourceFeature.id) ?? 0
+        // Get aggregated capacity across all active features for this resource
+        const { totalCapacity } = await getAggregatedResourceCapacity(
+          {
+            subscriptionId: input.subscriptionId,
+            resourceId: resource.id,
+          },
+          transaction
+        )
 
-        const capacity = resourceFeature.amount
+        // Count claims by (subscriptionId, resourceId)
+        const claimed = await countActiveResourceClaims(
+          {
+            subscriptionId: input.subscriptionId,
+            resourceId: resource.id,
+          },
+          transaction
+        )
+
         const usage = {
           resourceSlug: resource.slug,
           resourceId: resource.id,
-          capacity,
+          capacity: totalCapacity,
           claimed,
-          available: capacity - claimed,
+          available: totalCapacity - claimed,
         }
 
         const claims = await selectActiveResourceClaims(
@@ -516,47 +527,46 @@ const listResourceUsagesProcedure = protectedProcedure
           )
         }
 
+        // Get unique resource IDs from filtered resources
+        const filteredResourceIds = filteredResources.map((r) => r.id)
         const resourcesById = new Map(
           filteredResources.map((r) => [r.id, r])
         )
 
-        const featureIds = resourceFeatures.map((f) => f.id)
-        const claimCountsByFeatureId =
-          await countActiveClaimsForSubscriptionItemFeatures(
-            featureIds,
+        // Batch count claims by (subscriptionId, resourceId)
+        const claimCountsByResourceId =
+          await countActiveResourceClaimsBatch(
+            {
+              subscriptionId: input.subscriptionId,
+              resourceIds: filteredResourceIds,
+            },
             transaction
           )
 
-        const usageResults = resourceFeatures
-          .map((feature) => {
-            const resource = resourcesById.get(feature.resourceId!)
-            if (!resource) {
-              return null
-            }
+        // Get aggregated capacity for each resource
+        const usageResults = await Promise.all(
+          filteredResources.map(async (resource) => {
+            const { totalCapacity } =
+              await getAggregatedResourceCapacity(
+                {
+                  subscriptionId: input.subscriptionId,
+                  resourceId: resource.id,
+                },
+                transaction
+              )
 
-            const capacity = feature.amount
             const claimed =
-              claimCountsByFeatureId.get(feature.id) ?? 0
+              claimCountsByResourceId.get(resource.id) ?? 0
 
             return {
               resourceSlug: resource.slug,
               resourceId: resource.id,
-              capacity,
+              capacity: totalCapacity,
               claimed,
-              available: capacity - claimed,
+              available: totalCapacity - claimed,
             }
           })
-          .filter(
-            (
-              result
-            ): result is {
-              resourceSlug: string
-              resourceId: string
-              capacity: number
-              claimed: number
-              available: number
-            } => result !== null
-          )
+        )
 
         const usageResourceIds = usageResults.map((u) => u.resourceId)
         const claims =
