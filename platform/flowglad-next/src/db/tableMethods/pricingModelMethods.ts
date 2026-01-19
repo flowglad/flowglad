@@ -404,17 +404,32 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
     const uniquePricingModels = Array.from(
       uniquePricingModelsMap.values()
     )
-    return uniquePricingModels.map((pricingModel) => ({
-      ...pricingModel,
-      usageMeters:
-        usageMetersByPricingModelId.get(pricingModel.id) ?? [],
-      products: productsByPricingModelId.get(pricingModel.id) ?? [],
-      defaultProduct:
-        productsByPricingModelId
-          .get(pricingModel.id)
-          ?.find((product: ProductWithPrices) => product.default) ??
-        undefined,
-    }))
+    return uniquePricingModels.map((pricingModel) => {
+      const usageMeters =
+        usageMetersByPricingModelId.get(pricingModel.id) ?? []
+      const usageMetersWithPrices = usageMeters.map((usageMeter) => {
+        const prices =
+          usagePricesByUsageMeterId.get(usageMeter.id) ?? []
+        const defaultPrice =
+          prices.find((price) => price.isDefault) ?? prices[0]
+        return {
+          ...usageMeter,
+          prices,
+          defaultPrice,
+        }
+      })
+
+      return {
+        ...pricingModel,
+        usageMeters: usageMetersWithPrices,
+        products: productsByPricingModelId.get(pricingModel.id) ?? [],
+        defaultProduct:
+          productsByPricingModelId
+            .get(pricingModel.id)
+            ?.find((product: ProductWithPrices) => product.default) ??
+          undefined,
+      }
+    })
   }
 
 /**
@@ -468,20 +483,7 @@ export const selectPricingModelForCustomer = async (
       )
 
     if (pricingModel) {
-      return {
-        ...pricingModel,
-        products: pricingModel.products
-          .filter((product: ProductWithPrices) => product.active)
-          .map((product: ProductWithPrices) => ({
-            ...product,
-            prices: product.prices.filter(
-              (price: Price.ClientRecord) => price.active
-            ),
-          }))
-          .filter(
-            (product: ProductWithPrices) => product.prices.length > 0
-          ), // Filter out products with no active prices
-      }
+      return filterActivePricingModelContent(pricingModel)
     }
   }
   const [pricingModel] =
@@ -500,20 +502,7 @@ export const selectPricingModelForCustomer = async (
     )
   }
 
-  return {
-    ...pricingModel,
-    products: pricingModel.products
-      .filter((product: ProductWithPrices) => product.active)
-      .map((product: ProductWithPrices) => ({
-        ...product,
-        prices: product.prices.filter(
-          (price: Price.ClientRecord) => price.active
-        ),
-      }))
-      .filter(
-        (product: ProductWithPrices) => product.prices.length > 0
-      ), // Filter out products with no active prices
-  }
+  return filterActivePricingModelContent(pricingModel)
 }
 
 /**
@@ -618,17 +607,18 @@ export const selectPricingModelSlugResolutionData = async (
 
     // Only add usage meter if:
     // 1. usageMeterId is not null (from LEFT JOIN)
-    // 2. usageMeterSlug is not null (slug is NOT NULL in database and validated by safeZodSanitizedString)
+    // 2. usageMeterSlug is not null and not whitespace-only
     // 3. We haven't already seen this usage meter ID (de-dupe)
+    const trimmedSlug = row.usageMeterSlug?.trim() ?? ''
     if (
+      trimmedSlug.length > 0 &&
       row.usageMeterId &&
-      row.usageMeterSlug &&
       !pm.seenUsageMeterIds.has(row.usageMeterId)
     ) {
       pm.seenUsageMeterIds.add(row.usageMeterId)
       pm.usageMeters.push({
         id: row.usageMeterId,
-        slug: row.usageMeterSlug,
+        slug: trimmedSlug,
       })
     }
   })
