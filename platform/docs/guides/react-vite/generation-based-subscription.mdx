@@ -1,0 +1,203 @@
+---
+title: Generation-Based Subscription
+description: Learn how to implement generation-based subscription in React + Vite with Flowglad.
+---
+
+A hybrid billing model combining subscriptions with usage credits and one-time top-ups. Common for AI generation platforms.
+
+<Note>
+View the complete source code on [GitHub](https://github.com/flowglad/examples/tree/main/react-vite/generation-based-subscription).
+</Note>
+
+## Prerequisites
+
+- Flowglad account with API key
+- React 18+ with Vite
+- Express server (or similar) for the backend
+- PostgreSQL database
+
+## Project Structure
+
+```
+├── src/
+│   ├── pages/
+│   │   ├── home.tsx                  # Main dashboard UI
+│   │   └── pricing.tsx               # Pricing page
+│   ├── lib/
+│   │   ├── auth-client.ts            # Better Auth client
+│   │   └── billing-helpers.ts        # Usage & pricing utilities
+│   └── components/
+│       └── providers.tsx             # FlowgladProvider setup
+├── server/
+│   ├── index.ts                      # Express server with Flowglad handler
+│   └── lib/auth.ts                   # Better Auth server config
+├── pricing.yaml                      # Pricing configuration
+└── package.json
+```
+
+## Key Concepts
+
+This pricing model combines three billing mechanisms:
+
+1. **Subscription tiers** - Monthly plans at fixed prices (\$10, \$30, \$60/mo)
+2. **Usage credit grants** - Each tier includes credits that renew each billing period (200, 360, 750 generations)
+3. **One-time top-ups** - Customers can purchase additional credits when they run out
+
+This model works well when you want predictable recurring revenue while giving customers flexibility to exceed their plan limits. Customers who find themselves consistently purchasing top-ups can choose to upgrade to a higher tier for better value.
+
+## Implementation
+
+### Pricing Configuration
+
+The `pricing.yaml` file defines subscription tiers, credit allocations, and top-up products. See the [full configuration](https://github.com/flowglad/examples/blob/main/react-vite/generation-based-subscription/pricing.yaml) in the repository.
+
+
+<img 
+  className="block dark:hidden" 
+  src="/images/example-diagrams/light/generation-based-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, subscription tiers, and top-ups"
+/>
+
+<img 
+  className="hidden dark:block" 
+  src="/images/example-diagrams/dark/generation-based-diagram.svg" 
+  alt="Pricing model diagram showing usage meters, subscription tiers, and top-ups"
+/>
+
+The key distinction in `pricing.yaml` is `renewalFrequency`: use `"every_billing_period"` for subscription credits that reset monthly, and `"once"` for top-up credits that are consumed permanently.
+
+### Server Setup
+
+Unlike Next.js, React + Vite requires a separate backend server. This example uses Express with Flowglad's `requestHandler`.
+
+```ts server/index.ts
+import { FlowgladServer, requestHandler } from '@flowglad/server';
+
+const flowglad = (customerExternalId: string) => {
+  return new FlowgladServer({
+    customerExternalId,
+    getCustomerDetails: async (externalId) => {
+      const [user] = await db
+        .select({ email: users.email, name: users.name })
+        .from(users)
+        .where(eq(users.id, externalId))
+        .limit(1);
+      return { email: user.email, name: user.name || '' };
+    },
+  });
+};
+
+const flowgladHandler = requestHandler({
+  flowglad: (customerExternalId) => flowglad(customerExternalId),
+  getCustomerExternalId: async (req) => {
+    const session = await auth.api.getSession({
+      headers: fromNodeHeaders(req.headers),
+    });
+    return session?.user?.id;
+  },
+});
+
+app.all('/api/flowglad/*', async (req, res) => {
+  // Route handling for Flowglad API
+});
+```
+
+The `requestHandler` creates a catch-all route that proxies requests between your React frontend and Flowglad's API.
+
+### Checking Usage Balance
+
+Use `checkUsageBalance` to display remaining credits and gate access to generation features.
+
+```tsx src/pages/home.tsx
+import { useBilling } from '@flowglad/react';
+
+const billing = useBilling();
+const balance = billing.checkUsageBalance('fast_generations');
+
+// balance.availableBalance - credits remaining
+```
+
+The balance includes both subscription credits and any purchased top-ups. Flowglad automatically draws from credits when you register a usage event.
+
+### Recording Usage
+
+When a customer generates content, call your backend endpoint to record the usage event. The server uses `FlowgladServer.createUsageEvent` to decrement the credit balance.
+
+```ts server/index.ts
+app.post('/api/usage-events', async (req, res) => {
+  const { usageMeterSlug, amount, transactionId } = req.body;
+  
+  const flowgladServer = flowglad(externalId);
+  const billing = await flowgladServer.getBilling();
+  const subscription = billing.currentSubscriptions?.[0];
+  
+  const usagePrice = findUsagePriceByMeterSlug(usageMeterSlug, billing.pricingModel);
+  
+  const usageEvent = await flowgladServer.createUsageEvent({
+    subscriptionId: subscription.id,
+    priceSlug: usagePrice.slug,
+    amount,
+    transactionId,
+  });
+  
+  res.json({ success: true, usageEvent });
+});
+```
+
+The `transactionId` parameter ensures idempotency, preventing duplicate charges if the request is retried.
+
+### Checking Feature Access
+
+Toggle features let you differentiate plans beyond just credit amounts. Use `checkFeatureAccess` to check if a user has access to gated premium features.
+
+```tsx src/pages/home.tsx
+const hasRelaxMode = billing.checkFeatureAccess('unlimited_relaxed_images');
+const hasStealthMode = billing.checkFeatureAccess('stealth_mode');
+```
+
+This returns `true` if the customer's current subscription includes the feature, `false` otherwise.
+
+### Purchasing Top-Up Credits
+
+When customers run low on credits, let them purchase additional credits without changing their subscription.
+
+```tsx src/pages/home.tsx
+const price = billing.getPrice('fast_generation_top_up');
+
+await billing.createCheckoutSession({
+  priceId: price.id,
+  successUrl: `${window.location.origin}?checkout=success`,
+  cancelUrl: window.location.href,
+  quantity: 1,
+  autoRedirect: true,
+});
+```
+
+This opens a checkout for the top-up product. On successful payment, the credits are immediately added to the customer's balance. Reload billing data after checkout to reflect the new balance:
+
+```tsx src/pages/home.tsx
+useEffect(() => {
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.has('checkout') && billing.reload) {
+    billing.reload();
+    window.history.replaceState({}, '', window.location.pathname);
+  }
+}, [billing.reload]);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="View Source Code" icon="github" href="https://github.com/flowglad/examples/tree/main/react-vite/generation-based-subscription">
+    Browse the complete example implementation
+  </Card>
+  <Card title="React SDK" icon="book" href="/sdks/react">
+    Full React SDK documentation
+  </Card>
+  <Card title="Feature Access & Usage" icon="gauge" href="/sdks/feature-access-usage">
+    Learn more about usage-based billing
+  </Card>
+  <Card title="Webhooks" icon="webhook" href="/features/webhooks">
+    Handle billing events server-side
+  </Card>
+</CardGroup>
