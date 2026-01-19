@@ -1138,6 +1138,9 @@ export const CacheDependency = {
   /** Invalidate when this specific invoice's content changes */
   invoice: (invoiceId: string): CacheDependencyKey =>
     `invoice:${invoiceId}`,
+  /** Invalidate when this specific invoice line item's content changes */
+  invoiceLineItem: (invoiceLineItemId: string): CacheDependencyKey =>
+    `invoiceLineItem:${invoiceLineItemId}`,
 
   // === OTHER DEPENDENCIES ===
 

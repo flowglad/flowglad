@@ -323,6 +323,12 @@ export const selectCustomerFacingInvoicesWithLineItems = cached(
       ...invoicesWithLineItems.map((item) =>
         CacheDependency.invoice(item.invoice.id)
       ),
+      // Content: invalidate when any line item's properties change
+      ...invoicesWithLineItems.flatMap((item) =>
+        item.invoiceLineItems.map((lineItem) =>
+          CacheDependency.invoiceLineItem(lineItem.id)
+        )
+      ),
     ],
   },
   async (
