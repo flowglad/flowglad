@@ -1,26 +1,19 @@
-import { eq, sql } from 'drizzle-orm'
+import { sql } from 'drizzle-orm'
 import { z } from 'zod'
 import type { ResourceClaim } from '@/db/schema/resourceClaims'
+import { resourceClaims } from '@/db/schema/resourceClaims'
 import type { Resource } from '@/db/schema/resources'
+import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import {
-  type SubscriptionItemFeature,
-  subscriptionItemFeatures,
-} from '@/db/schema/subscriptionItemFeatures'
-import {
-  bulkInsertResourceClaims,
   bulkReleaseResourceClaims,
-  countActiveClaimsForSubscriptionItemFeature,
-  insertResourceClaim,
+  countActiveResourceClaims,
   selectActiveClaimByExternalId,
   selectActiveClaimsByExternalIds,
   selectActiveResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
-import {
-  selectSubscriptionItemFeatures,
-  selectSubscriptionItemFeaturesBySubscriptionItemIds,
-} from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItemFeaturesBySubscriptionItemIds } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   isSubscriptionInTerminalState,
   selectSubscriptionById,
@@ -204,6 +197,61 @@ export type GetResourceUsageInput = z.infer<
 >
 
 // ============================================================================
+// Raw SQL Result Schemas (for runtime validation)
+// ============================================================================
+
+/**
+ * Schema for validating raw SQL results from resource_claims table.
+ * Uses snake_case to match PostgreSQL column names.
+ */
+const resourceClaimRawRowSchema = z.object({
+  id: z.string(),
+  created_at: z.number(),
+  updated_at: z.number(),
+  created_by_commit: z.string().nullable(),
+  updated_by_commit: z.string().nullable(),
+  position: z.number(),
+  organization_id: z.string(),
+  resource_id: z.string(),
+  subscription_id: z.string(),
+  pricing_model_id: z.string(),
+  external_id: z.string().nullable(),
+  metadata: z
+    .record(z.string(), z.union([z.string(), z.number(), z.boolean()]))
+    .nullable(),
+  livemode: z.boolean(),
+  claimed_at: z.number(),
+  released_at: z.number().nullable(),
+  release_reason: z.string().nullable(),
+})
+
+type ResourceClaimRawRow = z.infer<typeof resourceClaimRawRowSchema>
+
+/**
+ * Transform a validated raw row to the camelCase ResourceClaim.Record format
+ */
+const transformRawRowToRecord = (
+  row: ResourceClaimRawRow
+): ResourceClaim.Record => ({
+  id: row.id,
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+  createdByCommit: row.created_by_commit,
+  updatedByCommit: row.updated_by_commit,
+  position: row.position,
+  organizationId: row.organization_id,
+  resourceId: row.resource_id,
+  subscriptionId: row.subscription_id,
+  pricingModelId: row.pricing_model_id,
+  externalId: row.external_id,
+  metadata: row.metadata,
+  livemode: row.livemode,
+  claimedAt: row.claimed_at,
+  releasedAt: row.released_at,
+  releaseReason: row.release_reason,
+})
+
+// ============================================================================
 // Helper Functions
 // ============================================================================
 
@@ -318,93 +366,280 @@ const findResourceBySlug = async (
 }
 
 /**
- * Finds the SubscriptionItemFeature for a given resource and subscription.
- * This is needed to validate capacity and create claims.
+ * Gets the aggregated resource capacity from all active subscription item features
+ * that provide the specified resource.
+ *
+ * This aggregates capacity across multiple features (e.g., base plan + add-ons)
+ * to get the total capacity available for a resource on a subscription.
+ *
+ * "Active" means:
+ * 1. Parent subscription item is active (expiresAt IS NULL OR expiresAt > now())
+ * 2. Feature itself is not expired (expiredAt IS NULL)
+ *
+ * @param params - subscriptionId and resourceId to aggregate capacity for
+ * @param transaction - Database transaction
+ * @returns Object with totalCapacity and array of contributing featureIds
  */
-const findSubscriptionItemFeatureForResource = async (
+export const getAggregatedResourceCapacity = async (
   params: {
     subscriptionId: string
     resourceId: string
   },
   transaction: DbTransaction
-): Promise<SubscriptionItemFeature.ResourceRecord> => {
-  // First get all subscription items for this subscription
-  const items = await selectSubscriptionItems(
+): Promise<{ totalCapacity: number; featureIds: string[] }> => {
+  const now = Date.now()
+
+  // Get all currently active subscription items for this subscription
+  const activeItems = await selectCurrentlyActiveSubscriptionItems(
     { subscriptionId: params.subscriptionId },
+    now,
     transaction
   )
 
-  if (items.length === 0) {
-    throw new Error(
-      `No subscription items found for subscription ${params.subscriptionId}`
-    )
+  if (activeItems.length === 0) {
+    return { totalCapacity: 0, featureIds: [] }
   }
 
-  // Find subscription item features of type Resource with matching resourceId
-  const subscriptionItemIds = items.map((item) => item.id)
+  const subscriptionItemIds = activeItems.map((item) => item.id)
 
-  // Get all subscription item features for these subscription items in a single query
+  // Get all subscription item features for these active items
   const allFeatures =
     await selectSubscriptionItemFeaturesBySubscriptionItemIds(
       subscriptionItemIds,
       transaction
     )
 
-  // Find the one matching our resource
-  const resourceFeature = allFeatures.find(
+  // Filter to Resource features for our resource that are not expired
+  const resourceFeatures = allFeatures.filter(
     (f): f is SubscriptionItemFeature.ResourceRecord =>
       f.type === FeatureType.Resource &&
-      f.resourceId === params.resourceId
+      f.resourceId === params.resourceId &&
+      (f.expiredAt === null || f.expiredAt > now)
   )
 
-  if (!resourceFeature) {
-    throw new Error(
-      `No Resource feature found for resource ${params.resourceId} in subscription ${params.subscriptionId}`
-    )
-  }
+  // Sum up the capacity
+  const totalCapacity = resourceFeatures.reduce(
+    (sum, feature) => sum + feature.amount,
+    0
+  )
 
-  return resourceFeature
+  return {
+    totalCapacity,
+    featureIds: resourceFeatures.map((f) => f.id),
+  }
 }
 
 /**
- * Acquires a row-level lock on a subscription item feature for atomic capacity checking.
+ * Batch version of getAggregatedResourceCapacity.
+ * Fetches active subscription items and features once, then aggregates
+ * capacity for multiple resources in a single pass.
  *
- * This uses SELECT ... FOR UPDATE to acquire an exclusive lock on the row,
- * preventing concurrent transactions from reading/modifying the same row until
- * this transaction completes. This ensures that capacity checks and claim
- * creation are atomic and race-free.
+ * This avoids N+1 queries when listing usages for multiple resources.
  *
- * @param subscriptionItemFeatureId - The ID of the subscription item feature to lock
- * @param transaction - The database transaction
- * @returns The locked subscription item feature record
- * @throws Error if the subscription item feature is not found
+ * @param params - subscriptionId and array of resourceIds
+ * @param transaction - Database transaction
+ * @returns Map of resourceId -> { totalCapacity, featureIds }
  */
-const acquireSubscriptionItemFeatureLock = async (
-  subscriptionItemFeatureId: string,
+export const getAggregatedResourceCapacityBatch = async (
+  params: {
+    subscriptionId: string
+    resourceIds: string[]
+  },
   transaction: DbTransaction
-): Promise<SubscriptionItemFeature.ResourceRecord> => {
-  // Use raw SQL to perform SELECT ... FOR UPDATE for row-level locking
-  const result = await transaction
-    .select()
-    .from(subscriptionItemFeatures)
-    .where(eq(subscriptionItemFeatures.id, subscriptionItemFeatureId))
-    .for('update')
+): Promise<
+  Map<string, { totalCapacity: number; featureIds: string[] }>
+> => {
+  const result = new Map<
+    string,
+    { totalCapacity: number; featureIds: string[] }
+  >()
 
-  const feature = result[0]
-
-  if (!feature) {
-    throw new Error(
-      `SubscriptionItemFeature ${subscriptionItemFeatureId} not found`
-    )
+  // Initialize all resources with 0 capacity
+  for (const resourceId of params.resourceIds) {
+    result.set(resourceId, { totalCapacity: 0, featureIds: [] })
   }
 
-  if (feature.type !== FeatureType.Resource) {
-    throw new Error(
-      `SubscriptionItemFeature ${subscriptionItemFeatureId} is not a Resource type`
-    )
+  if (params.resourceIds.length === 0) {
+    return result
   }
 
-  return feature as SubscriptionItemFeature.ResourceRecord
+  const now = Date.now()
+
+  // 1. Fetch active subscription items ONCE
+  const activeItems = await selectCurrentlyActiveSubscriptionItems(
+    { subscriptionId: params.subscriptionId },
+    now,
+    transaction
+  )
+
+  if (activeItems.length === 0) {
+    return result
+  }
+
+  const subscriptionItemIds = activeItems.map((item) => item.id)
+
+  // 2. Fetch all features for those items ONCE
+  const allFeatures =
+    await selectSubscriptionItemFeaturesBySubscriptionItemIds(
+      subscriptionItemIds,
+      transaction
+    )
+
+  // 3. Create a set of requested resource IDs for O(1) lookup
+  const requestedResourceIds = new Set(params.resourceIds)
+
+  // 4. Filter to Resource features that match our requested resources
+  const resourceFeatures = allFeatures.filter(
+    (f): f is SubscriptionItemFeature.ResourceRecord =>
+      f.type === FeatureType.Resource &&
+      f.resourceId !== null &&
+      requestedResourceIds.has(f.resourceId) &&
+      (f.expiredAt === null || f.expiredAt > now)
+  )
+
+  // 5. Aggregate capacity per resource
+  for (const feature of resourceFeatures) {
+    const existing = result.get(feature.resourceId!)!
+    existing.totalCapacity += feature.amount
+    existing.featureIds.push(feature.id)
+  }
+
+  return result
+}
+
+const MAX_OPTIMISTIC_LOCK_RETRIES = 3
+
+/**
+ * Inserts resource claims using optimistic locking (compare-and-swap).
+ *
+ * This function:
+ * 1. Reads the current claim count
+ * 2. Validates capacity
+ * 3. Uses a batched conditional INSERT that only succeeds if the count hasn't changed
+ * 4. Retries on conflict (another transaction modified the count)
+ *
+ * IMPORTANT: All claims are inserted in a single atomic statement using UNNEST.
+ * This ensures either ALL claims are inserted or NONE are, preventing partial
+ * inserts that could cause duplicates on retry.
+ *
+ * This approach avoids blocking (unlike SELECT ... FOR UPDATE) and provides
+ * better throughput for low-contention scenarios (which resource claims are).
+ *
+ * RACE CONDITION EDGE CASE:
+ * If capacity validation passes (e.g., 2 available) but another transaction
+ * claims resources before our INSERT executes, the conditional INSERT will
+ * insert 0 rows (not fail). We detect this by checking rows.length and retry
+ * with a fresh count. After MAX_OPTIMISTIC_LOCK_RETRIES failures, we throw
+ * an error. This is expected behavior under high contention and ensures we
+ * never over-claim capacity.
+ *
+ * @param params - subscriptionId, resourceId, expectedCount, and claims to insert
+ * @param transaction - Database transaction
+ * @returns Object with success flag and inserted claims
+ */
+const insertClaimsWithOptimisticLock = async (
+  params: {
+    subscriptionId: string
+    resourceId: string
+    organizationId: string
+    pricingModelId: string
+    livemode: boolean
+    claimsToInsert: Array<{
+      externalId: string | null
+      metadata: Record<string, string | number | boolean> | null
+    }>
+  },
+  transaction: DbTransaction
+): Promise<{ success: boolean; claims: ResourceClaim.Record[] }> => {
+  const {
+    subscriptionId,
+    resourceId,
+    organizationId,
+    pricingModelId,
+    livemode,
+    claimsToInsert,
+  } = params
+
+  for (
+    let attempt = 0;
+    attempt < MAX_OPTIMISTIC_LOCK_RETRIES;
+    attempt++
+  ) {
+    // 1. Read current state
+    const currentCount = await countActiveResourceClaims(
+      { subscriptionId, resourceId },
+      transaction
+    )
+    const { totalCapacity } = await getAggregatedResourceCapacity(
+      { subscriptionId, resourceId },
+      transaction
+    )
+
+    // 2. Validate capacity
+    const requested = claimsToInsert.length
+    const available = totalCapacity - currentCount
+
+    if (requested > available) {
+      throw new Error(
+        `No available capacity. Requested: ${requested}, Available: ${available}, Capacity: ${totalCapacity}`
+      )
+    }
+
+    // 3. Batched conditional insert - all claims in one atomic statement
+    // Uses UNNEST to expand arrays into rows, ensuring either ALL claims
+    // are inserted or NONE are (prevents partial insert bug on retry)
+    const externalIds = claimsToInsert.map((c) => c.externalId)
+    const metadataJsonStrings = claimsToInsert.map((c) =>
+      c.metadata ? JSON.stringify(c.metadata) : null
+    )
+
+    const result = await transaction.execute(sql`
+      INSERT INTO ${resourceClaims} (
+        organization_id, resource_id, subscription_id,
+        pricing_model_id, external_id, metadata, livemode
+      )
+      SELECT
+        ${organizationId},
+        ${resourceId},
+        ${subscriptionId},
+        ${pricingModelId},
+        ext_id,
+        meta::jsonb,
+        ${livemode}
+      FROM UNNEST(
+        ${externalIds}::text[],
+        ${metadataJsonStrings}::text[]
+      ) AS t(ext_id, meta)
+      WHERE (
+        SELECT COUNT(*) FROM ${resourceClaims}
+        WHERE subscription_id = ${subscriptionId}
+          AND resource_id = ${resourceId}
+          AND released_at IS NULL
+      ) = ${currentCount}
+      RETURNING *
+    `)
+
+    // Validate raw SQL results with Zod for runtime safety
+    const rows = z.array(resourceClaimRawRowSchema).parse(result)
+
+    // 4. Check if all claims were inserted (atomic - all or nothing)
+    if (rows.length === claimsToInsert.length) {
+      const insertedClaims = rows.map(transformRawRowToRecord)
+      return { success: true, claims: insertedClaims }
+    }
+
+    // 5. Conflict detected - count changed, nothing was inserted, retry
+    if (attempt < MAX_OPTIMISTIC_LOCK_RETRIES - 1) {
+      // eslint-disable-next-line no-console
+      console.log(
+        `Optimistic lock conflict on claim insert, retry ${attempt + 1}/${MAX_OPTIMISTIC_LOCK_RETRIES}`
+      )
+    }
+  }
+
+  throw new Error(
+    'Max retries exceeded due to concurrent modifications to resource claims'
+  )
 }
 
 // ============================================================================
@@ -431,6 +666,10 @@ export interface ClaimResourceResult {
 /**
  * Claims resources for a subscription.
  *
+ * Uses optimistic locking to ensure atomic capacity validation and claim creation.
+ * Capacity is aggregated across all active subscription item features that provide
+ * the resource.
+ *
  * Modes:
  * - quantity: Creates N anonymous claims (externalId = null)
  * - externalId: Creates a single named claim with the given externalId (idempotent)
@@ -438,7 +677,7 @@ export interface ClaimResourceResult {
  *
  * @throws Error if subscription is in a terminal state
  * @throws Error if capacity is exhausted
- * @throws Error if resource or subscription item feature is not found
+ * @throws Error if resource is not found or has no capacity on this subscription
  */
 export async function claimResourceTransaction(
   params: ClaimResourceTransactionParams,
@@ -473,9 +712,9 @@ export async function claimResourceTransaction(
     transaction
   )
 
-  // 4. Find the subscription item feature for this resource (without lock first)
-  const subscriptionItemFeatureUnlocked =
-    await findSubscriptionItemFeatureForResource(
+  // 4. Verify the subscription has capacity for this resource
+  const { totalCapacity, featureIds } =
+    await getAggregatedResourceCapacity(
       {
         subscriptionId: subscription.id,
         resourceId: resource.id,
@@ -483,8 +722,14 @@ export async function claimResourceTransaction(
       transaction
     )
 
-  // 5. Determine how many claims we need to create (before acquiring lock)
-  // This allows idempotent operations to return early without acquiring the lock
+  if (featureIds.length === 0) {
+    throw new Error(
+      `No Resource feature found for resource ${resource.id} in subscription ${subscription.id}`
+    )
+  }
+
+  // 5. Determine how many claims we need to create
+  // This allows idempotent operations to return early
   let claimsToCreate: Array<{
     externalId: string | null
     metadata: Record<string, string | number | boolean> | null
@@ -508,10 +753,10 @@ export async function claimResourceTransaction(
     )
 
     if (existing) {
-      // Idempotent: return existing claim (no lock needed)
+      // Idempotent: return existing claim
       const usage = await getResourceUsage(
         subscription.id,
-        subscriptionItemFeatureUnlocked.id,
+        resource.id,
         transaction
       )
       return {
@@ -553,11 +798,11 @@ export async function claimResourceTransaction(
       metadata: input.metadata ?? null,
     }))
 
-    // If all claims already exist, return them (no lock needed)
+    // If all claims already exist, return them
     if (claimsToCreate.length === 0) {
       const usage = await getResourceUsage(
         subscription.id,
-        subscriptionItemFeatureUnlocked.id,
+        resource.id,
         transaction
       )
       return {
@@ -571,66 +816,24 @@ export async function claimResourceTransaction(
     }
   }
 
-  // 6. Acquire exclusive lock on subscription item feature row
-  // This prevents race conditions where concurrent transactions could both
-  // pass the capacity check and exceed the limit. The lock is held until
-  // the transaction commits, ensuring atomic capacity validation and claim creation.
-  const subscriptionItemFeature =
-    await acquireSubscriptionItemFeatureLock(
-      subscriptionItemFeatureUnlocked.id,
-      transaction
-    )
-
-  const capacity = subscriptionItemFeature.amount
-
-  // 7. Validate capacity (while holding the lock)
-  const currentClaimedCount =
-    await countActiveClaimsForSubscriptionItemFeature(
-      subscriptionItemFeature.id,
-      transaction
-    )
-
-  const available = capacity - currentClaimedCount
-  const requested = claimsToCreate.length
-
-  if (requested > available) {
-    throw new Error(
-      `No available capacity. Requested: ${requested}, Available: ${available}, Capacity: ${capacity}`
-    )
-  }
-
-  // 8. Create the claims (while holding the lock)
-  const claimInserts: ResourceClaim.Insert[] = claimsToCreate.map(
-    (claim) => ({
-      organizationId,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
-      resourceId: resource.id,
+  // 6. Insert claims using optimistic locking
+  // This validates capacity and handles concurrent modifications via retry
+  const { claims: newClaims } = await insertClaimsWithOptimisticLock(
+    {
       subscriptionId: subscription.id,
+      resourceId: resource.id,
+      organizationId,
       pricingModelId: subscription.pricingModelId,
-      externalId: claim.externalId,
-      metadata: claim.metadata,
       livemode: subscription.livemode,
-    })
+      claimsToInsert: claimsToCreate,
+    },
+    transaction
   )
 
-  let newClaims: ResourceClaim.Record[]
-  if (claimInserts.length === 1) {
-    const claim = await insertResourceClaim(
-      claimInserts[0],
-      transaction
-    )
-    newClaims = [claim]
-  } else {
-    newClaims = await bulkInsertResourceClaims(
-      claimInserts,
-      transaction
-    )
-  }
-
-  // 9. Get updated usage
+  // 7. Get updated usage
   const usage = await getResourceUsage(
     subscription.id,
-    subscriptionItemFeature.id,
+    resource.id,
     transaction
   )
 
@@ -639,7 +842,8 @@ export async function claimResourceTransaction(
     // Re-fetch to get the complete list
     const allActiveClaims = await selectActiveResourceClaims(
       {
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
+        subscriptionId: subscription.id,
+        resourceId: resource.id,
       },
       transaction
     )
@@ -691,6 +895,10 @@ export interface ReleaseResourceResult {
 /**
  * Releases resource claims for a subscription.
  *
+ * Claims are queried by (subscriptionId, resourceId) rather than by
+ * subscriptionItemFeatureId, making this function resilient to subscription
+ * adjustments that create new subscription items.
+ *
  * Modes:
  * - quantity: Releases N anonymous claims (FIFO order, only where externalId IS NULL)
  * - externalId: Releases a specific named claim by its externalId
@@ -726,23 +934,17 @@ export async function releaseResourceTransaction(
     transaction
   )
 
-  // 3. Find the subscription item feature for this resource
-  const subscriptionItemFeature =
-    await findSubscriptionItemFeatureForResource(
-      {
-        subscriptionId: subscription.id,
-        resourceId: resource.id,
-      },
-      transaction
-    )
-
-  // 4. Find claims to release based on mode
+  // 3. Find claims to release based on mode
+  // Claims are queried by (subscriptionId, resourceId) to be resilient to subscription adjustments
   let claimsToRelease: ResourceClaim.Record[] = []
 
   if (input.quantity !== undefined) {
     // Anonymous mode: release claims without externalId, FIFO order
     const activeClaims = await selectActiveResourceClaims(
-      { subscriptionItemFeatureId: subscriptionItemFeature.id },
+      {
+        subscriptionId: subscription.id,
+        resourceId: resource.id,
+      },
       transaction
     )
 
@@ -803,7 +1005,10 @@ export async function releaseResourceTransaction(
   } else if (input.claimIds !== undefined) {
     // Release by claim IDs
     const activeClaims = await selectActiveResourceClaims(
-      { subscriptionItemFeatureId: subscriptionItemFeature.id },
+      {
+        subscriptionId: subscription.id,
+        resourceId: resource.id,
+      },
       transaction
     )
 
@@ -820,17 +1025,17 @@ export async function releaseResourceTransaction(
     }
   }
 
-  // 5. Release the claims in bulk
+  // 4. Release the claims in bulk
   const releasedClaims = await bulkReleaseResourceClaims(
     claimsToRelease.map((c) => c.id),
     'released',
     transaction
   )
 
-  // 6. Get updated usage
+  // 5. Get updated usage
   const usage = await getResourceUsage(
     subscription.id,
-    subscriptionItemFeature.id,
+    resource.id,
     transaction
   )
 
@@ -849,83 +1054,37 @@ export async function releaseResourceTransaction(
 // ============================================================================
 
 /**
- * Gets the resource usage for a subscription item feature.
+ * Gets the resource usage for a subscription and resource.
+ *
+ * Capacity is aggregated across all active subscription item features
+ * that provide the resource. Claims are counted by (subscriptionId, resourceId).
  *
  * @param subscriptionId - The subscription ID
- * @param subscriptionItemFeatureId - The subscription item feature ID
+ * @param resourceId - The resource ID
  * @param transaction - The database transaction
  * @returns Object with capacity, claimed count, and available slots
  */
 export async function getResourceUsage(
   subscriptionId: string,
-  subscriptionItemFeatureId: string,
+  resourceId: string,
   transaction: DbTransaction
 ): Promise<{ capacity: number; claimed: number; available: number }> {
-  // Get the subscription item feature to get capacity
-  const [feature] = await selectSubscriptionItemFeatures(
-    { id: subscriptionItemFeatureId },
+  // Get aggregated capacity from all active features
+  const { totalCapacity } = await getAggregatedResourceCapacity(
+    { subscriptionId, resourceId },
     transaction
   )
 
-  if (!feature || feature.type !== FeatureType.Resource) {
-    throw new Error(
-      `SubscriptionItemFeature ${subscriptionItemFeatureId} not found or is not a Resource type`
-    )
-  }
-
-  const resourceFeature =
-    feature as SubscriptionItemFeature.ResourceRecord
-  const capacity = resourceFeature.amount
-
-  // Count active claims
-  const claimed = await countActiveClaimsForSubscriptionItemFeature(
-    subscriptionItemFeatureId,
+  // Count active claims by (subscriptionId, resourceId)
+  const claimed = await countActiveResourceClaims(
+    { subscriptionId, resourceId },
     transaction
   )
 
   return {
-    capacity,
+    capacity: totalCapacity,
     claimed,
-    available: capacity - claimed,
-  }
-}
-
-/**
- * Validates that a subscription can be downgraded to a new capacity.
- *
- * @param subscriptionId - The subscription ID
- * @param subscriptionItemFeatureId - The subscription item feature ID
- * @param newCapacity - The proposed new capacity
- * @param transaction - The database transaction
- * @throws Error if active claims exceed the new capacity
- */
-export async function validateResourceCapacityForDowngrade(
-  subscriptionId: string,
-  subscriptionItemFeatureId: string,
-  newCapacity: number,
-  transaction: DbTransaction
-): Promise<void> {
-  const { claimed } = await getResourceUsage(
-    subscriptionId,
-    subscriptionItemFeatureId,
-    transaction
-  )
-
-  if (claimed > newCapacity) {
-    // Get the feature to provide a better error message
-    const [feature] = await selectSubscriptionItemFeatures(
-      { id: subscriptionItemFeatureId },
-      transaction
-    )
-
-    const resourceFeature =
-      feature as SubscriptionItemFeature.ResourceRecord
-
-    throw new Error(
-      `Cannot reduce capacity to ${newCapacity}. ` +
-        `${claimed} resources are currently claimed. ` +
-        `Release ${claimed - newCapacity} claims before downgrading.`
-    )
+    available: totalCapacity - claimed,
   }
 }
 
@@ -946,39 +1105,6 @@ export async function releaseAllResourceClaimsForSubscription(
   // Find all active claims for this subscription
   const activeClaims = await selectActiveResourceClaims(
     { subscriptionId },
-    transaction
-  )
-
-  if (activeClaims.length === 0) {
-    return { releasedCount: 0 }
-  }
-
-  // Release all claims in bulk
-  const releasedClaims = await bulkReleaseResourceClaims(
-    activeClaims.map((c) => c.id),
-    reason,
-    transaction
-  )
-
-  return { releasedCount: releasedClaims.length }
-}
-
-/**
- * Alternative version that uses subscriptionItemFeature to find and release claims.
- * This can be used when you have a specific feature context.
- *
- * @param subscriptionItemFeatureId - The subscription item feature ID
- * @param reason - The reason for releasing
- * @param transaction - The database transaction
- * @returns Object with the count of released claims
- */
-export async function releaseAllResourceClaimsForSubscriptionItemFeature(
-  subscriptionItemFeatureId: string,
-  reason: string,
-  transaction: DbTransaction
-): Promise<{ releasedCount: number }> {
-  const activeClaims = await selectActiveResourceClaims(
-    { subscriptionItemFeatureId },
     transaction
   )
 
