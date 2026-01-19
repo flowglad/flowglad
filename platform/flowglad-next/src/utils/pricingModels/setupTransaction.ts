@@ -275,11 +275,10 @@ export const setupPricingModelTransaction = async (
   )
 
   // Determine which usage meters have a user-specified default price
-  // We must check rawInput BEFORE validation, because validation sets
-  // all usage prices' isDefault to false (see setupSchemas.ts)
-  // No-charge prices should only be the default if no user price was originally set as default
+  // Now that validation no longer mutates isDefault (Patch 3), we can use validated input directly
+  // No-charge prices should only be the default if no user price is set as default
   const metersWithUserDefaultPrice = new Set(
-    rawInput.usageMeters
+    input.usageMeters
       .filter((meterWithPrices) =>
         (meterWithPrices.prices || []).some(
           (price) => price.isDefault

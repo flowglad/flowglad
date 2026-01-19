@@ -912,3 +912,186 @@ describe('setupUsageMeterPriceInputSchema', () => {
     })
   })
 })
+
+describe('usage meter isDefault validation', () => {
+  // Helper function to create a minimal valid input
+  const createMinimalValidInput = (): SetupPricingModelInput => ({
+    name: 'Test Pricing Model',
+    isDefault: false,
+    features: [],
+    products: [
+      {
+        product: {
+          name: 'Test Product',
+          slug: 'test-product',
+          active: true,
+          default: false,
+        },
+        price: {
+          type: PriceType.Subscription,
+          slug: 'test-price',
+          isDefault: true,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: true,
+        },
+        features: [],
+      },
+    ],
+    usageMeters: [],
+  })
+
+  it('throws when multiple prices have isDefault=true for the same usage meter', () => {
+    const input = createMinimalValidInput()
+    input.usageMeters = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-1',
+            isDefault: true,
+            unitPrice: 100,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-2',
+            isDefault: true, // Second default - should fail
+            unitPrice: 200,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+    ]
+
+    expect(() => validateSetupPricingModelInput(input)).toThrow(
+      'Usage meter "api-calls" has multiple prices with isDefault=true'
+    )
+  })
+
+  it('accepts when exactly one price has isDefault=true for a usage meter', () => {
+    const input = createMinimalValidInput()
+    input.usageMeters = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-1',
+            isDefault: true,
+            unitPrice: 100,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-2',
+            isDefault: false,
+            unitPrice: 200,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+    ]
+
+    expect(() => validateSetupPricingModelInput(input)).not.toThrow()
+  })
+
+  it('accepts when no prices have isDefault=true for a usage meter', () => {
+    const input = createMinimalValidInput()
+    input.usageMeters = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-1',
+            isDefault: false,
+            unitPrice: 100,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+    ]
+
+    expect(() => validateSetupPricingModelInput(input)).not.toThrow()
+  })
+
+  it('validates each usage meter independently - different meters can each have one default', () => {
+    const input = createMinimalValidInput()
+    input.usageMeters = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price',
+            isDefault: true,
+            unitPrice: 100,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+      {
+        usageMeter: {
+          slug: 'storage',
+          name: 'Storage',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'storage-price',
+            isDefault: true, // Different meter, so this is fine
+            unitPrice: 50,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+    ]
+
+    expect(() => validateSetupPricingModelInput(input)).not.toThrow()
+  })
+})

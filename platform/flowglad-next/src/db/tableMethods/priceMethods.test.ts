@@ -27,10 +27,12 @@ import {
   bulkInsertPrices,
   dangerouslyInsertPrice,
   derivePricingModelIdForPrice,
+  ensureUsageMeterHasDefaultPrice,
   insertPrice,
   pricingModelIdsForPrices,
   safelyInsertPrice,
   safelyUpdatePrice,
+  selectDefaultPriceForUsageMeter,
   selectPriceById,
   selectPriceBySlugAndCustomerId,
   selectPriceBySlugForDefaultPricingModel,
@@ -38,6 +40,7 @@ import {
   selectPricesAndProductsForOrganization,
   selectResourceFeaturesForPrice,
   selectResourceFeaturesForPrices,
+  setPricesForUsageMeterToNonDefault,
   updatePrice,
 } from './priceMethods'
 import { updatePricingModel } from './pricingModelMethods'
@@ -2805,6 +2808,315 @@ describe('priceMethods.ts', () => {
         ).rejects.toThrow(
           /Pricing model id must be provided or derivable from productId or usageMeterId/
         )
+      })
+    })
+  })
+
+  describe('usage meter default price helpers', () => {
+    let usageMeterOrg: Organization.Record
+    let usageMeterPricingModel: PricingModel.Record
+    let testUsageMeter: UsageMeter.Record
+
+    beforeEach(async () => {
+      const setup = await setupOrg()
+      usageMeterOrg = setup.organization
+      usageMeterPricingModel = setup.pricingModel
+
+      testUsageMeter = await setupUsageMeter({
+        organizationId: usageMeterOrg.id,
+        name: 'Test Usage Meter',
+        livemode: true,
+        pricingModelId: usageMeterPricingModel.id,
+        slug: `test-usage-meter-${core.nanoid()}`,
+      })
+    })
+
+    describe('setPricesForUsageMeterToNonDefault', () => {
+      it('sets all prices for a usage meter to non-default', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          // Create two usage prices, one is default
+          const price1 = await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: 'Usage Price 1',
+              unitPrice: 100,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `usage-price-1-${core.nanoid()}`,
+              isDefault: true,
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          const price2 = await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: 'Usage Price 2',
+              unitPrice: 200,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `usage-price-2-${core.nanoid()}`,
+              isDefault: false,
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          // Verify initial state
+          expect(price1.isDefault).toBe(true)
+          expect(price2.isDefault).toBe(false)
+
+          // Call the helper
+          await setPricesForUsageMeterToNonDefault(
+            testUsageMeter.id,
+            transaction
+          )
+
+          // Verify both prices are now non-default
+          const updatedPrice1 = await selectPriceById(
+            price1.id,
+            transaction
+          )
+          const updatedPrice2 = await selectPriceById(
+            price2.id,
+            transaction
+          )
+
+          expect(updatedPrice1.isDefault).toBe(false)
+          expect(updatedPrice2.isDefault).toBe(false)
+        })
+      })
+    })
+
+    describe('selectDefaultPriceForUsageMeter', () => {
+      it('returns the active default price for a usage meter', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          // Create a default price
+          const defaultPrice = await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: 'Default Usage Price',
+              unitPrice: 100,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `default-usage-price-${core.nanoid()}`,
+              isDefault: true,
+              active: true,
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          const result = await selectDefaultPriceForUsageMeter(
+            testUsageMeter.id,
+            transaction
+          )
+
+          expect(result?.id).toBe(defaultPrice.id)
+          expect(result?.isDefault).toBe(true)
+        })
+      })
+
+      it('returns null when no active default price exists', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          // Create an inactive default price
+          await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: 'Inactive Default Price',
+              unitPrice: 100,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `inactive-default-${core.nanoid()}`,
+              isDefault: true,
+              active: false,
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          const result = await selectDefaultPriceForUsageMeter(
+            testUsageMeter.id,
+            transaction
+          )
+
+          expect(result).toBeNull()
+        })
+      })
+    })
+
+    describe('ensureUsageMeterHasDefaultPrice', () => {
+      it('sets the no_charge price as default when no active default exists', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          // Create a no_charge price (simulating what setupTransaction creates)
+          const noChargeSlug = `${testUsageMeter.slug}_no_charge`
+          const noChargePrice = await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: `${testUsageMeter.name} - No Charge`,
+              unitPrice: 0,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: noChargeSlug,
+              isDefault: false,
+              active: true,
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          // Create a regular usage price that is default but inactive
+          await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: 'Regular Usage Price',
+              unitPrice: 100,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `regular-usage-${core.nanoid()}`,
+              isDefault: true,
+              active: false, // Inactive
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          // Call the helper
+          await ensureUsageMeterHasDefaultPrice(
+            testUsageMeter.id,
+            transaction
+          )
+
+          // Verify no_charge price is now default
+          const updatedNoChargePrice = await selectPriceById(
+            noChargePrice.id,
+            transaction
+          )
+          expect(updatedNoChargePrice.isDefault).toBe(true)
+        })
+      })
+
+      it('does nothing when an active default already exists', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          // Create an active default price
+          const defaultPrice = await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: 'Active Default Price',
+              unitPrice: 100,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `active-default-${core.nanoid()}`,
+              isDefault: true,
+              active: true,
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          // Create a no_charge price
+          const noChargeSlug = `${testUsageMeter.slug}_no_charge`
+          const noChargePrice = await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: `${testUsageMeter.name} - No Charge`,
+              unitPrice: 0,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: noChargeSlug,
+              isDefault: false,
+              active: true,
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          // Call the helper
+          await ensureUsageMeterHasDefaultPrice(
+            testUsageMeter.id,
+            transaction
+          )
+
+          // Verify the original default is still default
+          const updatedDefaultPrice = await selectPriceById(
+            defaultPrice.id,
+            transaction
+          )
+          expect(updatedDefaultPrice.isDefault).toBe(true)
+
+          // Verify no_charge price is still non-default
+          const updatedNoChargePrice = await selectPriceById(
+            noChargePrice.id,
+            transaction
+          )
+          expect(updatedNoChargePrice.isDefault).toBe(false)
+        })
+      })
+    })
+
+    describe('safelyUpdatePrice for usage prices', () => {
+      it('unsets other usage meter prices when setting a price as default', async () => {
+        await adminTransaction(async ({ transaction }) => {
+          // Create two usage prices
+          const price1 = await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: 'Usage Price 1',
+              unitPrice: 100,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `usage-price-safe-1-${core.nanoid()}`,
+              isDefault: true,
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          const price2 = await dangerouslyInsertPrice(
+            {
+              ...usagePriceDefaultColumns,
+              usageMeterId: testUsageMeter.id,
+              name: 'Usage Price 2',
+              unitPrice: 200,
+              livemode: true,
+              currency: CurrencyCode.USD,
+              slug: `usage-price-safe-2-${core.nanoid()}`,
+              isDefault: false,
+              pricingModelId: usageMeterPricingModel.id,
+            },
+            transaction
+          )
+
+          // Set price2 as default using safelyUpdatePrice
+          const updatedPrice2 = await safelyUpdatePrice(
+            {
+              id: price2.id,
+              isDefault: true,
+              type: PriceType.Usage,
+            },
+            transaction
+          )
+
+          // Verify price2 is now default
+          expect(updatedPrice2.isDefault).toBe(true)
+
+          // Verify price1 is no longer default
+          const updatedPrice1 = await selectPriceById(
+            price1.id,
+            transaction
+          )
+          expect(updatedPrice1.isDefault).toBe(false)
+        })
       })
     })
   })

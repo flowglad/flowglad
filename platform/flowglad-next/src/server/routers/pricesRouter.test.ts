@@ -2060,3 +2060,237 @@ describe('pricesRouter - Reserved Slug Validation', () => {
     })
   })
 })
+
+describe('pricesRouter - No Charge Price Protection', () => {
+  let organizationId: string
+  let pricingModelId: string
+  let usageMeterId: string
+  let noChargePriceId: string
+  let regularUsagePriceId: string
+  const livemode = true
+
+  beforeEach(async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      const { organization } = await setupOrg()
+
+      // Create pricing model
+      const bookkeepingResult = await createPricingModelBookkeeping(
+        {
+          pricingModel: {
+            name: 'Test Pricing Model',
+            isDefault: false,
+          },
+        },
+        {
+          transaction,
+          organizationId: organization.id,
+          livemode,
+        }
+      )
+
+      // Create a usage meter
+      const usageMeter = await insertUsageMeter(
+        {
+          name: 'Test Usage Meter',
+          slug: 'test-usage-meter',
+          organizationId: organization.id,
+          pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
+          livemode,
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        transaction
+      )
+
+      // Create a no_charge price (system-generated fallback price)
+      const noChargePrice = await insertPrice(
+        {
+          usageMeterId: usageMeter.id,
+          unitPrice: 0,
+          isDefault: true,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Test Usage Meter - No Charge',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 1,
+          productId: null,
+          externalId: null,
+          slug: 'test-usage-meter_no_charge', // Reserved suffix
+        },
+        transaction
+      )
+
+      // Create a regular usage price
+      const regularUsagePrice = await insertPrice(
+        {
+          usageMeterId: usageMeter.id,
+          unitPrice: 100,
+          isDefault: false,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Regular Usage Price',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 1,
+          productId: null,
+          externalId: null,
+          slug: 'regular-usage-price',
+        },
+        transaction
+      )
+
+      return {
+        organizationId: organization.id,
+        pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
+        usageMeterId: usageMeter.id,
+        noChargePriceId: noChargePrice.id,
+        regularUsagePriceId: regularUsagePrice.id,
+      }
+    })
+
+    organizationId = result.organizationId
+    pricingModelId = result.pricingModelId
+    usageMeterId = result.usageMeterId
+    noChargePriceId = result.noChargePriceId
+    regularUsagePriceId = result.regularUsagePriceId
+  })
+
+  describe('updatePrice - No Charge Protection', () => {
+    it('rejects archiving (active: false) for no_charge prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx).update({
+          price: {
+            id: noChargePriceId,
+            type: PriceType.Usage,
+            isDefault: true,
+            active: false,
+          },
+          id: noChargePriceId,
+        })
+      ).rejects.toThrow(
+        'No charge prices cannot be archived. They are protected as fallback prices.'
+      )
+    })
+
+    it('rejects slug changes for no_charge prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx).update({
+          price: {
+            id: noChargePriceId,
+            type: PriceType.Usage,
+            isDefault: true,
+            slug: 'different-slug',
+          },
+          id: noChargePriceId,
+        })
+      ).rejects.toThrow(
+        'The slug of a no charge price is immutable. Only the name can be changed.'
+      )
+    })
+
+    it('allows name changes for no_charge prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      const result = await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: noChargePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+          name: 'New Name for No Charge Price',
+        },
+        id: noChargePriceId,
+      })
+
+      expect(result.price.name).toBe('New Name for No Charge Price')
+    })
+  })
+
+  describe('archivePrice - No Charge Protection', () => {
+    it('rejects archiving no_charge prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx).archive({
+          id: noChargePriceId,
+        })
+      ).rejects.toThrow(
+        'No charge prices cannot be archived. They are protected as fallback prices.'
+      )
+    })
+
+    it('allows archiving regular usage prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      const result = await pricesRouter.createCaller(ctx).archive({
+        id: regularUsagePriceId,
+      })
+
+      expect(result.price.active).toBe(false)
+    })
+  })
+})
