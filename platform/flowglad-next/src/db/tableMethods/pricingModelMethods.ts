@@ -261,10 +261,10 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
     transaction: DbTransaction
   ): Promise<PricingModelWithProductsAndUsageMeters[]> => {
     /**
-     * Optimized implementation using 3 parallel queries:
-     * 1. Pricing models with usage meters
-     * 2. Active products with active prices and non-expired features
-     * 3. Active usage prices for usage meters
+     * Optimized implementation using 3 queries:
+     * 1. Pricing models with usage meters (sequential - provides IDs for subsequent queries)
+     * 2. Active products with active prices and non-expired features (parallel with 3)
+     * 3. Active usage prices for usage meters (parallel with 2)
      *
      * All filtering (active products, active prices, non-expired features)
      * is done at the SQL level to minimize data transfer.
@@ -315,37 +315,63 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       return []
     }
 
-    // Query 2: Get active products with active prices and non-expired features
-    // This single query joins products, prices, product_features, and features
-    // with all filtering done at SQL level
-    const productPriceFeatureResults = await transaction
-      .select({
-        product: products,
-        price: prices,
-        feature: features,
-      })
-      .from(products)
-      .innerJoin(
-        prices,
-        and(
-          eq(prices.productId, products.id),
-          eq(prices.active, true) // Only active prices
-        )
-      )
-      .leftJoin(
-        productFeatures,
-        and(
-          eq(productFeatures.productId, products.id),
-          createDateNotPassedFilter(productFeatures.expiredAt) // Only non-expired features
-        )
-      )
-      .leftJoin(features, eq(features.id, productFeatures.featureId))
-      .where(
-        and(
-          inArray(products.pricingModelId, pricingModelIds),
-          eq(products.active, true) // Only active products
-        )
-      )
+    // Get all usage meter IDs for query 3
+    const allUsageMeterIds = Array.from(
+      usageMetersByPricingModelId.values()
+    ).flatMap((meters) => meters.map((m) => m.id))
+
+    // Run queries 2 and 3 in parallel since they only depend on query 1 results
+    const [productPriceFeatureResults, usagePricesResults] =
+      await Promise.all([
+        // Query 2: Get active products with active prices and non-expired features
+        // Uses INNER JOIN on prices to ensure only products with at least one active price
+        // are returned (products with only inactive prices are excluded)
+        transaction
+          .select({
+            product: products,
+            price: prices,
+            feature: features,
+          })
+          .from(products)
+          .innerJoin(
+            prices,
+            and(
+              eq(prices.productId, products.id),
+              eq(prices.active, true) // Only active prices
+            )
+          )
+          .leftJoin(
+            productFeatures,
+            and(
+              eq(productFeatures.productId, products.id),
+              createDateNotPassedFilter(productFeatures.expiredAt) // Only non-expired features
+            )
+          )
+          .leftJoin(
+            features,
+            eq(features.id, productFeatures.featureId)
+          )
+          .where(
+            and(
+              inArray(products.pricingModelId, pricingModelIds),
+              eq(products.active, true) // Only active products
+            )
+          ),
+
+        // Query 3: Get active usage prices for usage meters
+        allUsageMeterIds.length > 0
+          ? transaction
+              .select()
+              .from(prices)
+              .where(
+                and(
+                  inArray(prices.usageMeterId, allUsageMeterIds),
+                  eq(prices.type, PriceType.Usage),
+                  eq(prices.active, true) // Only active usage prices
+                )
+              )
+          : Promise.resolve([]),
+      ])
 
     // Aggregate products with their prices and features
     const productMap = new Map<
@@ -396,6 +422,8 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
 
     productMap.forEach(
       ({ product, prices: productPrices, features }) => {
+        // defaultPrice is guaranteed to exist because the INNER JOIN ensures
+        // at least one active price per product
         const defaultPrice =
           productPrices.find((p) => p.isDefault) ?? productPrices[0]
 
@@ -415,39 +443,22 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       }
     )
 
-    // Query 3: Get active usage prices for usage meters
-    const allUsageMeterIds = Array.from(
-      usageMetersByPricingModelId.values()
-    ).flatMap((meters) => meters.map((m) => m.id))
-
+    // Process usage prices results
     const usagePricesByUsageMeterId = new Map<
       string,
       z.infer<typeof usagePriceClientSelectSchema>[]
     >()
 
-    if (allUsageMeterIds.length > 0) {
-      const usagePricesResults = await transaction
-        .select()
-        .from(prices)
-        .where(
-          and(
-            inArray(prices.usageMeterId, allUsageMeterIds),
-            eq(prices.type, PriceType.Usage),
-            eq(prices.active, true) // Only active usage prices
-          )
-        )
-
-      usagePricesResults.forEach((price) => {
-        if (!price.usageMeterId) return
-        const parsedPrice = usagePriceClientSelectSchema.parse(price)
-        const existing =
-          usagePricesByUsageMeterId.get(price.usageMeterId) ?? []
-        usagePricesByUsageMeterId.set(price.usageMeterId, [
-          ...existing,
-          parsedPrice,
-        ])
-      })
-    }
+    usagePricesResults.forEach((price) => {
+      if (!price.usageMeterId) return
+      const parsedPrice = usagePriceClientSelectSchema.parse(price)
+      const existing =
+        usagePricesByUsageMeterId.get(price.usageMeterId) ?? []
+      usagePricesByUsageMeterId.set(price.usageMeterId, [
+        ...existing,
+        parsedPrice,
+      ])
+    })
 
     // Build final result
     return Array.from(uniquePricingModelsMap.values()).map(
