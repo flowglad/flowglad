@@ -66,6 +66,74 @@ import {
 // Test-specific namespace to avoid conflicts with production data
 const TEST_NAMESPACE = RedisKeyNamespace.SubscriptionsByCustomer
 
+/**
+ * Poll Redis for a cache key until it is populated or timeout is reached.
+ * Returns the cached value when found, or throws if timeout elapses.
+ */
+async function waitForCachePopulation<T>(
+  client: ReturnType<typeof getRedisTestClient>,
+  cacheKey: string,
+  options: { timeoutMs?: number; intervalMs?: number } = {}
+): Promise<T> {
+  const { timeoutMs = 5000, intervalMs = 50 } = options
+  const startTime = Date.now()
+
+  return new Promise<T>((resolve, reject) => {
+    const checkCache = async () => {
+      const value = await client.get(cacheKey)
+      if (value !== null) {
+        return resolve(value as T)
+      }
+
+      if (Date.now() - startTime >= timeoutMs) {
+        return reject(
+          new Error(
+            `Timeout waiting for cache key "${cacheKey}" to be populated after ${timeoutMs}ms`
+          )
+        )
+      }
+
+      setTimeout(checkCache, intervalMs)
+    }
+
+    checkCache()
+  })
+}
+
+/**
+ * Poll Redis until a cache key is invalidated (null) or timeout is reached.
+ * Throws if the key is still present after timeout elapses.
+ */
+async function waitForCacheInvalidation(
+  client: ReturnType<typeof getRedisTestClient>,
+  cacheKey: string,
+  options: { timeoutMs?: number; intervalMs?: number } = {}
+): Promise<void> {
+  const { timeoutMs = 5000, intervalMs = 50 } = options
+  const startTime = Date.now()
+
+  return new Promise<void>((resolve, reject) => {
+    const checkCache = async () => {
+      const value = await client.get(cacheKey)
+      if (value === null) {
+        return resolve()
+      }
+
+      if (Date.now() - startTime >= timeoutMs) {
+        return reject(
+          new Error(
+            `Timeout waiting for cache key "${cacheKey}" to be invalidated after ${timeoutMs}ms`
+          )
+        )
+      }
+
+      setTimeout(checkCache, intervalMs)
+    }
+
+    checkCache()
+  })
+}
+
 describeIfRedisKey('Cache Integration Tests', () => {
   let testKeyPrefix: string
   let keysToCleanup: string[] = []
@@ -963,8 +1031,8 @@ describeIfRedisKey(
         }
       )
 
-      // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Poll until cache is invalidated
+      await waitForCacheInvalidation(client, cacheKey)
 
       // Verify cache is cleared after transaction commits
       const afterTransaction = await client.get(cacheKey)
@@ -1026,8 +1094,11 @@ describeIfRedisKey(
         }
       )
 
-      // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Poll until both caches are invalidated
+      await Promise.all([
+        waitForCacheInvalidation(client, cacheKey1),
+        waitForCacheInvalidation(client, cacheKey2),
+      ])
 
       // Verify both caches are cleared
       expect(await client.get(cacheKey1)).toBeNull()
@@ -1069,8 +1140,8 @@ describeIfRedisKey(
         }
       )
 
-      // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Poll until cache is invalidated
+      await waitForCacheInvalidation(client, cacheKey)
 
       // Cache should still be cleared (deduplication shouldn't break anything)
       expect(await client.get(cacheKey)).toBeNull()
@@ -1127,8 +1198,11 @@ describeIfRedisKey(
         }
       )
 
-      // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Poll until both caches are invalidated
+      await Promise.all([
+        waitForCacheInvalidation(client, cacheKey1),
+        waitForCacheInvalidation(client, cacheKey2),
+      ])
 
       // Both caches should be cleared
       expect(await client.get(cacheKey1)).toBeNull()
@@ -1863,15 +1937,10 @@ describeIfRedisKey(
       // Trigger recomputation using the stored metadata
       await recomputeDependencies([dependencyKey])
 
-      // Wait for recomputation to complete
-      await new Promise((resolve) => setTimeout(resolve, 200))
-
-      // Verify cache is repopulated with fresh data (Upstash auto-parses JSON)
-      const cachedValueAfterRecompute = (await client.get(
-        cacheKey
-      )) as {
-        id: string
-      }[]
+      // Poll for cache repopulation (Upstash auto-parses JSON)
+      const cachedValueAfterRecompute = await waitForCachePopulation<
+        { id: string }[]
+      >(client, cacheKey)
       expect(Array.isArray(cachedValueAfterRecompute)).toBe(true)
       expect(cachedValueAfterRecompute).toHaveLength(1)
       expect(cachedValueAfterRecompute[0].id).toBe(subscription.id)
