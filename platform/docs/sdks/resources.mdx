@@ -438,7 +438,6 @@ interface ResourceClaim {
   id: string                                      // Claim ID
   resourceId: string                              // Resource UUID
   subscriptionId: string                          // Subscription UUID
-  subscriptionItemFeatureId: string               // Link to subscription feature
   externalId: string | null                       // Your identifier (null for anonymous)
   claimedAt: number                               // Unix timestamp (ms)
   releasedAt: number | null                       // null if active
