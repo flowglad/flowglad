@@ -145,6 +145,17 @@ export const updatePrice = protectedProcedure
           }
         }
 
+        // Validate reserved slug for usage prices being updated
+        if (
+          existingPrice.type === PriceType.Usage &&
+          price.slug !== undefined
+        ) {
+          validateUsagePriceSlug({
+            type: existingPrice.type,
+            slug: price.slug,
+          })
+        }
+
         // Validate immutable fields for ALL prices
         validatePriceImmutableFields({
           update: price,

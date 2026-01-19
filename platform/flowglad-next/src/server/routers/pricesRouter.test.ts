@@ -1970,4 +1970,93 @@ describe('pricesRouter - Reserved Slug Validation', () => {
       expect(result.archivedPrice.active).toBe(false)
     })
   })
+
+  describe('updatePrice - reserved slug validation', () => {
+    it('throws BAD_REQUEST when updating usage price slug to reserved _no_charge suffix', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      // Attempt to update existing usage price's slug to a reserved suffix
+      await expect(
+        pricesRouter.createCaller(ctx).update({
+          price: {
+            id: existingUsagePriceId,
+            type: PriceType.Usage,
+            isDefault: true,
+            slug: 'updated_no_charge',
+          },
+          id: existingUsagePriceId,
+        })
+      ).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+        message: expect.stringContaining('_no_charge'),
+      })
+    })
+
+    it('allows updating usage price slug to valid slug not ending in _no_charge', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      const result = await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: existingUsagePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+          slug: 'updated_valid_slug',
+        },
+        id: existingUsagePriceId,
+      })
+
+      expect(result.price.slug).toBe('updated_valid_slug')
+    })
+
+    it('allows updating usage price fields other than slug without triggering slug validation', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      // Update name without changing slug - should not trigger reserved slug validation
+      const result = await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: existingUsagePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+          name: 'Updated Name',
+        },
+        id: existingUsagePriceId,
+      })
+
+      expect(result.price.name).toBe('Updated Name')
+      expect(result.price.slug).toBe('existing-usage-price')
+    })
+  })
 })
