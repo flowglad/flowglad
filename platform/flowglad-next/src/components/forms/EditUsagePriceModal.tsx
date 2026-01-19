@@ -38,6 +38,7 @@ import {
   isCurrencyZeroDecimal,
   rawStringAmountToCountableCurrencyAmount,
 } from '@/utils/stripe'
+import { isNoChargePrice } from '@/utils/usage/noChargePriceHelpers'
 
 interface EditUsagePriceModalProps {
   isOpen: boolean
@@ -143,35 +144,89 @@ const UsagePriceFormFields = ({
               )}
             />
 
-            {/* Status (Active/Inactive toggle) */}
+            {/* Status (Active/Inactive toggle) - hidden for no_charge prices */}
+            {(() => {
+              const slug = form.watch('price.slug')
+              const isNoCharge = slug ? isNoChargePrice(slug) : false
+              // Don't render status toggle for no_charge prices since they can't be deactivated
+              if (isNoCharge) {
+                return null
+              }
+              return (
+                <FormField
+                  control={form.control}
+                  name="price.active"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <FormControl>
+                        <div className="flex items-center space-x-2">
+                          <Switch
+                            id="price-active"
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                          <Label
+                            htmlFor="price-active"
+                            className="cursor-pointer w-full"
+                          >
+                            {field.value ? (
+                              <StatusBadge active={true} />
+                            ) : (
+                              <StatusBadge active={false} />
+                            )}
+                          </Label>
+                        </div>
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              )
+            })()}
+
+            {/* Default Price toggle */}
             <FormField
               control={form.control}
-              name="price.active"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <FormControl>
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="price-active"
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                      <Label
-                        htmlFor="price-active"
-                        className="cursor-pointer w-full"
-                      >
-                        {field.value ? (
-                          <StatusBadge active={true} />
-                        ) : (
-                          <StatusBadge active={false} />
-                        )}
-                      </Label>
-                    </div>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              name="price.isDefault"
+              render={({ field }) => {
+                const slug = form.watch('price.slug')
+                const isNoCharge = slug
+                  ? isNoChargePrice(slug)
+                  : false
+                // For no_charge prices: only disable when already default (can't unset)
+                // For regular prices: never disabled
+                const isDisabled = isNoCharge && field.value
+                return (
+                  <FormItem>
+                    <FormLabel>Default Price</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="price-isDefault"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                          disabled={isDisabled}
+                        />
+                        <Label
+                          htmlFor="price-isDefault"
+                          className="cursor-pointer w-full"
+                        >
+                          {field.value ? 'Default' : 'Not Default'}
+                        </Label>
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      The default price is used when usage events are
+                      created with just the meter identifier.
+                      {isNoCharge &&
+                        field.value &&
+                        ' No charge prices cannot be directly unset as default. To change, set another price as default instead.'}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )
+              }}
             />
 
             {/* Price Type - Shown but disabled */}
@@ -349,7 +404,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
               unitPrice: newUnitPrice,
               usageEventsPerUnit: input.usageEventsPerUnit,
               usageMeterId: usageMeterId,
-              isDefault: price.isDefault,
+              isDefault: input.price.isDefault,
               active: input.price.active,
               name: input.price.name,
               slug: input.price.slug,
