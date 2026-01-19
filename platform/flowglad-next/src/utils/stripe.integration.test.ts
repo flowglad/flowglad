@@ -2083,9 +2083,9 @@ describe('calculatePlatformApplicationFee', () => {
     })
 
     // Expected: subtotal * (0.65% + 2.9%) + $0.50 = 10000 * 0.0355 + 50 = 355 + 50 = 405
-    // Note: Due to floating point precision, 0.65/100 = 0.006500000000000001, resulting in ceil(405.0000...)
-    // With ceiling: ceil(405.0000...) = 406
-    expect(result).toBe(406)
+    // Note: Uses BigNumber for precise decimal arithmetic, avoiding floating point errors
+    // (Previously returned 406 due to parseFloat precision issue)
+    expect(result).toBe(405)
   })
 
   it('calculates fee with 1% take rate plus 2.9% + $0.50 for $50 subtotal', () => {
