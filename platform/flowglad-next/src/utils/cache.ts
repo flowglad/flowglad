@@ -869,6 +869,13 @@ async function cachedBulkLookupImpl<TKey, TResult>(
  * where recomputation re-registers the dependency and then we delete the
  * freshly rebuilt registry.
  *
+ * KNOWN ISSUE: If recomputation fails after the registry is deleted, the cache
+ * key cannot be automatically retried on the next invalidation (since it's no
+ * longer in the registry). The cache entry will remain empty until the next
+ * cache miss triggers a fresh computation. A future improvement could implement
+ * conditional deletion or a two-phase approach where failed recomputations are
+ * re-registered for retry.
+ *
  * Observability:
  * - Logs invalidation at info level (includes dependency and cache keys)
  * - Logs errors but does not throw (fire-and-forget)
