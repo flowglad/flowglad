@@ -124,18 +124,29 @@ export const selectPaymentMethodsPaginated =
 
 const setPaymentMethodsForCustomerToNonDefault = async (
   customerId: string,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
+  // Get all payment methods that will be changed before updating
+  const paymentMethodsToUpdate = await selectPaymentMethods(
+    { customerId, default: true },
+    transaction
+  )
   await transaction
     .update(paymentMethods)
     .set({ default: false })
     .where(eq(paymentMethods.customerId, customerId))
+  // Invalidate content for each payment method that was changed
+  for (const pm of paymentMethodsToUpdate) {
+    invalidateCache(CacheDependency.paymentMethod(pm.id))
+  }
 }
 
 export const safelyUpdatePaymentMethod = async (
   paymentMethod: PaymentMethod.Update,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   /**
    * If payment method is default
    */
@@ -146,23 +157,38 @@ export const safelyUpdatePaymentMethod = async (
     )
     await setPaymentMethodsForCustomerToNonDefault(
       existingPaymentMethod.customerId,
-      transaction
+      ctx
     )
   }
-  return updatePaymentMethod(paymentMethod, transaction)
+  const updatedPaymentMethod = await updatePaymentMethod(
+    paymentMethod,
+    transaction
+  )
+  // Invalidate content for the updated payment method
+  invalidateCache(CacheDependency.paymentMethod(paymentMethod.id))
+  return updatedPaymentMethod
 }
 
 export const safelyInsertPaymentMethod = async (
   paymentMethod: PaymentMethod.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   if (paymentMethod.default) {
     await setPaymentMethodsForCustomerToNonDefault(
       paymentMethod.customerId,
-      transaction
+      ctx
     )
   }
-  return dangerouslyInsertPaymentMethod(paymentMethod, transaction)
+  const insertedPaymentMethod = await dangerouslyInsertPaymentMethod(
+    paymentMethod,
+    transaction
+  )
+  // Invalidate set membership for customer's payment methods collection
+  invalidateCache(
+    CacheDependency.customerPaymentMethods(paymentMethod.customerId)
+  )
+  return insertedPaymentMethod
 }
 
 const bulkInsertOrDoNothingPaymentMethods =
