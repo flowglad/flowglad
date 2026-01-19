@@ -34,6 +34,7 @@ import {
 } from '../schema/organizations'
 import { payments } from '../schema/payments'
 import { purchases } from '../schema/purchases'
+import type { CustomerForPricingModel } from './pricingModelMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof customersTable,
@@ -506,4 +507,33 @@ export const setUserIdForCustomerRecords = async (
         eq(customersTable.livemode, true)
       )
     )
+}
+
+/**
+ * Performance-optimized batch fetch of customer pricing info.
+ * Only selects the minimal fields needed for pricing model resolution.
+ *
+ * @param customerIds - Array of customer IDs to fetch
+ * @param transaction - Database transaction
+ * @returns Map of customerId to CustomerForPricingModel
+ */
+export const selectCustomerPricingInfoBatch = async (
+  customerIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, CustomerForPricingModel>> => {
+  if (customerIds.length === 0) {
+    return new Map()
+  }
+
+  const results = await transaction
+    .select({
+      id: customers.id,
+      pricingModelId: customers.pricingModelId,
+      organizationId: customers.organizationId,
+      livemode: customers.livemode,
+    })
+    .from(customers)
+    .where(inArray(customers.id, customerIds))
+
+  return new Map(results.map((c) => [c.id, c]))
 }

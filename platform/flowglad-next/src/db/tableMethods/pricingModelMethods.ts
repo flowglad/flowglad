@@ -1,4 +1,11 @@
-import { and, eq, inArray, notExists, sql } from 'drizzle-orm'
+import {
+  and,
+  eq,
+  type InferSelectModel,
+  inArray,
+  notExists,
+  sql,
+} from 'drizzle-orm'
 import { z } from 'zod'
 import type { Customer } from '@/db/schema/customers'
 import {
@@ -26,7 +33,9 @@ import { type Feature } from '../schema/features'
 import {
   type Price,
   type PricingModelWithProductsAndUsageMeters,
+  type ProductWithPrices,
   prices,
+  type UsageMeterWithPrices,
   usagePriceClientSelectSchema,
 } from '../schema/prices'
 import { type ProductFeature } from '../schema/productFeatures'
@@ -421,52 +430,73 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         defaultProduct:
           productsByPricingModelId
             .get(pricingModel.id)
-            ?.find((product) => product.default) ?? undefined,
+            ?.find((product: ProductWithPrices) => product.default) ??
+          undefined,
       }
     })
   }
 
 /**
- * Filters a pricing model to only include active products, prices, and usage meters.
- * Products without active prices are removed.
- * Usage meters keep their prices but filter to only active ones.
+ * Minimal customer data required for pricing model selection.
+ * Customer.Record satisfies this type, as does the return type from selectCustomerPricingInfoBatch.
  */
-const filterActivePricingModelContent = (
-  pricingModel: PricingModelWithProductsAndUsageMeters
-): PricingModelWithProductsAndUsageMeters => {
-  return {
-    ...pricingModel,
-    products: pricingModel.products
-      .filter((product) => product.active)
-      .map((product) => ({
-        ...product,
-        prices: product.prices.filter((price) => price.active),
-      }))
-      .filter((product) => product.prices.length > 0), // Filter out products with no active prices
-    usageMeters: pricingModel.usageMeters.map((usageMeter) => {
-      const activePrices = usageMeter.prices.filter(
-        (price) => price.active
-      )
-      const defaultPrice =
-        activePrices.find((p) => p.isDefault) ?? activePrices[0]
-      return {
-        ...usageMeter,
-        prices: activePrices,
-        defaultPrice,
-      }
-    }),
-  }
+export type CustomerForPricingModel = {
+  id: string
+  pricingModelId: string
+  organizationId: string
+  livemode: boolean
+}
+
+/**
+ * Helper to compute active prices and resolve the default price.
+ * Ensures defaultPrice always points to an active price.
+ * For products, defaultPrice is always defined (falls back to first active price).
+ * For usage meters, defaultPrice can be undefined if no active prices exist.
+ */
+function computeActivePricesAndDefaultForProduct(
+  product: ProductWithPrices
+): {
+  activePrices: Price.ClientRecord[]
+  activeDefaultPrice: Price.ClientRecord
+} {
+  const activePrices = product.prices.filter((price) => price.active)
+  const activeDefaultPrice = product.defaultPrice?.active
+    ? product.defaultPrice
+    : (activePrices.find((p) => p.isDefault) ?? activePrices[0])!
+  return { activePrices, activeDefaultPrice }
+}
+
+/**
+ * Helper to compute active usage prices and resolve the default price for usage meters.
+ * Returns undefined for defaultPrice if no active prices exist.
+ */
+function computeActivePricesAndDefaultForUsageMeter(usageMeter: {
+  prices: z.infer<typeof usagePriceClientSelectSchema>[]
+  defaultPrice?: z.infer<typeof usagePriceClientSelectSchema>
+}): {
+  activePrices: z.infer<typeof usagePriceClientSelectSchema>[]
+  activeDefaultPrice:
+    | z.infer<typeof usagePriceClientSelectSchema>
+    | undefined
+} {
+  const activePrices = usageMeter.prices.filter(
+    (price) => price.active
+  )
+  const activeDefaultPrice = usageMeter.defaultPrice?.active
+    ? usageMeter.defaultPrice
+    : (activePrices.find((p) => p.isDefault) ?? activePrices[0])
+  return { activePrices, activeDefaultPrice }
 }
 
 /**
  * Gets the pricingModel for a customer. If no pricingModel explicitly associated,
  * returns the default pricingModel for the organization.
- * @param customer
+ * @param customer - Minimal customer data with id, pricingModelId, organizationId, and livemode
  * @param transaction
  * @returns
  */
 export const selectPricingModelForCustomer = async (
-  customer: Customer.Record,
+  customer: CustomerForPricingModel,
   transaction: DbTransaction
 ): Promise<PricingModelWithProductsAndUsageMeters> => {
   if (customer.pricingModelId) {
@@ -477,7 +507,34 @@ export const selectPricingModelForCustomer = async (
       )
 
     if (pricingModel) {
-      return filterActivePricingModelContent(pricingModel)
+      return {
+        ...pricingModel,
+        products: pricingModel.products
+          .filter((product: ProductWithPrices) => product.active)
+          .map((product: ProductWithPrices) => {
+            const { activePrices, activeDefaultPrice } =
+              computeActivePricesAndDefaultForProduct(product)
+            return {
+              ...product,
+              prices: activePrices,
+              defaultPrice: activeDefaultPrice,
+            }
+          })
+          .filter(
+            (product: ProductWithPrices) => product.prices.length > 0
+          ), // Filter out products with no active prices
+        usageMeters: pricingModel.usageMeters
+          .map((usageMeter) => {
+            const { activePrices, activeDefaultPrice } =
+              computeActivePricesAndDefaultForUsageMeter(usageMeter)
+            return {
+              ...usageMeter,
+              prices: activePrices,
+              defaultPrice: activeDefaultPrice,
+            }
+          })
+          .filter((usageMeter) => usageMeter.prices.length > 0), // Filter out usage meters with no active prices
+      }
     }
   }
   const [pricingModel] =
@@ -496,5 +553,211 @@ export const selectPricingModelForCustomer = async (
     )
   }
 
-  return filterActivePricingModelContent(pricingModel)
+  return {
+    ...pricingModel,
+    products: pricingModel.products
+      .filter((product: ProductWithPrices) => product.active)
+      .map((product: ProductWithPrices) => {
+        const { activePrices, activeDefaultPrice } =
+          computeActivePricesAndDefaultForProduct(product)
+        return {
+          ...product,
+          prices: activePrices,
+          defaultPrice: activeDefaultPrice,
+        }
+      })
+      .filter(
+        (product: ProductWithPrices) => product.prices.length > 0
+      ), // Filter out products with no active prices
+    usageMeters: pricingModel.usageMeters
+      .map((usageMeter) => {
+        const { activePrices, activeDefaultPrice } =
+          computeActivePricesAndDefaultForUsageMeter(usageMeter)
+        return {
+          ...usageMeter,
+          prices: activePrices,
+          defaultPrice: activeDefaultPrice,
+        }
+      })
+      .filter((usageMeter) => usageMeter.prices.length > 0), // Filter out usage meters with no active prices
+  }
+}
+
+/**
+ * Minimal price data needed for slug resolution in bulk usage event processing.
+ * Only contains fields required to map price slugs to IDs.
+ *
+ * Note: type uses the inferred type from drizzle-orm's InferSelectModel
+ *
+ */
+export type PriceSlugInfo = {
+  id: string
+  slug: string | null
+  type: InferSelectModel<typeof prices>['type']
+  usageMeterId: string | null
+  active: boolean
+}
+
+/**
+ * Minimal usage meter data needed for slug resolution and validation.
+ * Only contains fields required to map usage meter slugs to IDs.
+ */
+export type UsageMeterSlugInfo = {
+  id: string
+  slug: string
+}
+
+/**
+ * Contains only the price and usage meter fields needed for:
+ * 1. Resolving price slugs to IDs
+ * 2. Resolving usage meter slugs to IDs
+ * 3. Validating usage meter membership in pricing model
+ */
+export type PricingModelSlugResolutionData = {
+  id: string
+  organizationId: string
+  livemode: boolean
+  isDefault: boolean
+  prices: PriceSlugInfo[]
+  usageMeters: UsageMeterSlugInfo[]
+}
+
+/**
+ * Performance-optimized query to fetch minimal pricing model data for slug resolution.
+ * Only selects fields needed for:
+ * - Price slug → ID resolution
+ * - Usage meter slug → ID resolution
+ * - Pricing model membership validation
+ *
+ * @param where - Pricing model filter conditions
+ * @param transaction - Database transaction
+ * @returns Array of lightweight pricing model data
+ */
+export const selectPricingModelSlugResolutionData = async (
+  where: SelectConditions<typeof pricingModels>,
+  transaction: DbTransaction
+): Promise<PricingModelSlugResolutionData[]> => {
+  // Query 1: Fetch pricing models with usage meters (minimal fields)
+  const pricingModelResults = await transaction
+    .select({
+      pricingModelId: pricingModels.id,
+      pricingModelOrganizationId: pricingModels.organizationId,
+      pricingModelLivemode: pricingModels.livemode,
+      pricingModelIsDefault: pricingModels.isDefault,
+      usageMeterId: usageMeters.id,
+      usageMeterSlug: usageMeters.slug,
+    })
+    .from(pricingModels)
+    .leftJoin(
+      usageMeters,
+      eq(pricingModels.id, usageMeters.pricingModelId)
+    )
+    .where(whereClauseFromObject(pricingModels, where))
+    .orderBy(pricingModels.createdAt)
+
+  // Build maps for pricing models and their usage meters
+  // Use a Set to track seen usage meter IDs for de-duplication (LEFT JOIN can produce duplicates)
+  const pricingModelMap = new Map<
+    string,
+    {
+      id: string
+      organizationId: string
+      livemode: boolean
+      isDefault: boolean
+      usageMeters: UsageMeterSlugInfo[]
+      seenUsageMeterIds: Set<string> // Track seen IDs to de-dupe
+    }
+  >()
+
+  pricingModelResults.forEach((row) => {
+    if (!pricingModelMap.has(row.pricingModelId)) {
+      pricingModelMap.set(row.pricingModelId, {
+        id: row.pricingModelId,
+        organizationId: row.pricingModelOrganizationId,
+        livemode: row.pricingModelLivemode,
+        isDefault: row.pricingModelIsDefault,
+        usageMeters: [],
+        seenUsageMeterIds: new Set(),
+      })
+    }
+
+    const pm = pricingModelMap.get(row.pricingModelId)!
+
+    // Only add usage meter if:
+    // 1. usageMeterId is not null (from LEFT JOIN)
+    // 2. usageMeterSlug is not null (slug is NOT NULL in database and validated by safeZodSanitizedString)
+    // 3. We haven't already seen this usage meter ID (de-dupe)
+    if (
+      row.usageMeterId &&
+      row.usageMeterSlug &&
+      !pm.seenUsageMeterIds.has(row.usageMeterId)
+    ) {
+      pm.seenUsageMeterIds.add(row.usageMeterId)
+      pm.usageMeters.push({
+        id: row.usageMeterId,
+        slug: row.usageMeterSlug,
+      })
+    }
+  })
+
+  const pricingModelIds = Array.from(pricingModelMap.keys())
+  if (pricingModelIds.length === 0) {
+    return []
+  }
+
+  // Query 2: Fetch prices with minimal fields (skip products entirely)
+  // Only fetch prices where the product is active
+  const priceResults = await transaction
+    .select({
+      priceId: prices.id,
+      priceSlug: prices.slug,
+      priceType: prices.type,
+      priceUsageMeterId: prices.usageMeterId,
+      priceActive: prices.active,
+      productPricingModelId: products.pricingModelId,
+      productActive: products.active,
+    })
+    .from(prices)
+    .innerJoin(products, eq(prices.productId, products.id))
+    .where(
+      and(
+        inArray(products.pricingModelId, pricingModelIds),
+        eq(products.active, true), // Only active products
+        eq(prices.active, true) // Only active prices
+      )
+    )
+
+  // Group prices by pricing model
+  // De-duplicate by price ID in case of any edge cases
+  const pricesByPricingModelId = new Map<string, PriceSlugInfo[]>()
+  const seenPriceIds = new Set<string>()
+
+  priceResults.forEach((row) => {
+    // Skip if already seen (de-dupe)
+    if (seenPriceIds.has(row.priceId)) {
+      return
+    }
+    seenPriceIds.add(row.priceId)
+
+    if (!pricesByPricingModelId.has(row.productPricingModelId)) {
+      pricesByPricingModelId.set(row.productPricingModelId, [])
+    }
+    pricesByPricingModelId.get(row.productPricingModelId)!.push({
+      id: row.priceId,
+      slug: row.priceSlug,
+      type: row.priceType,
+      usageMeterId: row.priceUsageMeterId,
+      active: row.priceActive,
+    })
+  })
+
+  // Combine into final result (strip out the seenUsageMeterIds tracking field)
+  return Array.from(pricingModelMap.values()).map((pm) => ({
+    id: pm.id,
+    organizationId: pm.organizationId,
+    livemode: pm.livemode,
+    isDefault: pm.isDefault,
+    usageMeters: pm.usageMeters,
+    prices: pricesByPricingModelId.get(pm.id) ?? [],
+  }))
 }
