@@ -470,6 +470,14 @@ const MAX_OPTIMISTIC_LOCK_RETRIES = 3
  * This approach avoids blocking (unlike SELECT ... FOR UPDATE) and provides
  * better throughput for low-contention scenarios (which resource claims are).
  *
+ * RACE CONDITION EDGE CASE:
+ * If capacity validation passes (e.g., 2 available) but another transaction
+ * claims resources before our INSERT executes, the conditional INSERT will
+ * insert 0 rows (not fail). We detect this by checking rows.length and retry
+ * with a fresh count. After MAX_OPTIMISTIC_LOCK_RETRIES failures, we throw
+ * an error. This is expected behavior under high contention and ensures we
+ * never over-claim capacity.
+ *
  * @param params - subscriptionId, resourceId, expectedCount, and claims to insert
  * @param transaction - Database transaction
  * @returns Object with success flag and inserted claims
