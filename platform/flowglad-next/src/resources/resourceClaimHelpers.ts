@@ -374,6 +374,84 @@ export const getAggregatedResourceCapacity = async (
   }
 }
 
+/**
+ * Batch version of getAggregatedResourceCapacity.
+ * Fetches active subscription items and features once, then aggregates
+ * capacity for multiple resources in a single pass.
+ *
+ * This avoids N+1 queries when listing usages for multiple resources.
+ *
+ * @param params - subscriptionId and array of resourceIds
+ * @param transaction - Database transaction
+ * @returns Map of resourceId -> { totalCapacity, featureIds }
+ */
+export const getAggregatedResourceCapacityBatch = async (
+  params: {
+    subscriptionId: string
+    resourceIds: string[]
+  },
+  transaction: DbTransaction
+): Promise<
+  Map<string, { totalCapacity: number; featureIds: string[] }>
+> => {
+  const result = new Map<
+    string,
+    { totalCapacity: number; featureIds: string[] }
+  >()
+
+  // Initialize all resources with 0 capacity
+  for (const resourceId of params.resourceIds) {
+    result.set(resourceId, { totalCapacity: 0, featureIds: [] })
+  }
+
+  if (params.resourceIds.length === 0) {
+    return result
+  }
+
+  const now = Date.now()
+
+  // 1. Fetch active subscription items ONCE
+  const activeItems = await selectCurrentlyActiveSubscriptionItems(
+    { subscriptionId: params.subscriptionId },
+    now,
+    transaction
+  )
+
+  if (activeItems.length === 0) {
+    return result
+  }
+
+  const subscriptionItemIds = activeItems.map((item) => item.id)
+
+  // 2. Fetch all features for those items ONCE
+  const allFeatures =
+    await selectSubscriptionItemFeaturesBySubscriptionItemIds(
+      subscriptionItemIds,
+      transaction
+    )
+
+  // 3. Create a set of requested resource IDs for O(1) lookup
+  const requestedResourceIds = new Set(params.resourceIds)
+
+  // 4. Filter to Resource features that match our requested resources
+  const resourceFeatures = allFeatures.filter(
+    (f): f is SubscriptionItemFeature.ResourceRecord =>
+      f.type === FeatureType.Resource &&
+      f.resourceId !== null &&
+      requestedResourceIds.has(f.resourceId) &&
+      (f.expiredAt === null || f.expiredAt > now)
+  )
+
+  // 5. Aggregate capacity per resource
+  for (const feature of resourceFeatures) {
+    const existing = result.get(feature.resourceId!)!
+    existing.totalCapacity += feature.amount
+    existing.featureIds.push(feature.id)
+  }
+
+  return result
+}
+
 const MAX_OPTIMISTIC_LOCK_RETRIES = 3
 
 /**
