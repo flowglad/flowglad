@@ -37,7 +37,11 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { CancellationReason, SubscriptionStatus } from '@/types'
-import { CacheDependency, cached } from '@/utils/cache'
+import {
+  CacheDependency,
+  cached,
+  fromDependencies,
+} from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
   customerClientSelectSchema,
@@ -146,9 +150,9 @@ export const selectSubscriptionsByCustomerId = cached(
       livemode: boolean
     ) => `${customerId}:${livemode}`,
     schema: subscriptionsSelectSchema.array(),
-    dependenciesFn: (customerId: string) => [
-      CacheDependency.customerSubscriptions(customerId),
-    ],
+    dependenciesFn: fromDependencies(
+      CacheDependency.customerSubscriptions
+    ),
   },
   async (
     customerId: string,

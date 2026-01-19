@@ -45,6 +45,7 @@ import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
+import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionType,
   CurrencyCode,
@@ -182,7 +183,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return await setDefaultPaymentMethodForCustomer(
         { paymentMethodId: paymentMethod1.id },
-        transaction
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -239,7 +240,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return await setDefaultPaymentMethodForCustomer(
         { paymentMethodId: paymentMethod2.id },
-        transaction
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -302,7 +303,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return await setDefaultPaymentMethodForCustomer(
         { paymentMethodId: pm2NoSubs.id },
-        transaction
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -378,7 +379,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return await setDefaultPaymentMethodForCustomer(
         { paymentMethodId: paymentMethod2.id },
-        transaction
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -444,7 +445,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     const result = await adminTransaction(async ({ transaction }) => {
       return await setDefaultPaymentMethodForCustomer(
         { paymentMethodId: paymentMethod2.id },
-        transaction
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -495,7 +496,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       adminTransaction(async ({ transaction }) => {
         return await setDefaultPaymentMethodForCustomer(
           { paymentMethodId: nonExistentId },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
     ).rejects.toThrow()
@@ -529,7 +530,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       async ({ transaction }) => {
         return await setDefaultPaymentMethodForCustomer(
           { paymentMethodId: paymentMethod2.id },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       }
     )
@@ -557,7 +558,7 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       async ({ transaction }) => {
         return await setDefaultPaymentMethodForCustomer(
           { paymentMethodId: paymentMethod2.id },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       }
     )

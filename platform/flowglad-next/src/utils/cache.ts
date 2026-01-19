@@ -1091,7 +1091,38 @@ export const CacheDependency = {
   /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionLedger:${subscriptionId}`,
+  /** Invalidate when payment methods for this customer change */
+  customerPaymentMethods: (customerId: string): CacheDependencyKey =>
+    `customerPaymentMethods:${customerId}`,
+  /** Invalidate when purchases for this customer change */
+  customerPurchases: (customerId: string): CacheDependencyKey =>
+    `customerPurchases:${customerId}`,
+  /** Invalidate when invoices for this customer change */
+  customerInvoices: (customerId: string): CacheDependencyKey =>
+    `customerInvoices:${customerId}`,
 } as const
+
+/**
+ * Higher-order function that creates a dependenciesFn from an array of dependency functions.
+ * Simplifies the common pattern of passing a key to multiple CacheDependency functions.
+ *
+ * @example
+ * // Before:
+ * dependenciesFn: (customerId: string) => [
+ *   CacheDependency.customerPurchases(customerId),
+ *   CacheDependency.customerInvoices(customerId),
+ * ]
+ *
+ * // After:
+ * dependenciesFn: fromDependencies(
+ *   CacheDependency.customerPurchases,
+ *   CacheDependency.customerInvoices,
+ * )
+ */
+export const fromDependencies =
+  <K>(...fns: Array<(key: K) => CacheDependencyKey>) =>
+  (key: K): CacheDependencyKey[] =>
+    fns.map((fn) => fn(key))
 
 // NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'
 // Import from there for server-only code that needs recomputation support.
