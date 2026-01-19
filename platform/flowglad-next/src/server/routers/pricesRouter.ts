@@ -144,7 +144,10 @@ export const updatePrice = protectedProcedure
           // Reject unsetting isDefault on a no_charge price that is currently default
           // Note: Internal cascade logic (setPricesForUsageMeterToNonDefault) bypasses this,
           // so setting another price as default still works correctly
-          if (price.isDefault === false && existingPrice.isDefault === true) {
+          if (
+            price.isDefault === false &&
+            existingPrice.isDefault === true
+          ) {
             throw new TRPCError({
               code: 'BAD_REQUEST',
               message:
