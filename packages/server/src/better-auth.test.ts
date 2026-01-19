@@ -106,7 +106,7 @@ describe('resolveCustomerExternalId', () => {
 describe('endpointKeyToActionKey exhaustiveness', () => {
   it('covers every AuthenticatedActionKey value exactly once (excludes hybrid routes)', () => {
     // Hybrid routes like GetPricingModel are handled separately and not included
-    // in better-auth endpoints since they support unauthenticated access
+    // in endpointKeyToActionKey since they support unauthenticated access
     const hybridActionKeys: HybridActionKey[] = [
       FlowgladActionKey.GetPricingModel,
     ]
@@ -142,6 +142,11 @@ describe('endpointKeyToActionKey exhaustiveness', () => {
       expect(plugin.endpoints).toHaveProperty(endpointKey)
     }
   })
+
+  it('has plugin endpoint for GetPricingModel hybrid route', () => {
+    const plugin = flowgladPlugin({})
+    expect(plugin.endpoints).toHaveProperty('getPricingModel')
+  })
 })
 
 describe('flowgladPlugin', () => {
@@ -169,6 +174,7 @@ describe('flowgladPlugin', () => {
       'claimResource',
       'releaseResource',
       'listResourceClaims',
+      'getPricingModel',
     ]
 
     for (const endpoint of expectedEndpoints) {
