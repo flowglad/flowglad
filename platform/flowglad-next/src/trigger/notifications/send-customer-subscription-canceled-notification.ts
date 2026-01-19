@@ -13,6 +13,7 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { getFromAddress } from '@/utils/email/fromAddress'
 
 const sendCustomerSubscriptionCanceledNotificationTask = task({
   id: 'send-customer-subscription-canceled-notification',
@@ -114,14 +115,17 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
     const subscriptionName = subscription.name || 'your subscription'
 
     await safeSend({
-      from: 'Flowglad <notifications@flowglad.com>',
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName: organization.name,
+      }),
       bcc: getBccForLivemode(subscription.livemode),
       to: customer.email,
       subject: formatEmailSubject(
         `Subscription Canceled: Your ${subscriptionName} subscription has been canceled`,
         subscription.livemode
       ),
-      react: CustomerSubscriptionCanceledEmail({
+      react: await CustomerSubscriptionCanceledEmail({
         customerName: customer.name,
         organizationName: organization.name,
         organizationLogoUrl: organization.logoURL || undefined,

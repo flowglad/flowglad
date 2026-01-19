@@ -14,6 +14,7 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { getFromAddress } from '@/utils/email/fromAddress'
 
 const sendCustomerSubscriptionCancellationScheduledNotificationTask =
   task({
@@ -96,14 +97,17 @@ const sendCustomerSubscriptionCancellationScheduledNotificationTask =
         subscription.name || 'your subscription'
 
       await safeSend({
-        from: 'Flowglad <notifications@flowglad.com>',
+        from: getFromAddress({
+          recipientType: 'customer',
+          organizationName: organization.name,
+        }),
         bcc: getBccForLivemode(subscription.livemode),
         to: customer.email,
         subject: formatEmailSubject(
           `Cancellation Scheduled: Your ${subscriptionName} subscription will be canceled on ${formatDate(cancellationDate)}`,
           subscription.livemode
         ),
-        react: CustomerSubscriptionCancellationScheduledEmail({
+        react: await CustomerSubscriptionCancellationScheduledEmail({
           customerName: customer.name,
           organizationName: organization.name,
           organizationLogoUrl: organization.logoURL || undefined,

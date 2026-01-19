@@ -102,7 +102,7 @@ const sendOrganizationPaymentFailedNotificationTask = task({
         `Payment Failed: ${customer.name} payment of ${paymentData.amount} ${paymentData.currency} failed`,
         paymentData.livemode
       ),
-      react: OrganizationPaymentFailedNotificationEmail({
+      react: await OrganizationPaymentFailedNotificationEmail({
         organizationName: organization.name,
         amount: paymentData.amount,
         currency: paymentData.currency,
@@ -130,7 +130,7 @@ export const idempotentSendOrganizationPaymentFailedNotification =
         },
         {
           idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-payment-failed-notification-${paymentData.customerId}-${paymentData.amount}-${Date.now()}`
+            `send-organization-payment-failed-notification-${paymentData.customerId}-${paymentData.invoiceNumber || paymentData.amount}`
           ),
         }
       )

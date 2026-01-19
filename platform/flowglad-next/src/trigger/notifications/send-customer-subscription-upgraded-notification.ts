@@ -1,5 +1,4 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { kebabCase } from 'change-case'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -17,6 +16,7 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { getFromAddress } from '@/utils/email/fromAddress'
 
 const sendCustomerSubscriptionUpgradedNotificationTask = task({
   id: 'send-customer-subscription-upgraded-notification',
@@ -149,7 +149,10 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
     // Unified subject line for Free → Paid upgrades (first-time paid subscription)
     // per Apple-inspired patterns in subscription-email-improvements.md
     const result = await safeSend({
-      from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName: organization.name,
+      }),
       bcc: getBccForLivemode(newSubscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(
