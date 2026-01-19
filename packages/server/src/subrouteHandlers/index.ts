@@ -10,6 +10,13 @@ import {
   updateCustomer,
 } from './customerHandlers'
 import {
+  claimResource,
+  getResources,
+  getResourceUsage,
+  listResourceClaims,
+  releaseResource,
+} from './resourceHandlers'
+import {
   adjustSubscription,
   cancelSubscription,
   uncancelSubscription,
@@ -42,51 +49,9 @@ export const routeToHandlerMap: {
     }
   },
   [FlowgladActionKey.CreateUsageEvent]: createUsageEvent,
-  // Resource claim handlers - to be implemented in Patch 4
-  [FlowgladActionKey.GetResources]: async () => {
-    return {
-      data: {},
-      status: 501,
-      error: {
-        code: 'Not Implemented',
-        json: { message: 'GetResources handler not yet implemented' },
-      },
-    }
-  },
-  [FlowgladActionKey.ClaimResource]: async () => {
-    return {
-      data: {},
-      status: 501,
-      error: {
-        code: 'Not Implemented',
-        json: {
-          message: 'ClaimResource handler not yet implemented',
-        },
-      },
-    }
-  },
-  [FlowgladActionKey.ReleaseResource]: async () => {
-    return {
-      data: {},
-      status: 501,
-      error: {
-        code: 'Not Implemented',
-        json: {
-          message: 'ReleaseResource handler not yet implemented',
-        },
-      },
-    }
-  },
-  [FlowgladActionKey.ListResourceClaims]: async () => {
-    return {
-      data: {},
-      status: 501,
-      error: {
-        code: 'Not Implemented',
-        json: {
-          message: 'ListResourceClaims handler not yet implemented',
-        },
-      },
-    }
-  },
+  [FlowgladActionKey.GetResourceUsages]: getResources,
+  [FlowgladActionKey.GetResourceUsage]: getResourceUsage,
+  [FlowgladActionKey.ClaimResource]: claimResource,
+  [FlowgladActionKey.ReleaseResource]: releaseResource,
+  [FlowgladActionKey.ListResourceClaims]: listResourceClaims,
 }

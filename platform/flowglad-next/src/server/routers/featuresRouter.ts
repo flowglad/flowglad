@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -98,7 +99,7 @@ export const updateFeature = protectedProcedure
           },
           transactionCtx
         )
-        return { result: { feature } }
+        return Result.ok({ feature })
       }
     )
   )

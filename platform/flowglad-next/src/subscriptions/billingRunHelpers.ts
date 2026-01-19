@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
   adminTransaction,
@@ -832,12 +833,10 @@ export const executeBillingRun = async (
               },
               transaction
             )
-            return {
-              result: {
-                ...resultFromSteps,
-                paymentIntent: null,
-              },
-            }
+            return Result.ok({
+              ...resultFromSteps,
+              paymentIntent: null,
+            })
           }
 
           // Create payment intent within the transaction
@@ -909,14 +908,10 @@ export const executeBillingRun = async (
             )
           }
 
-          return {
-            result: {
-              ...resultFromSteps,
-              paymentIntent,
-            },
-            eventsToInsert: [],
-            ledgerCommand: undefined,
-          }
+          return Result.ok({
+            ...resultFromSteps,
+            paymentIntent,
+          })
         },
         {
           livemode: billingRun.livemode,
@@ -988,7 +983,7 @@ export const executeBillingRun = async (
           },
           effectsCtx
         )
-        return { result }
+        return Result.ok(result)
       })
     }
 

@@ -1,5 +1,5 @@
 import { SpanKind } from '@opentelemetry/api'
-import { sql } from 'drizzle-orm'
+import { Result } from 'better-result'
 import type {
   AuthenticatedTransactionParams,
   ComprehensiveAuthenticatedTransactionParams,
@@ -9,15 +9,12 @@ import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
 import { getDatabaseAuthenticationInfo } from './databaseAuthentication'
-import type { Event } from './schema/events'
-import { bulkInsertOrDoNothingEventsByHash } from './tableMethods/eventMethods'
 import {
-  coalesceEffects,
   createEffectsAccumulator,
   invalidateCacheAfterCommit,
   processEffectsInTransaction,
 } from './transactionEffectsHelpers'
-import type { TransactionOutput } from './transactionEnhacementTypes'
+import { withRLS } from './withRLS'
 
 interface AuthenticatedTransactionOptions {
   apiKey?: string
@@ -42,21 +39,21 @@ export async function authenticatedTransaction<T>(
 ): Promise<T> {
   return comprehensiveAuthenticatedTransaction(async (params) => {
     const result = await fn(params)
-    return { result }
+    return Result.ok(result)
   }, options)
 }
 
 /**
  * Core comprehensive authenticated transaction logic without tracing.
- * Returns the full TransactionOutput plus auth info and processed counts so the traced wrapper can extract accurate metrics.
+ * Returns the full Result plus auth info and processed counts so the traced wrapper can extract accurate metrics.
  */
 const executeComprehensiveAuthenticatedTransaction = async <T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T, Error>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<{
-  output: TransactionOutput<T>
+  output: Result<T, Error>
   userId: string
   organizationId?: string
   livemode: boolean
@@ -85,9 +82,6 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     enqueueLedgerCommand,
   } = createEffectsAccumulator()
 
-  // Track coalesced effects for post-commit processing
-  let coalescedCacheInvalidations: typeof effects.cacheInvalidations =
-    []
   let processedEventsCount = 0
   let processedLedgerCommandsCount = 0
 
@@ -103,56 +97,40 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
       throw new Error('No userId found')
     }
 
-    // Set RLS context
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', NULL, true);`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('request.jwt.claims', '${sql.raw(
-        JSON.stringify(jwtClaim)
-      )}', TRUE)`
-    )
-    await transaction.execute(
-      sql`SET LOCAL ROLE ${sql.raw(jwtClaim.role)};`
-    )
-    await transaction.execute(
-      sql`SELECT set_config('app.livemode', '${sql.raw(
-        Boolean(livemode).toString()
-      )}', TRUE);`
-    )
+    return withRLS(transaction, { jwtClaim, livemode }, async () => {
+      const paramsForFn: ComprehensiveAuthenticatedTransactionParams =
+        {
+          transaction,
+          userId,
+          livemode,
+          organizationId,
+          effects,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
 
-    const paramsForFn: ComprehensiveAuthenticatedTransactionParams = {
-      transaction,
-      userId,
-      livemode,
-      organizationId,
-      effects,
-      invalidateCache,
-      emitEvent,
-      enqueueLedgerCommand,
-    }
+      const output = await fn(paramsForFn)
 
-    const output = await fn(paramsForFn)
+      // Check for error early to skip effects and roll back transaction
+      if (output.status === 'error') {
+        throw output.error
+      }
 
-    // Coalesce effects from accumulator and output, then process
-    const coalesced = coalesceEffects(effects, output)
-    const counts = await processEffectsInTransaction(
-      coalesced,
-      transaction
-    )
-    processedEventsCount = counts.eventsCount
-    processedLedgerCommandsCount = counts.ledgerCommandsCount
-    coalescedCacheInvalidations = coalesced.cacheInvalidations
+      // Process accumulated effects
+      const counts = await processEffectsInTransaction(
+        effects,
+        transaction
+      )
+      processedEventsCount = counts.eventsCount
+      processedLedgerCommandsCount = counts.ledgerCommandsCount
 
-    // RESET ROLE is not strictly necessary with SET LOCAL ROLE, as the role is session-local.
-    // However, keeping it doesn't harm and can be an explicit cleanup.
-    await transaction.execute(sql`RESET ROLE;`)
-
-    return output
+      return output
+    })
   })
 
   // Transaction committed successfully - now invalidate caches
-  invalidateCacheAfterCommit(coalescedCacheInvalidations)
+  invalidateCacheAfterCommit(effects.cacheInvalidations)
 
   return {
     output,
@@ -171,15 +149,11 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
 export async function comprehensiveAuthenticatedTransaction<T>(
   fn: (
     params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<TransactionOutput<T>>,
+  ) => Promise<Result<T, Error>>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   // Static attributes are set at span creation for debugging failed transactions
-  const {
-    output,
-    processedEventsCount,
-    processedLedgerCommandsCount,
-  } = await traced(
+  const { output } = await traced(
     {
       options: {
         spanName: 'db.comprehensiveAuthenticatedTransaction',
@@ -201,26 +175,10 @@ export async function comprehensiveAuthenticatedTransaction<T>(
     () => executeComprehensiveAuthenticatedTransaction(fn, options)
   )()
 
-  return output.result
-}
-
-/**
- * Wrapper around comprehensiveAuthenticatedTransaction for functions that return
- * a tuple of [result, events]. Adapts the old signature to TransactionOutput.
- */
-export function eventfulAuthenticatedTransaction<T>(
-  fn: (
-    params: ComprehensiveAuthenticatedTransactionParams
-  ) => Promise<[T, Event.Insert[]]>,
-  options: AuthenticatedTransactionOptions = {}
-): Promise<T> {
-  return comprehensiveAuthenticatedTransaction(async (params) => {
-    const [result, eventInserts] = await fn(params)
-    return {
-      result,
-      eventsToInsert: eventInserts,
-    }
-  }, options)
+  if (output.status === 'error') {
+    throw output.error
+  }
+  return output.value
 }
 
 export type AuthenticatedProcedureResolver<
@@ -261,7 +219,7 @@ export const authenticatedProcedureTransaction = <
     TContext
   >(async (params) => {
     const result = await handler(params)
-    return { result }
+    return Result.ok(result)
   })
 }
 
@@ -272,7 +230,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
 >(
   handler: (
     params: AuthenticatedProcedureTransactionParams<TInput, TContext>
-  ) => Promise<TransactionOutput<TOutput>>
+  ) => Promise<Result<TOutput, Error>>
 ) => {
   return async (opts: { input: TInput; ctx: TContext }) => {
     return comprehensiveAuthenticatedTransaction(
@@ -295,25 +253,4 @@ export const authenticatedProcedureComprehensiveTransaction = <
       }
     )
   }
-}
-
-export function eventfulAuthenticatedProcedureTransaction<
-  TInput,
-  TOutput,
-  TContext extends { apiKey?: string; customerId?: string },
->(
-  handler: (
-    params: AuthenticatedProcedureTransactionParams<TInput, TContext>
-  ) => Promise<[TOutput, Event.Insert[]]>
-) {
-  return authenticatedProcedureTransaction<TInput, TOutput, TContext>(
-    async (params) => {
-      const [result, eventInserts] = await handler(params)
-      await bulkInsertOrDoNothingEventsByHash(
-        eventInserts,
-        params.transactionCtx.transaction
-      )
-      return result
-    }
-  )
 }

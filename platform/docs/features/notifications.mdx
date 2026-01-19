@@ -4,4 +4,101 @@ title: 'Notifications'
 
 # Notifications
 
-Coming soon... 
+Flowglad automatically sends email notifications to keep both your team and your customers informed about important billing events. This page covers the types of notifications sent, who receives them, and how test mode and live mode notifications differ.
+
+## Notification Recipients
+
+Flowglad sends notifications to two distinct audiences:
+
+### Customer Notifications
+
+Emails sent directly to your end users (customers) about their billing activity:
+
+- **Payment receipts** - Sent when a payment is successfully processed
+- **Payment failed** - Sent when a payment attempt fails, with retry information
+- **Subscription created** - Confirms their subscription is active
+- **Subscription adjusted** - Notifies of plan changes or upgrades
+- **Subscription canceled** - Confirms their subscription has been canceled
+- **Subscription cancellation scheduled** - Notifies that their subscription will cancel at period end
+
+### Organization Notifications
+
+Emails sent to your team members (dashboard users) about billing activity in your account:
+
+- **Payment successful** - Notifies when you receive a payment
+- **Payment failed** - Alerts when a customer's payment fails
+- **Subscription created** - Notifies when a new subscription is created
+- **Subscription adjusted** - Notifies when a subscription is modified
+- **Subscription canceled** - Notifies when a subscription is canceled
+- **Subscription cancellation scheduled** - Notifies when a cancellation is scheduled
+- **Payouts enabled** - Notifies when your account is approved for payouts
+- **Onboarding completed** - Notifies when your account setup is complete
+
+## Live Mode vs Test Mode Behavior
+
+Notifications behave differently depending on whether the underlying event occurred in live mode or test mode. This helps you test your integration without confusing test data with production communications.
+
+### Live Mode Notifications
+
+When an event occurs in live mode (`livemode: true`):
+
+- **Email subject**: Normal subject line (e.g., "Payment Successful")
+- **Recipients**: All users with the notification type enabled receive the email
+- **Receipt emails**: Sent to customers
+
+### Test Mode Notifications
+
+When an event occurs in test mode (`livemode: false`):
+
+- **Email subject**: Prefixed with `[TEST]` (e.g., "[TEST] Payment Successful")
+- **Recipients**: Only users who have **both** the notification type enabled **and** test mode notifications enabled
+- **Receipt emails**: **Not sent** - Receipt emails are completely skipped for test mode invoices to avoid cluttering inboxes during development
+
+<Note>
+The `[TEST]` prefix makes it easy to identify test notifications in your inbox and set up email filters to organize them.
+</Note>
+
+### Why Test Mode Notifications Are Different
+
+This design serves several purposes:
+
+1. **Clear identification** - The `[TEST]` prefix prevents confusion between test and production events
+2. **Reduced noise** - Team members can opt out of test notifications while still receiving live notifications
+3. **No customer confusion** - Receipt emails are skipped entirely in test mode, so test transactions never reach real customer email addresses
+4. **Focused testing** - Developers can enable test notifications while other team members focus on production data
+
+## Notification Preferences
+
+Organization members can configure their notification preferences in the dashboard. Each member has granular control over which notification types they receive.
+
+### Available Preferences
+
+| Preference | Description | Default |
+|------------|-------------|---------|
+| Test mode notifications | Receive notifications for test mode events | On |
+| Subscription created | New subscription notifications | On |
+| Subscription adjusted | Subscription modification notifications | On |
+| Subscription canceled | Subscription cancellation notifications | On |
+| Subscription cancellation scheduled | Scheduled cancellation notifications | On |
+| Payment failed | Failed payment notifications | On |
+| Payment successful | Successful payment notifications | On |
+
+### How Preferences Are Applied
+
+1. **Live mode events**: The notification is sent if the specific notification type (e.g., `paymentSuccessful`) is enabled
+2. **Test mode events**: The notification is sent only if **both** `testModeNotifications` **and** the specific notification type are enabled
+
+This two-layer filtering means a team member can:
+- Receive all notifications (default)
+- Receive only live mode notifications (disable test mode notifications)
+- Receive only specific notification types (disable unwanted types)
+- Receive only specific notification types in live mode (combine both filters)
+
+## Summary
+
+| Aspect | Live Mode | Test Mode |
+|--------|-----------|-----------|
+| Subject line | Normal | Prefixed with `[TEST]` |
+| Receipt emails to customers | Sent | Not sent |
+| Requires test mode preference | No | Yes |
+| Requires notification type preference | Yes | Yes |

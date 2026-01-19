@@ -2,17 +2,19 @@
  * @vitest-environment jsdom
  */
 
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { trpc } from '@/app/_trpc/client'
 import { SubscriptionResourceUsage } from './SubscriptionResourceUsage'
+
+// Create mock function that we can control
+const mockUseQuery = vi.fn()
 
 // Mock tRPC
 vi.mock('@/app/_trpc/client', () => ({
   trpc: {
     resourceClaims: {
       listResourceUsages: {
-        useQuery: vi.fn(),
+        useQuery: () => mockUseQuery(),
       },
     },
   },
@@ -23,294 +25,426 @@ describe('SubscriptionResourceUsage', () => {
     vi.clearAllMocks()
   })
 
-  it('displays resource usage with correct capacity/claimed/available values', async () => {
-    // setup: mock getUsage to return usage data
-    vi.mocked(
-      trpc.resourceClaims.listResourceUsages.useQuery
-    ).mockReturnValue({
-      data: [
-        {
-          usage: {
-            resourceSlug: 'seats',
-            resourceId: 'res_123',
-            capacity: 10,
-            claimed: 3,
-            available: 7,
+  describe('resource usage display', () => {
+    it('displays ratio format for capacity less than 100 and uses ChartPie icon', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'seats',
+              resourceId: 'res_123',
+              capacity: 10,
+              claimed: 3,
+              available: 7,
+            },
+            claims: [],
           },
-          claims: [],
-        },
-      ],
-      isLoading: false,
-      error: null,
-    } as ReturnType<
-      typeof trpc.resourceClaims.listResourceUsages.useQuery
-    >)
+        ],
+        isLoading: false,
+        error: null,
+      })
 
-    render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
-    // expectation: shows "seats" resource
-    expect(screen.getByText('seats')).toBeInTheDocument()
-    // expectation: shows "3 / 10 claimed"
-    expect(screen.getByText('3 / 10 claimed')).toBeInTheDocument()
-    // expectation: shows "7 available"
-    expect(screen.getByText('7 available')).toBeInTheDocument()
-    // expectation: shows 30% used
-    expect(screen.getByText('30% used')).toBeInTheDocument()
-    // expectation: progress bar at 30% - check the progress element exists
-    const progressBar = screen.getByRole('progressbar')
-    expect(progressBar).toHaveAttribute('aria-valuenow', '30')
+      // Shows "seats" resource
+      expect(screen.getByText('seats')).toBeInTheDocument()
+      // Shows ratio format for capacity < 100
+      expect(screen.getByText('3 of 10 claimed')).toBeInTheDocument()
+      // Does NOT show "available" text on the card (only in modal)
+      expect(
+        screen.queryByText('7 available')
+      ).not.toBeInTheDocument()
+      // Progress bar at 30%
+      const progressBar = screen.getByRole('progressbar')
+      expect(progressBar).toHaveAttribute('aria-valuenow', '30')
+      // ChartPie icon is rendered
+      const svgIcon = document.querySelector('svg.lucide-chart-pie')
+      expect(svgIcon).toBeInTheDocument()
+    })
+
+    it('displays percentage format for capacity 100 or greater', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'api-calls',
+              resourceId: 'res_123',
+              capacity: 1000,
+              claimed: 750,
+              available: 250,
+            },
+            claims: [],
+          },
+        ],
+        isLoading: false,
+        error: null,
+      })
+
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+
+      // Shows percentage format for capacity >= 100
+      expect(screen.getByText('75% used')).toBeInTheDocument()
+      // Does NOT show ratio format
+      expect(
+        screen.queryByText('750 of 1000 claimed')
+      ).not.toBeInTheDocument()
+      // Does NOT show "available" text on the card
+      expect(
+        screen.queryByText('250 available')
+      ).not.toBeInTheDocument()
+    })
+
+    it('displays multiple resources with appropriate format based on capacity', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'seats',
+              resourceId: 'res_123',
+              capacity: 10,
+              claimed: 3,
+              available: 7,
+            },
+            claims: [],
+          },
+          {
+            usage: {
+              resourceSlug: 'api-keys',
+              resourceId: 'res_456',
+              capacity: 5,
+              claimed: 2,
+              available: 3,
+            },
+            claims: [],
+          },
+          {
+            usage: {
+              resourceSlug: 'api-calls',
+              resourceId: 'res_789',
+              capacity: 100,
+              claimed: 50,
+              available: 50,
+            },
+            claims: [],
+          },
+        ],
+        isLoading: false,
+        error: null,
+      })
+
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+
+      // Each resource has its own usage display
+      expect(screen.getByText('seats')).toBeInTheDocument()
+      expect(screen.getByText('api-keys')).toBeInTheDocument()
+      expect(screen.getByText('api-calls')).toBeInTheDocument()
+      // Ratio format for capacity < 100
+      expect(screen.getByText('3 of 10 claimed')).toBeInTheDocument()
+      expect(screen.getByText('2 of 5 claimed')).toBeInTheDocument()
+      // Percentage format for capacity >= 100
+      expect(screen.getByText('50% used')).toBeInTheDocument()
+    })
   })
 
-  it('shows empty state when subscription has no resource features', async () => {
-    // setup: mock getUsage returns empty usage array
-    vi.mocked(
-      trpc.resourceClaims.listResourceUsages.useQuery
-    ).mockReturnValue({
-      data: [],
-      isLoading: false,
-      error: null,
-    } as ReturnType<
-      typeof trpc.resourceClaims.listResourceUsages.useQuery
-    >)
+  describe('layout', () => {
+    it('renders resource cards in a responsive 2-column grid layout', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'seats',
+              resourceId: 'res_123',
+              capacity: 10,
+              claimed: 3,
+              available: 7,
+            },
+            claims: [],
+          },
+          {
+            usage: {
+              resourceSlug: 'api-keys',
+              resourceId: 'res_456',
+              capacity: 5,
+              claimed: 2,
+              available: 3,
+            },
+            claims: [],
+          },
+        ],
+        isLoading: false,
+        error: null,
+      })
 
-    const { container } = render(
-      <SubscriptionResourceUsage subscriptionId="sub_123" />
-    )
+      const { container } = render(
+        <SubscriptionResourceUsage subscriptionId="sub_123" />
+      )
 
-    // expectation: returns null, so no content is rendered
-    expect(container.firstChild).toBeNull()
+      // Container has grid layout classes
+      const gridContainer = container.querySelector('.grid')
+      expect(gridContainer).toBeInTheDocument()
+      expect(gridContainer).toHaveClass('grid-cols-1')
+      expect(gridContainer).toHaveClass('sm:grid-cols-2')
+      expect(gridContainer).toHaveClass('gap-2')
+    })
+
+    it('applies custom className to the grid container', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'seats',
+              resourceId: 'res_123',
+              capacity: 10,
+              claimed: 3,
+              available: 7,
+            },
+            claims: [],
+          },
+        ],
+        isLoading: false,
+        error: null,
+      })
+
+      const { container } = render(
+        <SubscriptionResourceUsage
+          subscriptionId="sub_123"
+          className="custom-class"
+        />
+      )
+
+      // Custom class is applied to the grid container
+      const gridContainer = container.querySelector('.grid')
+      expect(gridContainer).toHaveClass('custom-class')
+    })
   })
 
-  it('shows loading state while fetching usage data', async () => {
-    // setup: mock loading state
-    vi.mocked(
-      trpc.resourceClaims.listResourceUsages.useQuery
-    ).mockReturnValue({
-      data: undefined,
-      isLoading: true,
-      error: null,
-    } as ReturnType<
-      typeof trpc.resourceClaims.listResourceUsages.useQuery
-    >)
+  describe('modal interaction', () => {
+    it('opens detail modal when resource card is clicked and displays available count', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'seats',
+              resourceId: 'res_123',
+              capacity: 100,
+              claimed: 75,
+              available: 25,
+            },
+            claims: [],
+          },
+        ],
+        isLoading: false,
+        error: null,
+      })
 
-    render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
-    // expectation: shows skeleton loading indicators (2 skeletons by default)
-    // The skeletons will have animate-pulse class
-    const skeletons = document.querySelectorAll('.animate-pulse')
-    expect(skeletons.length).toBeGreaterThan(0)
+      // Click on the resource card (it's now a button)
+      const resourceCard = screen.getByRole('button', {
+        name: /seats/i,
+      })
+      fireEvent.click(resourceCard)
+
+      // Modal should be visible with the resource data
+      const modalTitle = await screen.findByRole('dialog')
+      expect(modalTitle).toBeInTheDocument()
+
+      // Modal displays capacity stats including "Available" which is only shown here
+      expect(screen.getByText('100')).toBeInTheDocument() // Total Capacity
+      expect(screen.getByText('75')).toBeInTheDocument() // Claimed (in modal)
+      expect(screen.getByText('25')).toBeInTheDocument() // Available (in modal)
+      expect(screen.getByText('Total Capacity')).toBeInTheDocument()
+      expect(screen.getByText('Claimed')).toBeInTheDocument()
+      expect(screen.getByText('Available')).toBeInTheDocument()
+    })
   })
 
-  it('displays multiple resources when subscription has multiple resource features', async () => {
-    // setup: mock getUsage with multiple resources
-    vi.mocked(
-      trpc.resourceClaims.listResourceUsages.useQuery
-    ).mockReturnValue({
-      data: [
-        {
-          usage: {
-            resourceSlug: 'seats',
-            resourceId: 'res_123',
-            capacity: 10,
-            claimed: 3,
-            available: 7,
-          },
-          claims: [],
-        },
-        {
-          usage: {
-            resourceSlug: 'api-keys',
-            resourceId: 'res_456',
-            capacity: 5,
-            claimed: 2,
-            available: 3,
-          },
-          claims: [],
-        },
-        {
-          usage: {
-            resourceSlug: 'projects',
-            resourceId: 'res_789',
-            capacity: 100,
-            claimed: 50,
-            available: 50,
-          },
-          claims: [],
-        },
-      ],
-      isLoading: false,
-      error: null,
-    } as ReturnType<
-      typeof trpc.resourceClaims.listResourceUsages.useQuery
-    >)
+  describe('loading and error states', () => {
+    it('shows loading skeleton in 2-column grid while fetching usage data', async () => {
+      mockUseQuery.mockReturnValue({
+        data: undefined,
+        isLoading: true,
+        error: null,
+      })
 
-    render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+      const { container } = render(
+        <SubscriptionResourceUsage subscriptionId="sub_123" />
+      )
 
-    // expectation: each resource has its own usage display
-    expect(screen.getByText('seats')).toBeInTheDocument()
-    expect(screen.getByText('api-keys')).toBeInTheDocument()
-    expect(screen.getByText('projects')).toBeInTheDocument()
+      // Shows skeleton loading indicators in grid layout
+      const gridContainer = container.querySelector('.grid')
+      expect(gridContainer).toBeInTheDocument()
+      expect(gridContainer).toHaveClass('grid-cols-1')
+      expect(gridContainer).toHaveClass('sm:grid-cols-2')
 
-    // Check all claimed/available stats are present
-    expect(screen.getByText('3 / 10 claimed')).toBeInTheDocument()
-    expect(screen.getByText('7 available')).toBeInTheDocument()
-    expect(screen.getByText('2 / 5 claimed')).toBeInTheDocument()
-    expect(screen.getByText('3 available')).toBeInTheDocument()
-    expect(screen.getByText('50 / 100 claimed')).toBeInTheDocument()
-    expect(screen.getByText('50 available')).toBeInTheDocument()
+      const skeletons = document.querySelectorAll('.animate-pulse')
+      expect(skeletons.length).toBeGreaterThan(0)
+    })
+
+    it('shows error message when fetch fails', async () => {
+      mockUseQuery.mockReturnValue({
+        data: undefined,
+        isLoading: false,
+        error: { message: 'Failed to fetch' },
+      })
+
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+
+      expect(
+        screen.getByText('Failed to load resource usage.')
+      ).toBeInTheDocument()
+    })
+
+    it('shows empty state when subscription has no resource features', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [],
+        isLoading: false,
+        error: null,
+      })
+
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+
+      expect(
+        screen.getByText('No resource usage')
+      ).toBeInTheDocument()
+      expect(
+        screen.getByText(
+          /This subscription doesn't have any resources configured/
+        )
+      ).toBeInTheDocument()
+    })
   })
 
-  it('shows error message when fetch fails', async () => {
-    // setup: mock error state
-    vi.mocked(
-      trpc.resourceClaims.listResourceUsages.useQuery
-    ).mockReturnValue({
-      data: undefined,
-      isLoading: false,
-      error: { message: 'Failed to fetch' },
-    } as unknown as ReturnType<
-      typeof trpc.resourceClaims.listResourceUsages.useQuery
-    >)
-
-    render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
-
-    // expectation: shows error message
-    expect(
-      screen.getByText('Failed to load resource usage.')
-    ).toBeInTheDocument()
-  })
-
-  it('handles zero capacity gracefully', async () => {
-    // setup: mock getUsage with zero capacity (edge case)
-    vi.mocked(
-      trpc.resourceClaims.listResourceUsages.useQuery
-    ).mockReturnValue({
-      data: [
-        {
-          usage: {
-            resourceSlug: 'seats',
-            resourceId: 'res_123',
-            capacity: 0,
-            claimed: 0,
-            available: 0,
+  describe('edge cases', () => {
+    it('handles zero capacity without division by zero', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'seats',
+              resourceId: 'res_123',
+              capacity: 0,
+              claimed: 0,
+              available: 0,
+            },
+            claims: [],
           },
-          claims: [],
-        },
-      ],
-      isLoading: false,
-      error: null,
-    } as ReturnType<
-      typeof trpc.resourceClaims.listResourceUsages.useQuery
-    >)
+        ],
+        isLoading: false,
+        error: null,
+      })
 
-    render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
-    // expectation: handles zero capacity without division by zero
-    expect(screen.getByText('seats')).toBeInTheDocument()
-    expect(screen.getByText('0 / 0 claimed')).toBeInTheDocument()
-    expect(screen.getByText('0 available')).toBeInTheDocument()
-    expect(screen.getByText('0% used')).toBeInTheDocument()
-  })
+      expect(screen.getByText('seats')).toBeInTheDocument()
+      // Shows ratio format for zero capacity (capacity < 100)
+      expect(screen.getByText('0 of 0 claimed')).toBeInTheDocument()
+    })
 
-  it('handles fully utilized resource', async () => {
-    // setup: mock getUsage with fully claimed resource
-    vi.mocked(
-      trpc.resourceClaims.listResourceUsages.useQuery
-    ).mockReturnValue({
-      data: [
-        {
-          usage: {
-            resourceSlug: 'seats',
-            resourceId: 'res_123',
-            capacity: 5,
-            claimed: 5,
-            available: 0,
+    it('displays ratio for fully utilized resource with small capacity', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'seats',
+              resourceId: 'res_123',
+              capacity: 5,
+              claimed: 5,
+              available: 0,
+            },
+            claims: [],
           },
-          claims: [],
-        },
-      ],
-      isLoading: false,
-      error: null,
-    } as ReturnType<
-      typeof trpc.resourceClaims.listResourceUsages.useQuery
-    >)
+        ],
+        isLoading: false,
+        error: null,
+      })
 
-    render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
-    // expectation: shows 100% utilization
-    expect(screen.getByText('5 / 5 claimed')).toBeInTheDocument()
-    expect(screen.getByText('0 available')).toBeInTheDocument()
-    expect(screen.getByText('100% used')).toBeInTheDocument()
-    const progressBar = screen.getByRole('progressbar')
-    expect(progressBar).toHaveAttribute('aria-valuenow', '100')
-  })
+      // Shows ratio format since capacity < 100
+      expect(screen.getByText('5 of 5 claimed')).toBeInTheDocument()
+      const progressBar = screen.getByRole('progressbar')
+      expect(progressBar).toHaveAttribute('aria-valuenow', '100')
+    })
 
-  it('applies custom className', async () => {
-    // setup: render with custom className
-    vi.mocked(
-      trpc.resourceClaims.listResourceUsages.useQuery
-    ).mockReturnValue({
-      data: [
-        {
-          usage: {
-            resourceSlug: 'seats',
-            resourceId: 'res_123',
-            capacity: 10,
-            claimed: 3,
-            available: 7,
+    it('caps progress bar at 100% when resource is over-claimed', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'seats',
+              resourceId: 'res_123',
+              capacity: 5,
+              claimed: 7,
+              available: -2,
+            },
+            claims: [],
           },
-          claims: [],
-        },
-      ],
-      isLoading: false,
-      error: null,
-    } as ReturnType<
-      typeof trpc.resourceClaims.listResourceUsages.useQuery
-    >)
+        ],
+        isLoading: false,
+        error: null,
+      })
 
-    const { container } = render(
-      <SubscriptionResourceUsage
-        subscriptionId="sub_123"
-        className="custom-class"
-      />
-    )
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
-    // expectation: custom class is applied to the root element
-    expect(container.firstChild).toHaveClass('custom-class')
-  })
+      // Displays actual claimed/capacity values in ratio format
+      expect(screen.getByText('seats')).toBeInTheDocument()
+      expect(screen.getByText('7 of 5 claimed')).toBeInTheDocument()
+      // Progress bar is capped at 100%
+      const progressBar = screen.getByRole('progressbar')
+      expect(progressBar).toHaveAttribute('aria-valuenow', '100')
+    })
 
-  it('caps progress bar at 100% when resource is over-claimed', async () => {
-    // setup: mock getUsage with over-claimed resource (claimed > capacity)
-    vi.mocked(
-      trpc.resourceClaims.listResourceUsages.useQuery
-    ).mockReturnValue({
-      data: [
-        {
-          usage: {
-            resourceSlug: 'seats',
-            resourceId: 'res_123',
-            capacity: 5,
-            claimed: 7,
-            available: -2,
+    it('displays percentage at exactly capacity=100 boundary', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'api-calls',
+              resourceId: 'res_123',
+              capacity: 100,
+              claimed: 30,
+              available: 70,
+            },
+            claims: [],
           },
-          claims: [],
-        },
-      ],
-      isLoading: false,
-      error: null,
-    } as ReturnType<
-      typeof trpc.resourceClaims.listResourceUsages.useQuery
-    >)
+        ],
+        isLoading: false,
+        error: null,
+      })
 
-    render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
 
-    // expectation: displays actual claimed/capacity values
-    expect(screen.getByText('seats')).toBeInTheDocument()
-    expect(screen.getByText('7 / 5 claimed')).toBeInTheDocument()
-    expect(screen.getByText('-2 available')).toBeInTheDocument()
-    // expectation: progress bar and percentage text are capped at 100%
-    expect(screen.getByText('100% used')).toBeInTheDocument()
-    const progressBar = screen.getByRole('progressbar')
-    expect(progressBar).toHaveAttribute('aria-valuenow', '100')
+      // At exactly 100, should show percentage
+      expect(screen.getByText('30% used')).toBeInTheDocument()
+      expect(
+        screen.queryByText('30 of 100 claimed')
+      ).not.toBeInTheDocument()
+    })
+
+    it('displays ratio at capacity=99 boundary', async () => {
+      mockUseQuery.mockReturnValue({
+        data: [
+          {
+            usage: {
+              resourceSlug: 'seats',
+              resourceId: 'res_123',
+              capacity: 99,
+              claimed: 30,
+              available: 69,
+            },
+            claims: [],
+          },
+        ],
+        isLoading: false,
+        error: null,
+      })
+
+      render(<SubscriptionResourceUsage subscriptionId="sub_123" />)
+
+      // At 99, should show ratio
+      expect(screen.getByText('30 of 99 claimed')).toBeInTheDocument()
+      expect(screen.queryByText(/% used/)).not.toBeInTheDocument()
+    })
   })
 })

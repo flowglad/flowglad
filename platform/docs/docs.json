@@ -60,6 +60,7 @@
               "features/checkout-sessions",
               "features/invoices",
               "features/usage",
+              "features/resources",
               "features/webhooks"
             ]
           },
@@ -82,6 +83,7 @@
               "sdks/pricing-models-products",
               "sdks/checkout-sessions",
               "sdks/feature-access-usage",
+              "sdks/resources",
               "sdks/customer-purchases",
               "sdks/subscription-management"
             ]
@@ -178,7 +180,7 @@
       "discord": "https://discord.com/servers/flowglad-1273695198639161364",
       "github": "https://github.com/flowglad",
       "linkedin": "https://www.linkedin.com/company/flowglad/",
-      "youtube": "https://www.youtube.com/@Flowglad"
+      "youtube": "https://www.youtube.com/watch?v=G6H0c1Cd2kU"
     }
   }
 }

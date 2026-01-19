@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
@@ -123,7 +124,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           checkoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        return { result }
+        return Result.ok(result)
       }
     )
     // Reset mocks
@@ -141,7 +142,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           },
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       await expect(
@@ -151,7 +152,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return { result }
+          return Result.ok(result)
         })
       ).rejects.toThrow('Checkout session is not open')
       await comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -162,7 +163,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           },
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       await expect(
@@ -172,7 +173,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return { result }
+          return Result.ok(result)
         })
       ).rejects.toThrow('Checkout session is not open')
 
@@ -184,7 +185,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           },
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       await expect(
@@ -194,7 +195,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return { result }
+          return Result.ok(result)
         })
       ).rejects.toThrow('Checkout session is not open')
     })
@@ -225,9 +226,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { checkoutSessionId: addPaymentMethodCheckoutSession.id },
             transaction
           )
-          return {
-            result: { confirmResult, feeCalculations },
-          }
+          return Result.ok({ confirmResult, feeCalculations })
         }
       )
 
@@ -248,7 +247,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { checkoutSessionId: checkoutSession.id },
             transaction
           )
-          return { result: feeCalculations }
+          return Result.ok(feeCalculations)
         })
 
       expect(checkoutFeeCalculations.length).toBe(1)
@@ -265,7 +264,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -284,7 +283,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       const result = await comprehensiveAdminTransaction(
@@ -295,7 +294,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -315,7 +314,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
       // Mock createStripeCustomer to return a new Stripe customer ID
       const mockStripeCustomer = createMockCustomer({
@@ -334,7 +333,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -371,7 +370,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -392,7 +391,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -436,6 +435,8 @@ describe('confirmCheckoutSessionTransaction', () => {
             throw new Error(
               'No default price found for pricing model'
             )
+          if (!match.product)
+            throw new Error('Product not found for default price')
           return match.product.id
         }
       )
@@ -463,7 +464,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -484,7 +485,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -559,7 +560,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -580,7 +581,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -626,7 +627,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.Update,
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -647,7 +648,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -672,7 +673,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           } as CheckoutSession.ProductRecord,
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       await expect(
@@ -682,7 +683,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return { result }
+          return Result.ok(result)
         })
       ).rejects.toThrow('Checkout session has no customer email')
     })
@@ -707,9 +708,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return {
-            result: { confirmResult, updatedCustomer },
-          }
+          return Result.ok({ confirmResult, updatedCustomer })
         }
       )
 
@@ -728,7 +727,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { ...customer, stripeCustomerId: null },
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       // Mock createStripeCustomer to return a new Stripe customer ID
@@ -748,7 +747,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -767,7 +766,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { ...customer, stripeCustomerId: null },
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       // Update checkout session to have no customerEmail
@@ -776,7 +775,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           { ...checkoutSession, customerEmail: null },
           transaction
         )
-        return { result: null }
+        return Result.ok(null)
       })
 
       await expect(
@@ -786,7 +785,7 @@ describe('confirmCheckoutSessionTransaction', () => {
             { id: checkoutSession.id },
             ctx
           )
-          return { result }
+          return Result.ok(result)
         })
       ).rejects.toThrow('Checkout session has no customer email')
     })
@@ -805,7 +804,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               },
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -855,7 +854,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -880,7 +879,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               },
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -930,7 +929,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -955,7 +954,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               } as CheckoutSession.Update,
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -969,7 +968,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -999,7 +998,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               } as CheckoutSession.Update,
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -1015,7 +1014,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -1048,7 +1047,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               },
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -1060,7 +1059,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -1073,6 +1072,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       // Create a 100% off discount that equals the full price amount
       const fullDiscount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'FULL100',
         code: core.nanoid().slice(0, 10),
         amount: price.unitPrice, // Full price coverage
@@ -1095,7 +1095,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               } as CheckoutSession.Update,
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -1105,7 +1105,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           updatedCheckoutSession as CheckoutSession.FeeReadyRecord,
           transaction
         )
-        return { result }
+        return Result.ok(result)
       })
 
       const result = await comprehensiveAdminTransaction(
@@ -1116,7 +1116,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -1138,7 +1138,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               updatedCheckoutSession.id,
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
       expect(
@@ -1161,7 +1161,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               } as CheckoutSession.Update,
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -1173,7 +1173,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -1194,7 +1194,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               },
               transaction
             )
-            return { result }
+            return Result.ok(result)
           }
         )
 
@@ -1206,7 +1206,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 
@@ -1227,7 +1227,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return { result: confirmResult }
+          return Result.ok(confirmResult)
         }
       )
 

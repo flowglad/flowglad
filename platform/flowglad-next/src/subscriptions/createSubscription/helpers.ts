@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type { BillingPeriodTransitionPayload } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
@@ -25,7 +26,6 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
   DbTransaction,
   TransactionEffectsContext,
@@ -49,6 +49,88 @@ import type {
   NonRenewingCreateSubscriptionResult,
   StandardCreateSubscriptionResult,
 } from './types'
+
+/**
+ * Represents the notification decisions for subscription creation.
+ * This is a pure data structure that indicates which notifications should be sent.
+ */
+export interface SubscriptionNotificationDecision {
+  /** Whether to send the organization subscription created notification */
+  sendOrganizationNotification: boolean
+  /** Whether to send customer notification (created or upgraded) */
+  sendCustomerNotification: boolean
+  /** If customer notification should be sent, which type */
+  customerNotificationType: 'created' | 'upgraded' | null
+}
+
+/**
+ * Pure function that determines which notifications should be sent for a subscription creation.
+ * This function contains no side effects and can be tested in isolation without mocks.
+ *
+ * Notification rules:
+ * - Free subscriptions (unitPrice === 0) get no notifications
+ * - Paid subscriptions always get organization notifications
+ * - Customer notifications are sent unless it's a trial without payment method
+ * - If upgrading from a free subscription, send upgrade notification; otherwise send created notification
+ *
+ * @param params - The parameters needed to make the notification decision
+ * @returns The notification decision indicating which notifications to send
+ */
+export const determineSubscriptionNotifications = (params: {
+  /** The unit price of the subscription (0 = free) */
+  priceUnitPrice: number
+  /** The subscription status after creation */
+  subscriptionStatus: SubscriptionStatus
+  /** Whether the subscription has a default payment method */
+  hasDefaultPaymentMethod: boolean
+  /** Whether the subscription has a backup payment method */
+  hasBackupPaymentMethod: boolean
+  /** Whether a free subscription was canceled as part of this upgrade */
+  canceledFreeSubscription: boolean
+}): SubscriptionNotificationDecision => {
+  const {
+    priceUnitPrice,
+    subscriptionStatus,
+    hasDefaultPaymentMethod,
+    hasBackupPaymentMethod,
+    canceledFreeSubscription,
+  } = params
+
+  // Free subscriptions (unitPrice === 0) get no notifications
+  if (priceUnitPrice === 0) {
+    return {
+      sendOrganizationNotification: false,
+      sendCustomerNotification: false,
+      customerNotificationType: null,
+    }
+  }
+
+  // Check if this is a trial subscription without a payment method
+  // Don't send "Subscription Confirmed" email for trials without payment
+  // since no billing commitment exists yet
+  const hasPaymentMethod =
+    hasDefaultPaymentMethod || hasBackupPaymentMethod
+
+  const isTrialWithoutPayment =
+    subscriptionStatus === SubscriptionStatus.Trialing &&
+    !hasPaymentMethod
+
+  // Determine customer notification type
+  let sendCustomerNotification = !isTrialWithoutPayment
+  let customerNotificationType: 'created' | 'upgraded' | null = null
+
+  if (sendCustomerNotification) {
+    customerNotificationType = canceledFreeSubscription
+      ? 'upgraded'
+      : 'created'
+  }
+
+  return {
+    sendOrganizationNotification: true,
+    sendCustomerNotification,
+    customerNotificationType,
+  }
+}
 
 export const deriveSubscriptionStatus = ({
   autoStart,
@@ -132,22 +214,21 @@ export const safelyProcessCreationForExistingSubscription = async (
   subscriptionItems: SubscriptionItem.Record[],
   transaction: DbTransaction
 ): Promise<
-  TransactionOutput<
+  Result<
     | StandardCreateSubscriptionResult
-    | NonRenewingCreateSubscriptionResult
+    | NonRenewingCreateSubscriptionResult,
+    Error
   >
 > => {
   if (subscription.renews === false) {
-    return {
-      result: {
-        type: 'non_renewing',
-        subscription,
-        subscriptionItems,
-        billingPeriod: null,
-        billingPeriodItems: null,
-        billingRun: null,
-      },
-    }
+    return Result.ok({
+      type: 'non_renewing',
+      subscription,
+      subscriptionItems,
+      billingPeriod: null,
+      billingPeriodItems: null,
+      billingRun: null,
+    })
   }
 
   const billingPeriodAndItems =
@@ -198,17 +279,14 @@ export const safelyProcessCreationForExistingSubscription = async (
       billingRun,
     })
   }
-  return {
-    result: {
-      type: 'standard',
-      subscription,
-      subscriptionItems,
-      billingPeriod: billingPeriodAndItems.billingPeriod,
-      billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
-      billingRun,
-    },
-    eventsToInsert: [],
-  }
+  return Result.ok({
+    type: 'standard',
+    subscription,
+    subscriptionItems,
+    billingPeriod: billingPeriodAndItems.billingPeriod,
+    billingPeriodItems: billingPeriodAndItems.billingPeriodItems,
+    billingRun,
+  })
 }
 
 export const verifyCanCreateSubscription = async (

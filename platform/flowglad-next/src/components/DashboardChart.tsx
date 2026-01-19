@@ -1,6 +1,8 @@
 'use client'
 
+import { ChevronDown } from 'lucide-react'
 import React from 'react'
+import { trpc } from '@/app/_trpc/client'
 import { ChartDataTooltip } from '@/components/ChartDataTooltip'
 import {
   CHART_SIZE_CONFIG,
@@ -10,19 +12,46 @@ import {
   DASHBOARD_LINE_CHART_DEFAULTS,
   LineChart,
 } from '@/components/charts'
+import { Button } from '@/components/ui/button'
 import { ChartInfoTooltip } from '@/components/ui/chart-info-tooltip'
-import { GhostSelect } from '@/components/ui/ghost-select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Skeleton } from '@/components/ui/skeleton'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { useChartTooltip } from '@/hooks/useChartTooltip'
 import { useMetricData } from '@/hooks/useMetricData'
 import {
   DEFAULT_METRIC,
+  getMetricConfig,
+  isUsageMetric,
   METRIC_TYPES,
   METRICS,
   type MetricType,
+  type StaticMetricType,
 } from '@/lib/metrics'
 import { cn } from '@/lib/utils'
-import { CurrencyCode, RevenueChartIntervalUnit } from '@/types'
+import {
+  CurrencyCode,
+  RevenueChartIntervalUnit,
+  UsageMeterAggregationType,
+} from '@/types'
+
+/**
+ * Information about a selected usage meter.
+ */
+interface SelectedMeterInfo {
+  id: string
+  name: string
+  aggregationType: UsageMeterAggregationType
+  pricingModelId: string
+}
 
 interface DashboardChartProps {
   /** Start date for the chart data range */
@@ -33,10 +62,10 @@ interface DashboardChartProps {
   interval: RevenueChartIntervalUnit
   /** Chart size variant - 'lg' for primary, 'sm' for secondary */
   size?: ChartSize
-  /** Available metrics to show in the selector */
-  availableMetrics?: MetricType[]
+  /** Available static metrics to show in the selector */
+  availableMetrics?: StaticMetricType[]
   /** Default metric to display */
-  defaultMetric?: MetricType
+  defaultMetric?: StaticMetricType
   /** Optional product ID to filter metrics by a specific product */
   productId?: string | null
 }
@@ -98,18 +127,38 @@ export function DashboardChart({
         : availableMetrics[0]
     )
 
+  // Selected meter info for usage metrics (stores meter metadata for display)
+  const [selectedMeterInfo, setSelectedMeterInfo] =
+    React.useState<SelectedMeterInfo | null>(null)
+
+  // Fetch usage meters with events (decoupled from product filter)
+  const { data: usageMeters, isLoading: isLoadingMeters } =
+    trpc.organizations.getUsageMetersWithEvents.useQuery(
+      {},
+      { enabled: !!organization?.id }
+    )
+
   // Reset to a valid metric if current selection is no longer available
+  // Note: Usage metrics don't need reset since meter list is decoupled from product filter
   React.useEffect(() => {
-    if (!availableMetrics.includes(selectedMetric)) {
+    if (
+      !isUsageMetric(selectedMetric) &&
+      !availableMetrics.includes(selectedMetric as StaticMetricType)
+    ) {
       // Prefer defaultMetric if valid, otherwise fall back to first available
       const resetMetric = availableMetrics.includes(defaultMetric)
         ? defaultMetric
         : availableMetrics[0]
       setSelectedMetric(resetMetric)
+      setSelectedMeterInfo(null)
     }
   }, [availableMetrics, selectedMetric, defaultMetric])
 
-  const metricConfig = METRICS[selectedMetric]
+  // Get metric config - uses meter name for usage metrics
+  const metricConfig = React.useMemo(
+    () => getMetricConfig(selectedMetric, selectedMeterInfo?.name),
+    [selectedMetric, selectedMeterInfo?.name]
+  )
 
   // Tooltip state management
   const { tooltipData, tooltipCallback } = useChartTooltip(
@@ -170,6 +219,34 @@ export function DashboardChart({
     [metricConfig, currency]
   )
 
+  // Handle static metric selection
+  const handleStaticSelect = (value: string) => {
+    setSelectedMetric(value as StaticMetricType)
+    setSelectedMeterInfo(null)
+  }
+
+  // Handle usage metric selection
+  const handleUsageSelect = (meterId: string) => {
+    const meter = usageMeters?.find((m) => m.id === meterId)
+    if (meter) {
+      setSelectedMetric(`usage:${meterId}`)
+      setSelectedMeterInfo({
+        id: meter.id,
+        name: meter.name,
+        aggregationType: meter.aggregationType,
+        pricingModelId: meter.pricingModelId,
+      })
+    }
+  }
+
+  // Determine if we should show the dropdown (more than 1 option available)
+  const hasMultipleOptions =
+    availableMetrics.length > 1 ||
+    (usageMeters && usageMeters.length > 0)
+
+  // Get current label for dropdown trigger
+  const currentLabel = metricConfig.label
+
   return (
     <div className="w-full h-full">
       {/* Header with metric selector */}
@@ -180,17 +257,72 @@ export function DashboardChart({
         )}
       >
         <div className="-ml-3 text-foreground w-fit flex items-center flex-row gap-0.5">
-          {availableMetrics.length > 1 ? (
-            <GhostSelect
-              value={selectedMetric}
-              onValueChange={(value) =>
-                setSelectedMetric(value as MetricType)
-              }
-              options={availableMetrics.map((metric) => ({
-                value: metric,
-                label: METRICS[metric].label,
-              }))}
-            />
+          {hasMultipleOptions ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm">
+                  <span>{currentLabel}</span>
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                {/* Static metrics section */}
+                <DropdownMenuRadioGroup
+                  value={
+                    isUsageMetric(selectedMetric)
+                      ? ''
+                      : selectedMetric
+                  }
+                  onValueChange={handleStaticSelect}
+                >
+                  {availableMetrics.map((metric) => (
+                    <DropdownMenuRadioItem
+                      key={metric}
+                      value={metric}
+                    >
+                      {METRICS[metric].label}
+                    </DropdownMenuRadioItem>
+                  ))}
+                </DropdownMenuRadioGroup>
+
+                {/* Usage meters section */}
+                {isLoadingMeters ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>
+                      Usage Meters
+                    </DropdownMenuLabel>
+                    <div className="px-2 py-1.5">
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </>
+                ) : usageMeters && usageMeters.length > 0 ? (
+                  <>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuLabel>
+                      Usage Meters
+                    </DropdownMenuLabel>
+                    <DropdownMenuRadioGroup
+                      value={
+                        isUsageMetric(selectedMetric)
+                          ? selectedMetric.replace('usage:', '')
+                          : ''
+                      }
+                      onValueChange={handleUsageSelect}
+                    >
+                      {usageMeters.map((meter) => (
+                        <DropdownMenuRadioItem
+                          key={meter.id}
+                          value={meter.id}
+                        >
+                          {meter.name}
+                        </DropdownMenuRadioItem>
+                      ))}
+                    </DropdownMenuRadioGroup>
+                  </>
+                ) : null}
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <p className="whitespace-nowrap text-sm font-medium">
               {metricConfig.label}

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import Stripe from 'stripe'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -30,7 +31,6 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
   DbTransaction,
   TransactionEffectsContext,
@@ -385,7 +385,12 @@ interface ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult {
 interface SetupIntentSucceededBookkeepingResult {
   checkoutSession: CheckoutSession.Record
   price: Price.Record
-  product: Product.Record
+  /**
+   * Product may be null for usage prices, but checkout sessions
+   * for subscription creation always require a product.
+   * The null case should be validated at runtime.
+   */
+  product: Product.Record | null
   purchase: Purchase.Record
   organization: Organization.Record
   customer: Customer.Record
@@ -410,7 +415,10 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     },
     ctx: TransactionEffectsContext
   ): Promise<
-    TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
+    Result<
+      ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult,
+      Error
+    >
   > => {
     const { transaction, emitEvent } = ctx
     if (!customer) {
@@ -463,7 +471,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     const startDate = Date.now()
     const now = Date.now()
 
-    const output = await createSubscriptionWorkflow(
+    const workflowResult = await createSubscriptionWorkflow(
       {
         stripeSetupIntentId: setupIntent.id,
         defaultPaymentMethod: paymentMethod,
@@ -493,6 +501,11 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       ctx
     )
+
+    if (workflowResult.status === 'error') {
+      return Result.err(workflowResult.error)
+    }
+    const output = workflowResult.value
 
     const updatedPurchase = await updatePurchase(
       {
@@ -524,18 +537,16 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
     })
 
-    return {
-      result: {
-        purchase: updatedPurchase,
-        checkoutSession,
-        billingRun: output.result.billingRun,
-        price,
-        product,
-        organization,
-        customer,
-        type: checkoutSession.type,
-      },
-    }
+    return Result.ok({
+      purchase: updatedPurchase,
+      checkoutSession,
+      billingRun: output.billingRun,
+      price,
+      product,
+      organization,
+      customer,
+      type: checkoutSession.type,
+    })
   }
 
 export interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
@@ -666,11 +677,12 @@ export const processSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
   ctx: TransactionEffectsContext
 ): Promise<
-  TransactionOutput<
+  Result<
     | ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult
     | ProcessAddPaymentMethodSetupIntentSucceededResult
     | ProcessTerminalCheckoutSessionSetupIntentResult
-    | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
+    | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult,
+    Error
   >
 > => {
   const { transaction, invalidateCache } = ctx
@@ -718,18 +730,16 @@ export const processSetupIntentSucceeded = async (
         )
       }
 
-      return {
-        result: {
-          type: CheckoutSessionType.ActivateSubscription,
-          checkoutSession,
-          organization,
-          customer,
-          paymentMethod,
-          billingRun: null,
-          subscription,
-          purchase: null,
-        },
-      }
+      return Result.ok({
+        type: CheckoutSessionType.ActivateSubscription,
+        checkoutSession,
+        organization,
+        customer,
+        paymentMethod,
+        billingRun: null,
+        subscription,
+        purchase: null,
+      })
     }
     if (checkoutSession.type === CheckoutSessionType.Purchase) {
       throw new Error(
@@ -757,18 +767,23 @@ export const processSetupIntentSucceeded = async (
       )
     }
 
-    return {
-      result: {
-        type: checkoutSession.type,
-        checkoutSession,
-        price: priceResult[0].price,
-        product: priceResult[0].product,
-        organization: priceResult[0].organization,
-        customer,
-        billingRun: null,
-        purchase: null,
-      },
+    // Validate that product exists - subscription creation requires a product
+    if (!priceResult[0].product) {
+      throw new Error(
+        `processSetupIntentSucceeded: Product not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id}). Usage prices are not supported for subscription checkout sessions.`
+      )
     }
+
+    return Result.ok({
+      type: checkoutSession.type,
+      checkoutSession,
+      price: priceResult[0].price,
+      product: priceResult[0].product,
+      organization: priceResult[0].organization,
+      customer,
+      billingRun: null,
+      purchase: null,
+    })
   }
 
   const initialCheckoutSession = await checkoutSessionFromSetupIntent(
@@ -781,9 +796,7 @@ export const processSetupIntentSucceeded = async (
       initialCheckoutSession,
       transaction
     )
-    return {
-      result,
-    }
+    return Result.ok(result)
   }
 
   if (
@@ -794,9 +807,7 @@ export const processSetupIntentSucceeded = async (
       setupIntent,
       transaction
     )
-    return {
-      result,
-    }
+    return Result.ok(result)
   }
 
   if (
@@ -811,9 +822,7 @@ export const processSetupIntentSucceeded = async (
     invalidateCache(
       CacheDependency.customerSubscriptions(result.customer.id)
     )
-    return {
-      result,
-    }
+    return Result.ok(result)
   }
 
   const successProcessedResult =

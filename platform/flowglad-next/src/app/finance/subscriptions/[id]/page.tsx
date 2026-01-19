@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { Price } from '@/db/schema/prices'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
@@ -51,14 +52,16 @@ const SubscriptionPage = async ({
           subscription.priceId,
           transaction
         )
-        product = await selectProductById(
-          price.productId,
-          transaction
-        )
+        if (Price.hasProductId(price)) {
+          product = await selectProductById(
+            price.productId,
+            transaction
+          )
+        }
       } else if (subscription.subscriptionItems.length > 0) {
         // Fallback: if no main price is set, use the product from the first item
         const firstPrice = subscription.subscriptionItems[0].price
-        if (firstPrice) {
+        if (firstPrice && Price.clientHasProductId(firstPrice)) {
           product = await selectProductById(
             firstPrice.productId,
             transaction
@@ -73,17 +76,23 @@ const SubscriptionPage = async ({
         )
       }
 
-      // Fetch all products for subscription items
-      const productIds = [
-        ...new Set(
-          subscription.subscriptionItems.map(
-            (item) => item.price.productId
-          )
-        ),
-      ]
+      // Fetch all products for subscription items (only for prices with productId)
+      const productIds = subscription.subscriptionItems
+        .filter((item) => Price.clientHasProductId(item.price))
+        .map((item) => {
+          // After filter, we know this is a product price with productId
+          const typedPrice = item.price as
+            | Price.ClientSubscriptionRecord
+            | Price.ClientSinglePaymentRecord
+          return typedPrice.productId
+        })
+      const uniqueProductIds = [...new Set(productIds)]
       const products =
-        productIds.length > 0
-          ? await selectProducts({ id: productIds }, transaction)
+        uniqueProductIds.length > 0
+          ? await selectProducts(
+              { id: uniqueProductIds },
+              transaction
+            )
           : []
 
       // Create a record of productId to product name (plain object for serialization)

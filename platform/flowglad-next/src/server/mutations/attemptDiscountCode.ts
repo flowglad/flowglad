@@ -3,7 +3,10 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { attemptDiscountCodeInputSchema } from '@/db/schema/discounts'
 import { selectDiscounts } from '@/db/tableMethods/discountMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import {
+  derivePricingModelIdFromPurchase,
+  selectPurchaseById,
+} from '@/db/tableMethods/purchaseMethods'
 import { publicProcedure } from '@/server/trpc'
 import { CheckoutSessionType } from '@/types'
 import { editCheckoutSession } from '@/utils/bookkeeping/checkoutSessions'
@@ -42,15 +45,6 @@ export const attemptDiscountCode = publicProcedure
           return false
         }
 
-        // Find active discounts with matching code
-        const matchingDiscounts = await selectDiscounts(
-          {
-            code: input.code,
-            organizationId: checkoutSession.organizationId,
-            livemode: checkoutSession.livemode,
-          },
-          transaction
-        )
         const updateCheckoutSessionDiscount = (
           discountId: string | null
         ) => {
@@ -62,44 +56,65 @@ export const attemptDiscountCode = publicProcedure
             transaction
           )
         }
-        const discount = matchingDiscounts[0]
 
-        if (!discount || !discount.active) {
-          await updateCheckoutSessionDiscount(null)
-          return false
-        }
-
-        // Check if product or purchase exists and get its organizationId
+        // Get the pricing model ID for this checkout
+        let pricingModelId: string | null = null
         let organizationId: string | null = null
+
         if ('productId' in input) {
           const products = await selectProducts(
-            {
-              id: input.productId,
-            },
+            { id: input.productId },
             transaction
           )
-          organizationId = products[0]?.organizationId
+          const product = products[0]
+          if (product) {
+            pricingModelId = product.pricingModelId
+            organizationId = product.organizationId
+          }
         } else if ('purchaseId' in input) {
           const purchase = await selectPurchaseById(
             input.purchaseId,
             transaction
           )
-          organizationId = purchase?.organizationId
+          if (purchase) {
+            organizationId = purchase.organizationId
+            pricingModelId = await derivePricingModelIdFromPurchase(
+              input.purchaseId,
+              transaction
+            )
+          }
         }
 
-        if (!organizationId) {
+        if (!pricingModelId || !organizationId) {
           await updateCheckoutSessionDiscount(null)
           return false
         }
+
+        // Find active discounts with matching code AND pricing model
+        const matchingDiscounts = await selectDiscounts(
+          {
+            code: input.code,
+            pricingModelId,
+            active: true,
+          },
+          transaction
+        )
+
+        const discount = matchingDiscounts[0]
+
+        if (!discount) {
+          await updateCheckoutSessionDiscount(null)
+          return false
+        }
+
         // Verify organization matches
-        const applyDiscount =
-          matchingDiscounts[0].organizationId === organizationId
-        if (!applyDiscount) {
+        if (discount.organizationId !== organizationId) {
           await updateCheckoutSessionDiscount(null)
           return false
         }
-        await updateCheckoutSessionDiscount(matchingDiscounts[0].id)
-        return applyDiscount
+
+        await updateCheckoutSessionDiscount(discount.id)
+        return true
       }
     )
 

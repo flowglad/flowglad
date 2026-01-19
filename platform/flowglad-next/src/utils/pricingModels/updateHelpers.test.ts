@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
@@ -42,14 +43,45 @@ describe('resolveExistingIds', () => {
     const input: SetupPricingModelInput = {
       name: 'Test Pricing Model',
       isDefault: false,
+      // Usage meters use nested structure with prices
       usageMeters: [
         {
-          slug: 'api-calls',
-          name: 'API Calls',
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'api-usage-price',
+              unitPrice: 10,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageEventsPerUnit: 100,
+              trialPeriodDays: null,
+            },
+          ],
         },
         {
-          slug: 'storage',
-          name: 'Storage',
+          usageMeter: {
+            slug: 'storage',
+            name: 'Storage',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'storage-usage-price',
+              unitPrice: 5,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageEventsPerUnit: 50,
+              trialPeriodDays: null,
+            },
+          ],
         },
       ],
       features: [
@@ -113,48 +145,7 @@ describe('resolveExistingIds', () => {
           },
           features: ['feature-a', 'api-credits'],
         },
-        {
-          product: {
-            name: 'API Usage',
-            slug: 'api-usage',
-            default: false,
-            active: true,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'api-usage-price',
-            unitPrice: 10,
-            isDefault: true,
-            active: true,
-            intervalCount: 1,
-            intervalUnit: IntervalUnit.Month,
-            usageMeterSlug: 'api-calls',
-            usageEventsPerUnit: 100,
-            trialPeriodDays: null,
-          },
-          features: [],
-        },
-        {
-          product: {
-            name: 'Storage Usage',
-            slug: 'storage-usage',
-            default: false,
-            active: true,
-          },
-          price: {
-            type: PriceType.Usage,
-            slug: 'storage-usage-price',
-            unitPrice: 5,
-            isDefault: true,
-            active: true,
-            intervalCount: 1,
-            intervalUnit: IntervalUnit.Month,
-            usageMeterSlug: 'storage',
-            usageEventsPerUnit: 50,
-            trialPeriodDays: null,
-          },
-          features: [],
-        },
+        // Removed usage price products - usage prices belong to usage meters
       ],
     }
 
@@ -226,6 +217,23 @@ describe('resolveExistingIds', () => {
     )
     expect(resolvedIds.prices.get('pro-monthly')).toBe(
       createdProPrice?.id
+    )
+
+    // Verify usage prices are also included in the prices map
+    expect(resolvedIds.prices.has('api-usage-price')).toBe(true)
+    expect(resolvedIds.prices.has('storage-usage-price')).toBe(true)
+
+    const createdApiUsagePrice = setupResult.prices.find(
+      (p) => p.slug === 'api-usage-price'
+    )
+    const createdStorageUsagePrice = setupResult.prices.find(
+      (p) => p.slug === 'storage-usage-price'
+    )
+    expect(resolvedIds.prices.get('api-usage-price')).toBe(
+      createdApiUsagePrice?.id
+    )
+    expect(resolvedIds.prices.get('storage-usage-price')).toBe(
+      createdStorageUsagePrice?.id
     )
 
     // Verify usage meters map
@@ -575,7 +583,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -720,7 +728,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -886,7 +894,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1084,7 +1092,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1122,7 +1130,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1212,7 +1220,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1240,7 +1248,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 
@@ -1377,7 +1385,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
           },
           { transaction, invalidateCache }
         )
-        return { result }
+        return Result.ok(result)
       }
     )
 

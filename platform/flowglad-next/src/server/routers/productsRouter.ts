@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
@@ -61,7 +62,7 @@ export const createProduct = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
+        const { transaction, invalidateCache } = transactionCtx
         const { livemode, organizationId } = ctx
         const userId = ctx.user?.id
         if (!organizationId) {
@@ -98,13 +99,12 @@ export const createProduct = protectedProcedure
               userId,
               livemode,
               organizationId,
+              invalidateCache,
             }
           )
-          return {
-            result: {
-              product: txResult.product,
-            },
-          }
+          return Result.ok({
+            product: txResult.product,
+          })
         } catch (error) {
           errorHandlers.product.handle(error, {
             operation: 'create',
@@ -127,7 +127,7 @@ export const updateProduct = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
+        const { transaction, invalidateCache } = transactionCtx
         const { livemode, organizationId } = ctx
         const userId = ctx.user?.id
         if (!organizationId) {
@@ -155,14 +155,13 @@ export const updateProduct = protectedProcedure
               livemode,
               organizationId,
               userId,
+              invalidateCache,
             }
           )
 
-          return {
-            result: {
-              product: updatedProduct,
-            },
-          }
+          return Result.ok({
+            product: updatedProduct,
+          })
         } catch (error) {
           // Re-throw with enhanced error handling
           errorHandlers.product.handle(error, {

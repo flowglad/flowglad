@@ -93,7 +93,7 @@ describe('selectUsageEventsPaginated', () => {
     usageMeter1 = await setupUsageMeter({
       organizationId: org1Data.organization.id,
       name: 'Test Usage Meter 1',
-      pricingModelId: org2Data.pricingModel.id,
+      pricingModelId: org1Data.pricingModel.id,
     })
     usageMeter2 = await setupUsageMeter({
       organizationId: org2Data.organization.id,
@@ -103,7 +103,6 @@ describe('selectUsageEventsPaginated', () => {
 
     // Setup prices
     price1 = await setupPrice({
-      productId: org1Data.product.id,
       name: 'Test Price 1',
       type: PriceType.Usage,
       unitPrice: 100,
@@ -114,7 +113,6 @@ describe('selectUsageEventsPaginated', () => {
       usageMeterId: usageMeter1.id,
     })
     price2 = await setupPrice({
-      productId: org2Data.product.id,
       name: 'Test Price 2',
       type: PriceType.Usage,
       unitPrice: 200,
@@ -370,7 +368,7 @@ describe('selectUsageEventsPaginated', () => {
     })
   }, 15_000)
 
-  it('should handle invalid cursor gracefully', async () => {
+  it('should handle invalid cursor gracefully by treating it as no cursor (returning first page)', async () => {
     // Create some usage events first
     const createdEvents = []
     for (let i = 0; i < 3; i++) {
@@ -387,21 +385,27 @@ describe('selectUsageEventsPaginated', () => {
       createdEvents.push(event)
     }
 
-    // Call selectUsageEventsPaginated with invalid cursor
-    await expect(
-      authenticatedTransaction(
-        async ({ transaction }) => {
-          return selectUsageEventsPaginated(
-            {
-              cursor: 'eyJpbnZhbGlkIjogInZhbHVlIn0=', // base64 encoded '{"invalid": "value"}'
-              limit: 10,
-            },
-            transaction
-          )
-        },
-        { apiKey: org1ApiKeyToken }
-      )
-    ).rejects.toThrow()
+    // Call selectUsageEventsPaginated with invalid cursor - should treat as no cursor and return first page
+    const result = await authenticatedTransaction(
+      async ({ transaction }) => {
+        return selectUsageEventsPaginated(
+          {
+            cursor: 'eyJpbnZhbGlkIjogInZhbHVlIn0=', // base64 encoded '{"invalid": "value"}'
+            limit: 10,
+          },
+          transaction
+        )
+      },
+      { apiKey: org1ApiKeyToken }
+    )
+
+    // Should return results (treating invalid cursor as "no cursor" = first page)
+    expect(result.data.length).toBeGreaterThanOrEqual(3)
+    // All created events should be in the results
+    const resultIds = result.data.map((event) => event.id)
+    createdEvents.forEach((event) => {
+      expect(resultIds).toContain(event.id)
+    })
   })
 })
 
@@ -431,6 +435,7 @@ describe('selectUsageEventsTableRowData', () => {
     customer1 = await setupCustomer({
       organizationId: org1Data.organization.id,
       email: `customer1+${Date.now()}@test.com`,
+      pricingModelId: org1Data.pricingModel.id,
     })
 
     // Setup payment method
@@ -449,7 +454,6 @@ describe('selectUsageEventsTableRowData', () => {
 
     // Setup price
     price1 = await setupPrice({
-      productId: org1Data.product.id,
       name: 'Test Price 1',
       type: PriceType.Usage,
       unitPrice: 100,
@@ -605,6 +609,7 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
     customer1 = await setupCustomer({
       organizationId: org1Data.organization.id,
       email: `customer1+${Date.now()}@test.com`,
+      pricingModelId: org1Data.pricingModel.id,
     })
 
     // Setup payment method
@@ -630,7 +635,6 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
 
     // Setup price
     price1 = await setupPrice({
-      productId: org1Data.product.id,
       name: 'Test Price 1',
       type: PriceType.Usage,
       unitPrice: 100,
@@ -816,7 +820,7 @@ describe('RLS Policies for usage_events table', () => {
     usageMeter1 = await setupUsageMeter({
       organizationId: org1Data.organization.id,
       name: 'Test Usage Meter 1',
-      pricingModelId: org2Data.pricingModel.id,
+      pricingModelId: org1Data.pricingModel.id,
     })
     usageMeter2 = await setupUsageMeter({
       organizationId: org2Data.organization.id,
@@ -826,7 +830,6 @@ describe('RLS Policies for usage_events table', () => {
 
     // Setup prices
     price1 = await setupPrice({
-      productId: org1Data.product.id,
       name: 'Test Price 1',
       type: PriceType.Usage,
       unitPrice: 100,
@@ -837,7 +840,6 @@ describe('RLS Policies for usage_events table', () => {
       usageMeterId: usageMeter1.id,
     })
     price2 = await setupPrice({
-      productId: org2Data.product.id,
       name: 'Test Price 2',
       type: PriceType.Usage,
       unitPrice: 200,
@@ -999,6 +1001,7 @@ describe('insertUsageEvent', () => {
     customer1 = await setupCustomer({
       organizationId: org1Data.organization.id,
       email: `customer1+${Date.now()}@test.com`,
+      pricingModelId: org1Data.pricingModel.id,
     })
 
     // Setup payment method
@@ -1017,7 +1020,6 @@ describe('insertUsageEvent', () => {
 
     // Setup price
     price1 = await setupPrice({
-      productId: org1Data.product.id,
       name: 'Test Price 1',
       type: PriceType.Usage,
       unitPrice: 100,

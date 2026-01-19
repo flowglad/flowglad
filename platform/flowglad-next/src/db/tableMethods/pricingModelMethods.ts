@@ -35,6 +35,7 @@ import {
   type PricingModelWithProductsAndUsageMeters,
   type ProductWithPrices,
   prices,
+  usagePriceClientSelectSchema,
 } from '../schema/prices'
 import { type ProductFeature } from '../schema/productFeatures'
 import { products } from '../schema/products'
@@ -43,7 +44,10 @@ import {
   usageMeters,
   usageMetersClientSelectSchema,
 } from '../schema/usageMeters'
-import { selectPricesAndProductsByProductWhere } from './priceMethods'
+import {
+  selectPrices,
+  selectPricesAndProductsByProductWhere,
+} from './priceMethods'
 import { selectFeaturesByProductFeatureWhere } from './productFeatureMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -321,6 +325,37 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
         transaction
       )
 
+    // Fetch usage prices for usage meters (usage prices have productId = null)
+    // Get all usage meter IDs across all pricing models
+    const allUsageMeterIds = Array.from(
+      usageMetersByPricingModelId.values()
+    ).flatMap((meters) => meters.map((m) => m.id))
+    const usagePricesResults =
+      allUsageMeterIds.length > 0
+        ? await selectPrices(
+            { usageMeterId: allUsageMeterIds, type: PriceType.Usage },
+            transaction
+          )
+        : []
+
+    // Group usage prices by usage meter ID
+    const usagePricesByUsageMeterId = new Map<
+      string,
+      Price.ClientUsageRecord[]
+    >()
+    usagePricesResults.forEach((price) => {
+      if (price.type !== PriceType.Usage || !price.usageMeterId) {
+        return
+      }
+      const parsedPrice = usagePriceClientSelectSchema.parse(price)
+      const existing =
+        usagePricesByUsageMeterId.get(price.usageMeterId) ?? []
+      usagePricesByUsageMeterId.set(price.usageMeterId, [
+        ...existing,
+        parsedPrice,
+      ])
+    })
+
     const productFeaturesAndFeaturesByProductId = new Map<
       string,
       {
@@ -369,17 +404,35 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
     const uniquePricingModels = Array.from(
       uniquePricingModelsMap.values()
     )
-    return uniquePricingModels.map((pricingModel) => ({
-      ...pricingModel,
-      usageMeters:
-        usageMetersByPricingModelId.get(pricingModel.id) ?? [],
-      products: productsByPricingModelId.get(pricingModel.id) ?? [],
-      defaultProduct:
-        productsByPricingModelId
-          .get(pricingModel.id)
-          ?.find((product: ProductWithPrices) => product.default) ??
-        undefined,
-    }))
+    return uniquePricingModels.map((pricingModel) => {
+      // Get usage meters with their prices
+      const usageMetersForPricingModel =
+        usageMetersByPricingModelId.get(pricingModel.id) ?? []
+      const usageMetersWithPrices = usageMetersForPricingModel.map(
+        (usageMeter) => {
+          const meterPrices =
+            usagePricesByUsageMeterId.get(usageMeter.id) ?? []
+          const defaultPrice =
+            meterPrices.find((p) => p.isDefault) ?? meterPrices[0]
+          return {
+            ...usageMeter,
+            prices: meterPrices,
+            defaultPrice,
+          }
+        }
+      )
+
+      return {
+        ...pricingModel,
+        usageMeters: usageMetersWithPrices,
+        products: productsByPricingModelId.get(pricingModel.id) ?? [],
+        defaultProduct:
+          productsByPricingModelId
+            .get(pricingModel.id)
+            ?.find((product: ProductWithPrices) => product.default) ??
+          undefined,
+      }
+    })
   }
 
 /**
@@ -414,6 +467,22 @@ export const selectPricingModelForCustomer = async (
           .filter(
             (product: ProductWithPrices) => product.prices.length > 0
           ), // Filter out products with no active prices
+        usageMeters: pricingModel.usageMeters
+          .map((usageMeter) => {
+            const activePrices = usageMeter.prices.filter(
+              (price) => price.active
+            )
+            const activeDefaultPrice = usageMeter.defaultPrice?.active
+              ? usageMeter.defaultPrice
+              : (activePrices.find((p) => p.isDefault) ??
+                activePrices[0])
+            return {
+              ...usageMeter,
+              prices: activePrices,
+              defaultPrice: activeDefaultPrice,
+            }
+          })
+          .filter((usageMeter) => usageMeter.prices.length > 0), // Filter out usage meters with no active prices
       }
     }
   }
@@ -446,6 +515,21 @@ export const selectPricingModelForCustomer = async (
       .filter(
         (product: ProductWithPrices) => product.prices.length > 0
       ), // Filter out products with no active prices
+    usageMeters: pricingModel.usageMeters
+      .map((usageMeter) => {
+        const activePrices = usageMeter.prices.filter(
+          (price) => price.active
+        )
+        const activeDefaultPrice = usageMeter.defaultPrice?.active
+          ? usageMeter.defaultPrice
+          : (activePrices.find((p) => p.isDefault) ?? activePrices[0])
+        return {
+          ...usageMeter,
+          prices: activePrices,
+          defaultPrice: activeDefaultPrice,
+        }
+      })
+      .filter((usageMeter) => usageMeter.prices.length > 0), // Filter out usage meters with no active prices
   }
 }
 

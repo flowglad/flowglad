@@ -22,7 +22,7 @@ import {
   releaseResourceInputSchema,
   releaseResourceTransaction,
 } from '@/resources/resourceClaimHelpers'
-import { devOnlyProcedure, router } from '@/server/trpc'
+import { protectedProcedure, router } from '@/server/trpc'
 import { FeatureType } from '@/types'
 import { trpcToRest } from '@/utils/openapi'
 
@@ -173,7 +173,7 @@ const validateSubscriptionOwnership = async (
   return { subscription, customerId: subscription.customerId }
 }
 
-const claimProcedure = devOnlyProcedure
+const claimProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'POST',
@@ -218,7 +218,7 @@ const claimProcedure = devOnlyProcedure
     )
   )
 
-const releaseProcedure = devOnlyProcedure
+const releaseProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'POST',
@@ -263,7 +263,7 @@ const releaseProcedure = devOnlyProcedure
     )
   )
 
-const getUsageProcedure = devOnlyProcedure
+const getUsageProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'GET',
@@ -426,7 +426,7 @@ const listResourceUsagesInputSchema = z
     id: 'ListResourceUsagesInput',
   })
 
-const listResourceUsagesProcedure = devOnlyProcedure
+const listResourceUsagesProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'GET',
@@ -588,7 +588,7 @@ const listResourceUsagesProcedure = devOnlyProcedure
     )
   )
 
-const listClaimsProcedure = devOnlyProcedure
+const listClaimsProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'GET',

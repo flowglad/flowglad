@@ -1,15 +1,73 @@
+import type { Price } from '@/db/schema/prices'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
-import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
+import {
+  selectPrices,
+  selectPricesAndProductsByProductWhere,
+} from '@/db/tableMethods/priceMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { DbTransaction } from '@/db/types'
+import type { CurrencyCode } from '@/types'
 import { FeatureType, PriceType } from '@/types'
 import {
   type SetupPricingModelInput,
+  type SetupPricingModelProductPriceInput,
+  type SetupUsageMeterPriceInput,
   validateSetupPricingModelInput,
 } from './setupSchemas'
+
+/**
+ * Creates a Price.Insert from a product price input (Subscription or SinglePayment).
+ */
+export const createProductPriceInsert = (
+  price: SetupPricingModelProductPriceInput,
+  options: {
+    productId: string
+    currency: CurrencyCode
+    livemode: boolean
+  }
+): Price.Insert => {
+  const { productId, currency, livemode } = options
+  const base = {
+    name: price.name ?? null,
+    slug: price.slug ?? null,
+    unitPrice: price.unitPrice,
+    isDefault: price.isDefault,
+    active: price.active,
+    currency,
+    productId,
+    livemode,
+    externalId: null,
+    usageMeterId: null,
+  }
+
+  switch (price.type) {
+    case PriceType.Subscription:
+      return {
+        ...base,
+        type: PriceType.Subscription,
+        intervalCount: price.intervalCount,
+        intervalUnit: price.intervalUnit,
+        trialPeriodDays: price.trialPeriodDays ?? null,
+        usageEventsPerUnit: price.usageEventsPerUnit ?? null,
+      }
+    case PriceType.SinglePayment:
+      return {
+        ...base,
+        type: PriceType.SinglePayment,
+        intervalCount: null,
+        intervalUnit: null,
+        trialPeriodDays: price.trialPeriodDays ?? null,
+        usageEventsPerUnit: price.usageEventsPerUnit ?? null,
+      }
+    default:
+      throw new Error(
+        `Unknown or unhandled price type: ${(price as { type: string }).type}`
+      )
+  }
+}
 
 /**
  * Fetches a pricing model and all its related records (usage meters, features, products, prices)
@@ -75,7 +133,7 @@ export async function getPricingModelSetupData(
       transaction
     )
 
-  // Check each prpduct has a non-null and non-empty slug
+  // Check each product has a non-null and non-empty slug
   for (const product of productsWithPrices) {
     if (!product.slug) {
       throw new Error(
@@ -83,6 +141,17 @@ export async function getPricingModelSetupData(
       )
     }
   }
+
+  // Fetch usage prices that don't have products (productId: null)
+  // These are associated with usage meters directly
+  const allPrices = await selectPrices(
+    { pricingModelId: pricingModel.id, active: true },
+    transaction
+  )
+  const usagePricesWithoutProducts = allPrices.filter(
+    (price) =>
+      price.type === PriceType.Usage && price.productId === null
+  )
 
   // Fetch all product-feature relationships
   const productIds = productsWithPrices.map((p) => p.id)
@@ -109,12 +178,52 @@ export async function getPricingModelSetupData(
     ])
   }
 
-  // Transform usage meters (omit pricingModelId)
-  const transformedUsageMeters = usageMeters.map((meter) => ({
-    slug: meter.slug,
-    name: meter.name,
-    aggregationType: meter.aggregationType,
-  }))
+  // Group usage prices by their meter ID
+  // Usage prices now belong directly to usage meters, not products
+  const usagePricesByMeterId = new Map<string, Price.UsageRecord[]>()
+  for (const price of usagePricesWithoutProducts) {
+    if (!price.usageMeterId) {
+      throw new Error(
+        `Usage price ${price.id} has no usageMeterId. Usage prices must be associated with a usage meter.`
+      )
+    }
+    const existing =
+      usagePricesByMeterId.get(price.usageMeterId) || []
+    usagePricesByMeterId.set(price.usageMeterId, [
+      ...existing,
+      price as Price.UsageRecord,
+    ])
+  }
+
+  // Transform usage meters with their nested prices
+  const transformedUsageMeters = usageMeters.map((meter) => {
+    const meterPrices = usagePricesByMeterId.get(meter.id) || []
+
+    // Transform each price for this meter
+    const transformedPrices: SetupUsageMeterPriceInput[] =
+      meterPrices.map((price) => ({
+        type: PriceType.Usage as const,
+        name: price.name ?? undefined,
+        slug: price.slug ?? undefined,
+        unitPrice: price.unitPrice,
+        isDefault: price.isDefault,
+        active: price.active,
+        intervalCount: price.intervalCount!,
+        intervalUnit: price.intervalUnit!,
+        usageEventsPerUnit: price.usageEventsPerUnit!,
+        trialPeriodDays: null, // Usage prices don't have trial periods
+      }))
+
+    return {
+      usageMeter: {
+        slug: meter.slug,
+        name: meter.name,
+        aggregationType: meter.aggregationType,
+      },
+      prices:
+        transformedPrices.length > 0 ? transformedPrices : undefined,
+    }
+  })
 
   // Transform resources (omit pricingModelId)
   const transformedResources = resources.map((resource) => ({
@@ -181,10 +290,11 @@ export async function getPricingModelSetupData(
     }
   })
 
-  // Transform products with prices (omit pricingModelId from product, productId from prices)
+  // Transform products with prices (products only have subscription/single payment prices)
+  // Usage prices now belong to usage meters, not products
   const transformedProducts = productsWithPrices.map(
     ({ prices, ...product }) => {
-      // Find the single active default price
+      // Find the single active default price (should be subscription or single payment)
       const activeDefaultPrice = prices.find(
         (price) => price.active && price.isDefault
       )
@@ -206,30 +316,7 @@ export async function getPricingModelSetupData(
 
       let transformedPrice
 
-      if (activeDefaultPrice.type === PriceType.Usage) {
-        if (!activeDefaultPrice.usageMeterId) {
-          throw new Error(
-            `Price ${activeDefaultPrice.id} is a Usage price but has no usageMeterId`
-          )
-        }
-        const usageMeterSlug = usageMeterIdToSlug.get(
-          activeDefaultPrice.usageMeterId
-        )
-        if (!usageMeterSlug) {
-          throw new Error(
-            `Usage meter with ID ${activeDefaultPrice.usageMeterId} not found`
-          )
-        }
-        transformedPrice = {
-          ...basePrice,
-          type: PriceType.Usage as const,
-          usageMeterSlug,
-          intervalCount: activeDefaultPrice.intervalCount!,
-          intervalUnit: activeDefaultPrice.intervalUnit!,
-          usageEventsPerUnit: activeDefaultPrice.usageEventsPerUnit!,
-          trialPeriodDays: null,
-        }
-      } else if (activeDefaultPrice.type === PriceType.Subscription) {
+      if (activeDefaultPrice.type === PriceType.Subscription) {
         transformedPrice = {
           ...basePrice,
           type: PriceType.Subscription as const,
@@ -249,6 +336,14 @@ export async function getPricingModelSetupData(
           trialPeriodDays:
             activeDefaultPrice.trialPeriodDays ?? undefined,
         }
+      } else if (activeDefaultPrice.type === PriceType.Usage) {
+        // This shouldn't happen in the new model - usage prices belong to meters
+        // But handle gracefully for backwards compatibility during migration
+        throw new Error(
+          `Product ${product.name} has a usage price as its default. ` +
+            `Usage prices should belong to usage meters, not products. ` +
+            `Please migrate usage prices to their respective usage meters.`
+        )
       } else {
         throw new Error(
           `Unknown price type: ${(activeDefaultPrice as any).type}`
@@ -273,6 +368,9 @@ export async function getPricingModelSetupData(
       }
     }
   )
+
+  // Usage prices are nested under their meters in transformedUsageMeters
+  // No need for virtualProductsForUsagePrices - that pattern is deprecated
 
   return validateSetupPricingModelInput({
     name: pricingModel.name,

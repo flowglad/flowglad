@@ -881,13 +881,11 @@ export const createStripeTaxCalculationByPrice = async ({
   price,
   billingAddress,
   discountInclusiveAmount,
-  product,
   livemode,
 }: {
   price: Price.Record
   billingAddress: BillingAddress
   discountInclusiveAmount: number
-  product: Product.Record
   livemode: boolean
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
@@ -942,7 +940,6 @@ export const createStripeTaxCalculationByPurchase = async ({
   billingAddress: BillingAddress
   discountInclusiveAmount: number
   price: Price.Record
-  product: Product.Record
   livemode: boolean
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
@@ -1189,7 +1186,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     ? calculateTotalFeeAmount(feeCalculation)
     : calculatePlatformApplicationFee({
         organization,
-        subtotal: price.unitPrice,
+        subtotal: price.unitPrice * checkoutSession.quantity,
         currency: price.currency,
       })
 

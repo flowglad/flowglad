@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import * as core from 'nanoid'
 import { beforeEach, describe, expect, it } from 'vitest'
 // Setup helpers from seedDatabase.ts
@@ -78,7 +79,6 @@ describe('usageEventHelpers', () => {
         pricingModelId: defaultPricingModelForOrg.id,
       })
       usagePrice = await setupPrice({
-        productId: defaultProductForOrg.id,
         name: 'Test Usage Price',
         type: PriceType.Usage,
         unitPrice: 10,
@@ -132,8 +132,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
@@ -141,8 +141,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -209,8 +209,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: initialEventDetails },
                   livemode: true,
@@ -221,8 +221,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -260,8 +260,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: initialEventDetails },
                   livemode: true,
@@ -272,8 +272,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -392,8 +392,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: propsPresentDetails },
                   livemode: true,
@@ -404,8 +404,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultWithProps.properties).toEqual({
@@ -428,8 +428,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: propsAbsentDetails },
                   livemode: true,
@@ -440,8 +440,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultWithoutProps!.properties).toEqual({})
@@ -466,8 +466,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: datePresentDetails },
                   livemode: true,
@@ -478,8 +478,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultWithDate.usageDate!).toBe(timestamp)
@@ -499,8 +499,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: dateAbsentDetails },
                   livemode: true,
@@ -511,8 +511,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(typeof resultWithoutDate.usageDate).toBe('number')
@@ -534,8 +534,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: liveTrueDetails },
                   livemode: true,
@@ -546,8 +546,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultLiveTrue.livemode).toBe(true)
@@ -605,8 +605,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: liveFalseDetails },
                   livemode: false,
@@ -617,8 +617,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(resultLiveFalse.livemode).toBe(false)
@@ -657,7 +657,6 @@ describe('usageEventHelpers', () => {
 
       // Setup price with this usage meter
       const distinctPrice = await setupPrice({
-        productId: orgSetup.product.id,
         name: 'Distinct Properties Price',
         type: PriceType.Usage,
         unitPrice: 10,
@@ -719,8 +718,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: firstEventDetails },
                   livemode: true,
@@ -731,8 +730,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -783,8 +782,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: secondEventDetails },
                   livemode: true,
@@ -795,8 +794,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -849,8 +848,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 {
                   input: { usageEvent: thirdEventDetails },
                   livemode: true,
@@ -861,8 +860,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       expect(thirdUsageEvent.properties).toEqual({
@@ -924,8 +923,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
@@ -933,8 +932,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       ).rejects.toThrow(
@@ -954,7 +953,6 @@ describe('usageEventHelpers', () => {
             pricingModelId: otherOrgSetup.pricingModel.id,
           })
           const otherPrice = await setupPrice({
-            productId: otherOrgSetup.product.id,
             name: 'Other Org Usage Price',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -987,8 +985,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
@@ -996,8 +994,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       ).rejects.toThrow(
@@ -1025,8 +1023,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
@@ -1034,8 +1032,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
 
@@ -1088,8 +1086,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input: undefinedPropsInput, livemode: true },
                 {
                   transaction,
@@ -1097,8 +1095,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       ).rejects.toThrow('Properties are required')
@@ -1123,8 +1121,8 @@ describe('usageEventHelpers', () => {
             invalidateCache,
             enqueueLedgerCommand,
           }) => {
-            return {
-              result: await ingestAndProcessUsageEvent(
+            return Result.ok(
+              await ingestAndProcessUsageEvent(
                 { input: emptyPropsInput, livemode: true },
                 {
                   transaction,
@@ -1132,8 +1130,8 @@ describe('usageEventHelpers', () => {
                   invalidateCache,
                   enqueueLedgerCommand,
                 }
-              ),
-            }
+              )
+            )
           }
         )
       ).rejects.toThrow('Properties are required')
@@ -1344,7 +1342,6 @@ describe('usageEventHelpers', () => {
             pricingModelId: orgSetup.pricingModel.id,
           })
           const testPrice = await setupPrice({
-            productId: orgSetup.product.id,
             name: 'Test Usage Price with Slug',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -1433,7 +1430,6 @@ describe('usageEventHelpers', () => {
 
         // Create a price with a slug in the second pricing model
         await setupPrice({
-          productId: secondProduct.id,
           name: 'Second Usage Price',
           type: PriceType.Usage,
           unitPrice: 20,
@@ -1534,7 +1530,6 @@ describe('usageEventHelpers', () => {
             slug: 'test-usage-meter-slug',
           })
           const testPrice = await setupPrice({
-            productId: orgSetup.product.id,
             name: 'Test Usage Price',
             type: PriceType.Usage,
             unitPrice: 10,
@@ -1653,7 +1648,6 @@ describe('usageEventHelpers', () => {
     })
 
     const distinctPrice = await setupPrice({
-      productId,
       name: 'Distinct Price',
       type: PriceType.Usage,
       unitPrice: 10,

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type { Event } from '@/db/schema/events'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
@@ -8,7 +9,6 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type { TransactionEffectsContext } from '@/db/types'
 import { idempotentSendCustomerSubscriptionCreatedNotification } from '@/trigger/notifications/send-customer-subscription-created-notification'
 import { idempotentSendCustomerSubscriptionUpgradedNotification } from '@/trigger/notifications/send-customer-subscription-upgraded-notification'
@@ -29,6 +29,7 @@ import { logger } from '@/utils/logger'
 import { hasFeatureFlag } from '@/utils/organizationHelpers'
 import { createSubscriptionFeatureItems } from '../subscriptionItemFeatureHelpers'
 import {
+  determineSubscriptionNotifications,
   ledgerCommandPayload,
   maybeCreateInitialBillingPeriodAndRun,
   maybeDefaultPaymentMethodForSubscription,
@@ -54,9 +55,10 @@ export const createSubscriptionWorkflow = async (
   params: CreateSubscriptionParams,
   ctx: TransactionEffectsContext
 ): Promise<
-  TransactionOutput<
+  Result<
     | StandardCreateSubscriptionResult
-    | NonRenewingCreateSubscriptionResult
+    | NonRenewingCreateSubscriptionResult,
+    Error
   >
 > => {
   // Destructure context for cleaner code below
@@ -276,16 +278,33 @@ export const createSubscriptionWorkflow = async (
     },
     ctx
   )
-  // Don't send notifications for free subscriptions
-  // A subscription is considered free if unitPrice is 0, not based on slug
-  if (price.unitPrice !== 0) {
-    // Send organization notification
+  // Determine notification decisions using the pure helper function
+  const notificationDecision = determineSubscriptionNotifications({
+    priceUnitPrice: price.unitPrice,
+    subscriptionStatus: updatedSubscription.status,
+    hasDefaultPaymentMethod: Boolean(
+      updatedSubscription.defaultPaymentMethodId ||
+        defaultPaymentMethod
+    ),
+    hasBackupPaymentMethod: Boolean(
+      updatedSubscription.backupPaymentMethodId
+    ),
+    canceledFreeSubscription: Boolean(canceledFreeSubscription),
+  })
+
+  // Send organization notification if determined
+  if (notificationDecision.sendOrganizationNotification) {
     await idempotentSendOrganizationSubscriptionCreatedNotification(
       updatedSubscription
     )
+  }
 
-    // Send customer notification - choose based on whether this is an upgrade
-    if (canceledFreeSubscription) {
+  // Send customer notification if determined
+  if (notificationDecision.sendCustomerNotification) {
+    if (
+      notificationDecision.customerNotificationType === 'upgraded' &&
+      canceledFreeSubscription
+    ) {
       // This is an upgrade from free to paid
       await idempotentSendCustomerSubscriptionUpgradedNotification({
         customerId: updatedSubscription.customerId,
@@ -400,7 +419,5 @@ export const createSubscriptionWorkflow = async (
   // Emit subscription created event via effects context
   emitEvent(...eventInserts)
 
-  return {
-    result: transactionResult,
-  }
+  return Result.ok(transactionResult)
 }

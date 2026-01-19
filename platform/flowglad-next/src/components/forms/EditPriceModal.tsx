@@ -5,7 +5,7 @@ import FormModal from '@/components/forms/FormModal'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
   createPriceFormSchema,
-  type Price,
+  Price,
   pricesClientInsertSchema,
 } from '@/db/schema/prices'
 import { IntervalUnit, PriceType } from '@/types'
@@ -61,16 +61,20 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
   // for now, the newly created price will be active & default
   // all other prices will be made non-default and not active
   const editPrice = trpc.prices.create.useMutation({
-    onSuccess: (data) => {
+    onSuccess: () => {
       setIsOpen(false)
     },
   })
   const defaultValues = parseEditPriceDefaultValues(price)
 
   const { organization } = useAuthenticatedContext()
-  const productQuery = trpc.products.get.useQuery({
-    id: price.productId,
-  })
+
+  // Only fetch product for non-usage prices (prices with productId)
+  const hasProductId = Price.clientHasProductId(price)
+  const productQuery = trpc.products.get.useQuery(
+    { id: hasProductId ? price.productId : '' },
+    { enabled: hasProductId }
+  )
   const isDefaultProduct = productQuery.data?.default === true
   const isDefaultPrice = price.isDefault === true
   const pricingModelId = productQuery.data?.pricingModelId
@@ -96,7 +100,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       <PriceFormFields
         priceOnly
         edit
-        productId={price.productId}
+        productId={hasProductId ? price.productId : undefined}
         isDefaultProductOverride={isDefaultProduct}
         isDefaultPriceOverride={isDefaultPrice}
         pricingModelId={pricingModelId}

@@ -1,5 +1,6 @@
 import { runs } from '@trigger.dev/sdk/v3'
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -7,10 +8,14 @@ import {
   authenticatedTransaction,
   comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
+import { Customer } from '@/db/schema/customers'
+import { Organization } from '@/db/schema/organizations'
 import {
   PRICE_ID_DESCRIPTION,
   PRICE_SLUG_DESCRIPTION,
+  Price,
 } from '@/db/schema/prices'
+import { Product } from '@/db/schema/products'
 import { subscriptionItemClientSelectSchema } from '@/db/schema/subscriptionItems'
 import {
   retryBillingRunInputSchema,
@@ -30,6 +35,7 @@ import {
   selectPaymentMethods,
 } from '@/db/tableMethods/paymentMethodMethods'
 import {
+  selectPriceById,
   selectPriceBySlugAndCustomerId,
   selectPriceProductAndOrganizationByPriceWhere,
 } from '@/db/tableMethods/priceMethods'
@@ -48,7 +54,9 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
   metadataSchema,
+  NotFoundError,
 } from '@/db/tableUtils'
+import type { DbTransaction } from '@/db/types'
 import { adjustSubscription } from '@/subscriptions/adjustSubscription'
 import {
   createBillingRun,
@@ -71,7 +79,6 @@ import {
   SubscriptionAdjustmentTiming,
   SubscriptionStatus,
 } from '@/types'
-import { CacheDependency } from '@/utils/cache'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { addFeatureToSubscription } from '../mutations/addFeatureToSubscription'
 import { protectedProcedure, router } from '../trpc'
@@ -114,6 +121,169 @@ const adjustSubscriptionOutputSchema = z
   })
   .meta({ id: 'AdjustSubscriptionOutput' })
 
+/**
+ * Validates and resolves price information for subscription creation.
+ * Handles resolution from either priceId or priceSlug, validates that the price
+ * is not a usage price (which cannot be used for subscriptions), and ensures
+ * the price is not a single payment price.
+ *
+ * @returns The validated price, product, and organization
+ * @throws TRPCError with appropriate codes for validation failures
+ */
+export const validateAndResolvePriceForSubscription = async (params: {
+  priceId?: string
+  priceSlug?: string
+  customerId: string
+  transaction: DbTransaction
+}): Promise<{
+  price: Price.ProductPrice
+  product: Product.Record
+  organization: Organization.Record
+}> => {
+  const { priceId, priceSlug, customerId, transaction } = params
+
+  // Resolve price ID from either priceId or priceSlug
+  let resolvedPriceId: string
+  if (priceId) {
+    // Early validation: fetch price and reject usage prices before the heavier query
+    let price: Price.Record
+    try {
+      price = await selectPriceById(priceId, transaction)
+    } catch (error) {
+      if (error instanceof NotFoundError) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Price with id "${priceId}" not found`,
+        })
+      }
+      throw error
+    }
+    if (!Price.hasProductId(price)) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Price "${priceId}" is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
+      })
+    }
+    resolvedPriceId = priceId
+  } else if (priceSlug) {
+    const price = await selectPriceBySlugAndCustomerId(
+      {
+        slug: priceSlug,
+        customerId,
+      },
+      transaction
+    )
+    if (!price) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Price with slug "${priceSlug}" not found for this customer's pricing model`,
+      })
+    }
+    // Early validation: reject usage prices before fetching related data
+    if (!Price.clientHasProductId(price)) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: `Price "${priceSlug}" is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
+      })
+    }
+    resolvedPriceId = price.id
+  } else {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Either priceId or priceSlug must be provided',
+    })
+  }
+
+  const priceResult =
+    await selectPriceProductAndOrganizationByPriceWhere(
+      {
+        id: resolvedPriceId,
+      },
+      transaction
+    )
+  if (priceResult.length === 0) {
+    throw new TRPCError({
+      code: 'NOT_FOUND',
+      message: `Price with id "${resolvedPriceId}" not found`,
+    })
+  }
+  const { price, product, organization } = priceResult[0]
+  // Product is required for creating subscriptions - usage prices (with null product) are not supported
+  // Use type guard for type-safe product access
+  if (!Price.hasProductId(price) || !product) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: `Price ${resolvedPriceId} is a usage price and cannot be used to create a subscription directly. Use a subscription price instead.`,
+    })
+  }
+  if (price.type === PriceType.SinglePayment) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: `Price ${resolvedPriceId} is a single payment price and cannot be used to create a subscription.`,
+    })
+  }
+
+  return { price, product, organization }
+}
+
+/**
+ * Validates and resolves customer information for subscription creation.
+ * Handles resolution from either customerId or customerExternalId.
+ *
+ * @returns The validated customer record
+ * @throws TRPCError with appropriate codes for validation failures
+ */
+export const validateAndResolveCustomerForSubscription =
+  async (params: {
+    customerId?: string
+    customerExternalId?: string
+    organizationId: string
+    transaction: DbTransaction
+  }): Promise<Customer.Record> => {
+    const {
+      customerId,
+      customerExternalId,
+      organizationId,
+      transaction,
+    } = params
+
+    if (customerId) {
+      try {
+        return await selectCustomerById(customerId, transaction)
+      } catch (error) {
+        if (error instanceof NotFoundError) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Customer with id "${customerId}" not found`,
+          })
+        }
+        throw error
+      }
+    } else if (customerExternalId) {
+      const customer =
+        await selectCustomerByExternalIdAndOrganizationId(
+          {
+            externalId: customerExternalId,
+            organizationId,
+          },
+          transaction
+        )
+      if (!customer) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Customer with externalId ${customerExternalId} not found`,
+        })
+      }
+      return customer
+    } else {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message:
+          'Either customerId or customerExternalId must be provided',
+      })
+    }
+  }
+
 const BILLING_RUN_TIMEOUT_MS = 60_000 // 60 seconds max wait for billing run
 
 const adjustSubscriptionProcedure = protectedProcedure
@@ -144,13 +314,13 @@ const adjustSubscriptionProcedure = protectedProcedure
     const adjustmentResult =
       await comprehensiveAuthenticatedTransaction(
         async (transactionCtx) => {
-          return {
-            result: await adjustSubscription(
+          return Result.ok(
+            await adjustSubscription(
               input,
               ctx.organization!,
               transactionCtx
-            ),
-          }
+            )
+          )
         },
         {
           apiKey: ctx.apiKey,
@@ -490,76 +660,22 @@ const createSubscriptionProcedure = protectedProcedure
           })
         }
 
-        // Resolve customer ID from either customerId or customerExternalId
-        let customer
-        if (input.customerId) {
-          customer = await selectCustomerById(
-            input.customerId,
-            transaction
-          )
-        } else if (input.customerExternalId) {
-          customer =
-            await selectCustomerByExternalIdAndOrganizationId(
-              {
-                externalId: input.customerExternalId,
-                organizationId: ctx.organization.id,
-              },
-              transaction
-            )
-          if (!customer) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: `Customer with externalId ${input.customerExternalId} not found`,
-            })
-          }
-        } else {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message:
-              'Either customerId or customerExternalId must be provided',
+        const customer =
+          await validateAndResolveCustomerForSubscription({
+            customerId: input.customerId,
+            customerExternalId: input.customerExternalId,
+            organizationId: ctx.organization.id,
+            transaction,
           })
-        }
 
-        // Resolve price ID from either priceId or priceSlug
-        let resolvedPriceId: string
-        if (input.priceId) {
-          resolvedPriceId = input.priceId
-        } else if (input.priceSlug) {
-          const price = await selectPriceBySlugAndCustomerId(
-            {
-              slug: input.priceSlug,
-              customerId: customer.id,
-            },
-            transaction
-          )
-          if (!price) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: `Price with slug "${input.priceSlug}" not found for this customer's pricing model`,
-            })
-          }
-          resolvedPriceId = price.id
-        } else {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: 'Either priceId or priceSlug must be provided',
+        const { price, product, organization } =
+          await validateAndResolvePriceForSubscription({
+            priceId: input.priceId,
+            priceSlug: input.priceSlug,
+            customerId: customer.id,
+            transaction,
           })
-        }
 
-        const priceResult =
-          await selectPriceProductAndOrganizationByPriceWhere(
-            {
-              id: resolvedPriceId,
-            },
-            transaction
-          )
-        if (priceResult.length === 0) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: `Price with id "${resolvedPriceId}" not found`,
-          })
-        }
-        const { price, product, organization } = priceResult[0]
         const defaultPaymentMethod = input.defaultPaymentMethodId
           ? await selectPaymentMethodById(
               input.defaultPaymentMethodId,
@@ -572,12 +688,6 @@ const createSubscriptionProcedure = protectedProcedure
               transaction
             )
           : undefined
-        if (price.type === PriceType.SinglePayment) {
-          throw new TRPCError({
-            code: 'BAD_REQUEST',
-            message: `Price ${resolvedPriceId} is a single payment price and cannot be used to create a subscription.`,
-          })
-        }
         const startDate = input.startDate ?? new Date()
         const defaultTrialEnd = price.trialPeriodDays
           ? new Date(
@@ -614,23 +724,21 @@ const createSubscriptionProcedure = protectedProcedure
             enqueueLedgerCommand,
           }
         )
+        const outputValue = output.unwrap()
         const finalResult = {
           subscription: {
-            ...output.result.subscription,
+            ...outputValue.subscription,
             current: isSubscriptionCurrent(
-              output.result.subscription.status,
-              output.result.subscription.cancellationReason
+              outputValue.subscription.status,
+              outputValue.subscription.cancellationReason
             ),
           },
         }
 
-        return {
-          ...output,
-          result: {
-            ...output.result,
-            ...finalResult,
-          },
-        }
+        return Result.ok({
+          ...outputValue,
+          ...finalResult,
+        })
       }
     )
   )
@@ -640,7 +748,7 @@ const getCountsByStatusProcedure = protectedProcedure
   .output(
     z.array(
       z.object({
-        status: z.nativeEnum(SubscriptionStatus),
+        status: z.enum(SubscriptionStatus),
         count: z.number(),
       })
     )
@@ -660,7 +768,7 @@ const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
-        status: z.nativeEnum(SubscriptionStatus).optional(),
+        status: z.enum(SubscriptionStatus).optional(),
         customerId: z.string().optional(),
         organizationId: z.string().optional(),
         productName: z.string().optional(),
@@ -691,9 +799,9 @@ const updatePaymentMethodProcedure = protectedProcedure
     })
   )
   .mutation(
-    authenticatedProcedureComprehensiveTransaction(
+    authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
+        const { transaction } = transactionCtx
         const subscription = await selectSubscriptionById(
           input.id,
           transaction
@@ -723,22 +831,13 @@ const updatePaymentMethodProcedure = protectedProcedure
           transaction
         )
 
-        // Invalidate cache for customer subscriptions
-        invalidateCache(
-          CacheDependency.customerSubscriptions(
-            subscription.customerId
-          )
-        )
-
         return {
-          result: {
-            subscription: {
-              ...updatedSubscription,
-              current: isSubscriptionCurrent(
-                updatedSubscription.status,
-                updatedSubscription.cancellationReason
-              ),
-            },
+          subscription: {
+            ...updatedSubscription,
+            current: isSubscriptionCurrent(
+              updatedSubscription.status,
+              updatedSubscription.cancellationReason
+            ),
           },
         }
       }

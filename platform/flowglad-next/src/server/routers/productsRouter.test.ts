@@ -57,7 +57,7 @@ describe('productsRouter - Default Product Constraints', () => {
           singularQuantityLabel: null,
           pluralQuantityLabel: null,
           externalId: null,
-          pricingModelId: bookkeepingResult.result.pricingModel.id,
+          pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
           organizationId: organization.id,
           livemode,
           active: true,
@@ -88,9 +88,10 @@ describe('productsRouter - Default Product Constraints', () => {
 
       return {
         organizationId: organization.id,
-        pricingModelId: bookkeepingResult.result.pricingModel.id,
-        defaultProductId: bookkeepingResult.result.defaultProduct.id,
-        defaultPriceId: bookkeepingResult.result.defaultPrice.id,
+        pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
+        defaultProductId:
+          bookkeepingResult.unwrap().defaultProduct.id,
+        defaultPriceId: bookkeepingResult.unwrap().defaultPrice.id,
         regularProductId: regularProduct.id,
         regularPriceId: regularPrice.id,
       }

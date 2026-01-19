@@ -2,7 +2,12 @@ import { SpanKind, SpanStatusCode, trace } from '@opentelemetry/api'
 import { z } from 'zod'
 import core from './core'
 import { logger } from './logger'
-import { RedisKeyNamespace, redis } from './redis'
+import {
+  RedisKeyNamespace,
+  redis,
+  removeFromLRU,
+  trackAndEvictLRU,
+} from './redis'
 import { traced } from './tracing'
 
 const DEFAULT_TTL = 300 // 5 minutes
@@ -18,6 +23,120 @@ const DEPENDENCY_REGISTRY_TTL = 86400 // 24 hours - longer than any cache TTL
  */
 export type CacheDependencyKey = string
 
+// Constrain to scalars only - prevents memory explosion
+type SerializableScalar = string | number | boolean
+type SerializableValue = SerializableScalar | SerializableScalar[]
+export type SerializableParams = Record<string, SerializableValue>
+
+// Zod schemas for runtime validation of serializable params
+const serializableScalarSchema = z.union([
+  z.string(),
+  z.number(),
+  z.boolean(),
+])
+const serializableValueSchema = z.union([
+  serializableScalarSchema,
+  z.array(serializableScalarSchema),
+])
+const serializableParamsSchema = z.record(
+  z.string(),
+  serializableValueSchema
+)
+
+/**
+ * Transaction context types for cache recomputation.
+ * The type discriminator determines what RLS context is needed:
+ * - 'admin': No RLS, full database access (for background jobs)
+ * - 'merchant': Merchant dashboard context with organization-scoped RLS
+ * - 'customer': Customer billing portal context with customer-scoped RLS
+ */
+export type TransactionContext =
+  | { type: 'admin'; livemode: boolean }
+  | {
+      type: 'merchant'
+      livemode: boolean
+      organizationId: string
+      userId: string
+    }
+  | {
+      type: 'customer'
+      livemode: boolean
+      organizationId: string
+      userId: string
+      customerId: string
+    }
+
+// Zod schema for transaction context (discriminated union)
+const transactionContextSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('admin'),
+    livemode: z.boolean(),
+  }),
+  z.object({
+    type: z.literal('merchant'),
+    livemode: z.boolean(),
+    organizationId: z.string(),
+    userId: z.string(),
+  }),
+  z.object({
+    type: z.literal('customer'),
+    livemode: z.boolean(),
+    organizationId: z.string(),
+    userId: z.string(),
+    customerId: z.string(),
+  }),
+])
+
+export interface CacheRecomputeMetadata {
+  namespace: RedisKeyNamespace // Used to look up handler in registry
+  params: SerializableParams // The params object (sans transaction)
+  transactionContext: TransactionContext
+  createdAt: number
+}
+
+// Zod schema for runtime validation of recompute metadata
+const cacheRecomputeMetadataSchema = z.object({
+  namespace: z.nativeEnum(RedisKeyNamespace),
+  params: serializableParamsSchema,
+  transactionContext: transactionContextSchema,
+  createdAt: z.number(),
+})
+
+export type RecomputeHandler = (
+  params: SerializableParams,
+  transactionContext: TransactionContext
+) => Promise<unknown>
+
+// In-memory registry for recompute handlers. Each process has its own registry,
+// but they contain the same handlers because all processes import the same modules
+// that call registerRecomputeHandler() as a side effect during module initialization.
+const recomputeRegistry = new Map<
+  RedisKeyNamespace,
+  RecomputeHandler
+>()
+
+export function registerRecomputeHandler(
+  namespace: RedisKeyNamespace,
+  handler: RecomputeHandler
+): void {
+  recomputeRegistry.set(namespace, handler)
+}
+
+export function getRecomputeHandler(
+  namespace: RedisKeyNamespace
+): RecomputeHandler | undefined {
+  return recomputeRegistry.get(namespace)
+}
+
+/**
+ * Get the Redis key for storing recomputation metadata for a cache key.
+ * Metadata is stored in a parallel key: if cache key is "foo:bar",
+ * metadata key is "cacheRecompute:foo:bar".
+ */
+function recomputeMetadataKey(cacheKey: string): string {
+  return `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+}
+
 /**
  * Get the Redis key for storing cache keys that depend on a given dependency.
  * Uses Redis Sets to store the mapping: dependency -> Set of cache keys.
@@ -30,6 +149,18 @@ function dependencyRegistryKey(
   dependency: CacheDependencyKey
 ): string {
   return `${RedisKeyNamespace.CacheDependencyRegistry}:${dependency}`
+}
+
+/**
+ * Type guard to check if a string is a valid RedisKeyNamespace.
+ * Uses Zod's safeParse for runtime validation.
+ */
+const redisKeyNamespaceSchema = z.nativeEnum(RedisKeyNamespace)
+
+function isRedisKeyNamespace(
+  value: string
+): value is RedisKeyNamespace {
+  return redisKeyNamespaceSchema.safeParse(value).success
 }
 
 /**
@@ -133,6 +264,222 @@ function extractCacheArgs<TArgs extends unknown[]>(
   return { fnArgs, options }
 }
 
+// ============================================================================
+// Cache Read/Write Helpers
+// ============================================================================
+
+export interface CacheStatsParams {
+  namespace: RedisKeyNamespace
+  hit: boolean
+  latencyMs?: number
+  error?: boolean
+  validationFailed?: boolean
+  recomputable?: boolean
+  bulk?: boolean
+  hitCount?: number
+  missCount?: number
+  totalCount?: number
+}
+
+/**
+ * Log cache statistics in a consistent format.
+ */
+export function logCacheStats(params: CacheStatsParams): void {
+  const {
+    namespace,
+    hit,
+    latencyMs,
+    error,
+    validationFailed,
+    recomputable,
+    bulk,
+    hitCount,
+    missCount,
+    totalCount,
+  } = params
+
+  logger.info('cache_stats', {
+    namespace,
+    hit_count: hitCount ?? (hit ? 1 : 0),
+    miss_count: missCount ?? (hit ? 0 : 1),
+    total_count: totalCount ?? 1,
+    ...(latencyMs !== undefined && { latency_ms: latencyMs }),
+    ...(error && { error: true }),
+    ...(validationFailed && { validation_failed: true }),
+    ...(recomputable && { recomputable: true }),
+    ...(bulk && { bulk: true }),
+  })
+}
+
+interface CacheReadResult<T> {
+  hit: true
+  data: T
+  latencyMs: number
+}
+
+interface CacheReadMiss {
+  hit: false
+  latencyMs: number
+  validationFailed?: boolean
+  error?: string
+}
+
+type CacheReadOutcome<T> = CacheReadResult<T> | CacheReadMiss
+
+/**
+ * Attempt to read a value from cache with schema validation.
+ *
+ * Returns either:
+ * - { hit: true, data, latencyMs } if cache hit and validation passed
+ * - { hit: false, latencyMs, validationFailed?, error? } if miss or error
+ *
+ * Always fails open - errors are logged but not thrown.
+ */
+async function tryGetFromCache<T>(
+  fullKey: string,
+  schema: z.ZodType<T>,
+  namespace: RedisKeyNamespace,
+  recomputable: boolean
+): Promise<CacheReadOutcome<T>> {
+  const span = trace.getActiveSpan()
+  const suffix = recomputable ? ' (recomputable)' : ''
+
+  try {
+    const redisClient = redis()
+    const startTime = Date.now()
+    const cachedValue = await redisClient.get(fullKey)
+    const latencyMs = Date.now() - startTime
+
+    span?.setAttribute('cache.latency_ms', latencyMs)
+
+    if (cachedValue !== null) {
+      // Parse the cached value
+      const jsonValue =
+        typeof cachedValue === 'string'
+          ? JSON.parse(cachedValue)
+          : cachedValue
+
+      // Validate with schema
+      const parsed = schema.safeParse(jsonValue)
+      if (parsed.success) {
+        span?.setAttribute('cache.hit', true)
+        logger.debug(`Cache hit${suffix}`, {
+          key: fullKey,
+          latency_ms: latencyMs,
+        })
+        logCacheStats({
+          namespace,
+          hit: true,
+          latencyMs,
+          recomputable,
+        })
+        return { hit: true, data: parsed.data, latencyMs }
+      } else {
+        // Schema validation failed - treat as cache miss
+        span?.setAttribute('cache.hit', false)
+        span?.setAttribute('cache.validation_failed', true)
+        logger.warn(`Cache schema validation failed${suffix}`, {
+          key: fullKey,
+          error: parsed.error.message,
+        })
+        logCacheStats({
+          namespace,
+          hit: false,
+          latencyMs,
+          validationFailed: true,
+          recomputable,
+        })
+        return { hit: false, latencyMs, validationFailed: true }
+      }
+    } else {
+      span?.setAttribute('cache.hit', false)
+      logger.debug(`Cache miss${suffix}`, {
+        key: fullKey,
+        latency_ms: latencyMs,
+      })
+      logCacheStats({
+        namespace,
+        hit: false,
+        latencyMs,
+        recomputable,
+      })
+      return { hit: false, latencyMs }
+    }
+  } catch (error) {
+    // Fail open - log error and return miss
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    span?.setAttribute('cache.hit', false)
+    span?.setAttribute('cache.error', errorMessage)
+    logger.error(`Cache read error${suffix}`, {
+      key: fullKey,
+      error: errorMessage,
+    })
+    logCacheStats({
+      namespace,
+      hit: false,
+      error: true,
+      recomputable,
+    })
+    return { hit: false, latencyMs: 0, error: errorMessage }
+  }
+}
+
+interface PopulateCacheParams {
+  fullKey: string
+  result: unknown
+  dependencies: CacheDependencyKey[]
+  namespace: RedisKeyNamespace
+  recomputable: boolean
+}
+
+/**
+ * Populate cache with a value, register dependencies, and track in LRU.
+ *
+ * Always fails open - errors are logged but not thrown.
+ */
+async function populateCache(
+  params: PopulateCacheParams
+): Promise<void> {
+  const { fullKey, result, dependencies, namespace, recomputable } =
+    params
+  const span = trace.getActiveSpan()
+  const suffix = recomputable ? ' (recomputable)' : ''
+
+  try {
+    const redisClient = redis()
+    const ttl = getTtlForNamespace(namespace)
+
+    await redisClient.set(fullKey, JSON.stringify(result), {
+      ex: ttl,
+    })
+
+    // Register dependencies in Redis
+    await registerDependencies(fullKey, dependencies)
+
+    // Track in LRU and evict oldest entries if over limit
+    await trackAndEvictLRU(namespace, fullKey)
+
+    span?.setAttribute('cache.ttl', ttl)
+    span?.setAttribute('cache.dependencies', dependencies)
+
+    logger.debug(`Cache populated${suffix}`, {
+      key: fullKey,
+      ttl,
+      dependencies,
+    })
+  } catch (error) {
+    // Fail open - log error but don't throw
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
+    span?.setAttribute('cache.error', errorMessage)
+    logger.error(`Cache write error${suffix}`, {
+      key: fullKey,
+      error: errorMessage,
+    })
+  }
+}
+
 /**
  * Combinator that adds caching to an async function.
  *
@@ -200,119 +547,28 @@ export function cached<TArgs extends unknown[], TResult>(
       }
 
       // Try to get from cache
-      try {
-        const redisClient = redis()
-        const startTime = Date.now()
-        const cachedValue = await redisClient.get(fullKey)
-        const latencyMs = Date.now() - startTime
+      const cacheResult = await tryGetFromCache(
+        fullKey,
+        config.schema,
+        config.namespace,
+        false // not recomputable
+      )
 
-        span?.setAttribute('cache.latency_ms', latencyMs)
-
-        if (cachedValue !== null) {
-          // Parse the cached value
-          const jsonValue =
-            typeof cachedValue === 'string'
-              ? JSON.parse(cachedValue)
-              : cachedValue
-
-          // Validate with schema
-          const parsed = config.schema.safeParse(jsonValue)
-          if (parsed.success) {
-            span?.setAttribute('cache.hit', true)
-            logger.debug('Cache hit', {
-              key: fullKey,
-              latency_ms: latencyMs,
-            })
-            logger.info('cache_stats', {
-              namespace: config.namespace,
-              hit_count: 1,
-              miss_count: 0,
-              total_count: 1,
-              latency_ms: latencyMs,
-            })
-            return parsed.data
-          } else {
-            // Schema validation failed - treat as cache miss
-            span?.setAttribute('cache.hit', false)
-            span?.setAttribute('cache.validation_failed', true)
-            logger.warn('Cache schema validation failed', {
-              key: fullKey,
-              error: parsed.error.message,
-            })
-            logger.info('cache_stats', {
-              namespace: config.namespace,
-              hit_count: 0,
-              miss_count: 1,
-              total_count: 1,
-              validation_failed: true,
-              latency_ms: latencyMs,
-            })
-          }
-        } else {
-          span?.setAttribute('cache.hit', false)
-          logger.debug('Cache miss', {
-            key: fullKey,
-            latency_ms: latencyMs,
-          })
-          logger.info('cache_stats', {
-            namespace: config.namespace,
-            hit_count: 0,
-            miss_count: 1,
-            total_count: 1,
-            latency_ms: latencyMs,
-          })
-        }
-      } catch (error) {
-        // Fail open - log error and continue to wrapped function
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        span?.setAttribute('cache.hit', false)
-        span?.setAttribute('cache.error', errorMessage)
-        logger.error('Cache read error', {
-          key: fullKey,
-          error: errorMessage,
-        })
-        logger.info('cache_stats', {
-          namespace: config.namespace,
-          hit_count: 0,
-          miss_count: 1,
-          total_count: 1,
-          error: true,
-        })
+      if (cacheResult.hit) {
+        return cacheResult.data
       }
 
       // Cache miss - call wrapped function
       const result = await fn(...fnArgs)
 
       // Store in cache and register dependencies (fire-and-forget)
-      try {
-        const redisClient = redis()
-        const ttl = getTtlForNamespace(config.namespace)
-        await redisClient.set(fullKey, JSON.stringify(result), {
-          ex: ttl,
-        })
-
-        // Register dependencies in Redis
-        await registerDependencies(fullKey, dependencies)
-
-        span?.setAttribute('cache.ttl', ttl)
-        span?.setAttribute('cache.dependencies', dependencies)
-
-        logger.debug('Cache populated', {
-          key: fullKey,
-          ttl,
-          dependencies,
-        })
-      } catch (error) {
-        // Fail open - log error but return result
-        const errorMessage =
-          error instanceof Error ? error.message : String(error)
-        span?.setAttribute('cache.error', errorMessage)
-        logger.error('Cache write error', {
-          key: fullKey,
-          error: errorMessage,
-        })
-      }
+      await populateCache({
+        fullKey,
+        result,
+        dependencies,
+        namespace: config.namespace,
+        recomputable: false,
+      })
 
       return result
     }
@@ -533,6 +789,7 @@ async function cachedBulkLookupImpl<TKey, TResult>(
       }
 
       // Add to results and write to cache
+      const writeClient = redis()
       for (const [key, items] of fetchedByKey) {
         results.set(key, items)
 
@@ -542,11 +799,12 @@ async function cachedBulkLookupImpl<TKey, TResult>(
         const dependencies = config.dependenciesFn(key)
 
         try {
-          const redisClient = redis()
-          await redisClient.set(fullKey, JSON.stringify(items), {
+          await writeClient.set(fullKey, JSON.stringify(items), {
             ex: ttl,
           })
           await registerDependencies(fullKey, dependencies)
+          // Track in LRU and evict oldest entries if over limit
+          await trackAndEvictLRU(config.namespace, fullKey)
         } catch (writeError) {
           // Log but don't fail
           logger.error('Bulk cache write error', {
@@ -588,11 +846,17 @@ async function cachedBulkLookupImpl<TKey, TResult>(
  *
  * This is the core invalidation function. It:
  * 1. For each dependency, uses SMEMBERS to get all cache keys from Redis Set
- * 2. Deletes all those cache keys from Redis
- * 3. Deletes the dependency registry Set itself
+ * 2. Checks which keys have recomputation metadata BEFORE deleting
+ * 3. Deletes all cache keys from Redis (waits for completion)
+ * 4. Deletes the dependency registry Set
+ * 5. Triggers fire-and-forget recomputation for keys that had metadata
+ *
+ * Critical ordering: delete registry BEFORE recomputation. This avoids a race
+ * where recomputation re-registers the dependency and then we delete the
+ * freshly rebuilt registry.
  *
  * Observability:
- * - Logs invalidation at debug level (includes dependency and cache keys)
+ * - Logs invalidation at info level (includes dependency and cache keys)
  * - Logs errors but does not throw (fire-and-forget)
  */
 export async function invalidateDependencies(
@@ -601,11 +865,16 @@ export async function invalidateDependencies(
   if (dependencies.length === 0) return
 
   const client = redis()
+  // Track keys scheduled for recomputation to avoid duplicates across dependencies
+  const scheduledForRecomputation = new Set<string>()
+
   try {
     for (const dep of dependencies) {
       const registryKey = dependencyRegistryKey(dep)
-      // Get all cache keys that depend on this dependency
       const cacheKeys = await client.smembers(registryKey)
+
+      // Collect keys to recompute (populated inside if block, used after)
+      let keysToRecompute: string[] = []
 
       if (cacheKeys.length > 0) {
         logger.info('cache_invalidation', {
@@ -613,20 +882,184 @@ export async function invalidateDependencies(
           cacheKeys,
           invalidation_count: cacheKeys.length,
         })
-        // Delete all the cache keys
+
+        // 1. Collect keys that have recomputation metadata BEFORE deleting
+        // Parallelize EXISTS checks to avoid sequential latency under large dependency sets
+        const metadataChecks = await Promise.all(
+          cacheKeys.map(async (cacheKey: string) => {
+            const metadataKey = recomputeMetadataKey(cacheKey)
+            const hasMetadata = await client.exists(metadataKey)
+            return { cacheKey, hasMetadata: hasMetadata > 0 }
+          })
+        )
+        keysToRecompute = metadataChecks
+          .filter((check) => check.hasMetadata)
+          .map((check) => check.cacheKey)
+
+        // 2. Delete all cache keys (wait for completion)
         await client.del(...cacheKeys)
-      } else {
-        logger.debug('No cache keys to invalidate for dependency', {
-          dependency: dep,
-        })
+
+        // Remove invalidated keys from LRU tracking
+        // Cache key format is "namespace:suffix", so extract namespace
+        for (const cacheKey of cacheKeys) {
+          const colonIndex = cacheKey.indexOf(':')
+          if (colonIndex > 0) {
+            const namespace = cacheKey.slice(0, colonIndex)
+            // Only remove if it's a known namespace (avoid removing dependency registry keys)
+            if (isRedisKeyNamespace(namespace)) {
+              await removeFromLRU(namespace, cacheKey)
+            }
+          }
+        }
       }
 
-      // Delete the registry Set itself
+      // 3. Delete the registry Set BEFORE triggering recomputation
+      // This avoids a race condition where recomputation re-registers the
+      // dependency and then we delete the freshly rebuilt registry
       await client.del(registryKey)
+
+      // 4. THEN trigger recomputation (fire-and-forget)
+      // Deduplicate: skip keys already scheduled from a previous dependency
+      for (const cacheKey of keysToRecompute) {
+        if (!scheduledForRecomputation.has(cacheKey)) {
+          scheduledForRecomputation.add(cacheKey)
+          void recomputeCacheEntry(cacheKey)
+        }
+      }
     }
   } catch (error) {
-    // Log but don't throw - invalidation is fire-and-forget
     logger.error('Failed to invalidate cache dependencies', {
+      dependencies,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
+/**
+ * Recompute a single cache entry using stored metadata.
+ *
+ * This function:
+ * 1. Looks up recomputation metadata for the cache key
+ * 2. If found, looks up the registered handler for that namespace
+ * 3. Calls the handler with the stored params and transaction context
+ *
+ * Error handling:
+ * - If metadata not found: no-op (entry wasn't recomputable)
+ * - If handler not registered: logs warning (process may not have loaded the module)
+ * - If handler throws: logs warning, does not propagate (fail open)
+ */
+export async function recomputeCacheEntry(
+  cacheKey: string
+): Promise<void> {
+  const client = redis()
+
+  try {
+    // Get recomputation metadata
+    const metadataKey = recomputeMetadataKey(cacheKey)
+    const rawMetadata = await client.get(metadataKey)
+
+    if (rawMetadata === null) {
+      // No metadata means this wasn't a recomputable cache entry
+      logger.debug('No recompute metadata for cache key', {
+        cacheKey,
+      })
+      return
+    }
+
+    // Parse and validate metadata with Zod schema
+    const jsonValue =
+      typeof rawMetadata === 'string'
+        ? JSON.parse(rawMetadata)
+        : rawMetadata
+    const parsed = cacheRecomputeMetadataSchema.safeParse(jsonValue)
+
+    if (!parsed.success) {
+      logger.warn('Invalid recompute metadata', {
+        cacheKey,
+        error: parsed.error.message,
+      })
+      return
+    }
+
+    const metadata = parsed.data
+
+    // Look up handler in registry
+    const handler = getRecomputeHandler(metadata.namespace)
+
+    if (!handler) {
+      logger.warn('No recompute handler registered for namespace', {
+        namespace: metadata.namespace,
+        cacheKey,
+      })
+      return
+    }
+
+    // Call handler with stored params and context
+    await handler(metadata.params, metadata.transactionContext)
+
+    logger.debug('Recomputed cache entry', {
+      cacheKey,
+      namespace: metadata.namespace,
+    })
+  } catch (error) {
+    // Fail open - log warning but don't propagate
+    logger.warn('Failed to recompute cache entry', {
+      cacheKey,
+      error: error instanceof Error ? error.message : String(error),
+    })
+  }
+}
+
+/**
+ * Recompute all cache entries associated with the given dependencies.
+ *
+ * This function:
+ * 1. Collects all cache keys from all dependencies
+ * 2. Deduplicates the cache keys (same key may appear in multiple dependency sets)
+ * 3. Triggers recomputation for each unique cache key
+ *
+ * Called after invalidateDependencies() to trigger fire-and-forget recomputation
+ * for any cache entries that have recomputation metadata.
+ */
+export async function recomputeDependencies(
+  dependencies: CacheDependencyKey[]
+): Promise<void> {
+  if (dependencies.length === 0) return
+
+  const client = redis()
+
+  try {
+    // Collect all cache keys from all dependencies, deduplicating
+    const allCacheKeys = new Set<string>()
+
+    for (const dep of dependencies) {
+      const registryKey = dependencyRegistryKey(dep)
+      const cacheKeys = await client.smembers(registryKey)
+      for (const key of cacheKeys) {
+        allCacheKeys.add(key)
+      }
+    }
+
+    if (allCacheKeys.size === 0) {
+      logger.debug('No cache keys to recompute for dependencies', {
+        dependencies,
+      })
+      return
+    }
+
+    // Trigger recomputation for each unique cache key (fire-and-forget)
+    const recomputePromises = [...allCacheKeys].map((cacheKey) =>
+      recomputeCacheEntry(cacheKey)
+    )
+    await Promise.all(recomputePromises)
+
+    logger.debug('Triggered recomputation for dependencies', {
+      dependencies,
+      cacheKeyCount: allCacheKeys.size,
+    })
+  } catch (error) {
+    // Log but don't throw - recomputation is best-effort
+    logger.error('Failed to recompute dependencies', {
       dependencies,
       error: error instanceof Error ? error.message : String(error),
     })
@@ -650,7 +1083,15 @@ export const CacheDependency = {
   /** Invalidate when items for this subscription change */
   subscriptionItems: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionItems:${subscriptionId}`,
+  /** Invalidate when features for this subscription item change */
+  subscriptionItemFeatures: (
+    subscriptionItemId: string
+  ): CacheDependencyKey =>
+    `subscriptionItemFeatures:${subscriptionItemId}`,
   /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionLedger:${subscriptionId}`,
 } as const
+
+// NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'
+// Import from there for server-only code that needs recomputation support.

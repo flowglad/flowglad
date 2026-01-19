@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@flowglad/nextjs": "workspace:*",
-    "@flowglad/node": "0.27.0",
+    "@flowglad/node": "0.29.0",
     "@flowglad/react": "workspace:*",
     "@flowglad/server": "workspace:*",
     "@flowglad/shared": "workspace:*",

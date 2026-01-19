@@ -27,6 +27,7 @@ import { columns, type DiscountTableRowData } from './columns'
 export interface DiscountsTableFilters {
   active?: boolean
   organizationId?: string
+  pricingModelId?: string
 }
 
 interface DiscountsDataTableProps {
