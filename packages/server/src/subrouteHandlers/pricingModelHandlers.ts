@@ -56,7 +56,9 @@ export const getPricingModel: HybridSubRouteHandler<
     const result = await flowgladServerAdmin.getDefaultPricingModel()
     // Normalize response shape - handle both { pricingModel } wrapper and direct return
     const pricingModel =
-      'pricingModel' in result ? result.pricingModel : result
+      result && typeof result === 'object' && 'pricingModel' in result
+        ? result.pricingModel
+        : result
     const response: GetPricingModelResponse = {
       pricingModel,
       source: 'default',

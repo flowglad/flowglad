@@ -1,6 +1,8 @@
 import {
+  type AuthenticatedActionKey,
   FlowgladActionKey,
   flowgladActionValidators,
+  type HybridActionKey,
 } from '@flowglad/shared'
 import { describe, expect, it } from 'vitest'
 import {
@@ -102,17 +104,19 @@ describe('resolveCustomerExternalId', () => {
 })
 
 describe('endpointKeyToActionKey exhaustiveness', () => {
-  // Hybrid routes are tracked separately and don't require authentication
-  const hybridActionKeys: FlowgladActionKey[] = [
-    FlowgladActionKey.GetPricingModel,
-  ]
-
-  it('covers every AuthenticatedActionKey (excludes hybrid routes)', () => {
-    const allActionKeys = Object.values(FlowgladActionKey)
-    const mappedActionKeys = Object.values(endpointKeyToActionKey)
-    const authenticatedActionKeys = allActionKeys.filter(
-      (key) => !hybridActionKeys.includes(key)
+  it('covers every AuthenticatedActionKey value exactly once (excludes hybrid routes)', () => {
+    // Hybrid routes like GetPricingModel are handled separately and not included
+    // in endpointKeyToActionKey since they support unauthenticated access
+    const hybridActionKeys: HybridActionKey[] = [
+      FlowgladActionKey.GetPricingModel,
+    ]
+    const authenticatedActionKeys = Object.values(
+      FlowgladActionKey
+    ).filter(
+      (key): key is AuthenticatedActionKey =>
+        !hybridActionKeys.includes(key as HybridActionKey)
     )
+    const mappedActionKeys = Object.values(endpointKeyToActionKey)
 
     // Every AuthenticatedActionKey must be in the mapping
     for (const actionKey of authenticatedActionKeys) {
