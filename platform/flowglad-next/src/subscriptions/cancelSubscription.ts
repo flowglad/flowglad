@@ -677,9 +677,14 @@ export const cancelSubscriptionProcedureTransaction = async ({
     SubscriptionCancellationArrangement.Immediately
   ) {
     // Note: subscription is already fetched above, can reuse it
-    const updatedSubscription = (
-      await cancelSubscriptionImmediately({ subscription }, ctx)
-    ).unwrap()
+    const immediateResult = await cancelSubscriptionImmediately(
+      { subscription },
+      ctx
+    )
+    if (immediateResult.status === 'error') {
+      return Result.err(immediateResult.error)
+    }
+    const updatedSubscription = immediateResult.value
     return Result.ok({
       subscription: {
         ...updatedSubscription,
@@ -690,9 +695,14 @@ export const cancelSubscriptionProcedureTransaction = async ({
       },
     })
   }
-  const updatedSubscription = (
-    await scheduleSubscriptionCancellation(input, ctx)
-  ).unwrap()
+  const scheduleResult = await scheduleSubscriptionCancellation(
+    input,
+    ctx
+  )
+  if (scheduleResult.status === 'error') {
+    return Result.err(scheduleResult.error)
+  }
+  const updatedSubscription = scheduleResult.value
   // Queue cache invalidation via effects context
   invalidateCache(
     CacheDependency.customerSubscriptions(
@@ -976,9 +986,11 @@ export const uncancelSubscriptionProcedureTransaction = async ({
     transaction
   )
 
-  const updatedSubscription = (
-    await uncancelSubscription(subscription, ctx)
-  ).unwrap()
+  const uncancelResult = await uncancelSubscription(subscription, ctx)
+  if (uncancelResult.status === 'error') {
+    return Result.err(uncancelResult.error)
+  }
+  const updatedSubscription = uncancelResult.value
 
   return Result.ok({
     subscription: {
