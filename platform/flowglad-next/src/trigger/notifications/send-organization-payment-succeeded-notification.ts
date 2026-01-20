@@ -15,6 +15,7 @@ import { filterEligibleRecipients } from '@/utils/notifications'
 interface PaymentSucceededNotificationData {
   organizationId: string
   customerId: string
+  invoiceId: string
   amount: number
   currency: CurrencyCode
   invoiceNumber?: string
@@ -119,7 +120,7 @@ export const sendOrganizationPaymentSucceededNotificationIdempotently =
         },
         {
           idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-payment-succeeded-notification-${paymentData.invoiceNumber ?? `${paymentData.customerId}-${paymentData.amount}`}`
+            `send-organization-payment-succeeded-notification-${paymentData.invoiceId}`
           ),
         }
       )
