@@ -6,8 +6,8 @@ import type { EmailType } from './registry'
 // Common Schema Components
 // ============================================================================
 
-const CurrencyCodeSchema = z.nativeEnum(CurrencyCode)
-const IntervalUnitSchema = z.nativeEnum(IntervalUnit)
+const CurrencyCodeSchema = z.enum(CurrencyCode)
+const IntervalUnitSchema = z.enum(IntervalUnit)
 
 const SubscriptionItemSchema = z.object({
   name: z.string(),
