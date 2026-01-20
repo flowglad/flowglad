@@ -24,10 +24,9 @@ const sendCustomerPaymentSucceededNotificationTask = task({
       organization,
       payment,
     } = await adminTransaction(async ({ transaction }) => {
-      const payment = await selectPaymentById(
-        payload.paymentId,
-        transaction
-      )
+      const payment = (
+        await selectPaymentById(payload.paymentId, transaction)
+      ).unwrap()
       const [{ invoice, invoiceLineItems }] =
         await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
           { id: payment.invoiceId },

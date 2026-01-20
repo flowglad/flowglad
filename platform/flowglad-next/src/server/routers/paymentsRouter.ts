@@ -65,7 +65,7 @@ const getPaymentProcedure = protectedProcedure
   .input(idInputSchema)
   .output(z.object({ payment: paymentsClientSelectSchema }))
   .query(async ({ ctx, input }) => {
-    const payment = await authenticatedTransaction(
+    const paymentResult = await authenticatedTransaction(
       async ({ transaction }) => {
         return selectPaymentById(input.id, transaction)
       },
@@ -73,7 +73,7 @@ const getPaymentProcedure = protectedProcedure
         apiKey: ctx.apiKey,
       }
     )
-    return { payment }
+    return { payment: paymentResult.unwrap() }
   })
 
 const getTableRowsProcedure = protectedProcedure

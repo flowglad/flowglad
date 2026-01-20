@@ -120,17 +120,16 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
           transaction
         )
 
-        const updatedPayment = await selectPaymentById(
-          payment.id,
-          transaction
-        )
+        const updatedPayment = (
+          await selectPaymentById(payment.id, transaction)
+        ).unwrap()
         const updatedFeeCalculation = await selectFeeCalculationById(
           feeCalculation.id,
           transaction
         )
 
-        if (!updatedPayment || !updatedFeeCalculation) {
-          throw new Error('Expected records to exist')
+        if (!updatedFeeCalculation) {
+          throw new Error('Expected fee calculation to exist')
         }
         return { updatedPayment, updatedFeeCalculation }
       })
