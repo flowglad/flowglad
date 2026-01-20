@@ -47,6 +47,7 @@ import {
   invalidateDependencies,
   recomputeDependencies,
 } from '@/utils/cache'
+import { nanoid } from '@/utils/core'
 import {
   RedisKeyNamespace,
   removeFromLRU,
@@ -1461,10 +1462,8 @@ describeIfRedisKey('LRU Eviction Integration Tests', () => {
     // Use a namespace we can test with - we'll manually create a small sorted set
     // and then manually invoke eviction logic
     const namespace = RedisKeyNamespace.SubscriptionsByCustomer
-    const zsetKey = `${namespace}:lru`
-
-    // Clear the zset first to ensure test isolation (may have leftover entries from previous tests)
-    await client.del(zsetKey)
+    const testId = nanoid()
+    const zsetKey = `${namespace}:lru:test:${testId}`
 
     // Create 5 cache entries with incremental timestamps
     const cacheKeys: string[] = []
@@ -1579,7 +1578,8 @@ return 0
   it('LRU eviction atomically deletes cache entries and removes them from sorted set', async () => {
     const client = getRedisTestClient()
     const namespace = RedisKeyNamespace.SubscriptionsByCustomer
-    const zsetKey = `${namespace}:lru`
+    const testId = nanoid()
+    const zsetKey = `${namespace}:lru:test:${testId}`
 
     // Create entries that will be evicted
     const evictableKeys: string[] = []
