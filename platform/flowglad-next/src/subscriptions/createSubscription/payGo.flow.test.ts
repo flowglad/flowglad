@@ -21,6 +21,7 @@ import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionType,
   FeatureUsageGrantFrequency,
@@ -155,18 +156,14 @@ describe('Pay as You Go Workflow E2E', () => {
                 email: 'test@test.com',
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
               organizationId: organization.id,
               livemode: true,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(result)
         }

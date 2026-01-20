@@ -2422,16 +2422,13 @@ describe('Subscription Cancellation Test Suite', async () => {
               },
             },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
+              livemode: true,
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
-            },
+            }),
           })
         })
       ).rejects.toThrow(/Cannot cancel the default free plan/)
@@ -2486,16 +2483,13 @@ describe('Subscription Cancellation Test Suite', async () => {
               },
             },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
+              livemode: true,
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
-            },
+            }),
           })
         }
       )
@@ -2554,16 +2548,13 @@ describe('Subscription Cancellation Test Suite', async () => {
               },
             },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
+              livemode: true,
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
-            },
+            }),
           })
         })
       ).rejects.toThrow(/Cannot cancel the default free plan/)
@@ -3747,16 +3738,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           uncancelSubscriptionProcedureTransaction({
             input: { id: paidSubscription.id },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
-              cacheRecomputationContext: {
-                type: 'admin',
-                livemode: true,
-              },
+              livemode: true,
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
-            },
+            }),
           })
         ).rejects.toThrow(
           /Cannot uncancel paid subscription without an active payment method/

@@ -158,8 +158,8 @@ export const selectSubscriptionsByCustomerId = cached<
       ),
     ],
   },
-  async (customerId, _livemode, transaction) => {
-    return selectSubscriptions({ customerId }, transaction)
+  async (customerId, livemode, transaction) => {
+    return selectSubscriptions({ customerId, livemode }, transaction)
   }
 )
 
