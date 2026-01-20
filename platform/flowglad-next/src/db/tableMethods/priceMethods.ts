@@ -256,8 +256,11 @@ export const selectPricesByPricingModelId = cached(
     keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
       pricingModelId,
     schema: pricesClientSelectSchema.array(),
-    dependenciesFn: (_prices, pricingModelId: string) => [
+    dependenciesFn: (prices, pricingModelId: string) => [
+      // Set membership: invalidate when prices are added/removed from pricing model
       CacheDependency.pricesByPricingModel(pricingModelId),
+      // Content: invalidate when any returned price's data changes
+      ...prices.map((p) => CacheDependency.price(p.id)),
     ],
   },
   async (
@@ -303,10 +306,9 @@ export const updatePrice = async (
   ctx: TransactionEffectsContext
 ): Promise<Price.Record> => {
   const result = await baseUpdatePrice(price, ctx.transaction)
-  // Invalidate prices cache for the pricing model (queued for after commit)
-  ctx.invalidateCache(
-    CacheDependency.pricesByPricingModel(result.pricingModelId)
-  )
+  // Invalidate content cache (queued for after commit)
+  // Price data changed (amount, currency, active, etc.)
+  ctx.invalidateCache(CacheDependency.price(result.id))
   return result
 }
 

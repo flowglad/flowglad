@@ -610,17 +610,20 @@ export const selectPricingModelWithProductsAndUsageMetersById =
       selectUsageMetersByPricingModelId(pricingModelId, transaction),
     ])
 
-    // Build prices by productId map (only for prices with productId)
+    // Filter to only active prices (matching SQL path behavior)
+    const activePrices = pricesResult.filter((price) => price.active)
+
+    // Build prices by productId map (only for active prices with productId)
     const pricesByProductId = new Map<
       string,
       (typeof pricesResult)[number][]
     >()
-    // Build prices by usageMeterId map (for usage prices)
+    // Build prices by usageMeterId map (for active usage prices)
     const pricesByUsageMeterId = new Map<
       string,
       Price.ClientUsageRecord[]
     >()
-    for (const price of pricesResult) {
+    for (const price of activePrices) {
       if (price.productId) {
         const existing = pricesByProductId.get(price.productId) ?? []
         pricesByProductId.set(price.productId, [...existing, price])
@@ -653,9 +656,15 @@ export const selectPricingModelWithProductsAndUsageMetersById =
       }
     }
 
+    // Filter to only active products (matching SQL path behavior)
+    // Also filter out products with no active prices (matching INNER JOIN behavior in SQL path)
+    const activeProducts = productsResult.filter(
+      (product) => product.active && pricesByProductId.has(product.id)
+    )
+
     // Build products with prices, features, and defaultPrice
     const productsWithPrices: PricingModelWithProductsAndUsageMeters['products'] =
-      productsResult.map((product) => {
+      activeProducts.map((product) => {
         const productPrices = pricesByProductId.get(product.id) ?? []
         const productFeatures =
           featuresByProductId.get(product.id) ?? []

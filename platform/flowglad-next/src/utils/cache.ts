@@ -1217,15 +1217,15 @@ export const CacheDependency = {
   /** Invalidate when the pricing model record changes */
   pricingModel: (pricingModelId: string): CacheDependencyKey =>
     `pricingModel:${pricingModelId}`,
-  /** Invalidate when products for this pricing model change */
+  /** Invalidate when products for this pricing model change (set membership) */
   productsByPricingModel: (
     pricingModelId: string
   ): CacheDependencyKey => `productsByPricingModel:${pricingModelId}`,
-  /** Invalidate when prices for this pricing model change */
+  /** Invalidate when prices for this pricing model change (set membership) */
   pricesByPricingModel: (
     pricingModelId: string
   ): CacheDependencyKey => `pricesByPricingModel:${pricingModelId}`,
-  /** Invalidate when features for this pricing model change */
+  /** Invalidate when features for this pricing model change (set membership) */
   featuresByPricingModel: (
     pricingModelId: string
   ): CacheDependencyKey => `featuresByPricingModel:${pricingModelId}`,
@@ -1234,6 +1234,19 @@ export const CacheDependency = {
     pricingModelId: string
   ): CacheDependencyKey =>
     `productFeaturesByPricingModel:${pricingModelId}`,
+
+  // Individual entity content dependencies - keyed by entity ID
+  /** Invalidate when this specific product's content changes (name, description, active, etc.) */
+  product: (productId: string): CacheDependencyKey =>
+    `product:${productId}`,
+  /** Invalidate when this specific price's content changes (amount, currency, active, etc.) */
+  price: (priceId: string): CacheDependencyKey => `price:${priceId}`,
+  /** Invalidate when this specific feature's content changes (name, slug, type, etc.) */
+  feature: (featureId: string): CacheDependencyKey =>
+    `feature:${featureId}`,
+  /** Invalidate when this specific product feature's content changes */
+  productFeature: (productFeatureId: string): CacheDependencyKey =>
+    `productFeature:${productFeatureId}`,
 } as const
 
 // NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'

@@ -105,7 +105,8 @@ describe('setupPricingModelTransaction (integration)', () => {
       adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           {
-            input: {} as any,
+            // @ts-expect-error - intentionally providing invalid input to test validation
+            input: {},
             organizationId: organization.id,
             livemode: false,
           },

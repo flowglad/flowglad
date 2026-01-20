@@ -60,8 +60,11 @@ export const selectFeaturesByPricingModelId = cached(
     keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
       pricingModelId,
     schema: featuresClientSelectSchema.array(),
-    dependenciesFn: (_features, pricingModelId: string) => [
+    dependenciesFn: (features, pricingModelId: string) => [
+      // Set membership: invalidate when features are added/removed from pricing model
       CacheDependency.featuresByPricingModel(pricingModelId),
+      // Content: invalidate when any returned feature's data changes
+      ...features.map((f) => CacheDependency.feature(f.id)),
     ],
   },
   async (
@@ -99,10 +102,9 @@ export const updateFeature = async (
   ctx: TransactionEffectsContext
 ): Promise<Feature.Record> => {
   const result = await baseUpdateFeature(feature, ctx.transaction)
-  // Invalidate features cache for the pricing model (queued for after commit)
-  ctx.invalidateCache(
-    CacheDependency.featuresByPricingModel(result.pricingModelId)
-  )
+  // Invalidate content cache (queued for after commit)
+  // Feature data changed (name, slug, type, etc.)
+  ctx.invalidateCache(CacheDependency.feature(result.id))
   return result
 }
 

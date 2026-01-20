@@ -134,6 +134,13 @@ const createPricingModelProcedure = protectedProcedure
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
         const { livemode, organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const result = await createPricingModelBookkeeping(
           {
             pricingModel: input.pricingModel,
@@ -141,7 +148,7 @@ const createPricingModelProcedure = protectedProcedure
           },
           {
             ...transactionCtx,
-            organizationId: organizationId!,
+            organizationId,
             livemode,
           }
         )
@@ -194,12 +201,19 @@ const getDefaultPricingModelProcedure = protectedProcedure
     })
   )
   .query(async ({ ctx }) => {
+    if (!ctx.organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    const organizationId = ctx.organizationId
     const pricingModel = await authenticatedTransaction(
       async ({ transaction }) => {
         const [defaultPricingModel] =
           await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
             {
-              organizationId: ctx.organizationId!,
+              organizationId,
               livemode: ctx.livemode,
               isDefault: true,
             },
@@ -327,11 +341,18 @@ const setupPricingModelProcedure = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
+        if (!ctx.organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const { transaction } = transactionCtx
         const result = await setupPricingModelTransaction(
           {
             input,
-            organizationId: ctx.organizationId!,
+            organizationId: ctx.organizationId,
             livemode: ctx.livemode,
           },
           transactionCtx
@@ -373,6 +394,13 @@ const exportPricingModelProcedure = protectedProcedure
 const getIntegrationGuideProcedure = protectedProcedure
   .input(idInputSchema)
   .query(async function* ({ input, ctx }) {
+    if (!ctx.organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'Organization ID is required for this operation.',
+      })
+    }
+    const organizationId = ctx.organizationId
     // Fetch data within a transaction first
     const { pricingModelData, codebaseContext } =
       await authenticatedTransaction(
@@ -382,7 +410,7 @@ const getIntegrationGuideProcedure = protectedProcedure
             transaction
           )
           const codebaseContext =
-            await getOrganizationCodebaseMarkdown(ctx.organizationId!)
+            await getOrganizationCodebaseMarkdown(organizationId)
           return { pricingModelData, codebaseContext }
         },
         {
