@@ -10,6 +10,7 @@ import {
   DetailSection,
   DetailValue,
   EmailLayout,
+  Footer,
   Header,
   Paragraph,
 } from '../components/themed'
@@ -85,6 +86,10 @@ export const OrganizationPaymentNotificationEmail = ({
         This payment was processed by Flowglad on behalf of{' '}
         {organizationName}.
       </Paragraph>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }

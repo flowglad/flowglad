@@ -1,10 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { kebabCase } from 'change-case'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionAdjustedEmail } from '@/email-templates/customer-subscription-adjusted'
 import type { IntervalUnit } from '@/types'
 import {
@@ -16,6 +11,8 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { getFromAddress } from '@/utils/email/fromAddress'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 
 interface SubscriptionItemPayload {
   name: string
@@ -52,32 +49,19 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
 
     const { organization, customer, subscription, price } =
       await adminTransaction(async ({ transaction }) => {
-        const organization = await selectOrganizationById(
-          payload.organizationId,
+        return buildNotificationContext(
+          {
+            organizationId: payload.organizationId,
+            customerId: payload.customerId,
+            subscriptionId: payload.subscriptionId,
+            include: ['price'],
+          },
           transaction
         )
-        const customer = await selectCustomerById(
-          payload.customerId,
-          transaction
-        )
-        const subscription = await selectSubscriptionById(
-          payload.subscriptionId,
-          transaction
-        )
-        const price = subscription?.priceId
-          ? await selectPriceById(subscription.priceId, transaction)
-          : null
-
-        return {
-          organization,
-          customer,
-          subscription,
-          price,
-        }
       })
 
-    if (!organization || !customer || !subscription || !price) {
-      throw new Error('Required data not found')
+    if (!price) {
+      throw new Error('Price not found for subscription')
     }
 
     if (!customer.email) {
@@ -108,7 +92,10 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
     // Unified subject line for all Paid → Paid adjustments (regardless of direction)
     // per Apple-inspired patterns in subscription-email-improvements.md
     const result = await safeSend({
-      from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName: organization.name,
+      }),
       bcc: getBccForLivemode(subscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(

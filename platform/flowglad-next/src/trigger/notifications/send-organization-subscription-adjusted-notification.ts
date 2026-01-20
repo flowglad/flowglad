@@ -1,8 +1,6 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import {
   OrganizationSubscriptionAdjustedEmail,
@@ -19,6 +17,7 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
 export interface SendOrganizationSubscriptionAdjustedNotificationPayload {
@@ -65,38 +64,32 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
       subscription,
       usersAndMemberships,
     } = await adminTransaction(async ({ transaction }) => {
-      const organization = await selectOrganizationById(
-        organizationId,
-        transaction
-      )
-      const customer = await selectCustomerById(
-        customerId,
-        transaction
-      )
-      const subscription = await selectSubscriptionById(
-        subscriptionId,
-        transaction
-      )
-      const usersAndMemberships =
-        await selectMembershipsAndUsersByMembershipWhere(
-          {
-            organizationId,
-          },
-          transaction
-        )
+      const [context, usersAndMemberships, subscriptionRecord] =
+        await Promise.all([
+          buildNotificationContext(
+            {
+              organizationId,
+              customerId,
+            },
+            transaction
+          ),
+          selectMembershipsAndUsersByMembershipWhere(
+            { organizationId },
+            transaction
+          ),
+          selectSubscriptionById(subscriptionId, transaction),
+        ])
+
+      if (!subscriptionRecord) {
+        throw new Error(`Subscription not found: ${subscriptionId}`)
+      }
+
       return {
-        organization,
-        customer,
-        subscription,
+        ...context,
+        subscription: subscriptionRecord,
         usersAndMemberships,
       }
     })
-
-    if (!organization || !customer || !subscription) {
-      throw new Error(
-        'Organization, customer, or subscription not found'
-      )
-    }
 
     const eligibleRecipients = filterEligibleRecipients(
       usersAndMemberships,

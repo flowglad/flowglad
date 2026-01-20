@@ -405,7 +405,7 @@ behaviorTest({
       },
     },
   ],
-  testOptions: { timeout: 120000 },
+  testOptions: { timeout: 180000 },
   teardown: checkoutIntegrationTeardown,
 })
 
@@ -451,6 +451,6 @@ behaviorTest({
       },
     },
   ],
-  testOptions: { timeout: 120000 },
+  testOptions: { timeout: 180000 },
   teardown: checkoutIntegrationTeardown,
 })

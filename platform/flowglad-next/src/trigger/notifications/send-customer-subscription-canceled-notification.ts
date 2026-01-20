@@ -1,7 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionCanceledEmail } from '@/email-templates/customer-subscription-canceled'
 import {
@@ -13,6 +11,8 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { getFromAddress } from '@/utils/email/fromAddress'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 
 const sendCustomerSubscriptionCanceledNotificationTask = task({
   id: 'send-customer-subscription-canceled-notification',
@@ -34,6 +34,7 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
 
     const { subscription, organization, customer } =
       await adminTransaction(async ({ transaction }) => {
+        // First fetch subscription to get organizationId and customerId
         const subscription = await selectSubscriptionById(
           subscriptionId,
           transaction
@@ -41,24 +42,23 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
         if (!subscription) {
           throw new Error(`Subscription not found: ${subscriptionId}`)
         }
-        const organization = await selectOrganizationById(
-          subscription.organizationId,
-          transaction
-        )
-        const customer = await selectCustomerById(
-          subscription.customerId,
-          transaction
-        )
+
+        // Use buildNotificationContext for organization and customer
+        const { organization, customer } =
+          await buildNotificationContext(
+            {
+              organizationId: subscription.organizationId,
+              customerId: subscription.customerId,
+            },
+            transaction
+          )
+
         return {
           subscription,
           organization,
           customer,
         }
       })
-
-    if (!organization || !customer) {
-      throw new Error('Organization or customer not found')
-    }
 
     // Validate customer email
     if (!customer.email || customer.email.trim() === '') {
@@ -114,14 +114,17 @@ const sendCustomerSubscriptionCanceledNotificationTask = task({
     const subscriptionName = subscription.name || 'your subscription'
 
     await safeSend({
-      from: 'Flowglad <notifications@flowglad.com>',
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName: organization.name,
+      }),
       bcc: getBccForLivemode(subscription.livemode),
       to: customer.email,
       subject: formatEmailSubject(
         `Subscription Canceled: Your ${subscriptionName} subscription has been canceled`,
         subscription.livemode
       ),
-      react: CustomerSubscriptionCanceledEmail({
+      react: await CustomerSubscriptionCanceledEmail({
         customerName: customer.name,
         organizationName: organization.name,
         organizationLogoUrl: organization.logoURL || undefined,

@@ -1,9 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { kebabCase } from 'change-case'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
@@ -17,6 +13,8 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { getFromAddress } from '@/utils/email/fromAddress'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 
 const sendCustomerSubscriptionUpgradedNotificationTask = task({
   id: 'send-customer-subscription-upgraded-notification',
@@ -43,63 +41,59 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
       organization,
       customer,
       newSubscription,
-      previousSubscription,
       newPrice,
+      previousSubscription,
       previousPrice,
       paymentMethod,
     } = await adminTransaction(async ({ transaction }) => {
-      const organization = await selectOrganizationById(
-        payload.organizationId,
+      // Use buildNotificationContext for new subscription context
+      const {
+        organization,
+        customer,
+        subscription: newSubscription,
+        price: newPrice,
+        paymentMethod,
+      } = await buildNotificationContext(
+        {
+          organizationId: payload.organizationId,
+          customerId: payload.customerId,
+          subscriptionId: payload.newSubscriptionId,
+          include: ['price', 'defaultPaymentMethod'],
+        },
         transaction
       )
-      const customer = await selectCustomerById(
-        payload.customerId,
-        transaction
-      )
-      const newSubscription = await selectSubscriptionById(
-        payload.newSubscriptionId,
-        transaction
-      )
+
+      // Fetch previous subscription separately (not supported by buildNotificationContext)
       const previousSubscription = await selectSubscriptionById(
         payload.previousSubscriptionId,
         transaction
       )
-      const newPrice = newSubscription.priceId
-        ? await selectPriceById(newSubscription.priceId, transaction)
-        : null
+      if (!previousSubscription) {
+        throw new Error(
+          `Previous subscription not found: ${payload.previousSubscriptionId}`
+        )
+      }
+
       const previousPrice = previousSubscription.priceId
         ? await selectPriceById(
             previousSubscription.priceId,
             transaction
           )
         : null
-      const paymentMethods = await selectPaymentMethods(
-        { customerId: payload.customerId },
-        transaction
-      )
-      const paymentMethod =
-        paymentMethods.find((pm) => pm.default) || paymentMethods[0]
 
       return {
         organization,
         customer,
         newSubscription,
-        previousSubscription,
         newPrice,
+        previousSubscription,
         previousPrice,
         paymentMethod,
       }
     })
 
-    if (
-      !organization ||
-      !customer ||
-      !newSubscription ||
-      !newPrice ||
-      !previousSubscription ||
-      !previousPrice
-    ) {
-      throw new Error('Required data not found')
+    if (!newPrice || !previousPrice) {
+      throw new Error('Price not found for subscriptions')
     }
 
     if (!customer.email) {
@@ -149,7 +143,10 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
     // Unified subject line for Free → Paid upgrades (first-time paid subscription)
     // per Apple-inspired patterns in subscription-email-improvements.md
     const result = await safeSend({
-      from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName: organization.name,
+      }),
       bcc: getBccForLivemode(newSubscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(
