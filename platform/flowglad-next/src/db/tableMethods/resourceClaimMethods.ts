@@ -199,19 +199,24 @@ export const selectActiveClaimByExternalId = async (
  * Counts active (non-released, non-expired) claims for a given subscription and resource.
  * Active claims are those where:
  * - releasedAt IS NULL (not released)
- * - AND (expiredAt IS NULL OR expiredAt > NOW()) (not expired)
+ * - AND (expiredAt IS NULL OR expiredAt > anchorDate) (not expired)
  *
  * Useful for validating downgrade capacity constraints.
  * Uses a database COUNT query for efficiency instead of fetching all records.
+ *
+ * @param params - subscriptionId, resourceId, and optional anchorDate for time-based filtering
+ * @param transaction - Database transaction
+ * @returns Count of active claims
  */
 export const countActiveResourceClaims = async (
   params: {
     subscriptionId: string
     resourceId: string
+    anchorDate?: number
   },
   transaction: DbTransaction
 ): Promise<number> => {
-  const now = Date.now()
+  const now = params.anchorDate ?? Date.now()
   const result = await transaction
     .select({ count: count() })
     .from(resourceClaims)

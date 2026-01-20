@@ -1406,7 +1406,7 @@ export async function getResourceUsage(
 
   // Count active claims by (subscriptionId, resourceId)
   const claimed = await countActiveResourceClaims(
-    { subscriptionId, resourceId },
+    { subscriptionId, resourceId, anchorDate },
     transaction
   )
 
