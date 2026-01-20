@@ -87,7 +87,7 @@ The Flowglad plugin integrates with Better Auth to automatically create customer
 
 ### Next.js: Add FlowgladProvider wrapper
 
-For Next.js applications using Better Auth, you must use a client-side wrapper component that reactively watches the session state to ensure `loadBilling` updates correctly when the user authenticates.
+For Next.js applications using Better Auth, you may want a client-side wrapper component that calls `authClient.useSession()` to keep session state reactive for client components. FlowgladProvider no longer takes a `loadBilling` prop, so you can mount it directly if you don't need session-aware rendering.
 
     ```tsx title="components/providers.tsx"
     "use client"
@@ -103,12 +103,12 @@ For Next.js applications using Better Auth, you must use a client-side wrapper c
       // Use BetterAuth's useSession to watch for session changes reactively
       const { data: session } = authClient.useSession()
 
-      // Derive loadBilling from session state reactively
-      // This ensures billing loads when session becomes available, even if layout didn't re-render
-      const loadBilling = !!session?.user
+      if (!session?.user) {
+        return <>{children}</>
+      }
 
       return (
-        <FlowgladProvider loadBilling={loadBilling}>
+        <FlowgladProvider>
           {children}
         </FlowgladProvider>
       )
@@ -136,7 +136,7 @@ For Next.js applications using Better Auth, you must use a client-side wrapper c
     ```
 
     <Callout type="warn">
-  For Better Auth apps in Next.js, you must use a client-side wrapper component that uses `authClient.useSession()` to reactively watch for session changes. Otherwise, you may hit an edge case where `loadBilling`'s value does not change when the user authenticates.
+  For Better Auth apps in Next.js, use a client-side wrapper component that calls `authClient.useSession()` if you need session-driven client UI to re-render as auth changes.
     </Callout>
 
 ## What It Does
@@ -299,10 +299,6 @@ This means the user is not authenticated. Make sure:
 - You're passing the correct headers to `auth.api.getExternalId()`
 - The user has an active session
 - For organization customers, make sure the organization plugin is installed and the user has an `activeOrganizationId`
-
-### loadBilling not updating reactively
-
-For Better Auth apps in Next.js, you must use a client-side wrapper component that uses `authClient.useSession()` to watch for session changes. See the Next.js setup section above.
 
 ### Organization customer creation issues
 
