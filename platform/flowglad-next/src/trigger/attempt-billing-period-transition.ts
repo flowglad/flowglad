@@ -19,12 +19,14 @@ export const attemptBillingPeriodTransitionTask = task({
         const { billingRun } = await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
           }) => {
             const ctx = {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,

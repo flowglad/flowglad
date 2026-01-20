@@ -69,7 +69,13 @@ export const createPrice = protectedProcedure
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({ transaction, livemode, organizationId, userId }) => {
+      async ({
+        transaction,
+        livemode,
+        organizationId,
+        userId,
+        cacheRecomputationContext,
+      }) => {
         const { price } = input
 
         validateUsagePriceSlug(price)
@@ -81,6 +87,7 @@ export const createPrice = protectedProcedure
             livemode,
             organizationId,
             userId,
+            cacheRecomputationContext,
           }
         )
         return {
@@ -391,7 +398,13 @@ export const replaceUsagePrice = protectedProcedure
   )
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({ transaction, livemode, organizationId, userId }) => {
+      async ({
+        transaction,
+        livemode,
+        organizationId,
+        userId,
+        cacheRecomputationContext,
+      }) => {
         // Verify the old price exists and is a usage price
         let oldPrice
         try {
@@ -435,6 +448,7 @@ export const replaceUsagePrice = protectedProcedure
             livemode,
             organizationId,
             userId,
+            cacheRecomputationContext,
           }
         )
 

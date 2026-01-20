@@ -39,6 +39,8 @@ export const stripePaymentIntentSucceededTask = task({
             async (params) => {
               const effectsCtx: TransactionEffectsContext = {
                 transaction: params.transaction,
+                cacheRecomputationContext:
+                  params.cacheRecomputationContext,
                 invalidateCache: params.invalidateCache,
                 emitEvent: params.emitEvent,
                 enqueueLedgerCommand: params.enqueueLedgerCommand,

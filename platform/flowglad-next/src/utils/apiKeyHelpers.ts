@@ -67,7 +67,10 @@ export const createSecretApiKeyTransaction = async (
 
 export const rotateSecretApiKeyTransaction = async (
   input: RotateApiKeyInput,
-  { transaction, userId }: AuthenticatedTransactionParams
+  {
+    transaction,
+    userId,
+  }: Pick<AuthenticatedTransactionParams, 'transaction' | 'userId'>
 ) => {
   // Get the existing API key
   const existingApiKey = await selectApiKeyById(input.id, transaction)

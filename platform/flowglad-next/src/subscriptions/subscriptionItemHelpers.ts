@@ -24,9 +24,9 @@ import {
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
-  expireSubscriptionItems,
   selectCurrentlyActiveSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type {

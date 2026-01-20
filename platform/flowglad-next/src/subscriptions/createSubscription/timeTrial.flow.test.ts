@@ -39,6 +39,7 @@ import {
   type CoreSripeSetupIntent,
   processSetupIntentSucceeded,
 } from '@/utils/bookkeeping/processSetupIntent'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import {
   checkoutInfoForCheckoutSession,
   checkoutInfoForPriceWhere,
@@ -126,6 +127,10 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             {
               userId: user.id,
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               livemode: true,
               organizationId: organization.id,
               invalidateCache,
@@ -247,57 +252,64 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       return Result.ok(null)
     })
 
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      // 5. Process setup intent
-      const setupIntent: CoreSripeSetupIntent = {
-        id: `si_${core.nanoid()}`,
-        status: 'succeeded',
-        customer: customer.stripeCustomerId,
-        payment_method: `pm_${core.nanoid()}`,
-        metadata: {
-          type: IntentMetadataType.CheckoutSession,
-          checkoutSessionId: checkoutSession.id,
-        },
-      }
-      await processSetupIntentSucceeded(
-        setupIntent,
-        createDiscardingEffectsContext(transaction)
-      )
-      // 6. Final billing state
-      const billingState = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id,
-        },
-        transaction
-      )
-      const sub = billingState.subscriptions[0]
-      expect(sub.status).toBe(SubscriptionStatus.Trialing)
-      expect(typeof sub.trialEnd).toBe('number')
-      const diff = sub.trialEnd! - Date.now()
-      expect(diff).toBeGreaterThanOrEqual(
-        trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
-      )
-      expect(diff).toBeLessThanOrEqual(
-        trialPeriodDays * 24 * 60 * 60 * 1000 + 1000
-      )
-      expect(
-        sub.experimental?.featureItems.some(
-          (fi) => fi.featureId === toggleFeature.id
+    await comprehensiveAdminTransaction(
+      async ({ transaction, livemode }) => {
+        // 5. Process setup intent
+        const setupIntent: CoreSripeSetupIntent = {
+          id: `si_${core.nanoid()}`,
+          status: 'succeeded',
+          customer: customer.stripeCustomerId,
+          payment_method: `pm_${core.nanoid()}`,
+          metadata: {
+            type: IntentMetadataType.CheckoutSession,
+            checkoutSessionId: checkoutSession.id,
+          },
+        }
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
         )
-      ).toBe(true)
-      expect(typeof sub.defaultPaymentMethodId).toBe('string')
-      expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(0)
+        // 6. Final billing state
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
+        const billingState = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
+        const sub = billingState.subscriptions[0]
+        expect(sub.status).toBe(SubscriptionStatus.Trialing)
+        expect(typeof sub.trialEnd).toBe('number')
+        const diff = sub.trialEnd! - Date.now()
+        expect(diff).toBeGreaterThanOrEqual(
+          trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
+        )
+        expect(diff).toBeLessThanOrEqual(
+          trialPeriodDays * 24 * 60 * 60 * 1000 + 1000
+        )
+        expect(
+          sub.experimental?.featureItems.some(
+            (fi) => fi.featureId === toggleFeature.id
+          )
+        ).toBe(true)
+        expect(typeof sub.defaultPaymentMethodId).toBe('string')
+        expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(0)
 
-      // After processing setup intent, verify checkoutSession status
-      const finalSession = await selectCheckoutSessionById(
-        checkoutSession.id,
-        transaction
-      )
-      expect(finalSession.status).toBe(
-        CheckoutSessionStatus.Succeeded
-      )
-      return Result.ok(null)
-    })
+        // After processing setup intent, verify checkoutSession status
+        const finalSession = await selectCheckoutSessionById(
+          checkoutSession.id,
+          transaction
+        )
+        expect(finalSession.status).toBe(
+          CheckoutSessionStatus.Succeeded
+        )
+        return Result.ok(null)
+      }
+    )
   })
 })

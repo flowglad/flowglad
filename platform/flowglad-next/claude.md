@@ -41,6 +41,27 @@ This tells Vitest to run that specific test file in a jsdom environment.
 3. If you can't, parse the outputs using the appropriate zod schema.
 4. Speaking of zod schema, always bias towards using the zod schema found in db/schema
 
+## Client/Server Code Separation in tableMethods
+
+Some table methods files import server-only modules (e.g., `cache-recomputable.ts` which depends on postgres). When client code transitively imports these files, the build fails.
+
+**Convention:** Use `fooMethods.server.ts` for functions that depend on server-only modules like `cachedRecomputable`, direct database connections, or other Node.js APIs.
+
+- **`fooMethods.ts`** - Client-safe functions (basic CRUD, selects, inserts)
+- **`fooMethods.server.ts`** - Server-only functions (cached queries, complex joins with server deps)
+
+Example:
+```typescript
+// subscriptionItemMethods.ts - client-safe, basic operations
+export const selectSubscriptionItems = createSelectFunction(...)
+export const insertSubscriptionItem = ...
+
+// subscriptionItemMethods.server.ts - server-only, uses cachedRecomputable
+import { cachedRecomputable } from '@/utils/cache-recomputable'
+export const selectSubscriptionItemsWithPricesBySubscriptionId = cachedRecomputable(...)
+export const selectRichSubscriptionsAndActiveItems = ...
+```
+
 ## Write Tests Coverage for Changes to Backend Business Logic
 
 After you are at a good place with your changes, begin writing tests. 

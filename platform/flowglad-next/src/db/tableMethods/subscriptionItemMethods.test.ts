@@ -45,17 +45,19 @@ import {
   bulkCreateOrUpdateSubscriptionItems,
   bulkInsertOrDoNothingSubscriptionItemsByExternalId,
   bulkInsertSubscriptionItems,
-  expireSubscriptionItems,
   insertSubscriptionItem,
   selectCurrentlyActiveSubscriptionItems,
-  selectRichSubscriptionsAndActiveItems,
   selectSubscriptionAndItems,
   selectSubscriptionItemById,
   selectSubscriptionItems,
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
-  selectSubscriptionItemsWithPricesBySubscriptionIds,
   updateSubscriptionItem,
 } from './subscriptionItemMethods'
+import {
+  expireSubscriptionItems,
+  selectRichSubscriptionsAndActiveItems,
+  selectSubscriptionItemsWithPricesBySubscriptionIds,
+} from './subscriptionItemMethods.server'
 import { updateSubscription } from './subscriptionMethods'
 
 describe('subscriptionItemMethods', async () => {
@@ -787,7 +789,7 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            { type: 'admin', livemode }
           )
         expect(richSubscriptions.length).toBe(1)
         const subWithItems = richSubscriptions[0]
@@ -838,7 +840,7 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            { type: 'admin', livemode }
           )
         expect(richSubscriptions.length).toBe(1)
         expect(richSubscriptions[0].current).toBe(false)
@@ -925,7 +927,7 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            { type: 'admin', livemode }
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1022,7 +1024,7 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            { type: 'admin', livemode }
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1117,7 +1119,7 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: scenario1.organization.id },
             transaction,
-            livemode
+            { type: 'admin', livemode }
           )
 
         expect(richSubscriptions.length).toBe(1)
@@ -1176,7 +1178,7 @@ describe('subscriptionItemMethods', async () => {
           await selectRichSubscriptionsAndActiveItems(
             { organizationId: organization.id },
             transaction,
-            livemode
+            { type: 'admin', livemode }
           )
 
         expect(richSubscriptions.length).toBe(2) // Original + new empty subscription

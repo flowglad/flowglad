@@ -1,3 +1,4 @@
+// NOTE: Import utilities only - don't import server-only functions from subscriptionItemMethods.server.ts
 import { eq, inArray } from 'drizzle-orm'
 import {
   type SubscriptionItemFeature,

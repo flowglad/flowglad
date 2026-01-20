@@ -322,12 +322,14 @@ export const setupPaymentMethod = async (params: {
   return adminTransaction(
     async ({
       transaction,
+      cacheRecomputationContext,
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,
     }) => {
       const ctx = {
         transaction,
+        cacheRecomputationContext,
         invalidateCache: invalidateCache!,
         emitEvent: emitEvent!,
         enqueueLedgerCommand: enqueueLedgerCommand!,
