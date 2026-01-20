@@ -133,7 +133,7 @@ export const stripePaymentIntentSucceededTask = task({
           {
             organizationId: organization.id,
             customerId: customer.id,
-            invoiceId: invoice.id,
+            paymentId: payment.id,
             amount: payload.data.object.amount,
             currency: invoice.currency,
             invoiceNumber: invoice.invoiceNumber,

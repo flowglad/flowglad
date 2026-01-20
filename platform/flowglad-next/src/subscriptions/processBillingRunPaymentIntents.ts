@@ -125,7 +125,7 @@ const processSucceededNotifications = async (
   await sendOrganizationPaymentSucceededNotificationIdempotently({
     organizationId: params.organization.id,
     customerId: params.customer.id,
-    invoiceId: params.invoice.id,
+    paymentId: params.payment.id,
     amount: params.payment.amount,
     currency: params.invoice.currency,
     invoiceNumber: params.invoice.invoiceNumber,
@@ -170,7 +170,7 @@ const processFailedNotifications = async (
   await idempotentSendOrganizationPaymentFailedNotification({
     organizationId: params.organization.id,
     customerId: params.customer.id,
-    invoiceId: params.invoice.id,
+    paymentId: params.payment.id,
     amount: params.invoiceLineItems.reduce((acc, item) => {
       return item.price * item.quantity + acc
     }, 0),
