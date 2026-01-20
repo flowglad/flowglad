@@ -1222,10 +1222,3 @@ export const usePricingModel = (): PricingModel | null => {
  * @see usePricingModel
  */
 export const usePricing = () => usePricingModel()
-
-/**
- * @deprecated Use `usePricingModel` instead. This hook is kept for backward compatibility.
- */
-export const useCatalog = () => {
-  return usePricingModel()
-}

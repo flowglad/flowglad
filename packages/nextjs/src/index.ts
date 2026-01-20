@@ -19,5 +19,7 @@ export {
   useBilling,
   useResource,
   useResources,
+  usePricing,
+  usePricingModel,
 } from '@flowglad/react'
 export type * from '@flowglad/shared'
