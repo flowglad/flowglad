@@ -1,13 +1,12 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import { isNil } from '@/utils/core'
 import { sendOrganizationPayoutsEnabledNotificationEmail } from '@/utils/email'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 
 const sendOrganizationPayoutsEnabledNotificationTask = task({
   id: 'send-organization-payouts-enabled-notification',
@@ -29,24 +28,13 @@ const sendOrganizationPayoutsEnabledNotificationTask = task({
 
     const { organization, usersAndMemberships } =
       await adminTransaction(async ({ transaction }) => {
-        const organization = await selectOrganizationById(
-          organizationId,
+        return buildNotificationContext(
+          {
+            organizationId,
+            include: ['usersAndMemberships'],
+          },
           transaction
         )
-        if (!organization) {
-          throw new Error(`Organization not found: ${organizationId}`)
-        }
-        const usersAndMemberships =
-          await selectMembershipsAndUsersByMembershipWhere(
-            {
-              organizationId,
-            },
-            transaction
-          )
-        return {
-          organization,
-          usersAndMemberships,
-        }
       })
 
     const recipientEmails = usersAndMemberships
