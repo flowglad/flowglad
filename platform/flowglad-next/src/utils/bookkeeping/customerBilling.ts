@@ -47,7 +47,6 @@ export const customerBillingTransaction = async (
   const subscriptions = await selectRichSubscriptionsAndActiveItems(
     { customerId: customer.id },
     transaction,
-    customer.livemode,
     cacheRecomputationContext
   )
   const pricingModel = await selectPricingModelForCustomer(
