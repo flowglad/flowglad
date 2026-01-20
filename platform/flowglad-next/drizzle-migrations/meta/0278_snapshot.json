@@ -1,5 +1,5 @@
 {
-  "id": "b74dbbe5-553d-4ffe-9189-73f47300af8e",
+  "id": "f31ca8cf-ff5f-44df-b36d-894ab20b8bd4",
   "prevId": "e3a89c1b-01fe-483f-83ec-46f4dcd77ff1",
   "version": "7",
   "dialect": "postgresql",
@@ -11248,14 +11248,15 @@
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": ["merchant"],
-          "withCheck": "\"price_id\" in (select \"id\" from \"prices\" where \"prices\".\"usage_meter_id\" = \"usage_meter_id\")"
+          "withCheck": "\"price_id\" in (select \"id\" from \"prices\" where \"prices\".\"usage_meter_id\" = \"usage_events\".\"usage_meter_id\")"
         },
         "On update, only allow usage events for prices with matching usage meter": {
           "name": "On update, only allow usage events for prices with matching usage meter",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": ["merchant"],
-          "using": "\"price_id\" in (select \"id\" from \"prices\" where \"prices\".\"usage_meter_id\" = \"usage_meter_id\")"
+          "using": "\"price_id\" in (select \"id\" from \"prices\" where \"prices\".\"usage_meter_id\" = \"usage_events\".\"usage_meter_id\")",
+          "withCheck": "\"price_id\" in (select \"id\" from \"prices\" where \"prices\".\"usage_meter_id\" = \"usage_events\".\"usage_meter_id\")"
         },
         "On insert, only allow usage events for subscriptions with matching customer": {
           "name": "On insert, only allow usage events for subscriptions with matching customer",

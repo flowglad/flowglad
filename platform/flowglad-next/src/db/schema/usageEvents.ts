@@ -32,7 +32,7 @@ import { usageMetersClientSelectSchema } from './usageMeters'
 
 const TABLE_NAME = 'usage_events'
 
-const usageEventPriceMustMatchUsageMeter = sql`"price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id")`
+const usageEventPriceMustMatchUsageMeter = sql`"price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_events"."usage_meter_id")`
 
 const usageEventSubscriptionMustMatchCustomer = sql`"subscription_id" in (select "id" from "subscriptions" where "subscriptions"."customer_id" = "customer_id")`
 
@@ -103,6 +103,7 @@ export const usageEvents = pgTable(
         to: 'permissive',
         for: 'update',
         using: usageEventPriceMustMatchUsageMeter,
+        withCheck: usageEventPriceMustMatchUsageMeter,
       }
     ),
     merchantPolicy(
