@@ -10,10 +10,7 @@ import {
 import {
   createBulkInsertFunction,
   createBulkInsertOrDoNothingFunction,
-  createDerivePricingModelId,
-  createDerivePricingModelIds,
   createInsertFunction,
-  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -58,6 +55,14 @@ import {
   selectSubscriptionsByCustomerId,
 } from './subscriptionMethods'
 
+// Re-export client-safe utilities from the shared module
+// These are safe to import in both client and server contexts
+export {
+  derivePricingModelIdFromSubscriptionItem,
+  derivePricingModelIdsFromSubscriptionItems,
+  selectSubscriptionItemById,
+} from './shared/subscriptionItemUtils'
+
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItems,
   typeof subscriptionItemsSelectSchema,
@@ -69,29 +74,6 @@ const config: ORMMethodCreatorConfig<
   updateSchema: subscriptionItemsUpdateSchema,
   tableName: 'subscription_items',
 }
-
-export const selectSubscriptionItemById = createSelectById(
-  subscriptionItems,
-  config
-)
-
-/**
- * Derives pricingModelId from a subscription item.
- * Used for subscription item inserts.
- */
-export const derivePricingModelIdFromSubscriptionItem =
-  createDerivePricingModelId(
-    subscriptionItems,
-    config,
-    selectSubscriptionItemById
-  )
-
-/**
- * Batch derives pricingModelIds from multiple subscription items.
- * More efficient than calling derivePricingModelIdFromSubscriptionItem individually.
- */
-export const derivePricingModelIdsFromSubscriptionItems =
-  createDerivePricingModelIds(subscriptionItems, config)
 
 const baseInsertSubscriptionItem = createInsertFunction(
   subscriptionItems,

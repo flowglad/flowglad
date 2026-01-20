@@ -33,7 +33,7 @@ import {
 import {
   derivePricingModelIdFromSubscriptionItem,
   derivePricingModelIdsFromSubscriptionItems,
-} from './subscriptionItemMethods'
+} from './shared/subscriptionItemUtils'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItemFeatures,
