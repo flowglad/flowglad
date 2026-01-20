@@ -270,10 +270,11 @@ describe('refundPaymentTransaction', () => {
       )
 
       await adminTransaction(async ({ transaction }) => {
-        const updatedPayment = await refundPaymentTransaction(
+        const updatedPaymentResult = await refundPaymentTransaction(
           { id: payment.id, partialAmount: partialRefundAmount },
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         // Payment should remain Succeeded for partial refunds
         expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
@@ -303,10 +304,11 @@ describe('refundPaymentTransaction', () => {
       )
 
       await adminTransaction(async ({ transaction }) => {
-        const updatedPayment = await refundPaymentTransaction(
+        const updatedPaymentResult = await refundPaymentTransaction(
           { id: payment.id, partialAmount: null },
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         // Payment should be Refunded for full refunds
         expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
@@ -331,10 +333,11 @@ describe('refundPaymentTransaction', () => {
       )
 
       await adminTransaction(async ({ transaction }) => {
-        const updatedPayment = await refundPaymentTransaction(
+        const updatedPaymentResult = await refundPaymentTransaction(
           { id: payment.id, partialAmount: requestedPartialAmount },
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         // Should record the actual Stripe refund amount, NOT payment.amount (10000)
         expect(updatedPayment.refundedAmount).toBe(stripeRefundAmount)
@@ -354,10 +357,11 @@ describe('refundPaymentTransaction', () => {
       )
 
       await adminTransaction(async ({ transaction }) => {
-        const updatedPayment = await refundPaymentTransaction(
+        const updatedPaymentResult = await refundPaymentTransaction(
           { id: payment.id, partialAmount: payment.amount },
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         // When refund equals payment, it's a full refund
         expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
@@ -387,10 +391,11 @@ describe('refundPaymentTransaction', () => {
         )
 
       await adminTransaction(async ({ transaction }) => {
-        const updatedPayment = await refundPaymentTransaction(
+        const updatedPaymentResult = await refundPaymentTransaction(
           { id: payment.id, partialAmount: 3000 },
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
         expect(updatedPayment.refunded).toBe(false)
@@ -398,10 +403,11 @@ describe('refundPaymentTransaction', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const updatedPayment = await refundPaymentTransaction(
+        const updatedPaymentResult = await refundPaymentTransaction(
           { id: payment.id, partialAmount: 7000 },
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.status).toBe(PaymentStatus.Refunded)
         expect(updatedPayment.refunded).toBe(true)
@@ -621,10 +627,11 @@ describe('refundPaymentTransaction', () => {
       )
 
       await adminTransaction(async ({ transaction }) => {
-        const updatedPayment = await refundPaymentTransaction(
+        const updatedPaymentResult = await refundPaymentTransaction(
           { id: morPaymentWithTax.id, partialAmount: null },
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         // Refund should still succeed despite tax reversal failure
         expect(updatedPayment.status).toBe(PaymentStatus.Refunded)

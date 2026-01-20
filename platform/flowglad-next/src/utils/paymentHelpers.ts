@@ -1,3 +1,4 @@
+import type { Result } from 'better-result'
 import Stripe from 'stripe'
 import type { Payment } from '@/db/schema/payments'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -8,6 +9,7 @@ import {
   selectPayments,
 } from '@/db/tableMethods/paymentMethods'
 import type { DbTransaction } from '@/db/types'
+import type { NotFoundError, ValidationError } from '@/errors'
 import { PaymentStatus, StripeConnectContractType } from '@/types'
 import { logger } from '@/utils/logger'
 import {
@@ -27,7 +29,9 @@ import {
 export const refundPaymentTransaction = async (
   { id, partialAmount }: { id: string; partialAmount: number | null },
   transaction: DbTransaction
-): Promise<Payment.Record> => {
+): Promise<
+  Result<Payment.Record, NotFoundError | ValidationError>
+> => {
   // =========================================================================
   // STEP 1: Validate the payment can be refunded
   // =========================================================================
@@ -183,7 +187,7 @@ export const refundPaymentTransaction = async (
   // =========================================================================
   // STEP 4: Update payment record in database
   // =========================================================================
-  const updatedPaymentResult = await safelyUpdatePaymentForRefund(
+  return safelyUpdatePaymentForRefund(
     {
       id: payment.id,
       status:
@@ -198,8 +202,6 @@ export const refundPaymentTransaction = async (
     },
     transaction
   )
-
-  return updatedPaymentResult.unwrap()
 }
 
 /**

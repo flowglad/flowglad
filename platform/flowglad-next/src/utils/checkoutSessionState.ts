@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -13,6 +14,7 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import type { ValidationError } from '@/errors'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -171,7 +173,7 @@ export const createNonInvoiceCheckoutSession = async (
     customerId,
   }: CreateNonInvoiceCheckoutSessionParams,
   transaction: DbTransaction
-) => {
+): Promise<Result<CheckoutSession.Record, ValidationError>> => {
   const checkoutSessionInsertCore = {
     priceId: price.id,
     status: CheckoutSessionStatus.Open,
@@ -230,7 +232,10 @@ export const createNonInvoiceCheckoutSession = async (
     checkoutSessionInsert,
     transaction
   )
-  const checkoutSession = checkoutSessionResult.unwrap()
+  if (checkoutSessionResult.status === 'error') {
+    return checkoutSessionResult
+  }
+  const checkoutSession = checkoutSessionResult.value
   const organization = await selectOrganizationById(
     organizationId,
     transaction
@@ -286,7 +291,7 @@ export const createNonInvoiceCheckoutSession = async (
     transaction
   )
 
-  return updatedCheckoutSession
+  return Result.ok(updatedCheckoutSession)
 }
 
 export const findOrCreateCheckoutSession = async (
@@ -304,7 +309,7 @@ export const findOrCreateCheckoutSession = async (
     type: CheckoutSessionType.Product | CheckoutSessionType.Purchase
   },
   transaction: DbTransaction
-) => {
+): Promise<Result<CheckoutSession.Record, ValidationError>> => {
   const checkoutSession = await findCheckoutSession(
     {
       productId: productId,
@@ -328,7 +333,7 @@ export const findOrCreateCheckoutSession = async (
       transaction
     )
   }
-  return checkoutSession
+  return Result.ok(checkoutSession)
 }
 
 type SetCheckoutSessionCookieParams = {
