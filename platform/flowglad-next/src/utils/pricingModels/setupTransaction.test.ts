@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -100,20 +101,18 @@ describe('externalIdFromProductData', () => {
 })
 
 describe('setupPricingModelTransaction (integration)', () => {
-  it('throws if input validation fails', async () => {
-    await expect(
-      adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          {
-            // @ts-expect-error - intentionally providing invalid input to test validation
-            input: {},
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
-        )
+  it('returns error if input validation fails', async () => {
+    const result = await adminTransaction(async (ctx) =>
+      setupPricingModelTransaction(
+        {
+          input: {} as any,
+          organizationId: organization.id,
+          livemode: false,
+        },
+        ctx
       )
-    ).rejects.toThrow()
+    )
+    expect(Result.isError(result)).toBe(true)
   })
 
   it('throws when a UsageCreditGrant feature has no matching usage meter', async () => {
@@ -161,14 +160,20 @@ describe('setupPricingModelTransaction (integration)', () => {
         },
       ],
     }
-    await expect(
-      adminTransaction(async (ctx) =>
+    {
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
           ctx
         )
       )
-    ).rejects.toThrow('Usage meter with slug missing does not exist')
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Usage meter with slug missing does not exist'
+        )
+      }
+    }
   })
 
   // Updated to use nested usage meter structure with prices
@@ -248,10 +253,12 @@ describe('setupPricingModelTransaction (integration)', () => {
     }
 
     const result = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        { input, organizationId: organization.id, livemode: false },
-        ctx
-      )
+      (
+        await setupPricingModelTransaction(
+          { input, organizationId: organization.id, livemode: false },
+          ctx
+        )
+      ).unwrap()
     )
 
     // PricingModel
@@ -326,10 +333,16 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       // Should have auto-generated default product
@@ -361,10 +374,16 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       const defaultPrice = result.prices[0]
@@ -412,10 +431,16 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       // Should have user-provided default product, no auto-generated one
@@ -482,18 +507,25 @@ describe('setupPricingModelTransaction (integration)', () => {
         ],
       }
 
-      await expect(
-        adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
+      {
+        const result = await adminTransaction(
+          async (ctx) =>
+            setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
         )
-      ).rejects.toThrow('Multiple default products not allowed')
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Multiple default products not allowed'
+          )
+        }
+      }
     })
 
     it('should reject default product with non-zero price', async () => {
@@ -532,18 +564,25 @@ describe('setupPricingModelTransaction (integration)', () => {
         ],
       }
 
-      await expect(
-        adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
+      {
+        const result = await adminTransaction(
+          async (ctx) =>
+            setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
         )
-      ).rejects.toThrow('Default products must have zero price')
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Default products must have zero price'
+          )
+        }
+      }
     })
 
     it('should reject default product with trials', async () => {
@@ -582,18 +621,25 @@ describe('setupPricingModelTransaction (integration)', () => {
         ],
       }
 
-      await expect(
-        adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
+      {
+        const result = await adminTransaction(
+          async (ctx) =>
+            setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
         )
-      ).rejects.toThrow('Default products cannot have trials')
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Default products cannot have trials'
+          )
+        }
+      }
     })
   })
 
@@ -608,18 +654,25 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      await expect(
-        adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
+      {
+        const result = await adminTransaction(
+          async (ctx) =>
+            setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
         )
-      ).rejects.toThrow('Field must be less than 255 characters')
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Field must be less than 255 characters'
+          )
+        }
+      }
     })
 
     it('should reject input with empty name', async () => {
@@ -631,18 +684,23 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      await expect(
-        adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
+      {
+        const result = await adminTransaction(
+          async (ctx) =>
+            setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
         )
-      ).rejects.toThrow('Field is required')
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain('Field is required')
+        }
+      }
     })
 
     it('should reject input with invalid currency codes', async () => {
@@ -683,18 +741,25 @@ describe('setupPricingModelTransaction (integration)', () => {
         ],
       }
 
-      await expect(
-        adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
+      {
+        const result = await adminTransaction(
+          async (ctx) =>
+            setupPricingModelTransaction(
+              {
+                input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
         )
-      ).rejects.toThrow(/Invalid option: expected one of/)
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toMatch(
+            /Invalid option: expected one of/
+          )
+        }
+      }
     })
   })
 
@@ -718,10 +783,16 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       // Should have 2 usage meters
@@ -754,10 +825,16 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       const noChargePrice = result.prices.find(
@@ -796,10 +873,16 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       const noChargePrice = result.prices.find(
@@ -837,10 +920,16 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       const noChargePrice = result.prices.find(
@@ -883,10 +972,16 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       const noChargePrice = result.prices.find(
@@ -937,10 +1032,16 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          { input, organizationId: organization.id, livemode: false },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       // Should have 3 usage prices: 2 user + 1 no_charge

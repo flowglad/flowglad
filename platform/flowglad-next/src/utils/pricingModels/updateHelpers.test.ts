@@ -149,20 +149,24 @@ describe('resolveExistingIds', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     // Test: resolve IDs
-    const resolvedIds = await adminTransaction(async (ctx) =>
-      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
+    const resolvedIds = await adminTransaction(
+      async (ctx) =>
+        resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
     )
 
     // Verify features map
@@ -280,20 +284,24 @@ describe('resolveExistingIds', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     // Test: resolve IDs
-    const resolvedIds = await adminTransaction(async (ctx) =>
-      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
+    const resolvedIds = await adminTransaction(
+      async (ctx) =>
+        resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
     )
 
     // Expect: returns empty or minimal maps without error
@@ -333,45 +341,50 @@ describe('resolveExistingIds', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     // Directly insert resources for the pricing model
-    const createdResources = await adminTransaction(async (ctx) =>
-      bulkInsertResources(
-        [
-          {
-            slug: 'resource-a',
-            name: 'Resource A',
-            pricingModelId: setupResult.pricingModel.id,
-            organizationId: organization.id,
-            livemode: false,
-            active: true,
-          },
-          {
-            slug: 'resource-b',
-            name: 'Resource B',
-            pricingModelId: setupResult.pricingModel.id,
-            organizationId: organization.id,
-            livemode: false,
-            active: true,
-          },
-        ],
-        ctx.transaction
-      )
+    const createdResources = await adminTransaction(
+      async (ctx) =>
+        bulkInsertResources(
+          [
+            {
+              slug: 'resource-a',
+              name: 'Resource A',
+              pricingModelId: setupResult.pricingModel.id,
+              organizationId: organization.id,
+              livemode: false,
+              active: true,
+            },
+            {
+              slug: 'resource-b',
+              name: 'Resource B',
+              pricingModelId: setupResult.pricingModel.id,
+              organizationId: organization.id,
+              livemode: false,
+              active: true,
+            },
+          ],
+          transaction
+        )
     )
 
     // Test: resolve IDs
-    const resolvedIds = await adminTransaction(async (ctx) =>
-      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
+    const resolvedIds = await adminTransaction(
+      async (ctx) =>
+        resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
     )
 
     // Verify resources map exists and has correct entries
@@ -422,20 +435,24 @@ describe('resolveExistingIds', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     // Test: resolve IDs
-    const resolvedIds = await adminTransaction(async (ctx) =>
-      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
+    const resolvedIds = await adminTransaction(
+      async (ctx) =>
+        resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
     )
 
     // Verify resources map exists and is empty
@@ -524,15 +541,18 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     // Build feature slug to ID map
@@ -550,7 +570,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
     // Sync: add feature-c to product A, add feature-y to product B
     const syncResult = await comprehensiveAdminTransaction(
-      async (ctx) => {
+      async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -571,7 +591,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          ctx
+          params
         )
         return Result.ok(result)
       }
@@ -672,15 +692,18 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     // Build feature slug to ID map
@@ -698,7 +721,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
     // Sync: remove feature-c from product A, remove feature-y from product B
     const syncResult = await comprehensiveAdminTransaction(
-      async (ctx) => {
+      async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -715,7 +738,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          ctx
+          params
         )
         return Result.ok(result)
       }
@@ -835,15 +858,18 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     // Build feature slug to ID map
@@ -863,7 +889,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Product A: [a, b] -> [c, d]
     // Product B: [x, y] -> [z]
     const syncResult = await comprehensiveAdminTransaction(
-      async (ctx) => {
+      async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -880,7 +906,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          ctx
+          params
         )
         return Result.ok(result)
       }
@@ -1024,15 +1050,18 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     // Build feature slug to ID map
@@ -1056,7 +1085,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Product B: [x] -> [x, y] (add y)
     // Product C: [p, q] -> [p] (remove q)
     const syncResult = await comprehensiveAdminTransaction(
-      async (ctx) => {
+      async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1077,7 +1106,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          ctx
+          params
         )
         return Result.ok(result)
       }
@@ -1107,7 +1136,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
   it('returns empty added and removed arrays when given empty products list', async () => {
     // Test: call with empty productsWithFeatures array
     const syncResult = await comprehensiveAdminTransaction(
-      async (ctx) => {
+      async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [],
@@ -1115,7 +1144,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          ctx
+          params
         )
         return Result.ok(result)
       }
@@ -1168,15 +1197,18 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     const productA = setupResult.products.find(
@@ -1191,7 +1223,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
     // Step 1: Remove feature-b (this will expire it)
     const removeResult = await comprehensiveAdminTransaction(
-      async (ctx) => {
+      async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1204,7 +1236,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          ctx
+          params
         )
         return Result.ok(result)
       }
@@ -1219,7 +1251,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
     // Step 2: Re-add feature-b (this should unexpire it)
     const reAddResult = await comprehensiveAdminTransaction(
-      async (ctx) => {
+      async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1232,7 +1264,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          ctx
+          params
         )
         return Result.ok(result)
       }
@@ -1247,11 +1279,9 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     expect(reAddResult.removed.length).toBe(0)
 
     // Verify the database state: both features should now be active
-    const finalProductFeatures = await adminTransaction(async (ctx) =>
-      selectProductFeatures(
-        { productId: productA.id },
-        ctx.transaction
-      )
+    const finalProductFeatures = await adminTransaction(
+      async (ctx) =>
+        selectProductFeatures({ productId: productA.id }, ctx.transaction)
     )
 
     const activeFeatures = finalProductFeatures.filter(
@@ -1312,15 +1342,18 @@ describe('syncProductFeaturesForMultipleProducts', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+    const setupResult = await adminTransaction(
+      async (ctx) =>
+        (
+          await setupPricingModelTransaction(
+            {
+              input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+        ).unwrap()
     )
 
     const productA = setupResult.products.find(
@@ -1329,7 +1362,6 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
     // Manually expire feature-b's productFeature
     await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
       const productFeatures = await selectProductFeatures(
         { productId: productA.id },
         transaction
@@ -1345,7 +1377,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             id: featureBProductFeature.id,
             expiredAt: Date.now() - 1000,
           },
-          ctx
+          transaction
         )
       }
     })
@@ -1358,7 +1390,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
 
     // Sync: request only feature-a (feature-b is already expired)
     const syncResult = await comprehensiveAdminTransaction(
-      async (ctx) => {
+      async (params) => {
         const result = await syncProductFeaturesForMultipleProducts(
           {
             productsWithFeatures: [
@@ -1371,7 +1403,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
             organizationId: organization.id,
             livemode: false,
           },
-          ctx
+          params
         )
         return Result.ok(result)
       }

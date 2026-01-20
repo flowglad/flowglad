@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { describe, expect, it } from 'bun:test'
 import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
 import {
@@ -54,9 +55,13 @@ describe('validateSetupPricingModelInput', () => {
       const input = createMinimalValidInput()
       input.products[0].features = ['non-existent-feature']
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Feature with slug non-existent-feature does not exist'
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Feature with slug non-existent-feature does not exist'
+        )
+      }
     })
 
     it('should accept when all referenced features exist', () => {
@@ -73,7 +78,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['test-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -95,9 +100,13 @@ describe('validateSetupPricingModelInput', () => {
       ]
       input.products[0].features = ['credit-feature']
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Usage meter with slug non-existent-meter does not exist'
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Usage meter with slug non-existent-meter does not exist'
+        )
+      }
     })
 
     // Usage prices live under usage meters, not products
@@ -140,7 +149,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['credit-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -160,9 +169,11 @@ describe('validateSetupPricingModelInput', () => {
         // slug is intentionally omitted to test runtime validation
       }
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        /Price slug is required/
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(/Price slug is required/)
+      }
     })
 
     it('should accept when all prices have slugs', () => {
@@ -180,7 +191,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -213,7 +224,7 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -242,7 +253,7 @@ describe('validateSetupPricingModelInput', () => {
         },
       ]
 
-      const result = validateSetupPricingModelInput(input)
+      const result = validateSetupPricingModelInput(input).unwrap()
       expect(result.usageMeters[0].prices?.[0].isDefault).toBe(true)
     })
 
@@ -300,9 +311,13 @@ describe('validateSetupPricingModelInput', () => {
         },
       ]
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Price with slug duplicate-price-slug already exists'
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Price with slug duplicate-price-slug already exists'
+        )
+      }
     })
 
     it('should accept when all price slugs are unique across products', () => {
@@ -351,7 +366,7 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -368,9 +383,9 @@ describe('validateSetupPricingModelInput', () => {
       const input = JSON.parse(JSON.stringify(template.input))
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
-      const result = validateSetupPricingModelInput(input)
+      const result = validateSetupPricingModelInput(input).unwrap()
       expect(result.name).toBe(input.name)
     })
   })
@@ -390,7 +405,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['toggle-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -433,7 +448,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['credit-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -454,7 +469,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -469,7 +484,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -499,7 +514,7 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -543,7 +558,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -572,7 +587,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['resource-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -592,9 +607,13 @@ describe('validateSetupPricingModelInput', () => {
       ]
       input.products[0].features = ['resource-feature']
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Resource with slug non-existent-resource does not exist'
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Resource with slug non-existent-resource does not exist'
+        )
+      }
     })
 
     it('should reject Resource feature without amount', () => {
@@ -630,7 +649,7 @@ describe('validateSetupPricingModelInput', () => {
       // Ensure resources is not set
       delete (input as any).resources
 
-      const result = validateSetupPricingModelInput(input)
+      const result = validateSetupPricingModelInput(input).unwrap()
       expect(result.resources).toBeUndefined()
     })
 
@@ -650,9 +669,9 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
-      const result = validateSetupPricingModelInput(input)
+      const result = validateSetupPricingModelInput(input).unwrap()
       expect(result.resources).toHaveLength(2)
       expect(result.resources?.[0]?.slug).toBe('resource-one')
       expect(result.resources?.[1]?.slug).toBe('resource-two')
@@ -739,9 +758,9 @@ describe('validateSetupPricingModelInput', () => {
       // Product keeps its default subscription price from createMinimalValidInput
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
-      const result = validateSetupPricingModelInput(input)
+      const result = validateSetupPricingModelInput(input).unwrap()
       expect(result.features).toHaveLength(3)
     })
   })
@@ -802,7 +821,7 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -821,7 +840,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -836,7 +855,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -1037,9 +1056,13 @@ describe('usage meter isDefault validation', () => {
       },
     ]
 
-    expect(() => validateSetupPricingModelInput(input)).toThrow(
-      'Usage meter "api-calls" has multiple prices with isDefault=true'
-    )
+    const result = validateSetupPricingModelInput(input)
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Usage meter "api-calls" has multiple prices with isDefault=true'
+      )
+    }
   })
 
   it('accepts when exactly one price has isDefault=true for a usage meter', () => {
@@ -1077,7 +1100,9 @@ describe('usage meter isDefault validation', () => {
       },
     ]
 
-    expect(() => validateSetupPricingModelInput(input)).not.toThrow()
+    expect(Result.isOk(validateSetupPricingModelInput(input))).toBe(
+      true
+    )
   })
 
   it('accepts when no prices have isDefault=true for a usage meter', () => {
@@ -1104,7 +1129,9 @@ describe('usage meter isDefault validation', () => {
       },
     ]
 
-    expect(() => validateSetupPricingModelInput(input)).not.toThrow()
+    expect(Result.isOk(validateSetupPricingModelInput(input))).toBe(
+      true
+    )
   })
 
   it('validates each usage meter independently - different meters can each have one default', () => {
@@ -1150,6 +1177,8 @@ describe('usage meter isDefault validation', () => {
       },
     ]
 
-    expect(() => validateSetupPricingModelInput(input)).not.toThrow()
+    expect(Result.isOk(validateSetupPricingModelInput(input))).toBe(
+      true
+    )
   })
 })
