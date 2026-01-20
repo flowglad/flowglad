@@ -5,7 +5,6 @@ import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { authClient } from '@/lib/auth-client'
 
 const createQueryClient = () =>
   new QueryClient({
@@ -43,18 +42,8 @@ export function ReactQueryProvider(props: {
 export function FlowgladProviderWrapper(props: {
   children: React.ReactNode
 }) {
-  // Use BetterAuth's useSession to watch for session changes reactively
-  const { data: session } = authClient.useSession()
-
-  // Derive loadBilling from session state reactively
-  // This ensures billing loads when session becomes available, even if layout didn't re-render
-  const loadBilling = !!session?.user
-
   return (
-    <FlowgladProvider
-      loadBilling={loadBilling}
-      betterAuthBasePath="/api/auth"
-    >
+    <FlowgladProvider betterAuthBasePath="/api/auth">
       {props.children}
     </FlowgladProvider>
   )

@@ -24,7 +24,6 @@ export default function RootLayout() {
 
   return (
     <FlowgladProvider
-      loadBilling={isAuthenticated}
       baseURL="http://localhost:8081"
       requestConfig={requestConfig}
     >

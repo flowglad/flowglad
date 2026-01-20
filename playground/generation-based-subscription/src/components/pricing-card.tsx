@@ -51,7 +51,7 @@ export function PricingCard({
     return <div>Error loading billing data</div>
   }
 
-  if (!billing.loadBilling) {
+  if (!billing.createCheckoutSession) {
     return <div>Billing not available</div>
   }
 

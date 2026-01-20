@@ -47,10 +47,6 @@ export function AdjustSubscriptionCard({
     return <div>Error loading billing data</div>
   }
 
-  if (!billing.loadBilling) {
-    return <div>Billing not available</div>
-  }
-
   if (!billing.getPrice) {
     return <div>Billing not available</div>
   }
