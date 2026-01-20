@@ -12,7 +12,7 @@ import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
-  selectDefaultPriceForUsageMeter,
+  selectDefaultPricesForUsageMeters,
   selectPrices,
 } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
@@ -433,24 +433,30 @@ async function resolveDefaultPricesForMeterEvents(
 
   // Collect all usage meter IDs that need default price resolution
   // (events with usageMeterId but no priceId)
-  const usageMeterIdsNeedingDefaultPrice = new Set<string>()
+  const usageMeterIdsNeedingDefaultPrice: string[] = []
 
   for (const event of resolvedUsageEvents) {
     if (event.usageMeterId && !event.priceId) {
-      usageMeterIdsNeedingDefaultPrice.add(event.usageMeterId)
+      usageMeterIdsNeedingDefaultPrice.push(event.usageMeterId)
     }
   }
 
   // Batch fetch default prices for all usage meters that need them
+  const defaultPricesByMeterId =
+    await selectDefaultPricesForUsageMeters(
+      [...new Set(usageMeterIdsNeedingDefaultPrice)],
+      transaction
+    )
+
+  // Verify all meters have default prices and build the ID map
   const defaultPriceByUsageMeterId = new Map<string, string>()
   // Create a new pricesMap that includes the default prices
   const updatedPricesMap = new Map(pricesMap)
 
-  for (const usageMeterId of usageMeterIdsNeedingDefaultPrice) {
-    const defaultPrice = await selectDefaultPriceForUsageMeter(
-      usageMeterId,
-      transaction
-    )
+  for (const usageMeterId of new Set(
+    usageMeterIdsNeedingDefaultPrice
+  )) {
+    const defaultPrice = defaultPricesByMeterId.get(usageMeterId)
     if (!defaultPrice) {
       return Result.err(
         new TRPCError({
