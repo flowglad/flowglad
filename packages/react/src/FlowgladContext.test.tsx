@@ -859,15 +859,12 @@ describe('usePricingModel', () => {
         wrapper: createWrapper({ devMode: false }),
       })
 
+      // Wait for the query to complete and verify the result
+      // Using waitFor ensures we wait for React Query to process the response
       await waitFor(() => {
-        // Wait for the query to complete - we check the fetch was called
         expect(mockFetch).toHaveBeenCalled()
+        expect(result.current).toBe(null)
       })
-
-      // Give it a moment to process the error
-      await new Promise((resolve) => setTimeout(resolve, 50))
-
-      expect(result.current).toBe(null)
     })
 
     it('returns null when pricingModel is not present in response data', async () => {
@@ -882,14 +879,12 @@ describe('usePricingModel', () => {
         wrapper: createWrapper({ devMode: false }),
       })
 
+      // Wait for the query to complete and verify the result
+      // Using waitFor ensures we wait for React Query to process the response
       await waitFor(() => {
         expect(mockFetch).toHaveBeenCalled()
+        expect(result.current).toBe(null)
       })
-
-      // Give it a moment to process
-      await new Promise((resolve) => setTimeout(resolve, 50))
-
-      expect(result.current).toBe(null)
     })
   })
 })

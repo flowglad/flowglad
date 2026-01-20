@@ -894,6 +894,34 @@ const buildDevModeBillingValue = (
   }
 }
 
+/**
+ * Hook to access billing data and actions for the current authenticated customer.
+ *
+ * Automatically fetches billing data when mounted. The hook returns loading state,
+ * customer information, subscriptions, and action functions for managing billing.
+ *
+ * @returns {FlowgladContextValues} The billing context including:
+ *   - `loaded`: Whether billing data has been fetched
+ *   - `errors`: Any errors that occurred during fetch
+ *   - `customer`: The customer object (null if not authenticated)
+ *   - `subscriptions`: Array of customer subscriptions
+ *   - `currentSubscription`: The primary active subscription
+ *   - `pricingModel`: The pricing model with products and prices
+ *   - Action functions: `createCheckoutSession`, `cancelSubscription`, `adjustSubscription`, etc.
+ *
+ * @example
+ * ```tsx
+ * function BillingPage() {
+ *   const billing = useBilling()
+ *
+ *   if (!billing.loaded) return <Loading />
+ *   if (billing.errors) return <Error errors={billing.errors} />
+ *   if (!billing.customer) return <SignInPrompt />
+ *
+ *   return <SubscriptionDetails subscription={billing.currentSubscription} />
+ * }
+ * ```
+ */
 export const useBilling = (): FlowgladContextValues => {
   const queryClient = useQueryClient()
   const {
@@ -1082,8 +1110,31 @@ export const useBilling = (): FlowgladContextValues => {
 }
 
 /**
- * Fetches the pricing model from the public GetPricingModel endpoint.
- * Returns null while loading or if unavailable.
+ * Hook to fetch public pricing data without requiring authentication.
+ *
+ * Unlike `useBilling`, this hook fetches only the pricing model (products and prices)
+ * from a public endpoint. Use this for pricing pages that should be visible to
+ * unauthenticated users.
+ *
+ * @returns {PricingModel | null} The pricing model containing products, prices, and
+ *   usage meters, or null while loading or if unavailable.
+ *
+ * @example
+ * ```tsx
+ * function PricingPage() {
+ *   const pricingModel = usePricingModel()
+ *
+ *   if (!pricingModel) return <Loading />
+ *
+ *   return (
+ *     <div>
+ *       {pricingModel.products.map(product => (
+ *         <PricingCard key={product.id} product={product} />
+ *       ))}
+ *     </div>
+ *   )
+ * }
+ * ```
  */
 export const usePricingModel = (): PricingModel | null => {
   const {
@@ -1129,7 +1180,13 @@ export const usePricingModel = (): PricingModel | null => {
 }
 
 /**
- * Alias for `usePricingModel` to keep usage concise.
+ * Alias for `usePricingModel`.
+ *
+ * This is a convenience alias for developers who prefer a shorter hook name.
+ * Functionally identical to `usePricingModel`.
+ *
+ * @returns {PricingModel | null} The pricing model, or null while loading or if unavailable.
+ * @see usePricingModel
  */
 export const usePricing = () => usePricingModel()
 
