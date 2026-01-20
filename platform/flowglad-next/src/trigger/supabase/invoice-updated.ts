@@ -1,10 +1,12 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { adminTransaction } from '@/db/adminTransaction'
+import { Result } from 'better-result'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import type { Invoice } from '@/db/schema/invoices'
 import { selectCustomerAndCustomerTableRows } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { NotFoundError } from '@/errors'
 import { InvoiceStatus, type SupabaseUpdatePayload } from '@/types'
 import { generatePaymentReceiptPdfTask } from '../generate-receipt-pdf'
 
@@ -37,48 +39,53 @@ export const invoiceUpdatedTask = task({
         customer,
         organization,
         paymentForInvoice,
-      } = await adminTransaction(async ({ transaction }) => {
-        const invoiceLineItems = await selectInvoiceLineItems(
-          { invoiceId: newRecord.id },
-          transaction
-        )
-
-        const [{ customer }] =
-          await selectCustomerAndCustomerTableRows(
-            {
-              id: newRecord.customerId,
-            },
+      } = await comprehensiveAdminTransaction(
+        async ({ transaction }) => {
+          const invoiceLineItems = await selectInvoiceLineItems(
+            { invoiceId: newRecord.id },
             transaction
           )
-        if (!customer) {
-          throw new Error(
-            `Customer not found for invoice ${newRecord.id}`
-          )
-        }
 
-        const organization = await selectOrganizationById(
-          customer.organizationId,
-          transaction
-        )
-        if (!organization) {
-          throw new Error(
-            `Organization not found for invoice ${newRecord.id}`
+          const [{ customer }] =
+            await selectCustomerAndCustomerTableRows(
+              {
+                id: newRecord.customerId,
+              },
+              transaction
+            )
+          if (!customer) {
+            return Result.err(
+              new NotFoundError('Customer', newRecord.customerId)
+            )
+          }
+
+          const organization = await selectOrganizationById(
+            customer.organizationId,
+            transaction
           )
+          if (!organization) {
+            return Result.err(
+              new NotFoundError(
+                'Organization',
+                customer.organizationId
+              )
+            )
+          }
+          logger.info(`Sending receipt email to ${customer.email}`)
+          const [paymentForInvoice] = await selectPayments(
+            { invoiceId: newRecord.id },
+            transaction
+          )
+          return Result.ok({
+            invoice: newRecord,
+            invoiceLineItems,
+            customer,
+            organization,
+            paymentForInvoice,
+            message: 'Receipt email sent successfully',
+          })
         }
-        logger.info(`Sending receipt email to ${customer.email}`)
-        const [paymentForInvoice] = await selectPayments(
-          { invoiceId: newRecord.id },
-          transaction
-        )
-        return {
-          invoice: newRecord,
-          invoiceLineItems,
-          customer,
-          organization,
-          paymentForInvoice,
-          message: 'Receipt email sent successfully',
-        }
-      })
+      )
       await generatePaymentReceiptPdfTask.triggerAndWait({
         paymentId: paymentForInvoice.id,
       })
