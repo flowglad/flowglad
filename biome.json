@@ -54,6 +54,10 @@
         "./plugins/no-dynamic-imports-in-tests.grit",
         "./plugins/no-toBeDefined-or-toBeTruthy-in-tests.grit"
       ]
+    },
+    {
+      "includes": ["**/*.ts", "**/*.tsx"],
+      "plugins": ["./plugins/no-zod-native-enum.grit"]
     }
   ]
 }
