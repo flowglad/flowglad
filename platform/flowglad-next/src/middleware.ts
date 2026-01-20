@@ -1,8 +1,32 @@
+import { trace } from '@opentelemetry/api'
 import { getSessionCookie } from 'better-auth/cookies'
 import { type NextRequest, NextResponse } from 'next/server'
 import { middlewareLogic } from './routing-logic/middlewareLogic'
 import { isPublicRoute } from './routing-logic/publicRoutes'
 import { getCustomerBillingPortalOrganizationId } from './utils/customerBillingPortalState'
+
+/**
+ * Extracts the current trace context and formats it as a W3C traceparent header.
+ * This allows the Node.js runtime to continue the same trace that started in the Edge runtime.
+ * Format: {version}-{trace-id}-{span-id}-{trace-flags}
+ */
+function getTraceparentHeader(): string | null {
+  const activeSpan = trace.getActiveSpan()
+  if (!activeSpan) {
+    return null
+  }
+
+  const spanContext = activeSpan.spanContext()
+  if (!spanContext || !spanContext.traceId || !spanContext.spanId) {
+    return null
+  }
+
+  // W3C Trace Context format: version-traceid-spanid-traceflags
+  // version: 00 (current version)
+  // traceflags: 01 if sampled, 00 if not
+  const traceFlags = spanContext.traceFlags ? '01' : '00'
+  return `00-${spanContext.traceId}-${spanContext.spanId}-${traceFlags}`
+}
 
 export default async function middleware(req: NextRequest) {
   // Handle CORS for staging
@@ -49,6 +73,13 @@ export default async function middleware(req: NextRequest) {
     'x-is-public-route',
     isPublicRoute(req) ? 'true' : 'false'
   )
+
+  // Propagate trace context from Edge runtime to Node.js runtime
+  // This ensures both middleware and route handler appear in the same trace
+  const traceparent = getTraceparentHeader()
+  if (traceparent) {
+    requestHeaders.set('traceparent', traceparent)
+  }
 
   return NextResponse.next({
     request: {
