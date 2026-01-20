@@ -84,6 +84,14 @@ const UsagePriceCard = React.forwardRef<
   const { currencySymbol, unitPrice, eventsPerUnit } =
     formatUsagePriceRate(price)
 
+  // Compute status text with explicit branching (avoid nested ternary in JSX)
+  let statusText = 'Inactive'
+  if (price.isDefault) {
+    statusText = 'Default Price'
+  } else if (price.active) {
+    statusText = 'Active'
+  }
+
   const content = (
     <div className="flex flex-col gap-4 px-3 py-2.5">
       {/* Card Header */}
@@ -92,9 +100,9 @@ const UsagePriceCard = React.forwardRef<
         <p className="font-sans font-medium text-base leading-6 text-card-foreground whitespace-nowrap">
           {price.slug || price.id}
         </p>
-        {/* Active/Inactive status */}
+        {/* Status: Default Price, Active, or Inactive */}
         <p className="font-sans font-normal text-sm leading-none text-muted-foreground whitespace-nowrap">
-          {price.active ? 'Active' : 'Inactive'}
+          {statusText}
         </p>
       </div>
 
