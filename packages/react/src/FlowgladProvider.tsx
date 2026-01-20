@@ -6,10 +6,7 @@ import {
 } from '@tanstack/react-query'
 import type React from 'react'
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
-import {
-  FlowgladContextProvider,
-  type RequestConfig,
-} from './FlowgladContext'
+import { type RequestConfig } from './FlowgladContext'
 import { validateUrl } from './utils'
 
 const queryClient = new QueryClient()
@@ -27,7 +24,6 @@ export interface LoadedFlowgladProviderProps {
    * Better Auth basePath, you must update this prop to match.
    */
   betterAuthBasePath?: string
-  loadBilling: boolean
 }
 
 interface DevModeFlowgladProviderProps {
@@ -44,25 +40,18 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
   if ('__devMode' in props) {
     return (
       <QueryClientProvider client={queryClient}>
-        <FlowgladConfigProvider __devMode>
-          <FlowgladContextProvider
-            __devMode
-            billingMocks={props.billingMocks}
-          >
-            {props.children}
-          </FlowgladContextProvider>
+        <FlowgladConfigProvider
+          __devMode
+          billingMocks={props.billingMocks}
+        >
+          {props.children}
         </FlowgladConfigProvider>
       </QueryClientProvider>
     )
   }
 
-  const {
-    baseURL,
-    betterAuthBasePath,
-    loadBilling,
-    requestConfig,
-    children,
-  } = props as LoadedFlowgladProviderProps
+  const { baseURL, betterAuthBasePath, requestConfig, children } =
+    props
   if (baseURL) {
     validateUrl(baseURL, 'baseURL', true)
   }
@@ -76,14 +65,7 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
         betterAuthBasePath={betterAuthBasePath}
         requestConfig={requestConfig}
       >
-        <FlowgladContextProvider
-          baseURL={baseURL}
-          betterAuthBasePath={betterAuthBasePath}
-          loadBilling={loadBilling}
-          requestConfig={requestConfig}
-        >
-          {children}
-        </FlowgladContextProvider>
+        {children}
       </FlowgladConfigProvider>
     </QueryClientProvider>
   )
