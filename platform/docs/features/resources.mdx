@@ -292,18 +292,16 @@ This aggregation happens automatically when calculating usage. The `getResourceU
 
 **Claims Persist Across Adjustments:** Resource claims are scoped to the subscription and resource, not to individual subscription items. This means claims survive subscription adjustments—when you upgrade or downgrade plans, existing claims are preserved as long as they fit within the new capacity.
 
-**On Downgrade:** Downgrade behavior depends on the timing:
-
-- **`timing: 'auto'` (default):** Downgrades are scheduled for the end of the billing period. If claimed resources exceed the new capacity, the excess claims are marked as "interim" with an `expiredAt` timestamp set to the billing period end. Customers retain full access until then, and claims automatically expire when the downgrade takes effect.
-
-- **`timing: 'immediately'`:** The adjustment is blocked if claimed resources exceed the new capacity. You'll receive an error message:
+**On Downgrade:** When adjusting a subscription to a plan with lower capacity, Flowglad validates that existing claims fit within the new capacity. If the current claimed count exceeds the new capacity, the adjustment is blocked with an error message:
 
 ```
 Cannot reduce seats capacity to 5. 8 resources are currently claimed.
 Release 3 claims before downgrading.
 ```
 
-The customer must first release enough resources (via `releaseResource`) before an immediate downgrade can proceed.
+The customer must first release enough resources before the downgrade can proceed.
+
+**Scheduled Downgrade Interim Period:** When a downgrade is scheduled for the end of the billing period (rather than immediately), customers retain their current capacity until the change takes effect. During this interim, new claims that exceed the *future* capacity are allowed but marked as temporary—they have an `expiredAt` timestamp set to the billing period end and automatically expire when the downgrade executes.
 
 ### Auto-Resolution
 
@@ -467,56 +465,64 @@ export async function upgradeToProPlan(customerExternalId: string) {
 
 ### Downgrade Flow
 
-With the default `auto` timing, downgrades are scheduled for the end of the billing period. Flowglad automatically manages excess claims for you:
+Downgrading requires releasing excess claims first. Flowglad validates capacity before allowing the change:
 
 ```typescript lib/downgrade-with-seats.ts
 import { flowglad } from './flowglad'
 
-export async function downgradeToStarterPlan(customerExternalId: string) {
-  const server = flowglad(customerExternalId)
+export async function downgradeToStarterPlan(params: {
+  customerExternalId: string
+  seatsToRelease: string[]  // User IDs of members to remove
+}) {
+  const server = flowglad(params.customerExternalId)
 
-  // Downgrade from Pro (25 seats) to Starter (5 seats)
+  // Step 1: Check current usage
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  // The new plan's capacity - in production, fetch this from your pricing config
+  const newCapacity = 5
+
+  if (usage.claimed > newCapacity) {
+    // Step 2: Release excess claims before downgrading
+    await server.releaseResource({
+      resourceSlug: 'seats',
+      externalIds: params.seatsToRelease
+    })
+  }
+
+  // Step 3: Now the downgrade will succeed
   const result = await server.adjustSubscription({
     priceSlug: 'starter_monthly',
-    // timing defaults to 'auto' - downgrades apply at end of billing period
+    // timing defaults to 'auto' - downgrades apply at end of period
   })
 
-  // If current claims exceed the new capacity:
-  // - The downgrade is scheduled for end of period
-  // - Excess claims are marked with expiredAt timestamp
-  // - Claims automatically expire when the downgrade takes effect
-  // - Customer retains full access until the billing period ends
   return result.subscription
 }
 ```
 
 <Note>
-When a scheduled downgrade would reduce capacity below current claims, excess claims are marked as "interim" with an `expiredAt` timestamp. They remain active until the billing period ends, then automatically expire. This gives customers time to decide which resources to keep.
+Both immediate and scheduled downgrades are blocked if claimed resources exceed the new capacity. The `expiredAt` mechanism only applies to *new* claims made during an interim period after a valid downgrade is scheduled—not to allowing downgrades when excess claims already exist.
 </Note>
-
-<Warning>
-**Immediate downgrades** behave differently. If you use `timing: 'immediately'` and claimed resources exceed the new capacity, the adjustment is blocked. You must first release excess claims using `releaseResource` before an immediate downgrade can proceed.
-</Warning>
 
 ### Building a Seat Adjustment UI
 
-Here's how to build a UI that informs users about capacity changes during plan adjustments:
+Here's how to build a UI that handles seat-aware plan changes:
 
 ```typescript lib/plan-change-handler.ts
 import { flowglad } from './flowglad'
 
-interface PlanChangePreview {
-  canDowngrade: boolean
-  currentSeats: number
-  newCapacity: number
-  excessSeats: number
-  affectedMembers: Array<{ userId: string; email: string }>
+interface PlanChangeResult {
+  success: boolean
+  error?: string
+  seatsToRelease?: number
+  affectedMembers?: Array<{ userId: string; email: string }>
 }
 
-export async function previewPlanChange(params: {
+export async function validatePlanChange(params: {
   customerExternalId: string
+  newPriceSlug: string
   newSeatCapacity: number
-}): Promise<PlanChangePreview> {
+}): Promise<PlanChangeResult> {
   const server = flowglad(params.customerExternalId)
 
   // Get current seat usage
@@ -524,28 +530,30 @@ export async function previewPlanChange(params: {
     resourceSlug: 'seats'
   })
 
-  const excessSeats = Math.max(0, usage.claimed - params.newSeatCapacity)
+  // Check if downgrade would exceed new capacity
+  if (usage.claimed > params.newSeatCapacity) {
+    const seatsToRelease = usage.claimed - params.newSeatCapacity
 
-  // Identify which members will lose access at end of billing period.
-  // Customize this logic based on your needs (e.g., let admins choose,
-  // exclude certain roles, use last-in-first-out, etc.)
-  const affectedMembers = excessSeats > 0
-    ? claims
-        .filter(c => c.externalId !== null)
-        .slice(0, excessSeats)
-        .map(c => ({
-          userId: c.externalId!,
-          email: (c.metadata?.email as string) ?? 'unknown'
-        }))
-    : []
+    // Identify which members would need to be removed.
+    // This example uses FIFO order—customize this logic based on your needs
+    // (e.g., let admins choose, exclude certain roles, use last-in-first-out, etc.)
+    const affectedMembers = claims
+      .filter(c => c.externalId !== null)
+      .slice(0, seatsToRelease)
+      .map(c => ({
+        userId: c.externalId!,
+        email: (c.metadata?.email as string) ?? 'unknown'
+      }))
 
-  return {
-    canDowngrade: true, // Downgrades are always allowed with auto timing
-    currentSeats: usage.claimed,
-    newCapacity: params.newSeatCapacity,
-    excessSeats,
-    affectedMembers
+    return {
+      success: false,
+      error: `This plan includes ${params.newSeatCapacity} seats, but you have ${usage.claimed} members.`,
+      seatsToRelease,
+      affectedMembers
+    }
   }
+
+  return { success: true }
 }
 ```
 

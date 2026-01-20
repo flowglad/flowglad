@@ -99,23 +99,38 @@ Subscription adjustments only affect recurring (subscription-type) prices. Usage
 
 **Resource-Based Pricing (Seats, API Keys, etc.):**
 
-When adjusting subscriptions that include [resources](/features/resources) like seats or API keys, Flowglad handles capacity changes automatically:
+When adjusting subscriptions that include [resources](/features/resources) like seats or API keys, Flowglad validates that active claims fit within the new capacity:
 
 - **Upgrades:** Claims are preserved, and new capacity is immediately available
-- **Scheduled Downgrades (default):** Claims exceeding the new capacity are marked as "interim" with an `expiredAt` timestamp. They remain active until the billing period ends, then automatically expire.
-- **Immediate Downgrades:** If you force an immediate downgrade with `timing: 'immediately'`, the adjustment is blocked if claimed resources exceed the new capacity.
+- **Downgrades:** If claimed resources exceed the new capacity, the adjustment is blocked
+
+For downgrades that would exceed capacity, you must first release excess resources:
 
 ```typescript lib/downgrade-with-seats.ts
 import { flowglad } from './flowglad'
 
-export async function downgradeToStarterPlan(customerExternalId: string) {
-  const server = flowglad(customerExternalId)
+export async function downgradeWithResourceCheck(params: {
+  customerExternalId: string
+  newPriceSlug: string
+}) {
+  const server = flowglad(params.customerExternalId)
 
-  // Downgrade from Pro (25 seats) to Starter (5 seats)
-  // With auto timing, excess claims are automatically scheduled to expire
+  // Check current seat usage before downgrading
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  // The new plan's capacity - in production, fetch this from your pricing config
+  const newCapacity = 5
+
+  if (usage.claimed > newCapacity) {
+    // Must release excess claims first
+    throw new Error(
+      `Cannot downgrade: ${usage.claimed} seats claimed, new plan only includes ${newCapacity}.`
+    )
+  }
+
+  // Safe to proceed with downgrade
   return server.adjustSubscription({
-    priceSlug: 'starter_monthly',
-    // timing defaults to 'auto' - downgrades apply at end of billing period
+    priceSlug: params.newPriceSlug
   })
 }
 ```
