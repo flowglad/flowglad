@@ -23,8 +23,10 @@ function getTraceparentHeader(): string | null {
 
   // W3C Trace Context format: version-traceid-spanid-traceflags
   // version: 00 (current version)
-  // traceflags: 01 if sampled, 00 if not
-  const traceFlags = spanContext.traceFlags ? '01' : '00'
+  // traceflags: 8-bit field as 2-digit lowercase hex (preserves all flag bits)
+  const traceFlags = (spanContext.traceFlags & 0xff)
+    .toString(16)
+    .padStart(2, '0')
   return `00-${spanContext.traceId}-${spanContext.spanId}-${traceFlags}`
 }
 
