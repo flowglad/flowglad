@@ -28,7 +28,11 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import {
+  NotFoundError,
+  type TerminalStateError,
+  type ValidationError,
+} from '@/errors'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
 import {
@@ -110,9 +114,12 @@ export const upsertPaymentForStripeCharge = async (
     paymentIntentMetadata: StripeIntentMetadata
   },
   ctx: TransactionEffectsContext
-): Promise<{
-  payment: Payment.Record
-}> => {
+): Promise<
+  Result<
+    { payment: Payment.Record },
+    ValidationError | TerminalStateError
+  >
+> => {
   const { transaction, emitEvent } = ctx
   const paymentIntentId = charge.payment_intent
     ? stripeIdFromObjectOrId(charge.payment_intent)
@@ -278,16 +285,22 @@ export const upsertPaymentForStripeCharge = async (
     paymentInsert,
     transaction
   )
-  const payment = paymentResult.unwrap()
-  const latestPayment =
+  if (paymentResult.status === 'error') {
+    return Result.err(paymentResult.error)
+  }
+  const payment = paymentResult.value
+  const latestPaymentResult =
     await updatePaymentToReflectLatestChargeStatus(
       payment,
       charge,
       ctx
     )
-  return {
-    payment: latestPayment,
+  if (latestPaymentResult.status === 'error') {
+    return Result.err(latestPaymentResult.error)
   }
+  return Result.ok({
+    payment: latestPaymentResult.value,
+  })
 }
 
 /**
@@ -303,7 +316,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
     'status' | 'failure_code' | 'failure_message'
   >,
   ctx: TransactionEffectsContext
-) => {
+): Promise<Result<Payment.Record, TerminalStateError>> => {
   const { transaction } = ctx
   const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
   let updatedPayment: Payment.Record = payment
@@ -312,7 +325,10 @@ export const updatePaymentToReflectLatestChargeStatus = async (
     newPaymentStatus,
     transaction
   )
-  updatedPayment = statusResult.unwrap()
+  if (statusResult.status === 'error') {
+    return Result.err(statusResult.error)
+  }
+  updatedPayment = statusResult.value
   // Only send notifications when payment status actually changes to Failed
   // (prevents duplicate notifications on webhook retries for already-failed payments)
   if (
@@ -366,7 +382,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
       `No invoice or purchase found for payment ${payment.id}`
     )
   }
-  return updatedPayment
+  return Result.ok(updatedPayment)
 }
 
 export type CoreStripePaymentIntent = Pick<
@@ -497,7 +513,12 @@ export const ledgerCommandForPaymentSucceeded = async (
 export const processPaymentIntentStatusUpdated = async (
   paymentIntent: CoreStripePaymentIntent,
   ctx: TransactionEffectsContext
-): Promise<Result<{ payment: Payment.Record }, NotFoundError>> => {
+): Promise<
+  Result<
+    { payment: Payment.Record },
+    NotFoundError | ValidationError | TerminalStateError
+  >
+> => {
   const { transaction, emitEvent, enqueueLedgerCommand } = ctx
   const metadata = stripeIntentMetadataSchema.parse(
     paymentIntent.metadata
@@ -521,7 +542,7 @@ export const processPaymentIntentStatusUpdated = async (
       `No charge found for payment intent ${paymentIntent.id}`
     )
   }
-  const { payment } = await upsertPaymentForStripeCharge(
+  const paymentResult = await upsertPaymentForStripeCharge(
     {
       charge: latestCharge,
       paymentIntentMetadata: stripeIntentMetadataSchema.parse(
@@ -530,6 +551,10 @@ export const processPaymentIntentStatusUpdated = async (
     },
     ctx
   )
+  if (paymentResult.status === 'error') {
+    return Result.err(paymentResult.error)
+  }
+  const { payment } = paymentResult.value
   // Fetch customer data for event payload
   // Re-fetch purchase after update to get the latest status
   const purchase = payment.purchaseId

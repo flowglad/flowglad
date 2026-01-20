@@ -237,10 +237,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       // The function should simply skip processing and return undefined.
-      const result = await processOutcomeForBillingRun(
-        { input: event },
-        createDiscardingEffectsContext(transaction)
-      )
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: event },
+          createDiscardingEffectsContext(transaction)
+        )
+      ).unwrap()
       expect(result?.processingSkipped).toBe(true)
     })
   })
@@ -297,10 +299,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      const result = await processOutcomeForBillingRun(
-        { input: event },
-        ctx
-      )
+      const result = (
+        await processOutcomeForBillingRun({ input: event }, ctx)
+      ).unwrap()
 
       const updatedBillingRun = await selectBillingRunById(
         billingRun.id,
@@ -1235,10 +1236,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(
-        { input: event },
-        createDiscardingEffectsContext(transaction)
-      )
+      return (
+        await processOutcomeForBillingRun(
+          { input: event },
+          createDiscardingEffectsContext(transaction)
+        )
+      ).unwrap()
     })
 
     // Assertions after transaction
@@ -1456,10 +1459,12 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      const result = await processOutcomeForBillingRun(
-        { input: event },
-        createProcessingEffectsContext(params)
-      )
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: event },
+          createProcessingEffectsContext(params)
+        )
+      ).unwrap()
       return Result.ok(result)
     })
 
@@ -1641,10 +1646,12 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      const result = await processOutcomeForBillingRun(
-        { input: event },
-        createProcessingEffectsContext(params)
-      )
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: event },
+          createProcessingEffectsContext(params)
+        )
+      ).unwrap()
       return Result.ok(result)
     })
 
@@ -1830,10 +1837,12 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      const result = await processOutcomeForBillingRun(
-        { input: firstEvent },
-        createProcessingEffectsContext(params)
-      )
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: firstEvent },
+          createProcessingEffectsContext(params)
+        )
+      ).unwrap()
       return Result.ok(result)
     })
 

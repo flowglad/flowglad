@@ -334,7 +334,7 @@ describe('Pay as You Go Workflow E2E', () => {
             cancelUrl: 'https://test.com/cancel',
             priceId: singlePaymentPrice.id,
           }
-        const { checkoutSession } =
+        const { checkoutSession } = (
           await createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
@@ -343,6 +343,7 @@ describe('Pay as You Go Workflow E2E', () => {
             },
             transaction
           )
+        ).unwrap()
         await updateCheckoutSessionBillingAddress(
           {
             id: checkoutSession.id,

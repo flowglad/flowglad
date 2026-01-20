@@ -210,7 +210,20 @@ export async function checkoutInfoForPriceWhere(
       },
       transaction
     )
-    const checkoutSession = checkoutSessionResult.unwrap()
+    if (checkoutSessionResult.status === 'error') {
+      return {
+        product,
+        price,
+        organization,
+        features: [],
+        checkoutSession: null,
+        discount: null,
+        feeCalculation: null,
+        maybeCustomer: null,
+        isEligibleForTrial: undefined,
+      }
+    }
+    const checkoutSession = checkoutSessionResult.value
     const discount = checkoutSession.discountId
       ? await selectDiscountById(
           checkoutSession.discountId,

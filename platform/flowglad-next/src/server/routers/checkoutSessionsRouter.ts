@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -57,7 +58,7 @@ export const createCheckoutSession = protectedProcedure
   .input(createCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
         const { transaction } = transactionCtx
         const { checkoutSession: checkoutSessionInput } = input

@@ -646,7 +646,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       transaction
     )
 
-    const activateResult = await activateSubscription(
+    const activationResult = await activateSubscription(
       {
         subscription: updatedSubscription,
         subscriptionItems: result.subscriptionItems,
@@ -655,10 +655,10 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       },
       ctx
     )
-    if (Result.isError(activateResult)) {
-      return Result.err(activateResult.error)
+    if (activationResult.status === 'error') {
+      throw activationResult.error
     }
-    const { billingRun } = activateResult.value
+    const { billingRun } = activationResult.value
 
     // Fetch the subscription again to get the updated status after activation
     const activatedSubscription = await selectSubscriptionById(

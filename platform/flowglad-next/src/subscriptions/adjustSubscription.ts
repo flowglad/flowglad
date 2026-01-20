@@ -33,7 +33,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import type { NotFoundError } from '@/errors'
+import type { ValidationError } from '@/errors'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -363,7 +363,7 @@ export const adjustSubscription = async (
   input: AdjustSubscriptionParams,
   organization: Organization.Record,
   ctx: TransactionEffectsContext
-): Promise<Result<AdjustSubscriptionResult, NotFoundError>> => {
+): Promise<Result<AdjustSubscriptionResult, ValidationError>> => {
   const { transaction } = ctx
   const { adjustment, id } = input
   const { newSubscriptionItems } = adjustment
@@ -756,17 +756,19 @@ export const adjustSubscription = async (
       transaction
     )
     // TODO: maybe only create billing run if prorationAdjustments.length > 0
-    const billingRun = (
-      await createBillingRun(
-        {
-          billingPeriod: currentBillingPeriodForSubscription,
-          paymentMethod,
-          scheduledFor: new Date(),
-          isAdjustment: true,
-        },
-        transaction
-      )
-    ).unwrap()
+    const billingRunResult = await createBillingRun(
+      {
+        billingPeriod: currentBillingPeriodForSubscription,
+        paymentMethod,
+        scheduledFor: new Date(),
+        isAdjustment: true,
+      },
+      transaction
+    )
+    if (billingRunResult.status === 'error') {
+      return Result.err(billingRunResult.error)
+    }
+    const billingRun = billingRunResult.value
 
     // Execute billing run immediately after creation
     // executeBillingRun uses its own transactions internally

@@ -197,7 +197,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             successUrl: 'https://test.com/success',
             cancelUrl: 'https://test.com/cancel',
           }
-        const { checkoutSession } =
+        const { checkoutSession } = (
           await createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
@@ -206,6 +206,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             },
             transaction
           )
+        ).unwrap()
         // 2. Update billing address & payment method
         await updateCheckoutSessionBillingAddress(
           {

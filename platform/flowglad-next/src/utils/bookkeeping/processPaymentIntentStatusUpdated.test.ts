@@ -740,7 +740,7 @@ describe('Process payment intent status updated', async () => {
           emitEvent,
           enqueueLedgerCommand,
         }) => {
-          const result =
+          const result = (
             await updatePaymentToReflectLatestChargeStatus(
               fakePayment,
               succeededCharge,
@@ -752,6 +752,7 @@ describe('Process payment intent status updated', async () => {
                 enqueueLedgerCommand: enqueueLedgerCommand!,
               }
             )
+          ).unwrap()
           expect(result.status).toEqual(PaymentStatus.Succeeded)
         }
       )
@@ -774,18 +775,20 @@ describe('Process payment intent status updated', async () => {
             emitEvent: emitEvent!,
             enqueueLedgerCommand: enqueueLedgerCommand!,
           }
-          const result1 =
+          const result1 = (
             await updatePaymentToReflectLatestChargeStatus(
               fakePayment,
               succeededCharge,
               ctx
             )
-          const result2 =
+          ).unwrap()
+          const result2 = (
             await updatePaymentToReflectLatestChargeStatus(
               fakePayment,
               succeededCharge,
               ctx
             )
+          ).unwrap()
           expect(result1).toEqual(result2)
         }
       )
@@ -801,7 +804,7 @@ describe('Process payment intent status updated', async () => {
           emitEvent,
           enqueueLedgerCommand,
         }) => {
-          const result =
+          const result = (
             await updatePaymentToReflectLatestChargeStatus(
               fakePayment,
               failedCharge,
@@ -813,6 +816,7 @@ describe('Process payment intent status updated', async () => {
                 enqueueLedgerCommand: enqueueLedgerCommand!,
               }
             )
+          ).unwrap()
           expect(result.status).toEqual(PaymentStatus.Failed)
         }
       )
@@ -828,7 +832,7 @@ describe('Process payment intent status updated', async () => {
           emitEvent,
           enqueueLedgerCommand,
         }) => {
-          const result =
+          const result = (
             await updatePaymentToReflectLatestChargeStatus(
               fakePayment,
               failedCharge,
@@ -840,6 +844,7 @@ describe('Process payment intent status updated', async () => {
                 enqueueLedgerCommand: enqueueLedgerCommand!,
               }
             )
+          ).unwrap()
           expect(result.failureMessage).toEqual(
             failedCharge.failure_message
           )
@@ -1003,8 +1008,8 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const { payment } = await adminTransaction(
-        async ({ transaction }) =>
+      const { payment } = (
+        await adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
             {
               charge: fakeCharge,
@@ -1012,7 +1017,8 @@ describe('Process payment intent status updated', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-      )
+        )
+      ).unwrap()
       expect(payment.amount).toBe(5000)
       expect(payment.stripeChargeId).toBe('ch1')
     })
@@ -1096,8 +1102,8 @@ describe('Process payment intent status updated', async () => {
         type: IntentMetadataType.CheckoutSession,
       }
 
-      const { payment } = await adminTransaction(
-        async ({ transaction }) =>
+      const { payment } = (
+        await adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
             {
               charge: fakeCharge,
@@ -1105,7 +1111,8 @@ describe('Process payment intent status updated', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-      )
+        )
+      ).unwrap()
 
       expect(payment.subtotal).toBe(feeCalculation.pretaxTotal)
       expect(payment.taxAmount).toBe(feeCalculation.taxAmountFixed)
@@ -1389,8 +1396,8 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const { payment: payment1 } = await adminTransaction(
-        async ({ transaction }) =>
+      const { payment: payment1 } = (
+        await adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
             {
               charge: fakeCharge,
@@ -1398,9 +1405,10 @@ describe('Process payment intent status updated', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-      )
-      const { payment: payment2 } = await adminTransaction(
-        async ({ transaction }) =>
+        )
+      ).unwrap()
+      const { payment: payment2 } = (
+        await adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
             {
               charge: fakeCharge,
@@ -1408,7 +1416,8 @@ describe('Process payment intent status updated', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-      )
+        )
+      ).unwrap()
       expect(payment2.id).toEqual(payment1.id)
       expect(payment2.amount).toEqual(payment1.amount)
       expect(payment2.stripeChargeId).toEqual(payment1.stripeChargeId)
@@ -1456,8 +1465,8 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const { payment } = await adminTransaction(
-        async ({ transaction }) =>
+      const { payment } = (
+        await adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
             {
               charge: fakeCharge,
@@ -1465,7 +1474,8 @@ describe('Process payment intent status updated', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-      )
+        )
+      ).unwrap()
       expect(payment.amount).toBe(0)
     })
 
@@ -1536,8 +1546,8 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const { payment } = await adminTransaction(
-        async ({ transaction }) =>
+      const { payment } = (
+        await adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
             {
               charge: fakeCharge,
@@ -1545,7 +1555,8 @@ describe('Process payment intent status updated', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-      )
+        )
+      ).unwrap()
       expect(payment.refunded).toBe(false)
     })
   })
