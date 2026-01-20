@@ -21,6 +21,7 @@ import {
   type UncancelSubscriptionParams,
 } from '@flowglad/shared'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { useFlowgladConfig } from './FlowgladConfigContext'
 import { devError } from './lib/utils'
 import { validateUrl } from './utils'
@@ -955,53 +956,93 @@ export const useBilling = (): FlowgladContextValues => {
 
   // Each handler below gets its own Flowglad subroute, but still funnels through
   // the shared creator for validation and redirect behavior.
-  const createCheckoutSession =
-    constructCheckoutSessionCreator<FrontendProductCreateCheckoutSessionParams>(
-      FlowgladActionKey.CreateCheckoutSession,
+  const createCheckoutSession = useMemo(
+    () =>
+      constructCheckoutSessionCreator<FrontendProductCreateCheckoutSessionParams>(
+        FlowgladActionKey.CreateCheckoutSession,
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+        (_, basePayload) => ({
+          ...basePayload,
+          type: 'product',
+        })
+      ),
+    [baseURL, betterAuthBasePath, requestConfig]
+  )
+
+  const createAddPaymentMethodCheckoutSession = useMemo(
+    () =>
+      constructCheckoutSessionCreator<FrontendCreateAddPaymentMethodCheckoutSessionParams>(
+        FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
+        baseURL,
+        betterAuthBasePath,
+        requestConfig
+      ),
+    [baseURL, betterAuthBasePath, requestConfig]
+  )
+
+  const createActivateSubscriptionCheckoutSession = useMemo(
+    () =>
+      constructCheckoutSessionCreator<FrontendCreateActivateSubscriptionCheckoutSessionParams>(
+        FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
+        baseURL,
+        betterAuthBasePath,
+        requestConfig
+      ),
+    [baseURL, betterAuthBasePath, requestConfig]
+  )
+
+  const cancelSubscription = useMemo(
+    () =>
+      constructCancelSubscription({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+        queryClient,
+      }),
+    [baseURL, betterAuthBasePath, requestConfig, queryClient]
+  )
+
+  const uncancelSubscription = useMemo(
+    () =>
+      constructUncancelSubscription({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+        queryClient,
+      }),
+    [baseURL, betterAuthBasePath, requestConfig, queryClient]
+  )
+
+  const createUsageEvent = useMemo(
+    () =>
+      constructCreateUsageEvent({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+      }),
+    [baseURL, betterAuthBasePath, requestConfig]
+  )
+
+  const adjustSubscription = useMemo(
+    () =>
+      constructAdjustSubscription({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+        queryClient,
+        currentSubscriptions:
+          billing?.data?.currentSubscriptions ?? null,
+      }),
+    [
       baseURL,
       betterAuthBasePath,
       requestConfig,
-      (_, basePayload) => ({
-        ...basePayload,
-        type: 'product',
-      })
-    )
-
-  const createAddPaymentMethodCheckoutSession =
-    constructCheckoutSessionCreator<FrontendCreateAddPaymentMethodCheckoutSessionParams>(
-      FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
-      baseURL,
-      betterAuthBasePath,
-      requestConfig
-    )
-
-  const createActivateSubscriptionCheckoutSession =
-    constructCheckoutSessionCreator<FrontendCreateActivateSubscriptionCheckoutSessionParams>(
-      FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
-      baseURL,
-      betterAuthBasePath,
-      requestConfig
-    )
-
-  const cancelSubscription = constructCancelSubscription({
-    baseURL,
-    betterAuthBasePath,
-    requestConfig,
-    queryClient,
-  })
-
-  const uncancelSubscription = constructUncancelSubscription({
-    baseURL,
-    betterAuthBasePath,
-    requestConfig,
-    queryClient,
-  })
-
-  const createUsageEvent = constructCreateUsageEvent({
-    baseURL,
-    betterAuthBasePath,
-    requestConfig,
-  })
+      queryClient,
+      billing?.data?.currentSubscriptions,
+    ]
+  )
 
   if (billing) {
     const billingError = billing.error
@@ -1025,14 +1066,6 @@ export const useBilling = (): FlowgladContextValues => {
         billingData.pricingModel,
         billingData.purchases
       )
-      const adjustSubscription = constructAdjustSubscription({
-        baseURL,
-        betterAuthBasePath,
-        requestConfig,
-        queryClient,
-        currentSubscriptions:
-          billingData.currentSubscriptions ?? null,
-      })
       return {
         loaded: true,
         customer: billingData.customer,

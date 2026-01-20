@@ -9,7 +9,17 @@ import { FlowgladConfigProvider } from './FlowgladConfigContext'
 import { type RequestConfig } from './FlowgladContext'
 import { validateUrl } from './utils'
 
-const queryClient = new QueryClient()
+let clientQueryClientSingleton: QueryClient | undefined = undefined
+
+const getQueryClient = () => {
+  if (typeof window === 'undefined') {
+    return new QueryClient()
+  }
+  if (!clientQueryClientSingleton) {
+    clientQueryClientSingleton = new QueryClient()
+  }
+  return clientQueryClientSingleton
+}
 
 export interface LoadedFlowgladProviderProps {
   children: React.ReactNode
@@ -37,6 +47,7 @@ export type FlowgladProviderProps =
   | DevModeFlowgladProviderProps
 
 export const FlowgladProvider = (props: FlowgladProviderProps) => {
+  const queryClient = getQueryClient()
   if ('__devMode' in props) {
     return (
       <QueryClientProvider client={queryClient}>
