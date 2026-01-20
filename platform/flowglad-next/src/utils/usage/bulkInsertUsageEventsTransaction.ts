@@ -420,80 +420,6 @@ function resolveEventIdentifiers(
   })
 }
 
-// Step 8: Resolve default prices for events using meter identifiers
-// When events use usageMeterId or usageMeterSlug without an explicit priceId,
-// we need to resolve to the meter's default price
-// NOTE: This step runs AFTER meter validation to ensure we only resolve prices
-// for meters that belong to the customer's pricing model
-async function resolveDefaultPricesForMeterEvents(
-  context: WithValidatedMetersContext
-): Promise<Result<WithDefaultPricesContext, TRPCError>> {
-  const { resolvedUsageEvents, pricesMap, ctx } = context
-  const { transaction } = ctx
-
-  // Collect all usage meter IDs that need default price resolution
-  // (events with usageMeterId but no priceId)
-  const usageMeterIdsNeedingDefaultPrice: string[] = []
-
-  for (const event of resolvedUsageEvents) {
-    if (event.usageMeterId && !event.priceId) {
-      usageMeterIdsNeedingDefaultPrice.push(event.usageMeterId)
-    }
-  }
-
-  // Batch fetch default prices for all usage meters that need them
-  const defaultPricesByMeterId =
-    await selectDefaultPricesForUsageMeters(
-      [...new Set(usageMeterIdsNeedingDefaultPrice)],
-      transaction
-    )
-
-  // Verify all meters have default prices and build the ID map
-  const defaultPriceByUsageMeterId = new Map<string, string>()
-  // Create a new pricesMap that includes the default prices
-  const updatedPricesMap = new Map(pricesMap)
-
-  for (const usageMeterId of new Set(
-    usageMeterIdsNeedingDefaultPrice
-  )) {
-    const defaultPrice = defaultPricesByMeterId.get(usageMeterId)
-    if (!defaultPrice) {
-      return Result.err(
-        new TRPCError({
-          code: 'INTERNAL_SERVER_ERROR',
-          message: `Usage meter ${usageMeterId} has no default price. This should not happen.`,
-        })
-      )
-    }
-    defaultPriceByUsageMeterId.set(usageMeterId, defaultPrice.id)
-    // Add the default price to the prices map so downstream code can access it
-    updatedPricesMap.set(defaultPrice.id, defaultPrice)
-  }
-
-  // Update events to use the resolved default prices
-  const eventsWithDefaultPrices = resolvedUsageEvents.map((event) => {
-    if (event.usageMeterId && !event.priceId) {
-      const defaultPriceId = defaultPriceByUsageMeterId.get(
-        event.usageMeterId
-      )
-      if (defaultPriceId) {
-        return {
-          ...event,
-          priceId: defaultPriceId,
-        }
-      }
-    }
-    return event
-  })
-
-  return Result.ok({
-    ...context,
-    resolvedUsageEvents: eventsWithDefaultPrices,
-    pricesMap: updatedPricesMap,
-    defaultPriceByUsageMeterId,
-  })
-}
-
 // Step 6: Validate prices and build price map
 async function validatePricesAndBuildMap(
   context: WithResolvedEventsContext
@@ -687,6 +613,80 @@ async function validateUsageMeters(
   return Result.ok({
     ...context,
     usageMetersMap,
+  })
+}
+
+// Step 8: Resolve default prices for events using meter identifiers
+// When events use usageMeterId or usageMeterSlug without an explicit priceId,
+// we need to resolve to the meter's default price
+// NOTE: This step runs AFTER meter validation to ensure we only resolve prices
+// for meters that belong to the customer's pricing model
+async function resolveDefaultPricesForMeterEvents(
+  context: WithValidatedMetersContext
+): Promise<Result<WithDefaultPricesContext, TRPCError>> {
+  const { resolvedUsageEvents, pricesMap, ctx } = context
+  const { transaction } = ctx
+
+  // Collect all usage meter IDs that need default price resolution
+  // (events with usageMeterId but no priceId)
+  const usageMeterIdsNeedingDefaultPrice: string[] = []
+
+  for (const event of resolvedUsageEvents) {
+    if (event.usageMeterId && !event.priceId) {
+      usageMeterIdsNeedingDefaultPrice.push(event.usageMeterId)
+    }
+  }
+
+  // Batch fetch default prices for all usage meters that need them
+  const defaultPricesByMeterId =
+    await selectDefaultPricesForUsageMeters(
+      [...new Set(usageMeterIdsNeedingDefaultPrice)],
+      transaction
+    )
+
+  // Verify all meters have default prices and build the ID map
+  const defaultPriceByUsageMeterId = new Map<string, string>()
+  // Create a new pricesMap that includes the default prices
+  const updatedPricesMap = new Map(pricesMap)
+
+  for (const usageMeterId of new Set(
+    usageMeterIdsNeedingDefaultPrice
+  )) {
+    const defaultPrice = defaultPricesByMeterId.get(usageMeterId)
+    if (!defaultPrice) {
+      return Result.err(
+        new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Usage meter ${usageMeterId} has no default price. This should not happen.`,
+        })
+      )
+    }
+    defaultPriceByUsageMeterId.set(usageMeterId, defaultPrice.id)
+    // Add the default price to the prices map so downstream code can access it
+    updatedPricesMap.set(defaultPrice.id, defaultPrice)
+  }
+
+  // Update events to use the resolved default prices
+  const eventsWithDefaultPrices = resolvedUsageEvents.map((event) => {
+    if (event.usageMeterId && !event.priceId) {
+      const defaultPriceId = defaultPriceByUsageMeterId.get(
+        event.usageMeterId
+      )
+      if (defaultPriceId) {
+        return {
+          ...event,
+          priceId: defaultPriceId,
+        }
+      }
+    }
+    return event
+  })
+
+  return Result.ok({
+    ...context,
+    resolvedUsageEvents: eventsWithDefaultPrices,
+    pricesMap: updatedPricesMap,
+    defaultPriceByUsageMeterId,
   })
 }
 
