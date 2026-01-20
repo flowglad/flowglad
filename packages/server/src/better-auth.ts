@@ -1,6 +1,9 @@
 import {
+  type AuthenticatedActionKey,
   FlowgladActionKey,
   flowgladActionValidators,
+  HTTPMethod,
+  type HybridActionKey,
 } from '@flowglad/shared'
 import type { BetterAuthPlugin } from 'better-auth'
 import { getSessionFromCtx } from 'better-auth/api'
@@ -10,7 +13,9 @@ import {
 } from 'better-auth/plugins'
 import { z } from 'zod'
 import { FlowgladServer } from './FlowgladServer'
+import { FlowgladServerAdmin } from './FlowgladServerAdmin'
 import { routeToHandlerMap } from './subrouteHandlers'
+import { getPricingModel } from './subrouteHandlers/pricingModelHandlers'
 
 type InnerSession = {
   user: {
@@ -100,9 +105,17 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.ReleaseResource]: 'releaseResource',
   [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
 } satisfies Record<
-  FlowgladActionKey,
+  AuthenticatedActionKey,
   keyof typeof endpointKeyToActionKey
 >
+
+/**
+ * Compile-time exhaustiveness check for hybrid routes.
+ * These routes attempt auth but gracefully fall back to unauthenticated behavior.
+ */
+const _hybridActionKeyToEndpointKey = {
+  [FlowgladActionKey.GetPricingModel]: 'getPricingModel',
+} satisfies Record<HybridActionKey, string>
 
 /**
  * Error response format for Better Auth endpoints.
@@ -293,7 +306,9 @@ export const createFlowgladCustomerForOrganization = async (
  * Each endpoint handles authentication, customer resolution, input validation,
  * and delegates to the existing routeToHandlerMap handlers.
  */
-const createFlowgladBillingEndpoint = <T extends FlowgladActionKey>(
+const createFlowgladBillingEndpoint = <
+  T extends AuthenticatedActionKey,
+>(
   actionKey: T,
   options: FlowgladBetterAuthPluginOptions
 ) => {
@@ -514,6 +529,122 @@ export const flowgladPlugin = (
       listResourceClaims: createFlowgladBillingEndpoint(
         FlowgladActionKey.ListResourceClaims,
         options
+      ),
+
+      /**
+       * Hybrid endpoint: attempts authentication, falls back to default pricing.
+       * Delegates to the shared getPricingModel handler to avoid code duplication.
+       *
+       * FALLBACK CONDITIONS (exhaustive):
+       * 1. getSessionFromCtx() returns null → no session exists
+       * 2. resolveCustomerExternalId() returns error → org billing without active org
+       *
+       * NO FALLBACK when:
+       * - FlowgladServer created successfully but getPricingModel() throws
+       * - Any error after authentication succeeds
+       */
+      getPricingModel: createAuthEndpoint(
+        '/flowglad/pricing-models/retrieve',
+        {
+          method: 'POST',
+          metadata: {
+            isAction: true,
+          },
+        },
+        async (ctx) => {
+          const apiKey =
+            options.apiKey || process.env.FLOWGLAD_SECRET_KEY
+          if (!apiKey) {
+            return ctx.json(
+              {
+                error: {
+                  code: 'CONFIGURATION_ERROR',
+                  message:
+                    'API key required. Provide apiKey option or set FLOWGLAD_SECRET_KEY.',
+                },
+              },
+              { status: 500 }
+            )
+          }
+
+          // Create FlowgladServerAdmin (always needed for fallback)
+          const flowgladServerAdmin = new FlowgladServerAdmin({
+            apiKey,
+            baseURL: options.baseURL,
+          })
+
+          // Attempt authentication to determine if we have an authenticated user
+          let flowgladServer: FlowgladServer | null = null
+
+          const sessionResult = await getSessionFromCtx(ctx)
+          if (sessionResult) {
+            const session =
+              sessionResult as unknown as BetterAuthSessionResult
+            const customerResult = resolveCustomerExternalId(
+              options,
+              session
+            )
+
+            // Only create FlowgladServer if customer resolution succeeded
+            if (!('error' in customerResult)) {
+              const flowgladServerConfig: {
+                customerExternalId: string
+                getCustomerDetails: () => Promise<{
+                  name: string
+                  email: string
+                }>
+                apiKey?: string
+                baseURL?: string
+              } = {
+                customerExternalId: customerResult.externalId,
+                getCustomerDetails: async () => ({
+                  name: session.user.name || '',
+                  email: session.user.email || '',
+                }),
+              }
+              if (apiKey) {
+                flowgladServerConfig.apiKey = apiKey
+              }
+              if (options.baseURL) {
+                flowgladServerConfig.baseURL = options.baseURL
+              }
+              flowgladServer = new FlowgladServer(
+                flowgladServerConfig
+              )
+            }
+          }
+
+          // Delegate to the shared handler
+          const result = await getPricingModel(
+            { method: HTTPMethod.POST, data: {} },
+            { flowgladServer, flowgladServerAdmin }
+          )
+
+          // Map handler response to better-auth response format
+          if (result.error) {
+            const errorJson = result.error.json
+            const message =
+              typeof errorJson?.message === 'string'
+                ? errorJson.message
+                : undefined
+            const details =
+              typeof errorJson?.details === 'string'
+                ? errorJson.details
+                : undefined
+            return ctx.json(
+              {
+                error: {
+                  code: result.error.code,
+                  message,
+                  details,
+                },
+              },
+              { status: result.status }
+            )
+          }
+
+          return ctx.json({ data: result.data })
+        }
       ),
     },
     hooks: {

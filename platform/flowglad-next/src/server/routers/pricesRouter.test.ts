@@ -2246,6 +2246,34 @@ describe('pricesRouter - No Charge Price Protection', () => {
 
       expect(result.price.name).toBe('New Name for No Charge Price')
     })
+
+    it('rejects unsetting isDefault on no_charge prices that are currently default', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx).update({
+          price: {
+            id: noChargePriceId,
+            type: PriceType.Usage,
+            isDefault: false,
+          },
+          id: noChargePriceId,
+        })
+      ).rejects.toThrow(
+        'Default no_charge prices cannot be unset; isDefault is immutable for fallback prices.'
+      )
+    })
   })
 
   describe('archivePrice - No Charge Protection', () => {

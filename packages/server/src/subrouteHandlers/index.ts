@@ -1,4 +1,8 @@
-import { FlowgladActionKey } from '@flowglad/shared'
+import {
+  type AuthenticatedActionKey,
+  FlowgladActionKey,
+  type HybridActionKey,
+} from '@flowglad/shared'
 import {
   createActivateSubscriptionCheckoutSession,
   createAddPaymentMethodCheckoutSession,
@@ -9,6 +13,7 @@ import {
   getCustomerBilling,
   updateCustomer,
 } from './customerHandlers'
+import { getPricingModel } from './pricingModelHandlers'
 import {
   claimResource,
   getResources,
@@ -21,11 +26,11 @@ import {
   cancelSubscription,
   uncancelSubscription,
 } from './subscriptionHandlers'
-import type { SubRouteHandler } from './types'
+import type { HybridSubRouteHandler, SubRouteHandler } from './types'
 import { createUsageEvent } from './usageEventHandlers'
 
 export const routeToHandlerMap: {
-  [K in FlowgladActionKey]: SubRouteHandler<K>
+  [K in AuthenticatedActionKey]: SubRouteHandler<K>
 } = {
   [FlowgladActionKey.GetCustomerBilling]: getCustomerBilling,
   [FlowgladActionKey.FindOrCreateCustomer]: findOrCreateCustomer,
@@ -54,4 +59,20 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.ClaimResource]: claimResource,
   [FlowgladActionKey.ReleaseResource]: releaseResource,
   [FlowgladActionKey.ListResourceClaims]: listResourceClaims,
+}
+
+export const hybridRouteToHandlerMap: {
+  [K in HybridActionKey]: HybridSubRouteHandler<K>
+} = {
+  [FlowgladActionKey.GetPricingModel]: getPricingModel,
+}
+
+/**
+ * Runtime check for whether an action key is a hybrid route.
+ * Used by requestHandler to determine auth behavior.
+ */
+export const isHybridActionKey = (
+  key: FlowgladActionKey
+): key is HybridActionKey => {
+  return key in hybridRouteToHandlerMap
 }
