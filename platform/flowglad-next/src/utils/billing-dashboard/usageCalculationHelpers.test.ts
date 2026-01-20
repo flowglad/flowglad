@@ -3,6 +3,7 @@ import {
   setupCustomer,
   setupOrg,
   setupPaymentMethod,
+  setupPrice,
   setupPricingModel,
   setupProduct,
   setupSubscription,
@@ -11,6 +12,7 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
+  PriceType,
   RevenueChartIntervalUnit,
   SubscriptionStatus,
   UsageMeterAggregationType,
@@ -80,6 +82,14 @@ describe('calculateUsageVolumeByInterval', () => {
         pricingModelId: pricingModel.id,
         aggregationType: UsageMeterAggregationType.Sum,
       })
+      const usagePrice = await setupPrice({
+        name: 'Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 100,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: usageMeter.id,
+      })
 
       // Create usage events: 3 on day 1 (amounts 10, 20, 30), 1 on day 2 (amount 15)
       await setupUsageEvent({
@@ -87,6 +97,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 10,
         usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
         transactionId: `tx_${core.nanoid()}`,
@@ -96,6 +107,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 20,
         usageDate: new Date('2023-01-01T14:00:00.000Z').getTime(),
         transactionId: `tx_${core.nanoid()}`,
@@ -105,6 +117,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 30,
         usageDate: new Date('2023-01-01T18:00:00.000Z').getTime(),
         transactionId: `tx_${core.nanoid()}`,
@@ -114,6 +127,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 15,
         usageDate: new Date('2023-01-02T10:00:00.000Z').getTime(),
         transactionId: `tx_${core.nanoid()}`,
@@ -165,6 +179,14 @@ describe('calculateUsageVolumeByInterval', () => {
         pricingModelId: pricingModel.id,
         aggregationType: UsageMeterAggregationType.Sum,
       })
+      const usagePrice = await setupPrice({
+        name: 'Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 100,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: usageMeter.id,
+      })
 
       // Events on Jan 1 and Jan 5, query range Jan 1-7
       await setupUsageEvent({
@@ -172,6 +194,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 100,
         usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
         transactionId: `tx_${core.nanoid()}`,
@@ -181,6 +204,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 50,
         usageDate: new Date('2023-01-05T10:00:00.000Z').getTime(),
         transactionId: `tx_${core.nanoid()}`,
@@ -237,6 +261,14 @@ describe('calculateUsageVolumeByInterval', () => {
         pricingModelId: pricingModel.id,
         aggregationType: UsageMeterAggregationType.Sum,
       })
+      const usagePrice = await setupPrice({
+        name: 'Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 100,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: usageMeter.id,
+      })
 
       // Livemode event (amount 100)
       await setupUsageEvent({
@@ -244,6 +276,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 100,
         livemode: true,
         usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
@@ -255,6 +288,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 50,
         livemode: false,
         usageDate: new Date('2023-01-01T14:00:00.000Z').getTime(),
@@ -309,6 +343,14 @@ describe('calculateUsageVolumeByInterval', () => {
         aggregationType:
           UsageMeterAggregationType.CountDistinctProperties,
       })
+      const usagePrice = await setupPrice({
+        name: 'Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 100,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: usageMeter.id,
+      })
 
       // 3 events same day, 2 with same properties
       await setupUsageEvent({
@@ -316,6 +358,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 1,
         properties: { userId: 'user_1' },
         usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
@@ -326,6 +369,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 1,
         properties: { userId: 'user_1' }, // Same as above
         usageDate: new Date('2023-01-01T14:00:00.000Z').getTime(),
@@ -336,6 +380,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 1,
         properties: { userId: 'user_2' }, // Different
         usageDate: new Date('2023-01-01T18:00:00.000Z').getTime(),
@@ -388,6 +433,14 @@ describe('calculateUsageVolumeByInterval', () => {
         aggregationType:
           UsageMeterAggregationType.CountDistinctProperties,
       })
+      const usagePrice = await setupPrice({
+        name: 'Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 100,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: usageMeter.id,
+      })
 
       // Same user active on day 1 and day 2
       await setupUsageEvent({
@@ -395,6 +448,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 1,
         properties: { userId: 'user_1' },
         usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
@@ -405,6 +459,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 1,
         properties: { userId: 'user_1' }, // Same user on day 2
         usageDate: new Date('2023-01-02T10:00:00.000Z').getTime(),
@@ -552,6 +607,14 @@ describe('calculateUsageVolumeByInterval', () => {
         pricingModelId: pm1.id,
         aggregationType: UsageMeterAggregationType.Sum,
       })
+      const usagePrice = await setupPrice({
+        name: 'Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 100,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: usageMeter.id,
+      })
 
       // Create usage events for product1's pricing model
       await setupUsageEvent({
@@ -559,6 +622,7 @@ describe('calculateUsageVolumeByInterval', () => {
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 100,
         usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
         transactionId: `tx_${core.nanoid()}`,
@@ -611,12 +675,21 @@ describe('calculateUsageVolumeByInterval', () => {
         pricingModelId: pricingModel.id,
         aggregationType: UsageMeterAggregationType.Sum,
       })
+      const usagePrice = await setupPrice({
+        name: 'Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 100,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: usageMeter.id,
+      })
 
       await setupUsageEvent({
         organizationId: organization.id,
         customerId: customer.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
+        priceId: usagePrice.id,
         amount: 100,
         usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
         transactionId: `tx_${core.nanoid()}`,
@@ -673,11 +746,20 @@ describe('getUsageMetersWithEvents', () => {
       name: 'Meter A - Has Events',
       pricingModelId: pricingModel.id,
     })
+    const usagePriceA = await setupPrice({
+      name: 'Usage Price A',
+      type: PriceType.Usage,
+      unitPrice: 100,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: meterA.id,
+    })
     await setupUsageEvent({
       organizationId: organization.id,
       customerId: customer.id,
       subscriptionId: subscription.id,
       usageMeterId: meterA.id,
+      priceId: usagePriceA.id,
       amount: 100,
       livemode: true,
       usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
@@ -690,11 +772,20 @@ describe('getUsageMetersWithEvents', () => {
       name: 'Meter B - Only Testmode',
       pricingModelId: pricingModel.id,
     })
+    const usagePriceB = await setupPrice({
+      name: 'Usage Price B',
+      type: PriceType.Usage,
+      unitPrice: 100,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: meterB.id,
+    })
     await setupUsageEvent({
       organizationId: organization.id,
       customerId: customer.id,
       subscriptionId: subscription.id,
       usageMeterId: meterB.id,
+      priceId: usagePriceB.id,
       amount: 50,
       livemode: false,
       usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
@@ -798,11 +889,20 @@ describe('getUsageMetersWithEvents', () => {
       name: 'Meter PM1',
       pricingModelId: pm1.id,
     })
+    const usagePricePM1 = await setupPrice({
+      name: 'Usage Price PM1',
+      type: PriceType.Usage,
+      unitPrice: 100,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: meterPM1.id,
+    })
     await setupUsageEvent({
       organizationId: organization.id,
       customerId: customer.id,
       subscriptionId: subscription.id,
       usageMeterId: meterPM1.id,
+      priceId: usagePricePM1.id,
       amount: 100,
       livemode: true,
       usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
@@ -815,11 +915,20 @@ describe('getUsageMetersWithEvents', () => {
       name: 'Meter PM2',
       pricingModelId: pm2.id,
     })
+    const usagePricePM2 = await setupPrice({
+      name: 'Usage Price PM2',
+      type: PriceType.Usage,
+      unitPrice: 100,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: meterPM2.id,
+    })
     await setupUsageEvent({
       organizationId: organization.id,
       customerId: customer.id,
       subscriptionId: subscription.id,
       usageMeterId: meterPM2.id,
+      priceId: usagePricePM2.id,
       amount: 50,
       livemode: true,
       usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
@@ -864,11 +973,20 @@ describe('getUsageMetersWithEvents', () => {
       name: 'Test Meter',
       pricingModelId: pricingModel.id,
     })
+    const usagePrice = await setupPrice({
+      name: 'Usage Price',
+      type: PriceType.Usage,
+      unitPrice: 100,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: meter.id,
+    })
     await setupUsageEvent({
       organizationId: organization.id,
       customerId: customer.id,
       subscriptionId: subscription.id,
       usageMeterId: meter.id,
+      priceId: usagePrice.id,
       amount: 100,
       livemode: true,
       usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
@@ -916,11 +1034,20 @@ describe('getUsageMetersWithEvents', () => {
       pricingModelId: pricingModel.id,
       aggregationType: UsageMeterAggregationType.Sum,
     })
+    const sumUsagePrice = await setupPrice({
+      name: 'Sum Usage Price',
+      type: PriceType.Usage,
+      unitPrice: 100,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: sumMeter.id,
+    })
     await setupUsageEvent({
       organizationId: organization.id,
       customerId: customer.id,
       subscriptionId: subscription.id,
       usageMeterId: sumMeter.id,
+      priceId: sumUsagePrice.id,
       amount: 100,
       livemode: true,
       usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),
@@ -935,11 +1062,20 @@ describe('getUsageMetersWithEvents', () => {
       aggregationType:
         UsageMeterAggregationType.CountDistinctProperties,
     })
+    const countUsagePrice = await setupPrice({
+      name: 'Count Usage Price',
+      type: PriceType.Usage,
+      unitPrice: 100,
+      livemode: true,
+      isDefault: true,
+      usageMeterId: countMeter.id,
+    })
     await setupUsageEvent({
       organizationId: organization.id,
       customerId: customer.id,
       subscriptionId: subscription.id,
       usageMeterId: countMeter.id,
+      priceId: countUsagePrice.id,
       amount: 1,
       livemode: true,
       usageDate: new Date('2023-01-01T10:00:00.000Z').getTime(),

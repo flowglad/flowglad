@@ -915,9 +915,9 @@ describe('usageEventHelpers', () => {
     })
 
     it('should throw error when usageMeterId from different pricing model is provided directly', async () => {
-      // Create a usage meter in a different organization
-      const otherOrgUsageMeter = await adminTransaction(
-        async ({ transaction }) => {
+      // Create a usage meter and price in a different organization
+      const { otherOrgUsageMeter, otherOrgPrice } =
+        await adminTransaction(async ({ transaction }) => {
           const orgSetup = await setupOrg()
           const testUsageMeter = await setupUsageMeter({
             organizationId: orgSetup.organization.id,
@@ -925,15 +925,28 @@ describe('usageEventHelpers', () => {
             livemode: true,
             pricingModelId: orgSetup.pricingModel.id,
           })
-          return testUsageMeter
-        }
-      )
+          const testPrice = await setupPrice({
+            name: 'Other Org Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 10,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: testUsageMeter.id,
+          })
+          return {
+            otherOrgUsageMeter: testUsageMeter,
+            otherOrgPrice: testPrice,
+          }
+        })
 
       const input: CreateUsageEventInput = {
         usageEvent: {
           subscriptionId: mainSubscription.id, // Belongs to original org
           usageMeterId: otherOrgUsageMeter.id, // Belongs to different org
-          priceId: null, // No priceId when usageMeterId is provided directly
+          priceId: otherOrgPrice.id, // Price from different org (matches the meter)
           amount: 100,
           transactionId: `txn_wrong_pricing_model_${core.nanoid()}`,
         },
@@ -1031,10 +1044,10 @@ describe('usageEventHelpers', () => {
       )
     })
 
-    it('should resolve to default price when priceId is null and valid usageMeterId is provided directly', async () => {
+    it('should use the provided default price when usageMeterId and priceId are both provided', async () => {
       // The usagePrice created in beforeEach is associated with usageMeter but is NOT the default.
-      // We need to set up a default price for the usage meter.
-      // The usagePrice (isDefault: false) already exists, so we create a new default price.
+      // We create a default price for the usage meter to test the scenario where a resolved
+      // input includes the default price (priceId resolution would have happened upstream).
       const defaultPrice = await setupPrice({
         name: 'Default Price for Direct Meter Test',
         type: PriceType.Usage,
@@ -1051,7 +1064,7 @@ describe('usageEventHelpers', () => {
         usageEvent: {
           subscriptionId: mainSubscription.id,
           usageMeterId: usageMeter.id, // Valid usage meter from customer's pricing model
-          priceId: null, // No priceId when usageMeterId is provided directly
+          priceId: defaultPrice.id, // Default price for this meter (resolved upstream)
           amount: 100,
           transactionId: `txn_direct_usage_meter_${core.nanoid()}`,
           properties: { test_property: 'direct_usage_meter_test' },
@@ -1103,7 +1116,7 @@ describe('usageEventHelpers', () => {
     })
 
     it('should throw error when CountDistinctProperties meter is used with empty properties', async () => {
-      const { distinctMeter, distinctSubscription } =
+      const { distinctMeter, distinctPrice, distinctSubscription } =
         await setupCountDistinctPropertiesMeter({
           organizationId: organization.id,
           customerId: customer.id,
@@ -1116,7 +1129,7 @@ describe('usageEventHelpers', () => {
       const undefinedPropsInput: CreateUsageEventInput = {
         usageEvent: {
           usageMeterId: distinctMeter.id,
-          priceId: null,
+          priceId: distinctPrice.id,
           subscriptionId: distinctSubscription.id,
           transactionId: `txn_empty_props_undefined_${core.nanoid()}`,
           amount: 100,
@@ -1153,7 +1166,7 @@ describe('usageEventHelpers', () => {
       const emptyPropsInput: CreateUsageEventInput = {
         usageEvent: {
           usageMeterId: distinctMeter.id,
-          priceId: null,
+          priceId: distinctPrice.id,
           subscriptionId: distinctSubscription.id,
           transactionId: `txn_empty_props_object_${core.nanoid()}`,
           amount: 100,

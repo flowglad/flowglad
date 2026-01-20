@@ -498,16 +498,28 @@ describe('selectUsageEventsTableRowData', () => {
       eventsWithPrice.push(event)
     }
 
-    // Create usage events without prices
-    const eventWithoutPrice = await setupUsageEvent({
+    // Create a no-charge price (unitPrice: 0) to test events with different price types
+    const noChargePrice = await setupPrice({
+      name: 'No Charge Price',
+      type: PriceType.Usage,
+      unitPrice: 0,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      usageMeterId: usageMeter1.id,
+    })
+
+    // Create usage event with no-charge price
+    const eventWithNoChargePrice = await setupUsageEvent({
       organizationId: org1Data.organization.id,
       customerId: customer1.id,
       subscriptionId: subscription1.id,
       usageMeterId: usageMeter1.id,
-      priceId: null,
+      priceId: noChargePrice.id,
       billingPeriodId: billingPeriod1.id,
       amount: 200,
-      transactionId: `txn_without_price_${Date.now()}`,
+      transactionId: `txn_no_charge_price_${Date.now()}`,
     })
 
     // Call selectUsageEventsTableRowData with org1 API key
@@ -523,7 +535,7 @@ describe('selectUsageEventsTableRowData', () => {
       { apiKey: org1ApiKeyToken }
     )
 
-    // Should return 4 enriched usage events (3 with prices, 1 without)
+    // Should return 4 enriched usage events (3 with regular price, 1 with no-charge price)
     expect(result.total).toBe(4)
     expect(result.hasNextPage).toBe(false)
 
@@ -532,7 +544,7 @@ describe('selectUsageEventsTableRowData', () => {
     )
     const expectedEventIds = [
       ...eventsWithPrice.map((e) => e.id),
-      eventWithoutPrice.id,
+      eventWithNoChargePrice.id,
     ]
     expect(returnedEventIds.sort()).toEqual(expectedEventIds.sort())
 
@@ -561,7 +573,7 @@ describe('selectUsageEventsTableRowData', () => {
         enrichedEvent.usageEvent.usageMeterId
       )
 
-      // Verify price handling - events with prices should have price data, events without should have null
+      // Verify price handling - all events have a priceId (either regular or no-charge)
       if (
         eventsWithPrice.some(
           (e) => e.id === enrichedEvent.usageEvent.id
@@ -572,9 +584,13 @@ describe('selectUsageEventsTableRowData', () => {
           enrichedEvent.usageEvent.priceId
         )
       } else {
-        expect(enrichedEvent.usageEvent.priceId).toBeNull()
+        // Event with no-charge price
+        expect(enrichedEvent.usageEvent.priceId).toBe(
+          noChargePrice.id
+        )
         expect(enrichedEvent.usageEvent.amount).toBe(200)
-        expect(enrichedEvent.price).toBeNull()
+        expect(enrichedEvent.price?.id).toBe(noChargePrice.id)
+        expect(enrichedEvent.price?.unitPrice).toBe(0)
       }
     })
   })

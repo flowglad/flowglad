@@ -1,0 +1,3 @@
+ALTER TABLE "usage_events" ALTER COLUMN "price_id" SET NOT NULL;--> statement-breakpoint
+ALTER POLICY "On insert, only allow usage events for prices with matching usage meter" ON "usage_events" TO merchant WITH CHECK ("price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id"));--> statement-breakpoint
+ALTER POLICY "On update, only allow usage events for prices with matching usage meter" ON "usage_events" TO merchant USING ("price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id"));

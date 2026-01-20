@@ -32,7 +32,7 @@ import { usageMetersClientSelectSchema } from './usageMeters'
 
 const TABLE_NAME = 'usage_events'
 
-const usageEventPriceMustMatchUsageMeter = sql`"price_id" IS NULL OR "price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id")`
+const usageEventPriceMustMatchUsageMeter = sql`"price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id")`
 
 const usageEventSubscriptionMustMatchCustomer = sql`"subscription_id" in (select "id" from "subscriptions" where "subscriptions"."customer_id" = "customer_id")`
 
@@ -59,7 +59,7 @@ export const usageEvents = pgTable(
       .notNull()
       .defaultNow(),
     transactionId: text('transaction_id').notNull(),
-    priceId: nullableStringForeignKey('price_id', prices),
+    priceId: notNullStringForeignKey('price_id', prices),
     properties: jsonb('properties'),
     pricingModelId: notNullStringForeignKey(
       'pricing_model_id',
@@ -281,7 +281,7 @@ export namespace UsageEvent {
 // Schema for resolved usage event input (after slug resolution)
 // After resolution, priceSlug/usageMeterSlug are removed.
 // usageMeterId is always present (either from input or derived from priceId).
-// priceId is set when a price identifier was provided, or null when a usage meter identifier was provided.
+// priceId is always present - either from explicit input or resolved from the usage meter's default price.
 export const createUsageEventResolvedSchema = z.object({
   usageEvent: baseUsageEventsClientInsertSchema
     .omit({ priceId: true, usageMeterId: true })
@@ -293,9 +293,8 @@ export const createUsageEventResolvedSchema = z.object({
         ),
       priceId: z
         .string()
-        .nullable()
         .describe(
-          'Set when price identifier provided, null when usage meter identifier provided'
+          'Always present after resolution - either from explicit input or resolved from the usage meter default price'
         ),
     }),
 })
@@ -338,7 +337,7 @@ export const usageEventsTableRowDataSchema = z.object({
   customer: customerClientSelectSchema,
   subscription: subscriptionClientSelectSchema,
   usageMeter: usageMetersClientSelectSchema,
-  price: pricesClientSelectSchema.nullable(),
+  price: pricesClientSelectSchema,
 })
 
 // Paginated table row input schema
