@@ -465,7 +465,7 @@ export async function upgradeToProPlan(customerExternalId: string) {
 
 ### Downgrade Flow
 
-Downgrades are handled automatically when scheduled for the end of the billing period (the default behavior). Flowglad validates capacity and manages claims for you:
+With the default `auto` timing, downgrades are scheduled for the end of the billing period. Flowglad automatically manages excess claims for you:
 
 ```typescript lib/downgrade-with-seats.ts
 import { flowglad } from './flowglad'
@@ -491,6 +491,10 @@ export async function downgradeToStarterPlan(customerExternalId: string) {
 <Note>
 When a scheduled downgrade would reduce capacity below current claims, excess claims are marked as "interim" with an `expiredAt` timestamp. They remain active until the billing period ends, then automatically expire. This gives customers time to decide which resources to keep.
 </Note>
+
+<Warning>
+**Immediate downgrades** behave differently. If you use `timing: 'immediately'` and claimed resources exceed the new capacity, the adjustment is blocked. You must first release excess claims using `releaseResource` before an immediate downgrade can proceed.
+</Warning>
 
 ### Building a Seat Adjustment UI
 
