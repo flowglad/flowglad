@@ -96,7 +96,7 @@ export interface CacheRecomputeMetadata {
 
 // Zod schema for runtime validation of recompute metadata
 const cacheRecomputeMetadataSchema = z.object({
-  namespace: z.nativeEnum(RedisKeyNamespace),
+  namespace: z.enum(RedisKeyNamespace),
   params: serializableParamsSchema,
   cacheRecomputationContext: cacheRecomputationContextSchema,
   createdAt: z.number(),
@@ -155,7 +155,7 @@ function dependencyRegistryKey(
  * Type guard to check if a string is a valid RedisKeyNamespace.
  * Uses Zod's safeParse for runtime validation.
  */
-const redisKeyNamespaceSchema = z.nativeEnum(RedisKeyNamespace)
+const redisKeyNamespaceSchema = z.enum(RedisKeyNamespace)
 
 function isRedisKeyNamespace(
   value: string
