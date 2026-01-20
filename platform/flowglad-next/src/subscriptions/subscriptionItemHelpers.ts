@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { and, eq, inArray } from 'drizzle-orm'
 import * as R from 'ramda'
 import {
@@ -33,6 +34,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import type { NotFoundError } from '@/errors'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
@@ -131,10 +133,15 @@ const grantProratedCreditsForFeatures = async (params: {
   features: SubscriptionItemFeature.Record[]
   adjustmentDate: Date | number
   transaction: DbTransaction
-}): Promise<{
-  usageCredits: UsageCredit.Record[]
-  ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
-}> => {
+}): Promise<
+  Result<
+    {
+      usageCredits: UsageCredit.Record[]
+      ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
+    },
+    NotFoundError
+  >
+> => {
   const { subscription, features, adjustmentDate, transaction } =
     params
 
@@ -144,7 +151,7 @@ const grantProratedCreditsForFeatures = async (params: {
   )
 
   if (R.isEmpty(creditGrantFeatures)) {
-    return { usageCredits: [], ledgerEntries: [] }
+    return Result.ok({ usageCredits: [], ledgerEntries: [] })
   }
 
   const currentBillingPeriod =
@@ -154,7 +161,7 @@ const grantProratedCreditsForFeatures = async (params: {
     )
 
   if (!currentBillingPeriod) {
-    return { usageCredits: [], ledgerEntries: [] }
+    return Result.ok({ usageCredits: [], ledgerEntries: [] })
   }
 
   const adjustmentTimestamp = new Date(adjustmentDate).getTime()
@@ -163,7 +170,7 @@ const grantProratedCreditsForFeatures = async (params: {
     adjustmentTimestamp < currentBillingPeriod.endDate
 
   if (!isMidPeriod) {
-    return { usageCredits: [], ledgerEntries: [] }
+    return Result.ok({ usageCredits: [], ledgerEntries: [] })
   }
 
   // Calculate proration split
@@ -182,7 +189,7 @@ const grantProratedCreditsForFeatures = async (params: {
 
   // If no usage meter IDs, skip (shouldn't happen for valid credit grant features)
   if (creditGrantUsageMeterIds.length === 0) {
-    return { usageCredits: [], ledgerEntries: [] }
+    return Result.ok({ usageCredits: [], ledgerEntries: [] })
   }
 
   // Query ALL existing credits for these usage meters in this billing period
@@ -317,7 +324,7 @@ const grantProratedCreditsForFeatures = async (params: {
   }
 
   if (R.isEmpty(usageCreditInserts)) {
-    return { usageCredits: [], ledgerEntries: [] }
+    return Result.ok({ usageCredits: [], ledgerEntries: [] })
   }
 
   // Bulk insert all usage credits
@@ -386,16 +393,19 @@ const grantProratedCreditsForFeatures = async (params: {
     }))
 
   // Bulk insert all ledger entries
-  const ledgerEntries = await bulkInsertLedgerEntries(
+  const ledgerEntriesResult = await bulkInsertLedgerEntries(
     ledgerEntryInserts,
     transaction
   )
+  if (Result.isError(ledgerEntriesResult)) {
+    return Result.err(ledgerEntriesResult.error)
+  }
 
-  return {
+  return Result.ok({
     usageCredits,
     ledgerEntries:
-      ledgerEntries as LedgerEntry.CreditGrantRecognizedRecord[],
-  }
+      ledgerEntriesResult.value as LedgerEntry.CreditGrantRecognizedRecord[],
+  })
 }
 
 /**
@@ -434,12 +444,17 @@ export const handleSubscriptionItemAdjustment = async (
     adjustmentDate: Date | number
   },
   ctx: TransactionEffectsContext
-): Promise<{
-  createdOrUpdatedSubscriptionItems: SubscriptionItem.Record[]
-  createdFeatures: SubscriptionItemFeature.Record[]
-  usageCredits: UsageCredit.Record[]
-  ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
-}> => {
+): Promise<
+  Result<
+    {
+      createdOrUpdatedSubscriptionItems: SubscriptionItem.Record[]
+      createdFeatures: SubscriptionItemFeature.Record[]
+      usageCredits: UsageCredit.Record[]
+      ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
+    },
+    NotFoundError
+  >
+> => {
   const { subscriptionId, newSubscriptionItems, adjustmentDate } =
     params
   const { transaction, invalidateCache } = ctx
@@ -581,13 +596,16 @@ export const handleSubscriptionItemAdjustment = async (
     subscriptionId,
     transaction
   )
-  const { usageCredits, ledgerEntries } =
-    await grantProratedCreditsForFeatures({
-      subscription,
-      features: createdFeatures,
-      adjustmentDate,
-      transaction,
-    })
+  const grantedCreditsResult = await grantProratedCreditsForFeatures({
+    subscription,
+    features: createdFeatures,
+    adjustmentDate,
+    transaction,
+  })
+  if (Result.isError(grantedCreditsResult)) {
+    return Result.err(grantedCreditsResult.error)
+  }
+  const { usageCredits, ledgerEntries } = grantedCreditsResult.value
 
   // Collect subscription item IDs that need feature cache invalidation:
   // 1. Expired items (their features were expired)
@@ -609,10 +627,10 @@ export const handleSubscriptionItemAdjustment = async (
     )
   )
 
-  return {
+  return Result.ok({
     createdOrUpdatedSubscriptionItems,
     createdFeatures,
     usageCredits,
     ledgerEntries,
-  }
+  })
 }

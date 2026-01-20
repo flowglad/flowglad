@@ -93,10 +93,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
       const timestampAfterExecution = Date.now()
 
       expect(result.ledgerEntries.length).toBe(1)
@@ -219,10 +221,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
       const timestampAfterExecution = Date.now()
 
       expect(result.ledgerEntries.length).toBe(1)
@@ -340,10 +344,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       expect(result.ledgerEntries.length).toBe(1)
 
@@ -430,10 +436,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       expect(result.ledgerEntries.length).toBe(1)
 
@@ -616,10 +624,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       expect(result.ledgerEntries.length).toBe(1)
 
@@ -706,10 +716,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       expect(result.ledgerEntries.length).toBe(1)
 
@@ -794,10 +806,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       expect(result.ledgerEntries.length).toBe(1)
 
@@ -861,10 +875,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       expect(result.ledgerEntries.length).toBe(1)
 
@@ -942,10 +958,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       expect(result.ledgerEntries.length).toBe(1)
 
@@ -1016,10 +1034,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       expect(result.ledgerEntries.length).toBe(1)
 
@@ -1107,10 +1127,12 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
           transaction
         )
 
-      const result = await processCreditGrantRecognizedLedgerCommand(
-        command,
-        transaction
-      )
+      const result = (
+        await processCreditGrantRecognizedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       expect(result.ledgerEntries.length).toBe(1)
 

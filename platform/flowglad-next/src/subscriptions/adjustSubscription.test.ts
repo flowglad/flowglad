@@ -817,18 +817,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).not.toHaveBeenCalled()
@@ -977,18 +979,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).not.toHaveBeenCalled()
@@ -1049,18 +1053,20 @@ describe('adjustSubscription Integration Tests', async () => {
 
         const originalName = subscription.name
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: [],
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: [],
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         expect(result.subscription.name).toBe(originalName)
         expect(result.subscriptionItems.length).toBe(0)
@@ -1173,18 +1179,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         expect(result.subscription.name).toBeNull()
         expect(result.subscriptionItems.length).toBe(1)
@@ -1393,18 +1401,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         const bpItems = await selectBillingPeriodItems(
           { billingPeriodId: billingPeriod.id },
@@ -1729,18 +1739,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing:
-                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         expect(result.subscription.name).toBe('Current Plan')
         expect(result.subscription.priceId).toBe(price.id)
@@ -1951,18 +1963,20 @@ describe('adjustSubscription Integration Tests', async () => {
 
         const originalName = subscription.name
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: [],
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: [],
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         const mockTrigger = getMockTrigger()
         const wasBillingRunTriggered =
@@ -2828,18 +2842,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Auto,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // Should resolve to Immediately for upgrades
         expect(result.resolvedTiming).toBe(
@@ -2918,18 +2934,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Auto,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // Should resolve to AtEndOfCurrentBillingPeriod for downgrades
         expect(result.resolvedTiming).toBe(
@@ -2995,18 +3013,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Auto,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Auto,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // Same price = not an upgrade
         expect(result.isUpgrade).toBe(false)
@@ -3064,18 +3084,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // Should trigger billing run for upgrade
         const mockTrigger = getMockTrigger()
@@ -3183,18 +3205,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // Should trigger billing run for upgrade (3 * testPrice.unitPrice > 100)
         const mockTrigger = getMockTrigger()
@@ -3291,18 +3315,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // Should trigger billing run for upgrade
         const mockTrigger = getMockTrigger()
@@ -3380,18 +3406,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // Should trigger billing run for upgrade
         const mockTrigger = getMockTrigger()
@@ -3456,18 +3484,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // Should NOT trigger billing run since proration is disabled
         const mockTrigger = getMockTrigger()
@@ -3526,18 +3556,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: false,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // Should report as upgrade
         expect(result.isUpgrade).toBe(true)
@@ -3812,18 +3844,20 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        const result = await adjustSubscription(
-          {
-            id: subscription.id,
-            adjustment: {
-              newSubscriptionItems: newItems,
-              timing: SubscriptionAdjustmentTiming.Immediately,
-              prorateCurrentBillingPeriod: true,
+        const result = (
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
             },
-          },
-          organization,
-          ctx
-        )
+            organization,
+            ctx
+          )
+        ).unwrap()
 
         // ============================================================
         // ASSERTION 1: No refund issued (downgrade protection)
@@ -4068,18 +4102,20 @@ describe('adjustSubscription Integration Tests', async () => {
           ]
 
           // Upgrade with proration enabled (should create billing run)
-          const result = await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
+          const result = (
+            await adjustSubscription(
+              {
+                id: subscription.id,
+                adjustment: {
+                  newSubscriptionItems: newItems,
+                  timing: SubscriptionAdjustmentTiming.Immediately,
+                  prorateCurrentBillingPeriod: true,
+                },
               },
-            },
-            organization,
-            ctx
-          )
+              organization,
+              ctx
+            )
+          ).unwrap()
 
           // Verify billing run was created (pendingBillingRunId is returned)
           expect(typeof result.pendingBillingRunId).toBe('string')
@@ -5041,18 +5077,20 @@ describe('adjustSubscription Integration Tests', async () => {
           ]
 
           // Schedule end-of-period downgrade - should succeed
-          const result = await adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing:
-                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+          const result = (
+            await adjustSubscription(
+              {
+                id: subscription.id,
+                adjustment: {
+                  newSubscriptionItems: newItems,
+                  timing:
+                    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+                },
               },
-            },
-            organization,
-            ctx
-          )
+              organization,
+              ctx
+            )
+          ).unwrap()
 
           // No billing run for end-of-period adjustments
           expect(result.pendingBillingRunId).toBeUndefined()

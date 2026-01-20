@@ -106,7 +106,11 @@ describe('ledgerEntryMethods', () => {
   describe('bulkInsertLedgerEntries', () => {
     it('should return an empty array when given an empty array of entries', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const result = await bulkInsertLedgerEntries([], transaction)
+        const resultWrapper = await bulkInsertLedgerEntries(
+          [],
+          transaction
+        )
+        const result = resultWrapper.unwrap()
         expect(result).toEqual([])
       })
     })
@@ -150,10 +154,11 @@ describe('ledgerEntryMethods', () => {
           entryTimestamp: Date.now(),
           sourceUsageEventId: usageEvent.id,
         }
-        const result = await bulkInsertLedgerEntries(
+        const resultWrapper = await bulkInsertLedgerEntries(
           [entryData],
           transaction
         )
+        const result = resultWrapper.unwrap()
         expect(result).toHaveLength(1)
         expect(result[0]).toMatchObject(entryData)
       })
@@ -220,10 +225,11 @@ describe('ledgerEntryMethods', () => {
           sourceUsageCreditId: usageCredit.id,
           entryTimestamp: Date.now(),
         }
-        const result = await bulkInsertLedgerEntries(
+        const resultWrapper = await bulkInsertLedgerEntries(
           [entryData1, entryData2],
           transaction
         )
+        const result = resultWrapper.unwrap()
         expect(result).toHaveLength(2)
         expect(result[0]).toMatchObject(entryData1)
         expect(result[1]).toMatchObject(entryData2)
@@ -290,10 +296,11 @@ describe('ledgerEntryMethods', () => {
           entryTimestamp: Date.now(),
           sourceUsageCreditId: usageCredit.id,
         }
-        const result = await bulkInsertLedgerEntries(
+        const resultWrapper = await bulkInsertLedgerEntries(
           [entryData1, entryData2],
           transaction
         )
+        const result = resultWrapper.unwrap()
         expect(result).toHaveLength(2)
         expect(result[0].organizationId).toBe(organization.id)
         expect(result[0].livemode).toBe(true)
@@ -335,10 +342,11 @@ describe('ledgerEntryMethods', () => {
           entryTimestamp: Date.now(),
           sourceUsageEventId: usageEvent.id,
         }
-        const result = await bulkInsertLedgerEntries(
+        const resultWrapper = await bulkInsertLedgerEntries(
           [entryData],
           transaction
         )
+        const result = resultWrapper.unwrap()
         expect(result).toHaveLength(1)
         expect(typeof result[0].id).toBe('string')
       })
@@ -3725,7 +3733,7 @@ describe('ledgerEntryMethods', () => {
     describe('insertLedgerEntry', () => {
       it('should insert ledger entry and derive pricingModelId from subscription', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const entry = await insertLedgerEntry(
+          const entryResult = await insertLedgerEntry(
             {
               ...ledgerEntryNulledSourceIdColumns,
               metadata: {},
@@ -3746,6 +3754,7 @@ describe('ledgerEntryMethods', () => {
             },
             transaction
           )
+          const entry = entryResult.unwrap()
 
           expect(entry.pricingModelId).toBe(
             subscription.pricingModelId
@@ -3768,7 +3777,7 @@ describe('ledgerEntryMethods', () => {
             customerId: customer.id,
           })
 
-          const entry = await insertLedgerEntry(
+          const entryResult = await insertLedgerEntry(
             {
               ...ledgerEntryNulledSourceIdColumns,
               metadata: {},
@@ -3788,6 +3797,7 @@ describe('ledgerEntryMethods', () => {
             },
             transaction
           )
+          const entry = entryResult.unwrap()
 
           expect(entry.pricingModelId).toBe(usageMeter.pricingModelId)
           expect(entry.pricingModelId).toBe(pricingModel.id)
@@ -3796,7 +3806,7 @@ describe('ledgerEntryMethods', () => {
 
       it('should prioritize subscriptionId over usageMeterId', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const entry = await insertLedgerEntry(
+          const entryResult = await insertLedgerEntry(
             {
               ...ledgerEntryNulledSourceIdColumns,
               metadata: {},
@@ -3817,6 +3827,7 @@ describe('ledgerEntryMethods', () => {
             },
             transaction
           )
+          const entry = entryResult.unwrap()
 
           // Should use subscription's pricingModelId
           expect(entry.pricingModelId).toBe(
@@ -3827,7 +3838,7 @@ describe('ledgerEntryMethods', () => {
 
       it('should honor provided pricingModelId', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const entry = await insertLedgerEntry(
+          const entryResult = await insertLedgerEntry(
             {
               ...ledgerEntryNulledSourceIdColumns,
               metadata: {},
@@ -3849,6 +3860,7 @@ describe('ledgerEntryMethods', () => {
             },
             transaction
           )
+          const entry = entryResult.unwrap()
 
           expect(entry.pricingModelId).toBe(pricingModel.id)
         })
@@ -3870,7 +3882,7 @@ describe('ledgerEntryMethods', () => {
             customerId: customer.id,
           })
 
-          const entries = await bulkInsertLedgerEntries(
+          const entriesResult = await bulkInsertLedgerEntries(
             [
               {
                 ...ledgerEntryNulledSourceIdColumns,
@@ -3910,6 +3922,7 @@ describe('ledgerEntryMethods', () => {
             ],
             transaction
           )
+          const entries = entriesResult.unwrap()
 
           expect(entries).toHaveLength(2)
           expect(entries[0].pricingModelId).toBe(
@@ -3935,7 +3948,7 @@ describe('ledgerEntryMethods', () => {
             customerId: customer.id,
           })
 
-          const entries = await bulkInsertLedgerEntries(
+          const entriesResult = await bulkInsertLedgerEntries(
             [
               {
                 ...ledgerEntryNulledSourceIdColumns,
@@ -3993,6 +4006,7 @@ describe('ledgerEntryMethods', () => {
             ],
             transaction
           )
+          const entries = entriesResult.unwrap()
 
           expect(entries).toHaveLength(3)
           expect(entries[0].pricingModelId).toBe(
@@ -4009,10 +4023,11 @@ describe('ledgerEntryMethods', () => {
 
       it('should handle empty array', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const entries = await bulkInsertLedgerEntries(
+          const entriesResult = await bulkInsertLedgerEntries(
             [],
             transaction
           )
+          const entries = entriesResult.unwrap()
           expect(entries).toEqual([])
         })
       })

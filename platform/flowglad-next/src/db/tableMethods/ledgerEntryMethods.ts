@@ -114,9 +114,13 @@ const baseInsertLedgerEntry = createInsertFunction(
 export const insertLedgerEntry = async (
   ledgerEntryInsert: LedgerEntry.Insert,
   transaction: DbTransaction
-): Promise<LedgerEntry.Record> => {
+): Promise<Result<LedgerEntry.Record, NotFoundError>> => {
   if (ledgerEntryInsert.pricingModelId) {
-    return baseInsertLedgerEntry(ledgerEntryInsert, transaction)
+    const record = await baseInsertLedgerEntry(
+      ledgerEntryInsert,
+      transaction
+    )
+    return Result.ok(record)
   }
 
   const pricingModelIdResult =
@@ -128,16 +132,18 @@ export const insertLedgerEntry = async (
       transaction
     )
 
-  // Unwrap throws NotFoundError if pricingModelId derivation failed
-  const pricingModelId = pricingModelIdResult.unwrap()
+  if (Result.isError(pricingModelIdResult)) {
+    return Result.err(pricingModelIdResult.error)
+  }
 
-  return baseInsertLedgerEntry(
+  const record = await baseInsertLedgerEntry(
     {
       ...ledgerEntryInsert,
-      pricingModelId,
+      pricingModelId: pricingModelIdResult.value,
     },
     transaction
   )
+  return Result.ok(record)
 }
 
 export const updateLedgerEntry = createUpdateFunction(
@@ -158,7 +164,7 @@ const baseBulkInsertLedgerEntries = createBulkInsertFunction(
 export const bulkInsertLedgerEntries = async (
   ledgerEntryInserts: LedgerEntry.Insert[],
   transaction: DbTransaction
-): Promise<LedgerEntry.Record[]> => {
+): Promise<Result<LedgerEntry.Record[], NotFoundError>> => {
   // Collect all unique subscription and usage meter IDs
   const subscriptionIds = Array.from(
     new Set(
@@ -185,34 +191,36 @@ export const bulkInsertLedgerEntries = async (
     await pricingModelIdsForUsageMeters(usageMeterIds, transaction)
 
   // Derive pricingModelId for each insert using the helper
-  const ledgerEntriesWithPricingModelId = ledgerEntryInserts.map(
-    (ledgerEntryInsert): LedgerEntry.Insert => {
-      if (ledgerEntryInsert.pricingModelId) {
-        return ledgerEntryInsert
-      }
-
-      const pricingModelIdResult =
-        derivePricingModelIdForLedgerEntryFromMaps({
-          subscriptionId: ledgerEntryInsert.subscriptionId,
-          usageMeterId: ledgerEntryInsert.usageMeterId,
-          subscriptionPricingModelIdMap,
-          usageMeterPricingModelIdMap,
-        })
-
-      // Unwrap throws NotFoundError if pricingModelId derivation failed
-      const pricingModelId = pricingModelIdResult.unwrap()
-
-      return {
-        ...ledgerEntryInsert,
-        pricingModelId,
-      }
+  const ledgerEntriesWithPricingModelId: LedgerEntry.Insert[] = []
+  for (const ledgerEntryInsert of ledgerEntryInserts) {
+    if (ledgerEntryInsert.pricingModelId) {
+      ledgerEntriesWithPricingModelId.push(ledgerEntryInsert)
+      continue
     }
-  )
 
-  return baseBulkInsertLedgerEntries(
+    const pricingModelIdResult =
+      derivePricingModelIdForLedgerEntryFromMaps({
+        subscriptionId: ledgerEntryInsert.subscriptionId,
+        usageMeterId: ledgerEntryInsert.usageMeterId,
+        subscriptionPricingModelIdMap,
+        usageMeterPricingModelIdMap,
+      })
+
+    if (Result.isError(pricingModelIdResult)) {
+      return Result.err(pricingModelIdResult.error)
+    }
+
+    ledgerEntriesWithPricingModelId.push({
+      ...ledgerEntryInsert,
+      pricingModelId: pricingModelIdResult.value,
+    })
+  }
+
+  const records = await baseBulkInsertLedgerEntries(
     ledgerEntriesWithPricingModelId,
     transaction
   )
+  return Result.ok(records)
 }
 
 const balanceTypeWhereStatement = (
