@@ -100,9 +100,10 @@ export function HomeClient() {
   }
 
   if (
-    billing.loadBilling !== true ||
+    !session?.user ||
     billing.errors !== null ||
-    !billing.pricingModel
+    !billing.pricingModel ||
+    !billing.customer
   ) {
     return <DashboardSkeleton />
   }
