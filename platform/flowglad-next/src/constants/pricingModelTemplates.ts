@@ -1330,11 +1330,16 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       // Usage Meters - None needed for seat-based billing
       usageMeters: [],
 
-      // Resources - defines the "teams" resource for this pricing model
+      // Resources - defines "teams" for tier limits and "seats" for per-user tracking
       resources: [
         {
           slug: 'teams',
           name: 'Teams',
+          active: true,
+        },
+        {
+          slug: 'seats',
+          name: 'Seats',
           active: true,
         },
       ],
@@ -1358,6 +1363,37 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           description: 'Team allocation for Basic plan subscribers',
           resourceSlug: 'teams',
           amount: 5,
+          active: true,
+        },
+
+        // Resource features - grant seat capacity (1 seat per subscription unit, scales with quantity)
+        {
+          type: FeatureType.Resource,
+          slug: 'basic_seats',
+          name: 'Basic Plan Seats',
+          description: 'Seat allocation for Basic plan subscribers',
+          resourceSlug: 'seats',
+          amount: 1,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'business_seats',
+          name: 'Business Plan Seats',
+          description:
+            'Seat allocation for Business plan subscribers',
+          resourceSlug: 'seats',
+          amount: 1,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'enterprise_seats',
+          name: 'Enterprise Plan Seats',
+          description:
+            'Seat allocation for Enterprise plan subscribers',
+          resourceSlug: 'seats',
+          amount: 1,
           active: true,
         },
 
@@ -1642,6 +1678,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 1000,
           },
           features: [
+            'basic_seats',
             'basic_teams',
             'unlimited_members',
             'slack_github',
@@ -1684,6 +1721,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 12000,
           },
           features: [
+            'basic_seats',
             'basic_teams',
             'unlimited_members',
             'slack_github',
@@ -1726,6 +1764,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 1600,
           },
           features: [
+            'business_seats',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1776,6 +1815,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 19200,
           },
           features: [
+            'business_seats',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1826,6 +1866,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 24000, // Placeholder price - actual pricing is custom
           },
           features: [
+            'enterprise_seats',
             'unlimited_members',
             'slack_github',
             'ai_agents',
