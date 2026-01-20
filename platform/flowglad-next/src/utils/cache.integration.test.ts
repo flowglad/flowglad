@@ -416,11 +416,11 @@ describeIfRedisKey('Cache Integration Tests', () => {
     await cachedFn('ignore_no_write')
 
     // Verify cache has 'first' (Upstash auto-parses JSON)
-    const cachedBefore = (await client.get(fullCacheKey)) as {
+    const cachedBefore = await client.get<{
       id: string
       value: string
-    }
-    expect(cachedBefore.value).toBe('first')
+    }>(fullCacheKey)
+    expect(cachedBefore?.value).toBe('first')
 
     // Update underlying data
     currentValue = 'second'
@@ -432,11 +432,11 @@ describeIfRedisKey('Cache Integration Tests', () => {
     expect(result.value).toBe('second')
 
     // Verify cache still has 'first' (Upstash auto-parses JSON)
-    const cachedAfter = (await client.get(fullCacheKey)) as {
+    const cachedAfter = await client.get<{
       id: string
       value: string
-    }
-    expect(cachedAfter.value).toBe('first')
+    }>(fullCacheKey)
+    expect(cachedAfter?.value).toBe('first')
   })
 
   it('ignoreCache option bypasses cache when cached function accepts multiple arguments', async () => {
@@ -1847,25 +1847,24 @@ describeIfRedisKey(
       expect(Array.isArray(cachedValue)).toBe(true)
 
       // Verify recompute metadata is stored with correct params (Upstash auto-parses JSON)
-      const metadataValue = (await client.get(
-        metadataKey
-      )) as CacheRecomputeMetadata
+      const metadataValue =
+        await client.get<CacheRecomputeMetadata>(metadataKey)
       expect(typeof metadataValue).toBe('object')
 
-      expect(metadataValue.namespace).toBe(
+      expect(metadataValue?.namespace).toBe(
         RedisKeyNamespace.ItemsBySubscription
       )
-      expect(metadataValue.params).toEqual({
+      expect(metadataValue?.params).toEqual({
         subscriptionId: subscription.id,
         livemode: true,
       })
-      expect(metadataValue.cacheRecomputationContext.type).toBe(
+      expect(metadataValue?.cacheRecomputationContext.type).toBe(
         'admin'
       )
-      expect(metadataValue.cacheRecomputationContext.livemode).toBe(
+      expect(metadataValue?.cacheRecomputationContext.livemode).toBe(
         true
       )
-      expect(metadataValue.createdAt).toBeGreaterThan(0)
+      expect(metadataValue?.createdAt).toBeGreaterThan(0)
     })
   }
 )
