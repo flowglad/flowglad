@@ -213,7 +213,8 @@ const setPricingModelsForOrganizationToNonDefault = async (
   }: { organizationId: string; livemode: boolean },
   transaction: DbTransaction
 ) => {
-  await transaction
+  // Perform the bulk update and get affected IDs
+  const updatedPricingModels = await transaction
     .update(pricingModels)
     .set({ isDefault: false })
     .where(
@@ -222,6 +223,17 @@ const setPricingModelsForOrganizationToNonDefault = async (
         eq(pricingModels.livemode, livemode)
       )
     )
+    .returning({ id: pricingModels.id })
+
+  // Invalidate cache for all affected pricing models
+  if (updatedPricingModels.length > 0) {
+    await Promise.all(
+      updatedPricingModels.map((pm) =>
+        invalidatePricingModelCache(pm.id)
+      )
+    )
+  }
+
   return true
 }
 

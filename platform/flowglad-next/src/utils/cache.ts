@@ -1217,11 +1217,6 @@ export const CacheDependency = {
     pricingModelId: string
   ): CacheDependencyKey =>
     `productFeaturesByPricingModel:${pricingModelId}`,
-  /** Invalidate when usage meters for this pricing model change */
-  usageMetersByPricingModel: (
-    pricingModelId: string
-  ): CacheDependencyKey =>
-    `usageMetersByPricingModel:${pricingModelId}`,
 } as const
 
 // NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'

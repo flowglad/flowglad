@@ -70,13 +70,26 @@ export const pricingModelIdsForUsageMeters =
   createDerivePricingModelIds(usageMeters, config)
 
 /**
- * Invalidate usage meters cache for a pricing model.
+ * Invalidate usage meters cache when set membership changes
+ * (meter added to or removed from a pricing model).
  */
-export const invalidateUsageMetersByPricingModelCache = async (
+export const invalidatePricingModelUsageMetersCache = async (
   pricingModelId: string
 ): Promise<void> => {
   await invalidateDependencies([
-    CacheDependency.usageMetersByPricingModel(pricingModelId),
+    CacheDependency.pricingModelUsageMeters(pricingModelId),
+  ])
+}
+
+/**
+ * Invalidate cache when an individual usage meter's content changes
+ * (name, slug, aggregationType, etc.).
+ */
+export const invalidateUsageMeterContentCache = async (
+  usageMeterId: string
+): Promise<void> => {
+  await invalidateDependencies([
+    CacheDependency.usageMeter(usageMeterId),
   ])
 }
 
@@ -142,10 +155,8 @@ export const insertUsageMeter = async (
   transaction: DbTransaction
 ): Promise<UsageMeter.Record> => {
   const result = await baseInsertUsageMeter(usageMeter, transaction)
-  // Invalidate usage meters cache for the pricing model
-  await invalidateUsageMetersByPricingModelCache(
-    result.pricingModelId
-  )
+  // Invalidate set membership - a new meter was added to the pricing model
+  await invalidatePricingModelUsageMetersCache(result.pricingModelId)
   return result
 }
 
@@ -156,10 +167,8 @@ export const updateUsageMeter = async (
   transaction: DbTransaction
 ): Promise<UsageMeter.Record> => {
   const result = await baseUpdateUsageMeter(usageMeter, transaction)
-  // Invalidate usage meters cache for the pricing model
-  await invalidateUsageMetersByPricingModelCache(
-    result.pricingModelId
-  )
+  // Invalidate content - the meter's properties changed
+  await invalidateUsageMeterContentCache(result.id)
   return result
 }
 
@@ -179,14 +188,14 @@ export const bulkInsertOrDoNothingUsageMeters = async (
     transaction
   )
 
-  // Invalidate usage meters cache for all affected pricing models
-  // Use inserts to get pricingModelIds
+  // Invalidate set membership for all affected pricing models
+  // (bulk insert adds meters to pricing models)
   const pricingModelIds = [
     ...new Set(inserts.map((um) => um.pricingModelId)),
   ]
   if (pricingModelIds.length > 0) {
     await Promise.all(
-      pricingModelIds.map(invalidateUsageMetersByPricingModelCache)
+      pricingModelIds.map(invalidatePricingModelUsageMetersCache)
     )
   }
 
