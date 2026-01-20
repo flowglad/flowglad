@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutPage from '@/components/CheckoutPage'
 import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
@@ -38,6 +39,11 @@ const PayPurchasePage = async ({
         transaction
       )
       const checkoutSession = checkoutSessionResult.unwrap()
+
+      if (Result.isError(checkoutSessionResult)) {
+        throw checkoutSessionResult.error
+      }
+      const checkoutSession = checkoutSessionResult.value
 
       const discount = checkoutSession.discountId
         ? await selectDiscountById(

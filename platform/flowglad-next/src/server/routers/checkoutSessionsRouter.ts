@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -76,7 +77,7 @@ export const createCheckoutSession = protectedProcedure
           })
         }
 
-        return await createCheckoutSessionTransaction(
+        const result = await createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: ctx.organizationId!,
@@ -84,6 +85,10 @@ export const createCheckoutSession = protectedProcedure
           },
           transaction
         )
+        if (Result.isError(result)) {
+          throw result.error
+        }
+        return result.value
       }
     )
   )

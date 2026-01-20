@@ -695,10 +695,16 @@ const createCheckoutSessionWithPriceProcedure =
     )
     .mutation(async ({ input, ctx }) => {
       const checkoutSessionInput = input.checkoutSession
-      return await customerBillingCreatePricedCheckoutSession({
-        checkoutSessionInput,
-        customer: ctx.customer,
-      })
+      const result = await customerBillingCreatePricedCheckoutSession(
+        {
+          checkoutSessionInput,
+          customer: ctx.customer,
+        }
+      )
+      if (Result.isError(result)) {
+        throw result.error
+      }
+      return result.value
     })
 
 const createAddPaymentMethodCheckoutSessionProcedure =

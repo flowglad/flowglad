@@ -1,5 +1,6 @@
 import type { Mock } from 'bun:test'
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
   setupCustomer,
@@ -264,10 +265,12 @@ describe('refundPaymentTransaction', () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
       mockRefundPayment.mockResolvedValue(
-        makeStripeRefundResponse({
-          amount: partialRefundAmount,
-          created: refundCreatedTimestamp,
-        })
+        Result.ok(
+          makeStripeRefundResponse({
+            amount: partialRefundAmount,
+            created: refundCreatedTimestamp,
+          })
+        )
       )
 
       await adminTransaction(async ({ transaction }) => {
@@ -298,10 +301,12 @@ describe('refundPaymentTransaction', () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
       mockRefundPayment.mockResolvedValue(
-        makeStripeRefundResponse({
-          amount: fullRefundAmount,
-          created: refundCreatedTimestamp,
-        })
+        Result.ok(
+          makeStripeRefundResponse({
+            amount: fullRefundAmount,
+            created: refundCreatedTimestamp,
+          })
+        )
       )
 
       await adminTransaction(async ({ transaction }) => {
@@ -326,11 +331,13 @@ describe('refundPaymentTransaction', () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
       mockRefundPayment.mockResolvedValue(
-        makeStripeRefundResponse({
-          // This is what Stripe actually refunded
-          amount: stripeRefundAmount,
-          created: refundCreatedTimestamp,
-        })
+        Result.ok(
+          makeStripeRefundResponse({
+            // This is what Stripe actually refunded
+            amount: stripeRefundAmount,
+            created: refundCreatedTimestamp,
+          })
+        )
       )
 
       await adminTransaction(async ({ transaction }) => {
@@ -350,11 +357,13 @@ describe('refundPaymentTransaction', () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
       mockRefundPayment.mockResolvedValue(
-        makeStripeRefundResponse({
-          // Exact match
-          amount: payment.amount,
-          created: refundCreatedTimestamp,
-        })
+        Result.ok(
+          makeStripeRefundResponse({
+            // Exact match
+            amount: payment.amount,
+            created: refundCreatedTimestamp,
+          })
+        )
       )
 
       await adminTransaction(async ({ transaction }) => {
@@ -379,16 +388,20 @@ describe('refundPaymentTransaction', () => {
 
       mockRefundPayment
         .mockResolvedValueOnce(
-          makeStripeRefundResponse({
-            amount: 3000,
-            created: firstRefundCreatedTimestamp,
-          })
+          Result.ok(
+            makeStripeRefundResponse({
+              amount: 3000,
+              created: firstRefundCreatedTimestamp,
+            })
+          )
         )
         .mockResolvedValueOnce(
-          makeStripeRefundResponse({
-            amount: 7000,
-            created: secondRefundCreatedTimestamp,
-          })
+          Result.ok(
+            makeStripeRefundResponse({
+              amount: 7000,
+              created: secondRefundCreatedTimestamp,
+            })
+          )
         )
 
       await adminTransaction(async ({ transaction }) => {
@@ -573,10 +586,12 @@ describe('refundPaymentTransaction', () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
       mockRefundPayment.mockResolvedValue(
-        makeStripeRefundResponse({
-          amount: fullRefundAmount,
-          created: refundCreatedTimestamp,
-        })
+        Result.ok(
+          makeStripeRefundResponse({
+            amount: fullRefundAmount,
+            created: refundCreatedTimestamp,
+          })
+        )
       )
 
       await adminTransaction(async ({ transaction }) => {
@@ -603,10 +618,12 @@ describe('refundPaymentTransaction', () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
       mockRefundPayment.mockResolvedValue(
-        makeStripeRefundResponse({
-          amount: partialRefundAmount,
-          created: refundCreatedTimestamp,
-        })
+        Result.ok(
+          makeStripeRefundResponse({
+            amount: partialRefundAmount,
+            created: refundCreatedTimestamp,
+          })
+        )
       )
 
       await adminTransaction(async ({ transaction }) => {
@@ -637,10 +654,12 @@ describe('refundPaymentTransaction', () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
       mockRefundPayment.mockResolvedValue(
-        makeStripeRefundResponse({
-          amount: fullRefundAmount,
-          created: refundCreatedTimestamp,
-        })
+        Result.ok(
+          makeStripeRefundResponse({
+            amount: fullRefundAmount,
+            created: refundCreatedTimestamp,
+          })
+        )
       )
 
       mockReverseStripeTaxTransaction.mockRejectedValue(
@@ -679,10 +698,12 @@ describe('refundPaymentTransaction', () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
       mockRefundPayment.mockResolvedValue(
-        makeStripeRefundResponse({
-          amount: 10000,
-          created: refundCreatedTimestamp,
-        })
+        Result.ok(
+          makeStripeRefundResponse({
+            amount: 10000,
+            created: refundCreatedTimestamp,
+          })
+        )
       )
 
       await adminTransaction(async ({ transaction }) => {
@@ -719,10 +740,12 @@ describe('refundPaymentTransaction', () => {
       })
 
       mockRefundPayment.mockResolvedValue(
-        makeStripeRefundResponse({
-          amount: 10000,
-          created: refundCreatedTimestamp,
-        })
+        Result.ok(
+          makeStripeRefundResponse({
+            amount: 10000,
+            created: refundCreatedTimestamp,
+          })
+        )
       )
 
       await adminTransaction(async ({ transaction }) => {

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import BigNumber from 'bignumber.js'
 import Stripe from 'stripe'
 import { z } from 'zod'
@@ -12,6 +13,7 @@ import type {
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import type { Purchase } from '@/db/schema/purchases'
+import { NotFoundError, ValidationError } from '@/errors'
 import {
   BusinessOnboardingStatus,
   CountryCode,
@@ -736,12 +738,15 @@ const stripeConnectTransferDataForOrganization = ({
 }: {
   organization: Organization.Record
   livemode: boolean
-}): {
-  on_behalf_of: string | undefined
-  transfer_data:
-    | Stripe.PaymentIntentCreateParams['transfer_data']
-    | undefined
-} => {
+}): Result<
+  {
+    on_behalf_of: string | undefined
+    transfer_data:
+      | Stripe.PaymentIntentCreateParams['transfer_data']
+      | undefined
+  },
+  ValidationError
+> => {
   const stripeAccountId = organization.stripeAccountId
   let on_behalf_of: string | undefined
 
@@ -751,13 +756,19 @@ const stripeConnectTransferDataForOrganization = ({
 
   if (livemode) {
     if (!stripeAccountId) {
-      throw new Error(
-        `Organization ${organization.id} does not have a Stripe account ID. Stripe account setup is a prerequisite for live mode payments.`
+      return Result.err(
+        new ValidationError(
+          'organization',
+          `Organization ${organization.id} does not have a Stripe account ID. Stripe account setup is a prerequisite for live mode payments.`
+        )
       )
     }
     if (!organization.payoutsEnabled) {
-      throw new Error(
-        `Organization ${organization.id} does not have payouts enabled.`
+      return Result.err(
+        new ValidationError(
+          'organization',
+          `Organization ${organization.id} does not have payouts enabled.`
+        )
       )
     }
     if (
@@ -770,10 +781,10 @@ const stripeConnectTransferDataForOrganization = ({
       destination: stripeAccountId,
     }
   }
-  return {
+  return Result.ok({
     on_behalf_of,
     transfer_data,
-  }
+  })
 }
 
 export const constructStripeWebhookEvent = (params: {
@@ -849,24 +860,28 @@ export const createStripeCustomer = async (params: {
  * associated with that customer.
  *
  * @param customer - The customer record with stripeCustomerId set
- * @returns The client_secret for the CustomerSession, which should be passed to the
+ * @returns Result containing the client_secret for the CustomerSession, which should be passed to the
  *          PaymentElement's options.customerSessionClientSecret
- * @throws {Error} If customer.stripeCustomerId is missing
- * @throws {StripeError} If the Stripe API call fails
  *
  * @example
  * ```typescript
- * const customerSessionClientSecret = await createCustomerSessionForCheckout(customer)
- * // Pass to PaymentElement:
- * // <PaymentElement options={{ customerSessionClientSecret }} />
+ * const result = await createCustomerSessionForCheckout(customer)
+ * if (Result.isOk(result)) {
+ *   const customerSessionClientSecret = result.value
+ *   // Pass to PaymentElement:
+ *   // <PaymentElement options={{ customerSessionClientSecret }} />
+ * }
  * ```
  */
 export const createCustomerSessionForCheckout = async (
   customer: Customer.Record
-): Promise<string> => {
+): Promise<Result<string, NotFoundError>> => {
   if (!customer.stripeCustomerId) {
-    throw new Error(
-      'Missing stripeCustomerId for customer session creation'
+    return Result.err(
+      new NotFoundError(
+        'stripeCustomerId',
+        'Missing stripeCustomerId for customer session creation'
+      )
     )
   }
   const customerSession = await stripeCall(
@@ -888,7 +903,7 @@ export const createCustomerSessionForCheckout = async (
         },
       })
   )
-  return customerSession.client_secret
+  return Result.ok(customerSession.client_secret)
 }
 
 export const createStripeTaxCalculationByPrice = async ({
@@ -1173,7 +1188,9 @@ export const createPaymentIntentForCheckoutSession = async (params: {
   checkoutSession: CheckoutSession.Record
   feeCalculation?: FeeCalculation.Record
   customer?: Customer.Record
-}) => {
+}): Promise<
+  Result<Stripe.Response<Stripe.PaymentIntent>, ValidationError>
+> => {
   const {
     price,
     organization,
@@ -1182,10 +1199,16 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     customer,
   } = params
   const livemode = checkoutSession.livemode
-  const transferData = stripeConnectTransferDataForOrganization({
-    organization,
-    livemode,
-  })
+  const transferDataResult = stripeConnectTransferDataForOrganization(
+    {
+      organization,
+      livemode,
+    }
+  )
+  if (Result.isError(transferDataResult)) {
+    return Result.err(transferDataResult.error)
+  }
+  const transferData = transferDataResult.value
   const feeMetadata = buildFeeMetadata(feeCalculation)
   const metadata: CheckoutSessionStripeIntentMetadata & FeeMetadata =
     {
@@ -1204,7 +1227,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
         currency: price.currency,
       })
 
-  return stripeCall(
+  const paymentIntent = await stripeCall(
     'paymentIntents.create',
     {
       'stripe.amount': totalDue,
@@ -1221,6 +1244,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
         customer: customer?.stripeCustomerId ?? undefined,
       })
   )
+  return Result.ok(paymentIntent)
 }
 
 export const getLatestChargeForPaymentIntent = async (
@@ -1250,27 +1274,35 @@ export const dateFromStripeTimestamp = (timestamp: number) => {
 
 export const paymentMethodFromStripeCharge = (
   charge: Stripe.Charge
-) => {
+): Result<PaymentMethodType, NotFoundError | ValidationError> => {
   const paymentMethodDetails = charge.payment_method_details
   if (!paymentMethodDetails) {
-    throw new Error('No payment method details found for charge')
+    return Result.err(
+      new NotFoundError(
+        'paymentMethodDetails',
+        'No payment method details found for charge'
+      )
+    )
   }
   switch (paymentMethodDetails.type) {
     case 'card':
-      return PaymentMethodType.Card
+      return Result.ok(PaymentMethodType.Card)
     case 'card_present':
-      return PaymentMethodType.Card
+      return Result.ok(PaymentMethodType.Card)
     case 'ach_debit':
-      return PaymentMethodType.USBankAccount
+      return Result.ok(PaymentMethodType.USBankAccount)
     case 'us_bank_account':
-      return PaymentMethodType.USBankAccount
+      return Result.ok(PaymentMethodType.USBankAccount)
     case 'sepa_debit':
-      return PaymentMethodType.SEPADebit
+      return Result.ok(PaymentMethodType.SEPADebit)
     case 'link':
-      return PaymentMethodType.Link
+      return Result.ok(PaymentMethodType.Link)
     default:
-      throw new Error(
-        `Unknown payment method type: ${paymentMethodDetails.type}`
+      return Result.err(
+        new ValidationError(
+          'paymentMethodType',
+          `Unknown payment method type: ${paymentMethodDetails.type}`
+        )
       )
   }
 }
@@ -1419,7 +1451,7 @@ export const refundPayment = async (
   stripePaymentIntentId: string,
   partialAmount: number | null,
   livemode: boolean
-) => {
+): Promise<Result<Stripe.Refund, NotFoundError>> => {
   const paymentIntent = await stripeCall(
     'paymentIntents.retrieve',
     {
@@ -1430,7 +1462,12 @@ export const refundPayment = async (
       stripe(livemode).paymentIntents.retrieve(stripePaymentIntentId)
   )
   if (!paymentIntent.latest_charge) {
-    throw new Error('No charge found for payment intent')
+    return Result.err(
+      new NotFoundError(
+        'charge',
+        'No charge found for payment intent'
+      )
+    )
   }
 
   const chargeId =
@@ -1449,7 +1486,7 @@ export const refundPayment = async (
   )
   const hasTransfer = Boolean(charge.transfer)
 
-  return stripeCall(
+  const refund = await stripeCall(
     'refunds.create',
     {
       'stripe.payment_intent_id': stripePaymentIntentId,
@@ -1466,6 +1503,7 @@ export const refundPayment = async (
         reverse_transfer: hasTransfer ? true : undefined,
       })
   )
+  return Result.ok(refund)
 }
 
 export const listRefundsForCharge = async (
@@ -1536,10 +1574,15 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
   feeCalculation: FeeCalculation.Record
   organization: Organization.Record
   livemode: boolean
-}) => {
+}): Promise<
+  Result<Stripe.Response<Stripe.PaymentIntent>, ValidationError>
+> => {
   if (!organization.stripeAccountId && livemode) {
-    throw new Error(
-      `createAndConfirmPaymentIntent: Organization ${organization.id} does not have a Stripe account ID`
+    return Result.err(
+      new ValidationError(
+        'organization',
+        `createAndConfirmPaymentIntent: Organization ${organization.id} does not have a Stripe account ID`
+      )
     )
   }
   const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
@@ -1550,13 +1593,19 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
     billingPeriodId,
     ...feeMetadata,
   }
-  const transferData = stripeConnectTransferDataForOrganization({
-    organization,
-    livemode,
-  })
+  const transferDataResult = stripeConnectTransferDataForOrganization(
+    {
+      organization,
+      livemode,
+    }
+  )
+  if (Result.isError(transferDataResult)) {
+    return Result.err(transferDataResult.error)
+  }
+  const transferData = transferDataResult.value
 
   const applicationFeeAmount = livemode ? totalFeeAmount : undefined
-  return stripeCall(
+  const paymentIntent = await stripeCall(
     'paymentIntents.create',
     {
       'stripe.amount': amount,
@@ -1582,6 +1631,7 @@ export const createAndConfirmPaymentIntentForBillingRun = async ({
         ...transferData,
       })
   )
+  return Result.ok(paymentIntent)
 }
 
 export const createPaymentIntentForBillingRun = async ({
@@ -1604,10 +1654,15 @@ export const createPaymentIntentForBillingRun = async ({
   feeCalculation: FeeCalculation.Record
   organization: Organization.Record
   livemode: boolean
-}) => {
+}): Promise<
+  Result<Stripe.Response<Stripe.PaymentIntent>, ValidationError>
+> => {
   if (!organization.stripeAccountId && livemode) {
-    throw new Error(
-      `createPaymentIntentForBillingRun: Organization ${organization.id} does not have a Stripe account ID`
+    return Result.err(
+      new ValidationError(
+        'organization',
+        `createPaymentIntentForBillingRun: Organization ${organization.id} does not have a Stripe account ID`
+      )
     )
   }
   const totalFeeAmount = calculateTotalFeeAmount(feeCalculation)
@@ -1618,15 +1673,21 @@ export const createPaymentIntentForBillingRun = async ({
     billingPeriodId,
     ...feeMetadata,
   }
-  const transferData = stripeConnectTransferDataForOrganization({
-    organization,
-    livemode,
-  })
+  const transferDataResult = stripeConnectTransferDataForOrganization(
+    {
+      organization,
+      livemode,
+    }
+  )
+  if (Result.isError(transferDataResult)) {
+    return Result.err(transferDataResult.error)
+  }
+  const transferData = transferDataResult.value
 
   const applicationFeeAmount = livemode ? totalFeeAmount : undefined
 
   // Create payment intent WITHOUT confirming
-  return stripeCall(
+  const paymentIntent = await stripeCall(
     'paymentIntents.create',
     {
       'stripe.amount': amount,
@@ -1650,6 +1711,7 @@ export const createPaymentIntentForBillingRun = async ({
         ...transferData,
       })
   )
+  return Result.ok(paymentIntent)
 }
 
 export const confirmPaymentIntentForBillingRun = async (

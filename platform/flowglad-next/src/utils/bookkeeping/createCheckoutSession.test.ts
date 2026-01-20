@@ -6,6 +6,7 @@ import {
   expect,
   it,
 } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -438,20 +439,23 @@ describe('createCheckoutSessionTransaction', () => {
       priceId: singlePaymentPrice.id,
     }
 
-    await expect(
-      adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+    const result = await adminTransaction(async ({ transaction }) =>
+      createCheckoutSessionTransaction(
+        {
+          checkoutSessionInput,
+          organizationId: organization.id,
+          livemode: false,
+        },
+        transaction
       )
-    ).rejects.toThrow(
-      `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customer', organization='${organization.id}'.`
     )
+
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customer', organization='${organization.id}'.`
+      )
+    }
   })
 
   it('should create a checkout session for a SinglePayment product', async () => {
@@ -523,20 +527,23 @@ describe('createCheckoutSessionTransaction', () => {
       priceId: usagePrice.id,
     }
 
-    await expect(
-      adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+    const result = await adminTransaction(async ({ transaction }) =>
+      createCheckoutSessionTransaction(
+        {
+          checkoutSessionInput,
+          organizationId: organization.id,
+          livemode: false,
+        },
+        transaction
       )
-    ).rejects.toThrow(
-      'Checkout sessions are only supported for product prices (subscription/single payment), not usage prices'
     )
+
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Checkout sessions are only supported for product prices (subscription/single payment), not usage prices'
+      )
+    }
   })
 
   it('should create a checkout session for AddPaymentMethod', async () => {
@@ -604,19 +611,24 @@ describe('createCheckoutSessionTransaction', () => {
       cancelUrl: 'http://cancel.url',
     }
 
-    await expect(
-      adminTransaction(async ({ transaction }) =>
-        createCheckoutSessionTransaction(
-          {
-            // @ts-expect-error - testing invalid type
-            checkoutSessionInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+    const result = await adminTransaction(async ({ transaction }) =>
+      createCheckoutSessionTransaction(
+        {
+          // @ts-expect-error - testing invalid type
+          checkoutSessionInput,
+          organizationId: organization.id,
+          livemode: false,
+        },
+        transaction
       )
-    ).rejects.toThrow('Invalid checkout session, type: InvalidType')
+    )
+
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Invalid checkout session, type: InvalidType'
+      )
+    }
   })
 
   describe('Default product validation', () => {
@@ -648,8 +660,8 @@ describe('createCheckoutSessionTransaction', () => {
           priceId: defaultPrice.id,
         }
 
-        await expect(
-          adminTransaction(async ({ transaction }) =>
+        const result = await adminTransaction(
+          async ({ transaction }) =>
             createCheckoutSessionTransaction(
               {
                 checkoutSessionInput,
@@ -658,10 +670,14 @@ describe('createCheckoutSessionTransaction', () => {
               },
               transaction
             )
-          )
-        ).rejects.toThrow(
-          'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
         )
+
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+          )
+        }
       } finally {
         await teardownOrg({ organizationId: defaultOrg.id })
       }
@@ -742,20 +758,23 @@ describe('createCheckoutSessionTransaction', () => {
         priceId: singlePaymentPrice.id,
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        createCheckoutSessionTransaction(
+          {
+            checkoutSessionInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
         )
-      ).rejects.toThrow(
-        `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customers', organization='${organization.id}'.`
       )
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `Required customer not found for Product checkout (anonymous=false). externalId='non-existent-customers', organization='${organization.id}'.`
+        )
+      }
     })
 
     it('should populate customer fields correctly for non-anonymous checkout with valid customer', async () => {
@@ -795,20 +814,23 @@ describe('createCheckoutSessionTransaction', () => {
         cancelUrl: 'http://cancel.url',
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        createCheckoutSessionTransaction(
+          {
+            checkoutSessionInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
         )
-      ).rejects.toThrow(
-        'Customer is required for add payment method checkout sessions'
       )
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Customer is required for add payment method checkout sessions'
+        )
+      }
     })
 
     it('should require customer for ActivateSubscription checkout even with anonymous flag', async () => {
@@ -822,20 +844,23 @@ describe('createCheckoutSessionTransaction', () => {
         cancelUrl: 'http://cancel.url',
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        createCheckoutSessionTransaction(
+          {
+            checkoutSessionInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
         )
-      ).rejects.toThrow(
-        'Customer is required for activate subscription checkout sessions'
       )
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Customer is required for activate subscription checkout sessions'
+        )
+      }
     })
   })
 
@@ -856,18 +881,23 @@ describe('createCheckoutSessionTransaction', () => {
         targetSubscriptionId: 'missing_sub',
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        createCheckoutSessionTransaction(
+          {
+            checkoutSessionInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
         )
-      ).rejects.toThrow('Target subscription missing_sub not found')
+      )
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Target subscription missing_sub not found'
+        )
+      }
     })
 
     it('should throw when the target subscription belongs to another organization', async () => {
@@ -890,8 +920,8 @@ describe('createCheckoutSessionTransaction', () => {
           targetSubscriptionId: otherSubscription.id,
         })
 
-        await expect(
-          adminTransaction(async ({ transaction }) =>
+        const result = await adminTransaction(
+          async ({ transaction }) =>
             createCheckoutSessionTransaction(
               {
                 checkoutSessionInput,
@@ -900,10 +930,14 @@ describe('createCheckoutSessionTransaction', () => {
               },
               transaction
             )
-          )
-        ).rejects.toThrow(
-          `Target subscription ${otherSubscription.id} does not belong to organization ${organization.id}`
         )
+
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            `Target subscription ${otherSubscription.id} does not belong to organization ${organization.id}`
+          )
+        }
       } finally {
         await teardownOrg({ organizationId: otherOrg.id })
       }
@@ -926,20 +960,23 @@ describe('createCheckoutSessionTransaction', () => {
         targetSubscriptionId: otherCustomerSubscription.id,
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          createCheckoutSessionTransaction(
-            {
-              checkoutSessionInput,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        createCheckoutSessionTransaction(
+          {
+            checkoutSessionInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          transaction
         )
-      ).rejects.toThrow(
-        `Target subscription ${otherCustomerSubscription.id} does not belong to customer ${customer.id}`
       )
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `Target subscription ${otherCustomerSubscription.id} does not belong to customer ${customer.id}`
+        )
+      }
     })
   })
 
@@ -995,7 +1032,7 @@ describe('createCheckoutSessionTransaction', () => {
           priceSlug: subscriptionPrice.slug!,
         }
 
-        const result = (
+        const { checkoutSession } = (
           await adminTransaction(async ({ transaction }) =>
             createCheckoutSessionTransaction(
               {
@@ -1008,14 +1045,10 @@ describe('createCheckoutSessionTransaction', () => {
           )
         ).unwrap()
 
-        expect(result.checkoutSession).toMatchObject({})
-        expect(result.checkoutSession.type).toBe(
-          CheckoutSessionType.Product
-        )
-        expect(result.checkoutSession.priceId).toBe(
-          subscriptionPrice.id
-        )
-        expect(result.checkoutSession.customerId).toBe(customer.id)
+        expect(checkoutSession).toMatchObject({})
+        expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
+        expect(checkoutSession.priceId).toBe(subscriptionPrice.id)
+        expect(checkoutSession.customerId).toBe(customer.id)
       })
 
       it('should throw when priceSlug not found for customer', async () => {
@@ -1027,8 +1060,8 @@ describe('createCheckoutSessionTransaction', () => {
           priceSlug: 'non-existent-slug',
         }
 
-        await expect(
-          adminTransaction(async ({ transaction }) =>
+        const result = await adminTransaction(
+          async ({ transaction }) =>
             createCheckoutSessionTransaction(
               {
                 checkoutSessionInput,
@@ -1037,10 +1070,14 @@ describe('createCheckoutSessionTransaction', () => {
               },
               transaction
             )
-          )
-        ).rejects.toThrow(
-          'Price with slug "non-existent-slug" not found for customer\'s pricing model'
         )
+
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Price with slug "non-existent-slug" not found for customer\'s pricing model'
+          )
+        }
       })
     })
 
@@ -1054,7 +1091,7 @@ describe('createCheckoutSessionTransaction', () => {
           anonymous: true,
         }
 
-        const result = (
+        const { checkoutSession } = (
           await adminTransaction(async ({ transaction }) =>
             createCheckoutSessionTransaction(
               {
@@ -1067,14 +1104,10 @@ describe('createCheckoutSessionTransaction', () => {
           )
         ).unwrap()
 
-        expect(result.checkoutSession).toMatchObject({})
-        expect(result.checkoutSession.type).toBe(
-          CheckoutSessionType.Product
-        )
-        expect(result.checkoutSession.priceId).toBe(
-          subscriptionPrice.id
-        )
-        expect(result.checkoutSession.customerId).toBeNull()
+        expect(checkoutSession).toMatchObject({})
+        expect(checkoutSession.type).toBe(CheckoutSessionType.Product)
+        expect(checkoutSession.priceId).toBe(subscriptionPrice.id)
+        expect(checkoutSession.customerId).toBeNull()
       })
 
       it('should throw when priceSlug not found in organization default pricing model', async () => {
@@ -1086,8 +1119,8 @@ describe('createCheckoutSessionTransaction', () => {
           anonymous: true,
         }
 
-        await expect(
-          adminTransaction(async ({ transaction }) =>
+        const result = await adminTransaction(
+          async ({ transaction }) =>
             createCheckoutSessionTransaction(
               {
                 checkoutSessionInput,
@@ -1096,10 +1129,14 @@ describe('createCheckoutSessionTransaction', () => {
               },
               transaction
             )
-          )
-        ).rejects.toThrow(
-          'Price with slug "non-existent-slug" not found in organization\'s default pricing model'
         )
+
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Price with slug "non-existent-slug" not found in organization\'s default pricing model'
+          )
+        }
       })
     })
   })
