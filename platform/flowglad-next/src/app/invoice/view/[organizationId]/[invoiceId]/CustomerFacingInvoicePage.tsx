@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionUnwrap } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -16,8 +16,8 @@ export const CustomerFacingInvoicePage = (
     params: Promise<{ invoiceId: string; organizationId: string }>
   }) => {
     const { invoiceId, organizationId } = await params
-    const result = (
-      await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransactionUnwrap(
+      async ({ transaction }) => {
         const invoicesWithLineItems =
           await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
             { id: invoiceId },
@@ -54,8 +54,8 @@ export const CustomerFacingInvoicePage = (
           payments,
           discountInfo,
         }
-      })
-    ).unwrap()
+      }
+    )
 
     if (!result) {
       notFound()

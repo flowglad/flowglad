@@ -1,4 +1,4 @@
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionUnwrap } from '@/db/authenticatedTransaction'
 import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import { selectFeaturesByProductFeatureWhere } from '@/db/tableMethods/productFeatureMethods'
@@ -12,8 +12,8 @@ interface ProductPageProps {
 
 const ProductPage = async ({ params }: ProductPageProps) => {
   const { id } = await params
-  const { product, prices, pricingModel, features } = (
-    await authenticatedTransaction(async ({ transaction }) => {
+  const { product, prices, pricingModel, features } =
+    await authenticatedTransactionUnwrap(async ({ transaction }) => {
       const { prices, ...product } =
         await selectPricesAndProductByProductId(id, transaction)
       const pricingModel = await selectPricingModelById(
@@ -30,7 +30,6 @@ const ProductPage = async ({ params }: ProductPageProps) => {
       )
       return { product, prices, pricingModel, features }
     })
-  ).unwrap()
   return (
     <InternalProductDetailsPage
       product={product}

@@ -4,7 +4,7 @@ import './globals.css'
 
 import * as Sentry from '@sentry/nextjs'
 import { headers } from 'next/headers'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionUnwrap } from '@/db/adminTransaction'
 import {
   type Organization,
   organizationsClientSelectSchema,
@@ -48,8 +48,8 @@ export default async function RootLayout({
   let user: User.Record | undefined
   if (session) {
     user = await betterAuthUserToApplicationUser(session.user)
-    const [membershipData] = (
-      await adminTransaction(async ({ transaction }) => {
+    const [membershipData] = await adminTransactionUnwrap(
+      async ({ transaction }) => {
         if (!user) {
           throw new Error('User not found')
         }
@@ -60,8 +60,8 @@ export default async function RootLayout({
           },
           transaction
         )
-      })
-    ).unwrap()
+      }
+    )
 
     livemode = membershipData?.membership.livemode
     if (membershipData?.organization && membershipData.membership) {

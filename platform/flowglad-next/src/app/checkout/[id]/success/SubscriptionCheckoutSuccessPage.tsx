@@ -1,5 +1,5 @@
 import SuccessPageContainer from '@/components/SuccessPageContainer'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionUnwrap } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
@@ -28,16 +28,16 @@ const SubscriptionCheckoutSuccessPage = async ({
 
   // If we don't have the price and organization, fetch them
   if (!innerOrganization || !innerPrice) {
-    const result = (
-      await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransactionUnwrap(
+      async ({ transaction }) => {
         const [data] =
           await selectPriceProductAndOrganizationByPriceWhere(
             { id: checkoutSession.priceId! },
             transaction
           )
         return data
-      })
-    ).unwrap()
+      }
+    )
 
     if (!innerOrganization) {
       innerOrganization = result.organization
@@ -50,14 +50,14 @@ const SubscriptionCheckoutSuccessPage = async ({
   // Get customer email from customer record (same source the email system uses)
   let customerEmail: string | null = null
   if (checkoutSession.customerId) {
-    const customer = (
-      await adminTransaction(async ({ transaction }) => {
+    const customer = await adminTransactionUnwrap(
+      async ({ transaction }) => {
         return selectCustomerById(
           checkoutSession.customerId!,
           transaction
         )
-      })
-    ).unwrap()
+      }
+    )
     customerEmail = customer?.email || null
   }
 

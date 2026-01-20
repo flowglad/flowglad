@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionUnwrap } from '@/db/authenticatedTransaction'
 import { Price } from '@/db/schema/prices'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
@@ -13,8 +13,8 @@ const PurchasePage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
-  const result = (
-    await authenticatedTransaction(async ({ transaction }) => {
+  const result = await authenticatedTransactionUnwrap(
+    async ({ transaction }) => {
       const purchase = await selectPurchaseById(id, transaction)
 
       if (!purchase) {
@@ -41,8 +41,8 @@ const PurchasePage = async ({
         price,
         product,
       }
-    })
-  ).unwrap()
+    }
+  )
 
   if (!result || !result.purchase || !result.customer) {
     notFound()

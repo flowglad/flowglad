@@ -1,5 +1,5 @@
 import SuccessPageContainer from '@/components/SuccessPageContainer'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionUnwrap } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
@@ -16,14 +16,14 @@ const PurchaseCheckoutSuccessPage = async ({
   // Get customer email from customer record (same source the email system uses)
   let customerEmail: string | null = null
   if (checkoutSession.customerId) {
-    const customer = (
-      await adminTransaction(async ({ transaction }) => {
+    const customer = await adminTransactionUnwrap(
+      async ({ transaction }) => {
         return selectCustomerById(
           checkoutSession.customerId!,
           transaction
         )
-      })
-    ).unwrap()
+      }
+    )
     customerEmail = customer?.email || null
   }
 
@@ -39,16 +39,16 @@ const PurchaseCheckoutSuccessPage = async ({
   }
 
   // Get the price and organization to check if it's a subscription
-  const { price, organization } = (
-    await adminTransaction(async ({ transaction }) => {
+  const { price, organization } = await adminTransactionUnwrap(
+    async ({ transaction }) => {
       const [data] =
         await selectPriceProductAndOrganizationByPriceWhere(
           { id: checkoutSession.priceId! },
           transaction
         )
       return { price: data.price, organization: data.organization }
-    })
-  ).unwrap()
+    }
+  )
 
   // If the price is a subscription or usage type, render the subscription success page
   if (

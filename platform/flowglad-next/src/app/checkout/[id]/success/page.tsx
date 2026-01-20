@@ -1,4 +1,4 @@
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionUnwrap } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { CheckoutSessionType } from '@/types'
 import AddPaymentCheckoutSuccessPage from './AddPaymentCheckoutSuccessPage'
@@ -15,15 +15,15 @@ async function CheckoutSuccessPage({
   // 2. AddPaymentMethod
   // 3. Product
   const { id } = await params
-  const checkoutSession = (
-    await adminTransaction(async ({ transaction }) => {
+  const checkoutSession = await adminTransactionUnwrap(
+    async ({ transaction }) => {
       const checkoutSession = await selectCheckoutSessionById(
         id,
         transaction
       )
       return checkoutSession
-    })
-  ).unwrap()
+    }
+  )
   switch (checkoutSession.type) {
     case CheckoutSessionType.Purchase:
       return (

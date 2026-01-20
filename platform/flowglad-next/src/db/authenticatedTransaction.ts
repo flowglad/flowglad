@@ -44,6 +44,17 @@ export async function authenticatedTransaction<T>(
 }
 
 /**
+ * Executes a function within an authenticated database transaction and unwraps the result.
+ * Use this variant in SSR components or other contexts where you want data or throw.
+ */
+export async function authenticatedTransactionUnwrap<T>(
+  fn: (params: AuthenticatedTransactionParams) => Promise<T>,
+  options?: AuthenticatedTransactionOptions
+): Promise<T> {
+  return (await authenticatedTransaction(fn, options)).unwrap()
+}
+
+/**
  * Core comprehensive authenticated transaction logic without tracing.
  * Returns the full Result plus auth info and processed counts so the traced wrapper can extract accurate metrics.
  */

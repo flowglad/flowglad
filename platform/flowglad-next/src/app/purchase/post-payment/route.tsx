@@ -1,7 +1,7 @@
 import { Result } from 'better-result'
 import type { NextRequest } from 'next/server'
 import {
-  adminTransaction,
+  adminTransactionUnwrap,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -301,8 +301,8 @@ export const GET = async (request: NextRequest) => {
      */
     if (purchase) {
       const priceId = purchase.priceId
-      const { product } = (
-        await adminTransaction(async ({ transaction }) => {
+      const { product } = await adminTransactionUnwrap(
+        async ({ transaction }) => {
           // Usage prices have null productId, causing innerJoin to return empty array
           const results =
             await selectPriceProductAndOrganizationByPriceWhere(
@@ -314,8 +314,8 @@ export const GET = async (request: NextRequest) => {
           return {
             product: results.length > 0 ? results[0].product : null,
           }
-        })
-      ).unwrap()
+        }
+      )
 
       /**
        * As the purchase session cookie is no longer needed, delete it.

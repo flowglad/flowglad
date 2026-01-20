@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import { shouldBlockCheckout } from '@/app/checkout/guard'
 import CheckoutPage from '@/components/CheckoutPage'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionUnwrap } from '@/db/adminTransaction'
 import {
   type CheckoutInfoCore,
   checkoutInfoSchema,
@@ -29,11 +29,9 @@ const CheckoutSessionPage = async ({
     maybeCurrentSubscriptions,
     discount,
     isEligibleForTrial,
-  } = (
-    await adminTransaction(async ({ transaction }) => {
-      return checkoutInfoForCheckoutSession(id, transaction)
-    })
-  ).unwrap()
+  } = await adminTransactionUnwrap(async ({ transaction }) => {
+    return checkoutInfoForCheckoutSession(id, transaction)
+  })
 
   if (!checkoutSession) {
     notFound()

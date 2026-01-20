@@ -1,6 +1,6 @@
 import { count, eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionUnwrap } from '@/db/authenticatedTransaction'
 import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { NotFoundError } from '@/db/tableUtils'
@@ -15,8 +15,8 @@ interface PageProps {
 const DiscountPage = async ({ params }: PageProps) => {
   const { id } = await params
 
-  const result = (
-    await authenticatedTransaction(async ({ transaction }) => {
+  const result = await authenticatedTransactionUnwrap(
+    async ({ transaction }) => {
       let discount
       try {
         discount = await selectDiscountById(id, transaction)
@@ -40,8 +40,8 @@ const DiscountPage = async ({ params }: PageProps) => {
         discount,
         redemptionCount: redemptionResult?.count ?? 0,
       }
-    })
-  ).unwrap()
+    }
+  )
 
   if (!result) {
     notFound()

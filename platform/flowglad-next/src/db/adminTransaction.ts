@@ -37,6 +37,17 @@ export async function adminTransaction<T>(
 }
 
 /**
+ * Executes a function within an admin database transaction and unwraps the result.
+ * Use this variant in SSR components or other contexts where you want data or throw.
+ */
+export async function adminTransactionUnwrap<T>(
+  fn: (params: AdminTransactionParams) => Promise<T>,
+  options: AdminTransactionOptions = {}
+): Promise<T> {
+  return (await adminTransaction(fn, options)).unwrap()
+}
+
+/**
  * Core comprehensive admin transaction logic without tracing.
  * Returns the full Result plus processed counts so the traced wrapper can extract accurate metrics.
  */

@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation'
 import CheckoutPage from '@/components/CheckoutPage'
 import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionUnwrap } from '@/db/adminTransaction'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
@@ -20,8 +20,8 @@ const PayPurchasePage = async ({
   params: Promise<{ id: string }>
 }) => {
   const { id } = await params
-  const rawContextValues = (
-    await adminTransaction(async ({ transaction }) => {
+  const rawContextValues = await adminTransactionUnwrap(
+    async ({ transaction }) => {
       const result = await selectPurchaseCheckoutParametersById(
         id,
         transaction
@@ -70,8 +70,8 @@ const PayPurchasePage = async ({
         readonlyCustomerEmail: maybeCustomer?.email,
         discount,
       }
-    })
-  ).unwrap()
+    }
+  )
 
   const purchase = rawContextValues.purchase
   const checkoutSession = rawContextValues.checkoutSession

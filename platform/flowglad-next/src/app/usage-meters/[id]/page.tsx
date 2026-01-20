@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionUnwrap } from '@/db/authenticatedTransaction'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import InnerUsageMeterDetailsPage from './InnerUsageMeterDetailsPage'
@@ -11,8 +11,8 @@ interface UsageMeterPageProps {
 const UsageMeterPage = async ({ params }: UsageMeterPageProps) => {
   const { id } = await params
 
-  const { usageMeter, pricingModel } = (
-    await authenticatedTransaction(async ({ transaction }) => {
+  const { usageMeter, pricingModel } =
+    await authenticatedTransactionUnwrap(async ({ transaction }) => {
       const [usageMeter] = await selectUsageMeters(
         { id },
         transaction
@@ -32,7 +32,6 @@ const UsageMeterPage = async ({ params }: UsageMeterPageProps) => {
         pricingModel: pricingModel ?? null,
       }
     })
-  ).unwrap()
 
   if (!usageMeter) {
     notFound()

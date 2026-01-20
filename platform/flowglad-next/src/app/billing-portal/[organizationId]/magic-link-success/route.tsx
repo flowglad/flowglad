@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { type NextRequest, NextResponse } from 'next/server'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionUnwrap } from '@/db/adminTransaction'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { getSession } from '@/utils/auth'
 import { betterAuthUserToApplicationUser } from '@/utils/authHelpers'
@@ -23,14 +23,14 @@ export const GET = async (
 
   const user = await betterAuthUserToApplicationUser(session.user)
   const { organizationId } = await params
-  const customers = (
-    await adminTransaction(async ({ transaction }) => {
+  const customers = await adminTransactionUnwrap(
+    async ({ transaction }) => {
       return selectCustomers(
         { userId: user.id, organizationId },
         transaction
       )
-    })
-  ).unwrap()
+    }
+  )
 
   if (customers.length === 0) {
     await clearCustomerBillingPortalOrganizationId()

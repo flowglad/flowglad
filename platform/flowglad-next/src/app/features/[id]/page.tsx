@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionUnwrap } from '@/db/authenticatedTransaction'
 import { selectFeatureById } from '@/db/tableMethods/featureMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectUsageMeterById } from '@/db/tableMethods/usageMeterMethods'
@@ -14,8 +14,8 @@ interface FeaturePageProps {
 const FeaturePage = async ({ params }: FeaturePageProps) => {
   const { id } = await params
 
-  const { feature, pricingModel, usageMeter } = (
-    await authenticatedTransaction(async ({ transaction }) => {
+  const { feature, pricingModel, usageMeter } =
+    await authenticatedTransactionUnwrap(async ({ transaction }) => {
       let feature
       try {
         feature = await selectFeatureById(id, transaction)
@@ -54,7 +54,6 @@ const FeaturePage = async ({ params }: FeaturePageProps) => {
         usageMeter,
       }
     })
-  ).unwrap()
 
   if (!feature) {
     notFound()

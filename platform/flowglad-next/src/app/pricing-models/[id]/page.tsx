@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import { authenticatedTransactionUnwrap } from '@/db/authenticatedTransaction'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import InnerPricingModelDetailsPage from './InnerPricingModelDetailsPage'
 
@@ -11,15 +11,15 @@ const PricingModelPage = async ({
   params,
 }: PricingModelPageProps) => {
   const { id } = await params
-  const pricingModel = (
-    await authenticatedTransaction(async ({ transaction }) => {
+  const pricingModel = await authenticatedTransactionUnwrap(
+    async ({ transaction }) => {
       const [pricingModel] = await selectPricingModels(
         { id },
         transaction
       )
       return pricingModel
-    })
-  ).unwrap()
+    }
+  )
 
   if (!pricingModel) {
     notFound()

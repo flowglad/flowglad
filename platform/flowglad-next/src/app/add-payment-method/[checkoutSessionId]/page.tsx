@@ -4,7 +4,7 @@ import { notFound, redirect } from 'next/navigation'
 import CheckoutForm from '@/components/CheckoutForm'
 import { LightThemeWrapper } from '@/components/LightThemeWrapper'
 import CheckoutPageProvider from '@/contexts/checkoutPageContext'
-import { adminTransaction } from '@/db/adminTransaction'
+import { adminTransactionUnwrap } from '@/db/adminTransaction'
 import { selectCheckoutSessionById } from '@/db/tableMethods/checkoutSessionMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -23,8 +23,8 @@ const CheckoutSessionPage = async ({
   params: Promise<{ checkoutSessionId: string }>
 }) => {
   const { checkoutSessionId } = await params
-  const { checkoutSession, sellerOrganization, customer } = (
-    await adminTransaction(async ({ transaction }) => {
+  const { checkoutSession, sellerOrganization, customer } =
+    await adminTransactionUnwrap(async ({ transaction }) => {
       const checkoutSession = await selectCheckoutSessionById(
         checkoutSessionId,
         transaction
@@ -48,7 +48,6 @@ const CheckoutSessionPage = async ({
         customer,
       }
     })
-  ).unwrap()
 
   if (!checkoutSession) {
     notFound()
