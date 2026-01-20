@@ -321,8 +321,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
 
-      expect(result?.billingRun.id).toBe(billingRun.id)
-      expect(result?.invoice.id).toBe(invoice.id)
+      expect(result.unwrap().billingRun.id).toBe(billingRun.id)
+      expect(result.unwrap().invoice.id).toBe(invoice.id)
 
       expect(effects.ledgerCommands.length).toBeGreaterThan(0)
       const invoiceLedgerCommand =
@@ -1286,7 +1286,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
 
     // Return value should have empty invoice line items (deleted in early exit)
-    expect(result.invoiceLineItems.length).toBe(0)
+    expect(result.unwrap().invoiceLineItems.length).toBe(0)
 
     // Verify no overages/ledger entries were created
     await adminTransaction(async ({ transaction }) => {
