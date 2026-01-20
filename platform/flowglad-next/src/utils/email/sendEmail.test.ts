@@ -14,8 +14,9 @@ const mockResponse = {
   error: null,
 } as const
 
-const { mockSafeSend } = vi.hoisted(() => ({
+const { mockSafeSend, mockEnvVariable } = vi.hoisted(() => ({
   mockSafeSend: vi.fn(),
+  mockEnvVariable: vi.fn(),
 }))
 
 vi.mock('@/utils/email', async (importOriginal) => {
@@ -27,9 +28,29 @@ vi.mock('@/utils/email', async (importOriginal) => {
   }
 })
 
+vi.mock('@/utils/core', async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import('@/utils/core')>()
+  return {
+    ...original,
+    default: {
+      ...original.default,
+      envVariable: mockEnvVariable,
+    },
+  }
+})
+
 beforeEach(() => {
   mockSafeSend.mockClear()
   mockSafeSend.mockResolvedValue(mockResponse)
+  mockEnvVariable.mockClear()
+  // Default: return test email for DEV_EMAIL_REDIRECT, undefined for others
+  mockEnvVariable.mockImplementation((key: string) => {
+    if (key === 'DEV_EMAIL_REDIRECT') {
+      return 'test-redirect@flowglad.com'
+    }
+    return undefined
+  })
 })
 
 describe('sendEmail', () => {
