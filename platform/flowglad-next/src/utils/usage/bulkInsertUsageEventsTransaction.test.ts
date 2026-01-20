@@ -617,7 +617,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
           })
       )
 
-      // Create a default price for the count distinct meter (required for meter ID resolution)
+      // Default price must exist for meter-based events (required by system invariant),
+      // even though this test expects an error before price resolution is reached
       const countDistinctDefaultPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({
@@ -695,7 +696,8 @@ describe('bulkInsertUsageEventsTransaction', () => {
           })
       )
 
-      // Create a default price for the count distinct meter (required for meter ID resolution)
+      // Default price must exist for meter-based events (required by system invariant),
+      // even though this test expects an error before price resolution is reached
       const countDistinctDefaultPrice = await adminTransaction(
         async ({ transaction }) =>
           setupPrice({

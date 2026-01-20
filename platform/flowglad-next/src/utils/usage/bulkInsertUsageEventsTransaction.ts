@@ -420,7 +420,7 @@ function resolveEventIdentifiers(
   })
 }
 
-// Step 7: Resolve default prices for events using meter identifiers
+// Step 8: Resolve default prices for events using meter identifiers
 // When events use usageMeterId or usageMeterSlug without an explicit priceId,
 // we need to resolve to the meter's default price
 // NOTE: This step runs AFTER meter validation to ensure we only resolve prices
@@ -494,7 +494,7 @@ async function resolveDefaultPricesForMeterEvents(
   })
 }
 
-// Step 5: Validate prices and build price map (moved before meter validation)
+// Step 6: Validate prices and build price map
 async function validatePricesAndBuildMap(
   context: WithResolvedEventsContext
 ): Promise<Result<WithValidatedPricesContext, TRPCError>> {
@@ -690,7 +690,7 @@ async function validateUsageMeters(
   })
 }
 
-// Step 8: Assemble final insert records with billing periods
+// Step 9: Assemble final insert records with billing periods
 function assembleFinalInserts(
   context: WithDefaultPricesContext
 ): Result<WithFinalInsertsContext, TRPCError> {
@@ -776,7 +776,7 @@ function assembleFinalInserts(
   })
 }
 
-// Step 9: Insert events and enqueue ledger commands
+// Step 10: Insert events and enqueue ledger commands
 async function insertAndEnqueueLedger(
   context: WithFinalInsertsContext
 ): Promise<
