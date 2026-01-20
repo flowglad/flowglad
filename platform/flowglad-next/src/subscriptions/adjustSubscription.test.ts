@@ -5957,7 +5957,7 @@ describe('adjustSubscription Integration Tests', async () => {
         })
       })
 
-      it('during end-of-period downgrade interim, claims succeed against old capacity but may exceed new capacity after transition (documenting current behavior)', async () => {
+      it('during end-of-period downgrade interim, excess claims are temporary and expire at transition', async () => {
         // Edge Case 2: End-of-period downgrade with interim claims
         // This documents current behavior where claims during interim period
         // succeed against OLD capacity, potentially resulting in claims > capacity
@@ -6184,12 +6184,14 @@ describe('adjustSubscription Integration Tests', async () => {
               },
               transaction
             )
-          expect(claimsAfterTransition.length).toBe(3) // All 3 claims persist
+          // All 3 claim records still exist in the database (not released yet)
+          // selectActiveResourceClaims uses Date.now(), so the temporary claim
+          // is still considered "active" in real time
+          expect(claimsAfterTransition.length).toBe(3)
 
-          // DOCUMENTING CURRENT BEHAVIOR:
-          // After transition, the usage shows new (reduced) capacity
-          // but claims may exceed that capacity
-          // Use anchorDate to simulate checking capacity at a future time
+          // However, when checking usage at the anchor date (after transition),
+          // the temporary claim (user-3) has expiredAt = periodEnd, which is
+          // before afterTransitionAnchor. So it's correctly filtered out.
           const usageAfterTransition = await getResourceUsage(
             subscription.id,
             resource.id,
@@ -6197,11 +6199,10 @@ describe('adjustSubscription Integration Tests', async () => {
             afterTransitionAnchor
           )
           expect(usageAfterTransition.capacity).toBe(2) // New capacity
-          expect(usageAfterTransition.claimed).toBe(3) // Claims exceed capacity!
-          // Available may be negative or 0 depending on implementation
-          expect(usageAfterTransition.available).toBeLessThanOrEqual(
-            0
-          )
+          // Temporary claim (user-3) expired at periodEnd, so only 2 claims count
+          expect(usageAfterTransition.claimed).toBe(2)
+          // Capacity matches claimed - no excess, no availability
+          expect(usageAfterTransition.available).toBe(0)
 
           return Result.ok(null)
         })
