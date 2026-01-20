@@ -47,6 +47,7 @@ import {
   derivePricingModelIdFromBillingPeriod,
   derivePricingModelIdsFromBillingPeriods,
 } from './billingPeriodMethods'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 
 const config: ORMMethodCreatorConfig<
   typeof billingPeriodItems,
@@ -128,12 +129,12 @@ export const bulkInsertBillingPeriodItems = async (
   const insertsWithPricingModelId = inserts.map((insert) => {
     const pricingModelId =
       insert.pricingModelId ??
-      pricingModelIdMap.get(insert.billingPeriodId)
-    if (!pricingModelId) {
-      throw new Error(
-        `Could not derive pricingModelId for billing period ${insert.billingPeriodId}`
-      )
-    }
+      derivePricingModelIdFromMap({
+        entityId: insert.billingPeriodId,
+        entityType: 'billingPeriod',
+        pricingModelIdMap,
+      }).unwrap()
+
     return {
       ...insert,
       pricingModelId,

@@ -14,6 +14,7 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '../types'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromSubscription,
   pricingModelIdsForSubscriptions,
@@ -100,12 +101,12 @@ const bulkInsertOrDoNothingLedgerTransaction = async (
     (insert) => {
       const pricingModelId =
         insert.pricingModelId ??
-        pricingModelIdMap.get(insert.subscriptionId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Could not derive pricingModelId for subscription ${insert.subscriptionId}`
-        )
-      }
+        derivePricingModelIdFromMap({
+          entityId: insert.subscriptionId,
+          entityType: 'subscription',
+          pricingModelIdMap,
+        }).unwrap()
+
       return {
         ...insert,
         pricingModelId,

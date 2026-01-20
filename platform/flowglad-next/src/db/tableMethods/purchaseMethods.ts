@@ -66,6 +66,7 @@ import {
   derivePricingModelIdFromPrice,
   pricingModelIdsForPrices,
 } from './priceMethods'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -365,12 +366,12 @@ export const bulkInsertPurchases = async (
     (purchaseInsert) => {
       const pricingModelId =
         purchaseInsert.pricingModelId ??
-        pricingModelIdMap.get(purchaseInsert.priceId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Pricing model id not found for price ${purchaseInsert.priceId}`
-        )
-      }
+        derivePricingModelIdFromMap({
+          entityId: purchaseInsert.priceId,
+          entityType: 'price',
+          pricingModelIdMap,
+        }).unwrap()
+
       return {
         ...purchaseInsert,
         pricingModelId,

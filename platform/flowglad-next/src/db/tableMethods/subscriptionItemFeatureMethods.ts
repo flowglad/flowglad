@@ -31,6 +31,7 @@ import {
   SubscriptionItem,
   subscriptionItems,
 } from '../schema/subscriptionItems'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromSubscriptionItem,
   derivePricingModelIdsFromSubscriptionItems,
@@ -377,12 +378,12 @@ export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
     const insertsWithPricingModelId = inserts.map((insert) => {
       const pricingModelId =
         insert.pricingModelId ??
-        pricingModelIdMap.get(insert.subscriptionItemId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Could not derive pricingModelId for subscription item ${insert.subscriptionItemId}`
-        )
-      }
+        derivePricingModelIdFromMap({
+          entityId: insert.subscriptionItemId,
+          entityType: 'subscriptionItem',
+          pricingModelIdMap,
+        }).unwrap()
+
       return {
         ...insert,
         pricingModelId,
@@ -423,12 +424,12 @@ export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscription
     const insertsWithPricingModelId = inserts.map((insert) => {
       const pricingModelId =
         insert.pricingModelId ??
-        pricingModelIdMap.get(insert.subscriptionItemId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Could not derive pricingModelId for subscription item ${insert.subscriptionItemId}`
-        )
-      }
+        derivePricingModelIdFromMap({
+          entityId: insert.subscriptionItemId,
+          entityType: 'subscriptionItem',
+          pricingModelIdMap,
+        }).unwrap()
+
       return {
         ...insert,
         pricingModelId,

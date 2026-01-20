@@ -21,6 +21,7 @@ import { UsageCreditStatus } from '@/types'
 import type { Payment } from '../schema/payments'
 import type { UsageMeter } from '../schema/usageMeters'
 import type { DbTransaction } from '../types'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromUsageMeter,
   pricingModelIdsForUsageMeters,
@@ -108,12 +109,12 @@ export const bulkInsertUsageCredits = async (
     (usageCreditInsert): UsageCredit.Insert => {
       const pricingModelId =
         usageCreditInsert.pricingModelId ??
-        pricingModelIdMap.get(usageCreditInsert.usageMeterId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Pricing model id not found for usage meter ${usageCreditInsert.usageMeterId}`
-        )
-      }
+        derivePricingModelIdFromMap({
+          entityId: usageCreditInsert.usageMeterId,
+          entityType: 'usageMeter',
+          pricingModelIdMap,
+        }).unwrap()
+
       return {
         ...usageCreditInsert,
         pricingModelId,
@@ -142,12 +143,12 @@ export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter
       (usageCreditInsert): UsageCredit.Insert => {
         const pricingModelId =
           usageCreditInsert.pricingModelId ??
-          pricingModelIdMap.get(usageCreditInsert.usageMeterId)
-        if (!pricingModelId) {
-          throw new Error(
-            `Pricing model id not found for usage meter ${usageCreditInsert.usageMeterId}`
-          )
-        }
+          derivePricingModelIdFromMap({
+            entityId: usageCreditInsert.usageMeterId,
+            entityType: 'usageMeter',
+            pricingModelIdMap,
+          }).unwrap()
+
         return {
           ...usageCreditInsert,
           pricingModelId,
