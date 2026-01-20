@@ -74,6 +74,13 @@ Do NOT attempt to use `WebFetch` or `curl` for Notion URLs—Notion requires aut
 ## Tests to Implement
 {Test stubs for this patch only, verbatim from gameplan}
 
+## Setup Instructions (REQUIRED)
+Before starting any development work, you MUST run the initialization script:
+```bash
+bun run init:flowglad-next
+```
+This script pulls environment variables and sets up the local development environment. Without this, builds and tests will fail.
+
 ## Git Instructions
 - Branch from: `{base branch determined in step 5 for this patch}`
 - Branch name: `{project-name}/patch-{N}-{descriptive-slug}`
