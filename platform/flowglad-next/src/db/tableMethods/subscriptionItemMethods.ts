@@ -727,3 +727,38 @@ export const selectCurrentlyActiveSubscriptionItems = async (
 
   return result.map((row) => subscriptionItemsSelectSchema.parse(row))
 }
+
+/**
+ * Selects all subscription items including scheduled future items.
+ * Unlike selectCurrentlyActiveSubscriptionItems which only returns items active at a point in time,
+ * this function returns all items that haven't expired, including those scheduled to start in the future.
+ *
+ * Useful for determining scheduled capacity changes.
+ *
+ * @param whereConditions - Filter conditions (typically subscriptionId)
+ * @param anchorDate - Reference date for expiration check (items with expiredAt <= anchorDate are excluded)
+ * @param transaction - Database transaction
+ * @returns All non-expired subscription items including future scheduled ones
+ */
+export const selectSubscriptionItemsIncludingScheduled = async (
+  whereConditions: SelectConditions<typeof subscriptionItems>,
+  anchorDate: Date | number,
+  transaction: DbTransaction
+) => {
+  const result = await transaction
+    .select()
+    .from(subscriptionItems)
+    .where(
+      and(
+        whereClauseFromObject(subscriptionItems, whereConditions),
+        // Item must not have expired (expiredAt is null OR expiredAt > anchorDate)
+        // Note: We intentionally do NOT filter by addedDate here to include future scheduled items
+        createDateNotPassedFilter(
+          subscriptionItems.expiredAt,
+          anchorDate
+        )
+      )
+    )
+
+  return result.map((row) => subscriptionItemsSelectSchema.parse(row))
+}

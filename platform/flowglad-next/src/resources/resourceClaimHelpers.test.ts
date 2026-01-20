@@ -20,7 +20,10 @@ import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatur
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
-import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
+import {
+  countActiveResourceClaims,
+  selectActiveResourceClaims,
+} from '@/db/tableMethods/resourceClaimMethods'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import {
   FeatureType,
@@ -33,9 +36,8 @@ import {
   getResourceUsage,
   getResourceUsageInputSchema,
   releaseAllResourceClaimsForSubscription,
-  releaseAllResourceClaimsForSubscriptionItemFeature,
+  releaseExpiredResourceClaims,
   releaseResourceTransaction,
-  validateResourceCapacityForDowngrade,
 } from './resourceClaimHelpers'
 
 describe('resourceClaimHelpers', () => {
@@ -176,7 +178,6 @@ describe('resourceClaimHelpers', () => {
       for (let i = 0; i < 5; i++) {
         await setupResourceClaim({
           organizationId: organization.id,
-          subscriptionItemFeatureId: subscriptionItemFeature.id,
           resourceId: resource.id,
           subscriptionId: subscription.id,
           pricingModelId: pricingModel.id,
@@ -364,6 +365,145 @@ describe('resourceClaimHelpers', () => {
       })
       expect(result.usage.resourceId).toBe(resource.id)
     })
+
+    describe('optimistic locking behavior', () => {
+      it('when claiming multiple resources atomically, either all claims succeed or none do (no partial inserts)', async () => {
+        // Pre-fill 4 of 5 capacity slots
+        for (let i = 0; i < 4; i++) {
+          await setupResourceClaim({
+            organizationId: organization.id,
+            resourceId: resource.id,
+            subscriptionId: subscription.id,
+            pricingModelId: pricingModel.id,
+            externalId: `prefill-${i}`,
+          })
+        }
+
+        // Try to claim 2 resources when only 1 slot available
+        // Should fail completely - no partial insert
+        await expect(
+          adminTransaction(async ({ transaction }) => {
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 2,
+                },
+              },
+              transaction
+            )
+          })
+        ).rejects.toThrow('No available capacity')
+
+        // Verify no partial claims were created - should still have exactly 4
+        const activeClaims = await adminTransaction(
+          async ({ transaction }) => {
+            return selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          }
+        )
+        expect(activeClaims.length).toBe(4)
+        // All should be our prefill claims
+        expect(
+          activeClaims.every((c) =>
+            c.externalId?.startsWith('prefill-')
+          )
+        ).toBe(true)
+      })
+
+      it('when batch claim succeeds, all claims are inserted atomically', async () => {
+        // Claim 3 resources atomically
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  externalIds: ['user-a', 'user-b', 'user-c'],
+                },
+              },
+              transaction
+            )
+          }
+        )
+
+        // All 3 should be created
+        expect(result.claims.length).toBe(3)
+        expect(result.claims.map((c) => c.externalId).sort()).toEqual(
+          ['user-a', 'user-b', 'user-c']
+        )
+
+        // Verify in database
+        const activeClaims = await adminTransaction(
+          async ({ transaction }) => {
+            return selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          }
+        )
+        expect(activeClaims.length).toBe(3)
+      })
+
+      it('when exact capacity is requested, succeeds without over-claiming', async () => {
+        // Claim exactly 5 (full capacity)
+        const result = await adminTransaction(
+          async ({ transaction }) => {
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 5,
+                },
+              },
+              transaction
+            )
+          }
+        )
+
+        expect(result.claims.length).toBe(5)
+        expect(result.usage).toMatchObject({
+          capacity: 5,
+          claimed: 5,
+          available: 0,
+        })
+
+        // Trying to claim one more should fail
+        await expect(
+          adminTransaction(async ({ transaction }) => {
+            return claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: 'seats',
+                  subscriptionId: subscription.id,
+                  quantity: 1,
+                },
+              },
+              transaction
+            )
+          })
+        ).rejects.toThrow('No available capacity')
+      })
+    })
   })
 
   describe('releaseResourceTransaction', () => {
@@ -439,7 +579,10 @@ describe('resourceClaimHelpers', () => {
       const activeClaims = await adminTransaction(
         async ({ transaction }) => {
           return selectActiveResourceClaims(
-            { subscriptionItemFeatureId: subscriptionItemFeature.id },
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
             transaction
           )
         }
@@ -625,77 +768,6 @@ describe('resourceClaimHelpers', () => {
     })
   })
 
-  describe('validateResourceCapacityForDowngrade', () => {
-    it('when active claims are less than or equal to new capacity, passes validation without error', async () => {
-      // Create 2 claims
-      await adminTransaction(async ({ transaction }) => {
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
-            },
-          },
-          transaction
-        )
-      })
-
-      // Validate downgrade to capacity of 3 (greater than 2 claims) - should pass
-      await adminTransaction(async ({ transaction }) => {
-        await validateResourceCapacityForDowngrade(
-          subscription.id,
-          subscriptionItemFeature.id,
-          3,
-          transaction
-        )
-      })
-
-      // Validate downgrade to capacity of 2 (equal to claims) - should pass
-      await adminTransaction(async ({ transaction }) => {
-        await validateResourceCapacityForDowngrade(
-          subscription.id,
-          subscriptionItemFeature.id,
-          2,
-          transaction
-        )
-      })
-      // If we reach here without throwing, validation passed
-    })
-
-    it('when active claims exceed new capacity, throws an error with release instructions', async () => {
-      // Create 5 claims
-      await adminTransaction(async ({ transaction }) => {
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 5,
-            },
-          },
-          transaction
-        )
-      })
-
-      // Try to downgrade to capacity of 3
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return validateResourceCapacityForDowngrade(
-            subscription.id,
-            subscriptionItemFeature.id,
-            3,
-            transaction
-          )
-        })
-      ).rejects.toThrow('Cannot reduce capacity to 3')
-    })
-  })
-
   describe('releaseAllResourceClaimsForSubscription', () => {
     it('releases all active claims for a subscription with the given reason, including both anonymous and named claims', async () => {
       // Create mixed claims: 3 anonymous + 2 named = 5 total
@@ -769,81 +841,6 @@ describe('resourceClaimHelpers', () => {
     })
   })
 
-  describe('releaseAllResourceClaimsForSubscriptionItemFeature', () => {
-    it('releases all active claims for a subscription item feature with the given reason and returns accurate count', async () => {
-      // Create mixed claims: 2 anonymous + 2 named = 4 total
-      await adminTransaction(async ({ transaction }) => {
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              quantity: 2,
-            },
-          },
-          transaction
-        )
-      })
-
-      await adminTransaction(async ({ transaction }) => {
-        return claimResourceTransaction(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            input: {
-              resourceSlug: 'seats',
-              subscriptionId: subscription.id,
-              externalIds: ['feature_user_1', 'feature_user_2'],
-            },
-          },
-          transaction
-        )
-      })
-
-      // Release all claims for the subscription item feature
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return releaseAllResourceClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'feature_removed',
-            transaction
-          )
-        }
-      )
-
-      expect(result.releasedCount).toBe(4)
-
-      // Verify all claims are released
-      const activeClaims = await adminTransaction(
-        async ({ transaction }) => {
-          return selectActiveResourceClaims(
-            {
-              subscriptionItemFeatureId: subscriptionItemFeature.id,
-            },
-            transaction
-          )
-        }
-      )
-      expect(activeClaims.length).toBe(0)
-    })
-
-    it('when there are no active claims, returns releasedCount of 0', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return releaseAllResourceClaimsForSubscriptionItemFeature(
-            subscriptionItemFeature.id,
-            'feature_removed',
-            transaction
-          )
-        }
-      )
-
-      expect(result.releasedCount).toBe(0)
-    })
-  })
-
   describe('getResourceUsage', () => {
     it('returns accurate capacity, claimed count, and available slots', async () => {
       // Create 3 claims
@@ -866,7 +863,7 @@ describe('resourceClaimHelpers', () => {
         async ({ transaction }) => {
           return getResourceUsage(
             subscription.id,
-            subscriptionItemFeature.id,
+            resource.id,
             transaction
           )
         }
@@ -884,7 +881,7 @@ describe('resourceClaimHelpers', () => {
         async ({ transaction }) => {
           return getResourceUsage(
             subscription.id,
-            subscriptionItemFeature.id,
+            resource.id,
             transaction
           )
         }
@@ -1113,7 +1110,10 @@ describe('resourceClaimHelpers', () => {
       const activeClaims = await adminTransaction(
         async ({ transaction }) => {
           return selectActiveResourceClaims(
-            { subscriptionItemFeatureId: subscriptionItemFeature.id },
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
             transaction
           )
         }
@@ -1239,5 +1239,479 @@ describe('getResourceUsageInputSchema', () => {
     expect(result.error?.issues[0].message).toBe(
       'Exactly one of resourceSlug or resourceId must be provided'
     )
+  })
+})
+
+describe('expired_at functionality', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let customer: Customer.Record
+  let resource: Resource.Record
+  let subscription: Subscription.Record
+  let subscriptionItem: SubscriptionItem.Record
+  let subscriptionItemFeature: SubscriptionItemFeature.ResourceRecord
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    resource = await setupResource({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      slug: 'seats',
+      name: 'Seats',
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: 'test-expired@test.com',
+      livemode: true,
+    })
+
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    const product = await setupProduct({
+      organizationId: organization.id,
+      name: 'Test Product',
+      pricingModelId: pricingModel.id,
+      livemode: true,
+    })
+
+    const price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: true,
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+    })
+
+    subscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Resource Subscription Item',
+      quantity: 1,
+      unitPrice: 1000,
+    })
+
+    // Create a Resource feature with capacity of 5
+    const resourceFeature = await adminTransaction(
+      async ({ transaction }) => {
+        return insertFeature(
+          {
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            type: FeatureType.Resource,
+            name: 'Seats Feature',
+            slug: 'seats-feature',
+            description: 'Resource feature for seats',
+            amount: 5,
+            usageMeterId: null,
+            renewalFrequency: null,
+            resourceId: resource.id,
+            livemode: true,
+            active: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    subscriptionItemFeature =
+      await setupResourceSubscriptionItemFeature({
+        subscriptionItemId: subscriptionItem.id,
+        featureId: resourceFeature.id,
+        resourceId: resource.id,
+        pricingModelId: pricingModel.id,
+        amount: 5,
+      })
+  })
+
+  describe('expired claims filtering', () => {
+    it('selectActiveResourceClaims excludes claims with expiredAt in the past', async () => {
+      // Create a claim that has already expired (1 hour ago)
+      const oneHourAgo = Date.now() - 60 * 60 * 1000
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'expired-user',
+        expiredAt: oneHourAgo,
+      })
+
+      // Create an active claim (no expiration)
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'active-user',
+        expiredAt: null,
+      })
+
+      // Create a claim that expires in the future
+      const oneHourFromNow = Date.now() + 60 * 60 * 1000
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'future-expiry-user',
+        expiredAt: oneHourFromNow,
+      })
+
+      const activeClaims = await adminTransaction(
+        async ({ transaction }) => {
+          return selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Only active and future-expiry claims should be returned
+      expect(activeClaims.length).toBe(2)
+      expect(activeClaims.map((c) => c.externalId).sort()).toEqual(
+        ['active-user', 'future-expiry-user'].sort()
+      )
+    })
+
+    it('countActiveResourceClaims excludes claims with expiredAt in the past', async () => {
+      // Create 2 expired claims
+      const oneHourAgo = Date.now() - 60 * 60 * 1000
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'expired-1',
+        expiredAt: oneHourAgo,
+      })
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'expired-2',
+        expiredAt: oneHourAgo,
+      })
+
+      // Create 3 active claims
+      for (let i = 0; i < 3; i++) {
+        await setupResourceClaim({
+          organizationId: organization.id,
+          resourceId: resource.id,
+          subscriptionId: subscription.id,
+          pricingModelId: pricingModel.id,
+          externalId: `active-${i}`,
+          expiredAt: null,
+        })
+      }
+
+      const count = await adminTransaction(
+        async ({ transaction }) => {
+          return countActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Only 3 active claims should be counted
+      expect(count).toBe(3)
+    })
+
+    it('getResourceUsage excludes expired claims from claimed count', async () => {
+      // Create 2 expired claims
+      const oneHourAgo = Date.now() - 60 * 60 * 1000
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'expired-1',
+        expiredAt: oneHourAgo,
+      })
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'expired-2',
+        expiredAt: oneHourAgo,
+      })
+
+      // Create 2 active claims
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'active-1',
+        expiredAt: null,
+      })
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'active-2',
+        expiredAt: null,
+      })
+
+      const usage = await adminTransaction(
+        async ({ transaction }) => {
+          return getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+        }
+      )
+
+      expect(usage).toEqual({
+        capacity: 5,
+        claimed: 2, // Only active claims
+        available: 3,
+      })
+    })
+  })
+
+  describe('temporary claims during interim period', () => {
+    it('when subscription has cancelScheduledAt in the future and claims exceed future capacity, sets expiredAt on claims', async () => {
+      // First, create 2 existing claims (within future capacity of 0 after cancellation)
+      // Actually, future capacity is 0, so all claims should be temporary
+      // Let's schedule cancellation in 7 days
+      const sevenDaysFromNow = Date.now() + 7 * 24 * 60 * 60 * 1000
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateSubscription(
+          {
+            id: subscription.id,
+            cancelScheduledAt: sevenDaysFromNow,
+            renews: false,
+          },
+          transaction
+        )
+      })
+
+      // Now claim a resource
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 2,
+              },
+            },
+            transaction
+          )
+        }
+      )
+
+      // Both claims should be temporary because future capacity is 0
+      expect(result.claims.length).toBe(2)
+      expect(result.claims.every((c) => c.expiredAt !== null)).toBe(
+        true
+      )
+      // expiredAt should be set to cancelScheduledAt
+      expect(
+        result.claims.every((c) => c.expiredAt === sevenDaysFromNow)
+      ).toBe(true)
+
+      // temporaryClaims info should be populated
+      expect(result.temporaryClaims).not.toBe(undefined)
+      expect(result.temporaryClaims!.claimIds.length).toBe(2)
+      expect(result.temporaryClaims!.expiresAt).toBe(sevenDaysFromNow)
+      expect(result.temporaryClaims!.reason).toContain('cancellation')
+    })
+
+    it('when no scheduled change exists, claims are created without expiredAt', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 2,
+              },
+            },
+            transaction
+          )
+        }
+      )
+
+      expect(result.claims.length).toBe(2)
+      expect(result.claims.every((c) => c.expiredAt === null)).toBe(
+        true
+      )
+      expect(result.temporaryClaims).toBeUndefined()
+    })
+
+    it('when cancelScheduledAt is in the past (already passed), claims are created normally without expiredAt', async () => {
+      // Set cancelScheduledAt in the past (should have already executed)
+      const oneHourAgo = Date.now() - 60 * 60 * 1000
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateSubscription(
+          {
+            id: subscription.id,
+            cancelScheduledAt: oneHourAgo,
+            renews: false,
+          },
+          transaction
+        )
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: 'seats',
+                subscriptionId: subscription.id,
+                quantity: 1,
+              },
+            },
+            transaction
+          )
+        }
+      )
+
+      // Since cancelScheduledAt is in the past, it shouldn't affect new claims
+      expect(result.claims.length).toBe(1)
+      expect(result.claims[0].expiredAt).toBe(null)
+      expect(result.temporaryClaims).toBeUndefined()
+    })
+  })
+
+  describe('releaseExpiredResourceClaims', () => {
+    it('releases claims that have expired and sets releaseReason to expired', async () => {
+      // Create 2 expired claims
+      const oneHourAgo = Date.now() - 60 * 60 * 1000
+      const expiredClaim1 = await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'expired-1',
+        expiredAt: oneHourAgo,
+      })
+      const expiredClaim2 = await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'expired-2',
+        expiredAt: oneHourAgo,
+      })
+
+      // Create 1 active claim (no expiration)
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'active-1',
+        expiredAt: null,
+      })
+
+      // Create 1 claim that expires in the future
+      const oneHourFromNow = Date.now() + 60 * 60 * 1000
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'future-expiry',
+        expiredAt: oneHourFromNow,
+      })
+
+      // Release expired claims
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return releaseExpiredResourceClaims(
+            subscription.id,
+            transaction
+          )
+        }
+      )
+
+      // Only the 2 expired claims should have been released
+      expect(result.releasedCount).toBe(2)
+
+      // Verify remaining active claims
+      const activeClaims = await adminTransaction(
+        async ({ transaction }) => {
+          return selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+        }
+      )
+
+      // Only active and future-expiry claims remain
+      expect(activeClaims.length).toBe(2)
+      expect(activeClaims.map((c) => c.externalId).sort()).toEqual(
+        ['active-1', 'future-expiry'].sort()
+      )
+    })
+
+    it('returns releasedCount of 0 when there are no expired claims', async () => {
+      // Create only active claims
+      await setupResourceClaim({
+        organizationId: organization.id,
+        resourceId: resource.id,
+        subscriptionId: subscription.id,
+        pricingModelId: pricingModel.id,
+        externalId: 'active-1',
+        expiredAt: null,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return releaseExpiredResourceClaims(
+            subscription.id,
+            transaction
+          )
+        }
+      )
+
+      expect(result.releasedCount).toBe(0)
+    })
   })
 })
