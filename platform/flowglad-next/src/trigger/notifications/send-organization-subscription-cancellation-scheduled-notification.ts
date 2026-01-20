@@ -84,8 +84,11 @@ const sendOrganizationSubscriptionCancellationScheduledNotificationTask =
           `Cancellation Scheduled: ${customer.name} scheduled cancellation for ${subscriptionName} on ${formatDate(cancellationDate)}`,
           subscription.livemode
         ),
+        /**
+         * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
+         */
         react:
-          OrganizationSubscriptionCancellationScheduledNotificationEmail(
+          await OrganizationSubscriptionCancellationScheduledNotificationEmail(
             {
               organizationName: organization.name,
               subscriptionName,

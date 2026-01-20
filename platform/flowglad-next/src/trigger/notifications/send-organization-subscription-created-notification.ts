@@ -77,7 +77,10 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
         `New Subscription: ${customer.name} subscribed to ${subscription.name}`,
         subscription.livemode
       ),
-      react: OrganizationSubscriptionCreatedNotificationEmail({
+      /**
+       * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
+       */
+      react: await OrganizationSubscriptionCreatedNotificationEmail({
         organizationName: organization.name,
         subscriptionName: subscription.name!,
         customerId: customer.id,

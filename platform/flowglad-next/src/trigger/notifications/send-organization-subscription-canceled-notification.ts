@@ -77,7 +77,10 @@ const sendOrganizationSubscriptionCanceledNotificationTask = task({
         `Subscription Cancelled: ${customer.name} canceled ${subscription.name}`,
         subscription.livemode
       ),
-      react: OrganizationSubscriptionCanceledNotificationEmail({
+      /**
+       * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
+       */
+      react: await OrganizationSubscriptionCanceledNotificationEmail({
         organizationName: organization.name,
         subscriptionName: subscription.name!,
         customerId: customer.id,
