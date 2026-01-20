@@ -1,7 +1,13 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { NotFoundError } from '@/db/tableUtils'
 import { CustomerSubscriptionAdjustedEmail } from '@/email-templates/customer-subscription-adjusted'
-import type { IntervalUnit } from '@/types'
+import { PaymentError, ValidationError } from '@/errors'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
@@ -31,24 +37,32 @@ export interface SendCustomerSubscriptionAdjustedNotificationPayload {
   effectiveDate: number // timestamp in ms
 }
 
-const sendCustomerSubscriptionAdjustedNotificationTask = task({
-  id: 'send-customer-subscription-adjusted-notification',
-  maxDuration: 60,
-  queue: { concurrencyLimit: 10 },
-  run: async (
-    payload: SendCustomerSubscriptionAdjustedNotificationPayload,
-    { ctx }
+/**
+ * Core run function for send-customer-subscription-adjusted-notification task.
+ * Exported for testing purposes.
+ */
+export const runSendCustomerSubscriptionAdjustedNotification =
+  async (
+    payload: SendCustomerSubscriptionAdjustedNotificationPayload
   ) => {
     logger.log(
       'Sending customer subscription adjusted notification',
       {
         payload,
-        attempt: ctx.attempt,
       }
     )
 
-    const { organization, customer, subscription, price } =
-      await adminTransaction(async ({ transaction }) => {
+    let dataResult: Result<
+      {
+        organization: Organization.Record
+        customer: Customer.Record
+        subscription: Subscription.Record
+        price: Price.Record | null
+      },
+      NotFoundError | ValidationError
+    >
+    try {
+      const data = await adminTransaction(async ({ transaction }) => {
         return buildNotificationContext(
           {
             organizationId: payload.organizationId,
@@ -59,19 +73,52 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
           transaction
         )
       })
-
-    if (!price) {
-      throw new Error('Price not found for subscription')
+      dataResult = Result.ok(data)
+    } catch (error) {
+      // Only convert NotFoundError to Result.err; rethrow other errors
+      // for Trigger.dev to retry (e.g., transient DB failures)
+      if (error instanceof NotFoundError) {
+        dataResult = Result.err(error)
+      } else if (
+        error instanceof Error &&
+        error.message.includes('not found')
+      ) {
+        // Handle errors from buildNotificationContext
+        dataResult = Result.err(
+          new NotFoundError('Resource', error.message)
+        )
+      } else {
+        throw error
+      }
     }
 
-    if (!customer.email) {
-      logger.warn('Customer has no email address', {
-        customerId: customer.id,
-      })
-      return {
-        message:
-          'Customer has no email address - skipping notification',
-      }
+    if (Result.isError(dataResult)) {
+      return dataResult
+    }
+    const { organization, customer, subscription, price } =
+      dataResult.value
+
+    if (!price) {
+      return Result.err(
+        new NotFoundError('Price', subscription.priceId ?? 'unknown')
+      )
+    }
+
+    // Validate customer email - return ValidationError per PR spec
+    if (!customer.email || customer.email.trim() === '') {
+      logger.log(
+        'Customer subscription adjusted notification failed: customer email is missing or empty',
+        {
+          customerId: customer.id,
+          subscriptionId: subscription.id,
+        }
+      )
+      return Result.err(
+        new ValidationError(
+          'email',
+          'customer email is missing or empty'
+        )
+      )
     }
 
     // Calculate totals from items
@@ -127,13 +174,25 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
           error: result.error,
         }
       )
-      throw new Error('Failed to send email')
+      return Result.err(new PaymentError('Failed to send email'))
     }
 
-    return {
+    return Result.ok({
       message:
         'Customer subscription adjusted notification sent successfully',
-    }
+    })
+  }
+
+const sendCustomerSubscriptionAdjustedNotificationTask = task({
+  id: 'send-customer-subscription-adjusted-notification',
+  maxDuration: 60,
+  queue: { concurrencyLimit: 10 },
+  run: async (
+    payload: SendCustomerSubscriptionAdjustedNotificationPayload,
+    { ctx }
+  ) => {
+    logger.log('Task context', { ctx, attempt: ctx.attempt })
+    return runSendCustomerSubscriptionAdjustedNotification(payload)
   },
 })
 
