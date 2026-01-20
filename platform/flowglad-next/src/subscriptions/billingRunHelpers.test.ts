@@ -900,10 +900,11 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should schedule a billing run retry 3 days after the initial attempt', async () => {
-      const retryBillingRun = await adminTransaction(
+      const retryBillingRunResult = await adminTransaction(
         ({ transaction }) =>
           scheduleBillingRunRetry(billingRun, transaction)
       )
+      const retryBillingRun = retryBillingRunResult?.unwrap()
       expect(typeof retryBillingRun).toBe('object')
       expect(retryBillingRun?.scheduledFor).toBeGreaterThan(
         Date.now() + 3 * 24 * 60 * 60 * 1000 - 60 * 1000
@@ -976,10 +977,11 @@ describe('billingRunHelpers', async () => {
         }
       )
 
-      const retryBillingRun = await adminTransaction(
+      const retryBillingRunResult = await adminTransaction(
         ({ transaction }) =>
           scheduleBillingRunRetry(billingRun, transaction)
       )
+      const retryBillingRun = retryBillingRunResult?.unwrap()
 
       expect(retryBillingRun).toMatchObject({
         status: BillingRunStatus.Scheduled,

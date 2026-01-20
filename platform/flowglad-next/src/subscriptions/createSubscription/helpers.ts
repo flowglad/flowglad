@@ -267,14 +267,16 @@ export const safelyProcessCreationForExistingSubscription = async (
   const billingRun: BillingRun.Record | undefined =
     existingBillingRun ??
     (params.defaultPaymentMethod
-      ? await createBillingRun(
-          {
-            billingPeriod,
-            paymentMethod: params.defaultPaymentMethod,
-            scheduledFor,
-          },
-          transaction
-        )
+      ? (
+          await createBillingRun(
+            {
+              billingPeriod,
+              paymentMethod: params.defaultPaymentMethod,
+              scheduledFor,
+            },
+            transaction
+          )
+        ).unwrap()
       : undefined)
   /**
    * Billing timing depends on the price type:
@@ -524,14 +526,16 @@ export const activateSubscription = async (
    * create a billing run, set to to execute
    */
   const billingRun = shouldCreateBillingRun
-    ? await createBillingRun(
-        {
-          billingPeriod,
-          paymentMethod: defaultPaymentMethod,
-          scheduledFor,
-        },
-        transaction
-      )
+    ? (
+        await createBillingRun(
+          {
+            billingPeriod,
+            paymentMethod: defaultPaymentMethod,
+            scheduledFor,
+          },
+          transaction
+        )
+      ).unwrap()
     : null
   return Result.ok({
     subscription: activatedSubscription,
@@ -601,14 +605,16 @@ export const initiateSubscriptionTrialPeriod = async (
    * create a billing run, set to to execute
    */
   const billingRun = shouldCreateBillingRun
-    ? await createBillingRun(
-        {
-          billingPeriod,
-          paymentMethod: defaultPaymentMethod,
-          scheduledFor,
-        },
-        transaction
-      )
+    ? (
+        await createBillingRun(
+          {
+            billingPeriod,
+            paymentMethod: defaultPaymentMethod,
+            scheduledFor,
+          },
+          transaction
+        )
+      ).unwrap()
     : null
   return Result.ok({
     subscription,
@@ -765,14 +771,16 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
      */
     const billingRun =
       defaultPaymentMethod && !doNotCharge
-        ? await createBillingRun(
-            {
-              billingPeriod,
-              paymentMethod: defaultPaymentMethod,
-              scheduledFor,
-            },
-            transaction
-          )
+        ? (
+            await createBillingRun(
+              {
+                billingPeriod,
+                paymentMethod: defaultPaymentMethod,
+                scheduledFor,
+              },
+              transaction
+            )
+          ).unwrap()
         : null
     return Result.ok({
       subscription,

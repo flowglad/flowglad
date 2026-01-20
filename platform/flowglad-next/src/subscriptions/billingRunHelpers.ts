@@ -106,8 +106,7 @@ export const createBillingRun = async (
   transaction: DbTransaction
 ) => {
   const insert = createBillingRunInsert(params)
-  const result = await safelyInsertBillingRun(insert, transaction)
-  return result.unwrap()
+  return safelyInsertBillingRun(insert, transaction)
 }
 
 export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
@@ -1115,9 +1114,5 @@ export const scheduleBillingRunRetry = async (
   if (!retryBillingRun) {
     return
   }
-  const result = await safelyInsertBillingRun(
-    retryBillingRun,
-    transaction
-  )
-  return result.unwrap()
+  return safelyInsertBillingRun(retryBillingRun, transaction)
 }

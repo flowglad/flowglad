@@ -391,14 +391,16 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     const scheduledFor = subscription.runBillingAtPeriodStart
       ? newBillingPeriod.startDate
       : newBillingPeriod.endDate
-    billingRun = await createBillingRun(
-      {
-        billingPeriod: newBillingPeriod,
-        paymentMethod,
-        scheduledFor,
-      },
-      transaction
-    )
+    billingRun = (
+      await createBillingRun(
+        {
+          billingPeriod: newBillingPeriod,
+          paymentMethod,
+          scheduledFor,
+        },
+        transaction
+      )
+    ).unwrap()
     if (subscription.runBillingAtPeriodStart && !core.IS_TEST) {
       // billingRun is guaranteed to be non-null here since it was just assigned above
       const currentBillingRun = billingRun

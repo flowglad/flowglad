@@ -830,14 +830,16 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
       : billingPeriod.endDate
 
     if (scheduledFor > Date.now()) {
-      await createBillingRun(
-        {
-          billingPeriod,
-          paymentMethod,
-          scheduledFor: new Date(scheduledFor),
-        },
-        transaction
-      )
+      ;(
+        await createBillingRun(
+          {
+            billingPeriod,
+            paymentMethod,
+            scheduledFor: new Date(scheduledFor),
+          },
+          transaction
+        )
+      ).unwrap()
     }
   }
   return Result.ok(undefined)

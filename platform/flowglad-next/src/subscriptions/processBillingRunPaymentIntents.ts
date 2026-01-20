@@ -563,10 +563,11 @@ export const processOutcomeForBillingRun = async (
       await cancelSubscriptionImmediately({ subscription }, ctx)
     } else {
       // nth payment failures logic
-      const maybeRetry = await scheduleBillingRunRetry(
+      const maybeRetryResult = await scheduleBillingRunRetry(
         billingRun,
         transaction
       )
+      const maybeRetry = maybeRetryResult?.unwrap()
       await processFailedNotifications({
         ...notificationParams,
         retryDate: maybeRetry?.scheduledFor,
