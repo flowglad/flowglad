@@ -93,3 +93,84 @@ export const cleanupRedisTestKeys = async (
     // Ignore errors - keys may already be cleaned up
   }
 }
+
+/**
+ * Generic polling helper for Redis cache keys.
+ * Polls until the condition is met or timeout elapses.
+ */
+async function pollCacheKey<T>(
+  client: Redis,
+  cacheKey: string,
+  options: {
+    timeoutMs?: number
+    intervalMs?: number
+    condition: (value: unknown) => boolean
+    onSuccess: (value: unknown) => T
+    timeoutMessage: string
+    errorMessage: string
+  }
+): Promise<T> {
+  const { timeoutMs = 5000, intervalMs = 50 } = options
+  const startTime = Date.now()
+
+  return new Promise<T>((resolve, reject) => {
+    const checkCache = async () => {
+      try {
+        const value = await client.get(cacheKey)
+        if (options.condition(value)) {
+          return resolve(options.onSuccess(value))
+        }
+
+        if (Date.now() - startTime >= timeoutMs) {
+          return reject(new Error(options.timeoutMessage))
+        }
+
+        setTimeout(checkCache, intervalMs)
+      } catch (error) {
+        return reject(
+          new Error(
+            `${options.errorMessage}: ${error instanceof Error ? error.message : String(error)}`
+          )
+        )
+      }
+    }
+
+    checkCache()
+  })
+}
+
+/**
+ * Poll Redis for a cache key until it is populated or timeout is reached.
+ * Returns the cached value when found, or throws if timeout elapses.
+ */
+export async function waitForCachePopulation<T>(
+  client: Redis,
+  cacheKey: string,
+  options: { timeoutMs?: number; intervalMs?: number } = {}
+): Promise<T> {
+  return pollCacheKey(client, cacheKey, {
+    ...options,
+    condition: (value) => value !== null,
+    onSuccess: (value) => value as T,
+    timeoutMessage: `Timeout waiting for cache key "${cacheKey}" to be populated after ${options.timeoutMs ?? 5000}ms`,
+    errorMessage: `Redis error while waiting for cache key "${cacheKey}" to be populated`,
+  })
+}
+
+/**
+ * Poll Redis until a cache key is invalidated (null) or timeout is reached.
+ * Throws if the key is still present after timeout elapses.
+ */
+export async function waitForCacheInvalidation(
+  client: Redis,
+  cacheKey: string,
+  options: { timeoutMs?: number; intervalMs?: number } = {}
+): Promise<void> {
+  return pollCacheKey(client, cacheKey, {
+    ...options,
+    condition: (value) => value === null,
+    onSuccess: () => undefined,
+    timeoutMessage: `Timeout waiting for cache key "${cacheKey}" to be invalidated after ${options.timeoutMs ?? 5000}ms`,
+    errorMessage: `Redis error while waiting for cache key "${cacheKey}" to be invalidated`,
+  })
+}
