@@ -973,6 +973,7 @@ export async function recomputeCacheEntry(
   cacheKey: string
 ): Promise<void> {
   const client = redis()
+  const startTime = Date.now()
 
   try {
     // Get recomputation metadata
@@ -999,6 +1000,12 @@ export async function recomputeCacheEntry(
         cacheKey,
         error: parsed.error.message,
       })
+      logger.info('cache_recomputation', {
+        cacheKey,
+        success: false,
+        error: 'invalid_metadata',
+        latency_ms: Date.now() - startTime,
+      })
       return
     }
 
@@ -1012,21 +1019,46 @@ export async function recomputeCacheEntry(
         namespace: metadata.namespace,
         cacheKey,
       })
+      logger.info('cache_recomputation', {
+        cacheKey,
+        namespace: metadata.namespace,
+        context_type: metadata.cacheRecomputationContext.type,
+        success: false,
+        error: 'no_handler',
+        latency_ms: Date.now() - startTime,
+      })
       return
     }
 
     // Call handler with stored params and context
     await handler(metadata.params, metadata.cacheRecomputationContext)
 
+    const latencyMs = Date.now() - startTime
     logger.debug('Recomputed cache entry', {
       cacheKey,
       namespace: metadata.namespace,
     })
+    logger.info('cache_recomputation', {
+      cacheKey,
+      namespace: metadata.namespace,
+      context_type: metadata.cacheRecomputationContext.type,
+      success: true,
+      latency_ms: latencyMs,
+    })
   } catch (error) {
+    const latencyMs = Date.now() - startTime
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
     // Fail open - log warning but don't propagate
     logger.warn('Failed to recompute cache entry', {
       cacheKey,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage,
+    })
+    logger.info('cache_recomputation', {
+      cacheKey,
+      success: false,
+      error: errorMessage,
+      latency_ms: latencyMs,
     })
   }
 }
