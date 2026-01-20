@@ -8,29 +8,20 @@ import { Divider } from './Divider'
 
 describe('Divider', () => {
   describe('default rendering', () => {
-    it('renders horizontal rule with default styling', () => {
+    it('renders with default border color #e6e6e6, 16px margins, and bottom-only border', () => {
       const { getByTestId } = render(<Divider />)
 
       const divider = getByTestId('divider')
       expect(divider).toBeInTheDocument()
-    })
-
-    it('uses default border color of #e6e6e6', () => {
-      const { getByTestId } = render(<Divider />)
-
-      const divider = getByTestId('divider')
       expect(divider).toHaveStyle({
         borderColor: '#e6e6e6',
-      })
-    })
-
-    it('uses default margins of 16px', () => {
-      const { getByTestId } = render(<Divider />)
-
-      const divider = getByTestId('divider')
-      expect(divider).toHaveStyle({
         marginTop: '16px',
         marginBottom: '16px',
+        borderTop: 'none',
+        borderLeft: 'none',
+        borderRight: 'none',
+        borderBottomWidth: '1px',
+        borderBottomStyle: 'solid',
       })
     })
   })
@@ -77,21 +68,6 @@ describe('Divider', () => {
       expect(divider).toHaveStyle({
         marginTop: '48px',
         marginBottom: '48px',
-      })
-    })
-  })
-
-  describe('border styling', () => {
-    it('renders with only bottom border', () => {
-      const { getByTestId } = render(<Divider />)
-
-      const divider = getByTestId('divider')
-      expect(divider).toHaveStyle({
-        borderTop: 'none',
-        borderLeft: 'none',
-        borderRight: 'none',
-        borderBottomWidth: '1px',
-        borderBottomStyle: 'solid',
       })
     })
   })

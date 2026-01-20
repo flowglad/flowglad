@@ -46,7 +46,7 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
           organizationId: payload.organizationId,
           customerId: payload.customerId,
           subscriptionId: payload.subscriptionId,
-          include: ['subscription', 'price', 'defaultPaymentMethod'],
+          include: ['price', 'defaultPaymentMethod'],
         },
         transaction
       )

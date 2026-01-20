@@ -19,13 +19,22 @@ import {
 /**
  * Safe redirect for non-production emails.
  * In production, returns the email as-is.
- * In development/test, redirects to DEV_EMAIL_REDIRECT or a default address.
+ * In development/test, redirects to DEV_EMAIL_REDIRECT (required).
  */
-const safeTo = (email: string): string =>
-  core.IS_PROD
-    ? email
-    : core.envVariable('DEV_EMAIL_REDIRECT') ||
-      'agree.ahmed@flowglad.com'
+const safeTo = (email: string): string => {
+  if (core.IS_PROD) {
+    return email
+  }
+
+  const devRedirect = core.envVariable('DEV_EMAIL_REDIRECT')
+  if (!devRedirect) {
+    throw new Error(
+      'DEV_EMAIL_REDIRECT environment variable is required in non-production environments. ' +
+        'Set it to your email address or a test sink address to receive redirected emails.'
+    )
+  }
+  return devRedirect
+}
 
 /**
  * Parameters for sending an email using the registry.

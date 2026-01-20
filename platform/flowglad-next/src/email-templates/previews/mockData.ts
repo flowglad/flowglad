@@ -10,9 +10,9 @@ import type { EmailType, EmailTypeMap } from '@/utils/email/registry'
  * Using a fixed date prevents visual regression test flakiness.
  *
  * MAINTENANCE NOTE: Update this date annually to stay ~1 year in the future.
- * Last updated: January 2025 → Set to January 2026
+ * Last updated: January 2026 → Set to January 2027
  */
-const REFERENCE_YEAR = 2026
+const REFERENCE_YEAR = 2027
 export const PREVIEW_REFERENCE_DATE = new Date(
   `${REFERENCE_YEAR}-01-15T12:00:00Z`
 )
@@ -281,8 +281,8 @@ export const EMAIL_PREVIEWS: EmailPreviewData = {
 
   'customer.payment.receipt': {
     default: {
-      invoiceNumber: 'INV-2026-001',
-      orderDate: 'January 15, 2026',
+      invoiceNumber: 'INV-2027-001',
+      orderDate: 'January 15, 2027',
       invoice: {
         subtotal: MOCK_PRICES.ORDER_ITEM_1 + MOCK_PRICES.ORDER_ITEM_2,
         taxAmount: MOCK_PRICES.TAX_AMOUNT,
@@ -307,8 +307,8 @@ export const EMAIL_PREVIEWS: EmailPreviewData = {
       livemode: true,
     },
     merchantOfRecord: {
-      invoiceNumber: 'INV-2026-002',
-      orderDate: 'January 15, 2026',
+      invoiceNumber: 'INV-2027-002',
+      orderDate: 'January 15, 2027',
       invoice: {
         subtotal: MOCK_PRICES.PRO_PLAN,
         taxAmount: MOCK_PRICES.TAX_AMOUNT,
@@ -331,7 +331,7 @@ export const EMAIL_PREVIEWS: EmailPreviewData = {
 
   'customer.payment.failed': {
     default: {
-      invoiceNumber: 'INV-2026-003',
+      invoiceNumber: 'INV-2027-003',
       orderDate: PREVIEW_REFERENCE_DATE,
       invoice: {
         subtotal: MOCK_PRICES.PRO_PLAN,
@@ -353,7 +353,7 @@ export const EMAIL_PREVIEWS: EmailPreviewData = {
       livemode: true,
     },
     noRetry: {
-      invoiceNumber: 'INV-2026-004',
+      invoiceNumber: 'INV-2027-004',
       orderDate: PREVIEW_REFERENCE_DATE,
       invoice: {
         subtotal: MOCK_PRICES.PRO_PLAN,
@@ -571,7 +571,7 @@ export const EMAIL_PREVIEWS: EmailPreviewData = {
     default: {
       organizationName: mockOrganization.name,
       amount: MOCK_PRICES.PRO_PLAN,
-      invoiceNumber: 'INV-2026-001',
+      invoiceNumber: 'INV-2027-001',
       currency: CurrencyCode.USD,
       customerId: mockCustomer.id,
       customerName: mockCustomer.name,
@@ -584,7 +584,7 @@ export const EMAIL_PREVIEWS: EmailPreviewData = {
     default: {
       organizationName: mockOrganization.name,
       amount: MOCK_PRICES.PRO_PLAN,
-      invoiceNumber: 'INV-2026-002',
+      invoiceNumber: 'INV-2027-002',
       currency: CurrencyCode.USD,
       customerId: mockCustomer.id,
       customerName: mockCustomer.name,
@@ -605,7 +605,7 @@ export const EMAIL_PREVIEWS: EmailPreviewData = {
     default: {
       organizationName: mockOrganization.name,
       amount: MOCK_PRICES.PRO_PLAN,
-      invoiceNumber: 'INV-2026-003',
+      invoiceNumber: 'INV-2027-003',
       customerId: mockCustomer.id,
       currency: CurrencyCode.USD,
       customerName: mockCustomer.name,

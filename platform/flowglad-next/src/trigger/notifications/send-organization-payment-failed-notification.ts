@@ -16,6 +16,7 @@ import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
 interface PaymentFailedNotificationData {
+  paymentId: string
   organizationId: string
   customerId: string
   amount: number
@@ -112,7 +113,7 @@ export const idempotentSendOrganizationPaymentFailedNotification =
         },
         {
           idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-payment-failed-notification-${paymentData.customerId}-${paymentData.invoiceNumber || paymentData.amount}`
+            `send-organization-payment-failed-notification-${paymentData.paymentId}`
           ),
         }
       )

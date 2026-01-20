@@ -22,14 +22,26 @@ export function EmailCard({
   const router = useRouter()
   const defaultVariant = variants[0] ?? 'default'
 
+  const navigateToDefault = () => {
+    router.push(
+      `/email-preview/${encodeURIComponent(emailType)}/${encodeURIComponent(defaultVariant)}`
+    )
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault()
+      navigateToDefault()
+    }
+  }
+
   return (
     <div
-      onClick={() =>
-        router.push(
-          `/email-preview/${encodeURIComponent(emailType)}/${defaultVariant}`
-        )
-      }
-      className="border border-border rounded-lg p-4 bg-card-muted shadow-sm hover:shadow-md hover:border-primary transition-all cursor-pointer"
+      role="button"
+      tabIndex={0}
+      onClick={navigateToDefault}
+      onKeyDown={handleKeyDown}
+      className="border border-border rounded-lg p-4 bg-card-muted shadow-sm hover:shadow-md hover:border-primary transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
     >
       <h3 className="font-medium text-card-foreground mb-1">
         {emailType.split('.').slice(1).join(' → ')}
@@ -41,7 +53,7 @@ export function EmailCard({
         {variants.map((variant) => (
           <Link
             key={`${emailType}-${variant}`}
-            href={`/email-preview/${encodeURIComponent(emailType)}/${variant}`}
+            href={`/email-preview/${encodeURIComponent(emailType)}/${encodeURIComponent(variant)}`}
             onClick={(e) => e.stopPropagation()}
             className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded hover:bg-primary hover:text-primary-foreground transition-colors"
           >

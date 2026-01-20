@@ -54,7 +54,7 @@ const sendCustomerSubscriptionAdjustedNotificationTask = task({
             organizationId: payload.organizationId,
             customerId: payload.customerId,
             subscriptionId: payload.subscriptionId,
-            include: ['subscription', 'price'],
+            include: ['price'],
           },
           transaction
         )

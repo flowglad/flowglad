@@ -86,8 +86,8 @@ describe('buildNotificationContext', () => {
     })
   })
 
-  describe('subscription context with include array', () => {
-    it('returns full subscription context when include contains subscription, price, defaultPaymentMethod', async () => {
+  describe('subscription context', () => {
+    it('always fetches subscription when subscriptionId provided, with price and defaultPaymentMethod extras', async () => {
       const { organization, price } = await setupOrg()
       const customer = await setupCustomer({
         organizationId: organization.id,
@@ -109,11 +109,7 @@ describe('buildNotificationContext', () => {
             organizationId: organization.id,
             customerId: customer.id,
             subscriptionId: subscription.id,
-            include: [
-              'subscription',
-              'price',
-              'defaultPaymentMethod',
-            ],
+            include: ['price', 'defaultPaymentMethod'],
           },
           transaction
         )
@@ -138,8 +134,52 @@ describe('buildNotificationContext', () => {
       }
     })
 
-    it('returns null for price when subscription has no priceId', async () => {
-      // Note: In practice, subscriptions always have priceId, but we test the null handling
+    it('fetches subscription without extras when include is omitted', async () => {
+      const { organization, price } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        paymentMethodId: paymentMethod.id,
+      })
+
+      const ctx = await adminTransaction(async ({ transaction }) => {
+        return buildNotificationContext(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            subscriptionId: subscription.id,
+            // no include array - subscription should still be fetched
+          },
+          transaction
+        )
+      })
+
+      expect(ctx.organization.id).toBe(organization.id)
+      expect('subscription' in ctx).toBe(true)
+      expect('price' in ctx).toBe(true)
+      expect('paymentMethod' in ctx).toBe(true)
+
+      if (
+        'subscription' in ctx &&
+        'price' in ctx &&
+        'paymentMethod' in ctx
+      ) {
+        expect(ctx.subscription.id).toBe(subscription.id)
+        // price and paymentMethod should be null since not requested via include
+        expect(ctx.price).toBeNull()
+        expect(ctx.paymentMethod).toBeNull()
+      }
+    })
+
+    it('fetches price when subscription has priceId and price is in include array', async () => {
       const { organization, price } = await setupOrg()
       const customer = await setupCustomer({
         organizationId: organization.id,
@@ -150,18 +190,13 @@ describe('buildNotificationContext', () => {
         priceId: price.id,
       })
 
-      // Test with include but we'll verify that price is fetched when subscription has priceId
       const ctx = await adminTransaction(async ({ transaction }) => {
         return buildNotificationContext(
           {
             organizationId: organization.id,
             customerId: customer.id,
             subscriptionId: subscription.id,
-            include: [
-              'subscription',
-              'price',
-              'defaultPaymentMethod',
-            ],
+            include: ['price', 'defaultPaymentMethod'],
           },
           transaction
         )
@@ -195,11 +230,7 @@ describe('buildNotificationContext', () => {
             organizationId: organization.id,
             customerId: customer.id,
             subscriptionId: subscription.id,
-            include: [
-              'subscription',
-              'price',
-              'defaultPaymentMethod',
-            ],
+            include: ['price', 'defaultPaymentMethod'],
           },
           transaction
         )
@@ -241,11 +272,7 @@ describe('buildNotificationContext', () => {
             organizationId: organization.id,
             customerId: customer.id,
             subscriptionId: subscription.id,
-            include: [
-              'subscription',
-              'price',
-              'defaultPaymentMethod',
-            ],
+            include: ['price', 'defaultPaymentMethod'],
           },
           transaction
         )
@@ -271,11 +298,31 @@ describe('buildNotificationContext', () => {
               organizationId: organization.id,
               customerId: customer.id,
               subscriptionId: nonExistentSubscriptionId,
-              include: [
-                'subscription',
-                'price',
-                'defaultPaymentMethod',
-              ],
+              include: ['price', 'defaultPaymentMethod'],
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow(
+        `No subscriptions found with id: ${nonExistentSubscriptionId}`
+      )
+    })
+
+    it('throws error when subscription not found even without include array', async () => {
+      const { organization } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const nonExistentSubscriptionId = 'sub_non_existent_67890'
+
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          return buildNotificationContext(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              subscriptionId: nonExistentSubscriptionId,
+              // no include array - subscription should still be fetched and throw
             },
             transaction
           )

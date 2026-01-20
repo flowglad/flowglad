@@ -74,7 +74,7 @@ const sendOrganizationSubscriptionCanceledNotificationTask = task({
       bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
-        `Subscription Cancelled: ${customer.name} canceled ${subscription.name}`,
+        `Subscription Cancelled: ${customer.name} canceled ${subscription.name ?? 'their subscription'}`,
         subscription.livemode
       ),
       /**
@@ -82,7 +82,7 @@ const sendOrganizationSubscriptionCanceledNotificationTask = task({
        */
       react: await OrganizationSubscriptionCanceledNotificationEmail({
         organizationName: organization.name,
-        subscriptionName: subscription.name!,
+        subscriptionName: subscription.name ?? 'Unnamed subscription',
         customerId: customer.id,
         customerName: customer.name,
         customerEmail: customer.email,

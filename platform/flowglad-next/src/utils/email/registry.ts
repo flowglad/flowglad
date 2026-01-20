@@ -580,7 +580,7 @@ export const EMAIL_REGISTRY: {
       const mod = await import(
         '@/email-templates/send-purchase-access-session-token'
       )
-      return mod.default
+      return mod.SendPurchaseAccessSessionTokenEmail
     },
     defaultSubject: 'Your Order Link',
     recipientType: 'customer',
@@ -643,7 +643,7 @@ export const EMAIL_REGISTRY: {
       return mod.OrganizationSubscriptionAdjustedEmail
     },
     defaultSubject: (props) =>
-      `Subscription Updated - ${props.customerName || props.customerEmail}`,
+      `Subscription Updated - ${props.customerName?.trim() || props.customerEmail || 'Customer'}`,
     recipientType: 'organization',
     category: 'subscription',
     description:

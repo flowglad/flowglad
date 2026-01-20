@@ -73,7 +73,7 @@ interface CustomerParams extends BaseParams {
 
 interface SubscriptionParams extends CustomerParams {
   subscriptionId: string
-  include: ('subscription' | 'price' | 'defaultPaymentMethod')[]
+  include?: ('price' | 'defaultPaymentMethod')[]
 }
 
 interface OrganizationMembersParams extends CustomerParams {
@@ -87,13 +87,15 @@ interface OrganizationMembersParams extends CustomerParams {
 /**
  * Builds notification context with subscription data.
  * Returns organization, customer, subscription, price, and payment method.
+ * The subscription is always fetched when subscriptionId is provided.
+ * The include array controls optional extras: 'price' and 'defaultPaymentMethod'.
  */
 export async function buildNotificationContext(
   params: {
     organizationId: string
     customerId: string
     subscriptionId: string
-    include: ('subscription' | 'price' | 'defaultPaymentMethod')[]
+    include?: ('price' | 'defaultPaymentMethod')[]
   },
   transaction: DbTransaction
 ): Promise<SubscriptionNotificationContext>
@@ -158,14 +160,22 @@ export async function buildNotificationContext(
  *
  * @example
  * ```ts
- * // Fetch full subscription context
+ * // Fetch full subscription context (subscription is always fetched when subscriptionId provided)
  * const ctx = await buildNotificationContext({
  *   organizationId,
  *   customerId,
  *   subscriptionId,
- *   include: ['subscription', 'price', 'defaultPaymentMethod'],
+ *   include: ['price', 'defaultPaymentMethod'],
  * }, transaction)
  * // ctx.organization, ctx.customer, ctx.subscription, ctx.price, ctx.paymentMethod
+ *
+ * // Fetch subscription context without extras
+ * const ctx = await buildNotificationContext({
+ *   organizationId,
+ *   customerId,
+ *   subscriptionId,
+ * }, transaction)
+ * // ctx.organization, ctx.customer, ctx.subscription (price/paymentMethod will be null)
  *
  * // Fetch organization members context
  * const ctx = await buildNotificationContext({
@@ -191,7 +201,6 @@ export async function buildNotificationContext(
     customerId?: string
     subscriptionId?: string
     include?: (
-      | 'subscription'
       | 'price'
       | 'defaultPaymentMethod'
       | 'usersAndMemberships'
@@ -230,12 +239,12 @@ export async function buildNotificationContext(
     }
   }
 
-  // Fetch subscription data if requested
+  // Fetch subscription data when subscriptionId is provided (always required for SubscriptionNotificationContext)
   let subscription: Subscription.Record | undefined
   let price: Price.Record | null = null
   let paymentMethod: PaymentMethod.Record | null = null
 
-  if (params.subscriptionId && include.includes('subscription')) {
+  if (params.subscriptionId) {
     subscription = await selectSubscriptionById(
       params.subscriptionId,
       transaction

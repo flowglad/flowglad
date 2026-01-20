@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   EMAIL_REGISTRY,
   type EmailType,
+  getEmailTypeCount,
 } from '@/utils/email/registry'
 import {
   EMAIL_VALIDATION_SCHEMAS,
@@ -130,7 +131,7 @@ describe('getAllEmailTypesWithPreviews', () => {
     const types = getAllEmailTypesWithPreviews()
 
     expect(Array.isArray(types)).toBe(true)
-    expect(types.length).toBe(23) // All email types
+    expect(types.length).toBe(getEmailTypeCount())
   })
 
   it('includes both customer and organization email types', () => {
