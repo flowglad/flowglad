@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import {
   type Refund,
   refunds,
@@ -10,6 +11,7 @@ import {
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
+  NotFoundError,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
@@ -30,22 +32,37 @@ const config: ORMMethodCreatorConfig<
 export const selectRefundById = createSelectById(refunds, config)
 
 /**
+ * Error thrown when a payment does not have a pricingModelId.
+ */
+export class MissingPricingModelIdError extends Error {
+  constructor(public readonly paymentId: string) {
+    super(`Payment ${paymentId} does not have a pricingModelId`)
+    this.name = 'MissingPricingModelIdError'
+  }
+}
+
+/**
  * Derives pricingModelId from a payment.
  * Used for refund inserts.
  */
 export const derivePricingModelIdFromPayment = async (
   paymentId: string,
   transaction: DbTransaction
-): Promise<string> => {
-  const payment = (
-    await selectPaymentById(paymentId, transaction)
-  ).unwrap()
-  if (!payment.pricingModelId) {
-    throw new Error(
-      `Payment ${paymentId} does not have a pricingModelId`
-    )
+): Promise<
+  Result<string, NotFoundError | MissingPricingModelIdError>
+> => {
+  const paymentResult = await selectPaymentById(
+    paymentId,
+    transaction
+  )
+  if (paymentResult.status === 'error') {
+    return Result.err(paymentResult.error)
   }
-  return payment.pricingModelId
+  const payment = paymentResult.value
+  if (!payment.pricingModelId) {
+    return Result.err(new MissingPricingModelIdError(paymentId))
+  }
+  return Result.ok(payment.pricingModelId)
 }
 
 const baseInsertRefund = createInsertFunction(refunds, config)
@@ -53,20 +70,34 @@ const baseInsertRefund = createInsertFunction(refunds, config)
 export const insertRefund = async (
   insertData: Refund.Insert,
   transaction: DbTransaction
-): Promise<Refund.Record> => {
-  const pricingModelId = insertData.pricingModelId
-    ? insertData.pricingModelId
-    : await derivePricingModelIdFromPayment(
+): Promise<
+  Result<Refund.Record, NotFoundError | MissingPricingModelIdError>
+> => {
+  let pricingModelId: string
+  if (insertData.pricingModelId) {
+    pricingModelId = insertData.pricingModelId
+  } else {
+    const pricingModelIdResult =
+      await derivePricingModelIdFromPayment(
         insertData.paymentId,
         transaction
       )
-  return baseInsertRefund(
+    if (pricingModelIdResult.status === 'error') {
+      return Result.err<
+        Refund.Record,
+        NotFoundError | MissingPricingModelIdError
+      >(pricingModelIdResult.error)
+    }
+    pricingModelId = pricingModelIdResult.value
+  }
+  const refund = await baseInsertRefund(
     {
       ...insertData,
       pricingModelId,
     },
     transaction
   )
+  return Result.ok(refund)
 }
 
 export const updateRefund = createUpdateFunction(refunds, config)

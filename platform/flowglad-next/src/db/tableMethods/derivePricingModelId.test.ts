@@ -639,7 +639,7 @@ describe('insertRefund with derived pricingModelId', () => {
 
   it('should automatically derive and set pricingModelId when inserting refund', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const refund = await insertRefund(
+      const refundResult = await insertRefund(
         {
           organizationId: organization.id,
           paymentId: payment.id,
@@ -656,6 +656,7 @@ describe('insertRefund with derived pricingModelId', () => {
         },
         transaction
       )
+      const refund = refundResult.unwrap()
 
       expect(refund.pricingModelId).toBe(payment.pricingModelId)
       expect(refund.pricingModelId).toBe(pricingModel.id)

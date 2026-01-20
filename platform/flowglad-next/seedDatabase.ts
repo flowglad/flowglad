@@ -2250,7 +2250,7 @@ export const setupRefund = async (
   }
 ): Promise<typeof refunds.$inferSelect> => {
   return adminTransaction(async ({ transaction }) => {
-    return insertRefund(
+    const result = await insertRefund(
       {
         livemode: true,
         status: RefundStatus.Succeeded,
@@ -2262,6 +2262,7 @@ export const setupRefund = async (
       },
       transaction
     )
+    return result.unwrap()
   })
 }
 
