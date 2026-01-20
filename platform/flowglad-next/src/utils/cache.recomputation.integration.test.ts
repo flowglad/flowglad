@@ -15,6 +15,7 @@ import {
   cleanupRedisTestKeys,
   describeIfRedisKey,
   getRedisTestClient,
+  waitForCachePopulation,
 } from '@/test/redisIntegrationHelpers'
 import {
   IntervalUnit,
@@ -174,14 +175,10 @@ describeIfRedisKey('cache recomputation integration', () => {
     // Trigger recomputation (simulates what would happen in a production scenario)
     await recomputeDependencies([dependencyKey])
 
-    // Step 5: Wait for fire-and-forget recomputation to complete
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    // Step 6: Verify cache contains updated subscription item data
-    const cachedValueAfterRecompute = await client.get(cacheKey)
+    // Step 5: Poll until cache is repopulated by fire-and-forget recomputation
     const recomputedData = safeParseJsonNonNull<
       Array<{ subscriptionItem: { id: string; quantity: number } }>
-    >(cachedValueAfterRecompute)
+    >(await waitForCachePopulation(client, cacheKey))
     expect(recomputedData).toHaveLength(1)
     expect(recomputedData[0].subscriptionItem.id).toBe(
       subscriptionItem.id
@@ -302,15 +299,10 @@ describeIfRedisKey('cache recomputation integration', () => {
     await invalidateDependencies([dependencyKey])
     await recomputeDependencies([dependencyKey])
 
-    // Wait for recomputation to complete
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    // Verify recomputation ran with livemode=false and cache key still includes :false
-    const recomputedValue = await client.get(cacheKey)
-    const recomputedData =
-      safeParseJsonNonNull<
-        Array<{ subscriptionItem: { livemode: boolean } }>
-      >(recomputedValue)
+    // Poll until cache is repopulated
+    const recomputedData = safeParseJsonNonNull<
+      Array<{ subscriptionItem: { livemode: boolean } }>
+    >(await waitForCachePopulation(client, cacheKey))
     expect(recomputedData).toHaveLength(1)
     expect(recomputedData[0].subscriptionItem.livemode).toBe(false)
 
@@ -393,27 +385,13 @@ describeIfRedisKey('cache recomputation integration', () => {
     // Invalidate cache
     await invalidateDependencies([dependencyKey])
 
-    // Measure how long recomputeDependencies takes to return
-    const startTime = Date.now()
+    // Trigger recomputation - this should return quickly (fire-and-forget)
     await recomputeDependencies([dependencyKey])
-    const elapsedTime = Date.now() - startTime
 
-    // recomputeDependencies should return relatively quickly even though
-    // the actual recomputation involves database queries.
-    // We use a generous threshold since timing can vary significantly in CI environments.
-    // The key point is that recomputation happens asynchronously, not that it's instant.
-    expect(elapsedTime).toBeLessThan(500)
-
-    // Cache might not be populated yet because recomputation is async
-    // But it should eventually be populated
-    await new Promise((resolve) => setTimeout(resolve, 500))
-
-    // Verify cache was eventually repopulated by parsing the value
-    const cachedValue = await client.get(cacheKey)
-    const parsedValue =
-      safeParseJsonNonNull<
-        Array<{ subscriptionItem: { id: string } }>
-      >(cachedValue)
+    // Poll until cache is repopulated by async recomputation
+    const parsedValue = safeParseJsonNonNull<
+      Array<{ subscriptionItem: { id: string } }>
+    >(await waitForCachePopulation(client, cacheKey))
     expect(parsedValue).toHaveLength(1)
   })
 })

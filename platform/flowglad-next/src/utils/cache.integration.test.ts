@@ -29,6 +29,8 @@ import {
   describeIfRedisKey,
   generateTestKeyPrefix,
   getRedisTestClient,
+  waitForCacheInvalidation,
+  waitForCachePopulation,
 } from '@/test/redisIntegrationHelpers'
 import {
   CurrencyCode,
@@ -65,90 +67,6 @@ import {
 
 // Test-specific namespace to avoid conflicts with production data
 const TEST_NAMESPACE = RedisKeyNamespace.SubscriptionsByCustomer
-
-/**
- * Poll Redis for a cache key until it is populated or timeout is reached.
- * Returns the cached value when found, or throws if timeout elapses.
- */
-async function waitForCachePopulation<T>(
-  client: ReturnType<typeof getRedisTestClient>,
-  cacheKey: string,
-  options: { timeoutMs?: number; intervalMs?: number } = {}
-): Promise<T> {
-  const { timeoutMs = 5000, intervalMs = 50 } = options
-  const startTime = Date.now()
-
-  return new Promise<T>((resolve, reject) => {
-    const checkCache = async () => {
-      try {
-        const value = await client.get(cacheKey)
-        if (value !== null) {
-          return resolve(value as T)
-        }
-
-        if (Date.now() - startTime >= timeoutMs) {
-          return reject(
-            new Error(
-              `Timeout waiting for cache key "${cacheKey}" to be populated after ${timeoutMs}ms`
-            )
-          )
-        }
-
-        setTimeout(checkCache, intervalMs)
-      } catch (error) {
-        return reject(
-          new Error(
-            `Redis error while waiting for cache key "${cacheKey}" to be populated: ${error instanceof Error ? error.message : String(error)}`
-          )
-        )
-      }
-    }
-
-    checkCache()
-  })
-}
-
-/**
- * Poll Redis until a cache key is invalidated (null) or timeout is reached.
- * Throws if the key is still present after timeout elapses.
- */
-async function waitForCacheInvalidation(
-  client: ReturnType<typeof getRedisTestClient>,
-  cacheKey: string,
-  options: { timeoutMs?: number; intervalMs?: number } = {}
-): Promise<void> {
-  const { timeoutMs = 5000, intervalMs = 50 } = options
-  const startTime = Date.now()
-
-  return new Promise<void>((resolve, reject) => {
-    const checkCache = async () => {
-      try {
-        const value = await client.get(cacheKey)
-        if (value === null) {
-          return resolve()
-        }
-
-        if (Date.now() - startTime >= timeoutMs) {
-          return reject(
-            new Error(
-              `Timeout waiting for cache key "${cacheKey}" to be invalidated after ${timeoutMs}ms`
-            )
-          )
-        }
-
-        setTimeout(checkCache, intervalMs)
-      } catch (error) {
-        return reject(
-          new Error(
-            `Redis error while waiting for cache key "${cacheKey}" to be invalidated: ${error instanceof Error ? error.message : String(error)}`
-          )
-        )
-      }
-    }
-
-    checkCache()
-  })
-}
 
 describeIfRedisKey('Cache Integration Tests', () => {
   let testKeyPrefix: string
@@ -1544,6 +1462,9 @@ describeIfRedisKey('LRU Eviction Integration Tests', () => {
     // and then manually invoke eviction logic
     const namespace = RedisKeyNamespace.SubscriptionsByCustomer
     const zsetKey = `${namespace}:lru`
+
+    // Clear the zset first to ensure test isolation (may have leftover entries from previous tests)
+    await client.del(zsetKey)
 
     // Create 5 cache entries with incremental timestamps
     const cacheKeys: string[] = []
