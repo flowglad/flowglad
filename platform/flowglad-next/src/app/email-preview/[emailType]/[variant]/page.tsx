@@ -52,22 +52,22 @@ export default async function EmailPreviewVariantPage({
       : config.defaultSubject
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="bg-white border-b shadow-sm sticky top-0 z-10">
+      <div className="border-b border-dashed sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
               <Link
                 href="/email-preview"
-                className="text-sm text-blue-600 hover:text-blue-800 mb-1 inline-block"
+                className="text-sm text-primary hover:text-primary/80 mb-1 inline-block"
               >
                 ← Back to all emails
               </Link>
-              <h1 className="text-xl font-semibold text-gray-900">
+              <h1 className="text-xl font-semibold text-foreground">
                 {emailType}
               </h1>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 Variant:{' '}
                 <span className="font-medium">{variant}</span>
               </p>
@@ -77,17 +77,17 @@ export default async function EmailPreviewVariantPage({
                 <span
                   className={`text-xs px-2 py-1 rounded ${
                     config.recipientType === 'customer'
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-purple-100 text-purple-700'
+                      ? 'bg-jade-background text-jade-foreground'
+                      : 'bg-secondary text-secondary-foreground'
                   }`}
                 >
                   {config.recipientType}
                 </span>
-                <span className="text-xs px-2 py-1 rounded bg-gray-100 text-gray-700">
+                <span className="text-xs px-2 py-1 rounded bg-muted text-muted-foreground">
                   {config.category}
                 </span>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-muted-foreground">
                 {config.description}
               </p>
             </div>
@@ -95,15 +95,15 @@ export default async function EmailPreviewVariantPage({
         </div>
       </div>
 
-      {/* Subject Preview */}
+      {/* Subject Preview - preserves email client appearance */}
       <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
           <div className="text-sm text-gray-500 mb-1">Subject:</div>
           <div className="font-medium text-gray-900">{subject}</div>
         </div>
 
-        {/* Email Preview Frame */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+        {/* Email Preview Frame - preserves email client appearance */}
+        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
           <div className="bg-gray-50 border-b px-4 py-2 flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-red-400" />
             <div className="w-3 h-3 rounded-full bg-yellow-400" />

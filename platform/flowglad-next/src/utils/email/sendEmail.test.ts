@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CurrencyCode } from '@/types'
+// Import the email module to spy on safeSend
 import * as emailModule from '@/utils/email'
 import { EMAIL_REGISTRY } from './registry'
 import {
@@ -8,14 +9,17 @@ import {
   sendEmail,
 } from './sendEmail'
 
-// Mock the safeSend function to avoid actual email sending
-vi.mock('@/utils/email', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/utils/email')>()
-  return {
-    ...actual,
-    safeSend: vi.fn().mockResolvedValue({ id: 'mock-email-id' }),
-  }
+// Spy on safeSend instead of mocking the entire module
+const mockResponse = {
+  data: { id: 'mock-email-id' },
+  error: null,
+} as const
+const safeSendSpy = vi
+  .spyOn(emailModule, 'safeSend')
+  .mockResolvedValue(mockResponse)
+
+beforeEach(() => {
+  safeSendSpy.mockClear()
 })
 
 describe('sendEmail', () => {
@@ -43,15 +47,17 @@ describe('sendEmail', () => {
 
       // Should not throw because validation is skipped
       // The actual send will still work because safeSend is mocked
-      await expect(
-        sendEmail({
-          type: 'organization.notification.payouts-enabled',
-          to: ['test@example.com'],
-          props: invalidProps as never,
-          livemode: true,
-          skipValidation: true,
-        })
-      ).resolves.not.toThrow()
+      const result = await sendEmail({
+        type: 'organization.notification.payouts-enabled',
+        to: ['test@example.com'],
+        props: invalidProps as never,
+        livemode: true,
+        skipValidation: true,
+      })
+
+      // Should have called safeSend and returned the mock response
+      expect(result).toEqual(mockResponse)
+      expect(safeSendSpy).toHaveBeenCalled()
     })
   })
 

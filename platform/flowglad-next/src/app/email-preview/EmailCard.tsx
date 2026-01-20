@@ -1,0 +1,54 @@
+'use client'
+
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+
+interface EmailCardProps {
+  emailType: string
+  description: string
+  variants: string[]
+}
+
+/**
+ * Client component for email preview cards.
+ * Allows clicking the entire card to navigate to the default variant,
+ * while still allowing individual variant links to work.
+ */
+export function EmailCard({
+  emailType,
+  description,
+  variants,
+}: EmailCardProps) {
+  const router = useRouter()
+  const defaultVariant = variants[0] ?? 'default'
+
+  return (
+    <div
+      onClick={() =>
+        router.push(
+          `/email-preview/${encodeURIComponent(emailType)}/${defaultVariant}`
+        )
+      }
+      className="border border-border rounded-lg p-4 bg-card-muted shadow-sm hover:shadow-md hover:border-primary transition-all cursor-pointer"
+    >
+      <h3 className="font-medium text-card-foreground mb-1">
+        {emailType.split('.').slice(1).join(' → ')}
+      </h3>
+      <p className="text-sm text-muted-foreground mb-3">
+        {description}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {variants.map((variant) => (
+          <Link
+            key={`${emailType}-${variant}`}
+            href={`/email-preview/${encodeURIComponent(emailType)}/${variant}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-xs px-2 py-1 bg-secondary text-secondary-foreground rounded hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            {variant}
+          </Link>
+        ))}
+      </div>
+    </div>
+  )
+}
