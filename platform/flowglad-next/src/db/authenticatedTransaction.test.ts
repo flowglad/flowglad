@@ -20,6 +20,7 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
+  authenticatedTransactionUnwrap,
   comprehensiveAuthenticatedTransaction,
 } from './authenticatedTransaction'
 import type { ApiKey } from './schema/apiKeys'
@@ -1956,5 +1957,94 @@ describe('cacheRecomputationContext derivation', () => {
     )
 
     expect(result.verified).toBe(true)
+  })
+})
+
+describe('authenticatedTransactionUnwrap', () => {
+  let testOrg: Organization.Record
+  let apiKey: ApiKey.Record
+
+  beforeEach(async () => {
+    const orgSetup = await setupOrg()
+    testOrg = orgSetup.organization
+
+    const userApiKey = await setupUserAndApiKey({
+      organizationId: testOrg.id,
+      livemode: true,
+    })
+    apiKey = userApiKey.apiKey
+  })
+
+  it('unwraps a successful Result and returns the value', async () => {
+    // setup:
+    // - use valid API key
+    // - provide transaction function that returns Result.ok with a value
+    // expects:
+    // - the unwrapped value should be returned directly
+    const result = await authenticatedTransactionUnwrap(
+      async (ctx) => {
+        const { transaction } = ctx
+        const orgs = await selectOrganizations({}, transaction)
+        return Result.ok({ count: orgs.length, success: true })
+      },
+      { apiKey: apiKey.token }
+    )
+
+    expect(result).toEqual({ count: 1, success: true })
+  })
+
+  it('throws when Result contains an error, preserving the original error message', async () => {
+    // setup:
+    // - use valid API key
+    // - provide transaction function that returns Result.err with an error
+    // expects:
+    // - the error should be thrown
+    // - the original error message should be preserved
+    const errorMessage = 'Business logic validation failed'
+
+    await expect(
+      authenticatedTransactionUnwrap(
+        async () => Result.err(new Error(errorMessage)),
+        { apiKey: apiKey.token }
+      )
+    ).rejects.toThrow(errorMessage)
+  })
+
+  it('provides TransactionEffectsContext with all required callbacks', async () => {
+    // setup:
+    // - use valid API key
+    // - verify ctx contains all expected properties
+    // expects:
+    // - ctx should have transaction, invalidateCache, emitEvent, enqueueLedgerCommand
+    const result = await authenticatedTransactionUnwrap(
+      async (ctx) => {
+        expect(typeof ctx.transaction.execute).toBe('function')
+        expect(typeof ctx.invalidateCache).toBe('function')
+        expect(typeof ctx.emitEvent).toBe('function')
+        expect(typeof ctx.enqueueLedgerCommand).toBe('function')
+        return Result.ok('context_verified')
+      },
+      { apiKey: apiKey.token }
+    )
+
+    expect(result).toBe('context_verified')
+  })
+
+  it('propagates errors thrown inside the callback (not wrapped in Result)', async () => {
+    // setup:
+    // - use valid API key
+    // - throw an error directly inside the callback (not via Result.err)
+    // expects:
+    // - the error should be propagated
+    const directErrorMessage = 'Direct throw error'
+
+    await expect(
+      authenticatedTransactionUnwrap(
+        async () => {
+          throw new Error(directErrorMessage)
+        },
+        { apiKey: apiKey.token }
+      )
+    ).rejects.toThrow(directErrorMessage)
   })
 })
