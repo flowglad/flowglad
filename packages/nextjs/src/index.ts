@@ -17,9 +17,9 @@ export {
   RESOURCE_CLAIMS_QUERY_KEY,
   RESOURCES_QUERY_KEY,
   useBilling,
-  useResource,
-  useResources,
   usePricing,
   usePricingModel,
+  useResource,
+  useResources,
 } from '@flowglad/react'
 export type * from '@flowglad/shared'
