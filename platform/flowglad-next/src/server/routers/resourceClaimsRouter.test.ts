@@ -28,7 +28,6 @@ import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Resource } from '@/db/schema/resources'
-import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
@@ -68,8 +67,6 @@ describe('resourceClaimsRouter', () => {
   let resource2: Resource.Record
   let subscription: Subscription.Record
   let subscriptionItem: SubscriptionItem.Record
-  let subscriptionItemFeature: SubscriptionItemFeature.ResourceRecord
-  let subscriptionItemFeature2: SubscriptionItemFeature.ResourceRecord
   let apiKeyToken: string
 
   // Secondary org for cross-tenant tests
@@ -200,23 +197,22 @@ describe('resourceClaimsRouter', () => {
       }
     )
 
-    subscriptionItemFeature =
-      await setupResourceSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: seatsFeature.id,
-        resourceId: resource.id,
-        pricingModelId: pricingModel.id,
-        amount: 10,
-      })
+    // Set up subscription item features to provide capacity for the resources
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: seatsFeature.id,
+      resourceId: resource.id,
+      pricingModelId: pricingModel.id,
+      amount: 10,
+    })
 
-    subscriptionItemFeature2 =
-      await setupResourceSubscriptionItemFeature({
-        subscriptionItemId: subscriptionItem.id,
-        featureId: projectsFeature.id,
-        resourceId: resource2.id,
-        pricingModelId: pricingModel.id,
-        amount: 5,
-      })
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: projectsFeature.id,
+      resourceId: resource2.id,
+      pricingModelId: pricingModel.id,
+      amount: 5,
+    })
 
     // Setup organization 2 for cross-tenant tests
     org2Data = await setupOrg()
@@ -258,7 +254,6 @@ describe('resourceClaimsRouter', () => {
       // Create some claims first
       await setupResourceClaim({
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         resourceId: resource.id,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,
@@ -266,7 +261,6 @@ describe('resourceClaimsRouter', () => {
       })
       await setupResourceClaim({
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         resourceId: resource.id,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,
@@ -298,7 +292,6 @@ describe('resourceClaimsRouter', () => {
       // Create a claim
       await setupResourceClaim({
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         resourceId: resource.id,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,
@@ -564,7 +557,6 @@ describe('resourceClaimsRouter', () => {
       // Create claims for resource 1 (seats)
       await setupResourceClaim({
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         resourceId: resource.id,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,
@@ -572,7 +564,6 @@ describe('resourceClaimsRouter', () => {
       })
       await setupResourceClaim({
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         resourceId: resource.id,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,
@@ -582,7 +573,6 @@ describe('resourceClaimsRouter', () => {
       // Create claims for resource 2 (projects)
       await setupResourceClaim({
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature2.id,
         resourceId: resource2.id,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,
@@ -653,7 +643,6 @@ describe('resourceClaimsRouter', () => {
         // Create claims for both resources
         await setupResourceClaim({
           organizationId: organization.id,
-          subscriptionItemFeatureId: subscriptionItemFeature.id,
           resourceId: resource.id,
           subscriptionId: subscription.id,
           pricingModelId: pricingModel.id,
@@ -661,7 +650,6 @@ describe('resourceClaimsRouter', () => {
         })
         await setupResourceClaim({
           organizationId: organization.id,
-          subscriptionItemFeatureId: subscriptionItemFeature2.id,
           resourceId: resource2.id,
           subscriptionId: subscription.id,
           pricingModelId: pricingModel.id,
@@ -710,7 +698,6 @@ describe('resourceClaimsRouter', () => {
         // Create claims for both resources
         await setupResourceClaim({
           organizationId: organization.id,
-          subscriptionItemFeatureId: subscriptionItemFeature.id,
           resourceId: resource.id,
           subscriptionId: subscription.id,
           pricingModelId: pricingModel.id,
@@ -718,7 +705,6 @@ describe('resourceClaimsRouter', () => {
         })
         await setupResourceClaim({
           organizationId: organization.id,
-          subscriptionItemFeatureId: subscriptionItemFeature2.id,
           resourceId: resource2.id,
           subscriptionId: subscription.id,
           pricingModelId: pricingModel.id,

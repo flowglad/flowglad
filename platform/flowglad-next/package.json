@@ -215,7 +215,7 @@
     "@fast-check/vitest": "^0.2.4",
     "@sentry/esbuild-plugin": "^2.23.1",
     "@testing-library/dom": "10.4.0",
-    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "16.3.0",
     "@trigger.dev/build": "4.3.2",
     "@types/bcrypt": "^5.0.2",

@@ -19456,9 +19456,6 @@
           "organizationId": {
             "type": "string"
           },
-          "subscriptionItemFeatureId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "string"
           },
@@ -19507,6 +19504,19 @@
               }
             ]
           },
+          "expiredAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "metadata": {
             "anyOf": [
               {
@@ -19524,7 +19534,6 @@
           "updatedAt",
           "livemode",
           "organizationId",
-          "subscriptionItemFeatureId",
           "resourceId",
           "subscriptionId",
           "pricingModelId",
