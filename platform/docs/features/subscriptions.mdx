@@ -193,7 +193,11 @@ Subscription adjustments have the following restrictions:
 *   A valid payment method is required for proration charges (upgrades with `prorate: true`)
 *   The new price must belong to the same pricing model as the subscription
 *   Only recurring (subscription-type) prices can be used
-*   For downgrades with resource features (e.g., team seats), all resources over the new capacity must be released before the adjustment can proceed
+*   For downgrades with [resource features](/features/resources) (e.g., team seats), claimed resources must fit within the new capacity—excess claims must be released before the adjustment can proceed
+
+<Info>
+Resource claims (like team seats) persist across subscription adjustments. When upgrading, claims are preserved and new capacity is immediately available. When downgrading, Flowglad validates that active claims don't exceed the new capacity. See [Resources](/features/resources#adjusting-subscriptions-with-resources) for detailed examples.
+</Info>
 
 <Warning>
 For subscriptions on a free trial without a payment method attached, proration upgrades will fail because there is no way to charge for the prorated amount. To upgrade a trialing subscription without a payment method, either:
