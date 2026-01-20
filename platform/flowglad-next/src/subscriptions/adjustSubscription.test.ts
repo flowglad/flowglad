@@ -5962,6 +5962,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // This documents current behavior where claims during interim period
         // succeed against OLD capacity, potentially resulting in claims > capacity
         // after the transition
+
         const resource = await setupResource({
           organizationId: organization.id,
           pricingModelId: pricingModel.id,
@@ -6157,11 +6158,13 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Step 5: Simulate time passing - transition to new billing period
-        // Update billing period to make old items expired and new items active
+        // Use anchorDate parameter to simulate checking capacity after period end
+        const afterTransitionAnchor = periodEnd + 1000 // 1 second after period end
+
         await comprehensiveAdminTransaction(async (ctx) => {
           const { transaction } = ctx
 
-          // Advance billing period past the transition point
+          // Update billing period to reflect the new period
           await updateBillingPeriod(
             {
               id: billingPeriod.id,
@@ -6186,10 +6189,12 @@ describe('adjustSubscription Integration Tests', async () => {
           // DOCUMENTING CURRENT BEHAVIOR:
           // After transition, the usage shows new (reduced) capacity
           // but claims may exceed that capacity
+          // Use anchorDate to simulate checking capacity at a future time
           const usageAfterTransition = await getResourceUsage(
             subscription.id,
             resource.id,
-            transaction
+            transaction,
+            afterTransitionAnchor
           )
           expect(usageAfterTransition.capacity).toBe(2) // New capacity
           expect(usageAfterTransition.claimed).toBe(3) // Claims exceed capacity!

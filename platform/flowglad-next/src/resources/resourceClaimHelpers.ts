@@ -11,6 +11,7 @@ import {
   selectActiveClaimByExternalId,
   selectActiveClaimsByExternalIds,
   selectActiveResourceClaims,
+  selectResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectSubscriptionItemFeaturesBySubscriptionItemIds } from '@/db/tableMethods/subscriptionItemFeatureMethods'
@@ -390,10 +391,11 @@ export const getAggregatedResourceCapacity = async (
   params: {
     subscriptionId: string
     resourceId: string
+    anchorDate?: number
   },
   transaction: DbTransaction
 ): Promise<{ totalCapacity: number; featureIds: string[] }> => {
-  const now = Date.now()
+  const now = params.anchorDate ?? Date.now()
 
   // Get all currently active subscription items for this subscription
   const activeItems = await selectCurrentlyActiveSubscriptionItems(
@@ -513,6 +515,176 @@ export const getAggregatedResourceCapacityBatch = async (
   return result
 }
 
+/**
+ * Information about a scheduled capacity change.
+ */
+export interface ScheduledCapacityChange {
+  /**
+   * The capacity that will be available after the scheduled change.
+   * 0 if the subscription is scheduled to cancel.
+   */
+  futureCapacity: number
+  /**
+   * When the scheduled change takes effect (timestamp in ms).
+   * This is either:
+   * - cancelScheduledAt for scheduled cancellations
+   * - The addedDate of the next scheduled subscription item change
+   */
+  effectiveAt: number
+  /**
+   * Why capacity is changing.
+   */
+  reason: 'scheduled_cancellation' | 'scheduled_adjustment'
+}
+
+/**
+ * Gets the aggregated resource capacity at a specific point in time.
+ * This is similar to getAggregatedResourceCapacity but uses an explicit
+ * anchor time instead of Date.now().
+ *
+ * @param params - subscriptionId, resourceId, and anchorTime to calculate capacity at
+ * @param transaction - Database transaction
+ * @returns Object with totalCapacity at that time
+ */
+export const getAggregatedResourceCapacityAtTime = async (
+  params: {
+    subscriptionId: string
+    resourceId: string
+    anchorTime: number
+  },
+  transaction: DbTransaction
+): Promise<{ totalCapacity: number }> => {
+  const { anchorTime } = params
+
+  // Get all active subscription items at the specified anchor time
+  const activeItems = await selectCurrentlyActiveSubscriptionItems(
+    { subscriptionId: params.subscriptionId },
+    anchorTime,
+    transaction
+  )
+
+  if (activeItems.length === 0) {
+    return { totalCapacity: 0 }
+  }
+
+  const subscriptionItemIds = activeItems.map((item) => item.id)
+
+  // Get all subscription item features for these active items
+  const allFeatures =
+    await selectSubscriptionItemFeaturesBySubscriptionItemIds(
+      subscriptionItemIds,
+      transaction
+    )
+
+  // Filter to Resource features for our resource that are not expired at anchor time
+  const resourceFeatures = allFeatures.filter(
+    (f): f is SubscriptionItemFeature.ResourceRecord =>
+      f.type === FeatureType.Resource &&
+      f.resourceId === params.resourceId &&
+      (f.expiredAt === null || f.expiredAt > anchorTime)
+  )
+
+  // Sum up the capacity
+  const totalCapacity = resourceFeatures.reduce(
+    (sum, feature) => sum + feature.amount,
+    0
+  )
+
+  return { totalCapacity }
+}
+
+/**
+ * Gets the next scheduled capacity change for a resource on a subscription.
+ *
+ * This checks:
+ * 1. If the subscription has cancelScheduledAt set (full cancellation)
+ * 2. If there are subscription items scheduled to become active in the future
+ *
+ * Returns null if there's no scheduled change that would affect capacity.
+ *
+ * @param params - subscriptionId and resourceId
+ * @param subscription - The subscription record (needed for cancelScheduledAt)
+ * @param transaction - Database transaction
+ * @returns ScheduledCapacityChange if there's a scheduled change, null otherwise
+ */
+export const getScheduledCapacityChange = async (
+  params: {
+    subscriptionId: string
+    resourceId: string
+  },
+  subscription: { cancelScheduledAt: number | null },
+  transaction: DbTransaction
+): Promise<ScheduledCapacityChange | null> => {
+  const now = Date.now()
+
+  // Check for scheduled cancellation
+  if (
+    subscription.cancelScheduledAt &&
+    subscription.cancelScheduledAt > now
+  ) {
+    return {
+      futureCapacity: 0,
+      effectiveAt: subscription.cancelScheduledAt,
+      reason: 'scheduled_cancellation',
+    }
+  }
+
+  // Check for scheduled subscription item changes
+  // Get all subscription items (not just currently active ones)
+  const allItems = await selectCurrentlyActiveSubscriptionItems(
+    { subscriptionId: params.subscriptionId },
+    // Use a far future date to get all items that will ever become active
+    // This is a bit of a hack - ideally we'd have a separate function
+    new Date('2099-12-31').getTime(),
+    transaction
+  )
+
+  // Find items that haven't started yet (addedDate > now)
+  const futureItems = allItems.filter((item) => item.addedDate > now)
+
+  if (futureItems.length === 0) {
+    // No scheduled changes
+    return null
+  }
+
+  // Find the soonest future change
+  const soonestFutureDate = Math.min(
+    ...futureItems.map((item) => item.addedDate)
+  )
+
+  // Calculate capacity at that future time
+  const { totalCapacity: futureCapacity } =
+    await getAggregatedResourceCapacityAtTime(
+      {
+        subscriptionId: params.subscriptionId,
+        resourceId: params.resourceId,
+        anchorTime: soonestFutureDate,
+      },
+      transaction
+    )
+
+  // Get current capacity to compare
+  const { totalCapacity: currentCapacity } =
+    await getAggregatedResourceCapacity(
+      {
+        subscriptionId: params.subscriptionId,
+        resourceId: params.resourceId,
+      },
+      transaction
+    )
+
+  // Only return if capacity is decreasing (downgrade)
+  if (futureCapacity < currentCapacity) {
+    return {
+      futureCapacity,
+      effectiveAt: soonestFutureDate,
+      reason: 'scheduled_adjustment',
+    }
+  }
+
+  return null
+}
+
 const MAX_OPTIMISTIC_LOCK_RETRIES = 3
 
 /**
@@ -553,6 +725,7 @@ const insertClaimsWithOptimisticLock = async (
     claimsToInsert: Array<{
       externalId: string | null
       metadata: Record<string, string | number | boolean> | null
+      expiredAt?: number | null
     }>
   },
   transaction: DbTransaction
@@ -604,7 +777,12 @@ const insertClaimsWithOptimisticLock = async (
           ? JSON.stringify(claim.metadata)
           : null
         const id = `res_claim_${core.nanoid()}`
-        return sql`(${id}, ${claim.externalId}, ${meta})`
+        // Convert expiredAt to ISO timestamp string for PostgreSQL, or null
+        const expiredAtValue =
+          claim.expiredAt != null
+            ? new Date(claim.expiredAt).toISOString()
+            : null
+        return sql`(${id}, ${claim.externalId}, ${meta}, ${expiredAtValue})`
       }),
       sql`, `
     )
@@ -613,7 +791,7 @@ const insertClaimsWithOptimisticLock = async (
       INSERT INTO ${resourceClaims} (
         id,
         organization_id, resource_id, subscription_id,
-        pricing_model_id, external_id, metadata, livemode
+        pricing_model_id, external_id, metadata, livemode, expired_at
       )
       SELECT
         id,
@@ -623,15 +801,17 @@ const insertClaimsWithOptimisticLock = async (
         ${pricingModelId},
         ext_id,
         meta::jsonb,
-        ${livemode}
+        ${livemode},
+        exp_at::timestamptz
       FROM (
         VALUES ${valuesSql}
-      ) AS t(id, ext_id, meta)
+      ) AS t(id, ext_id, meta, exp_at)
       WHERE (
         SELECT COUNT(*) FROM ${resourceClaims}
         WHERE subscription_id = ${subscriptionId}
           AND resource_id = ${resourceId}
           AND released_at IS NULL
+          AND (expired_at IS NULL OR expired_at > NOW())
       ) = ${currentCount}
       RETURNING
         id,
@@ -653,7 +833,12 @@ const insertClaimsWithOptimisticLock = async (
             then null
           else (extract(epoch from released_at) * 1000)::double precision
         end as released_at,
-        release_reason
+        release_reason,
+        case
+          when expired_at is null
+            then null
+          else (extract(epoch from expired_at) * 1000)::double precision
+        end as expired_at
     `)
 
     // Validate raw SQL results with Zod for runtime safety
@@ -697,6 +882,20 @@ export interface ClaimResourceResult {
     capacity: number
     claimed: number
     available: number
+  }
+  /**
+   * Information about any temporary claims that were created.
+   * Temporary claims are created when claiming resources during an interim period
+   * (after scheduling a downgrade but before it takes effect) and the claim
+   * would exceed the future reduced capacity.
+   */
+  temporaryClaims?: {
+    /** IDs of the claims that are temporary */
+    claimIds: string[]
+    /** When these claims will expire (timestamp in ms) */
+    expiresAt: number
+    /** Human-readable explanation of why these claims are temporary */
+    reason: string
   }
 }
 
@@ -770,6 +969,7 @@ export async function claimResourceTransaction(
   let claimsToCreate: Array<{
     externalId: string | null
     metadata: Record<string, string | number | boolean> | null
+    expiredAt?: number | null
   }> = []
 
   if (input.quantity !== undefined) {
@@ -853,6 +1053,71 @@ export async function claimResourceTransaction(
     }
   }
 
+  // 5b. Check for scheduled capacity changes
+  // If there's a scheduled downgrade or cancellation, some claims may need to be temporary
+  let temporaryClaimsInfo:
+    | {
+        claimIds: string[]
+        expiresAt: number
+        reason: string
+      }
+    | undefined
+
+  const scheduledChange = await getScheduledCapacityChange(
+    {
+      subscriptionId: subscription.id,
+      resourceId: resource.id,
+    },
+    subscription,
+    transaction
+  )
+
+  if (scheduledChange) {
+    // Get current claim count
+    const currentClaimCount = await countActiveResourceClaims(
+      {
+        subscriptionId: subscription.id,
+        resourceId: resource.id,
+      },
+      transaction
+    )
+
+    // Calculate how many claims can fit within future capacity
+    const claimsAfterNew = currentClaimCount + claimsToCreate.length
+    const excessClaims =
+      claimsAfterNew - scheduledChange.futureCapacity
+
+    if (excessClaims > 0) {
+      // Some claims will exceed future capacity and need to be temporary
+      // The last N claims (where N = excessClaims) should be temporary
+      const permanentCount = Math.max(
+        0,
+        claimsToCreate.length - excessClaims
+      )
+      const reasonText =
+        scheduledChange.reason === 'scheduled_cancellation'
+          ? 'Claim valid until scheduled subscription cancellation takes effect'
+          : 'Claim valid until scheduled downgrade takes effect'
+
+      // Mark the excess claims as temporary
+      claimsToCreate = claimsToCreate.map((claim, index) => ({
+        ...claim,
+        expiredAt:
+          index >= permanentCount
+            ? scheduledChange.effectiveAt
+            : null,
+      }))
+
+      // Prepare temporary claims info for return value
+      // Note: We'll fill in claimIds after the insert completes
+      temporaryClaimsInfo = {
+        claimIds: [], // Will be populated after insert
+        expiresAt: scheduledChange.effectiveAt,
+        reason: reasonText,
+      }
+    }
+  }
+
   // 6. Insert claims using optimistic locking
   // This validates capacity and handles concurrent modifications via retry
   const { claims: newClaims } = await insertClaimsWithOptimisticLock(
@@ -867,7 +1132,14 @@ export async function claimResourceTransaction(
     transaction
   )
 
-  // 7. Get updated usage
+  // 7. Populate temporary claim IDs if any claims are temporary
+  if (temporaryClaimsInfo) {
+    temporaryClaimsInfo.claimIds = newClaims
+      .filter((claim) => claim.expiredAt !== null)
+      .map((claim) => claim.id)
+  }
+
+  // 8. Get updated usage
   const usage = await getResourceUsage(
     subscription.id,
     resource.id,
@@ -892,6 +1164,19 @@ export async function claimResourceTransaction(
         input.externalIds!.includes(c.externalId)
     )
 
+    // Check if any of the relevant claims are temporary
+    const relevantTemporaryClaims = relevantClaims.filter(
+      (c) => c.expiredAt !== null
+    )
+    const externalIdsTemporaryInfo =
+      relevantTemporaryClaims.length > 0 && temporaryClaimsInfo
+        ? {
+            claimIds: relevantTemporaryClaims.map((c) => c.id),
+            expiresAt: temporaryClaimsInfo.expiresAt,
+            reason: temporaryClaimsInfo.reason,
+          }
+        : undefined
+
     return {
       claims: relevantClaims,
       usage: {
@@ -899,6 +1184,7 @@ export async function claimResourceTransaction(
         resourceId: resource.id,
         ...usage,
       },
+      temporaryClaims: externalIdsTemporaryInfo,
     }
   }
 
@@ -909,6 +1195,10 @@ export async function claimResourceTransaction(
       resourceId: resource.id,
       ...usage,
     },
+    temporaryClaims:
+      temporaryClaimsInfo && temporaryClaimsInfo.claimIds.length > 0
+        ? temporaryClaimsInfo
+        : undefined,
   }
 }
 
@@ -1099,16 +1389,18 @@ export async function releaseResourceTransaction(
  * @param subscriptionId - The subscription ID
  * @param resourceId - The resource ID
  * @param transaction - The database transaction
+ * @param anchorDate - Optional anchor date for determining active items (defaults to Date.now())
  * @returns Object with capacity, claimed count, and available slots
  */
 export async function getResourceUsage(
   subscriptionId: string,
   resourceId: string,
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  anchorDate?: number
 ): Promise<{ capacity: number; claimed: number; available: number }> {
   // Get aggregated capacity from all active features
   const { totalCapacity } = await getAggregatedResourceCapacity(
-    { subscriptionId, resourceId },
+    { subscriptionId, resourceId, anchorDate },
     transaction
   )
 
@@ -1153,6 +1445,56 @@ export async function releaseAllResourceClaimsForSubscription(
   const releasedClaims = await bulkReleaseResourceClaims(
     activeClaims.map((c) => c.id),
     reason,
+    transaction
+  )
+
+  return { releasedCount: releasedClaims.length }
+}
+
+/**
+ * Releases expired resource claims for a subscription.
+ * Expired claims are those where expiredAt is not null and expiredAt <= NOW().
+ *
+ * This is useful for data cleanup - expired claims are already filtered out
+ * of active claim queries, but this function explicitly sets releasedAt
+ * for cleaner data management.
+ *
+ * @param subscriptionId - The subscription ID
+ * @param transaction - The database transaction
+ * @returns Object with the count of released claims
+ */
+export async function releaseExpiredResourceClaims(
+  subscriptionId: string,
+  transaction: DbTransaction
+): Promise<{ releasedCount: number }> {
+  const now = Date.now()
+
+  // Find claims that are expired but not yet released
+  // These are claims where:
+  // - releasedAt IS NULL (not yet released)
+  // - expiredAt IS NOT NULL (has an expiration)
+  // - expiredAt <= now (expiration has passed)
+  const expiredClaims = await selectResourceClaims(
+    {
+      subscriptionId,
+      releasedAt: null,
+    },
+    transaction
+  )
+
+  // Filter to only expired claims
+  const claimsToRelease = expiredClaims.filter(
+    (claim) => claim.expiredAt !== null && claim.expiredAt <= now
+  )
+
+  if (claimsToRelease.length === 0) {
+    return { releasedCount: 0 }
+  }
+
+  // Release all expired claims in bulk
+  const releasedClaims = await bulkReleaseResourceClaims(
+    claimsToRelease.map((c) => c.id),
+    'expired',
     transaction
   )
 

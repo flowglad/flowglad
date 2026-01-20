@@ -1,5 +1,5 @@
 {
-  "id": "814dba56-ed86-49f9-a58e-ae1221024009",
+  "id": "f14b377e-d670-4cff-8878-398b25e7ffdf",
   "prevId": "b9f9c30e-601a-4ebf-aafa-4576f3eb1e37",
   "version": "7",
   "dialect": "postgresql",
@@ -8138,6 +8138,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "subscription_item_feature_id": {
+          "name": "subscription_item_feature_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "resource_id": {
           "name": "resource_id",
           "type": "text",
@@ -8181,12 +8187,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamptz",
-          "primaryKey": false,
-          "notNull": false
-        },
         "metadata": {
           "name": "metadata",
           "type": "jsonb",
@@ -8215,6 +8215,21 @@
           "columns": [
             {
               "expression": "resource_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "resource_claims_subscription_item_feature_id_idx": {
+          "name": "resource_claims_subscription_item_feature_id_idx",
+          "columns": [
+            {
+              "expression": "subscription_item_feature_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -8312,6 +8327,15 @@
           "tableFrom": "resource_claims",
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "resource_claims_subscription_item_feature_id_subscription_item_features_id_fk": {
+          "name": "resource_claims_subscription_item_feature_id_subscription_item_features_id_fk",
+          "tableFrom": "resource_claims",
+          "tableTo": "subscription_item_features",
+          "columnsFrom": ["subscription_item_feature_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"

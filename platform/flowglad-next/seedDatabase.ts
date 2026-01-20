@@ -2781,6 +2781,7 @@ export const setupResourceClaim = async (params: {
   pricingModelId: string
   externalId?: string | null
   metadata?: Record<string, string | number | boolean> | null
+  expiredAt?: number | null
 }) => {
   return adminTransaction(async ({ transaction }) => {
     return insertResourceClaim(
@@ -2791,6 +2792,7 @@ export const setupResourceClaim = async (params: {
         pricingModelId: params.pricingModelId,
         externalId: params.externalId ?? null,
         metadata: params.metadata ?? null,
+        expiredAt: params.expiredAt ?? null,
         livemode: true,
       },
       transaction
