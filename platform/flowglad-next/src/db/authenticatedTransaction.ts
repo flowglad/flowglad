@@ -281,3 +281,40 @@ export const authenticatedProcedureComprehensiveTransaction = <
     )
   }
 }
+
+/**
+ * Convenience wrapper for authenticatedTransaction that takes a Result-returning
+ * function and automatically unwraps the result.
+ *
+ * Use this at boundaries (routers, API routes, SSR components) where throwing is acceptable.
+ *
+ * For multi-transaction procedures where you need to handle errors gracefully between
+ * transactions, use authenticatedTransaction directly and handle the Result.
+ *
+ * @param fn - Function that receives TransactionEffectsContext and returns a Result
+ * @param options - Authentication options including apiKey
+ * @returns The unwrapped value, throwing on error
+ *
+ * @example
+ * ```ts
+ * const data = await authenticatedTransactionUnwrap(
+ *   async (ctx) => fetchData(ctx),
+ *   { apiKey }
+ * )
+ * ```
+ */
+export async function authenticatedTransactionUnwrap<T>(
+  fn: (ctx: TransactionEffectsContext) => Promise<Result<T, Error>>,
+  options: AuthenticatedTransactionOptions
+): Promise<T> {
+  return comprehensiveAuthenticatedTransaction(async (params) => {
+    const ctx: TransactionEffectsContext = {
+      transaction: params.transaction,
+      cacheRecomputationContext: params.cacheRecomputationContext,
+      invalidateCache: params.invalidateCache,
+      emitEvent: params.emitEvent,
+      enqueueLedgerCommand: params.enqueueLedgerCommand,
+    }
+    return fn(ctx)
+  }, options)
+}
