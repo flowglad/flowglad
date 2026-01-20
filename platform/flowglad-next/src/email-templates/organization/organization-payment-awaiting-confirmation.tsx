@@ -10,6 +10,7 @@ import {
   DetailSection,
   DetailValue,
   EmailLayout,
+  Footer,
   Header,
   Paragraph,
 } from '../components/themed'
@@ -86,6 +87,10 @@ export const OrganizationPaymentConfirmationEmail = ({
         {organizationName}. You will receive another notification once
         the payment is confirmed.
       </Paragraph>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }

@@ -1,11 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { kebabCase } from 'change-case'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
-import { selectPriceById } from '@/db/tableMethods/priceMethods'
-import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import {
   CustomerSubscriptionCreatedEmail,
   type TrialInfo,
@@ -20,6 +14,8 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { getFromAddress } from '@/utils/email/fromAddress'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 
 const sendCustomerSubscriptionCreatedNotificationTask = task({
   id: 'send-customer-subscription-created-notification',
@@ -45,39 +41,19 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
       price,
       paymentMethod,
     } = await adminTransaction(async ({ transaction }) => {
-      const organization = await selectOrganizationById(
-        payload.organizationId,
+      return buildNotificationContext(
+        {
+          organizationId: payload.organizationId,
+          customerId: payload.customerId,
+          subscriptionId: payload.subscriptionId,
+          include: ['price', 'defaultPaymentMethod'],
+        },
         transaction
       )
-      const customer = await selectCustomerById(
-        payload.customerId,
-        transaction
-      )
-      const subscription = await selectSubscriptionById(
-        payload.subscriptionId,
-        transaction
-      )
-      const price = subscription.priceId
-        ? await selectPriceById(subscription.priceId, transaction)
-        : null
-      const paymentMethods = await selectPaymentMethods(
-        { customerId: payload.customerId },
-        transaction
-      )
-      const paymentMethod =
-        paymentMethods.find((pm) => pm.default) || paymentMethods[0]
-
-      return {
-        organization,
-        customer,
-        subscription,
-        price,
-        paymentMethod,
-      }
     })
 
-    if (!organization || !customer || !subscription || !price) {
-      throw new Error('Required data not found')
+    if (!price) {
+      throw new Error('Price not found for subscription')
     }
 
     if (!customer.email) {
@@ -154,7 +130,10 @@ const sendCustomerSubscriptionCreatedNotificationTask = task({
     const subjectLine = 'Your Subscription is Confirmed'
 
     const result = await safeSend({
-      from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName: organization.name,
+      }),
       bcc: getBccForLivemode(subscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(subjectLine, subscription.livemode),

@@ -865,6 +865,46 @@ export const selectDefaultPriceForUsageMeter = async (
 }
 
 /**
+ * Batch selects default prices for multiple usage meters.
+ * More efficient than calling selectDefaultPriceForUsageMeter for each meter individually.
+ * Returns only ACTIVE defaults, as inactive prices shouldn't be used
+ * as the default for new usage events.
+ *
+ * @param usageMeterIds - Array of usage meter IDs
+ * @param transaction - Database transaction
+ * @returns Map of usageMeterId to default Price.Record (meters without default prices are not included)
+ */
+export const selectDefaultPricesForUsageMeters = async (
+  usageMeterIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, Price.Record>> => {
+  if (usageMeterIds.length === 0) {
+    return new Map()
+  }
+
+  const results = await transaction
+    .select()
+    .from(prices)
+    .where(
+      and(
+        inArray(prices.usageMeterId, usageMeterIds),
+        eq(prices.isDefault, true),
+        eq(prices.active, true)
+      )
+    )
+
+  const defaultPriceByUsageMeterId = new Map<string, Price.Record>()
+  for (const result of results) {
+    const price = pricesSelectSchema.parse(result)
+    if (price.usageMeterId) {
+      defaultPriceByUsageMeterId.set(price.usageMeterId, price)
+    }
+  }
+
+  return defaultPriceByUsageMeterId
+}
+
+/**
  * Ensures a usage meter has a default price.
  * If no default price exists, sets the no_charge price as the default.
  * This is called when the current default price is unset or deactivated.

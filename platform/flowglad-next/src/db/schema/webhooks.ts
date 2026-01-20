@@ -16,7 +16,7 @@ import { buildSchemas } from '../createZodSchemas'
 const TABLE_NAME = 'webhooks'
 
 export const webhookFilterTypes = z
-  .nativeEnum(FlowgladEventType)
+  .enum(FlowgladEventType)
   .array()
   .describe(
     'The list of event types for which this webhook will receive events.'

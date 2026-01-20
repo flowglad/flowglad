@@ -1,0 +1,12 @@
+engine biome(1.0)
+language js
+
+// Detect z.nativeEnum() usage which is deprecated in Zod 4
+// Use z.enum() instead for type-safe enum validation.
+//
+// Bad:  z.nativeEnum(MyEnum)
+// Good: z.enum(MyEnum)
+
+`z.nativeEnum($args)` as $call where {
+  register_diagnostic(span=$call, message="z.nativeEnum() is deprecated in Zod 4. Use z.enum() instead.", severity="error")
+}

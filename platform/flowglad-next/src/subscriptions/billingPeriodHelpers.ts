@@ -29,7 +29,10 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { releaseAllResourceClaimsForSubscription } from '@/resources/resourceClaimHelpers'
+import {
+  releaseAllResourceClaimsForSubscription,
+  releaseExpiredResourceClaims,
+} from '@/resources/resourceClaimHelpers'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerTrialExpiredNotification } from '@/trigger/notifications/send-customer-trial-expired-notification'
 import {
@@ -425,6 +428,12 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     },
     transaction
   )
+
+  // Release any resource claims that have expired (e.g., claims made during an
+  // interim period after a downgrade was scheduled but before it took effect).
+  // These claims are already filtered from active queries, but explicitly releasing
+  // them ensures data consistency and provides an audit trail via releaseReason.
+  await releaseExpiredResourceClaims(subscription.id, transaction)
 
   const activeSubscriptionFeatureItems =
     await selectCurrentlyActiveSubscriptionItems(

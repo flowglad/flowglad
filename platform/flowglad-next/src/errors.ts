@@ -68,3 +68,28 @@ export class AuthorizationError extends DomainError {
     )
   }
 }
+
+export class RateLimitError extends DomainError {
+  constructor(
+    public readonly resource: string,
+    public readonly limit: string
+  ) {
+    super(
+      'RateLimitError',
+      `Rate limit exceeded for ${resource}: ${limit}`
+    )
+  }
+}
+
+export class ExternalServiceError extends DomainError {
+  constructor(
+    public readonly service: string,
+    public readonly operation: string,
+    public readonly reason?: string
+  ) {
+    super(
+      'ExternalServiceError',
+      `${service} ${operation} failed${reason ? `: ${reason}` : ''}`
+    )
+  }
+}
