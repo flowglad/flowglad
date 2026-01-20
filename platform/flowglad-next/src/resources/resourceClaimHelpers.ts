@@ -15,7 +15,10 @@ import {
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectSubscriptionItemFeaturesBySubscriptionItemIds } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  selectCurrentlyActiveSubscriptionItems,
+  selectSubscriptionItemsIncludingScheduled,
+} from '@/db/tableMethods/subscriptionItemMethods'
 import {
   isSubscriptionInTerminalState,
   selectSubscriptionById,
@@ -630,12 +633,10 @@ export const getScheduledCapacityChange = async (
   }
 
   // Check for scheduled subscription item changes
-  // Get all subscription items (not just currently active ones)
-  const allItems = await selectCurrentlyActiveSubscriptionItems(
+  // Get all subscription items including future scheduled ones (not just currently active)
+  const allItems = await selectSubscriptionItemsIncludingScheduled(
     { subscriptionId: params.subscriptionId },
-    // Use a far future date to get all items that will ever become active
-    // This is a bit of a hack - ideally we'd have a separate function
-    new Date('2099-12-31').getTime(),
+    now,
     transaction
   )
 
