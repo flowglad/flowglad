@@ -259,7 +259,7 @@ describe('checkoutHelpers', () => {
     it('valid session without customer → includes product/price/org and no customer', async () => {
       const { organization, product, price } = await makeSession()
       await adminTransaction(async ({ transaction }) => {
-        const noCustomerSession = await insertCheckoutSession(
+        const noCustomerSessionResult = await insertCheckoutSession(
           {
             status: CheckoutSessionStatus.Open,
             type: CheckoutSessionType.Product,
@@ -280,6 +280,7 @@ describe('checkoutHelpers', () => {
           },
           transaction
         )
+        const noCustomerSession = noCustomerSessionResult.unwrap()
         const result = await checkoutInfoForCheckoutSession(
           noCustomerSession.id,
           transaction

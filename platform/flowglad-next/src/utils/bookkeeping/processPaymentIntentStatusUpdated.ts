@@ -274,10 +274,11 @@ export const upsertPaymentForStripeCharge = async (
         }
       : {}),
   }
-  const payment = await upsertPaymentByStripeChargeId(
+  const paymentResult = await upsertPaymentByStripeChargeId(
     paymentInsert,
     transaction
   )
+  const payment = paymentResult.unwrap()
   const latestPayment =
     await updatePaymentToReflectLatestChargeStatus(
       payment,
@@ -306,11 +307,12 @@ export const updatePaymentToReflectLatestChargeStatus = async (
   const { transaction } = ctx
   const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
   let updatedPayment: Payment.Record = payment
-  updatedPayment = await safelyUpdatePaymentStatus(
+  const statusResult = await safelyUpdatePaymentStatus(
     payment,
     newPaymentStatus,
     transaction
   )
+  updatedPayment = statusResult.unwrap()
   // Only send notifications when payment status actually changes to Failed
   // (prevents duplicate notifications on webhook retries for already-failed payments)
   if (

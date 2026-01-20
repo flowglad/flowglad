@@ -183,7 +183,7 @@ export const refundPaymentTransaction = async (
   // =========================================================================
   // STEP 4: Update payment record in database
   // =========================================================================
-  const updatedPayment = await safelyUpdatePaymentForRefund(
+  const updatedPaymentResult = await safelyUpdatePaymentForRefund(
     {
       id: payment.id,
       status:
@@ -199,7 +199,7 @@ export const refundPaymentTransaction = async (
     transaction
   )
 
-  return updatedPayment
+  return updatedPaymentResult.unwrap()
 }
 
 /**

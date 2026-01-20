@@ -208,10 +208,12 @@ export const setCustomerEmailProcedure = publicProcedure
   .input(z.object({ id: z.string(), customerEmail: z.string() }))
   .mutation(async ({ input, ctx }) => {
     return adminTransaction(async ({ transaction }) => {
-      const checkoutSession =
-        await updateCheckoutSessionCustomerEmail(input, transaction)
+      const result = await updateCheckoutSessionCustomerEmail(
+        input,
+        transaction
+      )
       return {
-        checkoutSession,
+        checkoutSession: result.unwrap(),
       }
     })
   })
@@ -253,12 +255,12 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
     )
     .mutation(async ({ input, ctx }) => {
       return adminTransaction(async ({ transaction }) => {
-        const checkoutSession =
+        const result =
           await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
             input,
             transaction
           )
-        return { checkoutSession }
+        return { checkoutSession: result.unwrap() }
       })
     })
 

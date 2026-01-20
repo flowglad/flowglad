@@ -314,7 +314,7 @@ export const createCheckoutSessionTransaction = async (
     }
   }
 
-  const checkoutSession = await insertCheckoutSession(
+  const checkoutSessionResult = await insertCheckoutSession(
     checkoutSessionInsertFromInput({
       checkoutSessionInput,
       customer,
@@ -325,6 +325,7 @@ export const createCheckoutSessionTransaction = async (
     }),
     transaction
   )
+  const checkoutSession = checkoutSessionResult.unwrap()
 
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null

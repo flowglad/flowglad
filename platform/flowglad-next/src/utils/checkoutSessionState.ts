@@ -226,10 +226,11 @@ export const createNonInvoiceCheckoutSession = async (
     }
   }
 
-  const checkoutSession = await insertCheckoutSession(
+  const checkoutSessionResult = await insertCheckoutSession(
     checkoutSessionInsert,
     transaction
   )
+  const checkoutSession = checkoutSessionResult.unwrap()
   const organization = await selectOrganizationById(
     organizationId,
     transaction

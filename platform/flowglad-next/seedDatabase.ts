@@ -654,7 +654,7 @@ export const setupBillingRun = async ({
   subscriptionId: string
 }): Promise<BillingRun.Record> => {
   return await adminTransaction(async ({ transaction }) => {
-    return safelyInsertBillingRun(
+    const result = await safelyInsertBillingRun(
       {
         billingPeriodId,
         paymentMethodId,
@@ -668,6 +668,7 @@ export const setupBillingRun = async ({
       },
       transaction
     )
+    return result.unwrap()
   })
 }
 
@@ -1408,11 +1409,11 @@ export const setupCheckoutSession = async ({
     insert = activateSubscriptionCheckoutSessionInsert
   }
   return adminTransaction(async ({ transaction }) => {
-    const checkoutSession = await insertCheckoutSession(
+    const checkoutSessionResult = await insertCheckoutSession(
       insert,
       transaction
     )
-    return checkoutSession
+    return checkoutSessionResult.unwrap()
   })
 }
 

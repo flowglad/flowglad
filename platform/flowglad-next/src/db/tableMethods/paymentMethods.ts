@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import {
   and,
   count,
@@ -32,7 +33,11 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import {
+  NotFoundError,
+  TerminalStateError,
+  ValidationError,
+} from '@/errors'
 import { PaymentStatus } from '@/types'
 import { getCurrentMonthStartTimestamp } from '@/utils/core'
 import { customers } from '../schema/customers'
@@ -136,7 +141,7 @@ const upsertPayments = async (
   inserts: Payment.Insert[],
   target: Parameters<typeof baseUpsertPayments>[1],
   transaction: DbTransaction
-): Promise<Payment.Record[]> => {
+): Promise<Result<Payment.Record[], ValidationError>> => {
   // Collect unique combinations that need pricingModelId derivation
   const insertsNeedingDerivation = inserts.filter(
     (insert) => !insert.pricingModelId
@@ -190,9 +195,11 @@ const upsertPayments = async (
   )
 
   // Derive pricingModelId for each insert using the map
-  const insertsWithPricingModelId = inserts.map((insert) => {
+  const insertsWithPricingModelId: Payment.Insert[] = []
+  for (const insert of inserts) {
     if (insert.pricingModelId) {
-      return insert
+      insertsWithPricingModelId.push(insert)
+      continue
     }
 
     const key = createMapKey(
@@ -203,29 +210,33 @@ const upsertPayments = async (
     const pricingModelId = pricingModelIdMap.get(key)
 
     if (!pricingModelId) {
-      throw new NotFoundError(
-        'pricingModelId for payment',
-        `invoiceId: ${insert.invoiceId}, subscriptionId: ${insert.subscriptionId}, purchaseId: ${insert.purchaseId}`
+      return Result.err(
+        new ValidationError(
+          'payment',
+          `Could not derive pricingModelId for payment with invoiceId: ${insert.invoiceId}, subscriptionId: ${insert.subscriptionId}, purchaseId: ${insert.purchaseId}`
+        )
       )
     }
 
-    return {
+    insertsWithPricingModelId.push({
       ...insert,
       pricingModelId,
-    }
-  })
+    })
+  }
 
-  return baseUpsertPayments(
-    insertsWithPricingModelId,
-    target,
-    transaction
+  return Result.ok(
+    await baseUpsertPayments(
+      insertsWithPricingModelId,
+      target,
+      transaction
+    )
   )
 }
 
 export const upsertPaymentByStripeChargeId = async (
   payment: Payment.Insert,
   transaction: DbTransaction
-) => {
+): Promise<Result<Payment.Record, ValidationError>> => {
   const [existingPayment] = await selectPayments(
     {
       stripeChargeId: payment.stripeChargeId,
@@ -233,14 +244,17 @@ export const upsertPaymentByStripeChargeId = async (
     transaction
   )
   if (existingPayment) {
-    return existingPayment
+    return Result.ok(existingPayment)
   }
-  const upsertedPayments = await upsertPayments(
+  const upsertedPaymentsResult = await upsertPayments(
     [payment],
     [payments.stripeChargeId],
     transaction
   )
-  return upsertedPayments[0]
+  if (upsertedPaymentsResult.status === 'error') {
+    return Result.err(upsertedPaymentsResult.error)
+  }
+  return Result.ok(upsertedPaymentsResult.value[0])
 }
 
 /**
@@ -444,13 +458,15 @@ const validatePaymentUpdate = (
 export const safelyUpdatePaymentForRefund = async (
   paymentUpdate: Payment.Update,
   transaction: DbTransaction
-) => {
+): Promise<
+  Result<Payment.Record, NotFoundError | ValidationError>
+> => {
   const payment = await selectPaymentById(
     paymentUpdate.id,
     transaction
   )
   if (!payment) {
-    throw new Error(`Payment ${paymentUpdate.id} not found`)
+    return Result.err(new NotFoundError('Payment', paymentUpdate.id))
   }
   /**
    * Only allow updates to succeeded or refunded payments
@@ -463,23 +479,29 @@ export const safelyUpdatePaymentForRefund = async (
     payment.status !== PaymentStatus.Succeeded &&
     payment.status !== PaymentStatus.Refunded
   ) {
-    throw new Error(
-      `Payment ${paymentUpdate.id} is not in a state to be updated. Its status: ${payment.status})`
+    return Result.err(
+      new ValidationError(
+        'payment',
+        `Payment ${paymentUpdate.id} is not in a state to be updated. Its status: ${payment.status})`
+      )
     )
   }
   const validation = validatePaymentUpdate(paymentUpdate, payment)
   if (validation.success === false) {
-    throw new Error(
-      `Failed to update payment ${
-        paymentUpdate.id
-      }: ${validation.errors.join(', ')}`
+    return Result.err(
+      new ValidationError(
+        'payment',
+        `Failed to update payment ${
+          paymentUpdate.id
+        }: ${validation.errors.join(', ')}`
+      )
     )
   }
   const updatedPayment = await updatePayment(
     paymentUpdate,
     transaction
   )
-  return updatedPayment
+  return Result.ok(updatedPayment)
 }
 
 /**
@@ -510,22 +532,24 @@ export const safelyUpdatePaymentStatus = async (
   payment: Payment.Record,
   status: PaymentStatus,
   transaction: DbTransaction
-) => {
+): Promise<Result<Payment.Record, TerminalStateError>> => {
   // If already in the target status, return existing payment (idempotent)
   if (payment.status === status) {
-    return payment
+    return Result.ok(payment)
   }
   if (isPaymentInTerminalState(payment)) {
-    throw new Error(
-      `Payment ${payment.id} is in a terminal state: ${payment.status}; cannot update to ${status}`
+    return Result.err(
+      new TerminalStateError('Payment', payment.id, payment.status)
     )
   }
-  return updatePayment(
-    {
-      id: payment.id,
-      status,
-    },
-    transaction
+  return Result.ok(
+    await updatePayment(
+      {
+        id: payment.id,
+        status,
+      },
+      transaction
+    )
   )
 }
 

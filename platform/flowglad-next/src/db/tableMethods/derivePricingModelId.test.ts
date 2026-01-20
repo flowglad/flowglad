@@ -544,7 +544,7 @@ describe('insertCheckoutSession with derived pricingModelId', () => {
 
   it('should automatically derive and set pricingModelId when inserting Product checkout session', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const checkoutSession = await insertCheckoutSession(
+      const checkoutSessionResult = await insertCheckoutSession(
         {
           organizationId: organization.id,
           type: CheckoutSessionType.Product,
@@ -572,6 +572,7 @@ describe('insertCheckoutSession with derived pricingModelId', () => {
         },
         transaction
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(checkoutSession.pricingModelId).toBe(
         product.pricingModelId
