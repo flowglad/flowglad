@@ -367,7 +367,7 @@ describe('subscriptionItemFeatureMethods', () => {
     it('upserts single record', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const [up] =
+        const [up] = (
           await upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
             {
               type: FeatureType.Toggle,
@@ -381,6 +381,7 @@ describe('subscriptionItemFeatureMethods', () => {
             },
             transaction
           )
+        ).unwrap()
         expect(typeof up.id).toBe('string')
       })
     })
@@ -411,11 +412,12 @@ describe('subscriptionItemFeatureMethods', () => {
             livemode: true,
           },
         ]
-        const results =
+        const results = (
           await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
             inserts,
             transaction
           )
+        ).unwrap()
         expect(results.length).toBe(2)
       })
     })
@@ -626,7 +628,7 @@ describe('pricingModelId derivation', () => {
     it('should derive pricingModelId for each feature in bulk upsert', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const subscriptionItemFeatures =
+        const subscriptionItemFeatures = (
           await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
             [
               {
@@ -639,6 +641,7 @@ describe('pricingModelId derivation', () => {
             ],
             transaction
           )
+        ).unwrap()
 
         expect(subscriptionItemFeatures).toHaveLength(1)
         expect(subscriptionItemFeatures[0].pricingModelId).toBe(

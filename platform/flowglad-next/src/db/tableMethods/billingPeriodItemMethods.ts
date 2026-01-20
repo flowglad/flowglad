@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import {
   and,
   asc,
@@ -27,6 +28,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import {
   type BillingPeriod,
   billingPeriods,
@@ -108,7 +110,7 @@ const baseBulkInsertBillingPeriodItems = createBulkInsertFunction(
 export const bulkInsertBillingPeriodItems = async (
   inserts: BillingPeriodItem.Insert[],
   transaction: DbTransaction
-): Promise<BillingPeriodItem.Record[]> => {
+): Promise<Result<BillingPeriodItem.Record[], NotFoundError>> => {
   // Collect unique billingPeriodIds that need pricingModelId derivation
   const billingPeriodIdsNeedingDerivation = Array.from(
     new Set(
@@ -126,25 +128,31 @@ export const bulkInsertBillingPeriodItems = async (
     )
 
   // Derive pricingModelId using the batch-fetched map
-  const insertsWithPricingModelId = inserts.map((insert) => {
-    const pricingModelId =
-      insert.pricingModelId ??
-      derivePricingModelIdFromMap({
+  const insertsWithPricingModelId: BillingPeriodItem.Insert[] = []
+  for (const insert of inserts) {
+    if (insert.pricingModelId) {
+      insertsWithPricingModelId.push(insert)
+    } else {
+      const pricingModelIdResult = derivePricingModelIdFromMap({
         entityId: insert.billingPeriodId,
         entityType: 'billingPeriod',
         pricingModelIdMap,
-      }).unwrap()
-
-    return {
-      ...insert,
-      pricingModelId,
+      })
+      if (Result.isError(pricingModelIdResult)) {
+        return Result.err(pricingModelIdResult.error)
+      }
+      insertsWithPricingModelId.push({
+        ...insert,
+        pricingModelId: pricingModelIdResult.value,
+      })
     }
-  })
+  }
 
-  return baseBulkInsertBillingPeriodItems(
+  const result = await baseBulkInsertBillingPeriodItems(
     insertsWithPricingModelId,
     transaction
   )
+  return Result.ok(result)
 }
 
 export const selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId =

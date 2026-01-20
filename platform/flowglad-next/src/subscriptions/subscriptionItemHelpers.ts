@@ -328,10 +328,14 @@ const grantProratedCreditsForFeatures = async (params: {
   }
 
   // Bulk insert all usage credits
-  const usageCredits = await bulkInsertUsageCredits(
+  const usageCreditsResult = await bulkInsertUsageCredits(
     usageCreditInserts,
     transaction
   )
+  if (Result.isError(usageCreditsResult)) {
+    return Result.err(usageCreditsResult.error)
+  }
+  const usageCredits = usageCreditsResult.value
 
   // Find or create ledger accounts for the usage meters
   const usageMeterIds = R.uniq(

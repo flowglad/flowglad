@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import {
   type LedgerTransaction,
   ledgerTransactions,
@@ -13,6 +14,7 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
+import { NotFoundError } from '@/errors'
 import type { DbTransaction } from '../types'
 import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 import {
@@ -80,7 +82,7 @@ const bulkInsertOrDoNothingLedgerTransaction = async (
     typeof baseBulkInsertOrDoNothingLedgerTransaction
   >[1],
   transaction: DbTransaction
-) => {
+): Promise<Result<LedgerTransaction.Record[], NotFoundError>> => {
   // Collect unique subscriptionIds that need pricingModelId derivation
   const subscriptionIdsNeedingDerivation = Array.from(
     new Set(
@@ -97,28 +99,32 @@ const bulkInsertOrDoNothingLedgerTransaction = async (
   )
 
   // Derive pricingModelId using the batch-fetched map
-  const insertsWithPricingModelId = ledgerTransactionInserts.map(
-    (insert) => {
-      const pricingModelId =
-        insert.pricingModelId ??
-        derivePricingModelIdFromMap({
-          entityId: insert.subscriptionId,
-          entityType: 'subscription',
-          pricingModelIdMap,
-        }).unwrap()
-
-      return {
-        ...insert,
-        pricingModelId,
+  const insertsWithPricingModelId: LedgerTransaction.Insert[] = []
+  for (const insert of ledgerTransactionInserts) {
+    if (insert.pricingModelId) {
+      insertsWithPricingModelId.push(insert)
+    } else {
+      const pricingModelIdResult = derivePricingModelIdFromMap({
+        entityId: insert.subscriptionId,
+        entityType: 'subscription',
+        pricingModelIdMap,
+      })
+      if (Result.isError(pricingModelIdResult)) {
+        return Result.err(pricingModelIdResult.error)
       }
+      insertsWithPricingModelId.push({
+        ...insert,
+        pricingModelId: pricingModelIdResult.value,
+      })
     }
-  )
+  }
 
-  return baseBulkInsertOrDoNothingLedgerTransaction(
+  const result = await baseBulkInsertOrDoNothingLedgerTransaction(
     insertsWithPricingModelId,
     conflictColumns,
     transaction
   )
+  return Result.ok(result)
 }
 
 export const insertLedgerTransactionOrDoNothingByIdempotencyKey =

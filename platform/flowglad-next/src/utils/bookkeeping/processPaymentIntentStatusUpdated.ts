@@ -443,11 +443,12 @@ export const ledgerCommandForPaymentSucceeded = async (
     metadata: {},
     notes: null,
   }
-  const [usageCredit] =
+  const usageCreditsResult =
     await bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter(
       [usageCreditInsert],
       transaction
     )
+  const [usageCredit] = usageCreditsResult.unwrap()
   /**
    * If the usage credit was not inserted because it already exists,
    * return undefined

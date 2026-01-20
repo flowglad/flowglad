@@ -354,7 +354,7 @@ const createUsageCreditsForInvoiceLineItems = async (
   invoiceLineItems: InvoiceLineItem.Record[],
   ledgerAccountsById: Map<string, LedgerAccount.Record>,
   transaction: DbTransaction
-): Promise<UsageCredit.Record[]> => {
+): Promise<Result<UsageCredit.Record[], NotFoundError>> => {
   const usageCreditInserts: UsageCredit.Insert[] = []
   const usageCostLineItems = invoiceLineItems.filter(
     (lineItem) => lineItem.type === SubscriptionItemType.Usage
@@ -453,11 +453,16 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
       ])
   )
   // 4. Create the `UsageCredit` grant records from the paid invoice line items.
-  const usageCredits = await createUsageCreditsForInvoiceLineItems(
-    command.payload.invoiceLineItems,
-    ledgerAccountsById,
-    transaction
-  )
+  const usageCreditsResult =
+    await createUsageCreditsForInvoiceLineItems(
+      command.payload.invoiceLineItems,
+      ledgerAccountsById,
+      transaction
+    )
+  if (Result.isError(usageCreditsResult)) {
+    return Result.err(usageCreditsResult.error)
+  }
+  const usageCredits = usageCreditsResult.value
   const usageCreditsById = new Map<string, UsageCredit.Record>(
     usageCredits.map((uc) => [uc.id, uc])
   )

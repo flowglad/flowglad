@@ -718,10 +718,12 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
           )
 
         // Insert the prorated items
-        finalBillingPeriodItems = await bulkInsertBillingPeriodItems(
-          proratedItems,
-          transaction
-        )
+        finalBillingPeriodItems = (
+          await bulkInsertBillingPeriodItems(
+            proratedItems,
+            transaction
+          )
+        ).unwrap()
       }
     }
 

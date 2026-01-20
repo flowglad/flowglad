@@ -852,29 +852,31 @@ describe('pricingModelId derivation', () => {
   describe('bulkInsertBillingPeriodItems', () => {
     it('should derive pricingModelId for each item in bulk insert', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const billingPeriodItems = await bulkInsertBillingPeriodItems(
-          [
-            {
-              billingPeriodId: billingPeriod.id,
-              quantity: 1,
-              unitPrice: 1000,
-              name: 'Test Item 1',
-              description: 'Test description 1',
-              type: SubscriptionItemType.Static,
-              livemode: true,
-            },
-            {
-              billingPeriodId: billingPeriod.id,
-              quantity: 2,
-              unitPrice: 2000,
-              name: 'Test Item 2',
-              description: 'Test description 2',
-              type: SubscriptionItemType.Static,
-              livemode: true,
-            },
-          ],
-          transaction
-        )
+        const billingPeriodItems = (
+          await bulkInsertBillingPeriodItems(
+            [
+              {
+                billingPeriodId: billingPeriod.id,
+                quantity: 1,
+                unitPrice: 1000,
+                name: 'Test Item 1',
+                description: 'Test description 1',
+                type: SubscriptionItemType.Static,
+                livemode: true,
+              },
+              {
+                billingPeriodId: billingPeriod.id,
+                quantity: 2,
+                unitPrice: 2000,
+                name: 'Test Item 2',
+                description: 'Test description 2',
+                type: SubscriptionItemType.Static,
+                livemode: true,
+              },
+            ],
+            transaction
+          )
+        ).unwrap()
 
         expect(billingPeriodItems).toHaveLength(2)
         for (const item of billingPeriodItems) {

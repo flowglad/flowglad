@@ -280,43 +280,45 @@ describe('Usage Credit Methods', () => {
   describe('bulkInsertUsageCredits', () => {
     it('should bulk insert usage credits and derive pricingModelId for each', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const usageCredits = await bulkInsertUsageCredits(
-          [
-            {
-              organizationId: organization.id,
-              usageMeterId: usageMeter.id,
-              subscriptionId: subscription.id,
-              creditType: UsageCreditType.Grant,
-              livemode: true,
-              issuedAmount: 1000,
-              issuedAt: Date.now(),
-              status: UsageCreditStatus.Posted,
-              sourceReferenceId: `src_ref_${core.nanoid()}`,
-              sourceReferenceType:
-                UsageCreditSourceReferenceType.InvoiceSettlement,
-              notes: 'Test usage credit 1',
-              metadata: {},
-              paymentId: null,
-            },
-            {
-              organizationId: organization.id,
-              usageMeterId: usageMeter.id,
-              subscriptionId: subscription.id,
-              creditType: UsageCreditType.Grant,
-              livemode: true,
-              issuedAmount: 2000,
-              issuedAt: Date.now(),
-              status: UsageCreditStatus.Posted,
-              sourceReferenceId: `src_ref_${core.nanoid()}`,
-              sourceReferenceType:
-                UsageCreditSourceReferenceType.InvoiceSettlement,
-              notes: 'Test usage credit 2',
-              metadata: {},
-              paymentId: null,
-            },
-          ],
-          transaction
-        )
+        const usageCredits = (
+          await bulkInsertUsageCredits(
+            [
+              {
+                organizationId: organization.id,
+                usageMeterId: usageMeter.id,
+                subscriptionId: subscription.id,
+                creditType: UsageCreditType.Grant,
+                livemode: true,
+                issuedAmount: 1000,
+                issuedAt: Date.now(),
+                status: UsageCreditStatus.Posted,
+                sourceReferenceId: `src_ref_${core.nanoid()}`,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.InvoiceSettlement,
+                notes: 'Test usage credit 1',
+                metadata: {},
+                paymentId: null,
+              },
+              {
+                organizationId: organization.id,
+                usageMeterId: usageMeter.id,
+                subscriptionId: subscription.id,
+                creditType: UsageCreditType.Grant,
+                livemode: true,
+                issuedAmount: 2000,
+                issuedAt: Date.now(),
+                status: UsageCreditStatus.Posted,
+                sourceReferenceId: `src_ref_${core.nanoid()}`,
+                sourceReferenceType:
+                  UsageCreditSourceReferenceType.InvoiceSettlement,
+                notes: 'Test usage credit 2',
+                metadata: {},
+                paymentId: null,
+              },
+            ],
+            transaction
+          )
+        ).unwrap()
 
         expect(usageCredits).toHaveLength(2)
 

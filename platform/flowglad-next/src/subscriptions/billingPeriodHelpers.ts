@@ -150,13 +150,15 @@ export const createBillingPeriodAndItems = async (
   )
   let billingPeriodItems: BillingPeriodItem.Record[] = []
   if (billingPeriodItemInserts.length > 0) {
-    billingPeriodItems = await bulkInsertBillingPeriodItems(
-      billingPeriodItemInserts.map((item) => ({
-        ...item,
-        billingPeriodId: billingPeriod.id,
-      })) as BillingPeriodItem.Insert[],
-      transaction
-    )
+    billingPeriodItems = (
+      await bulkInsertBillingPeriodItems(
+        billingPeriodItemInserts.map((item) => ({
+          ...item,
+          billingPeriodId: billingPeriod.id,
+        })) as BillingPeriodItem.Insert[],
+        transaction
+      )
+    ).unwrap()
   }
 
   return { billingPeriod, billingPeriodItems }

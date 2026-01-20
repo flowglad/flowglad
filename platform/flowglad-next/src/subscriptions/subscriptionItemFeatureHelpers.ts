@@ -346,10 +346,12 @@ export const createSubscriptionFeatureItems = async (
     })
 
   if (!R.isEmpty(subscriptionFeatureInserts)) {
-    return await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
-      subscriptionFeatureInserts,
-      transaction
-    )
+    return (
+      await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
+        subscriptionFeatureInserts,
+        transaction
+      )
+    ).unwrap()
   }
   return []
 }
@@ -710,11 +712,12 @@ export const addFeatureToSubscriptionItem = async (
   if (feature.type === FeatureType.Toggle) {
     // Upsert (insert-or-update) the toggle feature for this subscription item/product/feature.
     // If upsert returns, use the returned record. Otherwise, fall back to fetching the existing record.
-    const [upserted] =
+    const [upserted] = (
       await upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
         featureInsert,
         transaction
       )
+    ).unwrap()
     if (upserted) {
       subscriptionItemFeature = upserted
     } else {

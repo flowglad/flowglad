@@ -124,10 +124,14 @@ export const grantEntitlementUsageCredits = async (
     })
   }
 
-  const usageCredits = await bulkInsertUsageCredits(
+  const usageCreditsResult = await bulkInsertUsageCredits(
     usageCreditInserts,
     transaction
   )
+  if (Result.isError(usageCreditsResult)) {
+    return Result.err(usageCreditsResult.error)
+  }
+  const usageCredits = usageCreditsResult.value
   const entitlementCreditLedgerInserts: LedgerEntry.CreditGrantRecognizedInsert[] =
     usageCredits.map((usageCredit) => {
       const entitlementCreditLedgerEntry: LedgerEntry.CreditGrantRecognizedInsert =
