@@ -1062,11 +1062,14 @@ export const setupPrice = async (
           transaction
         )
       case PriceType.Usage:
-        return safelyInsertPrice(
+        // Use insertPrice for usage prices to respect isDefault and active flags
+        // safelyInsertPrice always sets isDefault: false for usage prices
+        return insertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.Usage],
             usageMeterId: usageMeterId!,
+            productId: null, // Usage prices don't have products
             type: PriceType.Usage,
             intervalUnit: intervalUnit ?? IntervalUnit.Month,
             intervalCount: intervalCount ?? 1,

@@ -125,7 +125,7 @@ describe('usageEventsRouter', () => {
       pricingModelId: org2Data.pricingModel.id,
     })
 
-    // Setup prices
+    // Setup prices - set as default so they can be resolved when events use usageMeterId/usageMeterSlug
     price1 = await setupPrice({
       name: 'Test Price 1',
       type: PriceType.Usage,
@@ -133,7 +133,7 @@ describe('usageEventsRouter', () => {
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
       livemode: true,
-      isDefault: false,
+      isDefault: true,
       usageMeterId: usageMeter1.id,
     })
     price2 = await setupPrice({
@@ -143,7 +143,7 @@ describe('usageEventsRouter', () => {
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
       livemode: true,
-      isDefault: false,
+      isDefault: true,
       usageMeterId: usageMeter2.id,
     })
 
@@ -667,8 +667,8 @@ describe('usageEventsRouter', () => {
 
       expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
       expect(result.usageEvent.amount).toBe(250)
-      // When usageMeterId is provided, priceId should be null
-      expect(result.usageEvent.priceId).toBeNull()
+      // When usageMeterId is provided, priceId should be resolved to the meter's default price
+      expect(result.usageEvent.priceId).toBe(price1.id)
       expect(result.usageEvent.usageMeterId).toBe(usageMeter1.id)
 
       // Test bulkInsert procedure
@@ -696,9 +696,9 @@ describe('usageEventsRouter', () => {
       })
 
       expect(bulkResult.usageEvents).toHaveLength(3)
-      // When usageMeterId is provided, priceId should be null
+      // When usageMeterId is provided, priceId should be resolved to the meter's default price
       bulkResult.usageEvents.forEach((event) => {
-        expect(event.priceId).toBeNull()
+        expect(event.priceId).toBe(price1.id)
         expect(event.usageMeterId).toBe(usageMeter1.id)
       })
       expect(bulkResult.usageEvents[0].amount).toBe(100)
@@ -738,8 +738,8 @@ describe('usageEventsRouter', () => {
 
       expect(result.usageEvent.subscriptionId).toBe(subscription1.id)
       expect(result.usageEvent.amount).toBe(300)
-      // When usageMeterSlug is provided, priceId should be null
-      expect(result.usageEvent.priceId).toBeNull()
+      // When usageMeterSlug is provided, priceId should be resolved to the meter's default price
+      expect(result.usageEvent.priceId).toBe(price1.id)
       expect(result.usageEvent.usageMeterId).toBe(usageMeter1.id)
 
       // Test bulkInsert procedure
@@ -761,9 +761,9 @@ describe('usageEventsRouter', () => {
       })
 
       expect(bulkResult.usageEvents).toHaveLength(2)
-      // When usageMeterSlug is provided, priceId should be null
+      // When usageMeterSlug is provided, priceId should be resolved to the meter's default price
       bulkResult.usageEvents.forEach((event) => {
-        expect(event.priceId).toBeNull()
+        expect(event.priceId).toBe(price1.id)
         expect(event.usageMeterId).toBe(usageMeter1.id)
       })
       expect(bulkResult.usageEvents[0].amount).toBe(150)

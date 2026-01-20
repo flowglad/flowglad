@@ -11,7 +11,10 @@ import {
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectPrices } from '@/db/tableMethods/priceMethods'
+import {
+  selectDefaultPricesForUsageMeters,
+  selectPrices,
+} from '@/db/tableMethods/priceMethods'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptions } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertOrDoNothingUsageEventsByTransactionId } from '@/db/tableMethods/usageEventMethods'
@@ -80,6 +83,7 @@ type WithResolvedEventsContext = WithResolvedSlugsContext & {
   resolvedUsageEvents: ResolvedUsageEvent[]
 }
 
+// Price validation now happens before default price resolution
 type WithValidatedPricesContext = WithResolvedEventsContext & {
   pricesMap: Map<string, Awaited<ReturnType<typeof selectPrices>>[0]>
 }
@@ -88,7 +92,12 @@ type WithValidatedMetersContext = WithValidatedPricesContext & {
   usageMetersMap: Map<string, UsageMeter.Record>
 }
 
-type WithFinalInsertsContext = WithValidatedMetersContext & {
+// Default price resolution happens after meter validation
+type WithDefaultPricesContext = WithValidatedMetersContext & {
+  defaultPriceByUsageMeterId: Map<string, string>
+}
+
+type WithFinalInsertsContext = WithDefaultPricesContext & {
   usageInsertsWithBillingPeriodId: UsageEvent.Insert[]
 }
 
@@ -607,9 +616,83 @@ async function validateUsageMeters(
   })
 }
 
-// Step 8: Assemble final insert records with billing periods
-function assembleFinalInserts(
+// Step 8: Resolve default prices for events using meter identifiers
+// When events use usageMeterId or usageMeterSlug without an explicit priceId,
+// we need to resolve to the meter's default price
+// NOTE: This step runs AFTER meter validation to ensure we only resolve prices
+// for meters that belong to the customer's pricing model
+async function resolveDefaultPricesForMeterEvents(
   context: WithValidatedMetersContext
+): Promise<Result<WithDefaultPricesContext, TRPCError>> {
+  const { resolvedUsageEvents, pricesMap, ctx } = context
+  const { transaction } = ctx
+
+  // Collect all usage meter IDs that need default price resolution
+  // (events with usageMeterId but no priceId)
+  const usageMeterIdsNeedingDefaultPrice: string[] = []
+
+  for (const event of resolvedUsageEvents) {
+    if (event.usageMeterId && !event.priceId) {
+      usageMeterIdsNeedingDefaultPrice.push(event.usageMeterId)
+    }
+  }
+
+  // Batch fetch default prices for all usage meters that need them
+  const defaultPricesByMeterId =
+    await selectDefaultPricesForUsageMeters(
+      [...new Set(usageMeterIdsNeedingDefaultPrice)],
+      transaction
+    )
+
+  // Verify all meters have default prices and build the ID map
+  const defaultPriceByUsageMeterId = new Map<string, string>()
+  // Create a new pricesMap that includes the default prices
+  const updatedPricesMap = new Map(pricesMap)
+
+  for (const usageMeterId of new Set(
+    usageMeterIdsNeedingDefaultPrice
+  )) {
+    const defaultPrice = defaultPricesByMeterId.get(usageMeterId)
+    if (!defaultPrice) {
+      return Result.err(
+        new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Usage meter ${usageMeterId} has no default price. This should not happen.`,
+        })
+      )
+    }
+    defaultPriceByUsageMeterId.set(usageMeterId, defaultPrice.id)
+    // Add the default price to the prices map so downstream code can access it
+    updatedPricesMap.set(defaultPrice.id, defaultPrice)
+  }
+
+  // Update events to use the resolved default prices
+  const eventsWithDefaultPrices = resolvedUsageEvents.map((event) => {
+    if (event.usageMeterId && !event.priceId) {
+      const defaultPriceId = defaultPriceByUsageMeterId.get(
+        event.usageMeterId
+      )
+      if (defaultPriceId) {
+        return {
+          ...event,
+          priceId: defaultPriceId,
+        }
+      }
+    }
+    return event
+  })
+
+  return Result.ok({
+    ...context,
+    resolvedUsageEvents: eventsWithDefaultPrices,
+    pricesMap: updatedPricesMap,
+    defaultPriceByUsageMeterId,
+  })
+}
+
+// Step 9: Assemble final insert records with billing periods
+function assembleFinalInserts(
+  context: WithDefaultPricesContext
 ): Result<WithFinalInsertsContext, TRPCError> {
   const {
     resolvedUsageEvents,
@@ -693,7 +776,7 @@ function assembleFinalInserts(
   })
 }
 
-// Step 9: Insert events and enqueue ledger commands
+// Step 10: Insert events and enqueue ledger commands
 async function insertAndEnqueueLedger(
   context: WithFinalInsertsContext
 ): Promise<
@@ -762,15 +845,20 @@ export const bulkInsertUsageEventsTransaction = async (
     const withResolvedIdentifiers = yield* resolveEventIdentifiers(
       withMeterSlugsResolved
     )
+    // Validate prices first (for events that have explicit priceId)
     const withValidatedPrices = yield* Result.await(
       validatePricesAndBuildMap(withResolvedIdentifiers)
     )
+    // Validate usage meters (checks meter belongs to customer's pricing model)
     const withValidatedMeters = yield* Result.await(
       validateUsageMeters(withValidatedPrices)
     )
-    const withFinalInserts = yield* assembleFinalInserts(
-      withValidatedMeters
+    // Resolve default prices for events using meter identifiers (after validation)
+    const withDefaultPrices = yield* Result.await(
+      resolveDefaultPricesForMeterEvents(withValidatedMeters)
     )
+    const withFinalInserts =
+      yield* assembleFinalInserts(withDefaultPrices)
     const result = yield* Result.await(
       insertAndEnqueueLedger(withFinalInserts)
     )
