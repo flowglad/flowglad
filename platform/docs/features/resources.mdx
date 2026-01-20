@@ -292,16 +292,16 @@ This aggregation happens automatically when calculating usage. The `getResourceU
 
 **Claims Persist Across Adjustments:** Resource claims are scoped to the subscription and resource, not to individual subscription items. This means claims survive subscription adjustments—when you upgrade or downgrade plans, existing claims are preserved as long as they fit within the new capacity.
 
-**On Downgrade:** When adjusting a subscription to a plan with lower capacity, Flowglad's behavior depends on the `timing` parameter:
-
-- **With `timing: 'auto'` (the default):** If the current claimed count exceeds the new capacity, the downgrade is scheduled for the end of the billing period. Customers retain their current capacity until then. During this interim, claims that exceed the *future* capacity are marked as temporary—they have an `expiredAt` timestamp set to the billing period end and automatically expire when the downgrade takes effect. This gives customers time to release excess claims before the change applies.
-
-- **With `timing: 'immediately'`:** The adjustment is blocked if current claims exceed the new capacity. The customer must first release enough resources (e.g., via `releaseResource`) before the downgrade can proceed. The error message indicates what action is needed:
+**On Downgrade:** When adjusting a subscription to a plan with lower capacity, Flowglad validates that existing claims fit within the new capacity. If the current claimed count exceeds the new capacity, the adjustment is blocked with an error message:
 
 ```
 Cannot reduce seats capacity to 5. 8 resources are currently claimed.
 Release 3 claims before downgrading.
 ```
+
+The customer must first release enough resources before the downgrade can proceed.
+
+**Scheduled Downgrade Interim Period:** When a downgrade is scheduled for the end of the billing period (rather than immediately), customers retain their current capacity until the change takes effect. During this interim, claims that exceed the *future* capacity are allowed but marked as temporary—they have an `expiredAt` timestamp set to the billing period end and automatically expire when the downgrade executes.
 
 ### Auto-Resolution
 
