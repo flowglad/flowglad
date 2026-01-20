@@ -1,4 +1,4 @@
-// NOTE: This file must NOT import from subscriptionItemMethods.ts to avoid circular deps
+// NOTE: Import utilities only - don't import server-only functions from subscriptionItemMethods.server.ts
 import { eq, inArray } from 'drizzle-orm'
 import {
   type SubscriptionItemFeature,
@@ -34,7 +34,7 @@ import {
 import {
   derivePricingModelIdFromSubscriptionItem,
   derivePricingModelIdsFromSubscriptionItems,
-} from './shared/subscriptionItemUtils'
+} from './subscriptionItemMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof subscriptionItemFeatures,

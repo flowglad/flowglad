@@ -45,27 +45,22 @@ This tells Vitest to run that specific test file in a jsdom environment.
 
 Some table methods files import server-only modules (e.g., `cache-recomputable.ts` which depends on postgres). When client code transitively imports these files, the build fails.
 
-**Convention:** Use `src/db/tableMethods/shared/` for client-safe utilities that need to be imported by files in the client bundle's import chain.
+**Convention:** Use `fooMethods.server.ts` for functions that depend on server-only modules like `cachedRecomputable`, direct database connections, or other Node.js APIs.
 
-- Files in `shared/` **MUST NOT** import server-only modules (`cache-recomputable`, `db/client`, etc.)
-- Files in `shared/` **CAN** import `tableUtils`, schemas, and types
-- Re-export shared utilities from the main table methods file for backwards compatibility
+- **`fooMethods.ts`** - Client-safe functions (basic CRUD, selects, inserts)
+- **`fooMethods.server.ts`** - Server-only functions (cached queries, complex joins with server deps)
 
 Example:
 ```typescript
-// shared/subscriptionItemUtils.ts - client-safe
-export const derivePricingModelIdFromSubscriptionItem = ...
+// subscriptionItemMethods.ts - client-safe, basic operations
+export const selectSubscriptionItems = createSelectFunction(...)
+export const insertSubscriptionItem = ...
 
-// subscriptionItemMethods.ts - can have server-only imports
-export { derivePricingModelIdFromSubscriptionItem } from './shared/subscriptionItemUtils'
-import { cachedRecomputable } from '@/utils/cache-recomputable' // safe here
-
-// subscriptionItemFeatureMethods.ts - in client import chain
-import { derivePricingModelIdFromSubscriptionItem } from './shared/subscriptionItemUtils'
-// NOT from './subscriptionItemMethods' (would pull in server-only code)
+// subscriptionItemMethods.server.ts - server-only, uses cachedRecomputable
+import { cachedRecomputable } from '@/utils/cache-recomputable'
+export const selectSubscriptionItemsWithPricesBySubscriptionId = cachedRecomputable(...)
+export const selectRichSubscriptionsAndActiveItems = ...
 ```
-
-See `src/db/tableMethods/shared/README.md` for full documentation.
 
 ## Write Tests Coverage for Changes to Backend Business Logic
 
