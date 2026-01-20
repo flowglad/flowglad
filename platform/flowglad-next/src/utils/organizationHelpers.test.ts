@@ -128,7 +128,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
     await adminTransaction(async ({ transaction }) => {
@@ -197,7 +198,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
 
@@ -318,7 +320,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
 
@@ -353,7 +356,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
 
@@ -390,7 +394,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
 
@@ -421,7 +426,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
       })
 
@@ -460,7 +466,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
       })
 
@@ -504,7 +511,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
 
         const [organization] = await selectOrganizations(
@@ -552,7 +560,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
 
         const [organization] = await selectOrganizations(
@@ -588,7 +597,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
       })
 

@@ -97,6 +97,46 @@ For subscriptions on a free trial without a payment method, proration upgrades w
 
 Subscription adjustments only affect recurring (subscription-type) prices. Usage-based charges are **not** prorated during adjustments—they continue to accumulate and are billed at the end of the billing period based on actual consumption, regardless of any plan changes.
 
+**Resource-Based Pricing (Seats, API Keys, etc.):**
+
+When adjusting subscriptions that include [resources](/features/resources) like seats or API keys, Flowglad validates that active claims fit within the new capacity:
+
+- **Upgrades:** Claims are preserved, and new capacity is immediately available
+- **Downgrades:** If claimed resources exceed the new capacity, the adjustment is blocked
+
+For downgrades that would exceed capacity, you must first release excess resources:
+
+```typescript lib/downgrade-with-seats.ts
+import { flowglad } from './flowglad'
+
+export async function downgradeWithResourceCheck(params: {
+  customerExternalId: string
+  newPriceSlug: string
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  // Check current seat usage before downgrading
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  // The new plan's capacity - in production, fetch this from your pricing config
+  const newCapacity = 5
+
+  if (usage.claimed > newCapacity) {
+    // Must release excess claims first
+    throw new Error(
+      `Cannot downgrade: ${usage.claimed} seats claimed, new plan only includes ${newCapacity}.`
+    )
+  }
+
+  // Safe to proceed with downgrade
+  return server.adjustSubscription({
+    priceSlug: params.newPriceSlug
+  })
+}
+```
+
+See [Resources](/features/resources#adjusting-subscriptions-with-resources) for detailed examples of handling seat-aware plan changes.
+
 ### What you can do
 
 - Allow customer to complete a subscription product checkout which will create a subscription automatically.

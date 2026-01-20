@@ -36,6 +36,7 @@ import {
 } from '@/db/tableMethods/pricingModelMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
@@ -101,6 +102,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -119,14 +121,14 @@ describe('createCustomerBookkeeping', () => {
                 externalId: `ext_${core.nanoid()}`,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent: capturingEmitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -214,6 +216,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -228,14 +231,14 @@ describe('createCustomerBookkeeping', () => {
                 pricingModelId: customPricingModel.id,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode: customProduct.livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -299,6 +302,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -317,14 +321,14 @@ describe('createCustomerBookkeeping', () => {
                 pricingModelId: emptyPricingModel.id,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent: capturingEmitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -406,6 +410,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -424,14 +429,14 @@ describe('createCustomerBookkeeping', () => {
                 pricingModelId: pricingModelNoDefaultPrice.id,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent: capturingEmitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -479,6 +484,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -492,14 +498,14 @@ describe('createCustomerBookkeeping', () => {
                 externalId: `ext_${core.nanoid()}`,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -574,6 +580,7 @@ describe('createCustomerBookkeeping', () => {
         await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -587,14 +594,14 @@ describe('createCustomerBookkeeping', () => {
                   externalId: `ext_${core.nanoid()}`,
                 },
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId: minimalOrg.id,
                 livemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
-              }
+              })
             )
             return Result.ok(null)
           }
@@ -621,6 +628,7 @@ describe('createCustomerBookkeeping', () => {
         comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -634,14 +642,14 @@ describe('createCustomerBookkeeping', () => {
                   externalId: `ext_${core.nanoid()}`,
                 },
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId: organization.id, // Auth context org
                 livemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
-              }
+              })
             )
             return Result.ok(null)
           }
@@ -658,6 +666,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -671,14 +680,14 @@ describe('createCustomerBookkeeping', () => {
                 externalId: `ext_${core.nanoid()}`,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -725,11 +734,11 @@ describe('createCustomerBookkeeping', () => {
               },
               // No defaultPlanIntervalUnit - creates SinglePayment price
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -744,6 +753,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -758,14 +768,14 @@ describe('createCustomerBookkeeping', () => {
                 // No pricingModelId - will use default
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -805,11 +815,11 @@ describe('createCustomerBookkeeping', () => {
               },
               defaultPlanIntervalUnit: IntervalUnit.Month, // Creates Subscription price
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -824,6 +834,7 @@ describe('createCustomerBookkeeping', () => {
       const result = await comprehensiveAdminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -838,14 +849,14 @@ describe('createCustomerBookkeeping', () => {
                 // No pricingModelId - will use default
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(output)
         }
@@ -893,11 +904,11 @@ describe('createCustomerBookkeeping', () => {
               },
               // No interval - SinglePayment
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -913,11 +924,11 @@ describe('createCustomerBookkeeping', () => {
               },
               defaultPlanIntervalUnit: IntervalUnit.Year, // Subscription with Year
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -928,6 +939,7 @@ describe('createCustomerBookkeeping', () => {
         await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -944,14 +956,14 @@ describe('createCustomerBookkeeping', () => {
                       .id,
                 },
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId: organization.id,
                 livemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
-              }
+              })
             )
             return Result.ok(output)
           }
@@ -969,6 +981,7 @@ describe('createCustomerBookkeeping', () => {
         await comprehensiveAdminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -984,14 +997,14 @@ describe('createCustomerBookkeeping', () => {
                     subscriptionPricingModel.unwrap().pricingModel.id,
                 },
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId: organization.id,
                 livemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
-              }
+              })
             )
             return Result.ok(output)
           }
@@ -1058,11 +1071,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1120,11 +1133,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false, // Can't create another default, setupOrg already created one
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1150,11 +1163,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1195,11 +1208,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1256,11 +1269,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId,
               livemode: false,
-            }
+            })
           )
           return output.unwrap().pricingModel
         }
@@ -1296,11 +1309,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId,
               livemode: true,
-            }
+            })
           )
           return output.unwrap().pricingModel
         }
@@ -1397,11 +1410,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: eurOrganization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1451,11 +1464,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: gbpOrganization.id,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1482,11 +1495,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1522,11 +1535,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId,
               livemode,
-            }
+            })
           )
           return output
         }
@@ -1592,11 +1605,11 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: testOrganization.id,
               livemode: testLivemode,
-            }
+            })
           )
           return output
         }
@@ -1624,11 +1637,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Month,
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1662,11 +1675,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Year,
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1696,11 +1709,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Week,
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1728,11 +1741,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Day,
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1769,11 +1782,7 @@ describe('createPricingModelBookkeeping', () => {
                   },
                   defaultPlanIntervalUnit: intervalUnit,
                 },
-                {
-                  transaction,
-                  organizationId,
-                  livemode,
-                }
+                { transaction, organizationId, livemode }
               )
               return output
             }
@@ -1806,11 +1815,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 // No defaultPlanIntervalUnit provided
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -1845,11 +1854,11 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: intervalUnit,
               },
-              {
+              withAdminCacheContext({
                 transaction,
                 organizationId,
                 livemode,
-              }
+              })
             )
             return output
           }
@@ -2269,12 +2278,14 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updatePurchaseStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2308,12 +2319,14 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updatePurchaseStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2346,12 +2359,14 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updatePurchaseStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2385,6 +2400,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
@@ -2393,6 +2409,7 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
           paymentWithoutPurchase,
           {
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -2464,12 +2481,14 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updateInvoiceStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2501,12 +2520,14 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updateInvoiceStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2546,12 +2567,14 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         await updateInvoiceStatusToReflectLatestPayment(payment, {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -2593,6 +2616,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
@@ -2601,6 +2625,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
           partialPayment,
           {
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -2655,6 +2680,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
@@ -2663,6 +2689,7 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
           secondPayment,
           {
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,

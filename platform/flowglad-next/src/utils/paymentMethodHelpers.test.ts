@@ -119,6 +119,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
     const result = await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
@@ -132,6 +133,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -187,6 +189,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
     await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
@@ -200,6 +203,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,

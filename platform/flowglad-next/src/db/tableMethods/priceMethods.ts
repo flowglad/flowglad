@@ -1157,12 +1157,44 @@ export const selectResourceFeaturesForPrices = async (
     string,
     Feature.ResourceRecord[]
   >()
+  const productIdToLatestByResourceId = new Map<
+    string,
+    Map<string, Feature.ResourceRecord>
+  >()
   for (const result of validResults) {
     const productId = result.productFeature.productId
     const feature = resourceFeatureSelectSchema.parse(result.feature)
-    const existing = productIdToFeatures.get(productId) ?? []
-    existing.push(feature)
-    productIdToFeatures.set(productId, existing)
+    const resourceId = feature.resourceId
+    if (!resourceId) {
+      continue
+    }
+
+    const existingMapForProduct =
+      productIdToLatestByResourceId.get(productId) ??
+      new Map<string, Feature.ResourceRecord>()
+
+    const existingForResource = existingMapForProduct.get(resourceId)
+    if (
+      !existingForResource ||
+      feature.createdAt > existingForResource.createdAt
+    ) {
+      existingMapForProduct.set(resourceId, feature)
+      productIdToLatestByResourceId.set(
+        productId,
+        existingMapForProduct
+      )
+    }
+  }
+
+  // Materialize arrays for output map
+  for (const [
+    productId,
+    latestByResourceId,
+  ] of productIdToLatestByResourceId) {
+    productIdToFeatures.set(
+      productId,
+      Array.from(latestByResourceId.values())
+    )
   }
 
   // Map priceIds back to their features via productId

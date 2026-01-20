@@ -202,6 +202,10 @@ const migrateStripeCustomerDataToFlowglad = async (
         paymentMethodInserts,
         {
           transaction,
+          cacheRecomputationContext: {
+            type: 'admin',
+            livemode: true,
+          },
           invalidateCache: () => {},
           emitEvent: () => {},
           enqueueLedgerCommand: () => {},

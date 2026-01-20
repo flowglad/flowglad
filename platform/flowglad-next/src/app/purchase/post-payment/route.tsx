@@ -148,6 +148,7 @@ const processCheckoutSession = async ({
       const { purchase, invoice } =
         await processNonPaymentCheckoutSession(checkoutSession, {
           transaction,
+          cacheRecomputationContext: params.cacheRecomputationContext,
           invalidateCache: params.invalidateCache,
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,

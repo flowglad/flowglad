@@ -4,7 +4,10 @@ export type { PgTable, PgTransaction } from 'drizzle-orm/pg-core'
 
 import type { ColumnBaseConfig, SQLWrapper } from 'drizzle-orm'
 import type { PgColumn, PgTable } from 'drizzle-orm/pg-core'
-import type { CacheDependencyKey } from '@/utils/cache'
+import type {
+  CacheDependencyKey,
+  CacheRecomputationContext,
+} from '@/utils/cache'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'
 
@@ -136,6 +139,11 @@ interface TransactionCallbacks {
 export interface BaseTransactionParams {
   transaction: DbTransaction
   livemode: boolean
+  /**
+   * Cache recomputation context.
+   * Automatically constructed by transaction wrappers based on auth context.
+   */
+  cacheRecomputationContext: CacheRecomputationContext
 }
 
 /**
@@ -181,7 +189,10 @@ type RequiredEffectsFields = {
  * ```
  */
 export interface TransactionEffectsContext
-  extends Pick<BaseTransactionParams, 'transaction'>,
+  extends Pick<
+      BaseTransactionParams,
+      'transaction' | 'cacheRecomputationContext'
+    >,
     TransactionCallbacks {}
 
 export interface AuthenticatedTransactionParams

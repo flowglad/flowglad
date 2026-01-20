@@ -22,6 +22,7 @@ import {
   insertSubscriptionItemFeature,
   selectSubscriptionItemFeaturesWithFeatureSlug,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
+import { selectSubscriptionItemsWithPricesBySubscriptionId } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { selectSubscriptionsByCustomerId } from '@/db/tableMethods/subscriptionMethods'
 import {
   cleanupRedisTestKeys,
@@ -38,9 +39,11 @@ import {
 } from '@/types'
 import {
   CacheDependency,
+  type CacheRecomputeMetadata,
   cached,
   cachedBulkLookup,
   invalidateDependencies,
+  recomputeDependencies,
 } from '@/utils/cache'
 import {
   RedisKeyNamespace,
@@ -62,6 +65,90 @@ import {
 
 // Test-specific namespace to avoid conflicts with production data
 const TEST_NAMESPACE = RedisKeyNamespace.SubscriptionsByCustomer
+
+/**
+ * Poll Redis for a cache key until it is populated or timeout is reached.
+ * Returns the cached value when found, or throws if timeout elapses.
+ */
+async function waitForCachePopulation<T>(
+  client: ReturnType<typeof getRedisTestClient>,
+  cacheKey: string,
+  options: { timeoutMs?: number; intervalMs?: number } = {}
+): Promise<T> {
+  const { timeoutMs = 5000, intervalMs = 50 } = options
+  const startTime = Date.now()
+
+  return new Promise<T>((resolve, reject) => {
+    const checkCache = async () => {
+      try {
+        const value = await client.get(cacheKey)
+        if (value !== null) {
+          return resolve(value as T)
+        }
+
+        if (Date.now() - startTime >= timeoutMs) {
+          return reject(
+            new Error(
+              `Timeout waiting for cache key "${cacheKey}" to be populated after ${timeoutMs}ms`
+            )
+          )
+        }
+
+        setTimeout(checkCache, intervalMs)
+      } catch (error) {
+        return reject(
+          new Error(
+            `Redis error while waiting for cache key "${cacheKey}" to be populated: ${error instanceof Error ? error.message : String(error)}`
+          )
+        )
+      }
+    }
+
+    checkCache()
+  })
+}
+
+/**
+ * Poll Redis until a cache key is invalidated (null) or timeout is reached.
+ * Throws if the key is still present after timeout elapses.
+ */
+async function waitForCacheInvalidation(
+  client: ReturnType<typeof getRedisTestClient>,
+  cacheKey: string,
+  options: { timeoutMs?: number; intervalMs?: number } = {}
+): Promise<void> {
+  const { timeoutMs = 5000, intervalMs = 50 } = options
+  const startTime = Date.now()
+
+  return new Promise<void>((resolve, reject) => {
+    const checkCache = async () => {
+      try {
+        const value = await client.get(cacheKey)
+        if (value === null) {
+          return resolve()
+        }
+
+        if (Date.now() - startTime >= timeoutMs) {
+          return reject(
+            new Error(
+              `Timeout waiting for cache key "${cacheKey}" to be invalidated after ${timeoutMs}ms`
+            )
+          )
+        }
+
+        setTimeout(checkCache, intervalMs)
+      } catch (error) {
+        return reject(
+          new Error(
+            `Redis error while waiting for cache key "${cacheKey}" to be invalidated: ${error instanceof Error ? error.message : String(error)}`
+          )
+        )
+      }
+    }
+
+    checkCache()
+  })
+}
 
 describeIfRedisKey('Cache Integration Tests', () => {
   let testKeyPrefix: string
@@ -328,13 +415,12 @@ describeIfRedisKey('Cache Integration Tests', () => {
     // First call - caches 'first'
     await cachedFn('ignore_no_write')
 
-    // Verify cache has 'first'
-    const cachedBefore = await client.get(fullCacheKey)
-    const parsedBefore =
-      typeof cachedBefore === 'string'
-        ? JSON.parse(cachedBefore)
-        : cachedBefore
-    expect(parsedBefore.value).toBe('first')
+    // Verify cache has 'first' (Upstash auto-parses JSON)
+    const cachedBefore = await client.get<{
+      id: string
+      value: string
+    }>(fullCacheKey)
+    expect(cachedBefore?.value).toBe('first')
 
     // Update underlying data
     currentValue = 'second'
@@ -345,13 +431,12 @@ describeIfRedisKey('Cache Integration Tests', () => {
     })
     expect(result.value).toBe('second')
 
-    // Verify cache still has 'first'
-    const cachedAfter = await client.get(fullCacheKey)
-    const parsedAfter =
-      typeof cachedAfter === 'string'
-        ? JSON.parse(cachedAfter)
-        : cachedAfter
-    expect(parsedAfter.value).toBe('first')
+    // Verify cache still has 'first' (Upstash auto-parses JSON)
+    const cachedAfter = await client.get<{
+      id: string
+      value: string
+    }>(fullCacheKey)
+    expect(cachedAfter?.value).toBe('first')
   })
 
   it('ignoreCache option bypasses cache when cached function accepts multiple arguments', async () => {
@@ -763,8 +848,8 @@ describeIfRedisKey(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
             customer.id,
-            transaction,
-            livemode
+            livemode,
+            transaction
           )
         }
       )
@@ -782,8 +867,8 @@ describeIfRedisKey(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
             customer.id,
-            transaction,
-            livemode
+            livemode,
+            transaction
           )
         }
       )
@@ -814,8 +899,8 @@ describeIfRedisKey(
         async ({ transaction, livemode }) => {
           return selectSubscriptionsByCustomerId(
             customerWithNoSubs.id,
-            transaction,
-            livemode
+            livemode,
+            transaction
           )
         }
       )
@@ -874,8 +959,8 @@ describeIfRedisKey(
       await adminTransaction(async ({ transaction, livemode }) => {
         return selectSubscriptionsByCustomerId(
           customer.id,
-          transaction,
-          livemode
+          livemode,
+          transaction
         )
       })
 
@@ -946,8 +1031,8 @@ describeIfRedisKey(
         }
       )
 
-      // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Poll until cache is invalidated
+      await waitForCacheInvalidation(client, cacheKey)
 
       // Verify cache is cleared after transaction commits
       const afterTransaction = await client.get(cacheKey)
@@ -1009,8 +1094,11 @@ describeIfRedisKey(
         }
       )
 
-      // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Poll until both caches are invalidated
+      await Promise.all([
+        waitForCacheInvalidation(client, cacheKey1),
+        waitForCacheInvalidation(client, cacheKey2),
+      ])
 
       // Verify both caches are cleared
       expect(await client.get(cacheKey1)).toBeNull()
@@ -1052,8 +1140,8 @@ describeIfRedisKey(
         }
       )
 
-      // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Poll until cache is invalidated
+      await waitForCacheInvalidation(client, cacheKey)
 
       // Cache should still be cleared (deduplication shouldn't break anything)
       expect(await client.get(cacheKey)).toBeNull()
@@ -1110,8 +1198,11 @@ describeIfRedisKey(
         }
       )
 
-      // Wait for fire-and-forget cache invalidation to complete
-      await new Promise((resolve) => setTimeout(resolve, 500))
+      // Poll until both caches are invalidated
+      await Promise.all([
+        waitForCacheInvalidation(client, cacheKey1),
+        waitForCacheInvalidation(client, cacheKey2),
+      ])
 
       // Both caches should be cleared
       expect(await client.get(cacheKey1)).toBeNull()
@@ -1675,3 +1766,105 @@ return 0
     }
   })
 })
+
+describeIfRedisKey(
+  'selectSubscriptionItemsWithPricesBySubscriptionId recomputation Integration Tests',
+  () => {
+    let keysToCleanup: string[] = []
+
+    afterEach(async () => {
+      const client = getRedisTestClient()
+      await cleanupRedisTestKeys(client, keysToCleanup)
+      keysToCleanup = []
+    })
+
+    it('stores recompute metadata with params when populating cache', async () => {
+      const client = getRedisTestClient()
+
+      // Setup test data
+      const { organization, pricingModel } = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+      const product = await setupProduct({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Subscription Items Recompute Test Product',
+      })
+      const price = await setupPrice({
+        productId: product.id,
+        name: 'Subscription Items Recompute Test Price',
+        type: PriceType.Subscription,
+        unitPrice: 3000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+      })
+      const subscription = await setupSubscription({
+        organizationId: organization.id,
+        customerId: customer.id,
+        paymentMethodId: paymentMethod.id,
+        priceId: price.id,
+        status: SubscriptionStatus.Active,
+      })
+      await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        priceId: price.id,
+        name: 'Test Subscription Item',
+        quantity: 1,
+        unitPrice: 3000,
+      })
+
+      // Track keys for cleanup
+      const cacheKey = `${RedisKeyNamespace.ItemsBySubscription}:${subscription.id}:true`
+      const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
+      const dependencyKey = CacheDependency.subscriptionItems(
+        subscription.id
+      )
+      const registryKey = `cacheDeps:${dependencyKey}`
+      keysToCleanup.push(cacheKey, metadataKey, registryKey)
+
+      // Populate cache by calling the function
+      await adminTransaction(async ({ transaction, livemode }) => {
+        const cacheRecomputationContext = {
+          type: 'admin' as const,
+          livemode,
+        }
+        return selectSubscriptionItemsWithPricesBySubscriptionId(
+          subscription.id,
+          transaction,
+          cacheRecomputationContext
+        )
+      })
+
+      // Verify cache is populated (Upstash auto-parses JSON)
+      const cachedValue = await client.get(cacheKey)
+      expect(Array.isArray(cachedValue)).toBe(true)
+
+      // Verify recompute metadata is stored with correct params (Upstash auto-parses JSON)
+      const metadataValue =
+        await client.get<CacheRecomputeMetadata>(metadataKey)
+      expect(typeof metadataValue).toBe('object')
+
+      expect(metadataValue?.namespace).toBe(
+        RedisKeyNamespace.ItemsBySubscription
+      )
+      expect(metadataValue?.params).toEqual({
+        subscriptionId: subscription.id,
+        livemode: true,
+      })
+      expect(metadataValue?.cacheRecomputationContext.type).toBe(
+        'admin'
+      )
+      expect(metadataValue?.cacheRecomputationContext.livemode).toBe(
+        true
+      )
+      expect(metadataValue?.createdAt).toBeGreaterThan(0)
+    })
+  }
+)

@@ -20,9 +20,9 @@ import {
 import { countActiveResourceClaimsBatch } from '@/db/tableMethods/resourceClaimMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
-  expireSubscriptionItems,
   selectCurrentlyActiveSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
   isSubscriptionInTerminalState,
   selectSubscriptionById,
@@ -676,10 +676,15 @@ export const adjustSubscription = async (
     )
 
   // Validate: End-of-period adjustments should only be used for downgrades (zero or negative net charge)
+  //
+  // IMPORTANT:
+  // `rawNetCharge` is derived from "fair value - already paid". It can be positive even for a downgrade
+  // if the current billing period hasn't been paid yet. For timing validation, we only care whether
+  // this adjustment is an upgrade in plan price (newPlanTotalPrice > oldPlanTotalPrice).
   if (
     resolvedTiming ===
       SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod &&
-    rawNetCharge > 0
+    newPlanTotalPrice > oldPlanTotalPrice
   ) {
     throw new Error(
       'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades (zero or negative net charge). ' +
@@ -687,13 +692,23 @@ export const adjustSubscription = async (
     )
   }
 
+  // End-of-period adjustments never create mid-period proration charges or billing runs.
+  // Even if `calculateCorrectProrationAmount` yields a positive `netChargeAmount` (e.g. the
+  // current period hasn't been paid yet), we still should not charge immediately when the
+  // change is scheduled for the end of the current billing period.
+  const effectiveNetChargeAmount =
+    resolvedTiming ===
+    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+      ? 0
+      : netChargeAmount
+
   // Create proration adjustments when there's a net charge AND proration is enabled
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
 
   // Track pending billing run ID for immediate adjustments with proration
   let pendingBillingRunId: string | undefined
 
-  if (netChargeAmount > 0 && shouldProrate) {
+  if (effectiveNetChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
     const prorationPercentage = (split.afterPercentage * 100).toFixed(
       1
@@ -710,7 +725,7 @@ export const adjustSubscription = async (
     prorationAdjustments.push({
       billingPeriodId: currentBillingPeriodForSubscription.id,
       quantity: 1,
-      unitPrice: netChargeAmount,
+      unitPrice: effectiveNetChargeAmount,
       name: `Proration: Net charge adjustment`,
       description: `Prorated adjustment for ${prorationPercentage}% of billing period (${adjustmentDateStr} to ${periodEndStr})`,
       livemode: subscription.livemode,

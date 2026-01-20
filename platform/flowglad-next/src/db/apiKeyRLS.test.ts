@@ -568,10 +568,22 @@ describe('API Key RLS', () => {
     it('should successfully delete via deleteSecretApiKeyTransaction for own organization', async () => {
       // Use the full deleteSecretApiKeyTransaction flow
       await authenticatedTransaction(
-        async ({ transaction, userId, livemode, organizationId }) => {
+        async ({
+          transaction,
+          userId,
+          livemode,
+          organizationId,
+          cacheRecomputationContext,
+        }) => {
           await deleteSecretApiKeyTransaction(
             { id: apiKeyToDelete.id },
-            { transaction, userId, livemode, organizationId }
+            {
+              transaction,
+              userId,
+              livemode,
+              organizationId,
+              cacheRecomputationContext,
+            }
           )
         },
         { apiKey: livemodeApiKeyOrgA.token }
@@ -614,10 +626,17 @@ describe('API Key RLS', () => {
             userId,
             livemode,
             organizationId,
+            cacheRecomputationContext,
           }) => {
             await deleteSecretApiKeyTransaction(
               { id: orgBSecretKey.id },
-              { transaction, userId, livemode, organizationId }
+              {
+                transaction,
+                userId,
+                livemode,
+                organizationId,
+                cacheRecomputationContext,
+              }
             )
           },
           { apiKey: apiKeyOrgA.token }

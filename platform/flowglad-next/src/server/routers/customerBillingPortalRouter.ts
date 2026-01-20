@@ -137,13 +137,14 @@ const getBillingProcedure = customerProtectedProcedure
       purchases,
       subscriptions,
     } = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, cacheRecomputationContext }) => {
         return customerBillingTransaction(
           {
             externalId: customer.externalId,
             organizationId,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       },
       {
@@ -282,12 +283,14 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     return await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         const ctx = {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -373,12 +376,14 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
     return await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         const ctx = {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -587,6 +592,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     return comprehensiveAuthenticatedTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
@@ -606,6 +612,7 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
 
         const effectsCtx = {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,

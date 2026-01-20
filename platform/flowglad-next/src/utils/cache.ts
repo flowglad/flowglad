@@ -50,7 +50,7 @@ const serializableParamsSchema = z.record(
  * - 'merchant': Merchant dashboard context with organization-scoped RLS
  * - 'customer': Customer billing portal context with customer-scoped RLS
  */
-export type TransactionContext =
+export type CacheRecomputationContext =
   | { type: 'admin'; livemode: boolean }
   | {
       type: 'merchant'
@@ -67,7 +67,7 @@ export type TransactionContext =
     }
 
 // Zod schema for transaction context (discriminated union)
-const transactionContextSchema = z.discriminatedUnion('type', [
+const cacheRecomputationContextSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('admin'),
     livemode: z.boolean(),
@@ -90,21 +90,21 @@ const transactionContextSchema = z.discriminatedUnion('type', [
 export interface CacheRecomputeMetadata {
   namespace: RedisKeyNamespace // Used to look up handler in registry
   params: SerializableParams // The params object (sans transaction)
-  transactionContext: TransactionContext
+  cacheRecomputationContext: CacheRecomputationContext
   createdAt: number
 }
 
 // Zod schema for runtime validation of recompute metadata
 const cacheRecomputeMetadataSchema = z.object({
-  namespace: z.nativeEnum(RedisKeyNamespace),
+  namespace: z.enum(RedisKeyNamespace),
   params: serializableParamsSchema,
-  transactionContext: transactionContextSchema,
+  cacheRecomputationContext: cacheRecomputationContextSchema,
   createdAt: z.number(),
 })
 
 export type RecomputeHandler = (
   params: SerializableParams,
-  transactionContext: TransactionContext
+  cacheRecomputationContext: CacheRecomputationContext
 ) => Promise<unknown>
 
 // In-memory registry for recompute handlers. Each process has its own registry,
@@ -155,7 +155,7 @@ function dependencyRegistryKey(
  * Type guard to check if a string is a valid RedisKeyNamespace.
  * Uses Zod's safeParse for runtime validation.
  */
-const redisKeyNamespaceSchema = z.nativeEnum(RedisKeyNamespace)
+const redisKeyNamespaceSchema = z.enum(RedisKeyNamespace)
 
 function isRedisKeyNamespace(
   value: string
@@ -869,6 +869,13 @@ async function cachedBulkLookupImpl<TKey, TResult>(
  * where recomputation re-registers the dependency and then we delete the
  * freshly rebuilt registry.
  *
+ * KNOWN ISSUE: If recomputation fails after the registry is deleted, the cache
+ * key cannot be automatically retried on the next invalidation (since it's no
+ * longer in the registry). The cache entry will remain empty until the next
+ * cache miss triggers a fresh computation. A future improvement could implement
+ * conditional deletion or a two-phase approach where failed recomputations are
+ * re-registered for retry.
+ *
  * Observability:
  * - Logs invalidation at info level (includes dependency and cache keys)
  * - Logs errors but does not throw (fire-and-forget)
@@ -1009,7 +1016,7 @@ export async function recomputeCacheEntry(
     }
 
     // Call handler with stored params and context
-    await handler(metadata.params, metadata.transactionContext)
+    await handler(metadata.params, metadata.cacheRecomputationContext)
 
     logger.debug('Recomputed cache entry', {
       cacheKey,

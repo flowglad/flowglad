@@ -322,12 +322,14 @@ export const setupPaymentMethod = async (params: {
   return adminTransaction(
     async ({
       transaction,
+      cacheRecomputationContext,
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,
     }) => {
       const ctx = {
         transaction,
+        cacheRecomputationContext,
         invalidateCache: invalidateCache!,
         emitEvent: emitEvent!,
         enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -2777,7 +2779,7 @@ export const setupResource = async (params: {
       {
         organizationId: params.organizationId,
         pricingModelId: params.pricingModelId,
-        slug: params.slug ?? 'seats',
+        slug: params.slug ?? `resource-${core.nanoid()}`,
         name: params.name ?? 'Seats',
         livemode: true,
         active: params.active ?? true,
@@ -2789,23 +2791,23 @@ export const setupResource = async (params: {
 
 export const setupResourceClaim = async (params: {
   organizationId: string
-  subscriptionItemFeatureId: string
   resourceId: string
   subscriptionId: string
   pricingModelId: string
   externalId?: string | null
   metadata?: Record<string, string | number | boolean> | null
+  expiredAt?: number | null
 }) => {
   return adminTransaction(async ({ transaction }) => {
     return insertResourceClaim(
       {
         organizationId: params.organizationId,
-        subscriptionItemFeatureId: params.subscriptionItemFeatureId,
         resourceId: params.resourceId,
         subscriptionId: params.subscriptionId,
         pricingModelId: params.pricingModelId,
         externalId: params.externalId ?? null,
         metadata: params.metadata ?? null,
+        expiredAt: params.expiredAt ?? null,
         livemode: true,
       },
       transaction

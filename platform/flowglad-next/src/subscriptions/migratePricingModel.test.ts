@@ -50,6 +50,7 @@ import {
   noopEmitEvent,
   noopEnqueueLedgerCommand,
   noopInvalidateCache,
+  withAdminCacheContext,
 } from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
@@ -573,13 +574,14 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Verify billing state via customerBillingTransaction
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            { type: 'admin', livemode }
           )
         }
       )
@@ -674,13 +676,14 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Get billing state
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            { type: 'admin', livemode }
           )
         }
       )
@@ -801,13 +804,14 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Get billing state
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            { type: 'admin', livemode }
           )
         }
       )
@@ -925,13 +929,14 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Get billing state
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            { type: 'admin', livemode }
           )
         }
       )
@@ -1307,12 +1312,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         }
@@ -1352,12 +1358,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: undefined as unknown as string,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1377,12 +1384,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1404,12 +1412,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1436,12 +1445,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1508,12 +1518,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1736,12 +1747,13 @@ describe('Pricing Model Migration Test Suite', async () => {
               apiKey: undefined,
               organizationId: organization.id,
             },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
+              livemode: true,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
+            }),
           })
           return effects
         }
