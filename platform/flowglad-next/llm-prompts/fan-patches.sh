@@ -152,7 +152,7 @@ if [ "$SESSION_EXISTS" = false ]; then
   FIRST_WORKTREE="${WORKTREE_PATHS[0]}"
 
   tmux new-session -d -s "$SESSION_NAME" -n "$FIRST_PATCH_NAME" -c "$FIRST_WORKTREE"
-  tmux send-keys -t "$SESSION_NAME:$FIRST_PATCH_NAME" "claude 'AGENT_PROMPT.md'" Enter
+  tmux send-keys -t "$SESSION_NAME:$FIRST_PATCH_NAME" "claude --dangerously-skip-permissions 'AGENT_PROMPT.md'" Enter
   echo "  Created window for patch $FIRST_PATCH_NUMBER"
   START_INDEX=1
 else
@@ -172,7 +172,7 @@ for ((i=START_INDEX; i<${#PATCH_FILES[@]}; i++)); do
   fi
 
   tmux new-window -t "$SESSION_NAME" -n "$PATCH_NAME" -c "$WORKTREE_PATH"
-  tmux send-keys -t "$SESSION_NAME:$PATCH_NAME" "claude 'AGENT_PROMPT.md'" Enter
+  tmux send-keys -t "$SESSION_NAME:$PATCH_NAME" "claude --dangerously-skip-permissions 'AGENT_PROMPT.md'" Enter
   echo "  Created window for patch $PATCH_NUMBER"
 done
 
