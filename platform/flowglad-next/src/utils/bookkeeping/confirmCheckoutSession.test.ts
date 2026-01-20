@@ -226,16 +226,22 @@ describe('confirmCheckoutSessionTransaction', () => {
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
           const { transaction } = ctx
-          const confirmResult =
+          const confirmResultResult =
             await confirmCheckoutSessionTransaction(
               { id: addPaymentMethodCheckoutSession.id },
               ctx
             )
+          if (confirmResultResult.status === 'error') {
+            return Result.err(confirmResultResult.error)
+          }
           const feeCalculations = await selectFeeCalculations(
             { checkoutSessionId: addPaymentMethodCheckoutSession.id },
             transaction
           )
-          return Result.ok({ confirmResult, feeCalculations })
+          return Result.ok({
+            confirmResult: confirmResultResult.value,
+            feeCalculations,
+          })
         }
       )
 
@@ -273,7 +279,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -303,7 +309,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -342,7 +348,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -400,7 +406,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -494,7 +500,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -592,7 +598,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -659,7 +665,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -723,10 +729,10 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.confirmResult.customer).toMatchObject({})
-      expect(result.confirmResult.customer?.stripeCustomerId).toEqual(
-        result.updatedCustomer.stripeCustomerId
-      )
+      expect(result.confirmResult.unwrap().customer).toMatchObject({})
+      expect(
+        result.confirmResult.unwrap().customer?.stripeCustomerId
+      ).toEqual(result.updatedCustomer.stripeCustomerId)
       // Verify that createStripeCustomer was not called
       expect(createStripeCustomer).not.toHaveBeenCalled()
     })
@@ -758,7 +764,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -867,7 +873,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -944,7 +950,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -983,7 +989,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1029,7 +1035,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1074,7 +1080,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1131,7 +1137,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1188,7 +1194,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1221,7 +1227,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1242,7 +1248,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 

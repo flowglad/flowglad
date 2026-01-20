@@ -32,7 +32,7 @@ import type {
 import {
   NotFoundError,
   type TerminalStateError,
-  type ValidationError,
+  ValidationError,
 } from '@/errors'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
@@ -126,13 +126,11 @@ export const upsertPaymentForStripeCharge = async (
     ? stripeIdFromObjectOrId(charge.payment_intent)
     : null
   if (!paymentIntentId) {
-    throw new Error(
-      `No payment intent id found on charge ${charge.id}`
-    )
+    return Result.err(new NotFoundError('PaymentIntent', charge.id))
   }
   if (!paymentIntentMetadata) {
-    throw new Error(
-      `No metadata found on payment intent ${paymentIntentId}`
+    return Result.err(
+      new NotFoundError('PaymentIntentMetadata', paymentIntentId)
     )
   }
   let organizationId: Nullish<string> = null
@@ -161,8 +159,11 @@ export const upsertPaymentForStripeCharge = async (
     )
     livemode = billingRun.livemode
     if (!invoice) {
-      throw new Error(
-        `No invoice found for billing run ${billingRun.id}`
+      return Result.err(
+        new NotFoundError(
+          'Invoice',
+          `for billing run ${billingRun.id}`
+        )
       )
     }
     invoiceId = invoice.id
@@ -201,8 +202,11 @@ export const upsertPaymentForStripeCharge = async (
     invoiceId = invoice?.id ?? null
     currency = invoice?.currency ?? null
     if (!checkoutSession.organizationId) {
-      throw new Error(
-        `Checkout session ${checkoutSession.id} does not have an organizationId`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.organizationId',
+          `Checkout session ${checkoutSession.id} does not have an organizationId`
+        )
       )
     }
     organizationId = checkoutSession.organizationId
@@ -212,41 +216,59 @@ export const upsertPaymentForStripeCharge = async (
     livemode = checkoutSession.livemode
     customerId = purchase?.customerId || invoice?.customerId || null
   } else {
-    throw new Error(
-      'No invoice, purchase, or subscription found for payment intent'
+    return Result.err(
+      new NotFoundError(
+        'PaymentIntentContext',
+        `No invoice, purchase, or subscription found for payment intent ${paymentIntentId}`
+      )
     )
   }
 
   if (!organizationId) {
-    throw new Error(
-      `No organization found for payment intent ${paymentIntentId}`
+    return Result.err(
+      new NotFoundError(
+        'Organization',
+        `for payment intent ${paymentIntentId}`
+      )
     )
   }
   if (!invoiceId) {
-    throw new Error(
-      `No invoice found for payment intent ${paymentIntentId}`
+    return Result.err(
+      new NotFoundError(
+        'Invoice',
+        `for payment intent ${paymentIntentId}`
+      )
     )
   }
   if (!customerId) {
-    throw new Error(
-      `No customer id found for payment intent ${paymentIntentId} with metadata: ${JSON.stringify(
-        paymentIntentMetadata
-      )}`
+    return Result.err(
+      new NotFoundError(
+        'Customer',
+        `for payment intent ${paymentIntentId} with metadata: ${JSON.stringify(
+          paymentIntentMetadata
+        )}`
+      )
     )
   }
   if (isNil(livemode)) {
-    throw new Error(
-      `No livemode set for payment intent ${paymentIntentId}, with metadata: ${JSON.stringify(
-        paymentIntentMetadata
-      )}`
+    return Result.err(
+      new ValidationError(
+        'livemode',
+        `No livemode set for payment intent ${paymentIntentId}, with metadata: ${JSON.stringify(
+          paymentIntentMetadata
+        )}`
+      )
     )
   }
 
   const latestChargeDate = charge.created
 
   if (!latestChargeDate) {
-    throw new Error(
-      `No charge date found for payment intent ${paymentIntentId}`
+    return Result.err(
+      new NotFoundError(
+        'ChargeDate',
+        `for payment intent ${paymentIntentId}`
+      )
     )
   }
 
@@ -317,7 +339,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
     'status' | 'failure_code' | 'failure_message'
   >,
   ctx: TransactionEffectsContext
-): Promise<Result<Payment.Record, TerminalStateError>> => {
+): Promise<Result<Payment.Record, TerminalStateError | ValidationError>> => {
   const { transaction } = ctx
   const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
   let updatedPayment: Payment.Record = payment
@@ -379,8 +401,11 @@ export const updatePaymentToReflectLatestChargeStatus = async (
     )
   }
   if (!payment.invoiceId && !payment.purchaseId) {
-    throw new Error(
-      `No invoice or purchase found for payment ${payment.id}`
+    return Result.err(
+      new ValidationError(
+        'payment',
+        `No invoice or purchase found for payment ${payment.id}`
+      )
     )
   }
   return Result.ok(updatedPayment)
@@ -409,7 +434,7 @@ export const ledgerCommandForPaymentSucceeded = async (
 ): Promise<
   Result<
     CreditGrantRecognizedLedgerCommand | undefined,
-    NotFoundError
+    NotFoundError | ValidationError
   >
 > => {
   let price: Price.Record
@@ -446,8 +471,11 @@ export const ledgerCommandForPaymentSucceeded = async (
     usageCreditFeature.amount === undefined ||
     usageCreditFeature.amount < 1
   ) {
-    throw new Error(
-      `Usage credit feature for ${usageCreditFeature.id} too small: expected number to be >0`
+    return Result.err(
+      new ValidationError(
+        'usageCreditFeature.amount',
+        `Usage credit feature for ${usageCreditFeature.id} too small: expected number to be >0`
+      )
     )
   }
 
@@ -525,13 +553,13 @@ export const processPaymentIntentStatusUpdated = async (
     paymentIntent.metadata
   )
   if (!metadata) {
-    throw new Error(
-      `No metadata found for payment intent ${paymentIntent.id}`
+    return Result.err(
+      new NotFoundError('PaymentIntentMetadata', paymentIntent.id)
     )
   }
   if (!paymentIntent.latest_charge) {
-    throw new Error(
-      `No latest charge found for payment intent ${paymentIntent.id}`
+    return Result.err(
+      new NotFoundError('LatestCharge', paymentIntent.id)
     )
   }
   const latestChargeId = stripeIdFromObjectOrId(
@@ -539,9 +567,7 @@ export const processPaymentIntentStatusUpdated = async (
   )
   const latestCharge = await getStripeCharge(latestChargeId)
   if (!latestCharge) {
-    throw new Error(
-      `No charge found for payment intent ${paymentIntent.id}`
-    )
+    return Result.err(new NotFoundError('Charge', paymentIntent.id))
   }
   const paymentResult = await upsertPaymentForStripeCharge(
     {
@@ -635,9 +661,7 @@ export const processPaymentIntentStatusUpdated = async (
     )
 
     if (!purchaseCustomer) {
-      throw new Error(
-        `Customer not found for purchase ${purchase.id}`
-      )
+      return Result.err(new NotFoundError('Customer', purchase.id))
     }
 
     emitEvent({

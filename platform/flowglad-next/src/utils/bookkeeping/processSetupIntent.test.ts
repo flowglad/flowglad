@@ -305,7 +305,7 @@ describe('Process setup intent', async () => {
       )
 
       expect(result).toMatchObject({})
-      expect(result.id).toEqual(checkoutSession.id)
+      expect(result.unwrap().id).toEqual(checkoutSession.id)
     })
   })
 
@@ -379,13 +379,14 @@ describe('Process setup intent', async () => {
         }
       )
 
-      expect(result.purchase).toMatchObject({})
-      expect(result.checkoutSession).toMatchObject({})
-      expect(result.price).toMatchObject({})
-      expect(result.organization).toMatchObject({})
-      expect(result.product).toMatchObject({})
-      expect(result.customer).toMatchObject({})
-      expect(result.paymentMethod).toMatchObject({})
+      const resultValue = result.unwrap()
+      expect(resultValue.purchase).toMatchObject({})
+      expect(resultValue.checkoutSession).toMatchObject({})
+      expect(resultValue.price).toMatchObject({})
+      expect(resultValue.organization).toMatchObject({})
+      expect(resultValue.product).toMatchObject({})
+      expect(resultValue.customer).toMatchObject({})
+      expect(resultValue.paymentMethod).toMatchObject({})
     })
   })
 
@@ -414,12 +415,13 @@ describe('Process setup intent', async () => {
         }
       )
 
-      expect(result.checkoutSession).toMatchObject({})
-      expect(result.organization).toMatchObject({})
-      expect(result.customer).toMatchObject({})
-      expect(result.purchase).toBeNull()
-      expect(result.price).toBeNull()
-      expect(result.product).toBeNull()
+      const resultValue = result.unwrap()
+      expect(resultValue.checkoutSession).toMatchObject({})
+      expect(resultValue.organization).toMatchObject({})
+      expect(resultValue.customer).toMatchObject({})
+      expect(resultValue.purchase).toBeNull()
+      expect(resultValue.price).toBeNull()
+      expect(resultValue.product).toBeNull()
     })
 
     it('updates checkout session status based on setup intent status', async () => {
@@ -432,7 +434,7 @@ describe('Process setup intent', async () => {
         }
       )
 
-      expect(result.checkoutSession.status).toEqual(
+      expect(result.unwrap().checkoutSession.status).toEqual(
         CheckoutSessionStatus.Succeeded
       )
     })
@@ -1375,7 +1377,7 @@ describe('Process setup intent', async () => {
             const result = (
               await createSubscriptionFromSetupIntentableCheckoutSession(
                 {
-                  ...initialResult,
+                  ...initialResult.unwrap(),
                   setupIntent: localSecondSetupIntent,
                 },
                 createDiscardingEffectsContext(transaction)
