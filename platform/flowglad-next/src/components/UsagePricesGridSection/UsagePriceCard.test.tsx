@@ -9,13 +9,14 @@ import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { UsagePriceCard } from './UsagePriceCard'
 
 /**
- * Creates a minimal Price.ClientRecord for testing.
+ * Creates a minimal Price.ClientUsageRecord for testing.
  * Overrides allow customizing specific fields for different test scenarios.
+ * Uses the specific usage type for proper TypeScript validation.
  */
 const createTestPrice = (
-  overrides: Partial<Price.ClientRecord> = {}
-): Price.ClientRecord =>
-  ({
+  overrides: Partial<Price.ClientUsageRecord> = {}
+): Price.ClientUsageRecord => {
+  const basePrice: Price.ClientUsageRecord = {
     id: 'price_test',
     name: 'Test Price',
     slug: 'test-price',
@@ -34,8 +35,12 @@ const createTestPrice = (
     createdAt: Date.now(),
     updatedAt: Date.now(),
     livemode: false,
+  }
+  return {
+    ...basePrice,
     ...overrides,
-  }) as Price.ClientRecord
+  }
+}
 
 describe('UsagePriceCard', () => {
   describe('Status display', () => {
