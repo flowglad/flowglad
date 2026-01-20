@@ -26,7 +26,7 @@ import { RedisKeyNamespace } from '@/utils/redis'
 import {
   selectSubscriptionItemsWithPricesBySubscriptionId,
   selectSubscriptionItemsWithPricesBySubscriptionIds,
-} from './subscriptionItemMethods'
+} from './subscriptionItemMethods.server'
 
 /**
  * Integration tests for cached subscription item methods.

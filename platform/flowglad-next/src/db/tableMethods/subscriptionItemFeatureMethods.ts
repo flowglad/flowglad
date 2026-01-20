@@ -1,3 +1,4 @@
+// NOTE: This file must NOT import from subscriptionItemMethods.ts to avoid circular deps
 import { eq, inArray } from 'drizzle-orm'
 import {
   type SubscriptionItemFeature,

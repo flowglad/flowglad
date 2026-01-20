@@ -45,17 +45,19 @@ import {
   bulkCreateOrUpdateSubscriptionItems,
   bulkInsertOrDoNothingSubscriptionItemsByExternalId,
   bulkInsertSubscriptionItems,
-  expireSubscriptionItems,
   insertSubscriptionItem,
   selectCurrentlyActiveSubscriptionItems,
-  selectRichSubscriptionsAndActiveItems,
   selectSubscriptionAndItems,
   selectSubscriptionItemById,
   selectSubscriptionItems,
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
-  selectSubscriptionItemsWithPricesBySubscriptionIds,
   updateSubscriptionItem,
 } from './subscriptionItemMethods'
+import {
+  expireSubscriptionItems,
+  selectRichSubscriptionsAndActiveItems,
+  selectSubscriptionItemsWithPricesBySubscriptionIds,
+} from './subscriptionItemMethods.server'
 import { updateSubscription } from './subscriptionMethods'
 
 describe('subscriptionItemMethods', async () => {

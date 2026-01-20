@@ -47,11 +47,11 @@ import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMetho
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 // Helpers to query the database after adjustments
 import {
-  expireSubscriptionItems,
   selectSubscriptionItems,
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
   updateSubscriptionItem,
 } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import {

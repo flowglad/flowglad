@@ -22,7 +22,7 @@ import {
   insertSubscriptionItemFeature,
   selectSubscriptionItemFeaturesWithFeatureSlug,
 } from '@/db/tableMethods/subscriptionItemFeatureMethods'
-import { selectSubscriptionItemsWithPricesBySubscriptionId } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItemsWithPricesBySubscriptionId } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { selectSubscriptionsByCustomerId } from '@/db/tableMethods/subscriptionMethods'
 import {
   cleanupRedisTestKeys,

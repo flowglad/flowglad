@@ -9,7 +9,7 @@ import {
   selectProductById,
   selectProducts,
 } from '@/db/tableMethods/productMethods'
-import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 import InnerSubscriptionPage from './InnerSubscriptionPage'
 

@@ -19,10 +19,8 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
-import {
-  expireSubscriptionItems,
-  selectSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
   currentSubscriptionStatuses,
   isSubscriptionCurrent,
