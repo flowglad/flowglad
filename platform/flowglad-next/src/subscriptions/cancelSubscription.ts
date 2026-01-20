@@ -19,10 +19,8 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
-import {
-  expireSubscriptionItems,
-  selectSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
   currentSubscriptionStatuses,
   isSubscriptionCurrent,
@@ -615,6 +613,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
 > => {
   const {
     transaction,
+    cacheRecomputationContext,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
@@ -622,6 +621,7 @@ export const cancelSubscriptionProcedureTransaction = async ({
   // Construct context for internal function calls
   const ctx: TransactionEffectsContext = {
     transaction,
+    cacheRecomputationContext,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
@@ -931,12 +931,14 @@ export const uncancelSubscriptionProcedureTransaction = async ({
 > => {
   const {
     transaction,
+    cacheRecomputationContext,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,
   } = transactionCtx
   const ctx: TransactionEffectsContext = {
     transaction,
+    cacheRecomputationContext,
     invalidateCache,
     emitEvent,
     enqueueLedgerCommand,

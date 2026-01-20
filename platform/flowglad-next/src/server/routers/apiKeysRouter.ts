@@ -83,12 +83,19 @@ export const createApiKey = protectedProcedure
   .input(createApiKeyInputSchema)
   .mutation(async ({ input }) => {
     const result = await authenticatedTransaction(
-      async ({ transaction, userId, livemode, organizationId }) => {
+      async ({
+        transaction,
+        userId,
+        livemode,
+        organizationId,
+        cacheRecomputationContext,
+      }) => {
         return createSecretApiKeyTransaction(input, {
           transaction,
           userId,
           livemode,
           organizationId,
+          cacheRecomputationContext,
         })
       }
     )
@@ -103,12 +110,19 @@ export const deleteApiKey = protectedProcedure
   .input(idInputSchema)
   .mutation(async ({ input, ctx }) => {
     await authenticatedTransaction(
-      ({ transaction, userId, livemode, organizationId }) =>
+      ({
+        transaction,
+        userId,
+        livemode,
+        organizationId,
+        cacheRecomputationContext,
+      }) =>
         deleteSecretApiKeyTransaction(input, {
           transaction,
           userId,
           livemode,
           organizationId,
+          cacheRecomputationContext,
         })
     )
     return { success: true }

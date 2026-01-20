@@ -57,6 +57,7 @@ export const createUsageEvent = protectedProcedure
       async ({ input, ctx, transactionCtx }) => {
         const {
           transaction,
+          cacheRecomputationContext,
           emitEvent,
           invalidateCache,
           enqueueLedgerCommand,
@@ -70,6 +71,7 @@ export const createUsageEvent = protectedProcedure
           { input: resolvedInput, livemode: ctx.livemode },
           {
             transaction,
+            cacheRecomputationContext,
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,

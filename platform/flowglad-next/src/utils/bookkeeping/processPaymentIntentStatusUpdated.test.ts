@@ -547,6 +547,7 @@ describe('Process payment intent status updated', async () => {
       const result = await adminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -556,6 +557,7 @@ describe('Process payment intent status updated', async () => {
             succeededCharge,
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache: invalidateCache!,
               emitEvent: emitEvent!,
               enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -571,6 +573,7 @@ describe('Process payment intent status updated', async () => {
       const result = await adminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -580,6 +583,7 @@ describe('Process payment intent status updated', async () => {
             succeededCharge,
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache: invalidateCache!,
               emitEvent: emitEvent!,
               enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -597,6 +601,7 @@ describe('Process payment intent status updated', async () => {
       await adminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -606,6 +611,7 @@ describe('Process payment intent status updated', async () => {
             succeededCharge,
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache: invalidateCache!,
               emitEvent: emitEvent!,
               enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -635,6 +641,7 @@ describe('Process payment intent status updated', async () => {
       await adminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -644,6 +651,7 @@ describe('Process payment intent status updated', async () => {
             succeededCharge,
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache: invalidateCache!,
               emitEvent: emitEvent!,
               enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -665,6 +673,7 @@ describe('Process payment intent status updated', async () => {
         adminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -674,6 +683,7 @@ describe('Process payment intent status updated', async () => {
               succeededCharge,
               {
                 transaction,
+                cacheRecomputationContext,
                 invalidateCache: invalidateCache!,
                 emitEvent: emitEvent!,
                 enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -692,6 +702,7 @@ describe('Process payment intent status updated', async () => {
       await adminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -702,6 +713,7 @@ describe('Process payment intent status updated', async () => {
               succeededCharge,
               {
                 transaction,
+                cacheRecomputationContext,
                 invalidateCache: invalidateCache!,
                 emitEvent: emitEvent!,
                 enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -717,12 +729,14 @@ describe('Process payment intent status updated', async () => {
       await adminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
         }) => {
           const ctx = {
             transaction,
+            cacheRecomputationContext,
             invalidateCache: invalidateCache!,
             emitEvent: emitEvent!,
             enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -749,6 +763,7 @@ describe('Process payment intent status updated', async () => {
       await adminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -759,6 +774,7 @@ describe('Process payment intent status updated', async () => {
               failedCharge,
               {
                 transaction,
+                cacheRecomputationContext,
                 invalidateCache: invalidateCache!,
                 emitEvent: emitEvent!,
                 enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -774,6 +790,7 @@ describe('Process payment intent status updated', async () => {
       await adminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -784,6 +801,7 @@ describe('Process payment intent status updated', async () => {
               failedCharge,
               {
                 transaction,
+                cacheRecomputationContext,
                 invalidateCache: invalidateCache!,
                 emitEvent: emitEvent!,
                 enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -3021,11 +3039,13 @@ describe('Process payment intent status updated', async () => {
             emitEvent,
             enqueueLedgerCommand,
             invalidateCache,
+            cacheRecomputationContext,
           } = ctx
           const res = await processPaymentIntentStatusUpdated(
             paymentIntent,
             {
               transaction,
+              cacheRecomputationContext,
               emitEvent,
               enqueueLedgerCommand: (cmd) => {
                 enqueuedLedgerCommands.push(cmd)

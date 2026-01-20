@@ -86,7 +86,10 @@ const OnboardingPage = async () => {
       throw new Error('User not found')
     }
     secretApiKey = await adminTransaction(
-      async ({ transaction }): Promise<ApiKey.Record> => {
+      async ({
+        transaction,
+        cacheRecomputationContext,
+      }): Promise<ApiKey.Record> => {
         const [user] = await selectUsers(
           {
             betterAuthId,
@@ -105,6 +108,7 @@ const OnboardingPage = async () => {
             livemode: false,
             userId: user!.id,
             organizationId: organization.id,
+            cacheRecomputationContext,
           }
         )
         return apiKey

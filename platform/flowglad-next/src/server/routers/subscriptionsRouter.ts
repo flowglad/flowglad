@@ -649,6 +649,7 @@ const createSubscriptionProcedure = protectedProcedure
       async ({ input, ctx, transactionCtx }) => {
         const {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -719,6 +720,7 @@ const createSubscriptionProcedure = protectedProcedure
           },
           {
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,

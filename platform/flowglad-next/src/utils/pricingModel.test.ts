@@ -40,7 +40,7 @@ import {
 import { selectProductFeatures } from '@/db/tableMethods/productFeatureMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import type { AuthenticatedTransactionParams } from '@/db/types'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import {
   CurrencyCode,
   DestinationEnvironment,
@@ -2065,12 +2065,12 @@ describe('createPriceTransaction', () => {
 
     const createdPrice = await adminTransaction(
       async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
         return createPriceTransaction(
           {
             price: {
@@ -2100,12 +2100,12 @@ describe('createPriceTransaction', () => {
   it('rejects creating additional prices for a default product', async () => {
     await expect(
       adminTransaction(async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
         return createPriceTransaction(
           {
             price: {
@@ -2139,12 +2139,12 @@ describe('createPriceTransaction', () => {
     })
     const firstPrice = await adminTransaction(
       async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
 
         return createPriceTransaction(
           {
@@ -2173,12 +2173,12 @@ describe('createPriceTransaction', () => {
     const updatedUnitPrice = 3500
     const updatedPrice = await adminTransaction(
       async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
 
         return createPriceTransaction(
           {
@@ -2218,12 +2218,12 @@ describe('createPriceTransaction', () => {
     })
 
     await adminTransaction(async ({ transaction }) => {
-      const params: AuthenticatedTransactionParams = {
+      const params = withAdminCacheContext({
         transaction,
         livemode: true,
         organizationId: organization.id,
         userId,
-      }
+      })
 
       return createPriceTransaction(
         {
@@ -2247,12 +2247,12 @@ describe('createPriceTransaction', () => {
 
     await expect(
       adminTransaction(async ({ transaction }) => {
-        const params: AuthenticatedTransactionParams = {
+        const params = withAdminCacheContext({
           transaction,
           livemode: true,
           organizationId: organization.id,
           userId,
-        }
+        })
 
         return createPriceTransaction(
           {
@@ -2321,7 +2321,7 @@ describe('createProductTransaction', () => {
   })
   it('should create a product with a default price', async () => {
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction, invalidateCache }) => {
+      async (params) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2351,13 +2351,7 @@ describe('createProductTransaction', () => {
               },
             ],
           },
-          {
-            userId,
-            transaction,
-            livemode: org1ApiKey.livemode,
-            organizationId: organization.id,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -2392,7 +2386,7 @@ describe('createProductTransaction', () => {
   it('should create a product and associate features with it', async () => {
     const featureIds = features.map((f) => f.id)
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction, invalidateCache }) => {
+      async (params) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2423,13 +2417,7 @@ describe('createProductTransaction', () => {
             ],
             featureIds,
           },
-          {
-            userId,
-            transaction,
-            livemode: org1ApiKey.livemode,
-            organizationId: organization.id,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -2456,7 +2444,7 @@ describe('createProductTransaction', () => {
 
   it('should create a product without features if featureIds is not provided', async () => {
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction, invalidateCache }) => {
+      async (params) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2486,13 +2474,7 @@ describe('createProductTransaction', () => {
               },
             ],
           },
-          {
-            userId,
-            transaction,
-            livemode: org1ApiKey.livemode,
-            organizationId: organization.id,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -2529,7 +2511,7 @@ describe('createProductTransaction', () => {
     // Test: Attempting to create a usage price with featureIds should throw
     await expect(
       comprehensiveAuthenticatedTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (params) => {
           const txResult = await createProductTransaction(
             {
               product: {
@@ -2560,13 +2542,7 @@ describe('createProductTransaction', () => {
               ],
               featureIds, // This should cause an error
             },
-            {
-              userId,
-              transaction,
-              livemode: org1ApiKey.livemode,
-              organizationId: organization.id,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },
@@ -2593,7 +2569,7 @@ describe('createProductTransaction', () => {
 
     // Test: Create a usage price product without featureIds - should succeed
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction, invalidateCache }) => {
+      async (params) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2624,13 +2600,7 @@ describe('createProductTransaction', () => {
             ],
             // featureIds intentionally omitted - should be allowed for usage prices
           },
-          {
-            userId,
-            transaction,
-            livemode: org1ApiKey.livemode,
-            organizationId: organization.id,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -2696,7 +2666,7 @@ describe('createProductTransaction', () => {
 
     await expect(
       comprehensiveAuthenticatedTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (params) => {
           const txResult = await createProductTransaction(
             {
               product: {
@@ -2727,13 +2697,7 @@ describe('createProductTransaction', () => {
               ],
               featureIds: toggleFeatureIds,
             },
-            {
-              userId,
-              transaction,
-              livemode: org1ApiKey.livemode,
-              organizationId: organization.id,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },
@@ -2769,7 +2733,7 @@ describe('createProductTransaction', () => {
       })
 
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({ transaction, invalidateCache }) => {
+      async (params) => {
         const txResult = await createProductTransaction(
           {
             product: {
@@ -2801,13 +2765,7 @@ describe('createProductTransaction', () => {
             ],
             featureIds: [usageCreditGrantFeature.id],
           },
-          {
-            userId,
-            transaction,
-            livemode: org1ApiKey.livemode,
-            organizationId: organization.id,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -2882,24 +2840,13 @@ describe('editProductTransaction - Feature Updates', () => {
   it('should add features to a product', async () => {
     const featureIds = [features[0].id, features[1].id]
     await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id, name: 'Updated Product' },
             featureIds,
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -2924,24 +2871,13 @@ describe('editProductTransaction - Feature Updates', () => {
   it('should remove features from a product', async () => {
     // First, add features
     await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id },
             featureIds: [features[0].id, features[1].id],
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -2950,24 +2886,13 @@ describe('editProductTransaction - Feature Updates', () => {
 
     // Then, remove one
     await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id },
             featureIds: [features[0].id],
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -2997,24 +2922,13 @@ describe('editProductTransaction - Feature Updates', () => {
   it('should not change features if featureIds is not provided', async () => {
     // First, add features
     await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id },
             featureIds: [features[0].id, features[1].id],
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -3023,23 +2937,12 @@ describe('editProductTransaction - Feature Updates', () => {
 
     // Then, edit product without featureIds
     await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: { id: product.id, name: 'New Name' },
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -3081,24 +2984,13 @@ describe('editProductTransaction - Feature Updates', () => {
 
     await expect(
       comprehensiveAuthenticatedTransaction(
-        async ({
-          userId,
-          transaction,
-          invalidateCache,
-          organizationId,
-        }) => {
+        async (params) => {
           const txResult = await editProductTransaction(
             {
               product: { id: singlePaymentProduct.id },
               featureIds: toggleFeatureIds,
             },
-            {
-              userId,
-              transaction,
-              livemode: true,
-              organizationId,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },
@@ -3147,24 +3039,13 @@ describe('editProductTransaction - Feature Updates', () => {
       })
 
     await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: { id: singlePaymentProduct.id },
             featureIds: [usageCreditGrantFeature.id],
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -3285,12 +3166,7 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Should succeed without error - price updates are silently ignored for default products
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: {
@@ -3301,13 +3177,7 @@ describe('editProductTransaction - Price Updates', () => {
             },
             price: modifiedPrice,
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -3346,12 +3216,7 @@ describe('editProductTransaction - Price Updates', () => {
 
   it('should allow updating allowed fields on default products', async () => {
     const result = await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: {
@@ -3362,13 +3227,7 @@ describe('editProductTransaction - Price Updates', () => {
               default: true,
             },
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -3422,12 +3281,7 @@ describe('editProductTransaction - Price Updates', () => {
     }
 
     await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: {
@@ -3438,13 +3292,7 @@ describe('editProductTransaction - Price Updates', () => {
             },
             price: modifiedPrice,
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -3514,12 +3362,7 @@ describe('editProductTransaction - Price Updates', () => {
     }
 
     await comprehensiveAuthenticatedTransaction(
-      async ({
-        userId,
-        transaction,
-        invalidateCache,
-        organizationId,
-      }) => {
+      async (params) => {
         const txResult = await editProductTransaction(
           {
             product: {
@@ -3530,13 +3373,7 @@ describe('editProductTransaction - Price Updates', () => {
             },
             price: modifiedPrice,
           },
-          {
-            userId,
-            transaction,
-            livemode: true,
-            organizationId,
-            invalidateCache,
-          }
+          params
         )
         return Result.ok(txResult)
       },
@@ -3620,12 +3457,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should update active default price slug when no price input is provided', async () => {
       // Update product with new slug, no price input
       await comprehensiveAuthenticatedTransaction(
-        async ({
-          userId,
-          transaction,
-          invalidateCache,
-          organizationId,
-        }) => {
+        async (params) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -3636,13 +3468,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 default: false,
               },
             },
-            {
-              userId,
-              transaction,
-              livemode: true,
-              organizationId,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },
@@ -3707,12 +3533,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       }
 
       await comprehensiveAuthenticatedTransaction(
-        async ({
-          userId,
-          transaction,
-          invalidateCache,
-          organizationId,
-        }) => {
+        async (params) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -3724,13 +3545,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               },
               price: modifiedPrice,
             },
-            {
-              userId,
-              transaction,
-              livemode: true,
-              organizationId,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },
@@ -3766,12 +3581,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should not update price slug when product slug is not changing', async () => {
       // Update product name but keep same slug, no price input
       await comprehensiveAuthenticatedTransaction(
-        async ({
-          userId,
-          transaction,
-          invalidateCache,
-          organizationId,
-        }) => {
+        async (params) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -3782,13 +3592,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 default: false,
               },
             },
-            {
-              userId,
-              transaction,
-              livemode: true,
-              organizationId,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },
@@ -3859,12 +3663,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Update product slug
       await comprehensiveAuthenticatedTransaction(
-        async ({
-          userId,
-          transaction,
-          invalidateCache,
-          organizationId,
-        }) => {
+        async (params) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -3875,13 +3674,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 default: false,
               },
             },
-            {
-              userId,
-              transaction,
-              livemode: true,
-              organizationId,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },
@@ -3945,12 +3738,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       // Try to update product slug to conflict with existing price slug
       await expect(
         comprehensiveAuthenticatedTransaction(
-          async ({
-            userId,
-            transaction,
-            invalidateCache,
-            organizationId,
-          }) => {
+          async (params) => {
             const txResult = await editProductTransaction(
               {
                 product: {
@@ -3961,13 +3749,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                   default: false,
                 },
               },
-              {
-                userId,
-                transaction,
-                livemode: true,
-                organizationId,
-                invalidateCache,
-              }
+              params
             )
             return Result.ok(txResult)
           },
@@ -4000,12 +3782,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       // Try to update default product slug (should be blocked by existing validation)
       await expect(
         comprehensiveAuthenticatedTransaction(
-          async ({
-            userId,
-            transaction,
-            invalidateCache,
-            organizationId,
-          }) => {
+          async (params) => {
             const txResult = await editProductTransaction(
               {
                 product: {
@@ -4016,13 +3793,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                   default: true,
                 },
               },
-              {
-                userId,
-                transaction,
-                livemode: true,
-                organizationId,
-                invalidateCache,
-              }
+              params
             )
             return Result.ok(txResult)
           },
@@ -4084,12 +3855,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Update product slug from null to a value
       await comprehensiveAuthenticatedTransaction(
-        async ({
-          userId,
-          transaction,
-          invalidateCache,
-          organizationId,
-        }) => {
+        async (params) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -4100,13 +3866,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
                 default: false,
               },
             },
-            {
-              userId,
-              transaction,
-              livemode: true,
-              organizationId,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },
@@ -4159,12 +3919,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       }
 
       await comprehensiveAuthenticatedTransaction(
-        async ({
-          userId,
-          transaction,
-          invalidateCache,
-          organizationId,
-        }) => {
+        async (params) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -4176,13 +3931,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               },
               price: modifiedPrice,
             },
-            {
-              userId,
-              transaction,
-              livemode: true,
-              organizationId,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },
@@ -4243,12 +3992,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       }
 
       await comprehensiveAuthenticatedTransaction(
-        async ({
-          userId,
-          transaction,
-          invalidateCache,
-          organizationId,
-        }) => {
+        async (params) => {
           const txResult = await editProductTransaction(
             {
               product: {
@@ -4260,13 +4004,7 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
               },
               price: modifiedPrice,
             },
-            {
-              userId,
-              transaction,
-              livemode: true,
-              organizationId,
-              invalidateCache,
-            }
+            params
           )
           return Result.ok(txResult)
         },

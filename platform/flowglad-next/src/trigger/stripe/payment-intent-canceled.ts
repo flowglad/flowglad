@@ -16,6 +16,7 @@ export const stripePaymentIntentCanceledTask = task({
       return comprehensiveAdminTransaction(async (params) => {
         const effectsCtx: TransactionEffectsContext = {
           transaction: params.transaction,
+          cacheRecomputationContext: params.cacheRecomputationContext,
           invalidateCache: params.invalidateCache,
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,

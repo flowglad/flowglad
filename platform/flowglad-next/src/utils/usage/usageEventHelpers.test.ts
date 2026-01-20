@@ -131,12 +131,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -208,6 +210,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -217,6 +220,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -259,6 +263,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -268,6 +273,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -391,6 +397,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -400,6 +407,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -427,6 +435,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -436,6 +445,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -465,6 +475,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -474,6 +485,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -498,6 +510,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -507,6 +520,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -533,6 +547,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -542,6 +557,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -604,6 +620,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -613,6 +630,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -717,6 +735,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -726,6 +745,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -781,6 +801,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -790,6 +811,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -847,6 +869,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -856,6 +879,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -922,12 +946,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -984,12 +1010,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -1022,12 +1050,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -1085,12 +1115,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input: undefinedPropsInput, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -1120,12 +1152,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input: emptyPropsInput, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
