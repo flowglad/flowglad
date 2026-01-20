@@ -1666,48 +1666,52 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
-          livemode,
-        }
-        // Mark free as upgraded
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-            replacedBySubscriptionId: paidSubscription.id,
-            renews: freeSubscription.renews,
-          },
-          transaction
-        )
+      await adminTransaction(
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
+          // Mark free as upgraded
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: Date.now(),
+              replacedBySubscriptionId: paidSubscription.id,
+              renews: freeSubscription.renews,
+            },
+            transaction
+          )
 
-        // Get customer billing details
-        const billingDetails = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
+          // Get customer billing details
+          const billingDetails = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction,
+            cacheRecomputationContext
+          )
 
-        // CurrentSubscriptions should only contain paid subscription
-        expect(billingDetails.currentSubscriptions).toHaveLength(1)
-        expect(billingDetails.currentSubscriptions[0].id).toBe(
-          paidSubscription.id
-        )
-        expect(billingDetails.currentSubscriptions[0].status).toBe(
-          SubscriptionStatus.Active
-        )
+          // CurrentSubscriptions should only contain paid subscription
+          expect(billingDetails.currentSubscriptions).toHaveLength(1)
+          expect(billingDetails.currentSubscriptions[0].id).toBe(
+            paidSubscription.id
+          )
+          expect(billingDetails.currentSubscriptions[0].status).toBe(
+            SubscriptionStatus.Active
+          )
 
-        // Verify the upgraded subscription is not included
-        const subscriptionIds =
-          billingDetails.currentSubscriptions.map((s) => s.id)
-        expect(subscriptionIds).not.toContain(freeSubscription.id)
-      })
+          // Verify the upgraded subscription is not included
+          const subscriptionIds =
+            billingDetails.currentSubscriptions.map((s) => s.id)
+          expect(subscriptionIds).not.toContain(freeSubscription.id)
+        },
+        { livemode: false }
+      )
     })
 
     it('should handle multiple subscription upgrades in chain correctly', async () => {
@@ -1741,57 +1745,61 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
-          livemode,
-        }
-        await updateSubscription(
-          {
-            id: freeSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-            replacedBySubscriptionId: basicSubscription.id,
-            renews: freeSubscription.renews,
-          },
-          transaction
-        )
+      await adminTransaction(
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
+          await updateSubscription(
+            {
+              id: freeSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: Date.now(),
+              replacedBySubscriptionId: basicSubscription.id,
+              renews: freeSubscription.renews,
+            },
+            transaction
+          )
 
-        await updateSubscription(
-          {
-            id: basicSubscription.id,
-            status: SubscriptionStatus.Canceled,
-            cancellationReason: CancellationReason.UpgradedToPaid,
-            canceledAt: Date.now(),
-            replacedBySubscriptionId: premiumSubscription.id,
-            renews: basicSubscription.renews,
-          },
-          transaction
-        )
+          await updateSubscription(
+            {
+              id: basicSubscription.id,
+              status: SubscriptionStatus.Canceled,
+              cancellationReason: CancellationReason.UpgradedToPaid,
+              canceledAt: Date.now(),
+              replacedBySubscriptionId: premiumSubscription.id,
+              renews: basicSubscription.renews,
+            },
+            transaction
+          )
 
-        // Get customer billing details
-        const billingDetails = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
+          // Get customer billing details
+          const billingDetails = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction,
+            cacheRecomputationContext
+          )
 
-        // Only premium subscription should be current
-        expect(billingDetails.currentSubscriptions).toHaveLength(1)
-        expect(billingDetails.currentSubscriptions[0].id).toBe(
-          premiumSubscription.id
-        )
+          // Only premium subscription should be current
+          expect(billingDetails.currentSubscriptions).toHaveLength(1)
+          expect(billingDetails.currentSubscriptions[0].id).toBe(
+            premiumSubscription.id
+          )
 
-        // Neither free nor basic should be included
-        const subscriptionIds =
-          billingDetails.currentSubscriptions.map((s) => s.id)
-        expect(subscriptionIds).not.toContain(freeSubscription.id)
-        expect(subscriptionIds).not.toContain(basicSubscription.id)
-      })
+          // Neither free nor basic should be included
+          const subscriptionIds =
+            billingDetails.currentSubscriptions.map((s) => s.id)
+          expect(subscriptionIds).not.toContain(freeSubscription.id)
+          expect(subscriptionIds).not.toContain(basicSubscription.id)
+        },
+        { livemode: false }
+      )
     })
 
     it('should handle multiple Active non-upgraded subscriptions deterministically', async () => {
@@ -1826,46 +1834,50 @@ describe('Subscription Upgrade Selection Logic', () => {
         livemode: false,
       })
 
-      await adminTransaction(async ({ transaction, livemode }) => {
-        const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
-          livemode,
-        }
-        // Get billing details multiple times
-        const billingDetails1 = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
+      await adminTransaction(
+        async ({ transaction, livemode }) => {
+          const cacheRecomputationContext: CacheRecomputationContext =
+            {
+              type: 'admin',
+              livemode,
+            }
+          // Get billing details multiple times
+          const billingDetails1 = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction,
+            cacheRecomputationContext
+          )
 
-        const billingDetails2 = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
+          const billingDetails2 = await customerBillingTransaction(
+            {
+              externalId: customer.externalId,
+              organizationId: organization.id,
+            },
+            transaction,
+            cacheRecomputationContext
+          )
 
-        // Should return all active subscriptions
-        expect(billingDetails1.currentSubscriptions).toHaveLength(3)
-        const subIds1 = billingDetails1.currentSubscriptions.map(
-          (s) => s.id
-        )
-        expect(subIds1).toContain(sub1.id)
-        expect(subIds1).toContain(sub2.id)
-        expect(subIds1).toContain(sub3.id)
+          // Should return all active subscriptions
+          expect(billingDetails1.currentSubscriptions).toHaveLength(3)
+          const subIds1 = billingDetails1.currentSubscriptions.map(
+            (s) => s.id
+          )
+          expect(subIds1).toContain(sub1.id)
+          expect(subIds1).toContain(sub2.id)
+          expect(subIds1).toContain(sub3.id)
 
-        // Should be deterministic (same result each time)
-        expect(billingDetails2.currentSubscriptions).toHaveLength(3)
-        const subIds2 = billingDetails2.currentSubscriptions
-          .map((s) => s.id)
-          .sort()
-        expect(subIds1.sort()).toEqual(subIds2)
-      })
+          // Should be deterministic (same result each time)
+          expect(billingDetails2.currentSubscriptions).toHaveLength(3)
+          const subIds2 = billingDetails2.currentSubscriptions
+            .map((s) => s.id)
+            .sort()
+          expect(subIds1.sort()).toEqual(subIds2)
+        },
+        { livemode: false }
+      )
     })
   })
 

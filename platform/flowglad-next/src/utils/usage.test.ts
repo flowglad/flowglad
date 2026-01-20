@@ -555,7 +555,11 @@ describe('createUsageMeterTransaction', () => {
 
     it('creates custom price when only usageEventsPerUnit is provided', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -573,6 +577,7 @@ describe('createUsageMeterTransaction', () => {
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
+              cacheRecomputationContext,
             }
           )
           return Result.ok(usageMeterResult)
@@ -597,7 +602,11 @@ describe('createUsageMeterTransaction', () => {
   describe('No charge price auto-creation', () => {
     it('creates no_charge price with correct name derived from usage meter name', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -612,6 +621,7 @@ describe('createUsageMeterTransaction', () => {
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
+              cacheRecomputationContext,
             }
           )
           return Result.ok(usageMeterResult)
@@ -623,7 +633,11 @@ describe('createUsageMeterTransaction', () => {
 
     it('creates no_charge price with correct pricingModelId and usageMeterId', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -638,6 +652,7 @@ describe('createUsageMeterTransaction', () => {
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
+              cacheRecomputationContext,
             }
           )
           return Result.ok(usageMeterResult)
@@ -654,7 +669,11 @@ describe('createUsageMeterTransaction', () => {
 
     it('creates no_charge price with organization defaultCurrency', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -669,6 +688,7 @@ describe('createUsageMeterTransaction', () => {
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
+              cacheRecomputationContext,
             }
           )
           return Result.ok(usageMeterResult)
@@ -682,7 +702,11 @@ describe('createUsageMeterTransaction', () => {
 
     it('creates no_charge price as active by default', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -697,6 +721,7 @@ describe('createUsageMeterTransaction', () => {
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
+              cacheRecomputationContext,
             }
           )
           return Result.ok(usageMeterResult)
