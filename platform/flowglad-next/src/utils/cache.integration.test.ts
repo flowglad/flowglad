@@ -1545,6 +1545,9 @@ describeIfRedisKey('LRU Eviction Integration Tests', () => {
     const namespace = RedisKeyNamespace.SubscriptionsByCustomer
     const zsetKey = `${namespace}:lru`
 
+    // Clear the zset first to ensure test isolation (may have leftover entries from previous tests)
+    await client.del(zsetKey)
+
     // Create 5 cache entries with incremental timestamps
     const cacheKeys: string[] = []
     for (let i = 0; i < 5; i++) {
