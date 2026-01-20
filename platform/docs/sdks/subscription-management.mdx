@@ -99,38 +99,23 @@ Subscription adjustments only affect recurring (subscription-type) prices. Usage
 
 **Resource-Based Pricing (Seats, API Keys, etc.):**
 
-When adjusting subscriptions that include [resources](/features/resources) like seats or API keys, Flowglad validates that active claims fit within the new capacity:
+When adjusting subscriptions that include [resources](/features/resources) like seats or API keys, Flowglad handles capacity changes automatically:
 
 - **Upgrades:** Claims are preserved, and new capacity is immediately available
-- **Downgrades:** If claimed resources exceed the new capacity, the adjustment is blocked
-
-For downgrades that would exceed capacity, you must first release excess resources:
+- **Scheduled Downgrades (default):** Claims exceeding the new capacity are marked as "interim" with an `expiredAt` timestamp. They remain active until the billing period ends, then automatically expire.
+- **Immediate Downgrades:** If you force an immediate downgrade with `timing: 'immediately'`, the adjustment is blocked if claimed resources exceed the new capacity.
 
 ```typescript lib/downgrade-with-seats.ts
 import { flowglad } from './flowglad'
 
-export async function downgradeWithResourceCheck(params: {
-  customerExternalId: string
-  newPriceSlug: string
-}) {
-  const server = flowglad(params.customerExternalId)
+export async function downgradeToStarterPlan(customerExternalId: string) {
+  const server = flowglad(customerExternalId)
 
-  // Check current seat usage before downgrading
-  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
-
-  // The new plan's capacity - in production, fetch this from your pricing config
-  const newCapacity = 5
-
-  if (usage.claimed > newCapacity) {
-    // Must release excess claims first
-    throw new Error(
-      `Cannot downgrade: ${usage.claimed} seats claimed, new plan only includes ${newCapacity}.`
-    )
-  }
-
-  // Safe to proceed with downgrade
+  // Downgrade from Pro (25 seats) to Starter (5 seats)
+  // With auto timing, excess claims are automatically scheduled to expire
   return server.adjustSubscription({
-    priceSlug: params.newPriceSlug
+    priceSlug: 'starter_monthly',
+    // timing defaults to 'auto' - downgrades apply at end of billing period
   })
 }
 ```
