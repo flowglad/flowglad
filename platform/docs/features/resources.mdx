@@ -301,7 +301,7 @@ Release 3 claims before downgrading.
 
 The customer must first release enough resources before the downgrade can proceed.
 
-**Scheduled Downgrade Interim Period:** When a downgrade is scheduled for the end of the billing period (rather than immediately), customers retain their current capacity until the change takes effect. During this interim, claims that exceed the *future* capacity are allowed but marked as temporary—they have an `expiredAt` timestamp set to the billing period end and automatically expire when the downgrade executes.
+**Scheduled Downgrade Interim Period:** When a downgrade is scheduled for the end of the billing period (rather than immediately), customers retain their current capacity until the change takes effect. During this interim, new claims that exceed the *future* capacity are allowed but marked as temporary—they have an `expiredAt` timestamp set to the billing period end and automatically expire when the downgrade executes.
 
 ### Auto-Resolution
 
@@ -414,11 +414,36 @@ export async function listTeamMembers(orgId: string) {
 
 When customers upgrade or downgrade plans, resource claims are preserved—but capacity validation ensures you can't reduce capacity below active claims.
 
-### Upgrade Flow
+### Upgrade Flow: Adding More Seats
 
-Upgrading to a plan with more resource capacity is straightforward. Existing claims are preserved, and the new capacity is immediately available:
+The most common upgrade is adding more seats to an existing plan. Use the `quantity` parameter to set the exact number of seats:
 
-```typescript lib/upgrade-with-seats.ts
+```typescript lib/add-seats.ts
+import { flowglad } from './flowglad'
+
+export async function addSeats(params: {
+  customerExternalId: string
+  newSeatCount: number
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  // Increase seats from current amount to newSeatCount
+  const result = await server.adjustSubscription({
+    priceSlug: 'team_seats', // Your per-seat price
+    quantity: params.newSeatCount,
+    // timing defaults to 'auto' - upgrades apply immediately with proration
+  })
+
+  // After adjustment:
+  // - All existing seat claims are preserved
+  // - Additional seats are immediately available
+  return result.subscription
+}
+```
+
+You can also upgrade to an entirely different plan:
+
+```typescript lib/upgrade-plan.ts
 import { flowglad } from './flowglad'
 
 export async function upgradeToProPlan(customerExternalId: string) {
@@ -456,16 +481,24 @@ export async function downgradeToStarterPlan(params: {
 
   // The new plan's capacity - in production, fetch this from your pricing config
   const newCapacity = 5
+  const excessClaims = usage.claimed - newCapacity
 
-  if (usage.claimed > newCapacity) {
-    // Step 2: Release excess claims before downgrading
+  if (excessClaims > 0) {
+    // Step 2: Validate enough seats are selected for release
+    if (params.seatsToRelease.length < excessClaims) {
+      throw new Error(
+        `Must release at least ${excessClaims} seats, but only ${params.seatsToRelease.length} selected.`
+      )
+    }
+
+    // Step 3: Release excess claims before downgrading
     await server.releaseResource({
       resourceSlug: 'seats',
       externalIds: params.seatsToRelease
     })
   }
 
-  // Step 3: Now the downgrade will succeed
+  // Step 4: Now the downgrade will succeed
   const result = await server.adjustSubscription({
     priceSlug: 'starter_monthly',
     // timing defaults to 'auto' - downgrades apply at end of period
@@ -474,6 +507,10 @@ export async function downgradeToStarterPlan(params: {
   return result.subscription
 }
 ```
+
+<Note>
+Both immediate and scheduled downgrades are blocked if claimed resources exceed the new capacity. The `expiredAt` mechanism only applies to *new* claims made during an interim period after a valid downgrade is scheduled—not to allowing downgrades when excess claims already exist.
+</Note>
 
 ### Building a Seat Adjustment UI
 
