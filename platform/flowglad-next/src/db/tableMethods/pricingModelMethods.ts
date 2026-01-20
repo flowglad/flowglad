@@ -32,13 +32,12 @@ import {
   type SelectConditions,
   whereClauseFromObject,
 } from '@/db/tableUtils'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { PriceType } from '@/types'
-import {
-  CacheDependency,
-  cached,
-  invalidateDependencies,
-} from '@/utils/cache'
+import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
   type Price,
@@ -102,17 +101,6 @@ const selectPricingModelClientRecordById = cached(
   }
 )
 
-/**
- * Invalidate pricing model cache when the record is updated.
- */
-export const invalidatePricingModelCache = async (
-  pricingModelId: string
-): Promise<void> => {
-  await invalidateDependencies([
-    CacheDependency.pricingModel(pricingModelId),
-  ])
-}
-
 const baseInsertPricingModel = createInsertFunction(
   pricingModels,
   config
@@ -137,14 +125,14 @@ const baseUpdatePricingModel = createUpdateFunction(
 
 export const updatePricingModel = async (
   pricingModel: PricingModel.Update,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<PricingModel.Record> => {
   const result = await baseUpdatePricingModel(
     pricingModel,
-    transaction
+    ctx.transaction
   )
-  // Invalidate cache for the updated pricing model
-  await invalidatePricingModelCache(result.id)
+  // Invalidate cache for the updated pricing model (queued for after commit)
+  ctx.invalidateCache(CacheDependency.pricingModel(result.id))
   return result
 }
 
@@ -175,13 +163,13 @@ export const selectDefaultPricingModel = async (
 
 export const makePricingModelDefault = async (
   newDefaultPricingModelOrId: PricingModel.Record | string,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   const newDefaultPricingModel =
     typeof newDefaultPricingModelOrId === 'string'
       ? await selectPricingModelById(
           newDefaultPricingModelOrId,
-          transaction
+          ctx.transaction
         )
       : newDefaultPricingModelOrId
   const oldDefaultPricingModel = await selectDefaultPricingModel(
@@ -189,18 +177,18 @@ export const makePricingModelDefault = async (
       organizationId: newDefaultPricingModel.organizationId,
       livemode: newDefaultPricingModel.livemode,
     },
-    transaction
+    ctx.transaction
   )
   if (oldDefaultPricingModel) {
     await updatePricingModel(
       { id: oldDefaultPricingModel.id, isDefault: false },
-      transaction
+      ctx
     )
     // Note: updatePricingModel already handles cache invalidation
   }
   const updatedPricingModel = await updatePricingModel(
     { id: newDefaultPricingModel.id, isDefault: true },
-    transaction
+    ctx
   )
   // Note: updatePricingModel already handles cache invalidation
   return updatedPricingModel
@@ -211,10 +199,10 @@ const setPricingModelsForOrganizationToNonDefault = async (
     organizationId,
     livemode,
   }: { organizationId: string; livemode: boolean },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   // Perform the bulk update and get affected IDs
-  const updatedPricingModels = await transaction
+  const updatedPricingModels = await ctx.transaction
     .update(pricingModels)
     .set({ isDefault: false })
     .where(
@@ -225,13 +213,9 @@ const setPricingModelsForOrganizationToNonDefault = async (
     )
     .returning({ id: pricingModels.id })
 
-  // Invalidate cache for all affected pricing models
-  if (updatedPricingModels.length > 0) {
-    await Promise.all(
-      updatedPricingModels.map((pm) =>
-        invalidatePricingModelCache(pm.id)
-      )
-    )
+  // Invalidate cache for all affected pricing models (queued for after commit)
+  for (const pm of updatedPricingModels) {
+    ctx.invalidateCache(CacheDependency.pricingModel(pm.id))
   }
 
   return true
@@ -239,7 +223,7 @@ const setPricingModelsForOrganizationToNonDefault = async (
 
 export const safelyUpdatePricingModel = async (
   pricingModel: PricingModel.Update,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   /**
    * If price is default
@@ -247,22 +231,22 @@ export const safelyUpdatePricingModel = async (
   if (pricingModel.isDefault) {
     const existingPricingModel = await selectPricingModelById(
       pricingModel.id,
-      transaction
+      ctx.transaction
     )
     await setPricingModelsForOrganizationToNonDefault(
       {
         organizationId: existingPricingModel.organizationId,
         livemode: existingPricingModel.livemode,
       },
-      transaction
+      ctx
     )
   }
-  return updatePricingModel(pricingModel, transaction)
+  return updatePricingModel(pricingModel, ctx)
 }
 
 export const safelyInsertPricingModel = async (
   pricingModel: PricingModel.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   if (pricingModel.isDefault) {
     await setPricingModelsForOrganizationToNonDefault(
@@ -270,10 +254,10 @@ export const safelyInsertPricingModel = async (
         organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
       },
-      transaction
+      ctx
     )
   }
-  return insertPricingModel(pricingModel, transaction)
+  return insertPricingModel(pricingModel, ctx.transaction)
 }
 
 const pricingModelTableRowSchema = z.object({

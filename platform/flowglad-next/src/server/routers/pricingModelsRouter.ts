@@ -130,27 +130,29 @@ const createPricingModelProcedure = protectedProcedure
       pricingModel: pricingModelsClientSelectSchema,
     })
   )
-  .mutation(async ({ input, ctx }) => {
-    const result = await authenticatedTransaction(
-      async ({ transaction, organizationId, livemode }) => {
-        return createPricingModelBookkeeping(
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { livemode, organizationId } = ctx
+        const result = await createPricingModelBookkeeping(
           {
             pricingModel: input.pricingModel,
             defaultPlanIntervalUnit: input.defaultPlanIntervalUnit,
           },
-          { transaction, organizationId, livemode }
+          {
+            ...transactionCtx,
+            organizationId: organizationId!,
+            livemode,
+          }
         )
-      },
-      {
-        apiKey: ctx.apiKey,
+        return Result.ok({
+          pricingModel: result.unwrap().pricingModel,
+          // Note: We're not returning the default product/price in the API response
+          // to maintain backward compatibility, but they are created
+        })
       }
     )
-    return {
-      pricingModel: result.unwrap().pricingModel,
-      // Note: We're not returning the default product/price in the API response
-      // to maintain backward compatibility, but they are created
-    }
-  })
+  )
 
 const updatePricingModelProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
@@ -163,13 +165,12 @@ const updatePricingModelProcedure = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
         const pricingModel = await safelyUpdatePricingModel(
           {
             ...input.pricingModel,
             id: input.id,
           },
-          transaction
+          transactionCtx
         )
         return Result.ok({ pricingModel })
       }
@@ -270,8 +271,11 @@ const clonePricingModelProcedure = protectedProcedure
      * - Adding role/scope checks before allowing cross-environment clones
      */
     const clonedPricingModel = await adminTransaction(
-      async ({ transaction }) => {
-        return await clonePricingModelTransaction(input, transaction)
+      async (transactionCtx) => {
+        return await clonePricingModelTransaction(
+          input,
+          transactionCtx
+        )
       }
     )
 
@@ -330,7 +334,7 @@ const setupPricingModelProcedure = protectedProcedure
             organizationId: ctx.organizationId!,
             livemode: ctx.livemode,
           },
-          transaction
+          transactionCtx
         )
         const [pricingModelWithProductsAndUsageMeters] =
           await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(

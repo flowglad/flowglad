@@ -132,8 +132,9 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
                 livemode: true,
               },
               livemode: true,
-              organizationId: organization.id,
               invalidateCache,
+              emitEvent: () => {},
+              enqueueLedgerCommand: () => {},
             }
           )
           return Result.ok(result)

@@ -32,13 +32,12 @@ import {
   type SelectConditions,
   whereClauseFromObject,
 } from '@/db/tableUtils'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
-import {
-  CacheDependency,
-  cached,
-  invalidateDependencies,
-} from '@/utils/cache'
+import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'
 import {
@@ -220,25 +219,27 @@ const enrichPriceInsertsWithPricingModelIds = async (
 
 export const bulkInsertPrices = async (
   priceInserts: Price.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Price.Record[]> => {
   const pricesWithPricingModelId =
     await enrichPriceInsertsWithPricingModelIds(
       priceInserts,
-      transaction
+      ctx.transaction
     )
   const results = await baseBulkInsertPrices(
     pricesWithPricingModelId,
-    transaction
+    ctx.transaction
   )
 
-  // Invalidate prices cache for all affected pricing models
+  // Invalidate prices cache for all affected pricing models (queued for after commit)
   const pricingModelIds = [
     ...new Set(results.map((p) => p.pricingModelId)),
   ]
-  await Promise.all(
-    pricingModelIds.map(invalidatePricesByPricingModelCache)
-  )
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.pricesByPricingModel(pricingModelId)
+    )
+  }
 
   return results
 }
@@ -270,37 +271,28 @@ export const selectPricesByPricingModelId = cached(
   }
 )
 
-/**
- * Invalidate prices cache for a pricing model.
- */
-export const invalidatePricesByPricingModelCache = async (
-  pricingModelId: string
-): Promise<void> => {
-  await invalidateDependencies([
-    CacheDependency.pricesByPricingModel(pricingModelId),
-  ])
-}
-
 const baseInsertPrice = createInsertFunction(prices, config)
 
 // Note: Queries pricingModelId per row. Use bulkInsertPrices for batch inserts.
 export const insertPrice = async (
   priceInsert: Price.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Price.Record> => {
   const pricingModelId = await derivePricingModelIdForPrice(
     priceInsert,
-    transaction
+    ctx.transaction
   )
   const result = await baseInsertPrice(
     {
       ...priceInsert,
       pricingModelId,
     },
-    transaction
+    ctx.transaction
   )
-  // Invalidate prices cache for the pricing model
-  await invalidatePricesByPricingModelCache(result.pricingModelId)
+  // Invalidate prices cache for the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.pricesByPricingModel(result.pricingModelId)
+  )
   return result
 }
 
@@ -308,11 +300,13 @@ const baseUpdatePrice = createUpdateFunction(prices, config)
 
 export const updatePrice = async (
   price: Price.Update,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Price.Record> => {
-  const result = await baseUpdatePrice(price, transaction)
-  // Invalidate prices cache for the pricing model
-  await invalidatePricesByPricingModelCache(result.pricingModelId)
+  const result = await baseUpdatePrice(price, ctx.transaction)
+  // Invalidate prices cache for the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.pricesByPricingModel(result.pricingModelId)
+  )
   return result
 }
 
@@ -790,17 +784,17 @@ export const selectPricesTableRowData =
 
 export const makePriceDefault = async (
   priceOrId: Price.Record | string,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   const newDefaultPrice =
     typeof priceOrId === 'string'
-      ? await selectPriceById(priceOrId, transaction)
+      ? await selectPriceById(priceOrId, ctx.transaction)
       : priceOrId
 
   const { price: oldDefaultPrice } = (
     await selectPriceProductAndOrganizationByPriceWhere(
       { isDefault: true },
-      transaction
+      ctx.transaction
     )
   )[0]
 
@@ -811,7 +805,7 @@ export const makePriceDefault = async (
         isDefault: false,
         type: oldDefaultPrice.type,
       },
-      transaction
+      ctx
     )
   }
 
@@ -821,7 +815,7 @@ export const makePriceDefault = async (
       isDefault: true,
       type: newDefaultPrice.type,
     },
-    transaction
+    ctx
   )
   return updatedPrice
 }
@@ -842,26 +836,26 @@ const bulkInsertOrDoNothingPrices =
 
 export const bulkInsertOrDoNothingPricesByExternalId = async (
   priceInserts: Price.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   const pricesWithPricingModelId =
     await enrichPriceInsertsWithPricingModelIds(
       priceInserts,
-      transaction
+      ctx.transaction
     )
   const results = await bulkInsertOrDoNothingPrices(
     pricesWithPricingModelId,
     [prices.externalId, prices.productId],
-    transaction
+    ctx.transaction
   )
 
-  // Invalidate prices cache for all affected pricing models
+  // Invalidate prices cache for all affected pricing models (queued for after commit)
   const pricingModelIds = [
     ...new Set(results.map((p) => p.pricingModelId)),
   ]
-  if (pricingModelIds.length > 0) {
-    await Promise.all(
-      pricingModelIds.map(invalidatePricesByPricingModelCache)
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.pricesByPricingModel(pricingModelId)
     )
   }
 
@@ -990,18 +984,18 @@ export const selectDefaultPricesForUsageMeters = async (
  * This is called when the current default price is unset or deactivated.
  *
  * @param usageMeterId - The ID of the usage meter
- * @param transaction - Database transaction
+ * @param ctx - TransactionEffectsContext for transaction and cache invalidation
  * @throws Error if the usage meter is not found
  * @throws Error if the no_charge price is not found
  */
 export const ensureUsageMeterHasDefaultPrice = async (
   usageMeterId: string,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<void> => {
   // Check if meter has any active default price
   const defaultPrice = await selectDefaultPriceForUsageMeter(
     usageMeterId,
-    transaction
+    ctx.transaction
   )
   if (defaultPrice) {
     return // Already has a default
@@ -1010,7 +1004,7 @@ export const ensureUsageMeterHasDefaultPrice = async (
   // Set the no_charge price as default
   const usageMeter = await selectUsageMeterById(
     usageMeterId,
-    transaction
+    ctx.transaction
   )
   if (!usageMeter) {
     throw new Error(`Usage meter ${usageMeterId} not found`)
@@ -1024,7 +1018,7 @@ export const ensureUsageMeterHasDefaultPrice = async (
       slug: noChargeSlug,
       usageMeterId,
     },
-    transaction
+    ctx.transaction
   )
 
   if (noChargePrices.length === 0) {
@@ -1037,7 +1031,10 @@ export const ensureUsageMeterHasDefaultPrice = async (
 
   // IMPORTANT: First unset ALL defaults (including inactive ones)
   // The unique constraint on isDefault applies regardless of active status
-  await setPricesForUsageMeterToNonDefault(usageMeterId, transaction)
+  await setPricesForUsageMeterToNonDefault(
+    usageMeterId,
+    ctx.transaction
+  )
 
   // Set the no_charge price as default and ensure it's active
   // The no_charge price may have been inactive, so we explicitly set active: true
@@ -1048,7 +1045,7 @@ export const ensureUsageMeterHasDefaultPrice = async (
       type: noChargePrice.type,
       active: true,
     },
-    transaction
+    ctx
   )
 }
 
@@ -1059,21 +1056,23 @@ const baseDangerouslyInsertPrice = createInsertFunction(
 
 export const dangerouslyInsertPrice = async (
   priceInsert: Price.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Price.Record> => {
   const pricingModelId = await derivePricingModelIdForPrice(
     priceInsert,
-    transaction
+    ctx.transaction
   )
   const result = await baseDangerouslyInsertPrice(
     {
       ...priceInsert,
       pricingModelId,
     },
-    transaction
+    ctx.transaction
   )
-  // Invalidate prices cache for the pricing model
-  await invalidatePricesByPricingModelCache(result.pricingModelId)
+  // Invalidate prices cache for the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.pricesByPricingModel(result.pricingModelId)
+  )
   return result
 }
 
@@ -1084,12 +1083,12 @@ export const dangerouslyInsertPrice = async (
  */
 export const safelyInsertPrice = async (
   price: Omit<Price.Insert, 'isDefault' | 'active'>,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   if (price.productId) {
     await setPricesForProductToNonDefaultNonActive(
       price.productId,
-      transaction
+      ctx.transaction
     )
   }
   const priceInsert: Price.Insert = pricesInsertSchema.parse({
@@ -1099,23 +1098,26 @@ export const safelyInsertPrice = async (
     isDefault: price.type !== PriceType.Usage,
     active: true,
   })
-  return dangerouslyInsertPrice(priceInsert, transaction)
+  return dangerouslyInsertPrice(priceInsert, ctx)
 }
 
 export const safelyUpdatePrice = async (
   price: Price.Update,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   /**
    * If price is being set as default, reset other prices for the same product/meter
    */
   if (price.isDefault) {
-    const existingPrice = await selectPriceById(price.id, transaction)
+    const existingPrice = await selectPriceById(
+      price.id,
+      ctx.transaction
+    )
     // For non-usage prices, reset other prices for the same product
     if (Price.hasProductId(existingPrice)) {
       await setPricesForProductToNonDefault(
         existingPrice.productId,
-        transaction
+        ctx.transaction
       )
     }
     // For usage prices, reset other prices for the same usage meter
@@ -1125,11 +1127,11 @@ export const safelyUpdatePrice = async (
     ) {
       await setPricesForUsageMeterToNonDefault(
         existingPrice.usageMeterId,
-        transaction
+        ctx.transaction
       )
     }
   }
-  return updatePrice(price, transaction)
+  return updatePrice(price, ctx)
 }
 
 /**

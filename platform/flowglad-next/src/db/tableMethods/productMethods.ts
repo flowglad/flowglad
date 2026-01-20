@@ -36,14 +36,13 @@ import {
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import { PaymentStatus, PriceType } from '@/types'
-import {
-  CacheDependency,
-  cached,
-  invalidateDependencies,
-} from '@/utils/cache'
+import { CacheDependency, cached } from '@/utils/cache'
 import { groupBy } from '@/utils/core'
 import { RedisKeyNamespace } from '@/utils/redis'
-import type { DbTransaction } from '../types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
 import {
   selectPrices,
@@ -98,17 +97,6 @@ export const selectProductsByPricingModelId = cached(
 )
 
 /**
- * Invalidate products cache for a pricing model.
- */
-export const invalidateProductsByPricingModelCache = async (
-  pricingModelId: string
-): Promise<void> => {
-  await invalidateDependencies([
-    CacheDependency.productsByPricingModel(pricingModelId),
-  ])
-}
-
-/**
  * Derives pricingModelId from a product.
  * Used for prices and productFeatures.
  */
@@ -129,11 +117,13 @@ const baseInsertProduct = createInsertFunction(products, config)
 
 export const insertProduct = async (
   product: Product.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Product.Record> => {
-  const result = await baseInsertProduct(product, transaction)
-  // Invalidate products cache for the pricing model
-  await invalidateProductsByPricingModelCache(result.pricingModelId)
+  const result = await baseInsertProduct(product, ctx.transaction)
+  // Invalidate products cache for the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.productsByPricingModel(result.pricingModelId)
+  )
   return result
 }
 
@@ -141,11 +131,13 @@ const baseUpdateProduct = createUpdateFunction(products, config)
 
 export const updateProduct = async (
   product: Product.Update,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Product.Record> => {
-  const result = await baseUpdateProduct(product, transaction)
-  // Invalidate products cache for the pricing model
-  await invalidateProductsByPricingModelCache(result.pricingModelId)
+  const result = await baseUpdateProduct(product, ctx.transaction)
+  // Invalidate products cache for the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.productsByPricingModel(result.pricingModelId)
+  )
   return result
 }
 
@@ -156,12 +148,12 @@ export const selectProductsPaginated = createPaginatedSelectFunction(
 
 export const bulkInsertProducts = async (
   productInserts: Product.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Product.Record[]> => {
   if (productInserts.length === 0) {
     return []
   }
-  const results = await transaction
+  const results = await ctx.transaction
     .insert(products)
     .values(productInserts)
     .returning()
@@ -169,13 +161,15 @@ export const bulkInsertProducts = async (
     productsSelectSchema.parse(result)
   )
 
-  // Invalidate products cache for all affected pricing models
+  // Invalidate products cache for all affected pricing models (queued for after commit)
   const pricingModelIds = [
     ...new Set(parsedResults.map((p) => p.pricingModelId)),
   ]
-  await Promise.all(
-    pricingModelIds.map(invalidateProductsByPricingModelCache)
-  )
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productsByPricingModel(pricingModelId)
+    )
+  }
 
   return parsedResults
 }
@@ -188,21 +182,21 @@ export const bulkInsertOrDoNothingProducts = async (
   conflictTarget: Parameters<
     typeof baseBulkInsertOrDoNothingProducts
   >[1],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Product.Record[]> => {
   const results = await baseBulkInsertOrDoNothingProducts(
     productInserts,
     conflictTarget,
-    transaction
+    ctx.transaction
   )
 
-  // Invalidate products cache for all affected pricing models
+  // Invalidate products cache for all affected pricing models (queued for after commit)
   const pricingModelIds = [
     ...new Set(results.map((p) => p.pricingModelId)),
   ]
-  if (pricingModelIds.length > 0) {
-    await Promise.all(
-      pricingModelIds.map(invalidateProductsByPricingModelCache)
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productsByPricingModel(pricingModelId)
     )
   }
 
@@ -211,12 +205,12 @@ export const bulkInsertOrDoNothingProducts = async (
 
 export const bulkInsertOrDoNothingProductsByExternalId = (
   productInserts: Product.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   return bulkInsertOrDoNothingProducts(
     productInserts,
     [products.externalId],
-    transaction
+    ctx
   )
 }
 

@@ -97,7 +97,8 @@ describe('getProductTableRows', () => {
   })
 
   it("should return products with prices and pricingModels for the user's organization, sorted by creation date descending", async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return getProductTableRows(
         {
           cursor: '0',
@@ -130,7 +131,8 @@ describe('getProductTableRows', () => {
   })
 
   it('should filter products by active status', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return getProductTableRows(
         {
           cursor: '0',
@@ -154,18 +156,17 @@ describe('getProductTableRows', () => {
   it('should filter products by organization ID', async () => {
     // Create another organization
     const { organization: otherOrg } = await setupOrg()
-    const otherUser = await adminTransaction(
-      async ({ transaction }) => {
-        return insertUser(
-          {
-            id: `other-user-id-${core.nanoid()}`,
-            email: 'other@example.com',
-            name: 'Other User',
-          },
-          transaction
-        )
-      }
-    )
+    const otherUser = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return insertUser(
+        {
+          id: `other-user-id-${core.nanoid()}`,
+          email: 'other@example.com',
+          name: 'Other User',
+        },
+        transaction
+      )
+    })
     await setupMemberships({ organizationId: otherOrg.id })
 
     // Create a product in the other organization
@@ -194,7 +195,8 @@ describe('getProductTableRows', () => {
     })
 
     // Get products for the original user
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return getProductTableRows(
         {
           cursor: '0',
@@ -241,54 +243,51 @@ describe('getProductTableRows', () => {
     }
 
     // First page
-    const result1 = await adminTransaction(
-      async ({ transaction }) => {
-        return getProductTableRows(
-          {
-            cursor: '0',
-            limit: 5,
-          },
-          transaction,
-          userId
-        )
-      }
-    )
+    const result1 = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return getProductTableRows(
+        {
+          cursor: '0',
+          limit: 5,
+        },
+        transaction,
+        userId
+      )
+    })
 
     expect(result1.data.length).toBe(5)
     expect(result1.total).toBe(13)
     expect(result1.hasMore).toBe(true)
 
     // Second page
-    const result2 = await adminTransaction(
-      async ({ transaction }) => {
-        return getProductTableRows(
-          {
-            cursor: '1',
-            limit: 5,
-          },
-          transaction,
-          userId
-        )
-      }
-    )
+    const result2 = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return getProductTableRows(
+        {
+          cursor: '1',
+          limit: 5,
+        },
+        transaction,
+        userId
+      )
+    })
 
     expect(result2.data.length).toBe(5)
     expect(result2.total).toBe(13)
     expect(result2.hasMore).toBe(true)
 
     // Third page
-    const result3 = await adminTransaction(
-      async ({ transaction }) => {
-        return getProductTableRows(
-          {
-            cursor: '2',
-            limit: 5,
-          },
-          transaction,
-          userId
-        )
-      }
-    )
+    const result3 = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return getProductTableRows(
+        {
+          cursor: '2',
+          limit: 5,
+        },
+        transaction,
+        userId
+      )
+    })
 
     expect(result3.data.length).toBe(3)
     expect(result3.total).toBe(13)
@@ -312,7 +311,8 @@ describe('getProductTableRows', () => {
       usageMeterId: undefined,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return getProductTableRows(
         {
           cursor: '0',
@@ -354,7 +354,8 @@ describe('getProductTableRows', () => {
       usageMeterId: undefined,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return getProductTableRows(
         {
           cursor: '0',
@@ -408,8 +409,9 @@ describe('Database Constraints', () => {
     }
 
     await expect(
-      adminTransaction(async ({ transaction }) => {
-        await insertProduct(newProductInsert, transaction)
+      adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        await insertProduct(newProductInsert, ctx)
       })
     ).rejects.toThrow(/Failed query:/)
   })
@@ -423,20 +425,22 @@ describe('Database Constraints', () => {
     })
 
     await expect(
-      adminTransaction(async ({ transaction }) => {
+      adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateProduct(
           {
             id: nonDefaultProduct.id,
             default: true,
           },
-          transaction
+          ctx
         )
       })
     ).rejects.toThrow(/Failed query:/)
   })
 
   it('allows inserting a non-default product when a default product already exists', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const nonDefaultProduct = await insertProduct(
         {
           name: 'Non-Default Product',
@@ -452,14 +456,15 @@ describe('Database Constraints', () => {
           imageURL: null,
           slug: `non-default-product+${core.nanoid()}`,
         },
-        transaction
+        ctx
       )
       expect(nonDefaultProduct.default).toBe(false)
     })
   })
 
   it('allows multiple default products in different pricingModels', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // First default product is already created in the first pricingModel
       // Create a second pricingModel
       const secondPricingModel = await setupPricingModel({
@@ -482,7 +487,7 @@ describe('Database Constraints', () => {
           imageURL: null,
           slug: `default-product-in-second-pricingModel+${core.nanoid()}`,
         },
-        transaction
+        ctx
       )
 
       expect(secondDefaultProduct.default).toBe(true)
@@ -505,7 +510,8 @@ describe('Slug uniqueness policies', () => {
   it('throws an error when inserting a product with duplicate slug in the same pricingModel', async () => {
     const slug = 'duplicate-slug'
     await expect(
-      adminTransaction(async ({ transaction }) => {
+      adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Insert first product with slug
         await insertProduct(
           {
@@ -522,7 +528,7 @@ describe('Slug uniqueness policies', () => {
             imageURL: null,
             slug,
           },
-          transaction
+          ctx
         )
         // Attempt to insert second product with same slug
         await insertProduct(
@@ -540,7 +546,7 @@ describe('Slug uniqueness policies', () => {
             imageURL: null,
             slug,
           },
-          transaction
+          ctx
         )
       })
     ).rejects.toThrow(/Failed query:/)
@@ -549,7 +555,8 @@ describe('Slug uniqueness policies', () => {
     const slug1 = 'slug-one'
     const slug2 = 'slug-two'
     await expect(
-      adminTransaction(async ({ transaction }) => {
+      adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Insert first product with slug1
         const firstProduct = await insertProduct(
           {
@@ -566,7 +573,7 @@ describe('Slug uniqueness policies', () => {
             imageURL: null,
             slug: slug1,
           },
-          transaction
+          ctx
         )
         // Insert second product with slug2
         const secondProduct = await insertProduct(
@@ -584,12 +591,12 @@ describe('Slug uniqueness policies', () => {
             imageURL: null,
             slug: slug2,
           },
-          transaction
+          ctx
         )
         // Attempt to update second product to slug1
         await updateProduct(
           { id: secondProduct.id, slug: slug1 },
-          transaction
+          ctx
         )
       })
     ).rejects.toThrow(/Failed query:/)
@@ -627,7 +634,8 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     })
 
     // Get product with prices and features (no features assigned)
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return selectProductPriceAndFeaturesByProductId(
         product.id,
         transaction
@@ -689,7 +697,8 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     })
 
     // Get product with prices and features
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return selectProductPriceAndFeaturesByProductId(
         product.id,
         transaction
@@ -717,7 +726,8 @@ describe('selectProductsCursorPaginated search', () => {
       slug: `premium-slug-${core.nanoid()}`,
     })
 
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Search by name (case-insensitive)
       const byName = await selectProductsCursorPaginated({
         input: {
@@ -767,7 +777,8 @@ describe('selectProductsCursorPaginated search', () => {
       name: 'Test Product',
     })
 
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const resultEmpty = await selectProductsCursorPaginated({
         input: {
           pageSize: 10,
@@ -848,7 +859,8 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     // Note: excludeUsageProducts is an additional runtime filter not part of the typed schema,
     // so type assertion is necessary here.
     const resultWithExclusion = await adminTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         return selectProductsCursorPaginated({
           input: {
             filters: {
@@ -873,7 +885,8 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
 
     // Query without excludeUsageProducts filter (should return same results)
     const resultWithoutExclusion = await adminTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         return selectProductsCursorPaginated({
           input: {
             filters: {
@@ -947,7 +960,8 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     })
 
     // Query with excludeUsageProducts=false (should include all)
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return selectProductsCursorPaginated({
         input: {
           filters: {
@@ -992,7 +1006,8 @@ describe('pricingModelIdsForProducts', () => {
   })
 
   it('should successfully return map of pricingModelIds for multiple products', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const pricingModelIdMap = await pricingModelIdsForProducts(
         [product1.id, product2.id],
         transaction
@@ -1005,7 +1020,8 @@ describe('pricingModelIdsForProducts', () => {
   })
 
   it('should return empty map when no product IDs are provided', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const pricingModelIdMap = await pricingModelIdsForProducts(
         [],
         transaction
@@ -1016,7 +1032,8 @@ describe('pricingModelIdsForProducts', () => {
   })
 
   it('should only return entries for existing products', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const nonExistentProductId = `prod_${core.nanoid()}`
       const pricingModelIdMap = await pricingModelIdsForProducts(
         [product1.id, nonExistentProductId],

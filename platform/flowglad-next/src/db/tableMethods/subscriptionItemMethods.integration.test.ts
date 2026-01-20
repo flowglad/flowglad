@@ -18,10 +18,8 @@ import {
   describeIfRedisKey,
   getRedisTestClient,
 } from '@/test/redisIntegrationHelpers'
-import {
-  CacheDependency,
-  invalidateDependencies,
-} from '@/utils/cache'
+import { CacheDependency } from '@/utils/cache'
+import { invalidateDependencies } from '@/utils/cache.internal'
 import { RedisKeyNamespace } from '@/utils/redis'
 import {
   selectSubscriptionItemsWithPricesBySubscriptionId,

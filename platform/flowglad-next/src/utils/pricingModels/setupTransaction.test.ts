@@ -102,14 +102,14 @@ describe('externalIdFromProductData', () => {
 describe('setupPricingModelTransaction (integration)', () => {
   it('throws if input validation fails', async () => {
     await expect(
-      adminTransaction(async ({ transaction }) =>
+      adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           {
             input: {} as any,
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          ctx
         )
       )
     ).rejects.toThrow()
@@ -161,10 +161,10 @@ describe('setupPricingModelTransaction (integration)', () => {
       ],
     }
     await expect(
-      adminTransaction(async ({ transaction }) =>
+      adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
     ).rejects.toThrow('Usage meter with slug missing does not exist')
@@ -246,10 +246,10 @@ describe('setupPricingModelTransaction (integration)', () => {
       ],
     }
 
-    const result = await adminTransaction(async ({ transaction }) =>
+    const result = await adminTransaction(async (ctx) =>
       setupPricingModelTransaction(
         { input, organizationId: organization.id, livemode: false },
-        transaction
+        ctx
       )
     )
 
@@ -324,10 +324,10 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [], // No products provided
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
 
@@ -359,10 +359,10 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
 
@@ -410,10 +410,10 @@ describe('setupPricingModelTransaction (integration)', () => {
         ],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
 
@@ -482,14 +482,14 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        adminTransaction(async (ctx) =>
           setupPricingModelTransaction(
             {
               input,
               organizationId: organization.id,
               livemode: false,
             },
-            transaction
+            ctx
           )
         )
       ).rejects.toThrow('Multiple default products not allowed')
@@ -532,14 +532,14 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        adminTransaction(async (ctx) =>
           setupPricingModelTransaction(
             {
               input,
               organizationId: organization.id,
               livemode: false,
             },
-            transaction
+            ctx
           )
         )
       ).rejects.toThrow('Default products must have zero price')
@@ -582,14 +582,14 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        adminTransaction(async (ctx) =>
           setupPricingModelTransaction(
             {
               input,
               organizationId: organization.id,
               livemode: false,
             },
-            transaction
+            ctx
           )
         )
       ).rejects.toThrow('Default products cannot have trials')
@@ -608,14 +608,14 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        adminTransaction(async (ctx) =>
           setupPricingModelTransaction(
             {
               input,
               organizationId: organization.id,
               livemode: false,
             },
-            transaction
+            ctx
           )
         )
       ).rejects.toThrow('Field must be less than 255 characters')
@@ -631,14 +631,14 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        adminTransaction(async (ctx) =>
           setupPricingModelTransaction(
             {
               input,
               organizationId: organization.id,
               livemode: false,
             },
-            transaction
+            ctx
           )
         )
       ).rejects.toThrow('Field is required')
@@ -683,14 +683,14 @@ describe('setupPricingModelTransaction (integration)', () => {
       }
 
       await expect(
-        adminTransaction(async ({ transaction }) =>
+        adminTransaction(async (ctx) =>
           setupPricingModelTransaction(
             {
               input,
               organizationId: organization.id,
               livemode: false,
             },
-            transaction
+            ctx
           )
         )
       ).rejects.toThrow(/Invalid option: expected one of/)
@@ -716,10 +716,10 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
 
@@ -752,10 +752,10 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
 
@@ -794,10 +794,10 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
 
@@ -835,10 +835,10 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
 
@@ -881,10 +881,10 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
 
@@ -935,10 +935,10 @@ describe('setupPricingModelTransaction (integration)', () => {
         products: [],
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
+      const result = await adminTransaction(async (ctx) =>
         setupPricingModelTransaction(
           { input, organizationId: organization.id, livemode: false },
-          transaction
+          ctx
         )
       )
 

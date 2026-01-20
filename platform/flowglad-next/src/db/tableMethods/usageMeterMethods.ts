@@ -24,12 +24,11 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import type { DbTransaction } from '@/db/types'
-import {
-  CacheDependency,
-  cached,
-  invalidateDependencies,
-} from '@/utils/cache'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
+import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
 import { selectCustomerById } from './customerMethods'
 
@@ -68,30 +67,6 @@ export const derivePricingModelIdFromUsageMeter =
  */
 export const pricingModelIdsForUsageMeters =
   createDerivePricingModelIds(usageMeters, config)
-
-/**
- * Invalidate usage meters cache when set membership changes
- * (meter added to or removed from a pricing model).
- */
-export const invalidatePricingModelUsageMetersCache = async (
-  pricingModelId: string
-): Promise<void> => {
-  await invalidateDependencies([
-    CacheDependency.pricingModelUsageMeters(pricingModelId),
-  ])
-}
-
-/**
- * Invalidate cache when an individual usage meter's content changes
- * (name, slug, aggregationType, etc.).
- */
-export const invalidateUsageMeterContentCache = async (
-  usageMeterId: string
-): Promise<void> => {
-  await invalidateDependencies([
-    CacheDependency.usageMeter(usageMeterId),
-  ])
-}
 
 export const selectUsageMeters = createSelectFunction(
   usageMeters,
@@ -152,11 +127,16 @@ const baseInsertUsageMeter = createInsertFunction(usageMeters, config)
 
 export const insertUsageMeter = async (
   usageMeter: UsageMeter.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<UsageMeter.Record> => {
-  const result = await baseInsertUsageMeter(usageMeter, transaction)
-  // Invalidate set membership - a new meter was added to the pricing model
-  await invalidatePricingModelUsageMetersCache(result.pricingModelId)
+  const result = await baseInsertUsageMeter(
+    usageMeter,
+    ctx.transaction
+  )
+  // Invalidate set membership - a new meter was added to the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.pricingModelUsageMeters(result.pricingModelId)
+  )
   return result
 }
 
@@ -164,11 +144,14 @@ const baseUpdateUsageMeter = createUpdateFunction(usageMeters, config)
 
 export const updateUsageMeter = async (
   usageMeter: UsageMeter.Update,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<UsageMeter.Record> => {
-  const result = await baseUpdateUsageMeter(usageMeter, transaction)
-  // Invalidate content - the meter's properties changed
-  await invalidateUsageMeterContentCache(result.id)
+  const result = await baseUpdateUsageMeter(
+    usageMeter,
+    ctx.transaction
+  )
+  // Invalidate content - the meter's properties changed (queued for after commit)
+  ctx.invalidateCache(CacheDependency.usageMeter(result.id))
   return result
 }
 
@@ -180,22 +163,22 @@ export const bulkInsertOrDoNothingUsageMeters = async (
   conflictTarget: Parameters<
     typeof baseBulkInsertOrDoNothingUsageMeters
   >[1],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   const results = await baseBulkInsertOrDoNothingUsageMeters(
     inserts,
     conflictTarget,
-    transaction
+    ctx.transaction
   )
 
-  // Invalidate set membership for all affected pricing models
+  // Invalidate set membership for all affected pricing models (queued for after commit)
   // (bulk insert adds meters to pricing models)
   const pricingModelIds = [
     ...new Set(inserts.map((um) => um.pricingModelId)),
   ]
-  if (pricingModelIds.length > 0) {
-    await Promise.all(
-      pricingModelIds.map(invalidatePricingModelUsageMetersCache)
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.pricingModelUsageMeters(pricingModelId)
     )
   }
 
@@ -205,7 +188,7 @@ export const bulkInsertOrDoNothingUsageMeters = async (
 export const bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId =
   async (
     inserts: UsageMeter.Insert[],
-    transaction: DbTransaction
+    ctx: TransactionEffectsContext
   ) => {
     return bulkInsertOrDoNothingUsageMeters(
       inserts,
@@ -214,7 +197,7 @@ export const bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId =
         usageMeters.pricingModelId,
         usageMeters.organizationId,
       ],
-      transaction
+      ctx
     )
   }
 
