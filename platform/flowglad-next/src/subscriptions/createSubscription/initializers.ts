@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { Price } from '@/db/schema/prices'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -8,6 +9,7 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import type { DbTransaction } from '@/db/types'
+import { ValidationError } from '@/errors'
 import {
   IntervalUnit,
   PriceType,
@@ -25,7 +27,15 @@ export const createStandardSubscriptionAndItems = async (
     endDate: number | Date
   },
   transaction: DbTransaction
-) => {
+): Promise<
+  Result<
+    {
+      subscription: Subscription.Record
+      subscriptionItems: SubscriptionItem.Record[]
+    },
+    ValidationError
+  >
+> => {
   const {
     organization,
     customer,
@@ -49,11 +59,19 @@ export const createStandardSubscriptionAndItems = async (
   const derivedInterval = interval ?? price.intervalUnit
   const derivedIntervalCount = intervalCount ?? price.intervalCount
   if (!derivedInterval) {
-    throw new Error('Interval is required for standard subscriptions')
+    return Result.err(
+      new ValidationError(
+        'interval',
+        'Interval is required for standard subscriptions'
+      )
+    )
   }
   if (!derivedIntervalCount) {
-    throw new Error(
-      'Interval count is required for standard subscriptions'
+    return Result.err(
+      new ValidationError(
+        'intervalCount',
+        'Interval count is required for standard subscriptions'
+      )
     )
   }
   const subscriptionInsert: Subscription.StandardInsert = {
@@ -129,13 +147,21 @@ export const createStandardSubscriptionAndItems = async (
     transaction
   )
 
-  return { subscription, subscriptionItems }
+  return Result.ok({ subscription, subscriptionItems })
 }
 
 export const createNonRenewingSubscriptionAndItems = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
-) => {
+): Promise<
+  Result<
+    {
+      subscription: Subscription.Record
+      subscriptionItems: SubscriptionItem.Record[]
+    },
+    ValidationError
+  >
+> => {
   const {
     organization,
     customer,
@@ -150,8 +176,11 @@ export const createNonRenewingSubscriptionAndItems = async (
     doNotCharge = false,
   } = params
   if (!product.default && price.type !== PriceType.Subscription) {
-    throw new Error(
-      `Price ${price.id} is not a subscription price. Non-renewing subscriptions must have a subscription price. Received price type: ${price.type}`
+    return Result.err(
+      new ValidationError(
+        'price',
+        `Price ${price.id} is not a subscription price. Non-renewing subscriptions must have a subscription price. Received price type: ${price.type}`
+      )
     )
   }
   const subscriptionInsert: Subscription.NonRenewingInsert = {
@@ -217,13 +246,21 @@ export const createNonRenewingSubscriptionAndItems = async (
     transaction
   )
 
-  return { subscription, subscriptionItems }
+  return Result.ok({ subscription, subscriptionItems })
 }
 
 export const insertSubscriptionAndItems = async (
   params: CreateSubscriptionParams,
   transaction: DbTransaction
-) => {
+): Promise<
+  Result<
+    {
+      subscription: Subscription.Record
+      subscriptionItems: SubscriptionItem.Record[]
+    },
+    ValidationError
+  >
+> => {
   const {
     price,
     startDate,
@@ -241,13 +278,18 @@ export const insertSubscriptionAndItems = async (
     Price.clientHasProductId(price) &&
     price.productId !== product.id
   ) {
-    throw new Error(
-      `insertSubscriptionAndItems: Price ${price.id} is not associated with product ${product.id}`
+    return Result.err(
+      new ValidationError(
+        'price',
+        `insertSubscriptionAndItems: Price ${price.id} is not associated with product ${product.id}`
+      )
     )
   }
 
   if (!isPriceTypeSubscription(price.type) && !product.default) {
-    throw new Error('Price is not a subscription')
+    return Result.err(
+      new ValidationError('price', 'Price is not a subscription')
+    )
   }
   if (product.default && !isPriceTypeSubscription(price.type)) {
     return await createNonRenewingSubscriptionAndItems(
@@ -258,11 +300,19 @@ export const insertSubscriptionAndItems = async (
   const derivedInterval = interval ?? price.intervalUnit
   const derivedIntervalCount = intervalCount ?? price.intervalCount
   if (!derivedInterval) {
-    throw new Error('Interval is required for standard subscriptions')
+    return Result.err(
+      new ValidationError(
+        'interval',
+        'Interval is required for standard subscriptions'
+      )
+    )
   }
   if (!derivedIntervalCount) {
-    throw new Error(
-      'Interval count is required for standard subscriptions'
+    return Result.err(
+      new ValidationError(
+        'intervalCount',
+        'Interval count is required for standard subscriptions'
+      )
     )
   }
   // Use provided anchor date or default to start date
