@@ -94,6 +94,11 @@ const UsagePriceFormFields = ({
     organization.defaultCurrency
   )
 
+  // Watch slug once at component level to derive isNoCharge
+  // (avoids duplicate watches and IIFE patterns in JSX)
+  const slug = form.watch('price.slug')
+  const isNoCharge = slug ? isNoChargePrice(slug) : false
+
   return (
     <div className="relative flex justify-between items-start gap-2.5 bg-background">
       <div className="flex-1 w-full min-w-[460px] relative flex flex-col rounded-lg-md">
@@ -145,55 +150,41 @@ const UsagePriceFormFields = ({
             />
 
             {/* Status (Active/Inactive toggle) - hidden for no_charge prices */}
-            {(() => {
-              const slug = form.watch('price.slug')
-              const isNoCharge = slug ? isNoChargePrice(slug) : false
-              // Don't render status toggle for no_charge prices since they can't be deactivated
-              if (isNoCharge) {
-                return null
-              }
-              return (
-                <FormField
-                  control={form.control}
-                  name="price.active"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Status</FormLabel>
-                      <FormControl>
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="price-active"
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
+            {!isNoCharge && (
+              <FormField
+                control={form.control}
+                name="price.active"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center space-x-2">
+                        <Switch
+                          id="price-active"
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                        <Label
+                          htmlFor="price-active"
+                          className="cursor-pointer w-full"
+                        >
+                          <StatusBadge
+                            active={field.value ?? false}
                           />
-                          <Label
-                            htmlFor="price-active"
-                            className="cursor-pointer w-full"
-                          >
-                            {field.value ? (
-                              <StatusBadge active={true} />
-                            ) : (
-                              <StatusBadge active={false} />
-                            )}
-                          </Label>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )
-            })()}
+                        </Label>
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Default Price toggle */}
             <FormField
               control={form.control}
               name="price.isDefault"
               render={({ field }) => {
-                const slug = form.watch('price.slug')
-                const isNoCharge = slug
-                  ? isNoChargePrice(slug)
-                  : false
                 // For no_charge prices: only disable when already default (can't unset)
                 // For regular prices: never disabled
                 const isDisabled = isNoCharge && field.value
@@ -207,6 +198,7 @@ const UsagePriceFormFields = ({
                           checked={field.value}
                           onCheckedChange={field.onChange}
                           disabled={isDisabled}
+                          aria-label="Set as default price"
                         />
                         <Label
                           htmlFor="price-isDefault"
