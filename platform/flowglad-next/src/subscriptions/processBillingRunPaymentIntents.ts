@@ -135,6 +135,7 @@ const processSucceededNotifications = async (
 interface BillingRunFailureNotificationParams
   extends BillingRunNotificationParams {
   retryDate?: Date | number
+  failureReason?: string
 }
 
 const processFailedNotifications = async (
@@ -173,6 +174,7 @@ const processFailedNotifications = async (
     }, 0),
     currency: params.invoice.currency,
     invoiceNumber: params.invoice.invoiceNumber,
+    failureReason: params.failureReason,
     livemode: params.invoice.livemode,
   })
 }
@@ -566,6 +568,7 @@ export const processOutcomeForBillingRun = async (
       await processFailedNotifications({
         ...notificationParams,
         retryDate: maybeRetry?.scheduledFor,
+        failureReason: event.last_payment_error?.message,
       })
       await safelyUpdateSubscriptionStatus(
         subscription,

@@ -119,7 +119,7 @@ export const sendOrganizationPaymentSucceededNotificationIdempotently =
         },
         {
           idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-payment-succeeded-notification-${paymentData.customerId}-${paymentData.amount}-${Date.now()}`
+            `send-organization-payment-succeeded-notification-${paymentData.invoiceNumber ?? `${paymentData.customerId}-${paymentData.amount}`}`
           ),
         }
       )

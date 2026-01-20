@@ -130,7 +130,7 @@ export const idempotentSendOrganizationPaymentFailedNotification =
         },
         {
           idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-payment-failed-notification-${paymentData.customerId}-${paymentData.amount}-${Date.now()}`
+            `send-organization-payment-failed-notification-${paymentData.invoiceNumber ?? `${paymentData.customerId}-${paymentData.amount}`}`
           ),
         }
       )
