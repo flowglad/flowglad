@@ -21,3 +21,5 @@ export {
   useResource,
   useResources,
 } from './useResources'
+
+console.log("lol")
