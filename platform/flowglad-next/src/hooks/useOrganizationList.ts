@@ -27,8 +27,10 @@ export const useOrganizationList = () => {
         await invalidateTRPC()
         await focusedMembership.refetch()
         // Navigate to parent page if on a detail page to avoid 404s after org switch
-        navigateToParentIfNeeded()
-        router.refresh()
+        // Only refresh if staying on current page (navigation handles its own refresh)
+        if (!navigateToParentIfNeeded()) {
+          router.refresh()
+        }
       },
     })
 

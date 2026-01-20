@@ -64,8 +64,10 @@ export const SideNavigation = () => {
       await invalidateTRPC()
       await focusedMembership.refetch()
       // Navigate to parent page if on a detail page to avoid 404s after livemode switch
-      navigateToParentIfNeeded()
-      router.refresh()
+      // Only refresh if staying on current page (navigation handles its own refresh)
+      if (!navigateToParentIfNeeded()) {
+        router.refresh()
+      }
     },
   })
   const { invalidate: invalidateTRPC } = trpc.useUtils()

@@ -12,7 +12,6 @@ export const ROUTE_PARENTS: Record<string, string> = {
   // Standard detail pages with corresponding list pages
   '/customers/': '/customers',
   '/pricing-models/': '/pricing-models',
-  '/products/': '/products',
 
   // Finance detail pages
   '/finance/subscriptions/': '/finance/subscriptions',
@@ -20,6 +19,7 @@ export const ROUTE_PARENTS: Record<string, string> = {
   '/finance/purchases/': '/finance/purchases',
 
   // Detail pages without their own list page - fall back to related parent
+  '/products/': '/pricing-models',
   '/features/': '/pricing-models',
   '/usage-meters/': '/pricing-models',
 }
