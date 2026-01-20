@@ -17,7 +17,7 @@ import { bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug } from '@/db/tabl
 import { bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId } from '@/db/tableMethods/usageMeterMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import { FeatureType, PriceType } from '@/types'
+import { CurrencyCode, FeatureType, PriceType } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import { validateDefaultProductSchema } from '@/utils/defaultProductValidation'
 import { createProductPriceInsert } from '@/utils/pricingModels/setupHelpers'
@@ -43,6 +43,255 @@ export const externalIdFromProductData = (
   pricingModelId: string
 ) => {
   return hashData(JSON.stringify({ ...product, pricingModelId }))
+}
+
+/**
+ * Builds feature inserts from validated input, resolving usageMeterSlug and resourceSlug
+ * to their respective IDs.
+ */
+const buildFeatureInserts = (
+  features: SetupPricingModelInput['features'],
+  context: {
+    pricingModelId: string
+    organizationId: string
+    livemode: boolean
+    usageMetersBySlug: Map<string, UsageMeter.Record>
+    resourcesBySlug: Map<string, Resource.Record>
+  }
+): Result<Feature.Insert[], NotFoundError> => {
+  return Result.gen(function* () {
+    const {
+      pricingModelId,
+      organizationId,
+      livemode,
+      usageMetersBySlug,
+      resourcesBySlug,
+    } = context
+    const featureInserts: Feature.Insert[] = []
+
+    for (const feature of features) {
+      const coreParams: Pick<
+        Feature.Insert,
+        | 'slug'
+        | 'pricingModelId'
+        | 'livemode'
+        | 'organizationId'
+        | 'name'
+        | 'description'
+      > = {
+        slug: feature.slug,
+        name: feature.name,
+        description: feature.description,
+        pricingModelId,
+        livemode,
+        organizationId,
+      }
+
+      if (feature.type === FeatureType.UsageCreditGrant) {
+        const usageMeter = usageMetersBySlug.get(
+          feature.usageMeterSlug
+        )
+        if (!usageMeter) {
+          return yield* Result.err(
+            new NotFoundError('UsageMeter', feature.usageMeterSlug)
+          )
+        }
+        featureInserts.push({
+          ...coreParams,
+          type: FeatureType.UsageCreditGrant,
+          usageMeterId: usageMeter.id,
+          resourceId: null,
+          amount: feature.amount,
+          renewalFrequency: feature.renewalFrequency,
+          active: feature.active ?? true,
+        })
+        continue
+      }
+
+      if (feature.type === FeatureType.Resource) {
+        const resource = resourcesBySlug.get(feature.resourceSlug)
+        if (!resource) {
+          return yield* Result.err(
+            new NotFoundError('Resource', feature.resourceSlug)
+          )
+        }
+        featureInserts.push({
+          ...coreParams,
+          type: FeatureType.Resource,
+          resourceId: resource.id,
+          usageMeterId: null,
+          amount: feature.amount,
+          renewalFrequency: null,
+          active: feature.active ?? true,
+        })
+        continue
+      }
+
+      // Toggle type (default)
+      featureInserts.push({
+        ...coreParams,
+        type: FeatureType.Toggle,
+        usageMeterId: null,
+        resourceId: null,
+        amount: null,
+        renewalFrequency: null,
+        active: feature.active ?? true,
+      })
+    }
+
+    return Result.ok(featureInserts)
+  })
+}
+
+/**
+ * Builds usage price inserts from usageMeters[].prices, resolving usageMeterSlug to usageMeterId.
+ */
+const buildUsagePriceInserts = (
+  usageMetersInput: SetupPricingModelInput['usageMeters'],
+  context: {
+    pricingModelId: string
+    livemode: boolean
+    currency: CurrencyCode
+    usageMetersBySlug: Map<string, UsageMeter.Record>
+  }
+): Result<Price.Insert[], NotFoundError> => {
+  return Result.gen(function* () {
+    const { pricingModelId, livemode, currency, usageMetersBySlug } =
+      context
+    const usagePriceInserts: Price.Insert[] = []
+
+    for (const meterWithPrices of usageMetersInput) {
+      const usageMeter = usageMetersBySlug.get(
+        meterWithPrices.usageMeter.slug
+      )
+      if (!usageMeter) {
+        return yield* Result.err(
+          new NotFoundError(
+            'UsageMeter',
+            meterWithPrices.usageMeter.slug
+          )
+        )
+      }
+
+      for (const price of meterWithPrices.prices || []) {
+        usagePriceInserts.push({
+          type: PriceType.Usage as const,
+          name: price.name ?? null,
+          slug: price.slug ?? null,
+          unitPrice: price.unitPrice,
+          isDefault: price.isDefault,
+          active: price.active,
+          intervalCount: price.intervalCount,
+          intervalUnit: price.intervalUnit,
+          trialPeriodDays: null, // Usage prices don't have trial periods
+          usageEventsPerUnit: price.usageEventsPerUnit,
+          currency,
+          productId: null, // Usage prices don't have productId
+          pricingModelId, // Explicit for usage prices
+          livemode,
+          externalId: null,
+          usageMeterId: usageMeter.id,
+        })
+      }
+    }
+
+    return Result.ok(usagePriceInserts)
+  })
+}
+
+/**
+ * Builds product price inserts from products[].price, resolving product names to productIds.
+ */
+const buildProductPriceInserts = (
+  productsInput: SetupPricingModelInput['products'],
+  context: {
+    pricingModelId: string
+    livemode: boolean
+    currency: CurrencyCode
+    productsByExternalId: Map<string | null, Product.Record>
+  }
+): Result<Price.Insert[], NotFoundError> => {
+  return Result.gen(function* () {
+    const {
+      pricingModelId,
+      livemode,
+      currency,
+      productsByExternalId,
+    } = context
+    const productPriceInserts: Price.Insert[] = []
+
+    for (const product of productsInput) {
+      const productRecord = productsByExternalId.get(
+        externalIdFromProductData(product, pricingModelId)
+      )
+      if (!productRecord) {
+        return yield* Result.err(
+          new NotFoundError('Product', product.product.name)
+        )
+      }
+      productPriceInserts.push(
+        createProductPriceInsert(product.price, {
+          productId: productRecord.id,
+          currency,
+          livemode,
+        })
+      )
+    }
+
+    return Result.ok(productPriceInserts)
+  })
+}
+
+/**
+ * Builds product feature inserts, resolving feature slugs and product names to their IDs.
+ */
+const buildProductFeatureInserts = (
+  productsInput: SetupPricingModelInput['products'],
+  context: {
+    pricingModelId: string
+    organizationId: string
+    livemode: boolean
+    featuresBySlug: Map<string, Feature.Record>
+    productsByExternalId: Map<string | null, Product.Record>
+  }
+): Result<ProductFeature.Insert[], NotFoundError> => {
+  return Result.gen(function* () {
+    const {
+      pricingModelId,
+      organizationId,
+      livemode,
+      featuresBySlug,
+      productsByExternalId,
+    } = context
+    const productFeatureInserts: ProductFeature.Insert[] = []
+
+    for (const product of productsInput) {
+      for (const featureSlug of product.features) {
+        const feature = featuresBySlug.get(featureSlug)
+        if (!feature) {
+          return yield* Result.err(
+            new NotFoundError('Feature', featureSlug)
+          )
+        }
+        const productRecord = productsByExternalId.get(
+          externalIdFromProductData(product, pricingModelId)
+        )
+        if (!productRecord) {
+          return yield* Result.err(
+            new NotFoundError('Product', product.product.name)
+          )
+        }
+        productFeatureInserts.push({
+          organizationId,
+          productId: productRecord.id,
+          featureId: feature.id,
+          livemode,
+        })
+      }
+    }
+
+    return Result.ok(productFeatureInserts)
+  })
 }
 
 export const setupPricingModelTransaction = async (
@@ -146,76 +395,17 @@ export const setupPricingModelTransaction = async (
       resources.map((resource) => [resource.slug, resource])
     )
 
-    // Build feature inserts using for loop to allow yield*
-    const featureInserts: Feature.Insert[] = []
-    for (const feature of input.features) {
-      const coreParams: Pick<
-        Feature.Insert,
-        | 'slug'
-        | 'pricingModelId'
-        | 'livemode'
-        | 'organizationId'
-        | 'name'
-        | 'description'
-      > = {
-        slug: feature.slug,
-        name: feature.name,
-        description: feature.description,
+    // Build feature inserts using helper
+    const featureInserts = yield* buildFeatureInserts(
+      input.features,
+      {
         pricingModelId: pricingModel.id,
-        livemode,
         organizationId,
+        livemode,
+        usageMetersBySlug,
+        resourcesBySlug,
       }
-      if (feature.type === FeatureType.UsageCreditGrant) {
-        const usageMeter = usageMetersBySlug.get(
-          feature.usageMeterSlug
-        )
-        if (!usageMeter) {
-          return yield* Result.err(
-            new NotFoundError('UsageMeter', feature.usageMeterSlug)
-          )
-        }
-        featureInserts.push({
-          ...coreParams,
-          type: FeatureType.UsageCreditGrant,
-          usageMeterId: usageMeter.id,
-          resourceId: null,
-          amount: feature.amount,
-          renewalFrequency: feature.renewalFrequency,
-          active: feature.active ?? true,
-        })
-        continue
-      }
-
-      if (feature.type === FeatureType.Resource) {
-        const resource = resourcesBySlug.get(feature.resourceSlug)
-        if (!resource) {
-          return yield* Result.err(
-            new NotFoundError('Resource', feature.resourceSlug)
-          )
-        }
-        featureInserts.push({
-          ...coreParams,
-          type: FeatureType.Resource,
-          resourceId: resource.id,
-          usageMeterId: null,
-          amount: feature.amount,
-          renewalFrequency: null,
-          active: feature.active ?? true,
-        })
-        continue
-      }
-
-      // Toggle type (default)
-      featureInserts.push({
-        ...coreParams,
-        type: FeatureType.Toggle,
-        usageMeterId: null,
-        resourceId: null,
-        amount: null,
-        renewalFrequency: null,
-        active: feature.active ?? true,
-      })
-    }
+    )
     const features =
       await bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug(
         featureInserts,
@@ -242,64 +432,27 @@ export const setupPricingModelTransaction = async (
       products.map((product) => [product.externalId, product])
     )
 
-    // Build product price inserts (subscription and single payment only)
-    // Using for loop to allow yield*
-    const productPriceInserts: Price.Insert[] = []
-    for (const product of input.products) {
-      const productId = productsByExternalId.get(
-        externalIdFromProductData(product, pricingModel.id)
-      )?.id
-      if (!productId) {
-        return yield* Result.err(
-          new NotFoundError('Product', product.product.name)
-        )
+    // Build product price inserts using helper
+    const productPriceInserts = yield* buildProductPriceInserts(
+      input.products,
+      {
+        pricingModelId: pricingModel.id,
+        livemode,
+        currency: organization.defaultCurrency,
+        productsByExternalId,
       }
-      productPriceInserts.push(
-        createProductPriceInsert(product.price, {
-          productId,
-          currency: organization.defaultCurrency,
-          livemode,
-        })
-      )
-    }
+    )
 
-    // Build usage price inserts from usageMeters[].prices
-    // Usage prices belong directly to usage meters, not products
-    const usagePriceInserts: Price.Insert[] = []
-    for (const meterWithPrices of input.usageMeters) {
-      const usageMeter = usageMetersBySlug.get(
-        meterWithPrices.usageMeter.slug
-      )
-      if (!usageMeter) {
-        return yield* Result.err(
-          new NotFoundError(
-            'UsageMeter',
-            meterWithPrices.usageMeter.slug
-          )
-        )
+    // Build usage price inserts using helper
+    const usagePriceInserts = yield* buildUsagePriceInserts(
+      input.usageMeters,
+      {
+        pricingModelId: pricingModel.id,
+        livemode,
+        currency: organization.defaultCurrency,
+        usageMetersBySlug,
       }
-
-      for (const price of meterWithPrices.prices || []) {
-        usagePriceInserts.push({
-          type: PriceType.Usage as const,
-          name: price.name ?? null,
-          slug: price.slug ?? null,
-          unitPrice: price.unitPrice,
-          isDefault: price.isDefault,
-          active: price.active,
-          intervalCount: price.intervalCount,
-          intervalUnit: price.intervalUnit,
-          trialPeriodDays: null, // Usage prices don't have trial periods
-          usageEventsPerUnit: price.usageEventsPerUnit,
-          currency: organization.defaultCurrency,
-          productId: null, // Usage prices don't have productId
-          pricingModelId: pricingModel.id, // Explicit for usage prices
-          livemode,
-          externalId: null,
-          usageMeterId: usageMeter.id,
-        })
-      }
-    }
+    )
 
     // Determine which usage meters have a user-specified ACTIVE default price
     // Now that validation no longer mutates isDefault (Patch 3), we can use validated input directly
@@ -407,32 +560,17 @@ export const setupPricingModelTransaction = async (
       features.map((feature) => [feature.slug, feature])
     )
 
-    // Build product feature inserts using for loop to allow yield*
-    const productFeatureInserts: ProductFeature.Insert[] = []
-    for (const product of input.products) {
-      for (const featureSlug of product.features) {
-        const feature = featuresBySlug.get(featureSlug)
-        if (!feature) {
-          return yield* Result.err(
-            new NotFoundError('Feature', featureSlug)
-          )
-        }
-        const productId = productsByExternalId.get(
-          externalIdFromProductData(product, pricingModel.id)
-        )?.id
-        if (!productId) {
-          return yield* Result.err(
-            new NotFoundError('Product', product.product.name)
-          )
-        }
-        productFeatureInserts.push({
-          organizationId,
-          productId,
-          featureId: feature.id,
-          livemode,
-        })
+    // Build product feature inserts using helper
+    const productFeatureInserts = yield* buildProductFeatureInserts(
+      input.products,
+      {
+        pricingModelId: pricingModel.id,
+        organizationId,
+        livemode,
+        featuresBySlug,
+        productsByExternalId,
       }
-    }
+    )
 
     const productFeatures =
       await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(

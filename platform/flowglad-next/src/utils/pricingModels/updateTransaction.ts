@@ -42,7 +42,7 @@ import {
 } from '@/db/tableMethods/usageMeterMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
-import { FeatureType, PriceType } from '@/types'
+import { CurrencyCode, FeatureType, PriceType } from '@/types'
 import {
   computeUpdateObject,
   diffPricingModel,
@@ -62,6 +62,24 @@ import {
   resolveExistingIds,
   syncProductFeaturesForMultipleProducts,
 } from './updateHelpers'
+
+// Type for ID maps used throughout the update transaction
+type IdMaps = {
+  usageMeters: Map<string, string>
+  features: Map<string, string>
+  products: Map<string, string>
+  prices: Map<string, string>
+  resources: Map<string, string>
+}
+
+// Context shared by helper functions
+type UpdateContext = {
+  pricingModelId: string
+  organizationId: string
+  livemode: boolean
+  currency: CurrencyCode
+  ctx: TransactionEffectsContext
+}
 
 /**
  * Result of an update pricing model transaction.
@@ -96,6 +114,294 @@ export type UpdatePricingModelResult = {
     added: ProductFeature.Record[]
     removed: ProductFeature.Record[]
   }
+}
+
+// Type for usage meter input from SetupPricingModelInput
+type UsageMeterWithPricesInput =
+  SetupPricingModelInput['usageMeters'][number]
+// Type for a single usage price input
+type UsagePriceInput = NonNullable<
+  UsageMeterWithPricesInput['prices']
+>[number]
+
+// Type for usage meter diff from diffPricingModel
+type UsageMeterDiff = {
+  toCreate: UsageMeterWithPricesInput[]
+  toUpdate: Array<{
+    existing: UsageMeterWithPricesInput
+    proposed: UsageMeterWithPricesInput
+    priceDiff: {
+      toCreate: UsagePriceInput[]
+      toRemove: UsagePriceInput[]
+      toUpdate: Array<{
+        existing: UsagePriceInput
+        proposed: UsagePriceInput
+      }>
+    }
+  }>
+}
+
+// Result type for usage meter operations
+type UsageMeterOperationsResult = {
+  created: UsageMeter.Record[]
+  updated: UsageMeter.Record[]
+  pricesCreated: Price.Record[]
+  pricesDeactivated: Price.Record[]
+}
+
+/**
+ * Handles all usage meter operations: create new meters with prices,
+ * update existing meters, and handle price changes for updated meters.
+ */
+const handleUsageMeterOperations = async (
+  usageMeterDiff: UsageMeterDiff,
+  context: UpdateContext,
+  idMaps: IdMaps
+): Promise<Result<UsageMeterOperationsResult, NotFoundError>> => {
+  return Result.gen(async function* () {
+    const {
+      pricingModelId,
+      organizationId,
+      livemode,
+      currency,
+      ctx,
+    } = context
+    const result: UsageMeterOperationsResult = {
+      created: [],
+      updated: [],
+      pricesCreated: [],
+      pricesDeactivated: [],
+    }
+
+    // Step 7: Batch create new usage meters
+    if (usageMeterDiff.toCreate.length > 0) {
+      const usageMeterInserts: UsageMeter.Insert[] =
+        usageMeterDiff.toCreate.map((meter) => ({
+          slug: meter.usageMeter.slug,
+          name: meter.usageMeter.name,
+          pricingModelId,
+          organizationId,
+          livemode,
+          ...(meter.usageMeter.aggregationType && {
+            aggregationType: meter.usageMeter.aggregationType,
+          }),
+        }))
+
+      const createdUsageMeters =
+        await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
+          usageMeterInserts,
+          ctx
+        )
+
+      result.created = createdUsageMeters
+      // Merge newly created usage meter IDs into map
+      for (const meter of createdUsageMeters) {
+        idMaps.usageMeters.set(meter.slug, meter.id)
+      }
+
+      // Step 7a: Create prices for newly created usage meters
+      const usageMeterPriceInserts: Price.Insert[] = []
+      for (const meterWithPrices of usageMeterDiff.toCreate) {
+        const usageMeterId = idMaps.usageMeters.get(
+          meterWithPrices.usageMeter.slug
+        )
+        if (!usageMeterId) {
+          return yield* Result.err(
+            new NotFoundError(
+              'UsageMeter',
+              meterWithPrices.usageMeter.slug
+            )
+          )
+        }
+        for (const price of meterWithPrices.prices ?? []) {
+          usageMeterPriceInserts.push({
+            type: PriceType.Usage,
+            name: price.name ?? null,
+            slug: price.slug ?? null,
+            unitPrice: price.unitPrice,
+            isDefault: price.isDefault,
+            active: price.active,
+            intervalCount: price.intervalCount,
+            intervalUnit: price.intervalUnit,
+            trialPeriodDays: null,
+            usageEventsPerUnit: price.usageEventsPerUnit,
+            currency,
+            productId: null,
+            pricingModelId,
+            livemode,
+            externalId: null,
+            usageMeterId,
+          })
+        }
+      }
+
+      if (usageMeterPriceInserts.length > 0) {
+        const createdUsagePrices = await bulkInsertPrices(
+          usageMeterPriceInserts,
+          ctx
+        )
+        result.pricesCreated.push(...createdUsagePrices)
+
+        // Merge newly created price IDs into map
+        for (const price of createdUsagePrices) {
+          if (price.slug) {
+            idMaps.prices.set(price.slug, price.id)
+          }
+        }
+      }
+    }
+
+    // Step 8: Update existing usage meters (parallel)
+    const usageMeterUpdatePromises: Promise<UsageMeter.Record>[] = []
+    for (const { existing, proposed } of usageMeterDiff.toUpdate) {
+      const updateObj = computeUpdateObject(
+        existing.usageMeter,
+        proposed.usageMeter
+      )
+      if (Object.keys(updateObj).length === 0) continue
+
+      const meterId = idMaps.usageMeters.get(existing.usageMeter.slug)
+      if (!meterId) {
+        return yield* Result.err(
+          new NotFoundError('UsageMeter', existing.usageMeter.slug)
+        )
+      }
+      usageMeterUpdatePromises.push(
+        updateUsageMeter({ id: meterId, ...updateObj }, ctx)
+      )
+    }
+
+    if (usageMeterUpdatePromises.length > 0) {
+      result.updated = await Promise.all(usageMeterUpdatePromises)
+    }
+
+    // Step 8a: Handle price changes for updated usage meters
+    for (const { existing, priceDiff } of usageMeterDiff.toUpdate) {
+      const usageMeterId = idMaps.usageMeters.get(
+        existing.usageMeter.slug
+      )
+      if (!usageMeterId) {
+        return yield* Result.err(
+          new NotFoundError('UsageMeter', existing.usageMeter.slug)
+        )
+      }
+
+      // Deactivate removed prices
+      for (const priceToRemove of priceDiff.toRemove) {
+        const priceId = idMaps.prices.get(priceToRemove.slug ?? '')
+        if (priceId) {
+          const deactivatedPrice = await updatePrice(
+            {
+              id: priceId,
+              active: false,
+              isDefault: false,
+              type: PriceType.Usage,
+            },
+            ctx
+          )
+          result.pricesDeactivated.push(deactivatedPrice)
+        }
+      }
+
+      // Create new prices
+      if (priceDiff.toCreate.length > 0) {
+        const newPriceInserts: Price.Insert[] =
+          priceDiff.toCreate.map((price) => ({
+            type: PriceType.Usage,
+            name: price.name ?? null,
+            slug: price.slug ?? null,
+            unitPrice: price.unitPrice,
+            isDefault: price.isDefault,
+            active: price.active,
+            intervalCount: price.intervalCount,
+            intervalUnit: price.intervalUnit,
+            trialPeriodDays: null,
+            usageEventsPerUnit: price.usageEventsPerUnit,
+            currency,
+            productId: null,
+            pricingModelId,
+            livemode,
+            externalId: null,
+            usageMeterId,
+          }))
+        const createdPrices = await bulkInsertPrices(
+          newPriceInserts,
+          ctx
+        )
+        result.pricesCreated.push(...createdPrices)
+
+        // Merge into ID map
+        for (const price of createdPrices) {
+          if (price.slug) {
+            idMaps.prices.set(price.slug, price.id)
+          }
+        }
+      }
+
+      // Update existing prices (deactivate old, create new with updated values)
+      for (const {
+        existing: existingPrice,
+        proposed: proposedPrice,
+      } of priceDiff.toUpdate) {
+        // Skip no-op updates
+        const priceUpdateObj = computeUpdateObject(
+          existingPrice,
+          proposedPrice
+        )
+        if (Object.keys(priceUpdateObj).length === 0) {
+          continue
+        }
+
+        const existingPriceId = idMaps.prices.get(
+          existingPrice.slug ?? ''
+        )
+        if (existingPriceId) {
+          // Deactivate the old price
+          const deactivatedPrice = await updatePrice(
+            {
+              id: existingPriceId,
+              active: false,
+              isDefault: false,
+              type: PriceType.Usage,
+            },
+            ctx
+          )
+          result.pricesDeactivated.push(deactivatedPrice)
+        }
+
+        // Create the new price with updated values
+        const [newPrice] = await bulkInsertPrices(
+          [
+            {
+              type: PriceType.Usage,
+              name: proposedPrice.name ?? null,
+              slug: proposedPrice.slug ?? null,
+              unitPrice: proposedPrice.unitPrice,
+              isDefault: proposedPrice.isDefault,
+              active: proposedPrice.active,
+              intervalCount: proposedPrice.intervalCount,
+              intervalUnit: proposedPrice.intervalUnit,
+              trialPeriodDays: null,
+              usageEventsPerUnit: proposedPrice.usageEventsPerUnit,
+              currency,
+              productId: null,
+              pricingModelId,
+              livemode,
+              externalId: null,
+              usageMeterId,
+            },
+          ],
+          ctx
+        )
+        result.pricesCreated.push(newPrice)
+        if (newPrice.slug) {
+          idMaps.prices.set(newPrice.slug, newPrice.id)
+        }
+      }
+    }
+
+    return Result.ok(result)
+  })
 }
 
 /**
@@ -191,238 +497,25 @@ export const updatePricingModelTransaction = async (
       )
     }
 
-    // Step 7: Batch create new usage meters
-    // Usage meter data is nested under the usageMeter property
-    if (diff.usageMeters.toCreate.length > 0) {
-      const usageMeterInserts: UsageMeter.Insert[] =
-        diff.usageMeters.toCreate.map((meter) => ({
-          slug: meter.usageMeter.slug,
-          name: meter.usageMeter.name,
+    // Steps 7-8a: Handle usage meter operations using helper
+    const usageMeterOpsResult =
+      yield* await handleUsageMeterOperations(
+        diff.usageMeters,
+        {
           pricingModelId,
           organizationId: pricingModel.organizationId,
           livemode: pricingModel.livemode,
-          ...(meter.usageMeter.aggregationType && {
-            aggregationType: meter.usageMeter.aggregationType,
-          }),
-        }))
-
-      const createdUsageMeters =
-        await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
-          usageMeterInserts,
-          ctx
-        )
-
-      result.usageMeters.created = createdUsageMeters
-      // Merge newly created usage meter IDs into map
-      for (const meter of createdUsageMeters) {
-        idMaps.usageMeters.set(meter.slug, meter.id)
-      }
-
-      // Step 7a: Create prices for newly created usage meters
-      const usageMeterPriceInserts: Price.Insert[] = []
-      for (const meterWithPrices of diff.usageMeters.toCreate) {
-        const usageMeterId = idMaps.usageMeters.get(
-          meterWithPrices.usageMeter.slug
-        )
-        if (!usageMeterId) {
-          return yield* Result.err(
-            new NotFoundError(
-              'UsageMeter',
-              meterWithPrices.usageMeter.slug
-            )
-          )
-        }
-        for (const price of meterWithPrices.prices ?? []) {
-          usageMeterPriceInserts.push({
-            type: PriceType.Usage,
-            name: price.name ?? null,
-            slug: price.slug ?? null,
-            unitPrice: price.unitPrice,
-            isDefault: price.isDefault,
-            active: price.active,
-            intervalCount: price.intervalCount,
-            intervalUnit: price.intervalUnit,
-            trialPeriodDays: null,
-            usageEventsPerUnit: price.usageEventsPerUnit,
-            currency: organization.defaultCurrency,
-            productId: null,
-            pricingModelId,
-            livemode: pricingModel.livemode,
-            externalId: null,
-            usageMeterId,
-          })
-        }
-      }
-
-      if (usageMeterPriceInserts.length > 0) {
-        const createdUsagePrices = await bulkInsertPrices(
-          usageMeterPriceInserts,
-          ctx
-        )
-        result.prices.created.push(...createdUsagePrices)
-
-        // Merge newly created price IDs into map
-        for (const price of createdUsagePrices) {
-          if (price.slug) {
-            idMaps.prices.set(price.slug, price.id)
-          }
-        }
-      }
-    }
-
-    // Step 8: Update existing usage meters (parallel)
-    // Usage meter data is nested under the usageMeter property
-    const usageMeterUpdatePromises: Promise<UsageMeter.Record>[] = []
-    for (const { existing, proposed } of diff.usageMeters.toUpdate) {
-      // Compare the nested usageMeter objects
-      const updateObj = computeUpdateObject(
-        existing.usageMeter,
-        proposed.usageMeter
+          currency: organization.defaultCurrency,
+          ctx,
+        },
+        idMaps
       )
-      if (Object.keys(updateObj).length === 0) continue
-
-      const meterId = idMaps.usageMeters.get(existing.usageMeter.slug)
-      if (!meterId) {
-        return yield* Result.err(
-          new NotFoundError('UsageMeter', existing.usageMeter.slug)
-        )
-      }
-      usageMeterUpdatePromises.push(
-        updateUsageMeter({ id: meterId, ...updateObj }, ctx)
-      )
-    }
-
-    if (usageMeterUpdatePromises.length > 0) {
-      result.usageMeters.updated = await Promise.all(
-        usageMeterUpdatePromises
-      )
-    }
-
-    // Step 8a: Handle price changes for updated usage meters
-    for (const { existing, priceDiff } of diff.usageMeters.toUpdate) {
-      const usageMeterId = idMaps.usageMeters.get(
-        existing.usageMeter.slug
-      )
-      if (!usageMeterId) {
-        return yield* Result.err(
-          new NotFoundError('UsageMeter', existing.usageMeter.slug)
-        )
-      }
-
-      // Deactivate removed prices
-      for (const priceToRemove of priceDiff.toRemove) {
-        const priceId = idMaps.prices.get(priceToRemove.slug ?? '')
-        if (priceId) {
-          const deactivatedPrice = await updatePrice(
-            {
-              id: priceId,
-              active: false,
-              isDefault: false,
-              type: PriceType.Usage,
-            },
-            ctx
-          )
-          result.prices.deactivated.push(deactivatedPrice)
-        }
-      }
-
-      // Create new prices
-      if (priceDiff.toCreate.length > 0) {
-        const newPriceInserts: Price.Insert[] =
-          priceDiff.toCreate.map((price) => ({
-            type: PriceType.Usage,
-            name: price.name ?? null,
-            slug: price.slug ?? null,
-            unitPrice: price.unitPrice,
-            isDefault: price.isDefault,
-            active: price.active,
-            intervalCount: price.intervalCount,
-            intervalUnit: price.intervalUnit,
-            trialPeriodDays: null,
-            usageEventsPerUnit: price.usageEventsPerUnit,
-            currency: organization.defaultCurrency,
-            productId: null,
-            pricingModelId,
-            livemode: pricingModel.livemode,
-            externalId: null,
-            usageMeterId,
-          }))
-        const createdPrices = await bulkInsertPrices(
-          newPriceInserts,
-          ctx
-        )
-        result.prices.created.push(...createdPrices)
-
-        // Merge into ID map
-        for (const price of createdPrices) {
-          if (price.slug) {
-            idMaps.prices.set(price.slug, price.id)
-          }
-        }
-      }
-
-      // Update existing prices (deactivate old, create new with updated values)
-      // Usage prices follow the same pattern as product prices: create new version
-      for (const {
-        existing: existingPrice,
-        proposed: proposedPrice,
-      } of priceDiff.toUpdate) {
-        // Skip no-op updates - only deactivate/recreate if something actually changed
-        const priceUpdateObj = computeUpdateObject(
-          existingPrice,
-          proposedPrice
-        )
-        if (Object.keys(priceUpdateObj).length === 0) {
-          continue
-        }
-
-        const existingPriceId = idMaps.prices.get(
-          existingPrice.slug ?? ''
-        )
-        if (existingPriceId) {
-          // Deactivate the old price
-          const deactivatedPrice = await updatePrice(
-            {
-              id: existingPriceId,
-              active: false,
-              isDefault: false,
-              type: PriceType.Usage,
-            },
-            ctx
-          )
-          result.prices.deactivated.push(deactivatedPrice)
-        }
-
-        // Create the new price with updated values
-        const [newPrice] = await bulkInsertPrices(
-          [
-            {
-              type: PriceType.Usage,
-              name: proposedPrice.name ?? null,
-              slug: proposedPrice.slug ?? null,
-              unitPrice: proposedPrice.unitPrice,
-              isDefault: proposedPrice.isDefault,
-              active: proposedPrice.active,
-              intervalCount: proposedPrice.intervalCount,
-              intervalUnit: proposedPrice.intervalUnit,
-              trialPeriodDays: null,
-              usageEventsPerUnit: proposedPrice.usageEventsPerUnit,
-              currency: organization.defaultCurrency,
-              productId: null,
-              pricingModelId,
-              livemode: pricingModel.livemode,
-              externalId: null,
-              usageMeterId,
-            },
-          ],
-          ctx
-        )
-        result.prices.created.push(newPrice)
-        if (newPrice.slug) {
-          idMaps.prices.set(newPrice.slug, newPrice.id)
-        }
-      }
-    }
+    result.usageMeters.created = usageMeterOpsResult.created
+    result.usageMeters.updated = usageMeterOpsResult.updated
+    result.prices.created.push(...usageMeterOpsResult.pricesCreated)
+    result.prices.deactivated.push(
+      ...usageMeterOpsResult.pricesDeactivated
+    )
 
     /**
      * Step 8b: Handle resources

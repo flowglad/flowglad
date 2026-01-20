@@ -1461,9 +1461,7 @@ describe('updatePricingModelTransaction', () => {
           },
           { livemode: false }
         )
-      ).rejects.toThrow(
-        'Resource with slug non-existent-resource does not exist'
-      )
+      ).rejects.toThrow('Resource not found: non-existent-resource')
     })
 
     it('deactivates Resource features when removed from proposed input', async () => {
