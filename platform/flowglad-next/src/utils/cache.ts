@@ -1022,6 +1022,7 @@ export async function recomputeCacheEntry(
       logger.info('cache_recomputation', {
         cacheKey,
         namespace: metadata.namespace,
+        context_type: metadata.cacheRecomputationContext.type,
         success: false,
         error: 'no_handler',
         latency_ms: Date.now() - startTime,
