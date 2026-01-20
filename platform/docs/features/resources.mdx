@@ -481,16 +481,24 @@ export async function downgradeToStarterPlan(params: {
 
   // The new plan's capacity - in production, fetch this from your pricing config
   const newCapacity = 5
+  const excessClaims = usage.claimed - newCapacity
 
-  if (usage.claimed > newCapacity) {
-    // Step 2: Release excess claims before downgrading
+  if (excessClaims > 0) {
+    // Step 2: Validate enough seats are selected for release
+    if (params.seatsToRelease.length < excessClaims) {
+      throw new Error(
+        `Must release at least ${excessClaims} seats, but only ${params.seatsToRelease.length} selected.`
+      )
+    }
+
+    // Step 3: Release excess claims before downgrading
     await server.releaseResource({
       resourceSlug: 'seats',
       externalIds: params.seatsToRelease
     })
   }
 
-  // Step 3: Now the downgrade will succeed
+  // Step 4: Now the downgrade will succeed
   const result = await server.adjustSubscription({
     priceSlug: 'starter_monthly',
     // timing defaults to 'auto' - downgrades apply at end of period
