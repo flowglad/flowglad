@@ -6,6 +6,8 @@ import { flowglad } from '@/lib/flowglad'
 
 export const { GET, POST } = nextRouteHandler({
   flowglad,
+  // rm for production
+  baseURL: 'http://localhost:3000',
   getCustomerExternalId: async () => {
     // Use the Flowglad plugin's getExternalId endpoint to get the correct external ID
     // This handles the customerType configuration (user vs organization)

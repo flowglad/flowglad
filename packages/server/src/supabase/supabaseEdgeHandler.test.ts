@@ -66,7 +66,7 @@ describe('supabaseEdgeHandler', () => {
         })
 
         const req = createMockRequest(
-          'https://project.supabase.co/functions/v1/api-flowglad/billing'
+          'https://project.supabase.co/functions/v1/api-flowglad/invalid-path'
         )
 
         const response = await handler(req)
@@ -85,7 +85,7 @@ describe('supabaseEdgeHandler', () => {
         )
 
         const req = createMockRequest(
-          'https://project.supabase.co/functions/v1/api-flowglad/billing'
+          'https://project.supabase.co/functions/v1/api-flowglad/invalid-path'
         )
 
         const response = await handler(req)
@@ -101,7 +101,7 @@ describe('supabaseEdgeHandler', () => {
         )
 
         const req = createMockRequest(
-          'https://project.supabase.co/functions/v1/api-flowglad/billing'
+          'https://project.supabase.co/functions/v1/api-flowglad/invalid-path'
         )
 
         const response = await handler(req)
@@ -117,7 +117,7 @@ describe('supabaseEdgeHandler', () => {
         )
 
         const req = createMockRequest(
-          'https://project.supabase.co/functions/v1/api-flowglad/billing'
+          'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
         )
 
         const response = await handler(req)
@@ -132,11 +132,11 @@ describe('supabaseEdgeHandler', () => {
         const handler = supabaseEdgeHandler(createMockOptions())
 
         const req = createMockRequest(
-          'https://project.supabase.co/functions/v1/api-flowglad/billing'
+          'https://project.supabase.co/functions/v1/api-flowglad/invalid-path'
         )
 
         const response = await handler(req)
-        // Returns 404 for invalid Flowglad path 'billing'
+        // Returns 404 for invalid Flowglad path
         expect(response.status).toBe(404)
       })
 
@@ -199,7 +199,7 @@ describe('supabaseEdgeHandler', () => {
 
       // Create request with invalid JSON
       const req = new Request(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing',
+        'https://project.supabase.co/functions/v1/api-flowglad/invalid-path',
         {
           method: 'POST',
           body: 'not valid json',
@@ -216,7 +216,7 @@ describe('supabaseEdgeHandler', () => {
       const handler = supabaseEdgeHandler(createMockOptions())
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/invalid-path'
       )
 
       const response = await handler(req)
@@ -263,7 +263,7 @@ describe('supabaseEdgeHandler', () => {
       const handler = supabaseEdgeHandler(createMockOptions())
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       const response = await handler(req)
@@ -277,7 +277,7 @@ describe('supabaseEdgeHandler', () => {
       const handler = supabaseEdgeHandler(createMockOptions())
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       const response = await handler(req)
@@ -313,7 +313,7 @@ describe('supabaseEdgeHandler', () => {
       )
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       const response = await handler(req)
@@ -364,7 +364,7 @@ describe('supabaseEdgeHandler', () => {
       })
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       const response = await handler(req)
@@ -381,7 +381,7 @@ describe('supabaseEdgeHandler', () => {
       })
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       const response = await handler(req)
@@ -400,7 +400,7 @@ describe('supabaseEdgeHandler', () => {
       })
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       const response = await handler(req)
@@ -422,7 +422,7 @@ describe('supabaseEdgeHandler', () => {
       })
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       await handler(req)
@@ -443,7 +443,7 @@ describe('supabaseEdgeHandler', () => {
       })
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       // Should not throw, should return error response
@@ -467,7 +467,7 @@ describe('supabaseEdgeHandler', () => {
       )
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       await handler(req)
@@ -526,7 +526,7 @@ describe('supabaseEdgeHandler', () => {
       )
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing',
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing',
         {
           headers: {
             Authorization: 'Bearer token123',
@@ -562,7 +562,7 @@ describe('supabaseEdgeHandler', () => {
       )
 
       const req = createMockRequest(
-        'https://project.supabase.co/functions/v1/api-flowglad/billing'
+        'https://project.supabase.co/functions/v1/api-flowglad/customers/billing'
       )
 
       await handler(req)

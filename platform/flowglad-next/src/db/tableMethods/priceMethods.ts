@@ -919,12 +919,14 @@ export const ensureUsageMeterHasDefaultPrice = async (
   // The unique constraint on isDefault applies regardless of active status
   await setPricesForUsageMeterToNonDefault(usageMeterId, transaction)
 
-  // Set the no_charge price as default
+  // Set the no_charge price as default and ensure it's active
+  // The no_charge price may have been inactive, so we explicitly set active: true
   await updatePrice(
     {
       id: noChargePrice.id,
       isDefault: true,
       type: noChargePrice.type,
+      active: true,
     },
     transaction
   )

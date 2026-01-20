@@ -116,8 +116,11 @@ export const updatePrice = protectedProcedure
 
         // No_charge price protection - these checks must come BEFORE other validation
         // No_charge prices can only have their name changed
+        // Note: Only usage prices can be no_charge prices
         const existingIsNoCharge =
-          existingPrice.slug && isNoChargePrice(existingPrice.slug)
+          existingPrice.type === PriceType.Usage &&
+          existingPrice.slug &&
+          isNoChargePrice(existingPrice.slug)
         if (existingIsNoCharge) {
           // Reject archiving (setting active to false)
           if (price.active === false) {
@@ -138,9 +141,19 @@ export const updatePrice = protectedProcedure
                 'The slug of a no charge price is immutable. Only the name can be changed.',
             })
           }
-          // Reject isDefault changes to false
-          // (no_charge prices can be set as default, but once default, unsetting it
-          // will trigger cascade which will set it back - handled below)
+          // Reject unsetting isDefault on a no_charge price that is currently default
+          // Note: Internal cascade logic (setPricesForUsageMeterToNonDefault) bypasses this,
+          // so setting another price as default still works correctly
+          if (
+            price.isDefault === false &&
+            existingPrice.isDefault === true
+          ) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Default no_charge prices cannot be unset; isDefault is immutable for fallback prices.',
+            })
+          }
         }
 
         // Product validation only applies to non-usage prices.
@@ -319,7 +332,12 @@ export const archivePrice = protectedProcedure
         const oldPrice = await selectPriceById(input.id, transaction)
 
         // No_charge price protection - cannot be archived
-        if (oldPrice.slug && isNoChargePrice(oldPrice.slug)) {
+        // Note: Only usage prices can be no_charge prices
+        if (
+          oldPrice.type === PriceType.Usage &&
+          oldPrice.slug &&
+          isNoChargePrice(oldPrice.slug)
+        ) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
