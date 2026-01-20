@@ -1,4 +1,3 @@
-import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -34,6 +33,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { NotFoundError, ValidationError } from '@/errors'
 import { releaseAllResourceClaimsForSubscription } from '@/resources/resourceClaimHelpers'
 import { createBillingRun } from '@/subscriptions/billingRunHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -297,8 +297,11 @@ export const cancelSubscriptionImmediately = async (
     earliestBillingPeriod &&
     endDate < earliestBillingPeriod.startDate
   ) {
-    throw new Error(
-      `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
+    return Result.err(
+      new ValidationError(
+        'endDate',
+        `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
+      )
     )
   }
 
@@ -447,7 +450,9 @@ export const cancelSubscriptionImmediately = async (
 export const scheduleSubscriptionCancellation = async (
   params: ScheduleSubscriptionCancellationParams,
   ctx: TransactionEffectsContext
-): Promise<Subscription.Record> => {
+): Promise<
+  Result<Subscription.Record, ValidationError | NotFoundError>
+> => {
   const { transaction } = ctx
   const { id, cancellation } =
     scheduleSubscriptionCancellationSchema.parse(params)
@@ -459,13 +464,16 @@ export const scheduleSubscriptionCancellation = async (
    * See note in cancelSubscriptionProcedureTransaction for details.
    */
   if (subscription.isFreePlan) {
-    throw new Error(
-      'Cannot cancel the default free plan. Please upgrade to a paid plan instead.'
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'Cannot cancel the default free plan. Please upgrade to a paid plan instead.'
+      )
     )
   }
 
   if (isSubscriptionInTerminalState(subscription.status)) {
-    return subscription
+    return Result.ok(subscription)
   }
 
   let endDate: number
@@ -480,7 +488,9 @@ export const scheduleSubscriptionCancellation = async (
         transaction
       )
     if (!currentBillingPeriod) {
-      throw new Error('No current billing period found')
+      return Result.err(
+        new NotFoundError('BillingPeriod', subscription.id)
+      )
     }
     endDate = currentBillingPeriod.endDate
   } else if (
@@ -488,7 +498,12 @@ export const scheduleSubscriptionCancellation = async (
   ) {
     endDate = Date.now()
   } else {
-    throw new Error('Invalid cancellation arrangement')
+    return Result.err(
+      new ValidationError(
+        'cancellation.timing',
+        'Invalid cancellation arrangement'
+      )
+    )
   }
 
   const status = SubscriptionStatus.CancellationScheduled
@@ -504,14 +519,20 @@ export const scheduleSubscriptionCancellation = async (
     earliestBillingPeriod &&
     endDate < earliestBillingPeriod.startDate
   ) {
-    throw new Error(
-      `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
+    return Result.err(
+      new ValidationError(
+        'endDate',
+        `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
+      )
     )
   }
   const cancelScheduledAt = endDate
   if (!subscription.renews) {
-    throw new Error(
-      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be cancelled (Should never hit this)`
+    return Result.err(
+      new ValidationError(
+        'subscription.renews',
+        `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be cancelled (Should never hit this)`
+      )
     )
   }
   let updatedSubscription = await updateSubscription(
@@ -578,7 +599,7 @@ export const scheduleSubscriptionCancellation = async (
       }
     )
   }
-  return updatedSubscription
+  return Result.ok(updatedSubscription)
 }
 
 type CancelSubscriptionProcedureParams =
@@ -643,11 +664,12 @@ export const cancelSubscriptionProcedureTransaction = async ({
    * programmatically cancel free plans as part of the upgrade flow.
    */
   if (subscription.isFreePlan) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Cannot cancel the default free plan. Please upgrade to a paid plan instead.',
-    })
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'Cannot cancel the default free plan. Please upgrade to a paid plan instead.'
+      )
+    )
   }
 
   if (
@@ -668,10 +690,9 @@ export const cancelSubscriptionProcedureTransaction = async ({
       },
     })
   }
-  const updatedSubscription = await scheduleSubscriptionCancellation(
-    input,
-    ctx
-  )
+  const updatedSubscription = (
+    await scheduleSubscriptionCancellation(input, ctx)
+  ).unwrap()
   // Queue cache invalidation via effects context
   invalidateCache(
     CacheDependency.customerSubscriptions(
@@ -719,7 +740,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
   subscription: Subscription.Record,
   billingPeriods: BillingPeriod.Record[],
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<Result<void, ValidationError>> => {
   // Get payment method for billing run creation (with fallback to backup)
   const paymentMethodId =
     subscription.defaultPaymentMethodId ??
@@ -736,16 +757,17 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
     !subscription.doNotCharge &&
     !paymentMethod
   ) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message:
-        'Cannot uncancel paid subscription without an active payment method. Please add a payment method first.',
-    })
+    return Result.err(
+      new ValidationError(
+        'paymentMethod',
+        'Cannot uncancel paid subscription without an active payment method. Please add a payment method first.'
+      )
+    )
   }
 
   if (!paymentMethod) {
     // Free or doNotCharge subscription with no payment method - no billing runs needed
-    return
+    return Result.ok(undefined)
   }
 
   // Filter to periods that need billing runs
@@ -805,6 +827,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
       )
     }
   }
+  return Result.ok(undefined)
 }
 
 /**
@@ -829,7 +852,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
 export const uncancelSubscription = async (
   subscription: Subscription.Record,
   ctx: TransactionEffectsContext
-): Promise<Result<Subscription.Record, Error>> => {
+): Promise<Result<Subscription.Record, ValidationError>> => {
   const { transaction, invalidateCache } = ctx
   // Cache invalidation for this customer's subscriptions
   invalidateCache(
@@ -866,11 +889,15 @@ export const uncancelSubscription = async (
   }
 
   // Security check for paid subscriptions (moved before state changes)
-  await rescheduleBillingRunsForUncanceledPeriods(
-    subscription,
-    billingPeriods,
-    transaction
-  )
+  const rescheduleBillingRunsResult =
+    await rescheduleBillingRunsForUncanceledPeriods(
+      subscription,
+      billingPeriods,
+      transaction
+    )
+  if (rescheduleBillingRunsResult.status === 'error') {
+    return Result.err(rescheduleBillingRunsResult.error)
+  }
 
   // Determine previous status
   const previousStatus =
