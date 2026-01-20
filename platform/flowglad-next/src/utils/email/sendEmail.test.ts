@@ -1,7 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CurrencyCode } from '@/types'
-// Import the email module to spy on safeSend
-import * as emailModule from '@/utils/email'
 import { EMAIL_REGISTRY } from './registry'
 import {
   getDefaultSubject,
@@ -9,17 +7,29 @@ import {
   sendEmail,
 } from './sendEmail'
 
-// Spy on safeSend instead of mocking the entire module
+// Mock the email module to control network calls
+// Use vi.hoisted() to ensure the mock is available when vi.mock is hoisted
 const mockResponse = {
   data: { id: 'mock-email-id' },
   error: null,
 } as const
-const safeSendSpy = vi
-  .spyOn(emailModule, 'safeSend')
-  .mockResolvedValue(mockResponse)
+
+const { mockSafeSend } = vi.hoisted(() => ({
+  mockSafeSend: vi.fn(),
+}))
+
+vi.mock('@/utils/email', async (importOriginal) => {
+  const original =
+    await importOriginal<typeof import('@/utils/email')>()
+  return {
+    ...original,
+    safeSend: mockSafeSend,
+  }
+})
 
 beforeEach(() => {
-  safeSendSpy.mockClear()
+  mockSafeSend.mockClear()
+  mockSafeSend.mockResolvedValue(mockResponse)
 })
 
 describe('sendEmail', () => {
@@ -57,7 +67,7 @@ describe('sendEmail', () => {
 
       // Should have called safeSend and returned the mock response
       expect(result).toEqual(mockResponse)
-      expect(safeSendSpy).toHaveBeenCalled()
+      expect(mockSafeSend).toHaveBeenCalled()
     })
   })
 
@@ -73,7 +83,7 @@ describe('sendEmail', () => {
         livemode: true,
       })
 
-      expect(emailModule.safeSend).toHaveBeenCalledWith(
+      expect(mockSafeSend).toHaveBeenCalledWith(
         expect.objectContaining({
           subject: 'Payouts Enabled for Acme Inc',
         }),
@@ -92,7 +102,7 @@ describe('sendEmail', () => {
         subjectOverride: 'Custom Subject',
       })
 
-      expect(emailModule.safeSend).toHaveBeenCalledWith(
+      expect(mockSafeSend).toHaveBeenCalledWith(
         expect.objectContaining({
           subject: 'Custom Subject',
         }),
@@ -110,7 +120,7 @@ describe('sendEmail', () => {
         livemode: false,
       })
 
-      expect(emailModule.safeSend).toHaveBeenCalledWith(
+      expect(mockSafeSend).toHaveBeenCalledWith(
         expect.objectContaining({
           subject: '[TEST] Payouts Enabled for Acme Inc',
         }),
@@ -137,7 +147,7 @@ describe('sendEmail', () => {
         livemode: true,
       })
 
-      expect(emailModule.safeSend).toHaveBeenCalledWith(
+      expect(mockSafeSend).toHaveBeenCalledWith(
         expect.objectContaining({
           from: 'Acme Inc Billing <acme-inc-billing@flowglad.com>',
         }),
@@ -155,7 +165,7 @@ describe('sendEmail', () => {
         livemode: true,
       })
 
-      expect(emailModule.safeSend).toHaveBeenCalledWith(
+      expect(mockSafeSend).toHaveBeenCalledWith(
         expect.objectContaining({
           from: 'Flowglad <notifications@flowglad.com>',
         }),

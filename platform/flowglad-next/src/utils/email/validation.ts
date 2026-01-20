@@ -38,7 +38,7 @@ const InvoiceSchema = z.object({
 })
 
 const TrialInfoSchema = z.object({
-  trialEndDate: z.date(),
+  trialEndDate: z.coerce.date(),
   trialDurationDays: z.number(),
 })
 
@@ -60,10 +60,10 @@ export const CustomerSubscriptionCreatedSchema = z.object({
   price: z.number().min(0, 'Price must be non-negative'),
   currency: CurrencyCodeSchema,
   interval: IntervalUnitSchema.optional(),
-  nextBillingDate: z.date().optional(),
+  nextBillingDate: z.coerce.date().optional(),
   paymentMethodLast4: z.string().length(4).optional(),
   trial: TrialInfoSchema.optional(),
-  dateConfirmed: z.date().optional(),
+  dateConfirmed: z.coerce.date().optional(),
 })
 
 export const CustomerSubscriptionCanceledSchema = z.object({
@@ -77,7 +77,7 @@ export const CustomerSubscriptionCanceledSchema = z.object({
   subscriptionName: z
     .string()
     .min(1, 'Subscription name is required'),
-  cancellationDate: z.date(),
+  cancellationDate: z.coerce.date(),
   livemode: z.boolean(),
 })
 
@@ -93,7 +93,7 @@ export const CustomerSubscriptionCancellationScheduledSchema =
     subscriptionName: z
       .string()
       .min(1, 'Subscription name is required'),
-    scheduledCancellationDate: z.date(),
+    scheduledCancellationDate: z.coerce.date(),
     livemode: z.boolean(),
   })
 
@@ -112,8 +112,8 @@ export const CustomerSubscriptionAdjustedSchema = z.object({
   currency: CurrencyCodeSchema,
   interval: IntervalUnitSchema.optional(),
   prorationAmount: z.number().nullable(),
-  effectiveDate: z.date(),
-  nextBillingDate: z.date().optional(),
+  effectiveDate: z.coerce.date(),
+  nextBillingDate: z.coerce.date().optional(),
 })
 
 export const CustomerSubscriptionUpgradedSchema = z.object({
@@ -136,10 +136,10 @@ export const CustomerSubscriptionUpgradedSchema = z.object({
   price: z.number().min(0, 'Price must be non-negative'),
   currency: CurrencyCodeSchema,
   interval: IntervalUnitSchema.optional(),
-  nextBillingDate: z.date().optional(),
+  nextBillingDate: z.coerce.date().optional(),
   paymentMethodLast4: z.string().length(4).optional(),
   trialing: z.boolean().optional(),
-  dateConfirmed: z.date().optional(),
+  dateConfirmed: z.coerce.date().optional(),
 })
 
 // ============================================================================
@@ -164,14 +164,14 @@ export const CustomerOrderReceiptSchema = z.object({
 
 export const CustomerPaymentFailedSchema = z.object({
   invoiceNumber: z.string().min(1, 'Invoice number is required'),
-  orderDate: z.date(),
+  orderDate: z.coerce.date(),
   invoice: InvoiceSchema,
   organizationName: z
     .string()
     .min(1, 'Organization name is required'),
   organizationLogoUrl: z.string().url().optional(),
   lineItems: z.array(LineItemSchema).min(1),
-  retryDate: z.date().optional(),
+  retryDate: z.coerce.date().optional(),
   discountInfo: DiscountInfoSchema,
   failureReason: z.string().optional(),
   customerPortalUrl: z.string().url().optional(),
@@ -255,7 +255,7 @@ export const OrganizationSubscriptionCanceledSchema = z.object({
   customerId: z.string().min(1, 'Customer ID is required'),
   customerName: z.string().min(1, 'Customer name is required'),
   customerEmail: z.string().email('Invalid email address'),
-  cancellationDate: z.date(),
+  cancellationDate: z.coerce.date(),
   livemode: z.boolean(),
 })
 
@@ -270,7 +270,7 @@ export const OrganizationSubscriptionCancellationScheduledSchema =
     customerId: z.string().min(1, 'Customer ID is required'),
     customerName: z.string().min(1, 'Customer name is required'),
     customerEmail: z.string().email('Invalid email address'),
-    scheduledCancellationDate: z.date(),
+    scheduledCancellationDate: z.coerce.date(),
     livemode: z.boolean(),
   })
 
@@ -288,7 +288,7 @@ export const OrganizationSubscriptionAdjustedSchema = z.object({
   newTotalPrice: z.number(),
   currency: CurrencyCodeSchema,
   prorationAmount: z.number().nullable(),
-  effectiveDate: z.date(),
+  effectiveDate: z.coerce.date(),
   livemode: z.boolean(),
 })
 

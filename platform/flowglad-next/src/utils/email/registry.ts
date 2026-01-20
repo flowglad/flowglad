@@ -558,7 +558,7 @@ export const EMAIL_REGISTRY: {
       return mod.CustomerBillingPortalOTPEmail
     },
     defaultSubject: (props) =>
-      `${props.otp} is your ${props.organizationName} billing portal code`,
+      `Your ${props.organizationName} billing portal verification code`,
     recipientType: 'customer',
     category: 'auth',
     description: 'OTP code for customer billing portal access',

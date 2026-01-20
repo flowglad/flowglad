@@ -47,7 +47,7 @@ describe('validateEmailProps', () => {
       currency: CurrencyCode.USD,
     }
 
-    it('validates valid props without error', () => {
+    it('validates and returns props correctly when all required fields are provided', () => {
       expect(() =>
         validateEmailProps(
           CustomerSubscriptionCreatedSchema,
@@ -55,9 +55,7 @@ describe('validateEmailProps', () => {
           'customer.subscription.created'
         )
       ).not.toThrow()
-    })
 
-    it('returns validated props when valid', () => {
       const result = validateEmailProps(
         CustomerSubscriptionCreatedSchema,
         validProps,
@@ -65,6 +63,9 @@ describe('validateEmailProps', () => {
       )
       expect(result.customerName).toBe('John Doe')
       expect(result.organizationName).toBe('Acme Inc')
+      expect(result.planName).toBe('Pro Plan')
+      expect(result.price).toBe(1999)
+      expect(result.currency).toBe(CurrencyCode.USD)
     })
 
     it('throws descriptive error for missing required fields', () => {

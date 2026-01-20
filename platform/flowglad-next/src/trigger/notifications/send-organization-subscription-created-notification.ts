@@ -74,7 +74,7 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
       bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
-        `New Subscription: ${customer.name} subscribed to ${subscription.name}`,
+        `New Subscription: ${customer.name} subscribed to ${subscription.name ?? 'a plan'}`,
         subscription.livemode
       ),
       /**
@@ -82,7 +82,7 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
        */
       react: await OrganizationSubscriptionCreatedNotificationEmail({
         organizationName: organization.name,
-        subscriptionName: subscription.name!,
+        subscriptionName: subscription.name ?? 'Unnamed subscription',
         customerId: customer.id,
         customerName: customer.name,
         customerEmail: customer.email,
