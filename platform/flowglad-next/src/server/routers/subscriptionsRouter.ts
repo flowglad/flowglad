@@ -552,7 +552,7 @@ export const createSubscriptionInputSchema = z
         'The time when the subscription starts. If not provided, defaults to current time.'
       ),
     interval: z
-      .nativeEnum(IntervalUnit)
+      .enum(IntervalUnit)
       .optional()
       .describe(
         'The interval of the subscription. If not provided, defaults to the interval of the price provided by ' +
