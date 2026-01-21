@@ -213,8 +213,8 @@ describe('paymentMethods.ts', () => {
         expect(result.status).toBe('error')
         if (result.status === 'error') {
           expect(result.error).toBeInstanceOf(NotFoundError)
-          expect(result.error.message).toContain(
-            `No payments found with id: ${nonExistentPaymentId}`
+          expect(result.error.message).toBe(
+            `Payment not found: ${nonExistentPaymentId}`
           )
         }
       })

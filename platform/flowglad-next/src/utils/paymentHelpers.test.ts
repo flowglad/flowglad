@@ -12,6 +12,7 @@ import type { Customer } from '@/db/schema/customers'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
+import { NotFoundError, ValidationError } from '@/errors'
 import {
   PaymentMethodType,
   PaymentStatus,
@@ -417,20 +418,23 @@ describe('refundPaymentTransaction', () => {
   })
 
   describe('validation errors', () => {
-    it('should throw error when payment is not found', async () => {
+    it('returns NotFoundError when payment is not found', async () => {
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          refundPaymentTransaction(
-            { id: 'non_existent_id', partialAmount: null },
-            transaction
-          )
-        ).rejects.toThrow(
-          'No payments found with id: non_existent_id'
+        const result = await refundPaymentTransaction(
+          { id: 'non_existent_id', partialAmount: null },
+          transaction
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(NotFoundError)
+          expect(result.error.message).toBe(
+            'Payment not found: non_existent_id'
+          )
+        }
       })
     })
 
-    it('should throw error when payment is already refunded', async () => {
+    it('returns ValidationError when payment is already refunded', async () => {
       const refundedPayment = await setupPayment({
         stripeChargeId: `ch_${nanoid()}`,
         stripePaymentIntentId: `pi_${nanoid()}`,
@@ -447,16 +451,21 @@ describe('refundPaymentTransaction', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          refundPaymentTransaction(
-            { id: refundedPayment.id, partialAmount: null },
-            transaction
+        const result = await refundPaymentTransaction(
+          { id: refundedPayment.id, partialAmount: null },
+          transaction
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toBe(
+            'Invalid status: Payment has already been refunded'
           )
-        ).rejects.toThrow('Payment has already been refunded')
+        }
       })
     })
 
-    it('should throw error when payment is still processing', async () => {
+    it('returns ValidationError when payment is still processing', async () => {
       const processingPayment = await setupPayment({
         stripeChargeId: `ch_${nanoid()}`,
         stripePaymentIntentId: `pi_${nanoid()}`,
@@ -470,37 +479,49 @@ describe('refundPaymentTransaction', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          refundPaymentTransaction(
-            { id: processingPayment.id, partialAmount: null },
-            transaction
-          )
-        ).rejects.toThrow(
-          'Cannot refund a payment that is still processing'
+        const result = await refundPaymentTransaction(
+          { id: processingPayment.id, partialAmount: null },
+          transaction
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toBe(
+            'Invalid status: Cannot refund a payment that is still processing'
+          )
+        }
       })
     })
 
-    it('should throw error when partial amount exceeds payment amount', async () => {
+    it('returns ValidationError when partial amount exceeds payment amount', async () => {
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          refundPaymentTransaction(
-            { id: payment.id, partialAmount: 15000 }, // $150 > $100
-            transaction
-          )
-        ).rejects.toThrow(
-          'Partial amount cannot be greater than the payment amount'
+        const result = await refundPaymentTransaction(
+          { id: payment.id, partialAmount: 15000 }, // $150 > $100
+          transaction
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toBe(
+            'Invalid partialAmount: Partial amount cannot be greater than the payment amount'
+          )
+        }
       })
     })
-    it('should throw error when partial amount is not positive', async () => {
+
+    it('returns ValidationError when partial amount is not positive', async () => {
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          refundPaymentTransaction(
-            { id: payment.id, partialAmount: 0 },
-            transaction
+        const result = await refundPaymentTransaction(
+          { id: payment.id, partialAmount: 0 },
+          transaction
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toBe(
+            'Invalid partialAmount: Partial amount must be greater than 0'
           )
-        ).rejects.toThrow('Partial amount must be greater than 0')
+        }
       })
     })
   })
