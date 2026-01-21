@@ -156,10 +156,10 @@ describe('Pricing Models RLS - Organization Policy', async () => {
       let updatedPricingModel: PricingModel.ClientRecord | undefined
 
       await authenticatedTransaction(
-        async (params) => {
+        async (ctx) => {
           updatedPricingModel = await updatePricingModel(
             { id: org1DefaultPricingModel.id, name: newName },
-            params.transaction
+            ctx
           )
         },
         { apiKey: org1ApiKeyToken }
@@ -176,10 +176,10 @@ describe('Pricing Models RLS - Organization Policy', async () => {
       const newName = 'Attempt to Update Org2 Pricing Model Name'
       await expect(
         authenticatedTransaction(
-          async (params) => {
+          async (ctx) => {
             await updatePricingModel(
               { id: org2DefaultPricingModel.id, name: newName }, // Targeting Org2's pricingModel
-              params.transaction
+              ctx
             )
           },
           { apiKey: org1ApiKeyToken }

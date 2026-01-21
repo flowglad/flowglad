@@ -15,13 +15,15 @@ import {
   cached,
   getRecomputeHandler,
   getTtlForNamespace,
-  invalidateDependencies,
   type RecomputeHandler,
-  recomputeCacheEntry,
-  recomputeDependencies,
   registerRecomputeHandler,
   type SerializableParams,
 } from './cache'
+import {
+  invalidateDependencies,
+  recomputeCacheEntry,
+  recomputeDependencies,
+} from './cache.internal'
 import { cachedRecomputable } from './cache-recomputable'
 import {
   _setTestRedisClient,

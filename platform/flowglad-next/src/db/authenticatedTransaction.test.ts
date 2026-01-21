@@ -128,7 +128,8 @@ describe('authenticatedTransaction', () => {
     })
 
     // Create additional membership for userA in testOrg2 (focused: false)
-    membershipA2 = await adminTransaction(async ({ transaction }) => {
+    membershipA2 = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return insertMembership(
         {
           organizationId: testOrg2.id,
@@ -245,7 +246,8 @@ describe('authenticatedTransaction', () => {
   describe('current_organization_id()', () => {
     it('is set for API key authenticated requests', async () => {
       const result = await authenticatedTransaction(
-        async ({ transaction, organizationId }) => {
+        async (ctx) => {
+          const { transaction, organizationId } = ctx
           const currentOrganizationId =
             await selectCurrentOrganizationId(transaction)
           expect(currentOrganizationId).toBe(organizationId)
@@ -263,7 +265,8 @@ describe('authenticatedTransaction', () => {
       const email = `webapp-${Date.now()}@test.com`
       const userId = `usr_test_${hashData(`user-${Date.now()}`)}`
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await insertUser(
           {
             id: userId,
@@ -300,14 +303,13 @@ describe('authenticatedTransaction', () => {
         },
       }
 
-      const result = await authenticatedTransaction(
-        async ({ transaction, organizationId }) => {
-          const currentOrganizationId =
-            await selectCurrentOrganizationId(transaction)
-          expect(currentOrganizationId).toBe(organizationId)
-          return currentOrganizationId
-        }
-      )
+      const result = await authenticatedTransaction(async (ctx) => {
+        const { transaction, organizationId } = ctx
+        const currentOrganizationId =
+          await selectCurrentOrganizationId(transaction)
+        expect(currentOrganizationId).toBe(organizationId)
+        return currentOrganizationId
+      })
 
       expect(result).toBe(testOrg1.id)
     })
@@ -463,7 +465,8 @@ describe('RLS Access Control with selectOrganizations', () => {
     apiKeyB = userApiKeyB.apiKey
 
     // Create memberships for cross-organization testing
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Give userA membership in testOrg2 as well (focused: false)
       await insertMembership(
         {
@@ -488,7 +491,8 @@ describe('RLS Access Control with selectOrganizations', () => {
       // - selectOrganizations should return only testOrg1
       // - testOrg2 should be filtered out by RLS despite userA having membership there
       const result = await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const organizations = await selectOrganizations(
             {},
             transaction
@@ -514,7 +518,8 @@ describe('RLS Access Control with selectOrganizations', () => {
       const testOrg3 = org3Setup.organization
 
       const result = await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const organizations = await selectOrganizations(
             {},
             transaction
@@ -543,7 +548,8 @@ describe('RLS Access Control with selectOrganizations', () => {
       // - selectOrganizations should return only testOrg1
       // - testOrg2 should be filtered out despite userA having membership there
       const result = await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const organizations = await selectOrganizations(
             {},
             transaction
@@ -597,7 +603,8 @@ describe('RLS Access Control with selectMemberships', () => {
     userB = userApiKeyB.user
 
     // Create specific membership configurations for testing
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Give userA membership in testOrg2 (focused: false)
       membershipA2 = await insertMembership(
         {
@@ -633,7 +640,8 @@ describe('RLS Access Control with selectMemberships', () => {
       // - selectMemberships should return only the testOrg1 membership
       // - testOrg2 membership should be filtered out due to focused=false
       const result = await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const memberships = await selectMemberships({}, transaction)
           return memberships
         },
@@ -652,21 +660,20 @@ describe('RLS Access Control with selectMemberships', () => {
 
       // expects:
       // - selectMemberships should return the membership because API key auth bypasses focused check
-      const testApiKey = await adminTransaction(
-        async ({ transaction }) => {
-          return insertApiKey(
-            {
-              organizationId: testOrg2.id,
-              name: 'Test API Key for unfocused membership',
-              token: `test_unfocused_${Date.now()}`,
-              type: FlowgladApiKeyType.Secret,
-              active: true,
-              livemode: true,
-            },
-            transaction
-          )
-        }
-      )
+      const testApiKey = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return insertApiKey(
+          {
+            organizationId: testOrg2.id,
+            name: 'Test API Key for unfocused membership',
+            token: `test_unfocused_${Date.now()}`,
+            type: FlowgladApiKeyType.Secret,
+            active: true,
+            livemode: true,
+          },
+          transaction
+        )
+      })
 
       // Determine which userId this API key will authenticate as, then force their membership to focused=false
       const apiUserId = await authenticatedTransaction(
@@ -674,7 +681,8 @@ describe('RLS Access Control with selectMemberships', () => {
         { apiKey: testApiKey.token }
       )
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const [membership] = await selectMemberships(
           { userId: apiUserId, organizationId: testOrg2.id },
           transaction
@@ -686,7 +694,8 @@ describe('RLS Access Control with selectMemberships', () => {
       })
 
       const result = await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const memberships = await selectMemberships({}, transaction)
           return memberships
         },
@@ -710,7 +719,8 @@ describe('RLS Access Control with selectMemberships', () => {
       // - selectMemberships should return only userA's membership
       // - userB's membership should be filtered out by RLS user_id check
       const result = await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const memberships = await selectMemberships({}, transaction)
           return memberships
         },
@@ -904,7 +914,8 @@ describe('Error Handling Tests', () => {
       // - database should not be left in dirty state due to transaction rollback
       await expect(
         authenticatedTransaction(
-          async ({ transaction }) => {
+          async (ctx) => {
+            const { transaction } = ctx
             // Perform some database operation first
             await selectOrganizations({}, transaction)
             // Then throw error
@@ -1041,7 +1052,8 @@ describe('Edge Cases', () => {
       // - this test should highlight any RLS policy issues
       // - may need to be updated once current_organization_id function is implemented
       const result = await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           try {
             const memberships = await selectMemberships(
               {},
@@ -1121,7 +1133,8 @@ describe('RLS for selectProducts', () => {
     apiKeyAForOrg1 = uaOrg1.apiKey
 
     // Also give user A a membership in org2, unfocused
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await insertMembership(
         {
           organizationId: prodOrg2.id,
@@ -1154,7 +1167,8 @@ describe('RLS for selectProducts', () => {
     // - userA focused on org1 via apiKeyAForOrg1
 
     const result = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         return selectProducts({}, transaction)
       },
       { apiKey: apiKeyAForOrg1.token }
@@ -1168,7 +1182,8 @@ describe('RLS for selectProducts', () => {
 
   it('does not return products for other organizations even if user is a member but not the current organization', async () => {
     const result = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         return selectProducts(
           { organizationId: prodOrg2.id },
           transaction
@@ -1200,10 +1215,11 @@ describe('RLS for selectProducts', () => {
   it('cannot update a product in another organization when it is not the current organization', async () => {
     await expect(
       authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           await updateProduct(
             { id: product2.id, name: 'Blocked Update' },
-            transaction
+            ctx
           )
         },
         { apiKey: apiKeyAForOrg1.token }
@@ -1214,10 +1230,11 @@ describe('RLS for selectProducts', () => {
   it('can update a product in the current organization', async () => {
     const updatedName = 'Updated Product Name'
     await authenticatedTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         await updateProduct(
           { id: product1.id, name: updatedName },
-          transaction
+          ctx
         )
       },
       { apiKey: apiKeyAForOrg1.token }
@@ -1233,7 +1250,8 @@ describe('RLS for selectProducts', () => {
   it('cannot insert a product for a different organization (other than current_organization_id)', async () => {
     await expect(
       authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           await insertProduct(
             {
               name: 'Cross Org Product',
@@ -1249,7 +1267,7 @@ describe('RLS for selectProducts', () => {
               pluralQuantityLabel: null,
               active: true,
             },
-            transaction
+            ctx
           )
         },
         { apiKey: apiKeyAForOrg1.token }
@@ -1259,7 +1277,8 @@ describe('RLS for selectProducts', () => {
 
   it('can insert a product for the current organization', async () => {
     const created = await authenticatedTransaction(
-      async ({ transaction, livemode }) => {
+      async (ctx) => {
+        const { transaction, livemode } = ctx
         return insertProduct(
           {
             name: 'Org1 New Product',
@@ -1275,7 +1294,7 @@ describe('RLS for selectProducts', () => {
             pluralQuantityLabel: null,
             active: true,
           },
-          transaction
+          ctx
         )
       },
       { apiKey: apiKeyAForOrg1.token }
@@ -1286,12 +1305,10 @@ describe('RLS for selectProducts', () => {
   it('cannot delete a product from a different organization', async () => {
     await expect(
       authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // simulate delete by setting inactive (if hard delete method not available)
-          await updateProduct(
-            { id: product2.id, active: false },
-            transaction
-          )
+          await updateProduct({ id: product2.id, active: false }, ctx)
         },
         { apiKey: apiKeyAForOrg1.token }
       )
@@ -1399,7 +1416,8 @@ describe('RLS for selectPricingModels', () => {
     apiKeyCatAOrg1 = uaOrg1.apiKey
 
     // Also give user A a membership in org2, unfocused
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await insertMembership(
         {
           organizationId: catOrg2.id,
@@ -1469,13 +1487,14 @@ describe('RLS for selectPricingModels', () => {
   it('cannot update a pricingModel in another organization', async () => {
     await expect(
       authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           await updatePricingModel(
             {
               id: pricingModel2.id,
               name: 'Blocked PricingModel Update',
             },
-            transaction
+            ctx
           )
         },
         { apiKey: apiKeyCatAOrg1.token }
@@ -1486,10 +1505,11 @@ describe('RLS for selectPricingModels', () => {
   it('can update a pricingModel in the current organization', async () => {
     const newName = 'Updated PricingModel Name'
     await authenticatedTransaction(
-      async ({ transaction }) => {
+      async (ctx) => {
+        const { transaction } = ctx
         await updatePricingModel(
           { id: pricingModel1.id, name: newName },
-          transaction
+          ctx
         )
       },
       { apiKey: apiKeyCatAOrg1.token }
@@ -1549,10 +1569,11 @@ describe('RLS for selectPricingModels', () => {
   it('cannot delete a pricingModel from a different organization', async () => {
     await expect(
       authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           await updatePricingModel(
             { id: pricingModel2.id, isDefault: false, name: 'X' },
-            transaction
+            ctx
           )
         },
         { apiKey: apiKeyCatAOrg1.token }
@@ -1697,10 +1718,11 @@ describe('Second-order RLS defense in depth', () => {
     ).apiKey
     await expect(
       authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           await updateProduct(
             { id: p1.id, organizationId: o2.id },
-            transaction
+            ctx
           )
         },
         { apiKey: k1.token }
@@ -1751,7 +1773,8 @@ describe('Second-order RLS defense in depth', () => {
     expect(prods).toHaveLength(0)
     await expect(
       authenticatedTransaction(
-        async ({ transaction, livemode }) => {
+        async (ctx) => {
+          const { transaction, livemode } = ctx
           await insertProduct(
             {
               name: 'X',
@@ -1767,7 +1790,7 @@ describe('Second-order RLS defense in depth', () => {
               slug: null,
               livemode,
             },
-            transaction
+            ctx
           )
         },
         { apiKey: onlyOrg2.token }
@@ -1806,7 +1829,8 @@ describe('Edge cases and robustness for second-order RLS', () => {
     expect(first.every((p) => p.organizationId === o1.id)).toBe(true)
 
     // Switch focus: add focused membership for org2 and unfocus org1
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await insertMembership(
         {
           organizationId: o2.id,
@@ -1875,7 +1899,8 @@ describe('cacheRecomputationContext derivation', () => {
 
     // Set betterAuthId on the user (required for customer billing portal auth)
     const betterAuthId = `ba_${core.nanoid()}`
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await transaction
         .update(users)
         .set({ betterAuthId })

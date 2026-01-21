@@ -14,7 +14,6 @@ import {
 } from '@/db/tableMethods/productMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
 import type { TRPCApiContext } from '@/server/trpcContext'
-import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -38,7 +37,7 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   beforeEach(async () => {
     // Set up organization and pricing model with default product and price
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
       const { organization } = await setupOrg()
 
       // Create pricing model with default product using the new bookkeeping function
@@ -49,11 +48,11 @@ describe('pricesRouter - Default Price Constraints', () => {
             isDefault: false, // Can't have multiple defaults per org
           },
         },
-        withAdminCacheContext({
-          transaction,
+        {
+          ...ctx,
           organizationId: organization.id,
           livemode,
-        })
+        }
       )
 
       // Create a regular product with a regular price for comparison
@@ -72,7 +71,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const regularPrice = await insertPrice(
@@ -93,7 +92,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           externalId: null,
           slug: null,
         },
-        transaction
+        ctx
       )
 
       return {
@@ -118,7 +117,8 @@ describe('pricesRouter - Default Price Constraints', () => {
   describe('editPrice - Default Price on Default Product', () => {
     it('should throw error when attempting to change unitPrice of default price on default product to non-zero', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           const existingPrice = await selectPriceById(
             defaultPriceId,
             transaction
@@ -141,44 +141,43 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should allow unitPrice of 0 for default price on default product', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          const existingPrice = await selectPriceById(
-            defaultPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const existingPrice = await selectPriceById(
+          defaultPriceId,
+          transaction
+        )
+        const product = await selectProductById(
+          existingPrice.productId!,
+          transaction
+        )
 
-          // This should not throw
-          validateDefaultPriceUpdate(
-            {
-              unitPrice: 0,
-              type: PriceType.Subscription,
-              name: 'Updated Base Plan Price',
-            },
-            existingPrice,
-            product
-          )
+        // This should not throw
+        validateDefaultPriceUpdate(
+          {
+            unitPrice: 0,
+            type: PriceType.Subscription,
+            name: 'Updated Base Plan Price',
+          },
+          existingPrice,
+          product
+        )
 
-          // Actually update the price
-          const updatedPrice = await safelyUpdatePrice(
-            {
-              id: defaultPriceId,
-              type: PriceType.Subscription,
-              unitPrice: 0,
-              name: 'Updated Base Plan Price',
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-            },
-            transaction
-          )
+        // Actually update the price
+        const updatedPrice = await safelyUpdatePrice(
+          {
+            id: defaultPriceId,
+            type: PriceType.Subscription,
+            unitPrice: 0,
+            name: 'Updated Base Plan Price',
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+          },
+          ctx
+        )
 
-          return updatedPrice
-        }
-      )
+        return updatedPrice
+      })
 
       expect(result).toMatchObject({})
       expect(result.unitPrice).toBe(0)
@@ -187,7 +186,8 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should throw error when attempting to change isDefault status of default price on default product', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           const existingPrice = await selectPriceById(
             defaultPriceId,
             transaction
@@ -211,7 +211,8 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should throw error when attempting to change intervalUnit of default price on default product', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           const existingPrice = await selectPriceById(
             defaultPriceId,
             transaction
@@ -237,44 +238,43 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should allow updating non-financial fields on default price of default product', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          const existingPrice = await selectPriceById(
-            defaultPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const existingPrice = await selectPriceById(
+          defaultPriceId,
+          transaction
+        )
+        const product = await selectProductById(
+          existingPrice.productId!,
+          transaction
+        )
 
-          // This should not throw
-          validateDefaultPriceUpdate(
-            {
-              name: 'Updated Default Price Name',
-              active: false,
-              type: PriceType.Subscription,
-            },
-            existingPrice,
-            product
-          )
+        // This should not throw
+        validateDefaultPriceUpdate(
+          {
+            name: 'Updated Default Price Name',
+            active: false,
+            type: PriceType.Subscription,
+          },
+          existingPrice,
+          product
+        )
 
-          // Actually update the price
-          const updatedPrice = await safelyUpdatePrice(
-            {
-              id: existingPrice.id,
-              type: PriceType.Subscription,
-              name: 'Updated Default Price Name',
-              active: false,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-            },
-            transaction
-          )
+        // Actually update the price
+        const updatedPrice = await safelyUpdatePrice(
+          {
+            id: existingPrice.id,
+            type: PriceType.Subscription,
+            name: 'Updated Default Price Name',
+            active: false,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+          },
+          ctx
+        )
 
-          return updatedPrice
-        }
-      )
+        return updatedPrice
+      })
 
       expect(result).toMatchObject({})
       expect(result.name).toBe('Updated Default Price Name')
@@ -314,7 +314,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         organizationId,
         livemode,
       })
-      const ctx = {
+      const apiCtx = {
         organizationId,
         apiKey: apiKey.token!,
         livemode,
@@ -323,7 +323,8 @@ describe('pricesRouter - Default Price Constraints', () => {
         path: '',
       }
       // create another product with its own price
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const otherProduct = await insertProduct(
           {
             name: 'Another Product',
@@ -339,7 +340,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             livemode,
             active: true,
           },
-          transaction
+          ctx
         )
         const org = await orgSetup.selectOrganizationById(
           organizationId,
@@ -363,15 +364,17 @@ describe('pricesRouter - Default Price Constraints', () => {
             externalId: null,
             slug: null,
           },
-          transaction
+          ctx
         )
         await expect(
-          productsRouter.createCaller(ctx as TRPCApiContext).update({
-            // @ts-expect-error - Intentionally providing minimal product object for cross-product price guard test
-            product: { id: defaultProductId },
-            // @ts-expect-error - Intentionally providing minimal price object for cross-product price guard test
-            price: { id: otherPrice.id },
-          })
+          productsRouter
+            .createCaller(apiCtx as TRPCApiContext)
+            .update({
+              // @ts-expect-error - Intentionally providing minimal product object for cross-product price guard test
+              product: { id: defaultProductId },
+              // @ts-expect-error - Intentionally providing minimal price object for cross-product price guard test
+              price: { id: otherPrice.id },
+            })
         ).rejects.toThrow(TRPCError)
       })
     })
@@ -408,96 +411,94 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('editPrice - Regular Prices', () => {
     it('should allow updating unitPrice on regular prices', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          const existingPrice = await selectPriceById(
-            regularPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const existingPrice = await selectPriceById(
+          regularPriceId,
+          transaction
+        )
+        const product = await selectProductById(
+          existingPrice.productId!,
+          transaction
+        )
 
-          // This should not throw for regular prices
-          validateDefaultPriceUpdate(
-            { unitPrice: 2000, type: PriceType.Subscription },
-            existingPrice,
-            product
-          )
+        // This should not throw for regular prices
+        validateDefaultPriceUpdate(
+          { unitPrice: 2000, type: PriceType.Subscription },
+          existingPrice,
+          product
+        )
 
-          // Actually update the price
-          const updatedPrice = await safelyUpdatePrice(
-            {
-              id: regularPriceId,
-              type: PriceType.Subscription,
-              unitPrice: 2000,
-            },
-            transaction
-          )
+        // Actually update the price
+        const updatedPrice = await safelyUpdatePrice(
+          {
+            id: regularPriceId,
+            type: PriceType.Subscription,
+            unitPrice: 2000,
+          },
+          ctx
+        )
 
-          return updatedPrice
-        }
-      )
+        return updatedPrice
+      })
 
       expect(result).toMatchObject({})
       expect(result.unitPrice).toBe(2000)
     })
 
     it('should allow changing isDefault status on regular prices', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          // First create another price to be the new default
-          await insertPrice(
-            {
-              productId: regularProductId,
-              unitPrice: 3000,
-              isDefault: false,
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Year,
-              intervalCount: 1,
-              currency: CurrencyCode.USD,
-              livemode,
-              active: true,
-              name: 'Another Price',
-              trialPeriodDays: null,
-              usageEventsPerUnit: null,
-              usageMeterId: null,
-              externalId: null,
-              slug: null,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // First create another price to be the new default
+        await insertPrice(
+          {
+            productId: regularProductId,
+            unitPrice: 3000,
+            isDefault: false,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Year,
+            intervalCount: 1,
+            currency: CurrencyCode.USD,
+            livemode,
+            active: true,
+            name: 'Another Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: null,
+          },
+          ctx
+        )
 
-          const existingPrice = await selectPriceById(
-            regularPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+        const existingPrice = await selectPriceById(
+          regularPriceId,
+          transaction
+        )
+        const product = await selectProductById(
+          existingPrice.productId!,
+          transaction
+        )
 
-          // This should not throw for regular prices
-          validateDefaultPriceUpdate(
-            { isDefault: false, type: PriceType.Subscription },
-            existingPrice,
-            product
-          )
+        // This should not throw for regular prices
+        validateDefaultPriceUpdate(
+          { isDefault: false, type: PriceType.Subscription },
+          existingPrice,
+          product
+        )
 
-          // Actually update the price
-          const updatedPrice = await safelyUpdatePrice(
-            {
-              id: regularPriceId,
-              type: PriceType.Subscription,
-              isDefault: false,
-            },
-            transaction
-          )
+        // Actually update the price
+        const updatedPrice = await safelyUpdatePrice(
+          {
+            id: regularPriceId,
+            type: PriceType.Subscription,
+            isDefault: false,
+          },
+          ctx
+        )
 
-          return updatedPrice
-        }
-      )
+        return updatedPrice
+      })
 
       expect(result).toMatchObject({})
       expect(result.isDefault).toBe(false)
@@ -554,43 +555,41 @@ describe('pricesRouter - Default Price Constraints', () => {
       }
 
       // First, create a new product without any prices in the same organization
-      const newProduct = await adminTransaction(
-        async ({ transaction }) => {
-          const pricingModel = await createPricingModelBookkeeping(
-            {
-              pricingModel: {
-                name: 'Test Pricing Model 2',
-                isDefault: false,
-              },
+      const newProduct = await adminTransaction(async (ctx) => {
+        const pricingModel = await createPricingModelBookkeeping(
+          {
+            pricingModel: {
+              name: 'Test Pricing Model 2',
+              isDefault: false,
             },
-            withAdminCacheContext({
-              transaction,
-              organizationId,
-              livemode,
-            })
-          )
+          },
+          {
+            ...ctx,
+            organizationId,
+            livemode,
+          }
+        )
 
-          const product = await insertProduct(
-            {
-              name: 'New Product',
-              slug: 'new-product',
-              default: false,
-              description: null,
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              externalId: null,
-              pricingModelId: pricingModel.unwrap().pricingModel.id,
-              organizationId,
-              livemode,
-              active: true,
-            },
-            transaction
-          )
+        const product = await insertProduct(
+          {
+            name: 'New Product',
+            slug: 'new-product',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId: pricingModel.unwrap().pricingModel.id,
+            organizationId,
+            livemode,
+            active: true,
+          },
+          ctx
+        )
 
-          return product
-        }
-      )
+        return product
+      })
 
       // This should succeed - default price on non-default product with non-zero price
       const result = await pricesRouter
@@ -617,7 +616,8 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should enforce single default price per product constraint', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           // Try to create another default price for the default product
           await insertPrice(
             {
@@ -637,7 +637,7 @@ describe('pricesRouter - Default Price Constraints', () => {
               externalId: null,
               slug: null,
             },
-            transaction
+            ctx
           )
         })
       ).rejects.toThrow() // Database constraint will throw an error
@@ -702,7 +702,8 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   const livemode = true
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const { organization } = await setupOrg()
 
       // Create pricing model with default product
@@ -713,11 +714,11 @@ describe('prices.getTableRows (usage-meter filters)', () => {
             isDefault: false,
           },
         },
-        withAdminCacheContext({
-          transaction,
+        {
+          ...ctx,
           organizationId: organization.id,
           livemode,
-        })
+        }
       )
 
       const pricingModelId =
@@ -733,7 +734,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       const usageMeterB = await insertUsageMeter(
@@ -745,7 +746,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       // Create products for usage prices
@@ -764,7 +765,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const usageProductB = await insertProduct(
@@ -782,7 +783,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const usageProductC = await insertProduct(
@@ -800,7 +801,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const subscriptionProduct = await insertProduct(
@@ -818,7 +819,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       // Create usage price for meter A (active)
@@ -842,7 +843,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           externalId: null,
           slug: 'usage-price-a',
         },
-        transaction
+        ctx
       )
 
       // Create usage price for meter B (active)
@@ -866,7 +867,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           externalId: null,
           slug: 'usage-price-b',
         },
-        transaction
+        ctx
       )
 
       // Create inactive usage price for meter A.
@@ -890,7 +891,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           externalId: null,
           slug: 'inactive-usage-price',
         },
-        transaction
+        ctx
       )
 
       // Create a subscription price (not usage)
@@ -912,7 +913,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           externalId: null,
           slug: 'subscription-price',
         },
-        transaction
+        ctx
       )
 
       return {
@@ -1076,7 +1077,7 @@ describe('pricesRouter - API Contract Updates', () => {
   const livemode = true
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
       const { organization } = await setupOrg()
 
       // Create pricing model with default product
@@ -1087,11 +1088,11 @@ describe('pricesRouter - API Contract Updates', () => {
             isDefault: false,
           },
         },
-        withAdminCacheContext({
-          transaction,
+        {
+          ...ctx,
           organizationId: organization.id,
           livemode,
-        })
+        }
       )
 
       const pricingModelId =
@@ -1107,7 +1108,7 @@ describe('pricesRouter - API Contract Updates', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       // Create a regular product (for testing subscription prices)
@@ -1126,7 +1127,7 @@ describe('pricesRouter - API Contract Updates', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       return {
@@ -1300,7 +1301,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
   const livemode = true
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
       const { organization } = await setupOrg()
 
       // Create pricing model with default product
@@ -1311,11 +1312,11 @@ describe('pricesRouter.replaceUsagePrice', () => {
             isDefault: false,
           },
         },
-        withAdminCacheContext({
-          transaction,
+        {
+          ...ctx,
           organizationId: organization.id,
           livemode,
-        })
+        }
       )
 
       const pricingModelId =
@@ -1331,7 +1332,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       // Create a usage price
@@ -1354,7 +1355,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
           externalId: null,
           slug: 'original-usage-price',
         },
-        transaction
+        ctx
       )
 
       // Create a regular product with subscription price (for negative test)
@@ -1373,7 +1374,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const subscriptionPrice = await insertPrice(
@@ -1394,7 +1395,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
           externalId: null,
           slug: 'subscription-price-replace-test',
         },
-        transaction
+        ctx
       )
 
       return {
@@ -1588,35 +1589,34 @@ describe('pricesRouter.replaceUsagePrice', () => {
     }
 
     // Create a second usage price for the same meter
-    const secondPrice = await adminTransaction(
-      async ({ transaction }) => {
-        const org = await orgSetup.selectOrganizationById(
-          organizationId,
-          transaction
-        )
-        return insertPrice(
-          {
-            productId: null,
-            pricingModelId,
-            unitPrice: 500,
-            isDefault: false,
-            type: PriceType.Usage,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            currency: org.defaultCurrency,
-            livemode,
-            active: true,
-            name: 'Second Usage Price',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 50,
-            usageMeterId,
-            externalId: null,
-            slug: 'second-usage-price',
-          },
-          transaction
-        )
-      }
-    )
+    const secondPrice = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const org = await orgSetup.selectOrganizationById(
+        organizationId,
+        transaction
+      )
+      return insertPrice(
+        {
+          productId: null,
+          pricingModelId,
+          unitPrice: 500,
+          isDefault: false,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: org.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Second Usage Price',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 50,
+          usageMeterId,
+          externalId: null,
+          slug: 'second-usage-price',
+        },
+        ctx
+      )
+    })
 
     // Replace the first usage price
     const result = await pricesRouter
@@ -1644,11 +1644,10 @@ describe('pricesRouter.replaceUsagePrice', () => {
     expect(result.newPrice.active).toBe(true)
 
     // Verify second price is still active (not affected by the replacement)
-    const secondPriceAfter = await adminTransaction(
-      async ({ transaction }) => {
-        return selectPriceById(secondPrice.id, transaction)
-      }
-    )
+    const secondPriceAfter = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectPriceById(secondPrice.id, transaction)
+    })
 
     expect(secondPriceAfter.active).toBe(true)
     expect(secondPriceAfter.unitPrice).toBe(500)
@@ -1665,7 +1664,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
   const livemode = true
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
       const { organization } = await setupOrg()
 
       // Create pricing model with default product
@@ -1677,7 +1676,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           },
         },
         {
-          transaction,
+          ...ctx,
           organizationId: organization.id,
           livemode,
         }
@@ -1696,7 +1695,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       // Create a regular product (for testing subscription prices)
@@ -1715,7 +1714,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       // Create an existing usage price for replacement tests
@@ -1738,7 +1737,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
           externalId: null,
           slug: 'existing-usage-price',
         },
-        transaction
+        ctx
       )
 
       return {
@@ -2071,7 +2070,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
   const livemode = true
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
       const { organization } = await setupOrg()
 
       // Create pricing model
@@ -2083,7 +2082,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
           },
         },
         {
-          transaction,
+          ...ctx,
           organizationId: organization.id,
           livemode,
         }
@@ -2099,7 +2098,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       // Create a no_charge price (system-generated fallback price)
@@ -2121,7 +2120,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
           externalId: null,
           slug: 'test-usage-meter_no_charge', // Reserved suffix
         },
-        transaction
+        ctx
       )
 
       // Create a regular usage price
@@ -2143,7 +2142,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
           externalId: null,
           slug: 'regular-usage-price',
         },
-        transaction
+        ctx
       )
 
       return {
