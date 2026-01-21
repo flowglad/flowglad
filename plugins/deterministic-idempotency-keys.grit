@@ -1,0 +1,42 @@
+engine biome(1.0)
+language js
+
+// Forbids non-deterministic values in createTriggerIdempotencyKey() calls.
+// Per platform-review.md: idempotency keys must be deterministic based on
+// resource IDs, never timestamp-based.
+//
+// Bad:  createTriggerIdempotencyKey(`notification-${Date.now()}`)
+// Bad:  createTriggerIdempotencyKey(`task-${new Date().toISOString()}`)
+// Good: createTriggerIdempotencyKey(`notification-${organizationId}`)
+//
+// To suppress: // biome-ignore lint/plugin: <justification>
+
+or {
+  // Match Date.now() anywhere in a createTriggerIdempotencyKey call
+  `createTriggerIdempotencyKey($arg)` as $call where {
+    $arg <: contains `Date.now()`,
+    register_diagnostic(
+      span=$call,
+      message="Idempotency keys must be deterministic. Date.now() makes keys non-deterministic. Use resource IDs instead.",
+      severity="error"
+    )
+  },
+  // Match new Date() anywhere in a createTriggerIdempotencyKey call
+  `createTriggerIdempotencyKey($arg)` as $call where {
+    $arg <: contains `new Date()`,
+    register_diagnostic(
+      span=$call,
+      message="Idempotency keys must be deterministic. new Date() makes keys non-deterministic. Use resource IDs instead.",
+      severity="error"
+    )
+  },
+  // Match Math.random() anywhere in a createTriggerIdempotencyKey call
+  `createTriggerIdempotencyKey($arg)` as $call where {
+    $arg <: contains `Math.random()`,
+    register_diagnostic(
+      span=$call,
+      message="Idempotency keys must be deterministic. Math.random() makes keys non-deterministic. Use resource IDs instead.",
+      severity="error"
+    )
+  }
+}
