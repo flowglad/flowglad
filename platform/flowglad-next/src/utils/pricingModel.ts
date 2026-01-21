@@ -16,7 +16,6 @@ import {
   bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
   selectFeatures,
 } from '@/db/tableMethods/featureMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   bulkInsertPrices,
@@ -225,12 +224,15 @@ export const createProductTransaction = async (
   },
   transactionParams: Omit<
     AuthenticatedTransactionParams,
-    'invalidateCache'
+    'invalidateCache' | 'userId'
   > &
     Pick<TransactionEffectsContext, 'invalidateCache'>
 ) => {
-  const { userId, transaction, livemode, invalidateCache } =
+  const { transaction, livemode, organizationId, invalidateCache } =
     transactionParams
+  if (!organizationId) {
+    throw new Error('organizationId is required to create a product')
+  }
   // Validate that usage prices are not created with featureIds
   if (payload.featureIds && payload.featureIds.length > 0) {
     const hasUsagePrice = payload.prices.some(
@@ -259,17 +261,12 @@ export const createProductTransaction = async (
     }
   }
 
-  const [
-    {
-      organization: { id: organizationId, defaultCurrency },
-    },
-  ] = await selectMembershipAndOrganizations(
-    {
-      userId,
-      focused: true,
-    },
+  // Fetch organization directly for defaultCurrency
+  const organization = await selectOrganizationById(
+    organizationId,
     transaction
   )
+  const { defaultCurrency } = organization
   const createdProduct = await insertProduct(
     {
       ...payload.product,
@@ -334,7 +331,7 @@ export const editProductTransaction = async (
   },
   transactionParams: Omit<
     AuthenticatedTransactionParams,
-    'invalidateCache'
+    'invalidateCache' | 'userId'
   > &
     Pick<TransactionEffectsContext, 'invalidateCache'>
 ) => {

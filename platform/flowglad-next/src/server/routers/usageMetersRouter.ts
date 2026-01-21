@@ -49,12 +49,6 @@ export const createUsageMeter = protectedProcedure
           invalidateCache,
         } = transactionCtx
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
-        if (!userId) {
-          throw new Error(
-            'userId is required to create a usage meter'
-          )
-        }
         if (!organizationId) {
           throw new Error(
             'organizationId is required to create a usage meter'
@@ -69,7 +63,6 @@ export const createUsageMeter = protectedProcedure
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode,
               organizationId,
               invalidateCache,

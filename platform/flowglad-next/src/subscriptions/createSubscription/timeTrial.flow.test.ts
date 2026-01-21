@@ -125,7 +125,6 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               ],
             },
             {
-              userId: user.id,
               transaction,
               cacheRecomputationContext: {
                 type: 'admin',

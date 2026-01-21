@@ -68,18 +68,11 @@ export const createProduct = protectedProcedure
           cacheRecomputationContext,
         } = transactionCtx
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
         if (!organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
               'Organization ID is required for this operation.',
-          })
-        }
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User ID is required for this operation.',
           })
         }
         try {
@@ -100,7 +93,6 @@ export const createProduct = protectedProcedure
             },
             {
               transaction,
-              userId,
               livemode,
               organizationId,
               invalidateCache,
@@ -138,18 +130,11 @@ export const updateProduct = protectedProcedure
           invalidateCache,
         } = transactionCtx
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
         if (!organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
               'Organization ID is required for this operation.',
-          })
-        }
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User ID is required for this operation.',
           })
         }
         try {
@@ -164,7 +149,6 @@ export const updateProduct = protectedProcedure
               cacheRecomputationContext,
               livemode,
               organizationId,
-              userId,
               invalidateCache,
             }
           )
