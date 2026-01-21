@@ -945,7 +945,7 @@ describe('usageEventHelpers', () => {
         // When both usageMeterId and priceId from a different org are provided,
         // the priceId validation runs first since it's explicitly provided
         expect(result.error.message).toContain(
-          `Price not found: ${otherOrgPrice.id} not found for this customer's pricing model`
+          `Price not found: ${otherOrgPrice.id} (not in customer's pricing model)`
         )
       }
     })
@@ -997,7 +997,7 @@ describe('usageEventHelpers', () => {
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
-          `Price not found: ${otherOrgPrice.id} not found for this customer's pricing model`
+          `Price not found: ${otherOrgPrice.id} (not in customer's pricing model)`
         )
       }
     })
@@ -1409,7 +1409,7 @@ describe('usageEventHelpers', () => {
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
-          "Price not found: with slug non-existent-slug not found for this customer's pricing model"
+          "Price not found: with slug non-existent-slug (not in customer's pricing model)"
         )
       }
 
@@ -1477,7 +1477,7 @@ describe('usageEventHelpers', () => {
       expect(result2.status).toBe('error')
       if (result2.status === 'error') {
         expect(result2.error.message).toContain(
-          "Price not found: with slug other-pricing-model-price-slug not found for this customer's pricing model"
+          "Price not found: with slug other-pricing-model-price-slug (not in customer's pricing model)"
         )
       }
     })
@@ -1666,7 +1666,7 @@ describe('usageEventHelpers', () => {
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
-          `UsageMeter not found: ${otherOrgUsageMeter.id} not found for this customer's pricing model`
+          `UsageMeter not found: ${otherOrgUsageMeter.id} (not in customer's pricing model)`
         )
       }
     })
@@ -1689,7 +1689,7 @@ describe('usageEventHelpers', () => {
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toContain(
-          "UsageMeter not found: with slug non-existent-usage-meter-slug not found for this customer's pricing model"
+          "UsageMeter not found: with slug non-existent-usage-meter-slug (not in customer's pricing model)"
         )
       }
     })
@@ -1968,7 +1968,7 @@ describe('usageEventHelpers', () => {
           transaction
         )
         expect(() => result.unwrap()).toThrow(
-          'Subscription not found: non-existent-subscription-id not found'
+          'Subscription not found: non-existent-subscription-id'
         )
       })
     })
@@ -1998,7 +1998,7 @@ describe('usageEventHelpers', () => {
           transaction
         )
         expect(() => result.unwrap()).toThrow(
-          'UsageMeter not found: non-existent-usage-meter-id not found'
+          'UsageMeter not found: non-existent-usage-meter-id'
         )
       })
     })

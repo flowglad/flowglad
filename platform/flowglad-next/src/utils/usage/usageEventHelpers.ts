@@ -37,6 +37,7 @@ import {
   ConflictError,
   type DomainError,
   NotFoundError,
+  panic,
   ValidationError,
 } from '@/errors'
 import {
@@ -47,22 +48,20 @@ import {
 import core from '@/utils/core'
 
 /**
- * Fetches the default price for a usage meter and returns an error if not found.
- * This is a helper function to reduce code duplication in default price lookup.
+ * Fetches the default price for a usage meter.
+ * Panics if no default price exists, as this indicates a data integrity issue.
  *
  * @param usageMeterId - The ID of the usage meter
  * @param transaction - Database transaction
- * @returns Result with the default price record or a ValidationError if not found
+ * @returns The default price record
+ * @throws Invariant violation if no default price exists
  */
 export const getRequiredDefaultPriceForMeter = async (
   usageMeterId: string,
   transaction: DbTransaction
 ): Promise<
-  Result<
-    NonNullable<
-      Awaited<ReturnType<typeof selectDefaultPriceForUsageMeter>>
-    >,
-    DomainError
+  NonNullable<
+    Awaited<ReturnType<typeof selectDefaultPriceForUsageMeter>>
   >
 > => {
   const defaultPrice = await selectDefaultPriceForUsageMeter(
@@ -70,14 +69,11 @@ export const getRequiredDefaultPriceForMeter = async (
     transaction
   )
   if (!defaultPrice) {
-    return Result.err(
-      new ValidationError(
-        'usageMeterId',
-        `Usage meter ${usageMeterId} has no default price. This should not happen.`
-      )
+    panic(
+      `Invalid usageMeterId: Usage meter ${usageMeterId} has no default price. This should not happen.`
     )
   }
-  return Result.ok(defaultPrice!)
+  return defaultPrice
 }
 
 /**
@@ -216,7 +212,7 @@ export const resolveUsageEventInput = async (
       return Result.err(
         new NotFoundError(
           'Price',
-          `${price.id} not found for this customer's pricing model`
+          `${price.id} (not in customer's pricing model)`
         )
       )
     }
@@ -274,7 +270,7 @@ export const resolveUsageEventInput = async (
       return Result.err(
         new NotFoundError(
           'UsageMeter',
-          `${input.usageEvent.usageMeterId} not found for this customer's pricing model`
+          `${input.usageEvent.usageMeterId} (not in customer's pricing model)`
         )
       )
     }
@@ -284,20 +280,16 @@ export const resolveUsageEventInput = async (
       return Result.err(
         new NotFoundError(
           'UsageMeter',
-          `${input.usageEvent.usageMeterId} not found for this customer's pricing model`
+          `${input.usageEvent.usageMeterId} (not in customer's pricing model)`
         )
       )
     }
 
     // Get the default price for the usage meter
-    const defaultPriceResult = await getRequiredDefaultPriceForMeter(
+    const defaultPrice = await getRequiredDefaultPriceForMeter(
       input.usageEvent.usageMeterId,
       transaction
     )
-    if (defaultPriceResult.status === 'error') {
-      return Result.err(defaultPriceResult.error)
-    }
-    const defaultPrice = defaultPriceResult.value
 
     return Result.ok({
       usageEvent: {
@@ -331,20 +323,16 @@ export const resolveUsageEventInput = async (
       return Result.err(
         new NotFoundError(
           'UsageMeter',
-          `with slug ${input.usageEvent.usageMeterSlug} not found for this customer's pricing model`
+          `with slug ${input.usageEvent.usageMeterSlug} (not in customer's pricing model)`
         )
       )
     }
 
     // Get the default price for the usage meter
-    const defaultPriceResult = await getRequiredDefaultPriceForMeter(
+    const defaultPrice = await getRequiredDefaultPriceForMeter(
       usageMeter.id,
       transaction
     )
-    if (defaultPriceResult.status === 'error') {
-      return Result.err(defaultPriceResult.error)
-    }
-    const defaultPrice = defaultPriceResult.value
 
     return Result.ok({
       usageEvent: {
@@ -381,7 +369,7 @@ export const resolveUsageEventInput = async (
     return Result.err(
       new NotFoundError(
         'Price',
-        `with slug ${input.usageEvent.priceSlug} not found for this customer's pricing model`
+        `with slug ${input.usageEvent.priceSlug} (not in customer's pricing model)`
       )
     )
   }
@@ -568,20 +556,14 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
     )
     if (!subscription) {
       return Result.err(
-        new NotFoundError(
-          'Subscription',
-          `${usageEvent.subscriptionId} not found`
-        )
+        new NotFoundError('Subscription', usageEvent.subscriptionId)
       )
     }
 
     const usageMeter = usageMeterById.get(usageEvent.usageMeterId)
     if (!usageMeter) {
       return Result.err(
-        new NotFoundError(
-          'UsageMeter',
-          `${usageEvent.usageMeterId} not found`
-        )
+        new NotFoundError('UsageMeter', usageEvent.usageMeterId)
       )
     }
 
@@ -759,7 +741,7 @@ export const ingestAndProcessUsageEvent = async (
       return Result.err(
         new NotFoundError(
           'Price',
-          `${price.id} not found for this customer's pricing model`
+          `${price.id} (not in customer's pricing model)`
         )
       )
     }
@@ -806,7 +788,7 @@ export const ingestAndProcessUsageEvent = async (
       return Result.err(
         new NotFoundError(
           'UsageMeter',
-          `${usageMeterId} not found for this customer's pricing model`
+          `${usageMeterId} (not in customer's pricing model)`
         )
       )
     }
@@ -816,20 +798,17 @@ export const ingestAndProcessUsageEvent = async (
       return Result.err(
         new NotFoundError(
           'UsageMeter',
-          `${usageMeterId} not found for this customer's pricing model`
+          `${usageMeterId} (not in customer's pricing model)`
         )
       )
     }
 
     // Resolve to the default price for this usage meter
-    const defaultPriceResult = await getRequiredDefaultPriceForMeter(
+    const defaultPrice = await getRequiredDefaultPriceForMeter(
       usageMeterId,
       transaction
     )
-    if (defaultPriceResult.status === 'error') {
-      return Result.err(defaultPriceResult.error)
-    }
-    resolvedPriceId = defaultPriceResult.value.id
+    resolvedPriceId = defaultPrice.id
   }
 
   // Check for existing usage event with the same transactionId and usageMeterId

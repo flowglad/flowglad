@@ -678,11 +678,8 @@ async function resolveDefaultPricesForMeterEvents(
   )) {
     const defaultPrice = defaultPricesByMeterId.get(usageMeterId)
     if (!defaultPrice) {
-      return Result.err(
-        new ValidationError(
-          'usageMeterId',
-          `Usage meter ${usageMeterId} has no default price. This should not happen.`
-        )
+      panic(
+        `Invalid usageMeterId: Usage meter ${usageMeterId} has no default price. This should not happen.`
       )
     }
     defaultPriceByUsageMeterId.set(usageMeterId, defaultPrice.id)
