@@ -121,30 +121,32 @@ The balance includes both subscription credits and any purchased top-ups. Flowgl
 
 ### Recording Usage
 
-When a customer generates content, call your backend endpoint to record the usage event. The server uses `FlowgladServer.createUsageEvent` to decrement the credit balance.
+When a customer generates content, use `createUsageEvent` from the `useBilling()` hook to record usage directly from the client. This decrements the credit balance.
 
-```ts server/index.ts
-app.post('/api/usage-events', async (req, res) => {
-  const { usageMeterSlug, amount, transactionId } = req.body;
-  
-  const flowgladServer = flowglad(externalId);
-  const billing = await flowgladServer.getBilling();
-  const subscription = billing.currentSubscriptions?.[0];
-  
-  const usagePrice = findUsagePriceByMeterSlug(usageMeterSlug, billing.pricingModel);
-  
-  const usageEvent = await flowgladServer.createUsageEvent({
-    subscriptionId: subscription.id,
-    priceSlug: usagePrice.slug,
-    amount,
-    transactionId,
+```tsx src/pages/home.tsx
+const billing = useBilling();
+const { createUsageEvent } = billing;
+
+const handleGenerate = async () => {
+  const amount = 1;
+
+  const result = await createUsageEvent({
+    usageMeterSlug: 'fast_generations',
+    amount
   });
-  
-  res.json({ success: true, usageEvent });
-});
+
+  if ('error' in result) {
+    throw new Error(result.error.code || 'Failed to create usage event');
+  }
+
+  // Reload billing data to reflect updated balance
+  if (billing.reload) {
+    await billing.reload();
+  }
+};
 ```
 
-The `transactionId` parameter ensures idempotency, preventing duplicate charges if the request is retried.
+After recording usage, call `billing.reload()` to fetch the updated balance from the server.
 
 ### Checking Feature Access
 
