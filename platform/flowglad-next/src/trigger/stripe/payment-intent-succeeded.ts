@@ -7,7 +7,6 @@ import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMetho
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import type { TransactionEffectsContext } from '@/db/types'
-import { ValidationError } from '@/errors'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
@@ -55,7 +54,7 @@ export const stripePaymentIntentSucceededTask = task({
           return result
         }
 
-        const { invoice, organization, customer, payment } =
+        const { invoice, organization, customer, payment, purchase } =
           await comprehensiveAdminTransaction(async (ctx) => {
             const { transaction } = ctx
             const { payment } =
@@ -64,19 +63,13 @@ export const stripePaymentIntentSucceededTask = task({
                 ctx
               )
 
-            if (!payment.purchaseId) {
-              return Result.err(
-                new ValidationError(
-                  'purchaseId',
-                  `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
+            // Only fetch purchase if purchaseId exists
+            const purchase = payment.purchaseId
+              ? await selectPurchaseById(
+                  payment.purchaseId,
+                  transaction
                 )
-              )
-            }
-
-            const purchase = await selectPurchaseById(
-              payment.purchaseId,
-              transaction
-            )
+              : null
 
             const [invoice] =
               await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
@@ -84,15 +77,16 @@ export const stripePaymentIntentSucceededTask = task({
                 transaction
               )
 
+            // Use purchase IDs if available, otherwise fall back to payment IDs
             const [customer] = await selectCustomers(
               {
-                id: purchase.customerId,
+                id: purchase?.customerId ?? payment.customerId,
               },
               transaction
             )
 
             const organization = await selectOrganizationById(
-              purchase.organizationId,
+              purchase?.organizationId ?? payment.organizationId,
               transaction
             )
 
