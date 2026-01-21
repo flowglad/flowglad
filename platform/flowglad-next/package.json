@@ -46,7 +46,6 @@
     "pgcp": "bun run src/scripts/pgcp.ts"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^3.0.17",
     "@ai-sdk/openai": "^3.0.13",
     "@asteasolutions/zod-to-openapi": "^7.3.0",
     "@aws-sdk/client-s3": "3.620.0",
@@ -192,7 +191,6 @@
     "shadcn": "2.10.0",
     "sonner": "^1.5.0",
     "sql-formatter": "^15.6.10",
-    "streamdown": "^2.1.0",
     "stripe": "17.2.0",
     "superjson": "^2.2.1",
     "svix": "^1.65.0",
