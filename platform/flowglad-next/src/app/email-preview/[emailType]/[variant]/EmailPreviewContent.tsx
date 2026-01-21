@@ -3,12 +3,16 @@
 import { Highlight, themes } from 'prism-react-renderer'
 import { useMemo, useState } from 'react'
 import { cn } from '@/lib/utils'
+import type { EmailType } from '@/utils/email/registry'
+import { type LogicData, LogicTab } from './LogicTab'
 
-type ViewType = 'preview' | 'html'
+type ViewType = 'preview' | 'html' | 'logic'
 
 interface EmailPreviewContentProps {
   emailHtml: string
   title: string
+  emailType: EmailType
+  logicData: LogicData | null
 }
 
 /**
@@ -42,18 +46,23 @@ function formatHtml(html: string): string {
 }
 
 /**
- * Email preview content with toggle between rendered preview and HTML source.
+ * Email preview content with toggle between rendered preview, HTML source, and logic.
  * Replaces the view entirely when switching (not side-by-side).
  */
 export function EmailPreviewContent({
   emailHtml,
   title,
+  emailType,
+  logicData,
 }: EmailPreviewContentProps) {
   const [view, setView] = useState<ViewType>('preview')
   const formattedHtml = useMemo(
     () => formatHtml(emailHtml),
     [emailHtml]
   )
+  const viewOptions: ViewType[] = logicData
+    ? ['preview', 'html', 'logic']
+    : ['preview', 'html']
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
@@ -69,7 +78,7 @@ export function EmailPreviewContent({
           role="group"
           aria-label="Select view"
         >
-          {(['preview', 'html'] as const).map((v) => {
+          {viewOptions.map((v) => {
             const isActive = v === view
             return (
               <button
@@ -83,7 +92,11 @@ export function EmailPreviewContent({
                 )}
                 aria-pressed={isActive}
               >
-                {v === 'preview' ? 'Preview' : 'HTML'}
+                {v === 'preview'
+                  ? 'Preview'
+                  : v === 'html'
+                    ? 'HTML'
+                    : 'Logic'}
               </button>
             )
           })}
@@ -91,13 +104,14 @@ export function EmailPreviewContent({
       </div>
 
       {/* Content area - full replacement */}
-      {view === 'preview' ? (
+      {view === 'preview' && (
         <iframe
           srcDoc={emailHtml}
           className="w-full min-h-[800px] border-0"
           title={title}
         />
-      ) : (
+      )}
+      {view === 'html' && (
         <div className="bg-white min-h-[800px] overflow-auto">
           <Highlight
             theme={themes.vsLight}
@@ -133,6 +147,9 @@ export function EmailPreviewContent({
             )}
           </Highlight>
         </div>
+      )}
+      {view === 'logic' && logicData && (
+        <LogicTab emailType={emailType} logicData={logicData} />
       )}
     </div>
   )

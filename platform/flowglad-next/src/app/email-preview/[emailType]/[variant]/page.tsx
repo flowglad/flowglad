@@ -9,6 +9,11 @@ import {
   EMAIL_REGISTRY,
   type EmailType,
 } from '@/utils/email/registry'
+import {
+  fetchDecisionFunctionSource,
+  fetchTriggerTaskSource,
+} from '@/utils/email/source-fetcher'
+import { getTriggerInfo } from '@/utils/email/trigger-map'
 import { EmailPreviewContent } from './EmailPreviewContent'
 import { VariantSelector } from './VariantSelector'
 
@@ -50,6 +55,23 @@ export default async function EmailPreviewVariantPage({
 
   // Render to HTML for preview
   const emailHtml = await render(emailElement)
+
+  // Get trigger logic info
+  const triggerInfo = getTriggerInfo(emailType)
+
+  let logicData = null
+  if (triggerInfo) {
+    const [decisionSource, triggerSource] = await Promise.all([
+      fetchDecisionFunctionSource(triggerInfo),
+      fetchTriggerTaskSource(triggerInfo),
+    ])
+
+    logicData = {
+      triggerInfo,
+      decisionSource,
+      triggerSource,
+    }
+  }
 
   // Calculate subject
   const subject =
@@ -113,6 +135,8 @@ export default async function EmailPreviewVariantPage({
         <EmailPreviewContent
           emailHtml={emailHtml}
           title={`Preview of ${emailType} - ${variant}`}
+          emailType={emailType}
+          logicData={logicData}
         />
       </div>
     </div>
