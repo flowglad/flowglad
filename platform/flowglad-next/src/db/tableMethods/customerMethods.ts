@@ -524,6 +524,7 @@ export type CustomerPricingInfo = {
 /**
  * Performance-optimized batch fetch of customer pricing info.
  * Only selects the minimal fields needed for pricing model resolution.
+ * replacing N individual selectCustomerById calls with a single query.
  *
  * @param customerIds - Array of customer IDs to fetch
  * @param transaction - Database transaction
