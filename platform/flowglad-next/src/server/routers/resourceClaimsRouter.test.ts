@@ -1,5 +1,12 @@
 import { TRPCError } from '@trpc/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
 
 // Mock IS_DEV to true since resourceClaimsRouter uses devOnlyProcedure
 vi.mock('@/utils/core', async (importOriginal) => {
@@ -25,8 +32,11 @@ import {
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
+import type { Feature } from '@/db/schema/features'
 import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
 import type { Resource } from '@/db/schema/resources'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
@@ -60,21 +70,30 @@ const createCaller = (
 }
 
 describe('resourceClaimsRouter', () => {
+  // Shared setup - created once in beforeAll
   let organization: Organization.Record
   let pricingModel: PricingModel.Record
-  let customer: Customer.Record
   let resource: Resource.Record
   let resource2: Resource.Record
-  let subscription: Subscription.Record
-  let subscriptionItem: SubscriptionItem.Record
   let apiKeyToken: string
+  let product: Product.Record
+  let price: Price.Record
+  let seatsFeature: Feature.Record
+  let projectsFeature: Feature.Record
 
-  // Secondary org for cross-tenant tests
+  // Secondary org for cross-tenant tests (shared)
   let org2Data: Awaited<ReturnType<typeof setupOrg>>
   let org2Subscription: Subscription.Record
   let org2ApiKeyToken: string
 
-  beforeEach(async () => {
+  // Per-test setup - created fresh in beforeEach for test isolation
+  let customer: Customer.Record
+  let subscription: Subscription.Record
+  let subscriptionItem: SubscriptionItem.Record
+
+  // beforeAll: Set up shared data that doesn't change between tests
+  // This runs once per test file, significantly reducing setup time
+  beforeAll(async () => {
     // Setup organization 1
     const orgData = await setupOrg()
     organization = orgData.organization
@@ -89,7 +108,7 @@ describe('resourceClaimsRouter', () => {
     }
     apiKeyToken = userApiKeySetup.apiKey.token
 
-    // Setup resources
+    // Setup resources (shared across tests)
     resource = await setupResource({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
@@ -104,27 +123,15 @@ describe('resourceClaimsRouter', () => {
       name: 'Projects',
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      livemode: true,
-    })
-
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-      type: PaymentMethodType.Card,
-    })
-
-    const product = await setupProduct({
+    // Setup product and price (shared across tests)
+    product = await setupProduct({
       organizationId: organization.id,
       name: 'Test Product',
       pricingModelId: pricingModel.id,
       livemode: true,
     })
 
-    const price = await setupPrice({
+    price = await setupPrice({
       productId: product.id,
       name: 'Test Price',
       unitPrice: 1000,
@@ -135,86 +142,50 @@ describe('resourceClaimsRouter', () => {
       intervalCount: 1,
     })
 
-    subscription = await setupSubscription({
-      organizationId: organization.id,
-      customerId: customer.id,
-      paymentMethodId: paymentMethod.id,
-      priceId: price.id,
-      interval: IntervalUnit.Month,
-      intervalCount: 1,
-      status: SubscriptionStatus.Active,
+    // Create Resource features (shared across tests)
+    seatsFeature = await adminTransaction(async (ctx) => {
+      return insertFeature(
+        {
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          type: FeatureType.Resource,
+          name: 'Seats Feature',
+          slug: 'seats-feature',
+          description: 'Resource feature for seats',
+          amount: 10,
+          usageMeterId: null,
+          renewalFrequency: null,
+          resourceId: resource.id,
+          livemode: true,
+          active: true,
+        },
+        ctx
+      )
     })
 
-    subscriptionItem = await setupSubscriptionItem({
-      subscriptionId: subscription.id,
-      name: 'Resource Subscription Item',
-      quantity: 1,
-      unitPrice: 1000,
+    projectsFeature = await adminTransaction(async (ctx) => {
+      return insertFeature(
+        {
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          type: FeatureType.Resource,
+          name: 'Projects Feature',
+          slug: 'projects-feature',
+          description: 'Resource feature for projects',
+          amount: 5,
+          usageMeterId: null,
+          renewalFrequency: null,
+          resourceId: resource2.id,
+          livemode: true,
+          active: true,
+        },
+        ctx
+      )
     })
 
-    // Create Resource features
-    const seatsFeature = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeature(
-          {
-            organizationId: organization.id,
-            pricingModelId: pricingModel.id,
-            type: FeatureType.Resource,
-            name: 'Seats Feature',
-            slug: 'seats-feature',
-            description: 'Resource feature for seats',
-            amount: 10,
-            usageMeterId: null,
-            renewalFrequency: null,
-            resourceId: resource.id,
-            livemode: true,
-            active: true,
-          },
-          transaction
-        )
-      }
-    )
-
-    const projectsFeature = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeature(
-          {
-            organizationId: organization.id,
-            pricingModelId: pricingModel.id,
-            type: FeatureType.Resource,
-            name: 'Projects Feature',
-            slug: 'projects-feature',
-            description: 'Resource feature for projects',
-            amount: 5,
-            usageMeterId: null,
-            renewalFrequency: null,
-            resourceId: resource2.id,
-            livemode: true,
-            active: true,
-          },
-          transaction
-        )
-      }
-    )
-
-    // Set up subscription item features to provide capacity for the resources
-    await setupResourceSubscriptionItemFeature({
-      subscriptionItemId: subscriptionItem.id,
-      featureId: seatsFeature.id,
-      resourceId: resource.id,
-      pricingModelId: pricingModel.id,
-      amount: 10,
-    })
-
-    await setupResourceSubscriptionItemFeature({
-      subscriptionItemId: subscriptionItem.id,
-      featureId: projectsFeature.id,
-      resourceId: resource2.id,
-      pricingModelId: pricingModel.id,
-      amount: 5,
-    })
-
-    // Setup organization 2 for cross-tenant tests
+    // Setup organization 2 for cross-tenant tests (shared)
+    // NOTE: org2's subscription is created in beforeAll (not beforeEach) because
+    // it's only used for read-only permission boundary tests, never mutated
     org2Data = await setupOrg()
     const userApiKeyOrg2 = await setupUserAndApiKey({
       organizationId: org2Data.organization.id,
@@ -246,6 +217,57 @@ describe('resourceClaimsRouter', () => {
       interval: IntervalUnit.Month,
       intervalCount: 1,
       status: SubscriptionStatus.Active,
+    })
+  })
+
+  // beforeEach: Create fresh subscription data for test isolation
+  // This ensures each test has its own subscription without claims from other tests
+  beforeEach(async () => {
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `customer+${Date.now()}@test.com`,
+      livemode: true,
+    })
+
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+      type: PaymentMethodType.Card,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      paymentMethodId: paymentMethod.id,
+      priceId: price.id,
+      interval: IntervalUnit.Month,
+      intervalCount: 1,
+      status: SubscriptionStatus.Active,
+    })
+
+    subscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Resource Subscription Item',
+      quantity: 1,
+      unitPrice: 1000,
+    })
+
+    // Set up subscription item features to provide capacity for the resources
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: seatsFeature.id,
+      resourceId: resource.id,
+      pricingModelId: pricingModel.id,
+      amount: 10,
+    })
+
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: projectsFeature.id,
+      resourceId: resource2.id,
+      pricingModelId: pricingModel.id,
+      amount: 5,
     })
   })
 
@@ -390,7 +412,7 @@ describe('resourceClaimsRouter', () => {
 
     it('throws NOT_FOUND when the resource is not available on the subscription', async () => {
       // Create a resource that's not associated with the subscription
-      const unlinkedResource = await setupResource({
+      await setupResource({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
         slug: 'unlinked-resource',

@@ -47,7 +47,6 @@ import {
   selectUsageMeters,
 } from '@/db/tableMethods/usageMeterMethods'
 import type {
-  AuthenticatedTransactionParams,
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
@@ -128,19 +127,19 @@ export const isPriceChanged = (
 
 export const createPrice = async (
   payload: Price.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
-  return insertPrice(payload, transaction)
+  return insertPrice(payload, ctx)
 }
 
 export const createPriceTransaction = async (
   payload: { price: Price.ClientInsert },
-  {
-    transaction,
-    livemode,
-    organizationId,
-  }: AuthenticatedTransactionParams
+  ctx: TransactionEffectsContext & {
+    livemode: boolean
+    organizationId: string
+  }
 ) => {
+  const { transaction, livemode, organizationId } = ctx
   const { price } = payload
   if (!organizationId) {
     throw new TRPCError({
@@ -194,7 +193,7 @@ export const createPriceTransaction = async (
       currency: organization.defaultCurrency,
       externalId: null,
     },
-    transaction
+    ctx
   )
 
   return newPrice
@@ -222,14 +221,13 @@ export const createProductTransaction = async (
     prices: CreateProductPriceInput[]
     featureIds?: string[]
   },
-  transactionParams: Omit<
-    AuthenticatedTransactionParams,
-    'invalidateCache' | 'userId'
-  > &
-    Pick<TransactionEffectsContext, 'invalidateCache'>
+  ctx: TransactionEffectsContext & {
+    livemode: boolean
+    organizationId: string
+  }
 ) => {
   const { transaction, livemode, organizationId, invalidateCache } =
-    transactionParams
+    ctx
   if (!organizationId) {
     throw new TRPCError({
       code: 'BAD_REQUEST',
@@ -278,7 +276,7 @@ export const createProductTransaction = async (
       livemode,
       externalId: null,
     },
-    transaction
+    ctx
   )
   if (payload.featureIds) {
     await syncProductFeatures(
@@ -316,10 +314,7 @@ export const createProductTransaction = async (
       externalId: null,
     }
   }) as Price.Insert[]
-  const createdPrices = await bulkInsertPrices(
-    priceInserts,
-    transaction
-  )
+  const createdPrices = await bulkInsertPrices(priceInserts, ctx)
   return {
     product: createdProduct,
     prices: createdPrices,
@@ -332,14 +327,13 @@ export const editProductTransaction = async (
     featureIds?: string[]
     price?: Price.ClientInsert
   },
-  transactionParams: Omit<
-    AuthenticatedTransactionParams,
-    'invalidateCache' | 'userId'
-  > &
-    Pick<TransactionEffectsContext, 'invalidateCache'>
+  ctx: TransactionEffectsContext & {
+    livemode: boolean
+    organizationId: string
+  }
 ) => {
   const { transaction, livemode, organizationId, invalidateCache } =
-    transactionParams
+    ctx
   const { product, featureIds, price } = payload
 
   if (!organizationId) {
@@ -374,10 +368,7 @@ export const editProductTransaction = async (
   // Validate that default products can only have certain fields updated
   validateDefaultProductUpdate(enforcedProduct, existingProduct)
 
-  const updatedProduct = await updateProduct(
-    enforcedProduct,
-    transaction
-  )
+  const updatedProduct = await updateProduct(enforcedProduct, ctx)
 
   if (!updatedProduct) {
     throw new Error('Product not found or update failed')
@@ -445,7 +436,7 @@ export const editProductTransaction = async (
             currency: organization.defaultCurrency,
             externalId: null,
           },
-          transaction
+          ctx
         )
       } else if (isSlugMutating && currentPrice) {
         // No new price inserted (immutable fields unchanged), but product slug changed - update existing price slug
@@ -455,7 +446,7 @@ export const editProductTransaction = async (
             type: currentPrice.type,
             slug: updatedProduct.slug,
           },
-          transaction
+          ctx
         )
       }
     } else if (isSlugMutating && currentPrice) {
@@ -466,7 +457,7 @@ export const editProductTransaction = async (
           type: currentPrice.type,
           slug: updatedProduct.slug,
         },
-        transaction
+        ctx
       )
     }
   }
@@ -475,8 +466,9 @@ export const editProductTransaction = async (
 
 export const clonePricingModelTransaction = async (
   input: ClonePricingModelInput,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const pricingModel = await selectPricingModelById(
     input.id,
     transaction
@@ -516,7 +508,7 @@ export const clonePricingModelTransaction = async (
       )
     await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
       usageMeterInserts,
-      transaction
+      ctx
     )
   }
 
@@ -571,7 +563,7 @@ export const clonePricingModelTransaction = async (
     })
     await bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug(
       featureInserts,
-      transaction
+      ctx
     )
   }
   const productsWithPrices =
@@ -625,7 +617,7 @@ export const clonePricingModelTransaction = async (
   // Bulk insert all new products
   const newProducts = await bulkInsertProducts(
     Array.from(productInsertMap.values()),
-    transaction
+    ctx
   )
 
   // Create a map of existing product id => new product id
@@ -658,7 +650,7 @@ export const clonePricingModelTransaction = async (
   }
 
   // Bulk insert all new prices
-  await bulkInsertPrices(allPriceInserts, transaction)
+  await bulkInsertPrices(allPriceInserts, ctx)
 
   // Clone product features if any exist
   if (sourceProductFeatures.length > 0) {
@@ -704,10 +696,7 @@ export const clonePricingModelTransaction = async (
     }
 
     if (productFeatureInserts.length > 0) {
-      await bulkInsertProductFeatures(
-        productFeatureInserts,
-        transaction
-      )
+      await bulkInsertProductFeatures(productFeatureInserts, ctx)
     }
   }
 

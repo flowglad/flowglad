@@ -102,14 +102,14 @@ const updateUsageMeter = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
+        const { invalidateCache } = transactionCtx
         try {
           const usageMeter = await updateUsageMeterDB(
             {
               ...input.usageMeter,
               id: input.id,
             },
-            transaction
+            transactionCtx
           )
 
           // Invalidate cache for this specific meter's content change

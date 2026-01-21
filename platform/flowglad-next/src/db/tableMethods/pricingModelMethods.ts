@@ -28,13 +28,20 @@ import {
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
+  NotFoundError,
   type ORMMethodCreatorConfig,
   type SelectConditions,
   whereClauseFromObject,
 } from '@/db/tableUtils'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import { PriceType } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import {
+  type Price,
   type PricingModelWithProductsAndUsageMeters,
   prices,
   pricesClientSelectSchema,
@@ -46,6 +53,10 @@ import {
   productsClientSelectSchema,
 } from '../schema/products'
 import { usageMeters } from '../schema/usageMeters'
+import { selectFeaturesByPricingModelId } from './featureMethods'
+import { selectPricesByPricingModelId } from './priceMethods'
+import { selectProductFeaturesByPricingModelId } from './productFeatureMethods'
+import { selectProductsByPricingModelId } from './productMethods'
 import { selectUsageMetersByPricingModelId } from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -65,15 +76,66 @@ export const selectPricingModelById = createSelectById(
   config
 )
 
-export const insertPricingModel = createInsertFunction(
+/**
+ * Select a pricing model client record by ID with caching.
+ * Returns the client-safe subset of fields. Cached by default; pass { ignoreCache: true } to bypass.
+ */
+const selectPricingModelClientRecordById = cached(
+  {
+    namespace: RedisKeyNamespace.PricingModel,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
+    schema: pricingModelsClientSelectSchema,
+    dependenciesFn: (_pricingModel, pricingModelId: string) => [
+      CacheDependency.pricingModel(pricingModelId),
+    ],
+  },
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction
+  ): Promise<PricingModel.ClientRecord> => {
+    const pricingModel = await selectPricingModelById(
+      pricingModelId,
+      transaction
+    )
+    return pricingModelsClientSelectSchema.parse(pricingModel)
+  }
+)
+
+const baseInsertPricingModel = createInsertFunction(
   pricingModels,
   config
 )
 
-export const updatePricingModel = createUpdateFunction(
+export const insertPricingModel = async (
+  pricingModel: PricingModel.Insert,
+  transaction: DbTransaction
+): Promise<PricingModel.Record> => {
+  const result = await baseInsertPricingModel(
+    pricingModel,
+    transaction
+  )
+  // Note: No cache invalidation needed for insert since there's no existing cache entry
+  return result
+}
+
+const baseUpdatePricingModel = createUpdateFunction(
   pricingModels,
   config
 )
+
+export const updatePricingModel = async (
+  pricingModel: PricingModel.Update,
+  ctx: TransactionEffectsContext
+): Promise<PricingModel.Record> => {
+  const result = await baseUpdatePricingModel(
+    pricingModel,
+    ctx.transaction
+  )
+  // Invalidate cache for the updated pricing model (queued for after commit)
+  ctx.invalidateCache(CacheDependency.pricingModel(result.id))
+  return result
+}
 
 export const selectPricingModels = createSelectFunction(
   pricingModels,
@@ -102,13 +164,13 @@ export const selectDefaultPricingModel = async (
 
 export const makePricingModelDefault = async (
   newDefaultPricingModelOrId: PricingModel.Record | string,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   const newDefaultPricingModel =
     typeof newDefaultPricingModelOrId === 'string'
       ? await selectPricingModelById(
           newDefaultPricingModelOrId,
-          transaction
+          ctx.transaction
         )
       : newDefaultPricingModelOrId
   const oldDefaultPricingModel = await selectDefaultPricingModel(
@@ -116,18 +178,20 @@ export const makePricingModelDefault = async (
       organizationId: newDefaultPricingModel.organizationId,
       livemode: newDefaultPricingModel.livemode,
     },
-    transaction
+    ctx.transaction
   )
   if (oldDefaultPricingModel) {
     await updatePricingModel(
       { id: oldDefaultPricingModel.id, isDefault: false },
-      transaction
+      ctx
     )
+    // Note: updatePricingModel already handles cache invalidation
   }
   const updatedPricingModel = await updatePricingModel(
     { id: newDefaultPricingModel.id, isDefault: true },
-    transaction
+    ctx
   )
+  // Note: updatePricingModel already handles cache invalidation
   return updatedPricingModel
 }
 
@@ -136,9 +200,10 @@ const setPricingModelsForOrganizationToNonDefault = async (
     organizationId,
     livemode,
   }: { organizationId: string; livemode: boolean },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
-  await transaction
+  // Perform the bulk update and get affected IDs
+  const updatedPricingModels = await ctx.transaction
     .update(pricingModels)
     .set({ isDefault: false })
     .where(
@@ -147,12 +212,19 @@ const setPricingModelsForOrganizationToNonDefault = async (
         eq(pricingModels.livemode, livemode)
       )
     )
+    .returning({ id: pricingModels.id })
+
+  // Invalidate cache for all affected pricing models (queued for after commit)
+  for (const pm of updatedPricingModels) {
+    ctx.invalidateCache(CacheDependency.pricingModel(pm.id))
+  }
+
   return true
 }
 
 export const safelyUpdatePricingModel = async (
   pricingModel: PricingModel.Update,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   /**
    * If price is default
@@ -160,22 +232,22 @@ export const safelyUpdatePricingModel = async (
   if (pricingModel.isDefault) {
     const existingPricingModel = await selectPricingModelById(
       pricingModel.id,
-      transaction
+      ctx.transaction
     )
     await setPricingModelsForOrganizationToNonDefault(
       {
         organizationId: existingPricingModel.organizationId,
         livemode: existingPricingModel.livemode,
       },
-      transaction
+      ctx
     )
   }
-  return updatePricingModel(pricingModel, transaction)
+  return updatePricingModel(pricingModel, ctx)
 }
 
 export const safelyInsertPricingModel = async (
   pricingModel: PricingModel.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   if (pricingModel.isDefault) {
     await setPricingModelsForOrganizationToNonDefault(
@@ -183,10 +255,10 @@ export const safelyInsertPricingModel = async (
         organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
       },
-      transaction
+      ctx
     )
   }
-  return insertPricingModel(pricingModel, transaction)
+  return insertPricingModel(pricingModel, ctx.transaction)
 }
 
 const pricingModelTableRowSchema = z.object({
@@ -289,9 +361,6 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       return []
     }
 
-    // All pricing models in this query have the same livemode due to RLS filtering
-    const livemode = pricingModelResults[0].livemode
-
     // Build map for pricing models
     const uniquePricingModelsMap = new Map<
       string,
@@ -318,8 +387,7 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
       async (pricingModelId) => {
         const meters = await selectUsageMetersByPricingModelId(
           pricingModelId,
-          transaction,
-          livemode
+          transaction
         )
         return { pricingModelId, meters }
       }
@@ -511,10 +579,144 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
   }
 
 /**
+ * Type guard to narrow Price.ClientRecord to Price.ClientUsageRecord.
+ */
+const isClientUsagePrice = (
+  price: Price.ClientRecord
+): price is Price.ClientUsageRecord => {
+  return price.type === PriceType.Usage
+}
+
+/**
+ * Assembles a PricingModelWithProductsAndUsageMeters from cached atomic queries.
+ * Each atom is cached independently with its own invalidation trigger.
+ *
+ * @param pricingModelId - The ID of the pricing model to fetch
+ * @param transaction - Database transaction
+ * @returns The fully assembled pricing model with products, prices, features, and usage meters
+ */
+export const selectPricingModelWithProductsAndUsageMetersById =
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction
+  ): Promise<PricingModelWithProductsAndUsageMeters> => {
+    // Fetch all atoms in parallel (each is independently cached)
+    const [
+      pricingModel,
+      productsResult,
+      pricesResult,
+      featuresResult,
+      productFeaturesResult,
+      usageMetersResult,
+    ] = await Promise.all([
+      selectPricingModelClientRecordById(pricingModelId, transaction),
+      selectProductsByPricingModelId(pricingModelId, transaction),
+      selectPricesByPricingModelId(pricingModelId, transaction),
+      selectFeaturesByPricingModelId(pricingModelId, transaction),
+      selectProductFeaturesByPricingModelId(
+        pricingModelId,
+        transaction
+      ),
+      selectUsageMetersByPricingModelId(pricingModelId, transaction),
+    ])
+
+    // Filter to only active prices (matching SQL path behavior)
+    const activePrices = pricesResult.filter((price) => price.active)
+
+    // Build prices by productId map (only for active prices with productId)
+    const pricesByProductId = new Map<
+      string,
+      (typeof pricesResult)[number][]
+    >()
+    // Build prices by usageMeterId map (for active usage prices)
+    const pricesByUsageMeterId = new Map<
+      string,
+      Price.ClientUsageRecord[]
+    >()
+    for (const price of activePrices) {
+      if (price.productId) {
+        const existing = pricesByProductId.get(price.productId) ?? []
+        pricesByProductId.set(price.productId, [...existing, price])
+      } else if (price.usageMeterId && isClientUsagePrice(price)) {
+        const existing =
+          pricesByUsageMeterId.get(price.usageMeterId) ?? []
+        pricesByUsageMeterId.set(price.usageMeterId, [
+          ...existing,
+          price,
+        ])
+      }
+    }
+
+    // Build features by productId map using product features as join table
+    const featuresById = new Map(featuresResult.map((f) => [f.id, f]))
+    const featuresByProductId = new Map<
+      string,
+      (typeof featuresResult)[number][]
+    >()
+    for (const pf of productFeaturesResult) {
+      // Only include non-expired product features
+      if (pf.expiredAt !== null) continue
+      const feature = featuresById.get(pf.featureId)
+      if (feature) {
+        const existing = featuresByProductId.get(pf.productId) ?? []
+        featuresByProductId.set(pf.productId, [...existing, feature])
+      }
+    }
+
+    // Filter to only active products (matching SQL path behavior)
+    // Also filter out products with no active prices (matching INNER JOIN behavior in SQL path)
+    const activeProducts = productsResult.filter(
+      (product) => product.active && pricesByProductId.has(product.id)
+    )
+
+    // Build products with prices, features, and defaultPrice
+    const productsWithPrices: PricingModelWithProductsAndUsageMeters['products'] =
+      activeProducts.map((product) => {
+        const productPrices = pricesByProductId.get(product.id) ?? []
+        const productFeatures =
+          featuresByProductId.get(product.id) ?? []
+        const defaultPrice =
+          productPrices.find((p) => p.isDefault) ?? productPrices[0]
+
+        return {
+          ...product,
+          prices: productPrices,
+          features: productFeatures,
+          defaultPrice,
+        }
+      })
+
+    // Find default product
+    const defaultProduct =
+      productsWithPrices.find((p) => p.default) ?? undefined
+
+    // Build usage meters with prices
+    const usageMetersWithPrices: PricingModelWithProductsAndUsageMeters['usageMeters'] =
+      usageMetersResult.map((meter) => {
+        const meterPrices = pricesByUsageMeterId.get(meter.id) ?? []
+        const defaultPrice =
+          meterPrices.find((p) => p.isDefault) ?? meterPrices[0]
+
+        return {
+          ...meter,
+          prices: meterPrices,
+          defaultPrice,
+        }
+      })
+
+    return {
+      ...pricingModel,
+      products: productsWithPrices,
+      usageMeters: usageMetersWithPrices,
+      defaultProduct,
+    }
+  }
+
+/**
  * Gets the pricingModel for a customer. If no pricingModel explicitly associated,
  * returns the default pricingModel for the organization.
- * Note: The returned pricing model already has inactive products and prices filtered out
- * by selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere.
+ * Note: Uses the cached atomic assembly function selectPricingModelWithProductsAndUsageMetersById
+ * which has inactive products and prices filtered out.
  * @param customer
  * @param transaction
  * @returns
@@ -524,33 +726,37 @@ export const selectPricingModelForCustomer = async (
   transaction: DbTransaction
 ): Promise<PricingModelWithProductsAndUsageMeters> => {
   if (customer.pricingModelId) {
-    const [pricingModel] =
-      await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: customer.pricingModelId },
+    try {
+      return await selectPricingModelWithProductsAndUsageMetersById(
+        customer.pricingModelId,
         transaction
       )
-
-    if (pricingModel) {
-      return pricingModel
+    } catch (error) {
+      // If the specific pricing model isn't found, fall back to default
+      if (!(error instanceof NotFoundError)) {
+        throw error
+      }
     }
   }
-  const [pricingModel] =
-    await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-      {
-        isDefault: true,
-        organizationId: customer.organizationId,
-        livemode: customer.livemode,
-      },
-      transaction
-    )
 
-  if (!pricingModel) {
+  const defaultPricingModel = await selectDefaultPricingModel(
+    {
+      organizationId: customer.organizationId,
+      livemode: customer.livemode,
+    },
+    transaction
+  )
+
+  if (!defaultPricingModel) {
     throw new Error(
       `No default pricing model found for organization ${customer.organizationId}`
     )
   }
 
-  return pricingModel
+  return selectPricingModelWithProductsAndUsageMetersById(
+    defaultPricingModel.id,
+    transaction
+  )
 }
 
 /**

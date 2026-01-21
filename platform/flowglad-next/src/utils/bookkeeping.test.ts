@@ -36,7 +36,10 @@ import {
 } from '@/db/tableMethods/pricingModelMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
+import {
+  withAdminCacheContext,
+  withDiscardingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
@@ -734,7 +737,7 @@ describe('createCustomerBookkeeping', () => {
               },
               // No defaultPlanIntervalUnit - creates SinglePayment price
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
               livemode,
@@ -815,7 +818,7 @@ describe('createCustomerBookkeeping', () => {
               },
               defaultPlanIntervalUnit: IntervalUnit.Month, // Creates Subscription price
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
               livemode,
@@ -904,7 +907,7 @@ describe('createCustomerBookkeeping', () => {
               },
               // No interval - SinglePayment
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
               livemode,
@@ -924,7 +927,7 @@ describe('createCustomerBookkeeping', () => {
               },
               defaultPlanIntervalUnit: IntervalUnit.Year, // Subscription with Year
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
               livemode,
@@ -1071,7 +1074,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1133,7 +1136,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false, // Can't create another default, setupOrg already created one
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1163,7 +1166,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1208,7 +1211,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1269,7 +1272,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode: false,
@@ -1309,7 +1312,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode: true,
@@ -1410,7 +1413,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: eurOrganization.id,
               livemode,
@@ -1464,7 +1467,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: gbpOrganization.id,
               livemode,
@@ -1495,7 +1498,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1535,7 +1538,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1605,7 +1608,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: testOrganization.id,
               livemode: testLivemode,
@@ -1637,7 +1640,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Month,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1675,7 +1678,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Year,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1709,7 +1712,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Week,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1741,7 +1744,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Day,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1782,7 +1785,11 @@ describe('createPricingModelBookkeeping', () => {
                   },
                   defaultPlanIntervalUnit: intervalUnit,
                 },
-                { transaction, organizationId, livemode }
+                withDiscardingEffectsContext({
+                  transaction,
+                  organizationId,
+                  livemode,
+                })
               )
               return output
             }
@@ -1815,7 +1822,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 // No defaultPlanIntervalUnit provided
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1854,7 +1861,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: intervalUnit,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,

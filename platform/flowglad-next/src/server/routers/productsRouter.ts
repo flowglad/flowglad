@@ -62,11 +62,6 @@ export const createProduct = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const {
-          transaction,
-          invalidateCache,
-          cacheRecomputationContext,
-        } = transactionCtx
         const { livemode, organizationId } = ctx
         if (!organizationId) {
           throw new TRPCError({
@@ -91,13 +86,7 @@ export const createProduct = protectedProcedure
               ],
               featureIds,
             },
-            {
-              transaction,
-              livemode,
-              organizationId,
-              invalidateCache,
-              cacheRecomputationContext,
-            }
+            { ...transactionCtx, livemode, organizationId }
           )
           return Result.ok({
             product: txResult.product,
@@ -124,11 +113,6 @@ export const updateProduct = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const {
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-        } = transactionCtx
         const { livemode, organizationId } = ctx
         if (!organizationId) {
           throw new TRPCError({
@@ -144,13 +128,7 @@ export const updateProduct = protectedProcedure
               featureIds: input.featureIds,
               price: input.price,
             },
-            {
-              transaction,
-              cacheRecomputationContext,
-              livemode,
-              organizationId,
-              invalidateCache,
-            }
+            { ...transactionCtx, livemode, organizationId }
           )
 
           return Result.ok({

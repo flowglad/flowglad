@@ -205,3 +205,38 @@ export function withAdminCacheContext<
     },
   }
 }
+
+/**
+ * Creates a full TransactionEffectsContext with no-op callbacks plus additional params.
+ * Use this when calling functions that require TransactionEffectsContext from within
+ * adminTransaction callbacks (which only provide transaction), when the test doesn't
+ * need to verify side effects.
+ *
+ * @example
+ * ```typescript
+ * await adminTransaction(async ({ transaction }) => {
+ *   await createPricingModelBookkeeping(
+ *     { pricingModel: { name: 'Test', isDefault: true } },
+ *     withDiscardingEffectsContext({
+ *       transaction,
+ *       organizationId,
+ *       livemode,
+ *     })
+ *   )
+ * })
+ * ```
+ */
+export function withDiscardingEffectsContext<
+  T extends { transaction: DbTransaction; livemode: boolean },
+>(params: T): T & TransactionEffectsContext {
+  return {
+    ...params,
+    cacheRecomputationContext: {
+      type: 'admin',
+      livemode: params.livemode,
+    },
+    invalidateCache: noopInvalidateCache,
+    emitEvent: noopEmitEvent,
+    enqueueLedgerCommand: noopEnqueueLedgerCommand,
+  }
+}

@@ -14,7 +14,7 @@ import { bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId } from '@/d
 import { bulkInsertProducts } from '@/db/tableMethods/productMethods'
 import { bulkInsertOrDoNothingResourcesByPricingModelIdAndSlug } from '@/db/tableMethods/resourceMethods'
 import { bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId } from '@/db/tableMethods/usageMeterMethods'
-import type { DbTransaction } from '@/db/types'
+import type { TransactionEffectsContext } from '@/db/types'
 import { FeatureType, IntervalUnit, PriceType } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import { validateDefaultProductSchema } from '@/utils/defaultProductValidation'
@@ -43,8 +43,9 @@ export const setupPricingModelTransaction = async (
     organizationId: string
     livemode: boolean
   },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const input = validateSetupPricingModelInput(rawInput)
 
   // Check for multiple default products
@@ -82,7 +83,7 @@ export const setupPricingModelTransaction = async (
   )
   const pricingModel = await safelyInsertPricingModel(
     pricingModelInsert,
-    transaction
+    ctx
   )
   const usageMeterInserts: UsageMeter.Insert[] =
     input.usageMeters.map((meterWithPrices) => ({
@@ -98,7 +99,7 @@ export const setupPricingModelTransaction = async (
   const usageMeters =
     await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
       usageMeterInserts,
-      transaction
+      ctx
     )
   const usageMetersBySlug = new Map(
     usageMeters.map((usageMeter) => [usageMeter.slug, usageMeter])
@@ -199,7 +200,7 @@ export const setupPricingModelTransaction = async (
   const features =
     await bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug(
       featureInserts,
-      transaction
+      ctx
     )
   const productInserts: Product.Insert[] = input.products.map(
     (product) => {
@@ -215,10 +216,7 @@ export const setupPricingModelTransaction = async (
       }
     }
   )
-  const products = await bulkInsertProducts(
-    productInserts,
-    transaction
-  )
+  const products = await bulkInsertProducts(productInserts, ctx)
   const productsByExternalId = new Map(
     products.map((product) => [product.externalId, product])
   )
@@ -339,7 +337,7 @@ export const setupPricingModelTransaction = async (
 
     const defaultProductsResult = await bulkInsertProducts(
       [defaultProductInsert],
-      transaction
+      ctx
     )
     const defaultProduct = defaultProductsResult[0]
 
@@ -375,7 +373,7 @@ export const setupPricingModelTransaction = async (
     priceInserts.push(defaultPriceInsert)
   }
 
-  const prices = await bulkInsertPrices(priceInserts, transaction)
+  const prices = await bulkInsertPrices(priceInserts, ctx)
   const featuresBySlug = new Map(
     features.map((feature) => [feature.slug, feature])
   )
@@ -406,7 +404,7 @@ export const setupPricingModelTransaction = async (
   const productFeatures =
     await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
       productFeatureInserts,
-      transaction
+      ctx
     )
 
   return {
