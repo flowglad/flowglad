@@ -57,7 +57,8 @@ function CancelButton() {
 
   const handleCancel = async () => {
     await cancelSubscription({
-      cancelTiming: 'at_end_of_current_billing_period',
+      id: currentSubscription.id,
+      cancellation: { timing: 'at_end_of_current_billing_period' },
     })
     // BUG: currentSubscription still shows old status!
     // UI will not reflect cancellation until page refresh
@@ -86,7 +87,8 @@ function CancelButton() {
     setIsLoading(true)
     try {
       await cancelSubscription({
-        cancelTiming: 'at_end_of_current_billing_period',
+        id: currentSubscription.id,
+        cancellation: { timing: 'at_end_of_current_billing_period' },
       })
       // Refresh local state to reflect the cancellation
       await reload()
@@ -170,9 +172,10 @@ Most SaaS applications should cancel at the end of the billing period to let use
 ```typescript
 async function handleCancel() {
   await billing.cancelSubscription({
+    id: billing.currentSubscription.id,
     // This immediately ends access!
     // User loses features they already paid for
-    cancelTiming: 'immediately',
+    cancellation: { timing: 'immediately' },
   })
 }
 ```
@@ -184,8 +187,9 @@ Immediate cancellation removes access right away, even if the user paid for the 
 ```typescript
 async function handleCancel() {
   await billing.cancelSubscription({
+    id: billing.currentSubscription.id,
     // User keeps access until their paid period ends
-    cancelTiming: 'at_end_of_current_billing_period',
+    cancellation: { timing: 'at_end_of_current_billing_period' },
   })
   await billing.reload()
 }
@@ -413,7 +417,7 @@ function ReactivateButton() {
     setIsLoading(true)
     try {
       await uncancelSubscription({
-        subscriptionId: currentSubscription.id,
+        id: currentSubscription.id,
       })
       await reload()
     } finally {
@@ -636,7 +640,7 @@ function SubscriptionCard() {
             Cancels on {formatDate(currentSubscription.currentPeriodEnd)}
           </p>
           <button onClick={async () => {
-            await uncancelSubscription({ subscriptionId: currentSubscription.id })
+            await uncancelSubscription({ id: currentSubscription.id })
             await reload()
           }}>
             Keep Subscription
@@ -661,7 +665,8 @@ function SubscriptionCard() {
 ```typescript
 // Cancel subscription
 await billing.cancelSubscription({
-  cancelTiming: 'at_end_of_current_billing_period', // or 'immediately'
+  id: billing.currentSubscription.id,
+  cancellation: { timing: 'at_end_of_current_billing_period' }, // or 'immediately'
 })
 
 // Change plan
@@ -671,7 +676,7 @@ await billing.adjustSubscription({
 
 // Reactivate canceled subscription
 await billing.uncancelSubscription({
-  subscriptionId: subscription.id,
+  id: subscription.id,
 })
 
 // Always reload after mutations
