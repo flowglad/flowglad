@@ -1545,7 +1545,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         if (result.status === 'error') {
           expect(result.error).toBeInstanceOf(NotFoundError)
           expect(result.error.message).toMatch(
-            /Current billing period for subscription not found/
+            /Current billing period not found: subscription/
           )
         }
       })

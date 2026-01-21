@@ -490,8 +490,8 @@ export const scheduleSubscriptionCancellation = async (
     if (!currentBillingPeriod) {
       return Result.err(
         new NotFoundError(
-          'Current billing period for subscription',
-          subscription.id
+          'Current billing period',
+          `subscription ${subscription.id}`
         )
       )
     }
