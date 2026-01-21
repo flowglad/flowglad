@@ -598,7 +598,10 @@ describe('Process payment intent status updated', async () => {
           )
         }
       )
-      expect(result.status).toEqual(PaymentStatus.Succeeded)
+      expect(result.status).toBe('ok')
+      if (result.status === 'ok') {
+        expect(result.value.status).toEqual(PaymentStatus.Succeeded)
+      }
     })
 
     it('does not update the payment status if the current status already matches the charge status', async () => {
@@ -623,7 +626,10 @@ describe('Process payment intent status updated', async () => {
             }
           )
       )
-      expect(result.status).toEqual(PaymentStatus.Succeeded)
+      expect(result.status).toBe('ok')
+      if (result.status === 'ok') {
+        expect(result.value.status).toEqual(PaymentStatus.Succeeded)
+      }
     })
 
     it('updates the associated invoice status when an invoiceId exists', async () => {
