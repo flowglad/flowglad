@@ -148,7 +148,9 @@ const sendOrganizationSubscriptionCanceledNotificationTask = task({
     { ctx }
   ) => {
     logger.log('Task context', { ctx })
-    return runSendOrganizationSubscriptionCanceledNotification(payload)
+    return runSendOrganizationSubscriptionCanceledNotification(
+      payload
+    )
   },
 })
 

@@ -118,8 +118,7 @@ export const runSendCustomerSubscriptionCancellationScheduledNotification =
     const cancellationDate = new Date(scheduledCancellationDate)
 
     // Use safe fallback for subscription name
-    const subscriptionName =
-      subscription.name || 'your subscription'
+    const subscriptionName = subscription.name || 'your subscription'
 
     await safeSend({
       from: getFromAddress({

@@ -105,9 +105,7 @@ export const runSendOrganizationPaymentFailedNotification = async (
 
   const recipientEmails = eligibleRecipients
     .map(({ user }) => user.email)
-    .filter(
-      (email): email is string => !isNil(email) && email !== ''
-    )
+    .filter((email): email is string => !isNil(email) && email !== '')
 
   if (recipientEmails.length === 0) {
     return Result.ok({

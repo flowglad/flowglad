@@ -209,7 +209,9 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
     { ctx }
   ) => {
     logger.log('Task context', { ctx })
-    return runSendOrganizationSubscriptionAdjustedNotification(payload)
+    return runSendOrganizationSubscriptionAdjustedNotification(
+      payload
+    )
   },
 })
 
