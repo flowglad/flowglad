@@ -61,6 +61,16 @@
         "./plugins/no-zod-native-enum.grit",
         "./plugins/deterministic-idempotency-keys.grit"
       ]
+    },
+    {
+      "includes": [
+        "platform/flowglad-next/src/**/*.ts",
+        "!platform/flowglad-next/src/db/**",
+        "!platform/flowglad-next/src/scripts/**",
+        "!**/*.test.ts",
+        "!**/*.test.tsx"
+      ],
+      "plugins": ["./plugins/no-raw-drizzle-business-logic.grit"]
     }
   ]
 }

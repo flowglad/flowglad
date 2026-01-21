@@ -1,0 +1,53 @@
+engine biome(1.0)
+language js
+
+// Forbids raw Drizzle calls in business logic per platform-review.md:137-150.
+// All database access should go through db/tableMethods/.
+//
+// Bad:  await db.query.customers.findFirst(...)
+// Bad:  await db.insert(customers).values(...)
+// Good: await selectCustomerById({ customerId: id })
+//
+// This rule is applied via biome.json overrides to EXCLUDE:
+// - src/db/** (data access layer itself)
+// - src/scripts/** (one-off scripts)
+//
+// To suppress: // biome-ignore lint/plugin: <justification>
+
+or {
+  `db.query.$_.$method($args)` as $call where {
+    register_diagnostic(
+      span=$call,
+      message="Raw Drizzle queries are not allowed in business logic. Use tableMethods instead (e.g., selectCustomers, insertCustomer).",
+      severity="error"
+    )
+  },
+  `db.insert($args)` as $call where {
+    register_diagnostic(
+      span=$call,
+      message="Raw Drizzle inserts are not allowed in business logic. Use tableMethods instead (e.g., insertCustomer).",
+      severity="error"
+    )
+  },
+  `db.update($args)` as $call where {
+    register_diagnostic(
+      span=$call,
+      message="Raw Drizzle updates are not allowed in business logic. Use tableMethods instead (e.g., updateCustomer).",
+      severity="error"
+    )
+  },
+  `db.delete($args)` as $call where {
+    register_diagnostic(
+      span=$call,
+      message="Raw Drizzle deletes are not allowed in business logic. Use tableMethods instead (e.g., deleteCustomer).",
+      severity="error"
+    )
+  },
+  `db.select($args)` as $call where {
+    register_diagnostic(
+      span=$call,
+      message="Raw Drizzle selects are not allowed in business logic. Use tableMethods instead (e.g., selectCustomers).",
+      severity="error"
+    )
+  }
+}
