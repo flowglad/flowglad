@@ -35,6 +35,7 @@ describe('Usage Credit Application Methods', () => {
   let pricingModel: PricingModel.Record
   let product: Product.Record
   let price: Price.Record
+  let usagePrice: Price.Record
   let customer: Customer.Record
   let subscription: Subscription.Record
   let usageMeter: UsageMeter.Record
@@ -76,6 +77,17 @@ describe('Usage Credit Application Methods', () => {
       livemode: true,
     })
 
+    // Create a usage price for the usage meter (required for usage events)
+    usagePrice = await setupPrice({
+      name: 'Test Usage Price',
+      unitPrice: 100,
+      type: PriceType.Usage,
+      livemode: true,
+      isDefault: true,
+      currency: CurrencyCode.USD,
+      usageMeterId: usageMeter.id,
+    })
+
     usageCredit = await setupUsageCredit({
       organizationId: organization.id,
       usageMeterId: usageMeter.id,
@@ -95,6 +107,7 @@ describe('Usage Credit Application Methods', () => {
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
           customerId: customer.id,
+          priceId: usagePrice.id,
           transactionId: `txn_${core.nanoid()}`,
           amount: 100,
           livemode: true,
@@ -134,6 +147,7 @@ describe('Usage Credit Application Methods', () => {
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
           customerId: customer.id,
+          priceId: usagePrice.id,
           transactionId: `txn_${core.nanoid()}`,
           amount: 100,
           livemode: true,
@@ -164,6 +178,7 @@ describe('Usage Credit Application Methods', () => {
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
           customerId: customer.id,
+          priceId: usagePrice.id,
           transactionId: `txn_${core.nanoid()}`,
           amount: 100,
           livemode: true,
@@ -215,6 +230,7 @@ describe('Usage Credit Application Methods', () => {
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
           customerId: customer.id,
+          priceId: usagePrice.id,
           transactionId: `txn_${core.nanoid()}`,
           amount: 100,
           livemode: true,
@@ -225,6 +241,7 @@ describe('Usage Credit Application Methods', () => {
           subscriptionId: subscription.id,
           usageMeterId: usageMeter.id,
           customerId: customer.id,
+          priceId: usagePrice.id,
           transactionId: `txn_${core.nanoid()}`,
           amount: 200,
           livemode: true,
@@ -283,6 +300,7 @@ describe('Usage Credit Application Methods', () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         customerId: customer.id,
+        priceId: usagePrice.id,
         transactionId: `txn_${core.nanoid()}`,
         amount: 100,
         livemode: true,

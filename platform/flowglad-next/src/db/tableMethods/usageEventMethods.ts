@@ -147,9 +147,10 @@ export const selectUsageEventsTableRowData =
         .map((usageEvent) => usageEvent.usageMeterId)
         .filter((id): id is string => id !== null)
 
-      const priceIds = usageEventsData
-        .map((usageEvent) => usageEvent.priceId)
-        .filter((id): id is string => !core.isNil(id))
+      // priceId is NOT NULL, so we can map directly without filtering
+      const priceIds = usageEventsData.map(
+        (usageEvent) => usageEvent.priceId
+      )
 
       // Query 1: Get customers
       const customerResults = await transaction
@@ -207,18 +208,20 @@ export const selectUsageEventsTableRowData =
         const usageMeter = usageMetersById.get(
           usageEvent.usageMeterId
         )
-        const price = usageEvent.priceId
-          ? pricesById.get(usageEvent.priceId)
-          : null
+        // priceId is NOT NULL, so we always expect a price to exist
+        const price = pricesById.get(usageEvent.priceId)
 
         if (!customer || !subscription || !usageMeter) {
           throw new Error(
             `Missing related data for usage event ${usageEvent.id}`
           )
         }
-        // Note: If priceId exists but price is missing, it may be due to cross-organization
-        // data isolation. The price exists but is not accessible in the current context.
-        // We treat this as price: null rather than throwing an error.
+
+        if (!price) {
+          throw new Error(
+            `Missing price for usage event ${usageEvent.id}, priceId: ${usageEvent.priceId}`
+          )
+        }
 
         // Transform database records to client records
         const customerClient =
@@ -236,9 +239,7 @@ export const selectUsageEventsTableRowData =
           )
         const usageMeterClient =
           usageMetersClientSelectSchema.parse(usageMeter)
-        const priceClient = price
-          ? pricesClientSelectSchema.parse(price)
-          : null
+        const priceClient = pricesClientSelectSchema.parse(price)
 
         return {
           usageEvent,
