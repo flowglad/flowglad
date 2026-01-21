@@ -1,16 +1,5 @@
 # Flowglad Pricing UI
 
-**Version 1.0.0**
-Flowglad Engineering
-January 2026
-
-> **Note:**
-> This document is for AI agents to follow when building pricing pages and
-> displays with Flowglad. Humans may also find it useful, but guidance here
-> is optimized for automation and consistency by AI-assisted workflows.
-
----
-
 ## Abstract
 
 Comprehensive guide for building pricing pages, pricing cards, and plan displays with Flowglad. Covers loading states, accessing pricing data through helper functions, formatting prices correctly, highlighting current subscriptions, implementing billing interval toggles, and responsive layout patterns.

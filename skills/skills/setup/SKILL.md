@@ -1,14 +1,5 @@
 # Flowglad Setup
 
-**Version 1.0.0**
-Flowglad Engineering
-January 2026
-
-> **Note:**
-> This document is for AI agents to follow when integrating Flowglad billing into applications.
-
----
-
 ## Abstract
 
 This skill covers installing and configuring the Flowglad SDK for Next.js, Express, and React applications. It includes framework detection, package installation, environment setup, server factory creation, route handler setup, and provider configuration.

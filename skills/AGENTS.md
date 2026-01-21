@@ -52,4 +52,3 @@ Before using setup skill, detect the user's framework:
 1. **Use slugs, not IDs**: Reference prices and products by slug (e.g., `priceSlug: 'pro-monthly'`)
 2. **Customer IDs are yours**: Pass your app's user/org ID, not Flowglad's
 3. **Reload after mutations**: Call `billing.reload()` after subscription changes
-4. **Server-side for usage**: Record usage events server-side for security

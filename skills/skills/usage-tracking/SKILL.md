@@ -1,14 +1,5 @@
 # Usage Tracking
 
-**Version 1.0.0**
-Flowglad Engineering
-January 2025
-
-> **Note:**
-> This document is for AI agents to follow when integrating metered billing and usage tracking with Flowglad.
-
----
-
 ## Abstract
 
 This skill covers implementing usage-based billing with Flowglad, including recording usage events for metered billing, checking usage balances, and displaying usage information to users. Proper implementation ensures accurate billing and prevents users from bypassing usage charges.
@@ -17,67 +8,106 @@ This skill covers implementing usage-based billing with Flowglad, including reco
 
 ## Table of Contents
 
-1. [Server-Side vs Client-Side Recording](#1-server-side-vs-client-side-recording) — **CRITICAL**
-   - 1.1 [Why Server-Side Recording is Required](#11-why-server-side-recording-is-required)
-   - 1.2 [Implementation Patterns](#12-implementation-patterns)
-2. [Idempotency with transactionId](#2-idempotency-with-transactionid) — **HIGH**
-   - 2.1 [Preventing Double-Charging](#21-preventing-double-charging)
-   - 2.2 [Generating Unique Transaction IDs](#22-generating-unique-transaction-ids)
-3. [Pre-Check Balance Before Expensive Operations](#3-pre-check-balance-before-expensive-operations) — **MEDIUM**
-   - 3.1 [Check Before Consume Pattern](#31-check-before-consume-pattern)
-   - 3.2 [Handling Insufficient Balance](#32-handling-insufficient-balance)
-4. [Display Patterns for Usage](#4-display-patterns-for-usage) — **MEDIUM**
-   - 4.1 [Progress Bars and Counters](#41-progress-bars-and-counters)
-   - 4.2 [Real-Time Balance Display](#42-real-time-balance-display)
-5. [Handling Exhausted Balance](#5-handling-exhausted-balance) — **MEDIUM**
-   - 5.1 [Graceful Degradation](#51-graceful-degradation)
-   - 5.2 [Upgrade Prompts](#52-upgrade-prompts)
+1. [Recording Usage Events](#1-recording-usage-events) — **CRITICAL**
+   - 1.1 [Client-Side Recording](#11-client-side-recording)
+   - 1.2 [Server-Side Recording](#12-server-side-recording)
+   - 1.3 [Choosing Client vs Server](#13-choosing-client-vs-server)
+2. [Usage Meter Resolution](#2-usage-meter-resolution) — **HIGH**
+   - 2.1 [Using usageMeterSlug vs priceSlug](#21-using-usagemeterslug-vs-priceslug)
+   - 2.2 [Default No-Charge Prices](#22-default-no-charge-prices)
+3. [Idempotency with transactionId](#3-idempotency-with-transactionid) — **HIGH**
+   - 3.1 [Preventing Double-Charging](#31-preventing-double-charging)
+   - 3.2 [Generating Unique Transaction IDs](#32-generating-unique-transaction-ids)
+4. [Pre-Check Balance Before Expensive Operations](#4-pre-check-balance-before-expensive-operations) — **MEDIUM**
+   - 4.1 [Check Before Consume Pattern](#41-check-before-consume-pattern)
+   - 4.2 [Handling Insufficient Balance](#42-handling-insufficient-balance)
+5. [Display Patterns for Usage](#5-display-patterns-for-usage) — **MEDIUM**
+   - 5.1 [Progress Bars and Counters](#51-progress-bars-and-counters)
+   - 5.2 [Real-Time Balance Display](#52-real-time-balance-display)
+6. [Handling Exhausted Balance](#6-handling-exhausted-balance) — **MEDIUM**
+   - 6.1 [Graceful Degradation](#61-graceful-degradation)
+   - 6.2 [Upgrade Prompts](#62-upgrade-prompts)
 
 ---
 
-## 1. Server-Side vs Client-Side Recording
+## 1. Recording Usage Events
 
 **Impact: CRITICAL**
 
-Usage events must always be recorded server-side. Client-side recording is a security vulnerability that allows users to bypass billing entirely.
+Flowglad supports recording usage events from both client-side and server-side code. Each approach has different APIs and trade-offs.
 
-### 1.1 Why Server-Side Recording is Required
+### 1.1 Client-Side Recording
 
-**Impact: CRITICAL (billing integrity depends on this)**
+**Impact: CRITICAL (simplest approach for many use cases)**
 
-Client-side billing calls can be intercepted, blocked, or modified by users. Any billing-critical operations must happen on the server where the user cannot tamper with them.
+Use `useBilling().createUsageEvent` for client-side usage tracking. The client SDK provides smart defaults that simplify implementation.
 
-**Incorrect: records usage from client**
+**Client-side smart defaults:**
+- `amount` defaults to `1`
+- `transactionId` is auto-generated for idempotency
+- `subscriptionId` is auto-inferred from current subscription
 
-```typescript
-// Client-side component
-function GenerateButton() {
-  const { createUsageEvent } = useBilling()
+**Basic client-side usage:**
 
-  async function handleGenerate() {
-    const result = await fetch('/api/generate', { method: 'POST' })
-    const data = await result.json()
+```tsx
+'use client'
 
-    // SECURITY ISSUE: User can disable this call in DevTools
-    // or modify the amount to 0
-    await createUsageEvent({
-      usageMeterSlug: 'generations',
-      amount: 1,
+import { useBilling } from '@flowglad/nextjs'
+
+function RecordUsageButton({ usageMeterSlug }: { usageMeterSlug: string }) {
+  const billing = useBilling()
+
+  const handleClick = async () => {
+    if (!billing.createUsageEvent) return
+
+    const result = await billing.createUsageEvent({
+      usageMeterSlug,
+      // amount defaults to 1
+      // transactionId auto-generated
+      // subscriptionId auto-inferred
     })
 
-    return data
+    if ('error' in result) {
+      console.error('Failed to record usage:', result.error)
+      return
+    }
+
+    console.log('Usage recorded:', result.usageEvent.id)
   }
 
-  return <button onClick={handleGenerate}>Generate</button>
+  return <button onClick={handleClick}>Use Feature</button>
 }
 ```
 
-Users can bypass client-side billing by:
-- Blocking the network request in DevTools
-- Modifying the amount parameter
-- Disabling JavaScript after the generation completes
+**With explicit values:**
 
-**Correct: record usage server-side**
+```tsx
+const result = await billing.createUsageEvent({
+  usageMeterSlug: 'api-calls',
+  amount: 5, // Override default of 1
+  // transactionId and subscriptionId still auto-handled
+})
+```
+
+**Important:** Client-side usage events do not automatically refresh billing data. Call `billing.reload()` after recording if you need to update displayed balances.
+
+```tsx
+await billing.createUsageEvent({ usageMeterSlug: 'generations' })
+await billing.reload() // Refresh to show updated balance
+```
+
+### 1.2 Server-Side Recording
+
+**Impact: CRITICAL (required for atomic operations)**
+
+Use `flowglad(userId).createUsageEvent` for server-side usage tracking. Server-side requires explicit values for all parameters.
+
+**Server-side required parameters:**
+- `subscriptionId` - must be provided explicitly
+- `transactionId` - must be provided explicitly
+- `amount` - must be provided explicitly
+
+**Basic server-side usage:**
 
 ```typescript
 // API route - app/api/generate/route.ts
@@ -90,87 +120,178 @@ export async function POST(req: Request) {
     return Response.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  // Get billing to find subscriptionId
+  const billing = await flowglad(session.user.id).getBilling()
+  const subscriptionId = billing.currentSubscription?.id
+
+  if (!subscriptionId) {
+    return Response.json({ error: 'No active subscription' }, { status: 402 })
+  }
+
   // Perform the operation
   const result = await generateContent()
 
-  // Usage recorded server-side - cannot be bypassed
+  // Record usage with explicit parameters
   await flowglad(session.user.id).createUsageEvent({
     usageMeterSlug: 'generations',
     amount: 1,
-    transactionId: `gen_${result.id}`, // Idempotent
+    subscriptionId,
+    transactionId: `gen_${result.id}`,
   })
 
   return Response.json(result)
 }
 ```
 
-### 1.2 Implementation Patterns
+### 1.3 Choosing Client vs Server
 
-**Impact: CRITICAL (ensures consistent server-side implementation)**
+**Impact: CRITICAL (architectural decision)**
 
-**Incorrect: mixing client and server billing logic**
+Both approaches are valid. Choose based on your needs:
 
-```typescript
-// Inconsistent approach - some usage tracked client-side
-async function handleApiCall() {
-  // Some calls go through server
-  if (isImportantCall) {
-    await fetch('/api/tracked-call', { method: 'POST' })
-  } else {
-    // "Minor" calls tracked client-side - STILL A VULNERABILITY
-    await clientBilling.createUsageEvent({
-      usageMeterSlug: 'api-calls',
-      amount: 1,
-    })
-    await fetch('/api/untracked-call', { method: 'POST' })
-  }
-}
-```
+| Use Case | Recommended Approach | Why |
+|----------|---------------------|-----|
+| Simple button click tracking | Client-side | Smart defaults make it easy |
+| Feature usage counters | Client-side | No server round-trip needed |
+| AI generation / expensive operations | Server-side | Track atomically with operation |
+| API endpoint metering | Server-side | Already on server |
+| Operations that cost you money | Server-side | Ensure tracking happens |
+| Quick prototyping | Client-side | Fewer files to create |
 
-**Correct: all usage tracking flows through server**
+**Pattern: Atomic server-side tracking**
+
+When an operation costs you money (e.g., calling OpenAI), track usage atomically with the operation:
 
 ```typescript
-// lib/flowglad.server.ts - Server-only factory
-// Use .server.ts extension or place in a server-only directory
-// to prevent accidental client-side imports
-import { FlowgladServer } from '@flowglad/nextjs/server'
-
-export const flowglad = (customerExternalId: string) => {
-  return new FlowgladServer({
-    customerExternalId,
-    getCustomerDetails: async (externalId) => {
-      // Fetch user details from your database
-      const user = await db.users.findOne({ id: externalId })
-      return { email: user.email, name: user.name }
-    },
-  })
-}
-
-// Every API route that consumes resources tracks usage
-// app/api/call/route.ts
 export async function POST(req: Request) {
   const session = await auth()
-  const result = await performOperation()
+  const billing = await flowglad(session.user.id).getBilling()
 
+  // 1. Check balance first
+  const balance = billing.checkUsageBalance('generations')
+  if (!balance || balance.availableBalance <= 0) {
+    return Response.json({ error: 'No credits' }, { status: 402 })
+  }
+
+  // 2. Perform expensive operation
+  const result = await openai.images.generate({ prompt })
+
+  // 3. Record usage (atomic with operation)
   await flowglad(session.user.id).createUsageEvent({
-    usageMeterSlug: 'api-calls',
+    usageMeterSlug: 'generations',
     amount: 1,
-    transactionId: `call_${result.id}`,
+    subscriptionId: billing.currentSubscription!.id,
+    transactionId: `gen_${result.data[0].url}`,
   })
 
   return Response.json(result)
+}
+```
+
+**Pattern: Simple client-side tracking**
+
+For tracking feature usage where bypassing isn't a concern:
+
+```tsx
+function FeatureButton() {
+  const billing = useBilling()
+
+  const handleUse = async () => {
+    // Track usage - smart defaults handle the rest
+    await billing.createUsageEvent({ usageMeterSlug: 'feature-uses' })
+    await billing.reload()
+    // Do the feature thing
+  }
+
+  return <button onClick={handleUse}>Use Feature</button>
 }
 ```
 
 ---
 
-## 2. Idempotency with transactionId
+## 2. Usage Meter Resolution
+
+**Impact: HIGH**
+
+When creating usage events, you can identify the usage price by slug or ID. Understanding how these resolve helps you structure your billing correctly.
+
+### 2.1 Using usageMeterSlug vs priceSlug
+
+**Impact: HIGH (determines which price is charged)**
+
+You can identify usage with exactly one of:
+- `priceSlug` or `priceId` - targets a specific price directly
+- `usageMeterSlug` or `usageMeterId` - resolves to the meter's **default price**
+
+**Using priceSlug (explicit):**
+
+```typescript
+await createUsageEvent({
+  priceSlug: 'api-calls-standard', // Specific price
+  amount: 1,
+  // ...
+})
+```
+
+**Using usageMeterSlug (resolves to default):**
+
+```typescript
+await createUsageEvent({
+  usageMeterSlug: 'api-calls', // Resolves to meter's default price
+  amount: 1,
+  // ...
+})
+```
+
+When using `usageMeterSlug`, the system uses the meter's configured default price. If no custom default is set, it uses the auto-generated no-charge price.
+
+### 2.2 Default No-Charge Prices
+
+**Impact: HIGH (understanding automatic pricing)**
+
+Every usage meter automatically has a **no-charge price** with:
+- Slug pattern: `{usagemeterslug}_no_charge`
+- Unit price: `$0.00` (always free)
+- Cannot be archived or deleted
+
+This means you can start tracking usage immediately without creating a price first:
+
+```typescript
+// Works even if no custom price exists for 'api-calls' meter
+await createUsageEvent({
+  usageMeterSlug: 'api-calls',
+  amount: 1,
+  // Resolves to 'api-calls_no_charge' if no other default is set
+})
+```
+
+**When you need paid usage:**
+
+1. Create a usage price in your Flowglad dashboard (e.g., `api-calls-standard` at $0.001/call)
+2. Set it as the default price for the meter, OR
+3. Reference it directly with `priceSlug: 'api-calls-standard'`
+
+**Checking which price was used:**
+
+The response from `createUsageEvent` always includes the resolved `priceId`:
+
+```typescript
+const result = await createUsageEvent({ usageMeterSlug: 'api-calls', amount: 1 })
+
+if (!('error' in result)) {
+  console.log('Charged to price:', result.usageEvent.priceId)
+}
+```
+
+---
+
+## 3. Idempotency with transactionId
 
 **Impact: HIGH**
 
 Network failures and retries can cause duplicate usage events. Always include a `transactionId` to ensure each logical operation is only billed once.
 
-### 2.1 Preventing Double-Charging
+### 3.1 Preventing Double-Charging
 
 **Impact: HIGH (prevents billing disputes and customer trust issues)**
 
@@ -213,7 +334,7 @@ export async function POST(req: Request) {
 }
 ```
 
-### 2.2 Generating Unique Transaction IDs
+### 3.2 Generating Unique Transaction IDs
 
 **Impact: HIGH (ensures uniqueness across all operations)**
 
@@ -272,13 +393,13 @@ await flowglad(userId).createUsageEvent({
 
 ---
 
-## 3. Pre-Check Balance Before Expensive Operations
+## 4. Pre-Check Balance Before Expensive Operations
 
 **Impact: MEDIUM**
 
 For operations that consume significant resources or cost money (API calls to AI services, image generation, etc.), check the user's balance before starting the operation.
 
-### 3.1 Check Before Consume Pattern
+### 4.1 Check Before Consume Pattern
 
 **Impact: MEDIUM (prevents wasted compute and poor user experience)**
 
@@ -344,7 +465,7 @@ async function generateImage(userId: string, prompt: string) {
 }
 ```
 
-### 3.2 Handling Insufficient Balance
+### 4.2 Handling Insufficient Balance
 
 **Impact: MEDIUM (clear error handling improves user experience)**
 
@@ -407,13 +528,13 @@ export async function POST(req: Request) {
 
 ---
 
-## 4. Display Patterns for Usage
+## 5. Display Patterns for Usage
 
 **Impact: MEDIUM**
 
 Users need visibility into their usage. Display current balance, usage history, and limits clearly.
 
-### 4.1 Progress Bars and Counters
+### 5.1 Progress Bars and Counters
 
 **Impact: MEDIUM (transparency builds trust)**
 
@@ -486,7 +607,7 @@ function UsageDisplay() {
 }
 ```
 
-### 4.2 Real-Time Balance Display
+### 5.2 Real-Time Balance Display
 
 **Impact: MEDIUM (accurate display after mutations)**
 
@@ -549,13 +670,13 @@ function Dashboard() {
 
 ---
 
-## 5. Handling Exhausted Balance
+## 6. Handling Exhausted Balance
 
 **Impact: MEDIUM**
 
 When users run out of credits, provide a clear path to continue using the product.
 
-### 5.1 Graceful Degradation
+### 6.1 Graceful Degradation
 
 **Impact: MEDIUM (maintains usability when credits exhausted)**
 
@@ -623,7 +744,7 @@ function FeatureComponent() {
 }
 ```
 
-### 5.2 Upgrade Prompts
+### 6.2 Upgrade Prompts
 
 **Impact: MEDIUM (converts free users at the right moment)**
 
@@ -686,15 +807,33 @@ function Dashboard() {
 
 ## Quick Reference
 
-### Recording Usage (Server-Side Only)
+### Recording Usage (Client-Side)
+
+```tsx
+const billing = useBilling()
+
+// With smart defaults (amount: 1, auto transactionId, auto subscriptionId)
+await billing.createUsageEvent({ usageMeterSlug: 'your-meter-slug' })
+
+// With explicit amount
+await billing.createUsageEvent({ usageMeterSlug: 'your-meter-slug', amount: 5 })
+
+// Don't forget to reload if showing balance
+await billing.reload()
+```
+
+### Recording Usage (Server-Side)
 
 ```typescript
 import { flowglad } from '@/lib/flowglad'
 
+const billing = await flowglad(userId).getBilling()
+
 await flowglad(userId).createUsageEvent({
-  usageMeterSlug: 'your-meter-slug',
+  usageMeterSlug: 'your-meter-slug', // or priceSlug for specific price
   amount: 1,
-  transactionId: `unique_${operationId}`, // Always include!
+  subscriptionId: billing.currentSubscription!.id,
+  transactionId: `unique_${operationId}`,
 })
 ```
 
@@ -711,13 +850,16 @@ const billing = await flowglad(userId).getBilling()
 const balance = billing.checkUsageBalance('your-meter-slug')
 ```
 
-### After Recording Usage
+### Usage Meter Resolution
 
 ```typescript
-// Client-side: reload to update displayed balance
-const { reload } = useBilling()
-await fetch('/api/consume', { method: 'POST' })
-await reload()
+// Using usageMeterSlug - resolves to meter's default price
+await createUsageEvent({ usageMeterSlug: 'api-calls', ... })
+
+// Using priceSlug - targets specific price directly
+await createUsageEvent({ priceSlug: 'api-calls-standard', ... })
+
+// Every meter has auto-generated no-charge price: {slug}_no_charge
 ```
 
 ### HTTP Status Codes for Usage Errors

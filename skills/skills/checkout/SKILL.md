@@ -1,14 +1,5 @@
 # Checkout
 
-**Version 1.0.0**
-Flowglad Engineering
-January 2026
-
-> **Note:**
-> This document is for AI agents to follow when implementing Flowglad checkout and purchase flows.
-
----
-
 ## Abstract
 
 This skill covers implementing checkout sessions for purchasing subscriptions and products with Flowglad. It includes creating upgrade buttons, handling redirects to hosted checkout pages, and displaying pricing information from the pricing model.

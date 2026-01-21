@@ -1,14 +1,5 @@
 # Feature Gating
 
-**Version 1.0.0**
-Flowglad Engineering
-January 2026
-
-> **Note:**
-> This document is for AI agents to follow when implementing feature gating with Flowglad billing.
-
----
-
 ## Abstract
 
 Implement feature access checks using Flowglad's `checkFeatureAccess` method to gate premium features, create paywalls, and restrict functionality based on subscription status.

@@ -1,14 +1,5 @@
 # Subscriptions Management
 
-**Version 1.0.0**
-Flowglad Engineering
-January 2025
-
-> **Note:**
-> This document is for AI agents to follow when implementing subscription lifecycle management with Flowglad.
-
----
-
 ## Abstract
 
 This skill covers subscription lifecycle management including cancellation, plan changes, reactivation, trial handling, and status display. Proper subscription management ensures users can upgrade, downgrade, cancel, and reactivate subscriptions with correct billing behavior.
