@@ -84,22 +84,34 @@ export const derivePricingModelIdForPayment = async (
 ): Promise<Result<string, NotFoundError>> => {
   // Try subscription first
   if (data.subscriptionId) {
-    return Result.ok(
-      await derivePricingModelIdFromSubscription(
-        data.subscriptionId,
-        transaction
+    try {
+      return Result.ok(
+        await derivePricingModelIdFromSubscription(
+          data.subscriptionId,
+          transaction
+        )
       )
-    )
+    } catch {
+      return Result.err(
+        new NotFoundError('Subscription', data.subscriptionId)
+      )
+    }
   }
 
   // Try purchase second
   if (data.purchaseId) {
-    return Result.ok(
-      await derivePricingModelIdFromPurchase(
-        data.purchaseId,
-        transaction
+    try {
+      return Result.ok(
+        await derivePricingModelIdFromPurchase(
+          data.purchaseId,
+          transaction
+        )
       )
-    )
+    } catch {
+      return Result.err(
+        new NotFoundError('Purchase', data.purchaseId)
+      )
+    }
   }
 
   // Fall back to invoice (invoiceId is always present)
