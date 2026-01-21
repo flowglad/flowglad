@@ -178,8 +178,13 @@ describe('pricesRouter.create', () => {
       isApi: true as any,
       path: '',
     }
-    const product = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
+    // Create pricing model outside of adminTransaction to use the correct ctx
+    const { pricingModel } = await pricingModelsRouter
+      .createCaller(ctx)
+      .create({
+        pricingModel: { name: 'PM for Product' } as any,
+      })
+    const product = await adminTransaction(async (txCtx) => {
       return insertProduct(
         {
           name: 'No Price Product',
@@ -190,16 +195,12 @@ describe('pricesRouter.create', () => {
           singularQuantityLabel: null,
           pluralQuantityLabel: null,
           externalId: null,
-          pricingModelId: (
-            await pricingModelsRouter.createCaller(ctx).create({
-              pricingModel: { name: 'PM for Product' } as any,
-            })
-          ).pricingModel.id,
+          pricingModelId: pricingModel.id,
           organizationId: orgData.organization.id,
           livemode: true,
           active: true,
         },
-        ctx
+        txCtx
       )
     })
     const result = await pricesRouter.createCaller(ctx).create({
