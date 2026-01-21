@@ -5,12 +5,6 @@ name: Publish Skills to flowglad/skills
 #
 # The flowglad/skills repo is what developers install via `npx skills add flowglad/skills`.
 # The monorepo is the source of truth for skill definitions.
-#
-# Prerequisites:
-# 1. Create empty flowglad/skills repo on GitHub
-# 2. Generate SSH deploy key: ssh-keygen -t ed25519 -C "skills-deploy-key" -f skills_deploy_key
-# 3. Add public key (skills_deploy_key.pub) to flowglad/skills repo as a deploy key with write access
-# 4. Add private key content to this repo's secrets as SKILLS_REPO_DEPLOY_KEY
 
 on:
   push:
