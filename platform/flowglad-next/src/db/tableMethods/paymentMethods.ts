@@ -91,10 +91,17 @@ export const derivePricingModelIdForPayment = async (
           transaction
         )
       )
-    } catch {
-      return Result.err(
-        new NotFoundError('Subscription', data.subscriptionId)
-      )
+    } catch (error) {
+      // Only convert expected "not found" errors; rethrow unexpected ones
+      if (
+        error instanceof Error &&
+        error.message.includes('does not have a pricingModelId')
+      ) {
+        return Result.err(
+          new NotFoundError('Subscription', data.subscriptionId)
+        )
+      }
+      throw error
     }
   }
 
@@ -107,10 +114,17 @@ export const derivePricingModelIdForPayment = async (
           transaction
         )
       )
-    } catch {
-      return Result.err(
-        new NotFoundError('Purchase', data.purchaseId)
-      )
+    } catch (error) {
+      // Only convert expected "not found" errors; rethrow unexpected ones
+      if (
+        error instanceof Error &&
+        error.message.includes('does not have a pricingModelId')
+      ) {
+        return Result.err(
+          new NotFoundError('Purchase', data.purchaseId)
+        )
+      }
+      throw error
     }
   }
 
