@@ -255,7 +255,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(creditEntry.entryType).toBe(
             LedgerEntryType.CreditGrantRecognized
           )
-          expect(creditEntry.amount).toBe(feature.amount)
+          expect(creditEntry.amount).toBe(feature.amount!)
           expect(creditEntry.ledgerAccountId).toBe(ledgerAccount.id)
           expect(typeof creditEntry.sourceUsageCreditId).toBe(
             'string'
@@ -274,7 +274,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           if (!usageCredit) {
             throw new Error('Usage credit not found')
           }
-          expect(usageCredit.issuedAmount).toBe(feature.amount)
+          expect(usageCredit.issuedAmount).toBe(feature.amount!)
           expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
         })
       })

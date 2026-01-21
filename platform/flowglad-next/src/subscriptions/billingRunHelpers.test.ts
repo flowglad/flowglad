@@ -98,6 +98,7 @@ import {
 import {
   BillingPeriodStatus,
   BillingRunStatus,
+  CountryCode,
   CurrencyCode,
   FeatureUsageGrantFrequency,
   IntervalUnit,
@@ -1983,7 +1984,7 @@ describe('billingRunHelpers', async () => {
       )
 
       if (result.payment) {
-        expect(result.payment.taxCountry).toBe('US')
+        expect(result.payment.taxCountry).toBe(CountryCode.US)
       }
     })
 
@@ -2018,7 +2019,7 @@ describe('billingRunHelpers', async () => {
       )
 
       if (result.payment) {
-        expect(result.payment.taxCountry).toBe('CA')
+        expect(result.payment.taxCountry).toBe(CountryCode.CA)
       }
     })
 

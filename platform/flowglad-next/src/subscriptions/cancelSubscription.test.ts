@@ -809,7 +809,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           BillingPeriodStatus.Completed
         )
         expect(updatedActiveBP.endDate).toBe(
-          updatedSubscription.canceledAt
+          updatedSubscription.canceledAt!
         )
         expect(updatedFutureBP.status).toBe(
           BillingPeriodStatus.Canceled

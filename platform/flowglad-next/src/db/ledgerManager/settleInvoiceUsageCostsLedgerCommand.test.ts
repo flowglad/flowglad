@@ -133,7 +133,7 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         UsageCreditType.Payment
       )
       expect(usageCreditInsert.issuedAmount).toBe(
-        usageInvoiceLineItem.ledgerAccountCredit
+        usageInvoiceLineItem.ledgerAccountCredit!
       )
       expect(usageCreditInsert.sourceReferenceType).toBe(
         UsageCreditSourceReferenceType.InvoiceSettlement
@@ -234,13 +234,13 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // Assert amounts are correct
       expect(creditGrantEntry.amount).toBe(
-        usageInvoiceLineItem.ledgerAccountCredit
+        usageInvoiceLineItem.ledgerAccountCredit!
       )
       expect(debitAppEntry.amount).toBe(
-        usageInvoiceLineItem.ledgerAccountCredit
+        usageInvoiceLineItem.ledgerAccountCredit!
       )
       expect(creditAppEntry.amount).toBe(
-        usageInvoiceLineItem.ledgerAccountCredit
+        usageInvoiceLineItem.ledgerAccountCredit!
       )
 
       // 5. All 3 ledger entries are linked to the created ledger transaction.

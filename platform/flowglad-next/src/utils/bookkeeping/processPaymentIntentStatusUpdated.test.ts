@@ -1646,10 +1646,10 @@ describe('Process payment intent status updated', async () => {
           status: PaymentStatus.Processing,
           invoiceId: 'inv_br',
           purchaseId: null,
-        }(
-          // Mock getStripeCharge to return the fake charge
-          getStripeCharge as Mock<any>
-        ).mockResolvedValue(fakeCharge)
+        }
+
+        // Mock getStripeCharge to return the fake charge
+        ;(getStripeCharge as Mock<any>).mockResolvedValue(fakeCharge)
         const { payment } = await comprehensiveAdminTransaction(
           async (ctx) => {
             const { transaction } = ctx
@@ -1702,10 +1702,12 @@ describe('Process payment intent status updated', async () => {
           organizationId: 'org_br_err',
           customerId: 'cp_br_err',
           livemode: true,
-        }(
-          // Mock getStripeCharge to return the fake charge so test can proceed to billing run check
-          getStripeCharge as Mock<any>
-        ).mockResolvedValue(fakeCharge as any)
+        }
+
+        // Mock getStripeCharge to return the fake charge so test can proceed to billing run check
+        ;(getStripeCharge as Mock<any>).mockResolvedValue(
+          fakeCharge as any
+        )
         await expect(
           comprehensiveAdminTransaction(async (ctx) => {
             const { transaction } = ctx
@@ -1778,7 +1780,7 @@ describe('Process payment intent status updated', async () => {
           }
         )
         expect(typeof payment).toBe('object')
-        expect(payment.taxCountry).toBe('US')
+        expect(payment.taxCountry).toBe(CountryCode.US)
       })
     })
 
@@ -2100,10 +2102,10 @@ describe('Process payment intent status updated', async () => {
         organizationId: organization.id,
         priceId: price.id,
         livemode: true,
-      })(
-        // Mock getStripeCharge to return succeeded charge
-        getStripeCharge as Mock<any>
-      ).mockResolvedValue({
+      })
+
+      // Mock getStripeCharge to return succeeded charge
+      ;(getStripeCharge as Mock<any>).mockResolvedValue({
         id: chargeId,
         amount: 1000,
         status: 'succeeded',
@@ -2211,10 +2213,10 @@ describe('Process payment intent status updated', async () => {
     it('should create only PaymentSucceeded event when payment succeeds without associated purchase', async () => {
       // Generate unique IDs for this test run
       const chargeId = `ch_test_${core.nanoid()}`
-      const paymentIntentId = `pi_test_${core.nanoid()}`(
-        // Mock getStripeCharge to return succeeded charge
-        getStripeCharge as Mock<any>
-      ).mockResolvedValue({
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
+      // Mock getStripeCharge to return succeeded charge
+      ;(getStripeCharge as Mock<any>).mockResolvedValue({
         id: chargeId,
         amount: 1000,
         status: 'succeeded',
@@ -2312,10 +2314,10 @@ describe('Process payment intent status updated', async () => {
     it('should create no events when payment intent status is processing', async () => {
       // Generate unique IDs for this test run
       const chargeId = `ch_test_${core.nanoid()}`
-      const paymentIntentId = `pi_test_${core.nanoid()}`(
-        // Mock getStripeCharge to return pending charge
-        getStripeCharge as Mock<any>
-      ).mockResolvedValue({
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
+      // Mock getStripeCharge to return pending charge
+      ;(getStripeCharge as Mock<any>).mockResolvedValue({
         id: chargeId,
         amount: 1000,
         status: 'pending',
@@ -2397,10 +2399,10 @@ describe('Process payment intent status updated', async () => {
     it('should create events with correct properties and structure', async () => {
       // Generate unique IDs for this test run
       const chargeId = `ch_test_${core.nanoid()}`
-      const paymentIntentId = `pi_test_${core.nanoid()}`(
-        // Mock getStripeCharge to return succeeded charge
-        getStripeCharge as Mock<any>
-      ).mockResolvedValue({
+      const paymentIntentId = `pi_test_${core.nanoid()}`
+
+      // Mock getStripeCharge to return succeeded charge
+      ;(getStripeCharge as Mock<any>).mockResolvedValue({
         id: chargeId,
         amount: 1000,
         status: 'succeeded',
@@ -2562,10 +2564,10 @@ describe('Process payment intent status updated', async () => {
         status: 'succeeded',
         latest_charge: stripeCharge,
         metadata: csMetadata,
-      })(
-        // Mock getStripeCharge to return our charge
-        getStripeCharge as Mock<any>
-      ).mockResolvedValue(stripeCharge)
+      })
+
+      // Mock getStripeCharge to return our charge
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(stripeCharge)
 
       // Process the payment intent
       const { payment } = await comprehensiveAdminTransaction(
@@ -2647,10 +2649,12 @@ describe('Process payment intent status updated', async () => {
         status: 'succeeded',
         latest_charge: stripeCharge,
         metadata: csMetadata2,
-      })(
-        // Mock charge retrieval
-        getStripeCharge as Mock<any>
-      ).mockResolvedValue(stripeCharge as any)
+      })
+
+      // Mock charge retrieval
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(
+        stripeCharge as any
+      )
 
       await comprehensiveAdminTransaction(async (ctx) => {
         await processPaymentIntentStatusUpdated(
@@ -2764,10 +2768,12 @@ describe('Process payment intent status updated', async () => {
         status: 'canceled',
         latest_charge: stripeCharge,
         metadata: canceledMetadata,
-      })(
-        // Mock charge retrieval
-        getStripeCharge as Mock<any>
-      ).mockResolvedValue(stripeCharge as any)
+      })
+
+      // Mock charge retrieval
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(
+        stripeCharge as any
+      )
 
       const { payment } = await comprehensiveAdminTransaction(
         async (ctx) => {

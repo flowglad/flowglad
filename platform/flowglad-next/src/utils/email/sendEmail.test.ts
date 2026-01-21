@@ -39,12 +39,12 @@ beforeEach(() => {
   mockSafeSend.mockResolvedValue(mockResponse)
   mockEnvVariable.mockClear()
   // Default: return test email for DEV_EMAIL_REDIRECT, undefined for others
-  mockEnvVariable.mockImplementation((key: string) => {
+  mockEnvVariable.mockImplementation(((key: string) => {
     if (key === 'DEV_EMAIL_REDIRECT') {
       return 'test-redirect@flowglad.com'
     }
     return undefined
-  })
+  }) as any)
 })
 
 describe('sendEmail', () => {

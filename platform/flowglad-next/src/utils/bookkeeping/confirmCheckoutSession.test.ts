@@ -44,6 +44,7 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   DiscountAmountType,
+  EventNoun,
   FlowgladEventType,
   IntervalUnit,
   PaymentMethodType,
@@ -517,7 +518,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         (e) => e.type === FlowgladEventType.CustomerCreated
       )
       expect(typeof customerCreatedEvent).toBe('object')
-      expect(customerCreatedEvent!.payload.object).toEqual('customer')
+      expect(customerCreatedEvent!.payload.object).toEqual(
+        EventNoun.Customer
+      )
       expect(typeof customerCreatedEvent!.payload.customer).toBe(
         'object'
       )
@@ -535,7 +538,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
       expect(typeof subscriptionCreatedEvent).toBe('object')
       expect(subscriptionCreatedEvent?.payload.object).toEqual(
-        'subscription'
+        EventNoun.Subscription
       )
       expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(
         result.customer.id

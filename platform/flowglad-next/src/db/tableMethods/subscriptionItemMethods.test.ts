@@ -142,7 +142,7 @@ describe('subscriptionItemMethods', async () => {
           newItemData,
           transaction
         )
-        expect(result.name).toBe(newItemData.name)
+        expect(result.name).toBe(newItemData.name!)
         expect(result.quantity).toBe(newItemData.quantity)
 
         const retrieved = await selectSubscriptionItemById(
@@ -186,14 +186,14 @@ describe('subscriptionItemMethods', async () => {
           transaction
         )
         expect(result).toMatchObject({ name: updates.name })
-        expect(result?.name).toBe(updates.name)
-        expect(result?.quantity).toBe(updates.quantity)
+        expect(result?.name).toBe(updates.name!)
+        expect(result?.quantity).toBe(updates.quantity!)
 
         const retrieved = await selectSubscriptionItemById(
           subscriptionItem.id,
           transaction
         )
-        expect(retrieved?.name).toBe(updates.name)
+        expect(retrieved?.name).toBe(updates.name!)
       })
     })
 
@@ -280,7 +280,7 @@ describe('subscriptionItemMethods', async () => {
           const original = itemsToInsert.find(
             (p) => p.externalId === insertedItem.externalId
           )
-          expect(insertedItem.name).toBe(original?.name)
+          expect(insertedItem.name).toBe(original!.name!)
         }
       })
     })

@@ -11,7 +11,12 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
+import {
+  CurrencyCode,
+  FeatureType,
+  IntervalUnit,
+  PriceType,
+} from '@/types'
 import { core } from '@/utils/core'
 import type { Organization } from '../schema/organizations'
 import {
@@ -2357,7 +2362,7 @@ describe('priceMethods.ts', () => {
         expect(features[0].id).toBe(resourceFeature.id)
         expect(features[0].resourceId).toBe(resource.id)
         expect(features[0].amount).toBe(5)
-        expect(features[0].type).toBe('resource')
+        expect(features[0].type).toBe(FeatureType.Resource)
       })
     })
 
