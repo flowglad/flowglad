@@ -30,6 +30,7 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
   type SelectConditions,
+  NotFoundError as TableUtilsNotFoundError,
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
@@ -522,12 +523,16 @@ export const safelyUpdatePaymentForRefund = async (
 ): Promise<
   Result<Payment.Record, NotFoundError | ValidationError>
 > => {
-  const payment = await selectPaymentById(
-    paymentUpdate.id,
-    transaction
-  )
-  if (!payment) {
-    return Result.err(new NotFoundError('Payment', paymentUpdate.id))
+  let payment: Payment.Record
+  try {
+    payment = await selectPaymentById(paymentUpdate.id, transaction)
+  } catch (error) {
+    if (error instanceof TableUtilsNotFoundError) {
+      return Result.err(
+        new NotFoundError('Payment', paymentUpdate.id)
+      )
+    }
+    throw error
   }
   /**
    * Only allow updates to succeeded or refunded payments

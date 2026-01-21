@@ -367,8 +367,8 @@ describe('paymentMethods.ts', () => {
         expect(result.status).toBe('error')
         if (result.status === 'error') {
           expect(result.error).toBeInstanceOf(TerminalStateError)
-          expect(result.error.message).toContain(
-            `Payment ${terminalPayment.id} is in a terminal state: ${terminalPayment.status}; cannot update to ${PaymentStatus.Succeeded}`
+          expect(result.error.message).toBe(
+            `Payment ${terminalPayment.id} is in terminal state: ${terminalPayment.status}`
           )
         }
       })
