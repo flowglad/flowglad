@@ -36,14 +36,16 @@ function createMockRedisClient() {
   const zsets: Record<string, Map<string, number>> = {}
 
   // Helper for LRU eviction script simulation (used by both eval and evalsha)
+  // Returns JSON string matching the real Lua script: [evictedCount, orphansRemoved]
   const executeLruScript = (
     keys: string[],
     args: (string | number)[]
-  ): number => {
+  ): string => {
     const zsetKey = keys[0]
     const cacheKey = keys[1]
     const timestamp = Number(args[0])
     const maxSize = Number(args[1])
+    // args[2] is metadataPrefix, used in real script for cleanup
 
     // ZADD
     if (!zsets[zsetKey]) {
@@ -51,7 +53,9 @@ function createMockRedisClient() {
     }
     zsets[zsetKey].set(cacheKey, timestamp)
 
-    // Check size and evict
+    // Check size and evict (simplified - doesn't simulate orphan detection)
+    let evictedCount = 0
+    const orphansRemoved = 0 // Mock doesn't simulate TTL expiration
     const size = zsets[zsetKey].size
     if (size > maxSize) {
       const toEvictCount = size - maxSize
@@ -62,10 +66,10 @@ function createMockRedisClient() {
       for (const m of toEvict) {
         delete store[m]
         zsets[zsetKey].delete(m)
+        evictedCount++
       }
-      return toEvict.length
     }
-    return 0
+    return JSON.stringify([evictedCount, orphansRemoved])
   }
 
   return {

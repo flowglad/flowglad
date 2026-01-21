@@ -295,7 +295,7 @@ From here you can install and setup Flowglad in one of two ways.
       data: { user }
     } = await supabase.auth.getUser();
     return (
-      <FlowgladProvider loadBilling={!!user}>
+      <FlowgladProvider>
       { /* ... existing layout JSX ... */}
         {children}
       { /* ... existing layout JSX ... */}
@@ -320,7 +320,7 @@ From here you can install and setup Flowglad in one of two ways.
     return (
         <html lang="en">
           <body>
-            <FlowgladProvider loadBilling={!!user}>
+            <FlowgladProvider>
               {children}
             </FlowgladProvider>
           </body>
@@ -343,7 +343,6 @@ From here you can install and setup Flowglad in one of two ways.
     return (
       <SessionProvider basePath={'/auth'} session={session}>
         <FlowgladProviderWithAuth
-          loadBilling={session.status === 'authenticated'}
         >
           {children}
         </FlowgladProviderWithAuth>

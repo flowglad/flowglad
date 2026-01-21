@@ -327,6 +327,7 @@ export const updatePaymentToReflectLatestChargeStatus = async (
       updatedPayment
     )
     await idempotentSendOrganizationPaymentFailedNotification({
+      paymentId: updatedPayment.id,
       organizationId: updatedPayment.organizationId,
       customerId: updatedPayment.customerId,
       amount: updatedPayment.amount,

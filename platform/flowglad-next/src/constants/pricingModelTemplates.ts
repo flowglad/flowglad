@@ -1330,34 +1330,45 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
       // Usage Meters - None needed for seat-based billing
       usageMeters: [],
 
-      // Resources - defines the "teams" resource for this pricing model
+      // Resources - seats for per-user tracking (scales with subscription quantity)
       resources: [
         {
-          slug: 'teams',
-          name: 'Teams',
+          slug: 'seats',
+          name: 'Seats',
           active: true,
         },
       ],
 
       // Features
       features: [
-        // Resource features - grant team capacity per product tier
+        // Resource features - grant seat capacity (1 seat per subscription unit, scales with quantity)
         {
           type: FeatureType.Resource,
-          slug: 'free_teams',
-          name: 'Free Plan Teams',
-          description: 'Team allocation for Free plan subscribers',
-          resourceSlug: 'teams',
-          amount: 2,
+          slug: 'basic_seats',
+          name: 'Basic Plan Seats',
+          description: 'Seat allocation for Basic plan subscribers',
+          resourceSlug: 'seats',
+          amount: 1,
           active: true,
         },
         {
           type: FeatureType.Resource,
-          slug: 'basic_teams',
-          name: 'Basic Plan Teams',
-          description: 'Team allocation for Basic plan subscribers',
-          resourceSlug: 'teams',
-          amount: 5,
+          slug: 'business_seats',
+          name: 'Business Plan Seats',
+          description:
+            'Seat allocation for Business plan subscribers',
+          resourceSlug: 'seats',
+          amount: 1,
+          active: true,
+        },
+        {
+          type: FeatureType.Resource,
+          slug: 'enterprise_seats',
+          name: 'Enterprise Plan Seats',
+          description:
+            'Seat allocation for Enterprise plan subscribers',
+          resourceSlug: 'seats',
+          amount: 1,
           active: true,
         },
 
@@ -1448,20 +1459,6 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
           slug: 'issue_slas',
           name: 'Issue SLAs',
           description: 'Set and track SLAs for issues',
-          active: true,
-        },
-        {
-          type: FeatureType.Toggle,
-          slug: 'unlimited_teams',
-          name: 'Unlimited Teams',
-          description: 'Create unlimited teams',
-          active: true,
-        },
-        {
-          type: FeatureType.Toggle,
-          slug: 'private_teams',
-          name: 'Private Teams & Guests',
-          description: 'Create private teams and invite guests',
           active: true,
         },
         {
@@ -1584,7 +1581,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             name: 'Free',
             default: true,
             description:
-              'Free for everyone. Unlimited members, 2 teams, 250 issues, Slack/GitHub integration, and AI agents.',
+              'Free for everyone. Unlimited members, 250 issues, Slack/GitHub integration, and AI agents.',
             slug: 'free_tier',
             active: true,
             imageURL: null,
@@ -1605,7 +1602,6 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 0,
           },
           features: [
-            'free_teams',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1621,7 +1617,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             name: 'Basic',
             default: false,
             description:
-              '$10/user/month. All Free features + 5 teams, unlimited issues, unlimited file uploads, and admin roles.',
+              '$10/user/month. All Free features + unlimited issues, unlimited file uploads, and admin roles.',
             slug: 'basic_monthly',
             active: true,
             imageURL: null,
@@ -1642,7 +1638,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 1000,
           },
           features: [
-            'basic_teams',
+            'basic_seats',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1663,7 +1659,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             name: 'Basic',
             default: false,
             description:
-              '$120/user/year. All Free features + 5 teams, unlimited issues, unlimited file uploads, and admin roles.',
+              '$120/user/year. All Free features + unlimited issues, unlimited file uploads, and admin roles.',
             slug: 'basic_yearly',
             active: true,
             imageURL: null,
@@ -1684,7 +1680,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 12000,
           },
           features: [
-            'basic_teams',
+            'basic_seats',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1705,7 +1701,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             name: 'Business',
             default: false,
             description:
-              '$16/user/month. All Basic features + unlimited teams, private teams, Product Intelligence, Linear Insights, Linear Asks, and support integrations.',
+              '$16/user/month. All Basic features + Product Intelligence, Linear Insights, Linear Asks, and support integrations.',
             slug: 'business_monthly',
             active: true,
             imageURL: null,
@@ -1726,6 +1722,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 1600,
           },
           features: [
+            'business_seats',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1738,8 +1735,6 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             'unlimited_file_uploads',
             'admin_roles',
             'issue_slas',
-            'unlimited_teams',
-            'private_teams',
             'product_intelligence',
             'linear_insights',
             'linear_asks',
@@ -1755,7 +1750,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             name: 'Business',
             default: false,
             description:
-              '$192/user/year. All Basic features + unlimited teams, private teams, Product Intelligence, Linear Insights, Linear Asks, and support integrations.',
+              '$192/user/year. All Basic features + Product Intelligence, Linear Insights, Linear Asks, and support integrations.',
             slug: 'business_yearly',
             active: true,
             imageURL: null,
@@ -1776,6 +1771,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 19200,
           },
           features: [
+            'business_seats',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1788,8 +1784,6 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             'unlimited_file_uploads',
             'admin_roles',
             'issue_slas',
-            'unlimited_teams',
-            'private_teams',
             'product_intelligence',
             'linear_insights',
             'linear_asks',
@@ -1826,6 +1820,7 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             unitPrice: 24000, // Placeholder price - actual pricing is custom
           },
           features: [
+            'enterprise_seats',
             'unlimited_members',
             'slack_github',
             'ai_agents',
@@ -1838,8 +1833,6 @@ export const SEAT_BASED_SUBSCRIPTION_TEMPLATE: PricingModelTemplate =
             'unlimited_file_uploads',
             'admin_roles',
             'issue_slas',
-            'unlimited_teams',
-            'private_teams',
             'product_intelligence',
             'linear_insights',
             'linear_asks',

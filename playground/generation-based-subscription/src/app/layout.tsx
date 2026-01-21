@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import { PropsWithChildren } from 'react'
-import { Navbar } from '@/components/navbar'
+import { NavbarGate } from '@/components/navbar-gate'
 import {
   FlowgladProviderWrapper,
   ReactQueryProvider,
@@ -34,7 +34,7 @@ export default async function RootLayout({
       >
         <ReactQueryProvider>
           <FlowgladProviderWrapper>
-            <Navbar />
+            <NavbarGate />
             {children}
           </FlowgladProviderWrapper>
         </ReactQueryProvider>

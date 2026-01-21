@@ -579,8 +579,8 @@ describe('selectUsageEventsTableRowData', () => {
           (e) => e.id === enrichedEvent.usageEvent.id
         )
       ) {
-        expect(enrichedEvent.price?.id).toBe(price1.id)
-        expect(enrichedEvent.price?.id).toBe(
+        expect(enrichedEvent.price.id).toBe(price1.id)
+        expect(enrichedEvent.price.id).toBe(
           enrichedEvent.usageEvent.priceId
         )
       } else {
@@ -589,8 +589,8 @@ describe('selectUsageEventsTableRowData', () => {
           noChargePrice.id
         )
         expect(enrichedEvent.usageEvent.amount).toBe(200)
-        expect(enrichedEvent.price?.id).toBe(noChargePrice.id)
-        expect(enrichedEvent.price?.unitPrice).toBe(0)
+        expect(enrichedEvent.price.id).toBe(noChargePrice.id)
+        expect(enrichedEvent.price.unitPrice).toBe(0)
       }
     })
   })

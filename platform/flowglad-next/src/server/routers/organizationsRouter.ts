@@ -317,7 +317,7 @@ const getCurrentSubscribers = protectedProcedure.query(
 const getUsageVolumeInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
-  granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  granularity: z.enum(RevenueChartIntervalUnit),
   usageMeterId: z.string(),
   productId: z.string().nullish(),
 })
@@ -374,7 +374,7 @@ const getUsageMetersWithEventsOutput = z.array(
   z.object({
     id: z.string(),
     name: z.string(),
-    aggregationType: z.nativeEnum(UsageMeterAggregationType),
+    aggregationType: z.enum(UsageMeterAggregationType),
     pricingModelId: z.string(), // For future UX enhancements
   })
 )

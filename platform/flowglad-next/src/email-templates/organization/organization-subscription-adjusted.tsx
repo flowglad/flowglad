@@ -8,6 +8,7 @@ import {
   DetailItem,
   DetailSection,
   EmailLayout,
+  Footer,
   Header,
   Paragraph,
 } from '../components/themed'
@@ -206,6 +207,10 @@ export const OrganizationSubscriptionAdjustedEmail = ({
       >
         {`You can manage this customer's subscription and access their information through your dashboard.`}
       </Paragraph>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }
