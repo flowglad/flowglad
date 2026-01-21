@@ -1,5 +1,4 @@
 import { useFormContext } from 'react-hook-form'
-import { z } from 'zod'
 import {
   FormControl,
   FormDescription,
@@ -10,26 +9,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import type { Customer } from '@/db/schema/customers'
-
-/**
- * Zod schemas for customer form validation
- */
-const nameSchema = z
-  .string()
-  .min(2, `Please enter the customer's full name`)
-
-const emailSchema = z
-  .string()
-  .email('Please enter a valid email address')
-
-export const customerSchema = z.object({
-  customer: z.object({
-    name: nameSchema,
-    email: emailSchema,
-  }),
-})
-
-export type CustomerFormValues = z.infer<typeof customerSchema>
 
 interface CustomerFormFieldsProps {
   showExternalId?: boolean
