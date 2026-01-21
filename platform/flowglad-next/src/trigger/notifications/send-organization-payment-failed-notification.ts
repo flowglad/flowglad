@@ -16,9 +16,9 @@ import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
 interface PaymentFailedNotificationData {
-  paymentId: string
   organizationId: string
   customerId: string
+  paymentId: string
   amount: number
   currency: CurrencyCode
   invoiceNumber?: string
