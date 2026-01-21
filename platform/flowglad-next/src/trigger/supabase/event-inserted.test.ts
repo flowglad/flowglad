@@ -1,8 +1,61 @@
 import { describe, expect, it } from 'vitest'
 import { ValidationError } from '@/errors'
+import { EventNoun, FlowgladEventType } from '@/types'
 import { validateEventInsertPayload } from './event-inserted'
 
 describe('validateEventInsertPayload', () => {
+  it('returns Result.ok with transformed dates when payload is valid', () => {
+    const nowIso = new Date().toISOString()
+    const nowTimestamp = new Date(nowIso).getTime()
+    const validPayload = {
+      table: 'events',
+      schema: 'public',
+      type: 'INSERT',
+      record: {
+        id: 'evt_123',
+        type: FlowgladEventType.PaymentSucceeded,
+        organization_id: 'org_123',
+        livemode: true,
+        payload: { object: EventNoun.Payment, id: 'pay_123' },
+        hash: 'abc123',
+        metadata: {},
+        created_at: nowIso,
+        updated_at: nowIso,
+        occurred_at: nowIso,
+        submitted_at: nowIso,
+        processed_at: null,
+        created_by_commit: null,
+        updated_by_commit: null,
+        position: 1,
+        object_entity: null,
+        object_id: null,
+      },
+    }
+
+    const result = validateEventInsertPayload(validPayload as never)
+
+    expect(result.status).toBe('ok')
+    if (result.status === 'ok') {
+      // Verify date strings were transformed and coerced to numeric timestamps
+      expect(typeof result.value.record.createdAt).toBe('number')
+      expect(typeof result.value.record.updatedAt).toBe('number')
+      expect(typeof result.value.record.occurredAt).toBe('number')
+      expect(typeof result.value.record.submittedAt).toBe('number')
+      // Verify timestamps are close to the expected value (within 1 second)
+      expect(result.value.record.createdAt).toBeCloseTo(
+        nowTimestamp,
+        -3
+      )
+      expect(result.value.record.processedAt).toBeNull()
+      // Verify other fields are preserved and transformed to camelCase
+      expect(result.value.record.id).toBe('evt_123')
+      expect(result.value.record.type).toBe(
+        FlowgladEventType.PaymentSucceeded
+      )
+      expect(result.value.record.organizationId).toBe('org_123')
+    }
+  })
+
   it('returns ValidationError when payload is missing required fields', () => {
     const invalidPayload = {
       table: 'events',
