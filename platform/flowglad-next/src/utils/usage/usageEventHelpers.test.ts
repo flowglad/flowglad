@@ -976,7 +976,9 @@ describe('usageEventHelpers', () => {
           }
         )
       ).rejects.toThrow(
-        `Usage meter ${otherOrgUsageMeter.id} not found for this customer's pricing model`
+        // When both usageMeterId and priceId from a different org are provided,
+        // the priceId validation runs first since it's explicitly provided
+        `Price ${otherOrgPrice.id} not found for this customer's pricing model`
       )
     })
 
