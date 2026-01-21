@@ -65,8 +65,8 @@ jobs:
           # Remove existing content (except .git)
           find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} \;
 
-          # Copy skills directory content to root of target repo
-          cp -r $GITHUB_WORKSPACE/skills/* .
+          # Copy skills directory content to root of target repo (including dotfiles)
+          rsync -a "$GITHUB_WORKSPACE/skills/" .
 
           # Check if there are changes to commit (including untracked files)
           if [ -z "$(git status --porcelain)" ]; then

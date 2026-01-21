@@ -820,45 +820,6 @@ function PricingGrid({
 }
 ```
 
-**Show savings for annual billing:**
-
-```tsx
-function PricingCard({
-  monthlyPrice,
-  annualPrice,
-  showAnnual,
-}: {
-  monthlyPrice: number
-  annualPrice: number
-  showAnnual: boolean
-}) {
-  const displayPrice = showAnnual ? annualPrice : monthlyPrice
-
-  // Calculate annual savings
-  const monthlyCostIfAnnual = annualPrice / 12
-  const monthlyTotal = monthlyPrice * 12
-  const savings = monthlyTotal - annualPrice
-  const savingsPercent = Math.round((savings / monthlyTotal) * 100)
-
-  return (
-    <div>
-      <p className="text-3xl font-bold">
-        ${(displayPrice / 100).toFixed(2)}
-        <span className="text-sm font-normal">
-          /{showAnnual ? 'year' : 'month'}
-        </span>
-      </p>
-
-      {showAnnual && savings > 0 && (
-        <p className="text-green-600 text-sm">
-          Save {savingsPercent}% compared to monthly
-        </p>
-      )}
-    </div>
-  )
-}
-```
-
 ---
 
 ## 6. Responsive Layout
