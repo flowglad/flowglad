@@ -61,6 +61,7 @@ jobs:
         run: bun run test:rls
         env:
           NODE_ENV: test
+          CLAUDECODE: 1
 
   # Backend tests (.test.ts) run via bun test with file-based sharding
   # Each shard runs a subset of test files for better performance
@@ -135,6 +136,7 @@ jobs:
           fi
         env:
           NODE_ENV: test
+          CLAUDECODE: 1
 
   # Frontend tests (.test.tsx) run via vitest with jsdom environment
   # These are React component tests that need DOM APIs
