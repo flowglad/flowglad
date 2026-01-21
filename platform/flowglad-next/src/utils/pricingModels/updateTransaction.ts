@@ -463,7 +463,7 @@ export const updatePricingModelTransaction = async (
 
     // Step 3: Protect default product from invalid modifications
     // This ensures the default product cannot be removed or have protected fields changed
-    const proposedInput = protectDefaultProduct(
+    const proposedInput = yield* protectDefaultProduct(
       existingInput,
       validatedProposedInput
     )
