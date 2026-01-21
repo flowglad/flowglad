@@ -16,7 +16,9 @@ const createCustomerFormSchema = z.object({
   customer: z.object({
     name: z.string().min(2, 'Please enter the customer name'),
     email: z.string().email('Please enter a valid email address'),
-    externalId: z.string(),
+    externalId: z.string().refine((val) => !val || !/\s/.test(val), {
+      message: 'External ID cannot contain spaces',
+    }),
   }),
 })
 
