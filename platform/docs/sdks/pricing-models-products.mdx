@@ -7,37 +7,33 @@ description: "Learn how to surface your pricing models and product catalogs in y
 
 Flowglad makes it simple to fetch [pricing models](/features/pricing-models) and [products](/features/products) to present to your customers. 
 
-If you're building in React or Next.js, use the `useBilling` hook to access pricing data client-side; on the server, call `flowglad(customerExternalId).getBilling()` or `flowglad(customerExternalId).getPricingModel()` to retrieve the same pricing model data. Pass YOUR app's user/organization ID as `customerExternalId`, not Flowglad's customer ID.
+If you're building in React or Next.js, use the `usePricing` hook to access pricing data client-side; on the server, call `flowglad(customerExternalId).getBilling()` or `flowglad(customerExternalId).getPricingModel()` to retrieve the same pricing model data. Pass YOUR app's user/organization ID as `customerExternalId`, not Flowglad's customer ID.
 Refer to the [pricing model response object](/api-reference/customer/get-billing-details#response-pricing-model) for the data fields returned.
 
 ### Example: Accessing your pricing model & products
 ```tsx
 'use client'
 
-import { useBilling } from '@flowglad/nextjs'
+import { usePricing } from '@flowglad/nextjs'
 
 export function PricingProducts() {
-  const billing = useBilling()
+  const pricingModel = usePricing()
 
-  if (!billing.loaded) {
+  if (!pricingModel) {
     return <div>Loading pricing…</div>
   }
 
-  if (billing.errors || !billing.pricingModel) {
-    return <div>Unable to load pricing data.</div>
-  }
+  const products = pricingModel.products.map((product) => {
+    const defaultPrice = product.defaultPrice ?? product.prices?.[0] ?? null
 
-const products = billing.pricingModel.products.map((product) => {
-  const defaultPrice = product.defaultPrice ?? product.prices[0] ?? null
-
-  return {
-    slug: product.slug,
-    name: product.name,
-    description: product.description,
-    defaultPrice,
-    features: product.features,
-  }
-})
+    return {
+      slug: product.slug,
+      name: product.name,
+      description: product.description,
+      defaultPrice,
+      features: product.features,
+    }
+  })
 
   return (
     <section>

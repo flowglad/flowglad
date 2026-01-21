@@ -7,7 +7,6 @@ export type {
 } from './FlowgladContext'
 export {
   useBilling,
-  useCatalog,
   usePricing,
   usePricingModel,
 } from './FlowgladContext'
