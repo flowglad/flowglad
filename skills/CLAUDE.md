@@ -4,7 +4,7 @@ Skills for integrating Flowglad billing into applications.
 
 ## Repository Structure
 
-```
+```text
 skills/
 ├── setup/SKILL.md           # SDK installation and configuration
 ├── feature-gating/SKILL.md  # Feature access checks
