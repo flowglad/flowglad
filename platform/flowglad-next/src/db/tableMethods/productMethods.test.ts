@@ -792,7 +792,7 @@ describe('selectProductsCursorPaginated search', () => {
   })
 })
 
-describe('selectProductsCursorPaginated excludeUsageProducts', () => {
+describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
   let organization: Organization.Record
   let pricingModel: PricingModel.Record
 
@@ -802,12 +802,12 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     pricingModel = orgData.pricingModel
   })
 
-  it('returns all products when excludeUsageProducts=true since usage prices no longer have productId (filter is obsolete)', async () => {
-    // Create a subscription product
+  it('excludes products with no prices and includes products with prices when excludeProductsWithNoPrices=true', async () => {
+    // Create a subscription product WITH a price
     const subscriptionProduct = await setupProduct({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
-      name: 'Subscription Product',
+      name: 'Product With Price',
     })
 
     await setupPrice({
@@ -823,37 +823,24 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
       trialPeriodDays: 0,
     })
 
-    // Create a usage meter (usage prices now belong to meters, not products)
-    const usageMeter = await setupUsageMeter({
+    // Create a product WITHOUT any prices (orphaned product)
+    // This simulates a hidden product that was created as a workaround for usage prices
+    // but now has no prices after the productId nullification migration
+    await setupProduct({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
-      name: 'API Calls Meter',
+      name: 'Orphaned Product Without Prices',
     })
 
-    await setupPrice({
-      name: 'Usage Price',
-      type: PriceType.Usage,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      unitPrice: 10,
-      currency: CurrencyCode.USD,
-      livemode: true,
-      isDefault: true,
-      usageMeterId: usageMeter.id,
-    })
-
-    // Query with excludeUsageProducts=true
-    // Since usage prices no longer have products (productId is null),
-    // this filter has no effect - all products are returned
-    // Note: excludeUsageProducts is an additional runtime filter not part of the typed schema,
-    // so type assertion is necessary here.
+    // Query with excludeProductsWithNoPrices=true
+    // Should only include products that have at least one price
     const resultWithExclusion = await adminTransaction(
       async ({ transaction }) => {
         return selectProductsCursorPaginated({
           input: {
             filters: {
               pricingModelId: pricingModel.id,
-              excludeUsageProducts: true,
+              excludeProductsWithNoPrices: true,
             } as Parameters<
               typeof selectProductsCursorPaginated
             >[0]['input']['filters'],
@@ -863,15 +850,19 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
       }
     )
 
-    // All products are included since usage prices don't have productId
     const productNames = resultWithExclusion.items.map(
       (item) => item.product.name
     )
-    expect(productNames).toContain('Subscription Product')
-    // Default product from setupOrg is also included (setupOrg creates one default product)
+    // Product with price should be included
+    expect(productNames).toContain('Product With Price')
+    // Orphaned product without prices should be excluded
+    expect(productNames).not.toContain(
+      'Orphaned Product Without Prices'
+    )
+    // Default product from setupOrg is also included (setupOrg creates one default product with a price)
     expect(productNames).toHaveLength(2)
 
-    // Query without excludeUsageProducts filter (should return same results)
+    // Query without the filter - should return all products including orphaned ones
     const resultWithoutExclusion = await adminTransaction(
       async ({ transaction }) => {
         return selectProductsCursorPaginated({
@@ -888,23 +879,22 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     const allProductNames = resultWithoutExclusion.items.map(
       (item) => item.product.name
     )
-    expect(allProductNames).toContain('Subscription Product')
-    // Both queries return the same products since the filter is obsolete
-    const idsWith = resultWithExclusion.items
-      .map((i) => i.product.id)
-      .sort()
-    const idsWithout = resultWithoutExclusion.items
-      .map((i) => i.product.id)
-      .sort()
-    expect(idsWithout).toEqual(idsWith)
+    expect(allProductNames).toContain('Product With Price')
+    expect(allProductNames).toContain(
+      'Orphaned Product Without Prices'
+    )
+    // With filter: 2 products (with prices), without filter: 3 products (all)
+    expect(resultWithExclusion.items.length).toBeLessThan(
+      resultWithoutExclusion.items.length
+    )
   })
 
-  it('includes all products when excludeUsageProducts=false', async () => {
-    // Create a subscription product
+  it('includes all products when excludeProductsWithNoPrices=false', async () => {
+    // Create a subscription product WITH a price
     const subscriptionProduct = await setupProduct({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
-      name: 'Subscription Product 2',
+      name: 'Product With Price 2',
     })
 
     await setupPrice({
@@ -920,39 +910,20 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
       trialPeriodDays: 0,
     })
 
-    // Create a usage meter for usage products
-    const usageMeter = await setupUsageMeter({
+    // Create a product WITHOUT any prices
+    await setupProduct({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
-      name: 'API Calls Meter 2',
+      name: 'Orphaned Product 2',
     })
 
-    // Create a usage product
-    const usageProduct = await setupProduct({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Usage Product 2',
-    })
-
-    await setupPrice({
-      name: 'Usage Price 2',
-      type: PriceType.Usage,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      unitPrice: 10,
-      currency: CurrencyCode.USD,
-      livemode: true,
-      isDefault: true,
-      usageMeterId: usageMeter.id,
-    })
-
-    // Query with excludeUsageProducts=false (should include all)
+    // Query with excludeProductsWithNoPrices=false (should include all)
     const result = await adminTransaction(async ({ transaction }) => {
       return selectProductsCursorPaginated({
         input: {
           filters: {
             pricingModelId: pricingModel.id,
-            excludeUsageProducts: false,
+            excludeProductsWithNoPrices: false,
           } as Parameters<
             typeof selectProductsCursorPaginated
           >[0]['input']['filters'],
@@ -962,8 +933,10 @@ describe('selectProductsCursorPaginated excludeUsageProducts', () => {
     })
 
     const productNames = result.items.map((item) => item.product.name)
-    expect(productNames).toContain('Subscription Product 2')
-    expect(productNames).toContain('Usage Product 2')
+    expect(productNames).toContain('Product With Price 2')
+    expect(productNames).toContain('Orphaned Product 2')
+    // Should include: default product from setupOrg, product with price, orphaned product
+    expect(productNames).toHaveLength(3)
   })
 })
 

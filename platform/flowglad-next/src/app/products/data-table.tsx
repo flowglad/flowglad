@@ -39,7 +39,7 @@ export interface ProductsTableFilters {
   active?: boolean
   organizationId?: string
   pricingModelId?: string
-  excludeUsageProducts?: boolean
+  excludeProductsWithNoPrices?: boolean
 }
 
 interface ProductsDataTableProps {

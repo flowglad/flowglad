@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, notExists, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { payments } from '@/db/schema/payments'
@@ -35,7 +35,7 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { PaymentStatus, PriceType } from '@/types'
+import { PaymentStatus } from '@/types'
 import { groupBy } from '@/utils/core'
 import type { DbTransaction } from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
@@ -370,20 +370,21 @@ export const selectProductsCursorPaginated =
       return eq(products.id, trimmedQuery)
     },
     /**
-     * Additional filter clause for excludeUsageProducts.
-     * Excludes products that have any usage price.
+     * Additional filter clause for excludeProductsWithNoPrices.
+     * Excludes products that have no prices associated with them.
+     * This is useful for hiding orphaned products (e.g., hidden products
+     * that were previously created as a workaround for usage prices).
      */
     ({ filters }) => {
       const typedFilters = filters as
-        | { excludeUsageProducts?: boolean }
+        | { excludeProductsWithNoPrices?: boolean }
         | undefined
-      if (!typedFilters?.excludeUsageProducts) return undefined
+      if (!typedFilters?.excludeProductsWithNoPrices) return undefined
 
-      // Exclude products that have any usage price
-      // NOT EXISTS (SELECT 1 FROM prices WHERE prices.product_id = products.id AND prices.type = 'usage')
-      return notExists(
-        sql`(SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id} AND ${prices.type} = ${PriceType.Usage})`
-      )
+      // Exclude products that have no prices
+      // EXISTS (SELECT 1 FROM prices WHERE prices.product_id = products.id)
+      // This ensures only products with at least one price are included
+      return sql`EXISTS (SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id})`
     }
   )
 
