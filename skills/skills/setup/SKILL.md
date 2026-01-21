@@ -1,3 +1,17 @@
+<!--
+@flowglad/skill
+sources_reviewed: 2025-01-21T12:00:00Z
+source_files:
+  - platform/docs/quickstart.mdx
+  - platform/docs/sdks/setup.mdx
+  - platform/docs/sdks/introduction.mdx
+  - platform/docs/sdks/nextjs.mdx
+  - platform/docs/sdks/server.mdx
+  - platform/docs/snippets/setup-nextjs.mdx
+  - platform/docs/snippets/setup-react.mdx
+  - platform/docs/snippets/setup-server.mdx
+-->
+
 # Flowglad Setup
 
 ## Abstract

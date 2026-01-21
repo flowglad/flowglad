@@ -1,0 +1,29 @@
+name: Check Skills Sync
+
+on:
+  pull_request:
+    paths:
+      - 'platform/docs/**/*.mdx'
+      - 'platform/docs/**/*.md'
+      - 'skills/skills/**/*.md'
+
+jobs:
+  check-sync:
+    name: Check Skills Sync with Docs
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Need full history to compare branches
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Check skills are synced with docs
+        env:
+          BASE_BRANCH: ${{ github.base_ref }}
+        run: bun run .github/scripts/check-skills-sync.ts

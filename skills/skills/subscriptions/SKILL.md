@@ -1,3 +1,11 @@
+<!--
+@flowglad/skill
+sources_reviewed: 2025-01-21T12:00:00Z
+source_files:
+  - platform/docs/features/subscriptions.mdx
+  - platform/docs/sdks/subscription-management.mdx
+-->
+
 # Subscriptions Management
 
 ## Abstract

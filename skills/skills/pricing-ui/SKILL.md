@@ -1,3 +1,13 @@
+<!--
+@flowglad/skill
+sources_reviewed: 2025-01-21T12:00:00Z
+source_files:
+  - platform/docs/features/prices.mdx
+  - platform/docs/features/pricing-models.mdx
+  - platform/docs/sdks/pricing-models-products.mdx
+  - platform/docs/sdks/react.mdx
+-->
+
 # Flowglad Pricing UI
 
 ## Abstract

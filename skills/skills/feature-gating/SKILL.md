@@ -1,3 +1,10 @@
+<!--
+@flowglad/skill
+sources_reviewed: 2025-01-21T12:00:00Z
+source_files:
+  - platform/docs/sdks/feature-access-usage.mdx
+-->
+
 # Feature Gating
 
 ## Abstract
