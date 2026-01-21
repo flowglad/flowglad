@@ -39,11 +39,30 @@ jobs:
 
       - name: Publish skills to flowglad/skills
         run: |
+          set -euo pipefail
+
+          # Validate source skills directory exists and has content
+          if [ ! -d "$GITHUB_WORKSPACE/skills" ]; then
+            echo "Error: skills directory does not exist"
+            exit 1
+          fi
+
+          if [ -z "$(ls -A $GITHUB_WORKSPACE/skills)" ]; then
+            echo "Warning: skills directory is empty, nothing to publish"
+            exit 0
+          fi
+
           # Clone the target repository
           git clone git@github.com:flowglad/skills.git /tmp/skills-repo
+          cd /tmp/skills-repo
+
+          # Safety check: verify we're in a git repository before deleting
+          if [ ! -d .git ]; then
+            echo "Error: /tmp/skills-repo is not a git repository"
+            exit 1
+          fi
 
           # Remove existing content (except .git)
-          cd /tmp/skills-repo
           find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} \;
 
           # Copy skills directory content to root of target repo
