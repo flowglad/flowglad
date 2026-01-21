@@ -49,8 +49,8 @@ jobs:
           # Copy skills directory content to root of target repo
           cp -r $GITHUB_WORKSPACE/skills/* .
 
-          # Check if there are changes to commit
-          if git diff --quiet && git diff --staged --quiet; then
+          # Check if there are changes to commit (including untracked files)
+          if [ -z "$(git status --porcelain)" ]; then
             echo "No changes to publish"
             exit 0
           fi
