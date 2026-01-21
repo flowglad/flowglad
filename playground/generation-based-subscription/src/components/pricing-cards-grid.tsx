@@ -37,11 +37,7 @@ export function PricingCardsGrid() {
   // Build plans from pricingModel
   const plans = useMemo<PricingPlan[]>(() => {
     // Early return if billing isn't ready or has no pricing model
-    if (
-      !billing.loaded ||
-      billing.errors ||
-      !billing.pricingModel
-    ) {
+    if (!billing.loaded || billing.errors || !billing.pricingModel) {
       return []
     }
 
