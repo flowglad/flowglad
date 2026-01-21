@@ -1003,16 +1003,19 @@ describe('Subscription Cancellation Test Suite', async () => {
           endDate: new Date(futureStart.getTime() + 60 * 60 * 1000),
         })
         // Because the current time is before the billing period start, expect an error.
-        await expect(
-          cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          /Cannot end a subscription before its start date/
+        const result = await cancelSubscriptionImmediately(
+          {
+            subscription,
+          },
+          createDiscardingEffectsContext(transaction)
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot end a subscription before its start date/
+          )
+        }
       })
     })
 
@@ -2431,7 +2434,7 @@ describe('Subscription Cancellation Test Suite', async () => {
      Free Plan Protection
   --------------------------------------------------------------------------- */
   describe('Free Plan Protection', () => {
-    it('should throw an error when attempting to cancel a free plan subscription', async () => {
+    it('returns ValidationError when attempting to cancel a free plan subscription', async () => {
       const {
         organization,
         price: freePrice,
@@ -2471,28 +2474,32 @@ describe('Subscription Cancellation Test Suite', async () => {
         endDate: Date.now() + 60 * 60 * 1000,
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return cancelSubscriptionProcedureTransaction({
-            input: {
-              id: freeSubscription.id,
-              cancellation: {
-                timing:
-                  SubscriptionCancellationArrangement.Immediately,
-              },
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await cancelSubscriptionProcedureTransaction({
+          input: {
+            id: freeSubscription.id,
+            cancellation: {
+              timing: SubscriptionCancellationArrangement.Immediately,
             },
-            ctx: { apiKey: undefined },
-            transactionCtx: withAdminCacheContext({
-              transaction,
-              livemode: true,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: () => {},
-            }),
-          })
+          },
+          ctx: { apiKey: undefined },
+          transactionCtx: withAdminCacheContext({
+            transaction,
+            livemode: true,
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
+          }),
         })
-      ).rejects.toThrow(/Cannot cancel the default free plan/)
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot cancel the default free plan/
+          )
+        }
+      })
     })
 
     it('should allow cancellation of paid plan subscriptions', async () => {
@@ -2558,7 +2565,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       )
     })
 
-    it('should throw an error when attempting to schedule cancellation of a free plan', async () => {
+    it('returns ValidationError when attempting to schedule cancellation of a free plan', async () => {
       const {
         organization,
         price: freePrice,
@@ -2597,28 +2604,33 @@ describe('Subscription Cancellation Test Suite', async () => {
         endDate: Date.now() + 60 * 60 * 1000,
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return cancelSubscriptionProcedureTransaction({
-            input: {
-              id: freeSubscription.id,
-              cancellation: {
-                timing:
-                  SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-              },
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await cancelSubscriptionProcedureTransaction({
+          input: {
+            id: freeSubscription.id,
+            cancellation: {
+              timing:
+                SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
             },
-            ctx: { apiKey: undefined },
-            transactionCtx: withAdminCacheContext({
-              transaction,
-              livemode: true,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: () => {},
-            }),
-          })
+          },
+          ctx: { apiKey: undefined },
+          transactionCtx: withAdminCacheContext({
+            transaction,
+            livemode: true,
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
+          }),
         })
-      ).rejects.toThrow(/Cannot cancel the default free plan/)
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot cancel the default free plan/
+          )
+        }
+      })
     })
   })
 
