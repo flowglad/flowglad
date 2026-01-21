@@ -18,6 +18,11 @@ bun run check
 ## Running Tests
 If you are trying to run tests to see whether they pass, you must use `bun run test`. `bun run test:watch` will run the test suite in watch mode and leave you waiting for timeouts.
 
+**IMPORTANT**: Always pass `CLAUDECODE=1` when running tests to silence verbose logger output (cache stats, etc.). This produces cleaner output and consumes fewer tokens:
+```bash
+CLAUDECODE=1 bun run test:backend
+```
+
 ### Test Environments
 The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
 

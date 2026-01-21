@@ -14,7 +14,7 @@ import type {
 } from '@/types'
 import core, { IS_DEV, IS_TEST } from './core'
 
-// In test mode, use a no-op logger to avoid noisy output
+// In test mode or when CLAUDECODE=1, use a no-op logger to avoid noisy output
 const noopLog = {
   debug: () => {},
   info: () => {},
@@ -22,11 +22,14 @@ const noopLog = {
   error: () => {},
 }
 
-const log = IS_TEST
-  ? noopLog
-  : IS_DEV || !core.IS_PROD
-    ? console
-    : logtailLog
+const IS_CLAUDECODE = process.env.CLAUDECODE === '1'
+
+const log =
+  IS_TEST || IS_CLAUDECODE
+    ? noopLog
+    : IS_DEV || !core.IS_PROD
+      ? console
+      : logtailLog
 
 // Helper to determine service context based on API key presence
 function getServiceContext(apiKey?: string): ServiceContext {
