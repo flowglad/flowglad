@@ -4,6 +4,7 @@ import {
   parseSkillMetadata,
   SkillMetadata,
   validateBranchName,
+  validateTimestamp,
 } from './check-skills-sync'
 
 describe('validateBranchName', () => {
@@ -212,5 +213,66 @@ source_files:
       'platform/docs/quickstart.mdx',
       'platform/docs/setup.mdx',
     ])
+  })
+})
+
+describe('validateTimestamp', () => {
+  it('returns undefined for valid timestamps in the past with no previous timestamp', () => {
+    const pastTimestamp = '2025-01-15T12:00:00Z'
+    expect(validateTimestamp(pastTimestamp, null)).toBeUndefined()
+  })
+
+  it('returns undefined for valid timestamps that are later than the previous timestamp', () => {
+    const oldTimestamp = '2025-01-15T12:00:00Z'
+    const newTimestamp = '2025-01-20T12:00:00Z'
+    expect(validateTimestamp(newTimestamp, oldTimestamp)).toBeUndefined()
+  })
+
+  it('returns error for timestamps with invalid format', () => {
+    const invalidTimestamp = 'not-a-date'
+    const result = validateTimestamp(invalidTimestamp, null)
+    expect(result).toContain('Invalid timestamp format')
+    expect(result).toContain(invalidTimestamp)
+  })
+
+  it('returns error for timestamps in the future (beyond 10 second grace period)', () => {
+    const futureDate = new Date(Date.now() + 60000) // 1 minute in future
+    const futureTimestamp = futureDate.toISOString().replace(/\.\d{3}Z$/, 'Z')
+    const result = validateTimestamp(futureTimestamp, null)
+    expect(result).toContain('in the future')
+  })
+
+  it('returns error when new timestamp is not later than the previous timestamp', () => {
+    const oldTimestamp = '2025-01-20T12:00:00Z'
+    const newTimestamp = '2025-01-15T12:00:00Z' // Earlier than old
+    const result = validateTimestamp(newTimestamp, oldTimestamp)
+    expect(result).toContain('must be later than previous timestamp')
+    expect(result).toContain(oldTimestamp)
+  })
+
+  it('returns error when new timestamp equals the previous timestamp', () => {
+    const timestamp = '2025-01-20T12:00:00Z'
+    const result = validateTimestamp(timestamp, timestamp)
+    expect(result).toContain('must be later than previous timestamp')
+  })
+
+  it('allows timestamps within 10 second grace period of current time', () => {
+    // Create a timestamp that is 5 seconds in the future (within grace period)
+    const nearFuture = new Date(Date.now() + 5000)
+    const nearFutureTimestamp = nearFuture.toISOString().replace(/\.\d{3}Z$/, 'Z')
+    expect(validateTimestamp(nearFutureTimestamp, null)).toBeUndefined()
+  })
+
+  it('handles timestamps with milliseconds in ISO format', () => {
+    const timestampWithMs = '2025-01-15T12:00:00.123Z'
+    expect(validateTimestamp(timestampWithMs, null)).toBeUndefined()
+  })
+
+  it('ignores invalid old timestamp when checking order', () => {
+    // If old timestamp is invalid, we only validate the new one
+    const validNew = '2025-01-20T12:00:00Z'
+    const invalidOld = 'not-a-date'
+    // Should not error because invalid old timestamp is ignored
+    expect(validateTimestamp(validNew, invalidOld)).toBeUndefined()
   })
 })

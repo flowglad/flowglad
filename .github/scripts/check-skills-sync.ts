@@ -29,6 +29,45 @@ interface SyncError {
   message: string
 }
 
+interface TimestampCheckResult {
+  updated: boolean
+  validationError?: string
+}
+
+/**
+ * Validates a timestamp value.
+ * - Must be valid ISO 8601 format
+ * - Must be later than the previous timestamp (if provided)
+ * - Must not be in the future (with 10 second grace period)
+ */
+export function validateTimestamp(
+  newTimestamp: string,
+  oldTimestamp: string | null
+): string | undefined {
+  const newDate = new Date(newTimestamp)
+
+  // Check if valid date
+  if (isNaN(newDate.getTime())) {
+    return `Invalid timestamp format: "${newTimestamp}". Use ISO 8601 format (e.g., 2026-01-21T12:00:00Z)`
+  }
+
+  // Check not in future (with 10 second grace period for CI timing)
+  const maxTime = Date.now() + 10000
+  if (newDate.getTime() > maxTime) {
+    return `Timestamp "${newTimestamp}" is in the future. Use a current or past timestamp.`
+  }
+
+  // Check newer than old timestamp (if there was one)
+  if (oldTimestamp) {
+    const oldDate = new Date(oldTimestamp)
+    if (!isNaN(oldDate.getTime()) && newDate.getTime() <= oldDate.getTime()) {
+      return `New timestamp "${newTimestamp}" must be later than previous timestamp "${oldTimestamp}".`
+    }
+  }
+
+  return undefined
+}
+
 /**
  * Validates that a branch name is safe to use in git commands.
  * Branch names should only contain alphanumeric characters, hyphens,
@@ -202,18 +241,16 @@ export function isDocFile(filePath: string): boolean {
 
 /**
  * Check if the sources_reviewed timestamp was changed in this PR
+ * and validate that the new timestamp is valid.
  */
-function wasTimestampUpdated(
+function checkTimestampUpdate(
   skillPath: string,
   baseBranch: string
-): boolean {
+): TimestampCheckResult {
   try {
     // Get the current (HEAD) version
     const currentContent = readFileSync(skillPath, 'utf-8')
-    const currentMetadata = parseSkillMetadata(
-      currentContent,
-      skillPath
-    )
+    const currentMetadata = parseSkillMetadata(currentContent, skillPath)
 
     // Get the base branch version using spawnSync for safety
     const showResult = spawnSync(
@@ -227,7 +264,15 @@ function wasTimestampUpdated(
 
     if (showResult.status !== 0) {
       // File doesn't exist in base branch (new skill)
-      return true
+      // Validate the timestamp isn't in the future
+      if (currentMetadata) {
+        const validationError = validateTimestamp(
+          currentMetadata.sourcesReviewed,
+          null
+        )
+        return { updated: true, validationError }
+      }
+      return { updated: true }
     }
 
     const baseContent = showResult.stdout || ''
@@ -235,16 +280,28 @@ function wasTimestampUpdated(
 
     // If either doesn't have metadata, consider it not updated
     if (!currentMetadata || !baseMetadata) {
-      return currentMetadata !== null && baseMetadata === null
+      return {
+        updated: currentMetadata !== null && baseMetadata === null,
+      }
     }
 
     // Compare timestamps
-    return (
+    const updated =
       currentMetadata.sourcesReviewed !== baseMetadata.sourcesReviewed
-    )
+
+    if (updated) {
+      // Validate the new timestamp
+      const validationError = validateTimestamp(
+        currentMetadata.sourcesReviewed,
+        baseMetadata.sourcesReviewed
+      )
+      return { updated, validationError }
+    }
+
+    return { updated: false }
   } catch (error) {
     console.error(`Error checking timestamp for ${skillPath}:`, error)
-    return false
+    return { updated: false }
   }
 }
 
@@ -336,14 +393,10 @@ async function main(): Promise<void> {
     )
 
     for (const skill of affectedSkills) {
-      const timestampUpdated = wasTimestampUpdated(
-        skill.path,
-        baseBranch
-      )
+      const result = checkTimestampUpdate(skill.path, baseBranch)
 
       // Timestamp must always be updated when source docs change
-      // (even if skill content was also updated)
-      if (!timestampUpdated) {
+      if (!result.updated) {
         errors.push({
           doc,
           skill: skill.name,
@@ -355,6 +408,20 @@ async function main(): Promise<void> {
             `in ${skill.path} to confirm you have reviewed the docs and the skill is accurate.\n` +
             `\n` +
             `Update the skill content if needed, then set the timestamp to:\n` +
+            `  sources_reviewed: ${new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')}`,
+        })
+      } else if (result.validationError) {
+        // Timestamp was updated but invalid
+        errors.push({
+          doc,
+          skill: skill.name,
+          skillPath: skill.path,
+          message:
+            `Skill "${skill.name}" has an invalid timestamp.\n` +
+            `\n` +
+            `${result.validationError}\n` +
+            `\n` +
+            `Set the timestamp to:\n` +
             `  sources_reviewed: ${new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')}`,
         })
       }
