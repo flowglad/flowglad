@@ -10887,9 +10887,6 @@
             "type": "null",
             "const": null
           },
-          "pricingModelId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "null",
             "const": null
@@ -10933,9 +10930,6 @@
           "renewalFrequency": {
             "type": "string",
             "enum": ["once", "every_billing_period"]
-          },
-          "pricingModelId": {
-            "type": "string"
           },
           "resourceId": {
             "type": "null",
@@ -10987,9 +10981,6 @@
           "renewalFrequency": {
             "type": "null",
             "const": null
-          },
-          "pricingModelId": {
-            "type": "string"
           },
           "resourceId": {
             "type": "string"
