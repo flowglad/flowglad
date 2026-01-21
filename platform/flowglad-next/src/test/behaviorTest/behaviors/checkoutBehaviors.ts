@@ -164,7 +164,8 @@ export const createProductWithPriceBehavior = defineBehavior({
     { contractTypeDep },
     prev: CompleteStripeOnboardingResult
   ): Promise<CreateProductWithPriceResult> => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const pricingModel = await selectDefaultPricingModel(
         { organizationId: prev.organization.id, livemode: true },
         transaction
@@ -189,7 +190,7 @@ export const createProductWithPriceBehavior = defineBehavior({
           default: false,
           slug: `test-product-${core.nanoid()}`,
         },
-        transaction
+        ctx
       )
 
       const price = await insertPrice(
@@ -208,7 +209,7 @@ export const createProductWithPriceBehavior = defineBehavior({
           externalId: null,
           slug: `test-price-${core.nanoid()}`,
         },
-        transaction
+        ctx
       )
 
       return { product, price, pricingModel }
@@ -254,7 +255,8 @@ export const initiateCheckoutSessionBehavior = defineBehavior({
     _deps,
     prev: CreateProductWithPriceResult
   ): Promise<InitiateCheckoutSessionResult> => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Create anonymous customer
       const customer = await insertCustomer(
         {
@@ -353,7 +355,8 @@ export const applyDiscountBehavior = defineBehavior({
     }
 
     // Create the discount and link it to the checkout session
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Create discount for this organization
       const discount = await insertDiscount(
         {
@@ -437,7 +440,8 @@ export const provideBillingAddressBehavior = defineBehavior({
         ? prev.checkoutSessionWithDiscount.id
         : prev.checkoutSession.id
 
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const {
         checkoutSession: updatedCheckoutSession,
         feeCalculation,

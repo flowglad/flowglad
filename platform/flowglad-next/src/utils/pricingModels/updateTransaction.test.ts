@@ -119,14 +119,14 @@ const createBasicPricingModel = async (
     products: finalProducts,
   }
 
-  return adminTransaction(async ({ transaction }) =>
+  return adminTransaction(async (ctx) =>
     setupPricingModelTransaction(
       {
         input,
         organizationId: organization.id,
         livemode: false,
       },
-      transaction
+      ctx
     )
   )
 }
@@ -139,7 +139,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -180,7 +180,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -200,7 +200,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -241,7 +241,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -276,7 +276,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -354,7 +354,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -400,7 +400,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -461,7 +461,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -514,7 +514,7 @@ describe('updatePricingModelTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(
-          async ({ transaction, invalidateCache }) => {
+          async (ctx) => {
             const result = await updatePricingModelTransaction(
               {
                 pricingModelId: setupResult.pricingModel.id,
@@ -575,7 +575,7 @@ describe('updatePricingModelTransaction', () => {
                   ],
                 },
               },
-              { transaction, invalidateCache }
+              ctx
             )
             return Result.ok(result)
           },
@@ -591,7 +591,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Update with resources array
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -636,7 +636,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -659,7 +659,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Add resources first
       await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -703,7 +703,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -712,7 +712,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Now update the resource name
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -756,7 +756,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -776,7 +776,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Add resources first
       await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -821,7 +821,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -830,7 +830,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Now remove 'projects' resource
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -872,7 +872,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -886,12 +886,11 @@ describe('updatePricingModelTransaction', () => {
       expect(updateResult.resources.deactivated[0].active).toBe(false)
 
       // Verify database state
-      const allResources = await adminTransaction(
-        async ({ transaction }) =>
-          selectResources(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allResources = await adminTransaction(async (ctx) =>
+        selectResources(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const activeResources = allResources.filter((r) => r.active)
       expect(activeResources).toHaveLength(1)
@@ -904,7 +903,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Add resources first
       await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -950,7 +949,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -959,7 +958,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Now update with same resources
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1005,7 +1004,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1025,7 +1024,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Add a resource first
       await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1067,7 +1066,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1075,18 +1074,17 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Get the resource ID
-      const resources = await adminTransaction(
-        async ({ transaction }) =>
-          selectResources(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const resources = await adminTransaction(async (ctx) =>
+        selectResources(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const seatsResource = resources.find((r) => r.slug === 'seats')
 
       // Now add a Resource feature referencing the resource
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1137,7 +1135,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1160,7 +1158,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Add resources and a Resource feature
       await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1215,7 +1213,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1223,12 +1221,11 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Get the resource IDs
-      const resources = await adminTransaction(
-        async ({ transaction }) =>
-          selectResources(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const resources = await adminTransaction(async (ctx) =>
+        selectResources(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const projectsResource = resources.find(
         (r) => r.slug === 'projects'
@@ -1236,7 +1233,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Now update the Resource feature to reference projects instead of seats
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1290,7 +1287,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1310,7 +1307,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Add a resource first
       await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1352,7 +1349,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1362,7 +1359,7 @@ describe('updatePricingModelTransaction', () => {
       // Try to add a Resource feature referencing a non-existent resource
       await expect(
         comprehensiveAdminTransaction(
-          async ({ transaction, invalidateCache }) => {
+          async (ctx) => {
             const result = await updatePricingModelTransaction(
               {
                 pricingModelId: setupResult.pricingModel.id,
@@ -1414,7 +1411,7 @@ describe('updatePricingModelTransaction', () => {
                   ],
                 },
               },
-              { transaction, invalidateCache }
+              ctx
             )
             return Result.ok(result)
           },
@@ -1430,7 +1427,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Add a resource and Resource feature
       await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1481,7 +1478,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1490,7 +1487,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Now remove the Resource feature
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1533,7 +1530,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1547,12 +1544,11 @@ describe('updatePricingModelTransaction', () => {
       expect(deactivatedFeature.active).toBe(false)
 
       // Verify database state
-      const allFeatures = await adminTransaction(
-        async ({ transaction }) =>
-          selectFeatures(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allFeatures = await adminTransaction(async (ctx) =>
+        selectFeatures(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const seatGrantFeature = allFeatures.find(
         (f) => f.slug === 'seat-grant'
@@ -1565,7 +1561,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Add both resources and Resource features in a single update
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1632,7 +1628,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1675,7 +1671,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1723,7 +1719,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1738,7 +1734,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1779,7 +1775,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1835,7 +1831,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -1876,7 +1872,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -1914,7 +1910,7 @@ describe('updatePricingModelTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(
-          async ({ transaction, invalidateCache }) => {
+          async (ctx) => {
             const result = await updatePricingModelTransaction(
               {
                 pricingModelId: setupResult.pricingModel.id,
@@ -1979,7 +1975,7 @@ describe('updatePricingModelTransaction', () => {
                   ],
                 },
               },
-              { transaction, invalidateCache }
+              ctx
             )
             return Result.ok(result)
           },
@@ -1994,7 +1990,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2055,7 +2051,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2078,7 +2074,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2120,7 +2116,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2186,7 +2182,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2230,7 +2226,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2259,7 +2255,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2300,7 +2296,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2372,7 +2368,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2420,7 +2416,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2474,7 +2470,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2522,7 +2518,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2537,7 +2533,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2578,7 +2574,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2595,7 +2591,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2663,7 +2659,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2693,7 +2689,7 @@ describe('updatePricingModelTransaction', () => {
       const setupResult = await createBasicPricingModel()
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2765,7 +2761,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2854,7 +2850,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -2922,7 +2918,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -2969,12 +2965,11 @@ describe('updatePricingModelTransaction', () => {
       ).toBeGreaterThanOrEqual(1)
 
       // Verify database state
-      const allProducts = await adminTransaction(
-        async ({ transaction }) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const activeProducts = allProducts.filter((p) => p.active)
       // 3 active products: enterprise, starter, and the protected free product
@@ -3024,7 +3019,7 @@ describe('updatePricingModelTransaction', () => {
       })
 
       await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -3092,7 +3087,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -3102,32 +3097,32 @@ describe('updatePricingModelTransaction', () => {
       // Verify database state
       const [usageMeters, features, products, productFeatures] =
         await Promise.all([
-          adminTransaction(async ({ transaction }) =>
+          adminTransaction(async (ctx) =>
             selectUsageMeters(
               { pricingModelId: setupResult.pricingModel.id },
-              transaction
+              ctx.transaction
             )
           ),
-          adminTransaction(async ({ transaction }) =>
+          adminTransaction(async (ctx) =>
             selectFeatures(
               { pricingModelId: setupResult.pricingModel.id },
-              transaction
+              ctx.transaction
             )
           ),
-          adminTransaction(async ({ transaction }) =>
+          adminTransaction(async (ctx) =>
             selectProducts(
               { pricingModelId: setupResult.pricingModel.id },
-              transaction
+              ctx.transaction
             )
           ),
-          adminTransaction(async ({ transaction }) => {
+          adminTransaction(async (ctx) => {
             const prods = await selectProducts(
               { pricingModelId: setupResult.pricingModel.id },
-              transaction
+              ctx.transaction
             )
             return selectProductFeatures(
               { productId: prods.map((p) => p.id) },
-              transaction
+              ctx.transaction
             )
           }),
         ])
@@ -3150,9 +3145,11 @@ describe('updatePricingModelTransaction', () => {
         (p) => p.slug === 'starter'
       )
       // Verify prices
-      const starterPrices = await adminTransaction(
-        async ({ transaction }) =>
-          selectPrices({ productId: starterProduct!.id }, transaction)
+      const starterPrices = await adminTransaction(async (ctx) =>
+        selectPrices(
+          { productId: starterProduct!.id },
+          ctx.transaction
+        )
       )
       const activePrice = starterPrices.find((p) => p.active)
       expect(activePrice!.unitPrice).toBe(2999)
@@ -3215,7 +3212,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Try to update without the default product - only include Pro
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -3257,7 +3254,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -3271,12 +3268,11 @@ describe('updatePricingModelTransaction', () => {
       expect(freeDeactivated).toBeUndefined()
 
       // Verify database state - default product should still be active
-      const allProducts = await adminTransaction(
-        async ({ transaction }) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const activeProducts = allProducts.filter((p) => p.active)
       const freeProduct = activeProducts.find(
@@ -3316,7 +3312,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Try to update with protected field changes on the default product
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -3358,7 +3354,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -3366,12 +3362,11 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state
-      const allProducts = await adminTransaction(
-        async ({ transaction }) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const freeProduct = allProducts.find((p) => p.slug === 'free')
 
@@ -3384,8 +3379,8 @@ describe('updatePricingModelTransaction', () => {
       expect(freeProduct!.description).toBe('Updated description')
 
       // Price protected fields should be preserved
-      const prices = await adminTransaction(async ({ transaction }) =>
-        selectPrices({ productId: freeProduct!.id }, transaction)
+      const prices = await adminTransaction(async (ctx) =>
+        selectPrices({ productId: freeProduct!.id }, ctx.transaction)
       )
       const activePrice = prices.find((p) => p.active)
       expect(activePrice!.unitPrice).toBe(0) // Protected - was not changed to 999
@@ -3437,7 +3432,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Update only allowed fields on the default product
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -3486,7 +3481,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -3494,12 +3489,11 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state
-      const allProducts = await adminTransaction(
-        async ({ transaction }) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const freeProduct = allProducts.find((p) => p.slug === 'free')
 
@@ -3514,12 +3508,11 @@ describe('updatePricingModelTransaction', () => {
 
       // Features should be updated (features are allowed to change)
       expect(updateResult.productFeatures.added).toHaveLength(1)
-      const productFeatures = await adminTransaction(
-        async ({ transaction }) =>
-          selectProductFeatures(
-            { productId: freeProduct!.id },
-            transaction
-          )
+      const productFeatures = await adminTransaction(async (ctx) =>
+        selectProductFeatures(
+          { productId: freeProduct!.id },
+          ctx.transaction
+        )
       )
       const activeFeatures = productFeatures.filter(
         (pf) => !pf.expiredAt
@@ -3527,8 +3520,8 @@ describe('updatePricingModelTransaction', () => {
       expect(activeFeatures).toHaveLength(2) // feature-a and feature-b
 
       // Price should be unchanged
-      const prices = await adminTransaction(async ({ transaction }) =>
-        selectPrices({ productId: freeProduct!.id }, transaction)
+      const prices = await adminTransaction(async (ctx) =>
+        selectPrices({ productId: freeProduct!.id }, ctx.transaction)
       )
       const activePrice = prices.find((p) => p.active)
       expect(activePrice!.unitPrice).toBe(0)
@@ -3584,7 +3577,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Attempt to demote the default product by setting default: false
       const updateResult = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async (ctx) => {
           const result = await updatePricingModelTransaction(
             {
               pricingModelId: setupResult.pricingModel.id,
@@ -3645,7 +3638,7 @@ describe('updatePricingModelTransaction', () => {
                 ],
               },
             },
-            { transaction, invalidateCache }
+            ctx
           )
           return Result.ok(result)
         },
@@ -3653,12 +3646,11 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state - should have exactly 2 active products (no duplicates)
-      const allProducts = await adminTransaction(
-        async ({ transaction }) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const activeProducts = allProducts.filter((p) => p.active)
       expect(activeProducts).toHaveLength(2)

@@ -1,6 +1,8 @@
 import { and, eq, inArray, isNotNull } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   type ProductFeature,
+  productFeatureClientSelectSchema,
   productFeatures,
   productFeaturesInsertSchema,
   productFeaturesSelectSchema,
@@ -23,7 +25,8 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { CacheDependency } from '@/utils/cache'
+import { CacheDependency, cached } from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import { features, featuresSelectSchema } from '../schema/features'
 import type { Product } from '../schema/products'
 import { createDateNotPassedFilter } from '../tableUtils'
@@ -50,6 +53,44 @@ export const selectProductFeatureById = createSelectById(
   config
 )
 
+export const selectProductFeatures = createSelectFunction(
+  productFeatures,
+  config
+)
+
+/**
+ * Select product features by pricing model ID with caching.
+ * Cached by default; pass { ignoreCache: true } to bypass.
+ */
+export const selectProductFeaturesByPricingModelId = cached(
+  {
+    namespace: RedisKeyNamespace.ProductFeaturesByPricingModel,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
+    schema: productFeatureClientSelectSchema.array(),
+    dependenciesFn: (productFeatures, pricingModelId: string) => [
+      // Set membership: invalidate when product features are added/removed from pricing model
+      CacheDependency.productFeaturesByPricingModel(pricingModelId),
+      // Content: invalidate when any returned product feature's data changes
+      ...productFeatures.map((pf) =>
+        CacheDependency.productFeature(pf.id)
+      ),
+    ],
+  },
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction
+  ): Promise<ProductFeature.ClientRecord[]> => {
+    const result = await selectProductFeatures(
+      { pricingModelId },
+      transaction
+    )
+    return result.map((pf) =>
+      productFeatureClientSelectSchema.parse(pf)
+    )
+  }
+)
+
 const baseInsertProductFeature = createInsertFunction(
   productFeatures,
   config
@@ -57,49 +98,86 @@ const baseInsertProductFeature = createInsertFunction(
 
 export const insertProductFeature = async (
   productFeatureInsert: ProductFeature.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<ProductFeature.Record> => {
   const pricingModelId = productFeatureInsert.pricingModelId
     ? productFeatureInsert.pricingModelId
     : await derivePricingModelIdFromProduct(
         productFeatureInsert.productId,
-        transaction
+        ctx.transaction
       )
-  return baseInsertProductFeature(
+  const result = await baseInsertProductFeature(
     {
       ...productFeatureInsert,
       pricingModelId,
     },
-    transaction
+    ctx.transaction
   )
+  // Invalidate product features cache for the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.productFeaturesByPricingModel(
+      result.pricingModelId
+    )
+  )
+  return result
 }
 
+const baseUpdateProductFeature = createUpdateFunction(
+  productFeatures,
+  config
+)
+
 /**
- * No need to "update" a product feature in our business logic,
+ * Update a product feature and invalidate caches.
  */
-export const updateProductFeature = createUpdateFunction(
-  productFeatures,
-  config
-)
+export const updateProductFeature = async (
+  productFeature: z.infer<typeof productFeaturesUpdateSchema>,
+  ctx: TransactionEffectsContext
+): Promise<ProductFeature.Record> => {
+  const result = await baseUpdateProductFeature(
+    productFeature,
+    ctx.transaction
+  )
+  // Invalidate content cache (queued for after commit)
+  // Product feature data changed (displayOrder, expiredAt, etc.)
+  ctx.invalidateCache(CacheDependency.productFeature(result.id))
+  return result
+}
 
-export const selectProductFeatures = createSelectFunction(
-  productFeatures,
-  config
-)
-
-export const upsertProductFeatureByProductIdAndFeatureId =
+const baseUpsertProductFeatureByProductIdAndFeatureId =
   createUpsertFunction(
     productFeatures,
     [productFeatures.productId, productFeatures.featureId],
     config
   )
 
+export const upsertProductFeatureByProductIdAndFeatureId = async (
+  productFeature: ProductFeature.Insert,
+  ctx: TransactionEffectsContext
+): Promise<ProductFeature.Record[]> => {
+  const results =
+    await baseUpsertProductFeatureByProductIdAndFeatureId(
+      productFeature,
+      ctx.transaction
+    )
+  // Invalidate product features cache for all affected pricing models (queued for after commit)
+  const pricingModelIds = [
+    ...new Set(results.map((pf) => pf.pricingModelId)),
+  ]
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productFeaturesByPricingModel(pricingModelId)
+    )
+  }
+  return results
+}
+
 export const selectProductFeaturesPaginated =
   createPaginatedSelectFunction(productFeatures, config)
 
 export const expireProductFeaturesByFeatureId = async (
   productFeatureIds: string[],
-  params: Pick<
+  ctx: Pick<
     TransactionEffectsContext,
     'transaction' | 'invalidateCache'
   >
@@ -107,8 +185,6 @@ export const expireProductFeaturesByFeatureId = async (
   expiredProductFeature: ProductFeature.Record[]
   detachedSubscriptionItemFeatures: import('@/db/schema/subscriptionItemFeatures').SubscriptionItemFeature.Record[]
 }> => {
-  const { transaction, invalidateCache } = params
-
   // First, detach any existing subscription item features
   const detachedSubscriptionItemFeatures =
     await detachSubscriptionItemFeaturesFromProductFeature(
@@ -116,11 +192,11 @@ export const expireProductFeaturesByFeatureId = async (
         productFeatureIds,
         detachedReason: 'product_feature_expired',
       },
-      transaction
+      ctx.transaction
     )
 
   // Then expire the product feature
-  const expiredProductFeature = await transaction
+  const expiredProductFeature = await ctx.transaction
     .update(productFeatures)
     .set({ expiredAt: Date.now() })
     .where(inArray(productFeatures.id, productFeatureIds))
@@ -134,30 +210,44 @@ export const expireProductFeaturesByFeatureId = async (
       )
     ),
   ]
-  invalidateCache(
+  ctx.invalidateCache(
     ...subscriptionItemIds.map((id) =>
       CacheDependency.subscriptionItemFeatures(id)
     )
   )
 
+  const parsedExpiredProductFeatures = productFeaturesSelectSchema
+    .array()
+    .parse(expiredProductFeature)
+
+  // Invalidate product features cache for all affected pricing models (queued for after commit)
+  const pricingModelIds = [
+    ...new Set(
+      parsedExpiredProductFeatures.map((pf) => pf.pricingModelId)
+    ),
+  ]
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productFeaturesByPricingModel(pricingModelId)
+    )
+  }
+
   return {
-    expiredProductFeature: productFeaturesSelectSchema
-      .array()
-      .parse(expiredProductFeature),
+    expiredProductFeature: parsedExpiredProductFeatures,
     detachedSubscriptionItemFeatures,
   }
 }
 
 export const createOrRestoreProductFeature = async (
   productFeature: ProductFeature.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   const [existingProductFeature] = await selectProductFeatures(
     {
       productId: productFeature.productId,
       featureId: productFeature.featureId,
     },
-    transaction
+    ctx.transaction
   )
   if (existingProductFeature) {
     return updateProductFeature(
@@ -165,10 +255,10 @@ export const createOrRestoreProductFeature = async (
         id: existingProductFeature.id,
         expiredAt: null,
       },
-      transaction
+      ctx
     )
   }
-  return insertProductFeature(productFeature, transaction)
+  return insertProductFeature(productFeature, ctx)
 }
 
 export const selectFeaturesByProductFeatureWhere = async (
@@ -201,11 +291,14 @@ const baseBulkInsertProductFeatures = createBulkInsertFunction(
 
 export const bulkInsertProductFeatures = async (
   productFeatureInserts: ProductFeature.Insert[],
-  transaction: DbTransaction
+  ctx: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<ProductFeature.Record[]> => {
   const pricingModelIdMap = await pricingModelIdsForProducts(
     productFeatureInserts.map((insert) => insert.productId),
-    transaction
+    ctx.transaction
   )
   const productFeaturesWithPricingModelId = productFeatureInserts.map(
     (productFeatureInsert): ProductFeature.Insert => {
@@ -223,10 +316,22 @@ export const bulkInsertProductFeatures = async (
       }
     }
   )
-  return baseBulkInsertProductFeatures(
+  const results = await baseBulkInsertProductFeatures(
     productFeaturesWithPricingModelId,
-    transaction
+    ctx.transaction
   )
+
+  // Invalidate product features cache for all affected pricing models (queued for after commit)
+  const pricingModelIds = [
+    ...new Set(results.map((pf) => pf.pricingModelId)),
+  ]
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productFeaturesByPricingModel(pricingModelId)
+    )
+  }
+
+  return results
 }
 
 const baseBulkInsertOrDoNothingProductFeatures =
@@ -235,11 +340,11 @@ const baseBulkInsertOrDoNothingProductFeatures =
 export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
   async (
     inserts: ProductFeature.Insert[],
-    transaction: DbTransaction
+    ctx: TransactionEffectsContext
   ) => {
     const pricingModelIdMap = await pricingModelIdsForProducts(
       inserts.map((insert) => insert.productId),
-      transaction
+      ctx.transaction
     )
     const productFeaturesWithPricingModelId = inserts.map(
       (productFeatureInsert): ProductFeature.Insert => {
@@ -257,11 +362,29 @@ export const bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId =
         }
       }
     )
-    return baseBulkInsertOrDoNothingProductFeatures(
+    const results = await baseBulkInsertOrDoNothingProductFeatures(
       productFeaturesWithPricingModelId,
       [productFeatures.productId, productFeatures.featureId],
-      transaction
+      ctx.transaction
     )
+
+    // Invalidate product features cache for all affected pricing models (queued for after commit)
+    // Use the input inserts to get pricingModelIds since they're computed above
+    // Filter out undefined values (should not happen due to throw above, but TypeScript needs this)
+    const pricingModelIds = [
+      ...new Set(
+        productFeaturesWithPricingModelId
+          .map((pf) => pf.pricingModelId)
+          .filter((id): id is string => id !== undefined)
+      ),
+    ]
+    for (const pricingModelId of pricingModelIds) {
+      ctx.invalidateCache(
+        CacheDependency.productFeaturesByPricingModel(pricingModelId)
+      )
+    }
+
+    return results
   }
 
 export const unexpireProductFeatures = async (
@@ -274,9 +397,9 @@ export const unexpireProductFeatures = async (
     productId: string
     organizationId: string
   },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<ProductFeature.Record[]> => {
-  const unExpired = await transaction
+  const unExpired = await ctx.transaction
     .update(productFeatures)
     .set({ expiredAt: null })
     .where(
@@ -288,7 +411,24 @@ export const unexpireProductFeatures = async (
       )
     )
     .returning()
-  return unExpired.map((pf) => productFeaturesSelectSchema.parse(pf))
+
+  const parsedUnexpired = unExpired.map((pf) =>
+    productFeaturesSelectSchema.parse(pf)
+  )
+
+  // Invalidate product features cache for all affected pricing models (queued for after commit)
+  const pricingModelIds = [
+    ...new Set(
+      parsedUnexpired.map((pf) => pf.pricingModelId).filter(Boolean)
+    ),
+  ] as string[]
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productFeaturesByPricingModel(pricingModelId)
+    )
+  }
+
+  return parsedUnexpired
 }
 
 /**
@@ -296,21 +436,20 @@ export const unexpireProductFeatures = async (
  * This is more efficient for bulk operations across multiple products.
  *
  * @param productFeatureIds - Array of product feature IDs to unexpire
- * @param params - Transaction params including invalidateCache for cache consistency
+ * @param ctx - TransactionEffectsContext for transaction and cache invalidation
  * @returns Array of unexpired ProductFeature records
  */
 export const batchUnexpireProductFeatures = async (
   productFeatureIds: string[],
-  params: Pick<
+  ctx: Pick<
     TransactionEffectsContext,
     'transaction' | 'invalidateCache'
   >
 ): Promise<ProductFeature.Record[]> => {
-  const { transaction, invalidateCache } = params
   if (productFeatureIds.length === 0) {
     return []
   }
-  const unexpired = await transaction
+  const unexpired = await ctx.transaction
     .update(productFeatures)
     .set({ expiredAt: null })
     .where(
@@ -340,22 +479,34 @@ export const batchUnexpireProductFeatures = async (
     // Find prices for the affected products
     const affectedPrices = await selectPrices(
       { productId: productIds },
-      transaction
+      ctx.transaction
     )
     if (affectedPrices.length > 0) {
       const priceIds = affectedPrices.map((p) => p.id)
       // Find subscription items that use those prices
       const affectedSubscriptionItems = await selectSubscriptionItems(
         { priceId: priceIds },
-        transaction
+        ctx.transaction
       )
       const subscriptionItemIds = affectedSubscriptionItems.map(
         (si) => si.id
       )
-      invalidateCache(
+      ctx.invalidateCache(
         ...subscriptionItemIds.map((id) =>
           CacheDependency.subscriptionItemFeatures(id)
         )
+      )
+    }
+
+    // Invalidate product features cache for all affected pricing models (queued for after commit)
+    const pricingModelIds = [
+      ...new Set(
+        parsedUnexpired.map((pf) => pf.pricingModelId).filter(Boolean)
+      ),
+    ] as string[]
+    for (const pricingModelId of pricingModelIds) {
+      ctx.invalidateCache(
+        CacheDependency.productFeaturesByPricingModel(pricingModelId)
       )
     }
   }
@@ -371,20 +522,19 @@ export const syncProductFeatures = async (
     >
     desiredFeatureIds: string[]
   },
-  transactionParams: Pick<
+  ctx: Pick<
     TransactionEffectsContext,
     'transaction' | 'invalidateCache'
   >
 ) => {
   const { product, desiredFeatureIds } = params
-  const { transaction, invalidateCache } = transactionParams
 
   // Early return if no features to sync
   if (!desiredFeatureIds || desiredFeatureIds.length === 0) {
     // Just expire all existing features if any
     const allProductFeaturesForProduct = await selectProductFeatures(
       { productId: product.id },
-      transaction
+      ctx.transaction
     )
     if (allProductFeaturesForProduct.length > 0) {
       const activeFeatures = allProductFeaturesForProduct.filter(
@@ -393,7 +543,7 @@ export const syncProductFeatures = async (
       if (activeFeatures.length > 0) {
         await expireProductFeaturesByFeatureId(
           activeFeatures.map((pf) => pf.id),
-          { transaction, invalidateCache }
+          ctx
         )
       }
     }
@@ -404,7 +554,7 @@ export const syncProductFeatures = async (
     {
       productId: product.id,
     },
-    transaction
+    ctx.transaction
   )
   const existingProductFeaturesByFeatureId = new Map(
     allProductFeaturesForProduct.map((pf) => [pf.featureId, pf])
@@ -420,7 +570,7 @@ export const syncProductFeatures = async (
   if (productFeaturesToExpire.length > 0) {
     await expireProductFeaturesByFeatureId(
       productFeaturesToExpire.map((pf) => pf.id),
-      { transaction, invalidateCache }
+      ctx
     )
   }
 
@@ -435,10 +585,7 @@ export const syncProductFeatures = async (
     productFeatureIdsToUnexpire.length > 0
       ? await batchUnexpireProductFeatures(
           productFeatureIdsToUnexpire,
-          {
-            transaction,
-            invalidateCache,
-          }
+          ctx
         )
       : []
 
@@ -456,7 +603,7 @@ export const syncProductFeatures = async (
             organizationId: product.organizationId,
             livemode: product.livemode,
           })),
-          transaction
+          ctx
         )
       : []
 

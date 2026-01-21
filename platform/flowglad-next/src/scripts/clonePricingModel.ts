@@ -6,6 +6,7 @@ NODE_ENV=production bunx tsx src/scripts/clonePricingModel.ts pricing_model_id=p
 
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js'
 import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
+import { createTransactionEffectsContext } from '@/db/types'
 import { DestinationEnvironment } from '@/types'
 import { clonePricingModelTransaction } from '@/utils/pricingModel'
 import runScript from './scriptRunner'
@@ -55,6 +56,12 @@ const clonePricingModel = async (db: PostgresJsDatabase) => {
       transaction
     )
 
+    // Create transaction context with noop callbacks for scripts
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: sourcePricingModel.livemode,
+    })
+
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-')
     const clonedName = `${sourcePricingModel.name} (Clone ${timestamp})`
 
@@ -64,7 +71,7 @@ const clonePricingModel = async (db: PostgresJsDatabase) => {
         name: clonedName,
         destinationEnvironment,
       },
-      transaction
+      ctx
     )
 
     console.log(

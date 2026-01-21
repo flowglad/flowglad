@@ -52,7 +52,8 @@ describe('Pay as You Go Workflow E2E', () => {
       product: freeProduct,
       price: freePrice,
     } = await setupOrg()
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await updateOrganization(
         {
           id: organization.id,
@@ -128,14 +129,15 @@ describe('Pay as You Go Workflow E2E', () => {
       usageMeterId: usageMeter.id,
     })
     // Override unitPrice to 0 for the default/free price
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await updatePrice(
         {
           id: freePrice.id,
           type: freePrice.type,
           unitPrice: 0,
         },
-        transaction
+        ctx
       )
     })
     const { customer, subscription } =
@@ -174,7 +176,8 @@ describe('Pay as You Go Workflow E2E', () => {
     }
 
     // 1. Expect usage credits and initial billing
-    await adminTransaction(async ({ transaction, livemode }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction, livemode } = ctx
       // expect there to be a usageCredit record for the meter and subscription
       const usageCredits = await selectUsageCredits(
         {
@@ -242,7 +245,8 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 3. Call @customerBillingTransaction again and assert final state
-    await adminTransaction(async ({ transaction, livemode }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction, livemode } = ctx
       const cacheRecomputationContext: CacheRecomputationContext = {
         type: 'admin',
         livemode,
@@ -287,7 +291,8 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 5. Call @customerBillingTransaction again and assert final state
-    await adminTransaction(async ({ transaction, livemode }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction, livemode } = ctx
       const cacheRecomputationContext: CacheRecomputationContext = {
         type: 'admin',
         livemode,
@@ -397,40 +402,38 @@ describe('Pay as You Go Workflow E2E', () => {
       return Result.ok(result)
     })
 
-    await comprehensiveAdminTransaction(
-      async ({ transaction, livemode }) => {
-        // 5. Call @customerBillingTransaction again and assert final state
-        const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
-          livemode,
-        }
-        const billingState3 = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
-
-        const activatedSubscription =
-          billingState3.subscriptions.find(
-            (s) => s.id === subscription.id
-          )
-
-        expect(activatedSubscription?.status).toBe(
-          SubscriptionStatus.Active
-        )
-        expect(
-          activatedSubscription?.experimental?.featureItems
-        ).toHaveLength(1)
-        expect(
-          activatedSubscription?.experimental?.usageMeterBalances?.[0]
-            .availableBalance
-        ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
-        return Result.ok(null)
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction, livemode } = ctx
+      // 5. Call @customerBillingTransaction again and assert final state
+      const cacheRecomputationContext: CacheRecomputationContext = {
+        type: 'admin',
+        livemode,
       }
-    )
+      const billingState3 = await customerBillingTransaction(
+        {
+          externalId: customer.externalId,
+          organizationId: organization.id,
+        },
+        transaction,
+        cacheRecomputationContext
+      )
+
+      const activatedSubscription = billingState3.subscriptions.find(
+        (s) => s.id === subscription.id
+      )
+
+      expect(activatedSubscription?.status).toBe(
+        SubscriptionStatus.Active
+      )
+      expect(
+        activatedSubscription?.experimental?.featureItems
+      ).toHaveLength(1)
+      expect(
+        activatedSubscription?.experimental?.usageMeterBalances?.[0]
+          .availableBalance
+      ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
+      return Result.ok(null)
+    })
 
     // 6. Create a usage event after payment
     const newTransactionId = 'test2-' + core.nanoid()
@@ -456,30 +459,29 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 7. Call @customerBillingTransaction again and assert final state after new usage
-    await comprehensiveAdminTransaction(
-      async ({ transaction, livemode }) => {
-        const cacheRecomputationContext: CacheRecomputationContext = {
-          type: 'admin',
-          livemode,
-        }
-        const billingState4 = await customerBillingTransaction(
-          {
-            externalId: customer.externalId,
-            organizationId: organization.id,
-          },
-          transaction,
-          cacheRecomputationContext
-        )
-        const activatedSubscriptionAfterUsage =
-          billingState4.subscriptions.find(
-            (s) => s.id === subscription.id
-          )
-        expect(
-          activatedSubscriptionAfterUsage?.experimental
-            ?.usageMeterBalances?.[0].availableBalance
-        ).toBe(900) // 1000 - 100 (new usage) = 900
-        return Result.ok(null)
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction, livemode } = ctx
+      const cacheRecomputationContext: CacheRecomputationContext = {
+        type: 'admin',
+        livemode,
       }
-    )
+      const billingState4 = await customerBillingTransaction(
+        {
+          externalId: customer.externalId,
+          organizationId: organization.id,
+        },
+        transaction,
+        cacheRecomputationContext
+      )
+      const activatedSubscriptionAfterUsage =
+        billingState4.subscriptions.find(
+          (s) => s.id === subscription.id
+        )
+      expect(
+        activatedSubscriptionAfterUsage?.experimental
+          ?.usageMeterBalances?.[0].availableBalance
+      ).toBe(900) // 1000 - 100 (new usage) = 900
+      return Result.ok(null)
+    })
   }, 120000)
 })
