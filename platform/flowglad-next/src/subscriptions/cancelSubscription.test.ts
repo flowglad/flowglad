@@ -1740,14 +1740,8 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    /**
-     * This test uses vi.spyOn to mock the notification function.
-     * This is justified because the notification is a Trigger.dev task that makes
-     * network calls to external services. Per testing guidelines, mocking is allowed
-     * when the mocked function makes a network call whose response needs to be
-     * controlled for the test.
-     */
     it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
+      // biome-ignore lint/plugin: mocking Trigger.dev task that makes network calls to external services
       const notificationSpy = vi
         .spyOn(
           subscriptionCancellationNotifications,
@@ -1755,7 +1749,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
         .mockResolvedValue(undefined)
       try {
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           const subscription = await setupSubscription({
             organizationId: organization.id,
             customerId: customer.id,
