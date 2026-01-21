@@ -11,7 +11,7 @@ import {
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
 import type { Feature } from '@/db/schema/features'
-import { FeatureType, FeatureUsageGrantFrequency } from '@/types'
+import { FeatureType } from '@/types'
 
 export interface FeatureRow {
   feature: Feature.ClientRecord
@@ -67,15 +67,19 @@ export const columns: ColumnDef<FeatureRow>[] = [
     header: 'Type',
     cell: ({ row }) => {
       const feature = row.original.feature
-      let typeText = 'Toggle'
-      if (feature.type === FeatureType.UsageCreditGrant) {
-        if (
-          feature.renewalFrequency === FeatureUsageGrantFrequency.Once
-        ) {
-          typeText = 'One time grant'
-        } else {
-          typeText = 'Renews every cycle'
-        }
+      let typeText: string
+      switch (feature.type) {
+        case FeatureType.Toggle:
+          typeText = 'Toggle'
+          break
+        case FeatureType.UsageCreditGrant:
+          typeText = 'Usage Credit Grant'
+          break
+        case FeatureType.Resource:
+          typeText = 'Resource'
+          break
+        default:
+          typeText = 'Unknown'
       }
       return <div className="text-sm truncate">{typeText}</div>
     },
