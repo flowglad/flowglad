@@ -433,7 +433,7 @@ function PriceDisplay({ priceSlug }: { priceSlug: string }) {
     currency: price.currency || 'USD',
   }).format(price.unitPrice / 100)
 
-  const interval = price.interval === 'month' ? '/mo' : '/yr'
+  const interval = price.intervalUnit === 'month' ? '/mo' : '/yr'
 
   return <span>{formattedPrice}{interval}</span>
 }
