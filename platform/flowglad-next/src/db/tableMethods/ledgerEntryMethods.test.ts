@@ -3247,8 +3247,19 @@ describe('ledgerEntryMethods', () => {
   })
 
   describe('aggregateOutstandingBalanceForUsageCosts', () => {
-    it('should return priceId null, unitPrice 0, usageEventsPerUnit 1, and name with "(no price)" for events with null priceId', async () => {
-      // Use the existing ledgerAccount from beforeEach setup
+    it('should return correct billing info for events with a no_charge price (unitPrice: 0)', async () => {
+      // Create a no_charge price for the usage meter
+      const noChargePrice = await setupPrice({
+        name: `${usageMeter.name} - No Charge`,
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        usageMeterId: usageMeter.id,
+      })
 
       const ledgerTransaction = await setupLedgerTransaction({
         organizationId: organization.id,
@@ -3261,9 +3272,9 @@ describe('ledgerEntryMethods', () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         amount: 5,
-        priceId: null,
+        priceId: noChargePrice.id,
         billingPeriodId: billingPeriod.id,
-        transactionId: 'dummy_txn_null_price_' + Math.random(),
+        transactionId: 'dummy_txn_no_charge_price_' + Math.random(),
         customerId: customer.id,
         usageDate: Date.now(),
       })
@@ -3293,17 +3304,17 @@ describe('ledgerEntryMethods', () => {
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
         expect(billingInfo).toEqual<UsageBillingInfo>({
-          priceId: null,
+          priceId: noChargePrice.id,
           unitPrice: 0,
           usageEventsPerUnit: 1,
           usageMeterId: usageMeter.id,
           balance: 100,
-          name: `Usage: ${usageMeter.name} (no price)`,
-          usageMeterIdPriceId: `${usageMeter.id}-null`,
+          name: `Usage: ${usageMeter.name} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(organization.defaultCurrency as CurrencyCode, 0)} per 1`,
+          usageMeterIdPriceId: `${usageMeter.id}-${noChargePrice.id}`,
           usageEventIds: expect.arrayContaining([usageEvent.id]),
           ledgerAccountId: ledgerAccount.id,
           livemode: true,
-          description: `priceId: null, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEvent.id}`,
+          description: `priceId: ${noChargePrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEvent.id}`,
         })
       })
     })
@@ -3379,11 +3390,23 @@ describe('ledgerEntryMethods', () => {
       })
     })
 
-    it('should return separate billing info entries for events with prices and events without prices', async () => {
+    it('should return separate billing info entries for events with different prices', async () => {
       const usageBasedPrice = await setupPrice({
         name: 'Test Usage Price',
         type: PriceType.Usage,
         unitPrice: 10,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        usageMeterId: usageMeter.id,
+      })
+
+      const noChargePrice = await setupPrice({
+        name: `${usageMeter.name} - No Charge`,
+        type: PriceType.Usage,
+        unitPrice: 0,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         livemode: true,
@@ -3398,7 +3421,7 @@ describe('ledgerEntryMethods', () => {
         type: LedgerTransactionType.UsageEventProcessed,
       })
 
-      // Event with price
+      // Event with regular price
       const usageEventWithPrice = await setupUsageEvent({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -3411,15 +3434,15 @@ describe('ledgerEntryMethods', () => {
         usageDate: Date.now(),
       })
 
-      // Event without price
-      const usageEventWithoutPrice = await setupUsageEvent({
+      // Event with no_charge price
+      const usageEventWithNoChargePrice = await setupUsageEvent({
         organizationId: organization.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         amount: 3,
-        priceId: null,
+        priceId: noChargePrice.id,
         billingPeriodId: billingPeriod.id,
-        transactionId: 'dummy_txn_null_price_' + Math.random(),
+        transactionId: 'dummy_txn_no_charge_price_' + Math.random(),
         customerId: customer.id,
         usageDate: Date.now(),
       })
@@ -3444,7 +3467,7 @@ describe('ledgerEntryMethods', () => {
         ledgerAccountId: ledgerAccount.id,
         amount: 100,
         entryType: LedgerEntryType.UsageCost,
-        sourceUsageEventId: usageEventWithoutPrice.id,
+        sourceUsageEventId: usageEventWithNoChargePrice.id,
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         entryTimestamp: billingPeriod.endDate - 1000,
@@ -3461,12 +3484,14 @@ describe('ledgerEntryMethods', () => {
 
         expect(result).toHaveLength(2)
 
-        const withPrice = result.find(
+        const withRegularPrice = result.find(
           (r) => r.priceId === usageBasedPrice.id
         )
-        const withoutPrice = result.find((r) => r.priceId === null)
+        const withNoChargePrice = result.find(
+          (r) => r.priceId === noChargePrice.id
+        )
 
-        expect(withPrice).toEqual<UsageBillingInfo>({
+        expect(withRegularPrice).toEqual<UsageBillingInfo>({
           priceId: usageBasedPrice.id,
           unitPrice: 10,
           usageEventsPerUnit: 1,
@@ -3482,25 +3507,38 @@ describe('ledgerEntryMethods', () => {
           description: `priceId: ${usageBasedPrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 10, usageEventIds: ${usageEventWithPrice.id}`,
         })
 
-        expect(withoutPrice).toEqual<UsageBillingInfo>({
-          priceId: null,
+        expect(withNoChargePrice).toEqual<UsageBillingInfo>({
+          priceId: noChargePrice.id,
           unitPrice: 0,
           usageEventsPerUnit: 1,
           usageMeterId: usageMeter.id,
           balance: 100,
-          name: `Usage: ${usageMeter.name} (no price)`,
-          usageMeterIdPriceId: `${usageMeter.id}-null`,
+          name: `Usage: ${usageMeter.name} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(organization.defaultCurrency as CurrencyCode, 0)} per 1`,
+          usageMeterIdPriceId: `${usageMeter.id}-${noChargePrice.id}`,
           usageEventIds: expect.arrayContaining([
-            usageEventWithoutPrice.id,
+            usageEventWithNoChargePrice.id,
           ]),
           ledgerAccountId: ledgerAccount.id,
           livemode: true,
-          description: `priceId: null, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEventWithoutPrice.id}`,
+          description: `priceId: ${noChargePrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEventWithNoChargePrice.id}`,
         })
       })
     })
 
-    it('should group multiple events with null priceId under the same key', async () => {
+    it('should group multiple events with the same no_charge price under the same key', async () => {
+      // Create a no_charge price (unitPrice: 0) for testing
+      const noChargePrice = await setupPrice({
+        name: `${usageMeter.name} - No Charge`,
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        usageMeterId: usageMeter.id,
+      })
+
       const ledgerTransaction = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -3512,9 +3550,9 @@ describe('ledgerEntryMethods', () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         amount: 5,
-        priceId: null,
+        priceId: noChargePrice.id,
         billingPeriodId: billingPeriod.id,
-        transactionId: 'dummy_txn_null_1_' + Math.random(),
+        transactionId: 'dummy_txn_no_charge_1_' + Math.random(),
         customerId: customer.id,
         usageDate: Date.now(),
       })
@@ -3524,9 +3562,9 @@ describe('ledgerEntryMethods', () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         amount: 3,
-        priceId: null,
+        priceId: noChargePrice.id,
         billingPeriodId: billingPeriod.id,
-        transactionId: 'dummy_txn_null_2_' + Math.random(),
+        transactionId: 'dummy_txn_no_charge_2_' + Math.random(),
         customerId: customer.id,
         usageDate: Date.now(),
       })
@@ -3569,13 +3607,13 @@ describe('ledgerEntryMethods', () => {
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
         expect(billingInfo).toEqual<UsageBillingInfo>({
-          priceId: null,
+          priceId: noChargePrice.id,
           unitPrice: 0,
           usageEventsPerUnit: 1,
           usageMeterId: usageMeter.id,
           balance: 300, // 100 + 200
-          name: `Usage: ${usageMeter.name} (no price)`,
-          usageMeterIdPriceId: `${usageMeter.id}-null`,
+          name: `Usage: ${usageMeter.name} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(organization.defaultCurrency as CurrencyCode, 0)} per 1`,
+          usageMeterIdPriceId: `${usageMeter.id}-${noChargePrice.id}`,
           usageEventIds: expect.arrayContaining([
             usageEvent1.id,
             usageEvent2.id,
@@ -3583,7 +3621,7 @@ describe('ledgerEntryMethods', () => {
           ledgerAccountId: ledgerAccount.id,
           livemode: true,
           description: expect.stringContaining(
-            `priceId: null, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds:`
+            `priceId: ${noChargePrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds:`
           ),
         })
         expect(billingInfo.description).toContain(usageEvent1.id)

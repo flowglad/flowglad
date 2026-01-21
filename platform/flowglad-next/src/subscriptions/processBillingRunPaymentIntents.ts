@@ -11,7 +11,6 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
-import type { User } from '@/db/schema/users'
 import { selectBillingPeriodItemsBillingPeriodSubscriptionAndOrganizationByBillingPeriodId } from '@/db/tableMethods/billingPeriodItemMethods'
 import { selectBillingPeriods } from '@/db/tableMethods/billingPeriodMethods'
 import {
@@ -42,6 +41,8 @@ import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMe
 import type { TransactionEffectsContext } from '@/db/types'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
+import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
+import { sendOrganizationPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-organization-payment-succeeded-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
 import {
   BillingRunStatus,
@@ -56,8 +57,6 @@ import { CacheDependency } from '@/utils/cache'
 import { fetchDiscountInfoForInvoice } from '@/utils/discountHelpers'
 import {
   sendAwaitingPaymentConfirmationEmail,
-  sendOrganizationPaymentFailedNotificationEmail,
-  sendOrganizationPaymentNotificationEmail,
   sendPaymentFailedEmail,
 } from '@/utils/email'
 import { sumNetTotalSettledPaymentsForBillingPeriod } from '@/utils/paymentHelpers'
@@ -103,7 +102,6 @@ interface BillingRunNotificationParams {
   organization: Organization.Record
   subscription: Subscription.Record
   payment: Payment.Record
-  organizationMemberUsers: User.Record[]
   invoiceLineItems: InvoiceLineItem.Record[]
 }
 
@@ -124,16 +122,13 @@ const processSucceededNotifications = async (
   await sendCustomerPaymentSucceededNotificationIdempotently(
     params.payment.id
   )
-  await sendOrganizationPaymentNotificationEmail({
-    organizationName: params.organization.name,
-    amount: params.payment.amount,
+  await sendOrganizationPaymentSucceededNotificationIdempotently({
+    organizationId: params.organization.id,
     customerId: params.customer.id,
-    to: params.organizationMemberUsers
-      .filter((user) => user.email)
-      .map((user) => user.email!),
+    paymentId: params.payment.id,
+    amount: params.payment.amount,
     currency: params.invoice.currency,
-    customerName: params.customer.name,
-    customerEmail: params.customer.email,
+    invoiceNumber: params.invoice.invoiceNumber,
     livemode: params.invoice.livemode,
   })
 }
@@ -141,14 +136,12 @@ const processSucceededNotifications = async (
 interface BillingRunFailureNotificationParams
   extends BillingRunNotificationParams {
   retryDate?: Date | number
+  failureReason?: string
 }
 
 const processFailedNotifications = async (
   params: BillingRunFailureNotificationParams
 ) => {
-  const organizationName = params.organization.name
-  const currency = params.invoice.currency
-
   // Fetch discount information if this invoice is from a billing period (subscription)
   const discountInfo = await fetchDiscountInfoForInvoice(
     params.invoice
@@ -174,17 +167,16 @@ const processFailedNotifications = async (
     livemode: params.invoice.livemode,
   })
 
-  await sendOrganizationPaymentFailedNotificationEmail({
-    to: params.organizationMemberUsers
-      .filter((user) => user.email)
-      .map((user) => user.email!),
-    organizationName,
-    currency,
+  await idempotentSendOrganizationPaymentFailedNotification({
+    organizationId: params.organization.id,
     customerId: params.customer.id,
-    customerName: params.customer.name,
+    paymentId: params.payment.id,
     amount: params.invoiceLineItems.reduce((acc, item) => {
       return item.price * item.quantity + acc
     }, 0),
+    currency: params.invoice.currency,
+    invoiceNumber: params.invoice.invoiceNumber,
+    failureReason: params.failureReason,
     livemode: params.invoice.livemode,
   })
 }
@@ -194,20 +186,28 @@ const processAbortedNotifications = (
 ) => {}
 
 const processAwaitingPaymentConfirmationNotifications = async (
-  params: BillingRunNotificationParams
+  params: BillingRunNotificationParams & {
+    usersAndMemberships: { user: { email: string | null } }[]
+  }
 ) => {
-  await sendAwaitingPaymentConfirmationEmail({
-    organizationName: params.organization.name,
-    amount: params.payment.amount,
-    customerId: params.customer.id,
-    to: params.organizationMemberUsers
-      .filter((user) => user.email)
-      .map((user) => user.email!),
-    invoiceNumber: params.invoice.invoiceNumber,
-    currency: params.invoice.currency,
-    customerName: params.customer.name,
-    livemode: params.invoice.livemode,
-  })
+  // Note: This notification is sent to all organization members
+  // as it's an informational status update, not a preference-controlled notification
+  const recipientEmails = params.usersAndMemberships
+    .map(({ user }) => user.email)
+    .filter((email): email is string => !!email)
+
+  if (recipientEmails.length > 0) {
+    await sendAwaitingPaymentConfirmationEmail({
+      organizationName: params.organization.name,
+      amount: params.payment.amount,
+      customerId: params.customer.id,
+      to: recipientEmails,
+      invoiceNumber: params.invoice.invoiceNumber,
+      currency: params.invoice.currency,
+      customerName: params.customer.name,
+      livemode: params.invoice.livemode,
+    })
+  }
 }
 
 export const processOutcomeForBillingRun = async (
@@ -528,10 +528,6 @@ export const processOutcomeForBillingRun = async (
       transaction
     )
 
-  const organizationMemberUsers = usersAndMemberships.map(
-    (userAndMembership) => userAndMembership.user
-  )
-
   // Queue cache invalidations via effects context
   // Note: handleSubscriptionItemAdjustment now calls invalidateCache internally
   // so we only need to invalidate customer subscriptions here
@@ -545,7 +541,6 @@ export const processOutcomeForBillingRun = async (
     organization,
     subscription,
     payment,
-    organizationMemberUsers,
     invoiceLineItems,
   }
 
@@ -575,6 +570,7 @@ export const processOutcomeForBillingRun = async (
       await processFailedNotifications({
         ...notificationParams,
         retryDate: maybeRetry?.scheduledFor,
+        failureReason: event.last_payment_error?.message,
       })
       await safelyUpdateSubscriptionStatus(
         subscription,
@@ -607,6 +603,7 @@ export const processOutcomeForBillingRun = async (
     await processAwaitingPaymentConfirmationNotifications({
       ...notificationParams,
       invoice, // Use the updated invoice
+      usersAndMemberships,
     })
   }
 

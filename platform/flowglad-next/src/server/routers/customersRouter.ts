@@ -510,6 +510,7 @@ const exportCsvProcedure = protectedProcedure
                   livemode,
                 },
                 {
+                  // biome-ignore lint/plugin: CSV exports are intentionally non-idempotent - each request generates a new export
                   idempotencyKey: await createTriggerIdempotencyKey(
                     `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
                   ),
