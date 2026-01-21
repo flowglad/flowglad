@@ -24,7 +24,7 @@ export function PricingProducts() {
   }
 
   const products = pricingModel.products.map((product) => {
-    const defaultPrice = product.defaultPrice ?? product.prices[0] ?? null
+    const defaultPrice = product.defaultPrice ?? product.prices?.[0] ?? null
 
     return {
       slug: product.slug,

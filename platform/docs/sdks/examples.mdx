@@ -235,7 +235,7 @@ export default function App() {
 ```
 
 ```tsx Frontend: BillingPage.tsx
-import { useBilling, usePricing } from '@flowglad/react'
+import { useBilling } from '@flowglad/react'
 
 export default function BillingPage() {
   const { checkFeatureAccess, createCheckoutSession } = useBilling()
@@ -512,7 +512,7 @@ export function CancelSubscriptionButton({ subscriptionId }: { subscriptionId: s
 ### Pricing Table
 
 ```tsx
-import { useBilling } from '@flowglad/react'
+import { useBilling, usePricing } from '@flowglad/react'
 
 export function PricingTable() {
   const pricingModel = usePricing()
