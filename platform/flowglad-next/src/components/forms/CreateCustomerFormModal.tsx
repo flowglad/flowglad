@@ -42,13 +42,11 @@ const CreateCustomerFormModal = ({
   }
 
   const handleSubmit = async (data: CreateCustomerInputSchema) => {
-    const externalId =
-      data.customer.externalId?.trim() || core.nanoid()
     const customerData = {
       ...data,
       customer: {
         ...data.customer,
-        externalId,
+        externalId: data.customer.externalId || core.nanoid(),
       },
     }
     return createCustomer.mutateAsync(customerData)
