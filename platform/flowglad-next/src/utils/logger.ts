@@ -12,9 +12,21 @@ import type {
   LoggerData,
   ServiceContext,
 } from '@/types'
-import core, { IS_DEV } from './core'
+import core, { IS_DEV, IS_TEST } from './core'
 
-const log = IS_DEV || !core.IS_PROD ? console : logtailLog
+// In test mode, use a no-op logger to avoid noisy output
+const noopLog = {
+  debug: () => {},
+  info: () => {},
+  warn: () => {},
+  error: () => {},
+}
+
+const log = IS_TEST
+  ? noopLog
+  : IS_DEV || !core.IS_PROD
+    ? console
+    : logtailLog
 
 // Helper to determine service context based on API key presence
 function getServiceContext(apiKey?: string): ServiceContext {
