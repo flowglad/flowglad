@@ -47,7 +47,7 @@ Subscription prices are charged at a billing interval specified in their `interv
 
 Usage prices denominate how much a customer should pay for usage events for a given usage meter. Usage prices describe how many usage events correspond to a unit price, via `usageEventsPerUnit`. For example, to model 1,000,000 serverless invocations per $0.10, you would create a usage price with `{ usageEventsPerUnit: 1000000, unitPrice: 10 }`.
 
-Usage prices are not subscribable and cannot be checked out, meaning attempts to create a subscription or a checkout session with a usage price will fail. Instead, usage prices describe explicitly what the cost should be for a usage event. They clarify to settle overages for a usage meter in the case that a customer runs an overage.
+Usage prices are not subscribable and cannot be checked out, meaning attempts to create a subscription or a checkout session with a usage price will fail. Instead, usage prices describe explicitly what the cost should be for a usage event. They clarify how to settle overages for a usage meter in the case that a customer runs an overage.
 
 Usage events always have a `priceId`—it's a required field. When you create usage events using a meter identifier (`usageMeterSlug` or `usageMeterId`), the system resolves to the meter's default price. Every usage meter has a guaranteed default price: either a price you've configured or an auto-generated [no-charge price](/features/usage#no-charge-prices) with `unitPrice: $0`. 
 
