@@ -231,7 +231,10 @@ export const createProductTransaction = async (
   const { transaction, livemode, organizationId, invalidateCache } =
     transactionParams
   if (!organizationId) {
-    throw new Error('organizationId is required to create a product')
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Organization ID is required to create a product.',
+    })
   }
   // Validate that usage prices are not created with featureIds
   if (payload.featureIds && payload.featureIds.length > 0) {
@@ -340,7 +343,10 @@ export const editProductTransaction = async (
   const { product, featureIds, price } = payload
 
   if (!organizationId) {
-    throw new Error('organizationId is required to edit a product')
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Organization ID is required to edit a product.',
+    })
   }
 
   // Fetch the existing product to check if it's a default product
