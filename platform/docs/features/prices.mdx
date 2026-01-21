@@ -28,6 +28,8 @@ For billing based on actual usage of your product or service, charged on a recur
 - Associated with a specific [usage meter](/features/usage). Required via `usageMeterId`.
 - Usage charges are typically calculated and billed at the end of the billing period (based on `intervalUnit` and `intervalCount`), unlike standard subscriptions which charge at the start.
 - **Usage Events Per Unit**: How many usage events are considered one unit to be charged at the unit price. Required.
+- Any usage price can be set as the **default price** for its usage meter. When usage events are created using a meter identifier (`usageMeterSlug` or `usageMeterId`), the system resolves to this default price.
+- Every usage meter has an auto-generated [no-charge price](/features/usage#no-charge-prices) (`{usagemeterslug}_no_charge`) that serves as the fallback default.
 
 <Tip>
 Usage meter prices combine recurring billing cycles with variable charges based on consumption tracked by a usage meter.
@@ -35,9 +37,19 @@ Usage meter prices combine recurring billing cycles with variable charges based 
 
 ## Default Price
 
+### Product Default Price
+
 Each product has a default price. This is the price presented by default in checkouts or API calls when a specific price isn't requested.
 
 - Only one price per product can be the default active price at any time. If you set a new price as the default (either on creation or by updating), any existing default price for that product will automatically have its `isDefault` flag set to `false`.
+
+### Usage Meter Default Price
+
+Usage meters also have default prices, separate from product default prices. This determines which price is used when creating usage events via `usageMeterSlug` or `usageMeterId`.
+
+- Every usage meter has a guaranteed default price—either a price you've configured or the auto-generated [no-charge price](/features/usage#no-charge-prices).
+- If you unset the current default price for a usage meter, the no-charge price automatically becomes the default.
+- The `_no_charge` slug suffix is reserved for these auto-generated prices and cannot be used for user-created prices.
 
 ## Choosing the Right Price Type
 

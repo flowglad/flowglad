@@ -10,7 +10,7 @@ Flowglad tracks feature entitlements and consumption so you can gate premium fun
 ### How to use
 - For `checkFeatureAccess` (available on client & server): provide the `featureSlug` to check for and optionally refine the result to a specific subscription by passing in a `subscriptionId` for `refinementParams`. Returns a boolean.
 - For `checkUsageBalance` (available on client & server): provide the `usageMeterSlug` to check for and optionally refine the result to a specific subscription by passing in a `subscriptionId` for `refinementParams`. Returns either `{ availableBalance: number }` or `null` if not found.
-- For `createUsageEvent` (available on client & server): provide exactly one of `priceSlug`, `priceId`, `usageMeterSlug`, or `usageMeterId` to identify the usage meter.
+- For `createUsageEvent` (available on client & server): provide exactly one of `priceSlug`, `priceId`, `usageMeterSlug`, or `usageMeterId` to identify the usage price. Using `usageMeterSlug` or `usageMeterId` resolves to the meter's default price. All events will have a `priceId` in the response.
   - **Client**: The SDK auto-resolves `subscriptionId` from the current subscription, defaults `amount` to 1, and auto-generates `transactionId` for idempotency. You can optionally override any of these.
   - **Server**: You must provide `subscriptionId`, `transactionId`, and `amount` explicitly, along with optional `properties` and `usageDate`.
   The optional `properties` field is for usage meters with count distinct aggregation type. See [here](/api-reference/usage-events/create-usage-event#body-usage-event) for more details on the parameters.
