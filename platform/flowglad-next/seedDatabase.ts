@@ -175,7 +175,7 @@ export const setupOrg = async (params?: {
   return adminTransaction(async ({ transaction }) => {
     const ctx = createTransactionEffectsContext(transaction, {
       type: 'admin',
-      livemode: false,
+      livemode: true,
     })
     const [country] = await selectCountries(
       { code: params?.countryCode ?? CountryCode.US },
@@ -294,16 +294,18 @@ export const setupProduct = async ({
   default?: boolean
   slug?: string
 }) => {
+  const effectiveLivemode =
+    typeof livemode === 'boolean' ? livemode : true
   return adminTransaction(async ({ transaction }) => {
     const ctx = createTransactionEffectsContext(transaction, {
       type: 'admin',
-      livemode: false,
+      livemode: effectiveLivemode,
     })
     return await insertProduct(
       {
         name,
         organizationId,
-        livemode: typeof livemode === 'boolean' ? livemode : true,
+        livemode: effectiveLivemode,
         description: 'Flowglad Live Product',
         imageURL: 'https://flowglad.com/logo.png',
         active,
@@ -1004,7 +1006,7 @@ export const setupPrice = async (
   return adminTransaction(async ({ transaction }) => {
     const ctx = createTransactionEffectsContext(transaction, {
       type: 'admin',
-      livemode: false,
+      livemode,
     })
     // For usage prices, derive pricingModelId from usage meter
     const pricingModelId =
@@ -1578,7 +1580,7 @@ export const setupUsageMeter = async ({
   return adminTransaction(async ({ transaction }) => {
     const ctx = createTransactionEffectsContext(transaction, {
       type: 'admin',
-      livemode: false,
+      livemode,
     })
     let pricingModelToUseId: string | null = null
     if (pricingModelId) {
@@ -1717,7 +1719,7 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
   return adminTransaction(async ({ transaction }) => {
     const ctx = createTransactionEffectsContext(transaction, {
       type: 'admin',
-      livemode: false,
+      livemode,
     })
     const product = await selectProductById(productId, transaction)
     if (!product) {
@@ -2395,7 +2397,7 @@ export const setupToggleFeature = async (
   return adminTransaction(async ({ transaction }) => {
     const ctx = createTransactionEffectsContext(transaction, {
       type: 'admin',
-      livemode: false,
+      livemode: params.livemode,
     })
     const pricingModelId =
       params.pricingModelId ??
@@ -2434,7 +2436,7 @@ export const setupUsageCreditGrantFeature = async (
   return adminTransaction(async ({ transaction }) => {
     const ctx = createTransactionEffectsContext(transaction, {
       type: 'admin',
-      livemode: false,
+      livemode: params.livemode,
     })
     const pricingModelId =
       params.pricingModelId ??
@@ -2870,7 +2872,7 @@ export const setupResourceFeature = async (
   return adminTransaction(async ({ transaction }) => {
     const ctx = createTransactionEffectsContext(transaction, {
       type: 'admin',
-      livemode: false,
+      livemode: params.livemode,
     })
     const resolvedPricingModelId =
       params.pricingModelId ??
