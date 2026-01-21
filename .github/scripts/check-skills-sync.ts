@@ -11,11 +11,11 @@
  *   1 - Skill sync check failed
  */
 
-import { execSync } from 'child_process'
+import { spawnSync } from 'child_process'
 import { existsSync, readdirSync, readFileSync } from 'fs'
 import { join, relative } from 'path'
 
-interface SkillMetadata {
+export interface SkillMetadata {
   sourcesReviewed: string
   sourceFiles: string[]
   path: string
@@ -30,6 +30,20 @@ interface SyncError {
 }
 
 /**
+ * Validates that a branch name is safe to use in git commands.
+ * Branch names should only contain alphanumeric characters, hyphens,
+ * underscores, forward slashes, and periods.
+ */
+export function validateBranchName(branch: string): boolean {
+  // Git branch name rules (simplified for safety):
+  // - Must not be empty
+  // - Can contain alphanumeric, hyphen, underscore, forward slash, period
+  // - Must not contain shell metacharacters or spaces
+  const safeBranchPattern = /^[a-zA-Z0-9_.\-/]+$/
+  return safeBranchPattern.test(branch) && branch.length > 0
+}
+
+/**
  * Parse the metadata block from a skill file.
  * Metadata is in an HTML comment at the top of the file:
  *
@@ -41,7 +55,7 @@ interface SyncError {
  *   - platform/docs/sdks/setup.mdx
  * -->
  */
-function parseSkillMetadata(
+export function parseSkillMetadata(
   content: string,
   skillPath: string
 ): SkillMetadata | null {
@@ -133,35 +147,48 @@ function getAllSkills(repoRoot: string): SkillMetadata[] {
 }
 
 /**
- * Get changed files in the PR by comparing to the base branch
+ * Get changed files in the PR by comparing to the base branch.
+ * Throws an error if the git commands fail to prevent silent failures.
  */
 function getChangedFiles(baseBranch: string): string[] {
-  try {
-    // Fetch the base branch to ensure we have the latest
-    execSync(`git fetch origin ${baseBranch}`, { stdio: 'pipe' })
+  // Fetch the base branch to ensure we have the latest
+  const fetchResult = spawnSync('git', ['fetch', 'origin', baseBranch], {
+    encoding: 'utf-8',
+    stdio: ['pipe', 'pipe', 'pipe'],
+  })
 
-    // Get the list of changed files compared to the base branch
-    const output = execSync(
-      `git diff --name-only origin/${baseBranch}...HEAD`,
-      {
-        encoding: 'utf-8',
-      }
+  if (fetchResult.status !== 0) {
+    throw new Error(
+      `Failed to fetch base branch '${baseBranch}': ${fetchResult.stderr || fetchResult.error?.message || 'Unknown error'}`
     )
-
-    return output
-      .trim()
-      .split('\n')
-      .filter((f) => f.length > 0)
-  } catch (error) {
-    console.error('Error getting changed files:', error)
-    return []
   }
+
+  // Get the list of changed files compared to the base branch
+  const diffResult = spawnSync(
+    'git',
+    ['diff', '--name-only', `origin/${baseBranch}...HEAD`],
+    {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }
+  )
+
+  if (diffResult.status !== 0) {
+    throw new Error(
+      `Failed to get changed files: ${diffResult.stderr || diffResult.error?.message || 'Unknown error'}`
+    )
+  }
+
+  return (diffResult.stdout || '')
+    .trim()
+    .split('\n')
+    .filter((f) => f.length > 0)
 }
 
 /**
  * Check if a file is a documentation file that we track
  */
-function isDocFile(filePath: string): boolean {
+export function isDocFile(filePath: string): boolean {
   return (
     (filePath.startsWith('platform/docs/') ||
       filePath.startsWith('platform/docs/snippets/')) &&
@@ -179,26 +206,24 @@ function wasTimestampUpdated(
   try {
     // Get the current (HEAD) version
     const currentContent = readFileSync(skillPath, 'utf-8')
-    const currentMetadata = parseSkillMetadata(
-      currentContent,
-      skillPath
+    const currentMetadata = parseSkillMetadata(currentContent, skillPath)
+
+    // Get the base branch version using spawnSync for safety
+    const showResult = spawnSync(
+      'git',
+      ['show', `origin/${baseBranch}:${skillPath}`],
+      {
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }
     )
 
-    // Get the base branch version
-    let baseContent: string
-    try {
-      baseContent = execSync(
-        `git show origin/${baseBranch}:${skillPath}`,
-        {
-          encoding: 'utf-8',
-          stdio: ['pipe', 'pipe', 'pipe'],
-        }
-      )
-    } catch {
+    if (showResult.status !== 0) {
       // File doesn't exist in base branch (new skill)
       return true
     }
 
+    const baseContent = showResult.stdout || ''
     const baseMetadata = parseSkillMetadata(baseContent, skillPath)
 
     // If either doesn't have metadata, consider it not updated
@@ -207,9 +232,7 @@ function wasTimestampUpdated(
     }
 
     // Compare timestamps
-    return (
-      currentMetadata.sourcesReviewed !== baseMetadata.sourcesReviewed
-    )
+    return currentMetadata.sourcesReviewed !== baseMetadata.sourcesReviewed
   } catch (error) {
     console.error(`Error checking timestamp for ${skillPath}:`, error)
     return false
@@ -223,13 +246,20 @@ async function main(): Promise<void> {
   const baseBranch = process.env.BASE_BRANCH || 'main'
   const repoRoot = process.cwd()
 
-  console.log(
-    `Checking skills sync against base branch: ${baseBranch}`
-  )
+  // Validate branch name to prevent command injection
+  if (!validateBranchName(baseBranch)) {
+    console.error(`Error: Invalid branch name '${baseBranch}'`)
+    console.error(
+      'Branch names must only contain alphanumeric characters, hyphens, underscores, forward slashes, and periods.'
+    )
+    process.exit(1)
+  }
+
+  console.log(`Checking skills sync against base branch: ${baseBranch}`)
   console.log(`Repository root: ${repoRoot}`)
   console.log('')
 
-  // Get changed files
+  // Get changed files - throws on error to prevent silent failures
   const changedFiles = getChangedFiles(baseBranch)
   console.log(`Changed files: ${changedFiles.length}`)
 
@@ -347,7 +377,10 @@ async function main(): Promise<void> {
   process.exit(0)
 }
 
-main().catch((error) => {
-  console.error('Unexpected error:', error)
-  process.exit(1)
-})
+// Only run main when executed directly, not when imported for testing
+if (import.meta.main) {
+  main().catch((error) => {
+    console.error('Unexpected error:', error)
+    process.exit(1)
+  })
+}

@@ -1,6 +1,6 @@
 <!--
 @flowglad/skill
-sources_reviewed: 2025-01-21T12:00:00Z
+sources_reviewed: 2026-01-21T12:00:00Z
 source_files:
   - platform/docs/features/prices.mdx
   - platform/docs/features/pricing-models.mdx
