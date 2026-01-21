@@ -16,38 +16,18 @@ language js
 
 or {
   `db.query.$_.$method($args)` as $call where {
-    register_diagnostic(
-      span=$call,
-      message="Raw Drizzle queries are not allowed in business logic. Use tableMethods instead (e.g., selectCustomers, insertCustomer).",
-      severity="error"
-    )
+    register_diagnostic(span=$call, message="Raw Drizzle queries are not allowed in business logic. Use tableMethods instead (e.g., selectCustomers, insertCustomer).", severity="error")
   },
   `db.insert($args)` as $call where {
-    register_diagnostic(
-      span=$call,
-      message="Raw Drizzle inserts are not allowed in business logic. Use tableMethods instead (e.g., insertCustomer).",
-      severity="error"
-    )
+    register_diagnostic(span=$call, message="Raw Drizzle inserts are not allowed in business logic. Use tableMethods instead (e.g., insertCustomer).", severity="error")
   },
   `db.update($args)` as $call where {
-    register_diagnostic(
-      span=$call,
-      message="Raw Drizzle updates are not allowed in business logic. Use tableMethods instead (e.g., updateCustomer).",
-      severity="error"
-    )
+    register_diagnostic(span=$call, message="Raw Drizzle updates are not allowed in business logic. Use tableMethods instead (e.g., updateCustomer).", severity="error")
   },
   `db.delete($args)` as $call where {
-    register_diagnostic(
-      span=$call,
-      message="Raw Drizzle deletes are not allowed in business logic. Use tableMethods instead (e.g., deleteCustomer).",
-      severity="error"
-    )
+    register_diagnostic(span=$call, message="Raw Drizzle deletes are not allowed in business logic. Use tableMethods instead (e.g., deleteCustomer).", severity="error")
   },
   `db.select($args)` as $call where {
-    register_diagnostic(
-      span=$call,
-      message="Raw Drizzle selects are not allowed in business logic. Use tableMethods instead (e.g., selectCustomers).",
-      severity="error"
-    )
+    register_diagnostic(span=$call, message="Raw Drizzle selects are not allowed in business logic. Use tableMethods instead (e.g., selectCustomers).", severity="error")
   }
 }
