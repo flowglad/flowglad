@@ -46,13 +46,14 @@ export const invoiceUpdatedTask = task({
             transaction
           )
 
-          const [{ customer }] =
+          const customerRows =
             await selectCustomerAndCustomerTableRows(
               {
                 id: newRecord.customerId,
               },
               transaction
             )
+          const customer = customerRows[0]?.customer
           if (!customer) {
             return Result.err(
               new NotFoundError('Customer', newRecord.customerId)
@@ -71,24 +72,32 @@ export const invoiceUpdatedTask = task({
               )
             )
           }
-          logger.info(`Sending receipt email to ${customer.email}`)
-          const [paymentForInvoice] = await selectPayments(
+          logger.info(
+            `Generating receipt PDF for customer ${customer.email}`
+          )
+          const payments = await selectPayments(
             { invoiceId: newRecord.id },
             transaction
           )
+          const paymentForInvoice = payments[0]
           return Result.ok({
             invoice: newRecord,
             invoiceLineItems,
             customer,
             organization,
             paymentForInvoice,
-            message: 'Receipt email sent successfully',
           })
         }
       )
-      await generatePaymentReceiptPdfTask.triggerAndWait({
-        paymentId: paymentForInvoice.id,
-      })
+      if (paymentForInvoice) {
+        await generatePaymentReceiptPdfTask.triggerAndWait({
+          paymentId: paymentForInvoice.id,
+        })
+      } else {
+        logger.warn(
+          `No payment found for invoice ${newRecord.id}, skipping receipt PDF generation`
+        )
+      }
       // sendReceiptEmail now sends the invoice rather than the receipt
       // await sendReceiptEmail({
       //   to: [customer.email],
