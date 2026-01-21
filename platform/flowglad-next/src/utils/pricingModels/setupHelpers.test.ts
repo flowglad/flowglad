@@ -175,25 +175,23 @@ describe('getPricingModelSetupData', () => {
     }
 
     // Create the pricing model using setupPricingModelTransaction
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
-          {
-            input: originalInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+    const setupResult = await adminTransaction(async (ctx) =>
+      setupPricingModelTransaction(
+        {
+          input: originalInput,
+          organizationId: organization.id,
+          livemode: false,
+        },
+        ctx
+      )
     )
 
     // Now fetch it back using getPricingModelSetupData
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          transaction
-        )
+    const fetchedData = await adminTransaction(async (ctx) =>
+      getPricingModelSetupData(
+        setupResult.pricingModel.id,
+        ctx.transaction
+      )
     )
 
     // Validate the output using the schema
@@ -304,8 +302,8 @@ describe('getPricingModelSetupData', () => {
 
   it('should throw an error if pricing model is not found', async () => {
     await expect(
-      adminTransaction(async ({ transaction }) =>
-        getPricingModelSetupData('non-existent-id', transaction)
+      adminTransaction(async (ctx) =>
+        getPricingModelSetupData('non-existent-id', ctx.transaction)
       )
     ).rejects.toThrow()
   })
@@ -336,24 +334,22 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
-          {
-            input: minimalInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+    const setupResult = await adminTransaction(async (ctx) =>
+      setupPricingModelTransaction(
+        {
+          input: minimalInput,
+          organizationId: organization.id,
+          livemode: false,
+        },
+        ctx
+      )
     )
 
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          transaction
-        )
+    const fetchedData = await adminTransaction(async (ctx) =>
+      getPricingModelSetupData(
+        setupResult.pricingModel.id,
+        ctx.transaction
+      )
     )
 
     // Validate with schema
@@ -396,24 +392,22 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+    const setupResult = await adminTransaction(async (ctx) =>
+      setupPricingModelTransaction(
+        {
+          input,
+          organizationId: organization.id,
+          livemode: false,
+        },
+        ctx
+      )
     )
 
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          transaction
-        )
+    const fetchedData = await adminTransaction(async (ctx) =>
+      getPricingModelSetupData(
+        setupResult.pricingModel.id,
+        ctx.transaction
+      )
     )
 
     // Validate with schema
@@ -521,24 +515,22 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+    const setupResult = await adminTransaction(async (ctx) =>
+      setupPricingModelTransaction(
+        {
+          input,
+          organizationId: organization.id,
+          livemode: false,
+        },
+        ctx
+      )
     )
 
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          transaction
-        )
+    const fetchedData = await adminTransaction(async (ctx) =>
+      getPricingModelSetupData(
+        setupResult.pricingModel.id,
+        ctx.transaction
+      )
     )
 
     // Validate with schema
@@ -614,20 +606,20 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
-          {
-            input,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          transaction
-        )
+    const setupResult = await adminTransaction(async (ctx) =>
+      setupPricingModelTransaction(
+        {
+          input,
+          organizationId: organization.id,
+          livemode: false,
+        },
+        ctx
+      )
     )
 
     // Now manually expire one of the product-feature associations
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const product = setupResult.products.find(
         (p) => p.slug === 'test-product-associations'
       )
@@ -652,18 +644,17 @@ describe('getPricingModelSetupData', () => {
             id: featureBAssociation.productFeature.id,
             expiredAt: Date.now() - 1000, // Expired in the past
           },
-          transaction
+          ctx
         )
       }
     })
 
     // Fetch the pricing model data
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
-          setupResult.pricingModel.id,
-          transaction
-        )
+    const fetchedData = await adminTransaction(async (ctx) =>
+      getPricingModelSetupData(
+        setupResult.pricingModel.id,
+        ctx.transaction
+      )
     )
 
     // Validate with schema

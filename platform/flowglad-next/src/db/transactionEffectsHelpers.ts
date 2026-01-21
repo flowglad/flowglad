@@ -1,5 +1,5 @@
 import type { CacheDependencyKey } from '@/utils/cache'
-import { invalidateDependencies } from '@/utils/cache'
+import { invalidateDependencies } from '@/utils/cache.internal'
 import { processLedgerCommand } from './ledgerManager/ledgerManager'
 import type { LedgerCommand } from './ledgerManager/ledgerManagerTypes'
 import type { Event } from './schema/events'

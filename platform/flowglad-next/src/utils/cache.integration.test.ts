@@ -44,9 +44,11 @@ import {
   type CacheRecomputeMetadata,
   cached,
   cachedBulkLookup,
+} from '@/utils/cache'
+import {
   invalidateDependencies,
   recomputeDependencies,
-} from '@/utils/cache'
+} from '@/utils/cache.internal'
 import { nanoid } from '@/utils/core'
 import {
   RedisKeyNamespace,

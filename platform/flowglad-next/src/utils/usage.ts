@@ -3,7 +3,10 @@ import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { bulkInsertPrices } from '@/db/tableMethods/priceMethods'
 import { insertUsageMeter } from '@/db/tableMethods/usageMeterMethods'
-import type { AuthenticatedTransactionParams } from '@/db/types'
+import {
+  type AuthenticatedTransactionParams,
+  noopTransactionCallbacks,
+} from '@/db/types'
 import { IntervalUnit, PriceType } from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import { createNoChargePriceInsert } from '@/utils/usage/noChargePriceHelpers'
@@ -35,8 +38,11 @@ export const createUsageMeterTransaction = async (
     transaction,
     livemode,
     organizationId,
-    userId,
+    userId: _userId,
     invalidateCache,
+    cacheRecomputationContext,
+    emitEvent,
+    enqueueLedgerCommand,
   }: AuthenticatedTransactionParams &
     Required<Pick<AuthenticatedTransactionParams, 'invalidateCache'>>
 ): Promise<{
@@ -58,13 +64,23 @@ export const createUsageMeterTransaction = async (
     transaction
   )
 
+  const ctx = {
+    transaction,
+    cacheRecomputationContext,
+    invalidateCache,
+    emitEvent: emitEvent ?? noopTransactionCallbacks.emitEvent,
+    enqueueLedgerCommand:
+      enqueueLedgerCommand ??
+      noopTransactionCallbacks.enqueueLedgerCommand,
+  }
+
   const usageMeter = await insertUsageMeter(
     {
       ...usageMeterInput,
       organizationId,
       livemode,
     },
-    transaction
+    ctx
   )
 
   // Invalidate the cached usage meters for this pricing model
@@ -117,10 +133,7 @@ export const createUsageMeterTransaction = async (
   // Always add the no-charge price
   priceInserts.push(noChargePriceInsert)
 
-  const insertedPrices = await bulkInsertPrices(
-    priceInserts,
-    transaction
-  )
+  const insertedPrices = await bulkInsertPrices(priceInserts, ctx)
 
   // Resolve prices by slug instead of relying on array index order
   // This makes the intent explicit and protects against future refactoring mistakes

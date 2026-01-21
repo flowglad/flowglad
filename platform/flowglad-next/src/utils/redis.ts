@@ -162,6 +162,12 @@ export enum RedisKeyNamespace {
   UsageMetersByPricingModel = 'usageMetersByPricingModel',
   CacheDependencyRegistry = 'cacheDeps',
   CacheRecomputeMetadata = 'cacheRecompute',
+  // Pricing model cache atoms
+  PricingModel = 'pricingModel',
+  ProductsByPricingModel = 'productsByPricingModel',
+  PricesByPricingModel = 'pricesByPricingModel',
+  FeaturesByPricingModel = 'featuresByPricingModel',
+  ProductFeaturesByPricingModel = 'productFeaturesByPricingModel',
 }
 
 const evictionPolicy: Record<
@@ -219,6 +225,22 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.CacheRecomputeMetadata]: {
     max: 500000, // One metadata entry per recomputable cache key
     ttl: 86400, // 24 hours - same as dependency registry
+  },
+  // Pricing model cache atoms - keyed by pricingModelId
+  [RedisKeyNamespace.PricingModel]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.ProductsByPricingModel]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.PricesByPricingModel]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.FeaturesByPricingModel]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.ProductFeaturesByPricingModel]: {
+    max: 100000,
   },
 }
 

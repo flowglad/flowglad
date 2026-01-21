@@ -423,17 +423,6 @@ export const createCustomerBookkeeping = async (
 /**
  * Creates a pricing model with a default "Base Plan" product and a default price of 0
  */
-/**
- * Minimal transaction context for bookkeeping operations that don't need
- * userId or cacheRecomputationContext. Callers can pass full transaction
- * params objects - TypeScript's structural typing allows extra properties.
- */
-interface BookkeepingTransactionContext {
-  transaction: DbTransaction
-  organizationId: string
-  livemode: boolean
-}
-
 export const createPricingModelBookkeeping = async (
   payload: {
     pricingModel: Omit<
@@ -442,11 +431,10 @@ export const createPricingModelBookkeeping = async (
     >
     defaultPlanIntervalUnit?: IntervalUnit
   },
-  {
-    transaction,
-    organizationId,
-    livemode,
-  }: BookkeepingTransactionContext
+  ctx: TransactionEffectsContext & {
+    organizationId: string
+    livemode: boolean
+  }
 ): Promise<
   Result<
     {
@@ -457,6 +445,7 @@ export const createPricingModelBookkeeping = async (
     Error
   >
 > => {
+  const { transaction, organizationId, livemode } = ctx
   // 1. Create the pricing model
   const pricingModel = await safelyInsertPricingModel(
     {
@@ -464,13 +453,13 @@ export const createPricingModelBookkeeping = async (
       organizationId,
       livemode,
     },
-    transaction
+    ctx
   )
 
   // 2. Create the default "Base Plan" product
   const defaultProduct = await insertProduct(
     createFreePlanProductInsert(pricingModel),
-    transaction
+    ctx
   )
 
   // 3. Get organization for default currency
@@ -486,7 +475,7 @@ export const createPricingModelBookkeeping = async (
       organization.defaultCurrency,
       payload.defaultPlanIntervalUnit
     ),
-    transaction
+    ctx
   )
 
   return Result.ok({

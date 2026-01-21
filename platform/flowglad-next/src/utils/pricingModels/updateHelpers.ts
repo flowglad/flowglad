@@ -185,15 +185,12 @@ export const syncProductFeaturesForMultipleProducts = async (
     organizationId: string
     livemode: boolean
   },
-  transactionParams: Pick<
-    TransactionEffectsContext,
-    'transaction' | 'invalidateCache'
-  >
+  ctx: TransactionEffectsContext
 ): Promise<{
   added: ProductFeature.Record[]
   removed: ProductFeature.Record[]
 }> => {
-  const { transaction, invalidateCache } = transactionParams
+  const { transaction, invalidateCache } = ctx
   // Early return if no products to sync
   if (productsWithFeatures.length === 0) {
     return { added: [], removed: [] }
@@ -300,7 +297,7 @@ export const syncProductFeaturesForMultipleProducts = async (
     createdProductFeatures =
       await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
         productFeatureInserts,
-        transaction
+        ctx
       )
   }
 

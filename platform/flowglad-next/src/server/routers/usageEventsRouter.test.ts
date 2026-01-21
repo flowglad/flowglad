@@ -474,14 +474,15 @@ describe('usageEventsRouter', () => {
     it('should create usage event with priceSlug', async () => {
       // First, update price1 to have a slug
       await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           await updatePrice(
             {
               id: price1.id,
               slug: 'test-price-slug',
               type: price1.type,
             },
-            transaction
+            ctx
           )
         },
         { apiKey: org1ApiKeyToken }
@@ -709,13 +710,14 @@ describe('usageEventsRouter', () => {
     it('should create usage event with usageMeterSlug', async () => {
       // First, update usageMeter1 to have a slug
       await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           await updateUsageMeter(
             {
               id: usageMeter1.id,
               slug: 'test-usage-meter-slug',
             },
-            transaction
+            ctx
           )
         },
         { apiKey: org1ApiKeyToken }
@@ -855,21 +857,22 @@ describe('usageEventsRouter', () => {
     it('should throw error when both priceSlug and usageMeterSlug are provided', async () => {
       // First, update price1 and usageMeter1 to have slugs
       await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           await updatePrice(
             {
               id: price1.id,
               slug: 'test-price-slug',
               type: price1.type,
             },
-            transaction
+            ctx
           )
           await updateUsageMeter(
             {
               id: usageMeter1.id,
               slug: 'test-usage-meter-slug',
             },
-            transaction
+            ctx
           )
         },
         { apiKey: org1ApiKeyToken }
@@ -916,13 +919,14 @@ describe('usageEventsRouter', () => {
     it('should throw error when priceId and usageMeterSlug are provided', async () => {
       // First, update usageMeter1 to have a slug
       await authenticatedTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           await updateUsageMeter(
             {
               id: usageMeter1.id,
               slug: 'test-usage-meter-slug',
             },
-            transaction
+            ctx
           )
         },
         { apiKey: org1ApiKeyToken }

@@ -722,6 +722,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const feature1 = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
         name: 'Old Pricing Model Feature',
         usageMeterId: usageMeter1.id,
         amount: 1000,
@@ -744,6 +745,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const feature2 = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel2.id,
         name: 'New Pricing Model Feature',
         usageMeterId: usageMeter2.id,
         amount: 2000,
@@ -846,6 +848,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const oldFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
         name: 'Old Feature for Experimental',
         usageMeterId: oldUsageMeter.id,
         amount: 500,
@@ -869,6 +872,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const newFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel2.id,
         name: 'New Feature for Experimental',
         usageMeterId: newUsageMeter.id,
         amount: 1500,
@@ -1113,6 +1117,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const feature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
         name: 'Test Feature',
         usageMeterId: usageMeter.id,
         amount: 1000,
