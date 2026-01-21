@@ -1,0 +1,72 @@
+name: Publish Skills to flowglad/skills
+
+# This workflow publishes the skills/ directory content to the standalone
+# flowglad/skills repository whenever changes are pushed to main.
+#
+# The flowglad/skills repo is what developers install via `npx skills add flowglad/skills`.
+# The monorepo is the source of truth for skill definitions.
+#
+# Prerequisites:
+# 1. Create empty flowglad/skills repo on GitHub
+# 2. Generate SSH deploy key: ssh-keygen -t ed25519 -C "skills-deploy-key" -f skills_deploy_key
+# 3. Add public key (skills_deploy_key.pub) to flowglad/skills repo as a deploy key with write access
+# 4. Add private key content to this repo's secrets as SKILLS_REPO_DEPLOY_KEY
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'skills/**'
+  # Allow manual dispatch for testing or re-syncing
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  publish-skills:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 1
+
+      - name: Setup SSH for deploy key
+        uses: webfactory/ssh-agent@a6f90b1f127823b31d4d4a8d96047790581349bd # v0.9.1
+        with:
+          ssh-private-key: ${{ secrets.SKILLS_REPO_DEPLOY_KEY }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Publish skills to flowglad/skills
+        run: |
+          # Clone the target repository
+          git clone git@github.com:flowglad/skills.git /tmp/skills-repo
+
+          # Remove existing content (except .git)
+          cd /tmp/skills-repo
+          find . -maxdepth 1 -not -name '.git' -not -name '.' -exec rm -rf {} \;
+
+          # Copy skills directory content to root of target repo
+          cp -r $GITHUB_WORKSPACE/skills/* .
+
+          # Check if there are changes to commit
+          if git diff --quiet && git diff --staged --quiet; then
+            echo "No changes to publish"
+            exit 0
+          fi
+
+          # Commit and push changes
+          git add -A
+          git commit -m "Sync skills from flowglad/flowglad
+
+          Source commit: ${{ github.sha }}
+          Workflow run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          git push origin main
+          echo "Successfully published skills to flowglad/skills"
