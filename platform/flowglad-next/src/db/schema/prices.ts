@@ -662,7 +662,9 @@ export const createProductPriceInputSchema = z
   })
 
 export const createProductSchema = z.object({
-  product: productsClientInsertSchema,
+  product: productsClientInsertSchema.safeExtend({
+    name: z.string().min(1, 'Name is required'),
+  }),
   price: createProductPriceInputSchema,
   featureIds: z.array(z.string()).optional(),
 })
