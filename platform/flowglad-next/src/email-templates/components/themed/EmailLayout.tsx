@@ -45,10 +45,8 @@ export const EmailLayout = ({
   containerStyle?: React.CSSProperties
   variant?: 'customer' | 'organization'
 }) => {
-  const variantStyle: React.CSSProperties =
-    variant === 'organization'
-      ? { backgroundColor: '#f6f9fc', padding: '16px 16px 32px' }
-      : {}
+  // Variant prop kept for potential future use, but styling is now unified
+  const variantStyle: React.CSSProperties = {}
 
   return (
     <Html>

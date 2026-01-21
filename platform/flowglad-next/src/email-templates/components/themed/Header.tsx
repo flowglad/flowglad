@@ -41,10 +41,8 @@ export const Header = ({
   style?: React.CSSProperties
   variant?: 'customer' | 'organization'
 }) => {
-  const variantStyle: React.CSSProperties =
-    variant === 'organization'
-      ? { textAlign: 'center', fontWeight: 'normal' }
-      : {}
+  // Variant prop kept for potential future use, but styling is now unified
+  const variantStyle: React.CSSProperties = {}
 
   return (
     <>
