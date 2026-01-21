@@ -214,6 +214,34 @@ source_files:
       'platform/docs/setup.mdx',
     ])
   })
+
+  it('parses metadata when YAML frontmatter precedes the HTML comment block', () => {
+    const content = `---
+name: flowglad-test
+description: Test skill description
+license: MIT
+metadata:
+  author: flowglad
+  version: "1.0.0"
+---
+
+<!--
+@flowglad/skill
+sources_reviewed: 2026-01-21T12:00:00Z
+source_files:
+  - platform/docs/quickstart.mdx
+-->
+
+# Test Skill`
+
+    const result = parseSkillMetadata(content, 'skills/skills/test/SKILL.md')
+
+    expect(result).not.toBeNull()
+    const metadata = result as SkillMetadata
+    expect(metadata.sourcesReviewed).toBe('2026-01-21T12:00:00Z')
+    expect(metadata.sourceFiles).toEqual(['platform/docs/quickstart.mdx'])
+    expect(metadata.name).toBe('test')
+  })
 })
 
 describe('validateTimestamp', () => {

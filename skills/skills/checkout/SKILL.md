@@ -1,3 +1,12 @@
+---
+name: flowglad-checkout
+description: Implement checkout sessions for purchasing subscriptions and products with Flowglad. Use this skill when creating upgrade buttons, purchase flows, or redirecting users to hosted checkout pages.
+license: MIT
+metadata:
+  author: flowglad
+  version: "1.0.0"
+---
+
 <!--
 @flowglad/skill
 sources_reviewed: 2026-01-21T12:00:00Z

@@ -1,3 +1,12 @@
+---
+name: flowglad-subscriptions
+description: Manage subscription lifecycle including cancellation, plan changes, reactivation, and status display. Use this skill when users need to upgrade, downgrade, cancel, or reactivate subscriptions.
+license: MIT
+metadata:
+  author: flowglad
+  version: "1.0.0"
+---
+
 <!--
 @flowglad/skill
 sources_reviewed: 2026-01-21T12:00:00Z

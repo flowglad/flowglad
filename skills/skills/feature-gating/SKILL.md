@@ -1,3 +1,12 @@
+---
+name: flowglad-feature-gating
+description: Implement feature access checks using Flowglad to gate premium features, create paywalls, and restrict functionality based on subscription status. Use this skill when adding paid-only features or checking user entitlements.
+license: MIT
+metadata:
+  author: flowglad
+  version: "1.0.0"
+---
+
 <!--
 @flowglad/skill
 sources_reviewed: 2026-01-21T12:00:00Z
