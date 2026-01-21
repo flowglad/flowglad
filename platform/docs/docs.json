@@ -61,7 +61,8 @@
               "features/invoices",
               "features/usage",
               "features/resources",
-              "features/webhooks"
+              "features/webhooks",
+              "features/notifications"
             ]
           },
           {
