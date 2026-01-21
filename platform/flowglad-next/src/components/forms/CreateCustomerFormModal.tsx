@@ -1,13 +1,24 @@
 'use client'
+import { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
 import FormModal from '@/components/forms/FormModal'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  type CreateCustomerInputSchema,
-  createCustomerInputSchema,
-} from '@/db/tableMethods/purchaseMethods'
+import { type CreateCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import core from '@/utils/core'
 import CustomerFormFields from './CustomerFormFields'
+
+/**
+ * Form validation schema for creating a customer.
+ * Provides user-friendly validation messages.
+ * Note: externalId is a string (can be empty) - if empty, one is generated on submit.
+ */
+const createCustomerFormSchema = z.object({
+  customer: z.object({
+    name: z.string().min(2, 'Please enter the customer name'),
+    email: z.string().email('Please enter a valid email address'),
+    externalId: z.string(),
+  }),
+})
 
 const CreateCustomerFormModal = ({
   isOpen,
@@ -44,7 +55,7 @@ const CreateCustomerFormModal = ({
   return (
     <FormModal
       title="Create Customer"
-      formSchema={createCustomerInputSchema}
+      formSchema={createCustomerFormSchema}
       defaultValues={defaultValues}
       onSubmit={handleSubmit}
       isOpen={isOpen}
