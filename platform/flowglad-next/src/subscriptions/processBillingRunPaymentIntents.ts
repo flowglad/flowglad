@@ -40,10 +40,10 @@ import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionIt
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionEffectsContext } from '@/db/types'
-import type {
+import {
   NotFoundError,
-  TerminalStateError,
-  ValidationError,
+  type TerminalStateError,
+  type ValidationError,
 } from '@/errors'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
@@ -319,8 +319,8 @@ export const processOutcomeForBillingRun = async (
     transaction
   )
   if (!invoice) {
-    throw Error(
-      `Invoice for billing period ${billingRun.billingPeriodId} not found.`
+    return Result.err(
+      new NotFoundError('Invoice', billingRun.billingPeriodId)
     )
   }
   const paymentIntentResult = await processPaymentIntentStatusUpdated(
@@ -478,8 +478,8 @@ export const processOutcomeForBillingRun = async (
     )
 
     if (!price) {
-      throw new Error(
-        `Price ${subscription.priceId} not found for subscription ${subscription.id}`
+      return Result.err(
+        new NotFoundError('Price', subscription.priceId)
       )
     }
 
