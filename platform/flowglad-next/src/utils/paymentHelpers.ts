@@ -35,10 +35,14 @@ export const refundPaymentTransaction = async (
   // =========================================================================
   // STEP 1: Validate the payment can be refunded
   // =========================================================================
-  const payment = await selectPaymentById(id, transaction)
-
-  if (!payment) {
-    return Result.err(new NotFoundError('Payment', id))
+  let payment: Payment.Record
+  try {
+    payment = await selectPaymentById(id, transaction)
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return Result.err(new NotFoundError('Payment', id))
+    }
+    throw error
   }
 
   // Additional refunds are only supported until the payment is fully refunded.

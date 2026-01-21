@@ -126,7 +126,7 @@ describe('billingRunMethods', () => {
       if (result.status === 'error') {
         expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toBe(
-          'Cannot create billing run for canceled subscription'
+          'Invalid subscription: Cannot create billing run for canceled subscription'
         )
       }
     })
@@ -167,7 +167,7 @@ describe('billingRunMethods', () => {
       if (result.status === 'error') {
         expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toBe(
-          'Cannot create billing run for doNotCharge subscription'
+          'Invalid subscription: Cannot create billing run for doNotCharge subscription'
         )
       }
     })

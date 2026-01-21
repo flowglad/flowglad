@@ -90,6 +90,7 @@ import {
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { ValidationError } from '@/errors'
 import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
   createMockConfirmationResult,
@@ -943,7 +944,7 @@ describe('billingRunHelpers', async () => {
       )
     })
 
-    it('should throw an error when trying to create a retry billing run for a canceled subscription', async () => {
+    it('returns ValidationError when trying to create a retry billing run for a canceled subscription', async () => {
       // Update the subscription status to canceled
       const canceledSubscription = await adminTransaction(
         async ({ transaction }) => {
@@ -955,14 +956,20 @@ describe('billingRunHelpers', async () => {
         }
       )
 
-      // The database-level protection should throw an error
-      await expect(
-        adminTransaction(({ transaction }) =>
-          scheduleBillingRunRetry(billingRun, transaction)
-        )
-      ).rejects.toThrow(
-        'Cannot create billing run for canceled subscription'
+      // The database-level protection should return a ValidationError
+      const result = await adminTransaction(({ transaction }) =>
+        scheduleBillingRunRetry(billingRun, transaction)
       )
+      if (!result) {
+        throw new Error('Expected result to be defined')
+      }
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for canceled subscription'
+        )
+      }
     })
 
     it('should schedule a retry billing run if the subscription is not canceled', async () => {
@@ -3262,7 +3269,7 @@ describe('billingRunHelpers', async () => {
   })
 
   describe('safelyInsertBillingRun Protection', () => {
-    it('should prevent ALL billing run creation for canceled subscriptions', async () => {
+    it('returns ValidationError when attempting ALL billing run creation methods for canceled subscriptions', async () => {
       // Cancel the subscription
       await adminTransaction(async ({ transaction }) => {
         await safelyUpdateSubscriptionStatus(
@@ -3272,9 +3279,9 @@ describe('billingRunHelpers', async () => {
         )
       })
 
-      // Test 1: Direct safelyInsertBillingRun call should fail
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // Test 1: Direct safelyInsertBillingRun call should return ValidationError
+      const result1 = await adminTransaction(
+        async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -3286,14 +3293,19 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for canceled subscription'
+        }
       )
+      expect(result1.status).toBe('error')
+      if (result1.status === 'error') {
+        expect(result1.error).toBeInstanceOf(ValidationError)
+        expect(result1.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for canceled subscription'
+        )
+      }
 
-      // Test 2: createBillingRun should fail
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // Test 2: createBillingRun should return ValidationError
+      const result2 = await adminTransaction(
+        async ({ transaction }) => {
           return createBillingRun(
             {
               billingPeriod,
@@ -3302,19 +3314,32 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for canceled subscription'
+        }
       )
+      expect(result2.status).toBe('error')
+      if (result2.status === 'error') {
+        expect(result2.error).toBeInstanceOf(ValidationError)
+        expect(result2.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for canceled subscription'
+        )
+      }
 
-      // Test 3: scheduleBillingRunRetry should fail
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // Test 3: scheduleBillingRunRetry should return ValidationError
+      const result3 = await adminTransaction(
+        async ({ transaction }) => {
           return scheduleBillingRunRetry(billingRun, transaction)
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for canceled subscription'
+        }
       )
+      if (!result3) {
+        throw new Error('Expected result3 to be defined')
+      }
+      expect(result3.status).toBe('error')
+      if (result3.status === 'error') {
+        expect(result3.error).toBeInstanceOf(ValidationError)
+        expect(result3.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for canceled subscription'
+        )
+      }
     })
 
     it('should allow billing run creation for active subscriptions', async () => {
@@ -3414,9 +3439,9 @@ describe('billingRunHelpers', async () => {
       }
     })
 
-    it('should throw error for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+    it('returns ValidationError for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: doNotChargeBillingPeriod.id,
@@ -3428,15 +3453,20 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for doNotCharge subscription'
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for doNotCharge subscription'
+        )
+      }
     })
 
-    it('should throw error for doNotCharge subscriptions via createBillingRun', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+    it('returns ValidationError for doNotCharge subscriptions via createBillingRun', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return createBillingRun(
             {
               billingPeriod: doNotChargeBillingPeriod,
@@ -3445,16 +3475,21 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for doNotCharge subscription'
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for doNotCharge subscription'
+        )
+      }
     })
 
-    it('should throw error for doNotCharge subscriptions via scheduleBillingRunRetry', async () => {
+    it('returns ValidationError for doNotCharge subscriptions via scheduleBillingRunRetry', async () => {
       // Create a mock billing run to retry (normally this wouldn't exist due to prevention,
       // but we test the retry path defensively). We use a type assertion because setupBillingRun
-      // would throw for doNotCharge subscriptions (it calls safelyInsertBillingRun which throws an error).
+      // would return a ValidationError for doNotCharge subscriptions (it calls safelyInsertBillingRun which returns a ValidationError).
       const mockBillingRunForRetry = {
         id: 'mock_billing_run_id',
         billingPeriodId: doNotChargeBillingPeriod.id,
@@ -3476,16 +3511,24 @@ describe('billingRunHelpers', async () => {
         isAdjustment: false,
       } as BillingRun.Record
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return scheduleBillingRunRetry(
             mockBillingRunForRetry,
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for doNotCharge subscription'
+        }
       )
+      if (!result) {
+        throw new Error('Expected result to be defined')
+      }
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for doNotCharge subscription'
+        )
+      }
     })
   })
 

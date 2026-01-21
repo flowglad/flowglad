@@ -47,6 +47,7 @@ import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMet
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { NotFoundError } from '@/errors'
 import {
   createMockPaymentIntentEventResponse,
   createMockStripeCharge,
@@ -724,7 +725,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
   })
 
-  it('throws an error if no invoice is found for the billing period', async () => {
+  it('returns NotFoundError when no invoice is found for the billing period', async () => {
     const paymentIntentId = `pi_${Date.now()}_no_invoice`
     const billingRun = await setupBillingRun({
       stripePaymentIntentId: paymentIntentId,
@@ -755,14 +756,15 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      await expect(
-        processOutcomeForBillingRun(
-          { input: event },
-          createDiscardingEffectsContext(transaction)
-        )
-      ).rejects.toThrow(
-        `Invoice for billing period ${billingRun.billingPeriodId} not found.`
+      const result = await processOutcomeForBillingRun(
+        { input: event },
+        createDiscardingEffectsContext(transaction)
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(NotFoundError)
+        expect(result.error.message).toContain('Invoice not found')
+      }
     })
   })
 
