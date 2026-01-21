@@ -10,7 +10,7 @@ import {
 } from './redis'
 import { traced } from './tracing'
 
-const DEFAULT_TTL = 300 // 5 minutes
+const DEFAULT_TTL = 600 // 10 minutes
 const DEPENDENCY_REGISTRY_TTL = 86400 // 24 hours - longer than any cache TTL
 
 /**
