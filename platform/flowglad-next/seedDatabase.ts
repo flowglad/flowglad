@@ -96,7 +96,7 @@ import {
   insertUsageMeter,
 } from '@/db/tableMethods/usageMeterMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
-import { noopTransactionContext } from '@/db/transactionEffectsHelpers'
+import { createTransactionEffectsContext } from '@/db/types'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -173,7 +173,10 @@ export const setupOrg = async (params?: {
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
-    const ctx = noopTransactionContext(transaction)
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: false,
+    })
     const [country] = await selectCountries(
       { code: params?.countryCode ?? CountryCode.US },
       transaction
@@ -292,7 +295,10 @@ export const setupProduct = async ({
   slug?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const ctx = noopTransactionContext(transaction)
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: false,
+    })
     return await insertProduct(
       {
         name,
@@ -996,7 +1002,10 @@ export const setupPrice = async (
     type !== PriceType.Usage ? validatedInput.productId : null
 
   return adminTransaction(async ({ transaction }) => {
-    const ctx = noopTransactionContext(transaction)
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: false,
+    })
     // For usage prices, derive pricingModelId from usage meter
     const pricingModelId =
       type === PriceType.Usage && usageMeterId
@@ -1567,7 +1576,10 @@ export const setupUsageMeter = async ({
   aggregationType?: UsageMeterAggregationType
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const ctx = noopTransactionContext(transaction)
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: false,
+    })
     let pricingModelToUseId: string | null = null
     if (pricingModelId) {
       const pricingModel = await selectPricingModelById(
@@ -1703,7 +1715,10 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
 > => {
   const { organizationId, productId, livemode, featureSpecs } = params
   return adminTransaction(async ({ transaction }) => {
-    const ctx = noopTransactionContext(transaction)
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: false,
+    })
     const product = await selectProductById(productId, transaction)
     if (!product) {
       throw new Error('Product not found')
@@ -2378,7 +2393,10 @@ export const setupToggleFeature = async (
   }
 ) => {
   return adminTransaction(async ({ transaction }) => {
-    const ctx = noopTransactionContext(transaction)
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: false,
+    })
     const pricingModelId =
       params.pricingModelId ??
       (
@@ -2414,7 +2432,10 @@ export const setupUsageCreditGrantFeature = async (
   }
 ): Promise<Feature.UsageCreditGrantRecord> => {
   return adminTransaction(async ({ transaction }) => {
-    const ctx = noopTransactionContext(transaction)
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: false,
+    })
     const pricingModelId =
       params.pricingModelId ??
       (
@@ -2450,7 +2471,10 @@ export const setupProductFeature = async (
   }
 ) => {
   return adminTransaction(async ({ transaction }) => {
-    const ctx = noopTransactionContext(transaction)
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: false,
+    })
     return insertProductFeature(
       {
         livemode: true,
@@ -2833,7 +2857,10 @@ export const setupResourceFeature = async (
   }
 ): Promise<Feature.ResourceRecord> => {
   return adminTransaction(async ({ transaction }) => {
-    const ctx = noopTransactionContext(transaction)
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: false,
+    })
     const resolvedPricingModelId =
       params.pricingModelId ??
       (
