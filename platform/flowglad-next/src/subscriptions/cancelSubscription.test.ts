@@ -1695,6 +1695,7 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
+      // biome-ignore lint/plugin: legacy spyOn usage
       const notificationSpy = vi
         .spyOn(
           subscriptionCancellationNotifications,

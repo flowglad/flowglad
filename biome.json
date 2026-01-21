@@ -52,7 +52,8 @@
       ],
       "plugins": [
         "./plugins/no-dynamic-imports-in-tests.grit",
-        "./plugins/no-toBeDefined-or-toBeTruthy-in-tests.grit"
+        "./plugins/no-toBeDefined-or-toBeTruthy-in-tests.grit",
+        "./plugins/no-spyOn-in-tests.grit"
       ]
     },
     {

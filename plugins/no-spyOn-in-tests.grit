@@ -1,0 +1,27 @@
+engine biome(1.0)
+language js
+
+// Forbids vi.spyOn() and jest.spyOn() in test files per CLAUDE.md:
+// "No .spyOn" unless mocking network calls whose response needs controlling.
+//
+// Bad:  vi.spyOn(module, 'function').mockImplementation(...)
+// Good: Use dependency injection or explicit test doubles
+//
+// To suppress: // biome-ignore lint/plugin: <justification>
+
+or {
+  `vi.spyOn($args)` as $call where {
+    register_diagnostic(
+      span=$call,
+      message="vi.spyOn() is not allowed in tests. Use dependency injection or test doubles. Exception: mocking network calls. Suppress with: // biome-ignore lint/plugin: <reason>",
+      severity="error"
+    )
+  },
+  `jest.spyOn($args)` as $call where {
+    register_diagnostic(
+      span=$call,
+      message="jest.spyOn() is not allowed in tests. Use dependency injection or test doubles. Exception: mocking network calls. Suppress with: // biome-ignore lint/plugin: <reason>",
+      severity="error"
+    )
+  }
+}

@@ -187,6 +187,7 @@ beforeEach(async () => {
   })
 
   // Mock the requestingCustomerAndUser to return our test data
+  // biome-ignore lint/plugin: legacy spyOn usage
   vi.spyOn(
     databaseAuthentication,
     'requestingCustomerAndUser'
@@ -198,18 +199,21 @@ beforeEach(async () => {
   ])
 
   // Mock the organization ID retrieval for customer billing portal
+  // biome-ignore lint/plugin: legacy spyOn usage
   vi.spyOn(
     customerBillingPortalState,
     'getCustomerBillingPortalOrganizationId'
   ).mockResolvedValue(organization.id)
 
   // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
+  // biome-ignore lint/plugin: legacy spyOn usage
   vi.spyOn(
     customerBillingPortalState,
     'setCustomerBillingPortalOrganizationId'
   ).mockResolvedValue(undefined)
 
   // Mock selectBetterAuthUserById to always return a valid user
+  // biome-ignore lint/plugin: legacy spyOn usage
   vi.spyOn(
     betterAuthSchemaMethods,
     'selectBetterAuthUserById'
@@ -341,6 +345,7 @@ describe('Customer Billing Portal Router', () => {
           Date.now() + 15 * 24 * 60 * 60 * 1000,
       })
 
+      // biome-ignore lint/plugin: legacy spyOn usage
       vi.spyOn(
         databaseAuthentication,
         'requestingCustomerAndUser'
@@ -695,6 +700,7 @@ describe('Customer Billing Portal Router', () => {
       const createCheckoutSessionModule = await import(
         '@/utils/bookkeeping/createCheckoutSession'
       )
+      // biome-ignore lint/plugin: legacy spyOn usage
       vi.spyOn(
         createCheckoutSessionModule,
         'createCheckoutSessionTransaction'
