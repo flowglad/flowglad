@@ -59,7 +59,7 @@ describe('validateSetupPricingModelInput', () => {
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
         expect(result.error.message).toContain(
-          'Feature with slug non-existent-feature does not exist'
+          'Feature not found: non-existent-feature'
         )
       }
     })
@@ -104,7 +104,7 @@ describe('validateSetupPricingModelInput', () => {
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
         expect(result.error.message).toContain(
-          'Usage meter with slug non-existent-meter does not exist'
+          'UsageMeter not found: non-existent-meter'
         )
       }
     })
@@ -611,7 +611,7 @@ describe('validateSetupPricingModelInput', () => {
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
         expect(result.error.message).toContain(
-          'Resource with slug non-existent-resource does not exist'
+          'Resource not found: non-existent-resource'
         )
       }
     })

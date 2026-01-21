@@ -911,12 +911,11 @@ describe('updatePricingModelTransaction', () => {
       expect(updateResult.resources.deactivated[0].active).toBe(false)
 
       // Verify database state
-      const allResources = await adminTransaction(
-        async (ctx) =>
-          selectResources(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allResources = await adminTransaction(async (ctx) =>
+        selectResources(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const activeResources = allResources.filter((r) => r.active)
       expect(activeResources).toHaveLength(1)
@@ -1106,12 +1105,11 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Get the resource ID
-      const resources = await adminTransaction(
-        async (ctx) =>
-          selectResources(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const resources = await adminTransaction(async (ctx) =>
+        selectResources(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const seatsResource = resources.find((r) => r.slug === 'seats')
 
@@ -1258,12 +1256,11 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Get the resource IDs
-      const resources = await adminTransaction(
-        async (ctx) =>
-          selectResources(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const resources = await adminTransaction(async (ctx) =>
+        selectResources(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const projectsResource = resources.find(
         (r) => r.slug === 'projects'
@@ -1590,12 +1587,11 @@ describe('updatePricingModelTransaction', () => {
       expect(deactivatedFeature.active).toBe(false)
 
       // Verify database state
-      const allFeatures = await adminTransaction(
-        async (ctx) =>
-          selectFeatures(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allFeatures = await adminTransaction(async (ctx) =>
+        selectFeatures(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const seatGrantFeature = allFeatures.find(
         (f) => f.slug === 'seat-grant'
@@ -3042,12 +3038,11 @@ describe('updatePricingModelTransaction', () => {
       ).toBeGreaterThanOrEqual(1)
 
       // Verify database state
-      const allProducts = await adminTransaction(
-        async (ctx) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const activeProducts = allProducts.filter((p) => p.active)
       // 3 active products: enterprise, starter, and the protected free product
@@ -3181,28 +3176,28 @@ describe('updatePricingModelTransaction', () => {
             selectUsageMeters(
               { pricingModelId: setupResult.pricingModel.id },
               ctx.transaction
-            ))
+            )
           ),
           adminTransaction(async (ctx) =>
             selectFeatures(
               { pricingModelId: setupResult.pricingModel.id },
               ctx.transaction
-            ))
+            )
           ),
           adminTransaction(async (ctx) =>
             selectProducts(
               { pricingModelId: setupResult.pricingModel.id },
               ctx.transaction
-            ))
+            )
           ),
           adminTransaction(async (ctx) => {
             const prods = await selectProducts(
               { pricingModelId: setupResult.pricingModel.id },
-              transaction
+              ctx.transaction
             )
             return selectProductFeatures(
               { productId: prods.map((p) => p.id) },
-              transaction
+              ctx.transaction
             )
           }),
         ])
@@ -3225,9 +3220,11 @@ describe('updatePricingModelTransaction', () => {
         (p) => p.slug === 'starter'
       )
       // Verify prices
-      const starterPrices = await adminTransaction(
-        async (ctx) =>
-          selectPrices({ productId: starterProduct!.id }, ctx.transaction)
+      const starterPrices = await adminTransaction(async (ctx) =>
+        selectPrices(
+          { productId: starterProduct!.id },
+          ctx.transaction
+        )
       )
       const activePrice = starterPrices.find((p) => p.active)
       expect(activePrice!.unitPrice).toBe(2999)
@@ -3348,12 +3345,11 @@ describe('updatePricingModelTransaction', () => {
       expect(freeDeactivated).toBeUndefined()
 
       // Verify database state - default product should still be active
-      const allProducts = await adminTransaction(
-        async (ctx) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const activeProducts = allProducts.filter((p) => p.active)
       const freeProduct = activeProducts.find(
@@ -3445,12 +3441,11 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state
-      const allProducts = await adminTransaction(
-        async (ctx) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const freeProduct = allProducts.find((p) => p.slug === 'free')
 
@@ -3464,10 +3459,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Price protected fields should be preserved
       const prices = await adminTransaction(async (ctx) =>
-            selectPrices(
-              { productId: freeProduct!.id },
-              ctx.transaction
-            ))
+        selectPrices({ productId: freeProduct!.id }, ctx.transaction)
       )
       const activePrice = prices.find((p) => p.active)
       expect(activePrice!.unitPrice).toBe(0) // Protected - was not changed to 999
@@ -3578,12 +3570,11 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state
-      const allProducts = await adminTransaction(
-        async (ctx) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const freeProduct = allProducts.find((p) => p.slug === 'free')
 
@@ -3598,12 +3589,11 @@ describe('updatePricingModelTransaction', () => {
 
       // Features should be updated (features are allowed to change)
       expect(updateResult.productFeatures.added).toHaveLength(1)
-      const productFeatures = await adminTransaction(
-        async (ctx) =>
-          selectProductFeatures(
-            { productId: freeProduct!.id },
-            transaction
-          )
+      const productFeatures = await adminTransaction(async (ctx) =>
+        selectProductFeatures(
+          { productId: freeProduct!.id },
+          ctx.transaction
+        )
       )
       const activeFeatures = productFeatures.filter(
         (pf) => !pf.expiredAt
@@ -3612,10 +3602,7 @@ describe('updatePricingModelTransaction', () => {
 
       // Price should be unchanged
       const prices = await adminTransaction(async (ctx) =>
-            selectPrices(
-              { productId: freeProduct!.id },
-              ctx.transaction
-            ))
+        selectPrices({ productId: freeProduct!.id }, ctx.transaction)
       )
       const activePrice = prices.find((p) => p.active)
       expect(activePrice!.unitPrice).toBe(0)
@@ -3742,12 +3729,11 @@ describe('updatePricingModelTransaction', () => {
       )
 
       // Verify database state - should have exactly 2 active products (no duplicates)
-      const allProducts = await adminTransaction(
-        async (ctx) =>
-          selectProducts(
-            { pricingModelId: setupResult.pricingModel.id },
-            transaction
-          )
+      const allProducts = await adminTransaction(async (ctx) =>
+        selectProducts(
+          { pricingModelId: setupResult.pricingModel.id },
+          ctx.transaction
+        )
       )
       const activeProducts = allProducts.filter((p) => p.active)
       expect(activeProducts).toHaveLength(2)

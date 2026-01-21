@@ -472,7 +472,10 @@ export const updatePricingModelTransaction = async (
     const diff = yield* diffPricingModel(existingInput, proposedInput)
 
     // Step 5: Resolve existing IDs for slug -> id mapping
-    const idMaps = await resolveExistingIds(pricingModelId, transaction)
+    const idMaps = await resolveExistingIds(
+      pricingModelId,
+      transaction
+    )
 
     // Initialize result trackers
     const result: UpdatePricingModelResult = {
@@ -487,7 +490,10 @@ export const updatePricingModelTransaction = async (
 
     // Step 6: Update pricing model metadata
     const pricingModelUpdate = computeUpdateObject(
-      { name: existingInput.name, isDefault: existingInput.isDefault },
+      {
+        name: existingInput.name,
+        isDefault: existingInput.isDefault,
+      },
       { name: proposedInput.name, isDefault: proposedInput.isDefault }
     )
     if (Object.keys(pricingModelUpdate).length > 0) {
@@ -921,10 +927,7 @@ export const updatePricingModelTransaction = async (
       if (Object.keys(productUpdateObj).length === 0) continue
 
       productUpdatePromises.push(
-        updateProduct(
-          { id: productId, ...productUpdateObj },
-          ctx
-        )
+        updateProduct({ id: productId, ...productUpdateObj }, ctx)
       )
     }
 

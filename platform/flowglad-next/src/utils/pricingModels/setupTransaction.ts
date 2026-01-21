@@ -328,7 +328,7 @@ export const setupPricingModelTransaction = async (
     // Validate single default product if provided
     if (defaultProducts.length === 1) {
       const defaultProduct = defaultProducts[0]
-      validateDefaultProductSchema({
+      yield* validateDefaultProductSchema({
         name: defaultProduct.product.name,
         slug: defaultProduct.product.slug || undefined,
         price: {
