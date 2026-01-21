@@ -339,6 +339,10 @@ export const editProductTransaction = async (
     transactionParams
   const { product, featureIds, price } = payload
 
+  if (!organizationId) {
+    throw new Error('organizationId is required to edit a product')
+  }
+
   // Fetch the existing product to check if it's a default product
   const existingProduct = await selectProductById(
     product.id,
