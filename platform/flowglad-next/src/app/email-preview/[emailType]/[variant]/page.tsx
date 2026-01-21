@@ -17,6 +17,14 @@ import { getTriggerInfo } from '@/utils/email/trigger-map'
 import { EmailPreviewContent } from './EmailPreviewContent'
 import { VariantSelector } from './VariantSelector'
 
+/**
+ * Force dynamic rendering for email preview pages.
+ * This ensures changes to email templates are immediately visible
+ * without requiring a full rebuild. Email previews are internal
+ * tooling where freshness is more important than caching.
+ */
+export const dynamic = 'force-dynamic'
+
 interface EmailPreviewPageProps {
   params: Promise<{
     emailType: string

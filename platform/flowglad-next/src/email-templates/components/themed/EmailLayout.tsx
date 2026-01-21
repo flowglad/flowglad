@@ -6,11 +6,11 @@ import {
   Preview,
 } from '@react-email/components'
 import type * as React from 'react'
+import { BODY_FONT_FAMILY } from '../../styles/fontStyles'
 
 const main = {
   backgroundColor: '#ffffff',
-  fontFamily:
-    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Oxygen-Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif',
+  fontFamily: BODY_FONT_FAMILY,
 }
 
 const container = {

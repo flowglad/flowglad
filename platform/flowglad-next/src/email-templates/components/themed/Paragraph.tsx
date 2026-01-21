@@ -1,9 +1,11 @@
 import { Text } from '@react-email/components'
 import type * as React from 'react'
+import { BODY_FONT_FAMILY } from '../../styles/fontStyles'
 
 const paragraph = {
   color: '#333',
   fontSize: '14px',
+  fontFamily: BODY_FONT_FAMILY,
   margin: '0 0 20px',
 }
 
