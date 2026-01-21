@@ -12,6 +12,7 @@ import {
 } from '@/db/tableMethods/billingPeriodMethods'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
+  selectDefaultPriceForUsageMeter,
   selectPriceById,
   selectPriceBySlugAndCustomerId,
 } from '@/db/tableMethods/priceMethods'
@@ -38,6 +39,32 @@ import {
   UsageMeterAggregationType,
 } from '@/types'
 import core from '@/utils/core'
+
+/**
+ * Fetches the default price for a usage meter and throws an error if not found.
+ * This is a helper function to reduce code duplication in default price lookup.
+ *
+ * @param usageMeterId - The ID of the usage meter
+ * @param transaction - Database transaction
+ * @returns The default price record
+ * @throws TRPCError with INTERNAL_SERVER_ERROR if no default price exists
+ */
+export const getRequiredDefaultPriceForMeter = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+) => {
+  const defaultPrice = await selectDefaultPriceForUsageMeter(
+    usageMeterId,
+    transaction
+  )
+  if (!defaultPrice) {
+    throw new TRPCError({
+      code: 'INTERNAL_SERVER_ERROR',
+      message: `Usage meter ${usageMeterId} has no default price. This should not happen.`,
+    })
+  }
+  return defaultPrice
+}
 
 /**
  * Type guard to check if a value is a plain object (not array, not null).
@@ -234,13 +261,19 @@ export const resolveUsageEventInput = async (
       })
     }
 
+    // Get the default price for the usage meter
+    const defaultPrice = await getRequiredDefaultPriceForMeter(
+      input.usageEvent.usageMeterId,
+      transaction
+    )
+
     return {
       usageEvent: {
         ...core.omit(
           ['priceSlug', 'usageMeterSlug'],
           input.usageEvent
         ),
-        priceId: null,
+        priceId: defaultPrice.id,
         usageMeterId: input.usageEvent.usageMeterId,
       },
     }
@@ -252,7 +285,7 @@ export const resolveUsageEventInput = async (
     transaction
   )
 
-  // If usageMeterSlug is provided, resolve it to usageMeterId with null priceId
+  // If usageMeterSlug is provided, resolve it to usageMeterId and fetch default price
   if (input.usageEvent.usageMeterSlug) {
     const usageMeter = await selectUsageMeterBySlugAndCustomerId(
       {
@@ -269,14 +302,19 @@ export const resolveUsageEventInput = async (
       })
     }
 
-    // Return with priceId: null and usageMeterId from the lookup
+    // Get the default price for the usage meter
+    const defaultPrice = await getRequiredDefaultPriceForMeter(
+      usageMeter.id,
+      transaction
+    )
+
     return {
       usageEvent: {
         ...core.omit(
           ['priceSlug', 'usageMeterSlug'],
           input.usageEvent
         ),
-        priceId: null,
+        priceId: defaultPrice.id,
         usageMeterId: usageMeter.id,
       },
     }
@@ -625,8 +663,9 @@ export const ingestAndProcessUsageEvent = async (
     transaction
   )
 
-  // Determine usageMeterId based on whether priceId is provided or not
+  // Determine usageMeterId and resolved priceId based on whether priceId is provided or not
   let usageMeterId: string
+  let resolvedPriceId: string | null = usageEventInput.priceId ?? null
 
   if (usageEventInput.priceId) {
     // When priceId is provided, get usageMeterId from the price
@@ -714,6 +753,13 @@ export const ingestAndProcessUsageEvent = async (
         message: `Usage meter ${usageMeterId} not found for this customer's pricing model`,
       })
     }
+
+    // Resolve to the default price for this usage meter
+    const defaultPrice = await getRequiredDefaultPriceForMeter(
+      usageMeterId,
+      transaction
+    )
+    resolvedPriceId = defaultPrice.id
   }
 
   // Check for existing usage event with the same transactionId and usageMeterId
@@ -787,6 +833,7 @@ export const ingestAndProcessUsageEvent = async (
   const usageEvent = await insertUsageEvent(
     {
       ...usageEventInput,
+      priceId: resolvedPriceId,
       usageMeterId,
       billingPeriodId: billingPeriod?.id ?? null,
       customerId: subscription.customerId,

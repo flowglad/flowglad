@@ -1,7 +1,7 @@
 import { sql } from 'drizzle-orm'
 import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
-import type { TransactionContext } from '@/utils/cache'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import {
   recomputeWithCustomerContext,
   recomputeWithMerchantContext,
@@ -57,13 +57,15 @@ async function getCurrentLivemode(
 
 describe('recomputeWithMerchantContext', () => {
   it('sets JWT claims with correct user and organization from context', async () => {
-    const context: Extract<TransactionContext, { type: 'merchant' }> =
-      {
-        type: 'merchant',
-        livemode: true,
-        organizationId: 'org_test_12345',
-        userId: 'user_test_67890',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'merchant' }
+    > = {
+      type: 'merchant',
+      livemode: true,
+      organizationId: 'org_test_12345',
+      userId: 'user_test_67890',
+    }
 
     const result = await recomputeWithMerchantContext(
       context,
@@ -85,13 +87,15 @@ describe('recomputeWithMerchantContext', () => {
   })
 
   it('sets livemode configuration correctly for live mode', async () => {
-    const context: Extract<TransactionContext, { type: 'merchant' }> =
-      {
-        type: 'merchant',
-        livemode: true,
-        organizationId: 'org_live_test',
-        userId: 'user_live_test',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'merchant' }
+    > = {
+      type: 'merchant',
+      livemode: true,
+      organizationId: 'org_live_test',
+      userId: 'user_live_test',
+    }
 
     const livemode = await recomputeWithMerchantContext(
       context,
@@ -104,13 +108,15 @@ describe('recomputeWithMerchantContext', () => {
   })
 
   it('sets livemode configuration correctly for test mode', async () => {
-    const context: Extract<TransactionContext, { type: 'merchant' }> =
-      {
-        type: 'merchant',
-        livemode: false,
-        organizationId: 'org_test_mode',
-        userId: 'user_test_mode',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'merchant' }
+    > = {
+      type: 'merchant',
+      livemode: false,
+      organizationId: 'org_test_mode',
+      userId: 'user_test_mode',
+    }
 
     const livemode = await recomputeWithMerchantContext(
       context,
@@ -123,13 +129,15 @@ describe('recomputeWithMerchantContext', () => {
   })
 
   it('executes callback and returns its result', async () => {
-    const context: Extract<TransactionContext, { type: 'merchant' }> =
-      {
-        type: 'merchant',
-        livemode: true,
-        organizationId: 'org_123',
-        userId: 'user_456',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'merchant' }
+    > = {
+      type: 'merchant',
+      livemode: true,
+      organizationId: 'org_123',
+      userId: 'user_456',
+    }
 
     const expectedResult = { data: 'test-value', count: 42 }
 
@@ -144,13 +152,15 @@ describe('recomputeWithMerchantContext', () => {
   })
 
   it('propagates errors from callback', async () => {
-    const context: Extract<TransactionContext, { type: 'merchant' }> =
-      {
-        type: 'merchant',
-        livemode: true,
-        organizationId: 'org_error_test',
-        userId: 'user_error_test',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'merchant' }
+    > = {
+      type: 'merchant',
+      livemode: true,
+      organizationId: 'org_error_test',
+      userId: 'user_error_test',
+    }
 
     await expect(
       recomputeWithMerchantContext(context, async () => {
@@ -160,13 +170,15 @@ describe('recomputeWithMerchantContext', () => {
   })
 
   it('provides transaction object to callback for database operations', async () => {
-    const context: Extract<TransactionContext, { type: 'merchant' }> =
-      {
-        type: 'merchant',
-        livemode: true,
-        organizationId: 'org_tx_test',
-        userId: 'user_tx_test',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'merchant' }
+    > = {
+      type: 'merchant',
+      livemode: true,
+      organizationId: 'org_tx_test',
+      userId: 'user_tx_test',
+    }
 
     const result = await recomputeWithMerchantContext(
       context,
@@ -187,14 +199,16 @@ describe('recomputeWithMerchantContext', () => {
 
 describe('recomputeWithCustomerContext', () => {
   it('sets JWT claims with customer role and customerId', async () => {
-    const context: Extract<TransactionContext, { type: 'customer' }> =
-      {
-        type: 'customer',
-        livemode: true,
-        organizationId: 'org_customer_test',
-        userId: 'user_customer_test',
-        customerId: 'cust_12345',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'customer' }
+    > = {
+      type: 'customer',
+      livemode: true,
+      organizationId: 'org_customer_test',
+      userId: 'user_customer_test',
+      customerId: 'cust_12345',
+    }
 
     const result = await recomputeWithCustomerContext(
       context,
@@ -215,14 +229,16 @@ describe('recomputeWithCustomerContext', () => {
   })
 
   it('sets livemode configuration correctly for customer context', async () => {
-    const context: Extract<TransactionContext, { type: 'customer' }> =
-      {
-        type: 'customer',
-        livemode: false,
-        organizationId: 'org_customer_test',
-        userId: 'user_customer_test',
-        customerId: 'cust_test_mode',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'customer' }
+    > = {
+      type: 'customer',
+      livemode: false,
+      organizationId: 'org_customer_test',
+      userId: 'user_customer_test',
+      customerId: 'cust_test_mode',
+    }
 
     const livemode = await recomputeWithCustomerContext(
       context,
@@ -235,14 +251,16 @@ describe('recomputeWithCustomerContext', () => {
   })
 
   it('executes callback and returns its result', async () => {
-    const context: Extract<TransactionContext, { type: 'customer' }> =
-      {
-        type: 'customer',
-        livemode: true,
-        organizationId: 'org_cust',
-        userId: 'user_cust',
-        customerId: 'cust_result_test',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'customer' }
+    > = {
+      type: 'customer',
+      livemode: true,
+      organizationId: 'org_cust',
+      userId: 'user_cust',
+      customerId: 'cust_result_test',
+    }
 
     const expectedResult = { invoices: 3, balance: 100.5 }
 
@@ -257,14 +275,16 @@ describe('recomputeWithCustomerContext', () => {
   })
 
   it('propagates errors from callback', async () => {
-    const context: Extract<TransactionContext, { type: 'customer' }> =
-      {
-        type: 'customer',
-        livemode: true,
-        organizationId: 'org_cust_error',
-        userId: 'user_cust_error',
-        customerId: 'cust_error_test',
-      }
+    const context: Extract<
+      CacheRecomputationContext,
+      { type: 'customer' }
+    > = {
+      type: 'customer',
+      livemode: true,
+      organizationId: 'org_cust_error',
+      userId: 'user_cust_error',
+      customerId: 'cust_error_test',
+    }
 
     await expect(
       recomputeWithCustomerContext(context, async () => {

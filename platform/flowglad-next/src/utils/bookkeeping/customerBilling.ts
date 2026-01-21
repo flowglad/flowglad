@@ -17,7 +17,7 @@ import {
 } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
 import { selectPurchasesByCustomerId } from '@/db/tableMethods/purchaseMethods'
-import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
   isSubscriptionCurrent,
   safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
@@ -28,7 +28,10 @@ import type {
 } from '@/db/types'
 import type { RichSubscription } from '@/subscriptions/schemas'
 import { CheckoutSessionType } from '@/types'
-import { CacheDependency } from '@/utils/cache'
+import {
+  CacheDependency,
+  type CacheRecomputationContext,
+} from '@/utils/cache'
 import { customerBillingPortalURL } from '@/utils/core'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
 
@@ -37,13 +40,14 @@ export const customerBillingTransaction = async (
     externalId: string
     organizationId: string
   },
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  cacheRecomputationContext: CacheRecomputationContext
 ) => {
   const [customer] = await selectCustomers(params, transaction)
   const subscriptions = await selectRichSubscriptionsAndActiveItems(
     { customerId: customer.id },
     transaction,
-    customer.livemode
+    cacheRecomputationContext
   )
   const pricingModel = await selectPricingModelForCustomer(
     customer,

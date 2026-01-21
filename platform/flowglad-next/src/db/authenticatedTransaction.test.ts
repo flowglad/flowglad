@@ -1,8 +1,9 @@
 import { Result } from 'better-result'
-import { sql } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
 import {
+  setupCustomer,
   setupMemberships,
   setupOrg,
   setupUserAndApiKey,
@@ -19,6 +20,7 @@ import {
   authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
+  authenticatedTransactionUnwrap,
   comprehensiveAuthenticatedTransaction,
 } from './authenticatedTransaction'
 import type { ApiKey } from './schema/apiKeys'
@@ -27,6 +29,7 @@ import type { Membership } from './schema/memberships'
 import type { Organization } from './schema/organizations'
 import type { PricingModel } from './schema/pricingModels'
 import type { User } from './schema/users'
+import { users } from './schema/users'
 import { insertApiKey } from './tableMethods/apiKeyMethods'
 import {
   insertMembership,
@@ -1858,5 +1861,190 @@ describe('Edge cases and robustness for second-order RLS', () => {
       { apiKey: testKey.token }
     )
     expect(test.every((p) => p.livemode === false)).toBe(true)
+  })
+})
+
+describe('cacheRecomputationContext derivation', () => {
+  it('sets type to customer with customerId from JWT metadata when using customer billing portal auth', async () => {
+    // Setup organization with a customer linked to a user with betterAuthId
+    const { organization } = await setupOrg()
+    const { user } = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+
+    // Set betterAuthId on the user (required for customer billing portal auth)
+    const betterAuthId = `ba_${core.nanoid()}`
+    await adminTransaction(async ({ transaction }) => {
+      await transaction
+        .update(users)
+        .set({ betterAuthId })
+        .where(eq(users.id, user.id))
+    })
+
+    // Create customer linked to the user (required for customer billing portal lookup)
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      livemode: true,
+      userId: user.id,
+    })
+
+    // Configure session mock to simulate logged-in user via Better Auth.
+    // Use __testOnlyOrganizationId to trigger the customer billing portal auth path
+    // via the built-in test escape hatch in getCustomerBillingPortalOrganizationId.
+    mockedAuth.session = {
+      user: { id: betterAuthId, email: user.email! },
+    }
+
+    // Call comprehensiveAuthenticatedTransaction WITHOUT explicit customerId
+    // to verify that the cacheRecomputationContext.customerId is derived from
+    // JWT metadata (jwtClaim.user_metadata.app_metadata.customer_id).
+    const result = await comprehensiveAuthenticatedTransaction(
+      async (params) => {
+        // Verify the cacheRecomputationContext is correctly derived from JWT role
+        expect(params.cacheRecomputationContext.type).toBe('customer')
+
+        if (params.cacheRecomputationContext.type === 'customer') {
+          // The customerId should be extracted from JWT metadata, not explicit param
+          expect(params.cacheRecomputationContext.customerId).toBe(
+            customer.id
+          )
+          expect(
+            params.cacheRecomputationContext.organizationId
+          ).toBe(organization.id)
+          expect(params.cacheRecomputationContext.userId).toBe(
+            user.id
+          )
+        }
+
+        return Result.ok({ verified: true })
+      },
+      // Use __testOnlyOrganizationId to trigger customer billing portal auth path
+      // Do NOT pass customerId - let it be derived from JWT metadata
+      { __testOnlyOrganizationId: organization.id }
+    )
+
+    expect(result.verified).toBe(true)
+
+    // Reset session mock
+    mockedAuth.session = null
+  })
+
+  it('sets type to merchant when using API key auth (non-customer role)', async () => {
+    const { organization } = await setupOrg()
+    const { user, apiKey } = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+
+    // API key auth should result in merchant context, not customer
+    const result = await comprehensiveAuthenticatedTransaction(
+      async (params) => {
+        expect(params.cacheRecomputationContext.type).toBe('merchant')
+
+        if (params.cacheRecomputationContext.type === 'merchant') {
+          expect(
+            params.cacheRecomputationContext.organizationId
+          ).toBe(organization.id)
+          expect(params.cacheRecomputationContext.userId).toBe(
+            user.id
+          )
+        }
+
+        return Result.ok({ verified: true })
+      },
+      { apiKey: apiKey.token }
+    )
+
+    expect(result.verified).toBe(true)
+  })
+})
+
+describe('authenticatedTransactionUnwrap', () => {
+  let testOrg: Organization.Record
+  let apiKey: ApiKey.Record
+
+  beforeEach(async () => {
+    const orgSetup = await setupOrg()
+    testOrg = orgSetup.organization
+
+    const userApiKey = await setupUserAndApiKey({
+      organizationId: testOrg.id,
+      livemode: true,
+    })
+    apiKey = userApiKey.apiKey
+  })
+
+  it('unwraps a successful Result and returns the value', async () => {
+    // setup:
+    // - use valid API key
+    // - provide transaction function that returns Result.ok with a value
+    // expects:
+    // - the unwrapped value should be returned directly
+    const result = await authenticatedTransactionUnwrap(
+      async (ctx) => {
+        const { transaction } = ctx
+        const orgs = await selectOrganizations({}, transaction)
+        return Result.ok({ count: orgs.length, success: true })
+      },
+      { apiKey: apiKey.token }
+    )
+
+    expect(result).toEqual({ count: 1, success: true })
+  })
+
+  it('throws when Result contains an error, preserving the original error message', async () => {
+    // setup:
+    // - use valid API key
+    // - provide transaction function that returns Result.err with an error
+    // expects:
+    // - the error should be thrown
+    // - the original error message should be preserved
+    const errorMessage = 'Business logic validation failed'
+
+    await expect(
+      authenticatedTransactionUnwrap(
+        async () => Result.err(new Error(errorMessage)),
+        { apiKey: apiKey.token }
+      )
+    ).rejects.toThrow(errorMessage)
+  })
+
+  it('provides TransactionEffectsContext with all required callbacks', async () => {
+    // setup:
+    // - use valid API key
+    // - verify ctx contains all expected properties
+    // expects:
+    // - ctx should have transaction, invalidateCache, emitEvent, enqueueLedgerCommand
+    const result = await authenticatedTransactionUnwrap(
+      async (ctx) => {
+        expect(typeof ctx.transaction.execute).toBe('function')
+        expect(typeof ctx.invalidateCache).toBe('function')
+        expect(typeof ctx.emitEvent).toBe('function')
+        expect(typeof ctx.enqueueLedgerCommand).toBe('function')
+        return Result.ok('context_verified')
+      },
+      { apiKey: apiKey.token }
+    )
+
+    expect(result).toBe('context_verified')
+  })
+
+  it('propagates errors thrown inside the callback (not wrapped in Result)', async () => {
+    // setup:
+    // - use valid API key
+    // - throw an error directly inside the callback (not via Result.err)
+    // expects:
+    // - the error should be propagated
+    const directErrorMessage = 'Direct throw error'
+
+    await expect(
+      authenticatedTransactionUnwrap(
+        async () => {
+          throw new Error(directErrorMessage)
+        },
+        { apiKey: apiKey.token }
+      )
+    ).rejects.toThrow(directErrorMessage)
   })
 })

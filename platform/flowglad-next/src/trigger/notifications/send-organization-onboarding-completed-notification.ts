@@ -1,14 +1,13 @@
 import { logger, task } from '@trigger.dev/sdk'
 import axios from 'axios'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
 import core, { isNil } from '@/utils/core'
 import { sendOrganizationOnboardingCompletedNotificationEmail } from '@/utils/email'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 
 const notifyFlowgladTeamPayoutsEnabled = async (params: {
   organizationId: string
@@ -62,26 +61,14 @@ const sendOrganizationOnboardingCompletedNotificationTask = task({
 
     const { organization, usersAndMemberships } =
       await adminTransaction(async ({ transaction }) => {
-        const organization = await selectOrganizationById(
-          payload.organizationId,
+        return buildNotificationContext(
+          {
+            organizationId: payload.organizationId,
+            include: ['usersAndMemberships'],
+          },
           transaction
         )
-        const usersAndMemberships =
-          await selectMembershipsAndUsersByMembershipWhere(
-            {
-              organizationId: payload.organizationId,
-            },
-            transaction
-          )
-        return {
-          organization,
-          usersAndMemberships,
-        }
       })
-
-    if (!organization) {
-      throw new Error('Organization not found')
-    }
 
     const recipients = usersAndMemberships
       .map(({ user }) => user.email)

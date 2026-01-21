@@ -36,7 +36,7 @@ import {
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
 import type {
-  AuthenticatedTransactionParams,
+  DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -257,6 +257,7 @@ export const createCustomerBookkeeping = async (
 }> => {
   const {
     transaction,
+    cacheRecomputationContext,
     organizationId,
     livemode,
     invalidateCache,
@@ -392,6 +393,7 @@ export const createCustomerBookkeeping = async (
             },
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -421,6 +423,17 @@ export const createCustomerBookkeeping = async (
 /**
  * Creates a pricing model with a default "Base Plan" product and a default price of 0
  */
+/**
+ * Minimal transaction context for bookkeeping operations that don't need
+ * userId or cacheRecomputationContext. Callers can pass full transaction
+ * params objects - TypeScript's structural typing allows extra properties.
+ */
+interface BookkeepingTransactionContext {
+  transaction: DbTransaction
+  organizationId: string
+  livemode: boolean
+}
+
 export const createPricingModelBookkeeping = async (
   payload: {
     pricingModel: Omit<
@@ -433,7 +446,7 @@ export const createPricingModelBookkeeping = async (
     transaction,
     organizationId,
     livemode,
-  }: Omit<AuthenticatedTransactionParams, 'userId'>
+  }: BookkeepingTransactionContext
 ): Promise<
   Result<
     {

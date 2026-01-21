@@ -131,12 +131,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -208,6 +210,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -217,6 +220,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -259,6 +263,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -268,6 +273,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -391,6 +397,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -400,6 +407,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -427,6 +435,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -436,6 +445,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -465,6 +475,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -474,6 +485,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -498,6 +510,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -507,6 +520,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -533,6 +547,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -542,6 +557,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -604,6 +620,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -613,6 +630,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -717,6 +735,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -726,6 +745,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -781,6 +801,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -790,6 +811,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -847,6 +869,7 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
@@ -856,6 +879,7 @@ describe('usageEventHelpers', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -922,12 +946,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -984,12 +1010,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -1003,7 +1031,22 @@ describe('usageEventHelpers', () => {
       )
     })
 
-    it('should successfully create usage event when priceId is null and valid usageMeterId is provided directly', async () => {
+    it('should resolve to default price when priceId is null and valid usageMeterId is provided directly', async () => {
+      // The usagePrice created in beforeEach is associated with usageMeter but is NOT the default.
+      // We need to set up a default price for the usage meter.
+      // The usagePrice (isDefault: false) already exists, so we create a new default price.
+      const defaultPrice = await setupPrice({
+        name: 'Default Price for Direct Meter Test',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
       const input: CreateUsageEventInput = {
         usageEvent: {
           subscriptionId: mainSubscription.id,
@@ -1022,12 +1065,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -1037,7 +1082,8 @@ describe('usageEventHelpers', () => {
           }
         )
 
-      expect(createdUsageEvent.priceId).toBeNull()
+      // Should resolve to the default price for the usage meter
+      expect(createdUsageEvent.priceId).toBe(defaultPrice.id)
       expect(createdUsageEvent.usageMeterId).toBe(usageMeter.id)
       expect(createdUsageEvent.subscriptionId).toBe(
         mainSubscription.id
@@ -1085,12 +1131,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input: undefinedPropsInput, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -1120,12 +1168,14 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
             return Result.ok(
               await ingestAndProcessUsageEvent(
                 { input: emptyPropsInput, livemode: true },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   emitEvent,
                   invalidateCache,
                   enqueueLedgerCommand,
@@ -1488,7 +1538,20 @@ describe('usageEventHelpers', () => {
       )
     })
 
-    it('should resolve usageMeterId to usage event with null priceId', async () => {
+    it('should resolve usageMeterId to usage event with default price', async () => {
+      // Set up a default price for the usage meter
+      const defaultPrice = await setupPrice({
+        name: 'Default Price for Meter ID Resolution',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
       const input = {
         usageEvent: {
           subscriptionId: mainSubscription.id,
@@ -1505,12 +1568,13 @@ describe('usageEventHelpers', () => {
       )
 
       expect(result.usageEvent.usageMeterId).toBe(usageMeter.id)
-      expect(result.usageEvent.priceId).toBeNull()
+      // Should resolve to the default price for the usage meter
+      expect(result.usageEvent.priceId).toBe(defaultPrice.id)
       expect(result.usageEvent).not.toHaveProperty('usageMeterSlug')
     })
 
-    it('should resolve usageMeterSlug to usageMeterId with null priceId', async () => {
-      // First, we need to set up a usage meter with a slug
+    it('should resolve usageMeterSlug to usageMeterId with default price', async () => {
+      // First, we need to set up a usage meter with a slug and a default price
       const usageMeterWithSlug = await adminTransaction(
         async ({ transaction }) => {
           const orgSetup = await setupOrg()
@@ -1529,6 +1593,19 @@ describe('usageEventHelpers', () => {
             pricingModelId: orgSetup.pricingModel.id,
             slug: 'test-usage-meter-slug',
           })
+          // Create a default price for the usage meter
+          const testDefaultPrice = await setupPrice({
+            name: 'Test Default Price',
+            type: PriceType.Usage,
+            unitPrice: 0,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: true,
+            currency: CurrencyCode.USD,
+            usageMeterId: testUsageMeter.id,
+          })
+          // Create a non-default price for the subscription
           const testPrice = await setupPrice({
             name: 'Test Usage Price',
             type: PriceType.Usage,
@@ -1546,7 +1623,12 @@ describe('usageEventHelpers', () => {
             paymentMethodId: testPaymentMethod.id,
             priceId: testPrice.id,
           })
-          return { testUsageMeter, testSubscription, testCustomer }
+          return {
+            testUsageMeter,
+            testSubscription,
+            testCustomer,
+            testDefaultPrice,
+          }
         }
       )
 
@@ -1568,7 +1650,10 @@ describe('usageEventHelpers', () => {
       expect(result.usageEvent.usageMeterId).toBe(
         usageMeterWithSlug.testUsageMeter.id
       )
-      expect(result.usageEvent.priceId).toBeNull()
+      // Should resolve to the default price for the usage meter
+      expect(result.usageEvent.priceId).toBe(
+        usageMeterWithSlug.testDefaultPrice.id
+      )
       expect(result.usageEvent).not.toHaveProperty('usageMeterSlug')
     })
 
@@ -1654,7 +1739,7 @@ describe('usageEventHelpers', () => {
       intervalUnit: IntervalUnit.Day,
       intervalCount: 1,
       livemode: true,
-      isDefault: false,
+      isDefault: true, // Set as default so it can be resolved when events use usageMeterId without priceId
       currency: CurrencyCode.USD,
       usageMeterId: distinctMeter.id,
     })

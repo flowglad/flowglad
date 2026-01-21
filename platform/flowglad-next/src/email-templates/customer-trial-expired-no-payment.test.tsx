@@ -6,8 +6,10 @@ import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import core from '@/utils/core'
 import { CustomerTrialExpiredNoPaymentEmail } from './customer-trial-expired-no-payment'
+import { suppressEmailHydrationWarnings } from './test-utils'
 
 describe('CustomerTrialExpiredNoPaymentEmail', () => {
+  suppressEmailHydrationWarnings()
   const baseProps = {
     customerName: 'John Doe',
     organizationName: 'Acme Corp',

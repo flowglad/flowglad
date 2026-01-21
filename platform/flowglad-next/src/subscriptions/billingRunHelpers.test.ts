@@ -1002,6 +1002,7 @@ describe('billingRunHelpers', async () => {
       await adminTransaction(
         async ({
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -1013,6 +1014,7 @@ describe('billingRunHelpers', async () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache: invalidateCache!,
               emitEvent: emitEvent!,
               enqueueLedgerCommand: enqueueLedgerCommand!,
@@ -1313,6 +1315,7 @@ describe('billingRunHelpers', async () => {
         await adminTransaction(
           async ({
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -1324,6 +1327,7 @@ describe('billingRunHelpers', async () => {
               },
               {
                 transaction,
+                cacheRecomputationContext,
                 invalidateCache: invalidateCache!,
                 emitEvent: emitEvent!,
                 enqueueLedgerCommand: enqueueLedgerCommand!,

@@ -7,6 +7,7 @@ import {
   DetailRow,
   DetailTable,
   EmailLayout,
+  Footer,
   Header,
   Paragraph,
   Signature,
@@ -198,6 +199,12 @@ export const CustomerSubscriptionUpgradedEmail = ({
         name={organizationName}
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
+      />
+
+      <Footer
+        organizationName={organizationName}
+        variant="customer"
+        billingPortalUrl={billingPortalUrl}
       />
     </EmailLayout>
   )

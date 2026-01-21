@@ -45,7 +45,6 @@ export function AdjustSubscriptionGrid({
   const currentPlanPrice = useMemo(() => {
     if (
       !billing.loaded ||
-      !billing.loadBilling ||
       billing.errors ||
       !billing.currentSubscriptions ||
       billing.currentSubscriptions.length === 0
@@ -77,7 +76,6 @@ export function AdjustSubscriptionGrid({
     // Early return if billing isn't ready or has no pricing model
     if (
       !billing.loaded ||
-      !billing.loadBilling ||
       billing.errors ||
       !billing.pricingModel
     ) {
@@ -88,11 +86,7 @@ export function AdjustSubscriptionGrid({
   }, [billing])
 
   // Early returns after all hooks
-  if (!billing.loaded || !billing.loadBilling) {
-    return null
-  }
-
-  if (billing.errors) {
+  if (!billing.loaded || billing.errors || !billing.pricingModel) {
     return null
   }
 
@@ -101,6 +95,9 @@ export function AdjustSubscriptionGrid({
       !billing.currentSubscriptions ||
       billing.currentSubscriptions.length === 0
     ) {
+      return false
+    }
+    if (!billing.getPrice) {
       return false
     }
     const priceSlug = plan.slug

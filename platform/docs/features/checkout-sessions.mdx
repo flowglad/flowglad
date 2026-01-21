@@ -33,7 +33,7 @@ It allows customers to pay invoices that might not be tied to a predefined produ
 
 ## Creating a Checkout Session
 
-You can initiate checkout sessions programmatically, most commonly using the `useBilling()` hook in your frontend application.
+You can initiate checkout sessions programmatically, most commonly using the `useBilling()` hook in your frontend application. Pair it with `usePricing()` when you need pricing model details to decide which price to check out.
 
 ### Using `useBilling()` Hook
 
@@ -42,15 +42,22 @@ The `createCheckoutSession` method provided by the `useBilling()` hook is the pr
 Here's an example of how you might use it in a React component:
 
 ```tsx
-import { useBilling } from '@flowglad/nextjs' // Also exported from @flowglad/react
+import { useBilling, usePricing } from '@flowglad/nextjs' // Also exported from @flowglad/react
 
 // Inside your component
-const { createCheckoutSession, loading, error } = useBilling()
+const pricingModel = usePricing()
+const { createCheckoutSession } = useBilling()
 
-const handleCheckout = async (product) => {
+const handleCheckout = async (productSlug) => {
+  const product = pricingModel?.products.find(
+    (pricingProduct) => pricingProduct.slug === productSlug
+  )
+  const price = product?.defaultPrice ?? product?.prices?.[0]
+  if (!price) return
+
   try {
     await createCheckoutSession({
-      priceId: product.defaultPrice.id, // Or a specific price ID
+      priceSlug: price.slug, // Or use priceId if you prefer
       successUrl: `${window.location.origin}/checkout-success`, // Your success page
       cancelUrl: window.location.href, // Where to return on cancellation
       autoRedirect: true, // Automatically redirect to Flowglad Checkout after creation

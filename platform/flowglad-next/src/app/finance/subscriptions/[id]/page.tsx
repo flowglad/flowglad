@@ -9,7 +9,7 @@ import {
   selectProductById,
   selectProducts,
 } from '@/db/tableMethods/productMethods'
-import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { subscriptionWithCurrent } from '@/db/tableMethods/subscriptionMethods'
 import InnerSubscriptionPage from './InnerSubscriptionPage'
 
@@ -20,12 +20,12 @@ const SubscriptionPage = async ({
 }) => {
   const { id } = await params
   const result = await authenticatedTransaction(
-    async ({ transaction, livemode }) => {
+    async ({ transaction, cacheRecomputationContext }) => {
       const [subscription] =
         await selectRichSubscriptionsAndActiveItems(
           { id },
           transaction,
-          livemode
+          cacheRecomputationContext
         )
 
       if (!subscription) {

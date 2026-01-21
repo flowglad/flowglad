@@ -415,6 +415,7 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       },
       {
         transaction,
+        cacheRecomputationContext: ctx.cacheRecomputationContext,
         organizationId: product.organizationId,
         livemode: checkoutSession.livemode,
         invalidateCache: ctx.invalidateCache,

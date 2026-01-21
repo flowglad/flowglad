@@ -3,8 +3,10 @@ import {
   AuthorizationError,
   ConflictError,
   DomainError,
+  ExternalServiceError,
   NotFoundError,
   PaymentError,
+  RateLimitError,
   TerminalStateError,
   ValidationError,
 } from '@/errors'
@@ -125,5 +127,61 @@ describe('AuthorizationError', () => {
     expect(error).toBeInstanceOf(Error)
     expect(error).toBeInstanceOf(DomainError)
     expect(error).toBeInstanceOf(AuthorizationError)
+  })
+})
+
+describe('RateLimitError', () => {
+  it('constructs with resource and limit, sets correct _tag, name, and message format', () => {
+    const error = new RateLimitError(
+      'API calls',
+      'exceeded 100 requests per minute'
+    )
+    expect(error._tag).toBe('RateLimitError')
+    expect(error.name).toBe('RateLimitError')
+    expect(error.message).toBe(
+      'Rate limit exceeded for API calls: exceeded 100 requests per minute'
+    )
+    expect(error.resource).toBe('API calls')
+    expect(error.limit).toBe('exceeded 100 requests per minute')
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(DomainError)
+    expect(error).toBeInstanceOf(RateLimitError)
+  })
+})
+
+describe('ExternalServiceError', () => {
+  it('constructs with service and operation only, sets correct _tag, name, and message format without reason', () => {
+    const error = new ExternalServiceError(
+      'Stripe',
+      'create payment intent'
+    )
+    expect(error._tag).toBe('ExternalServiceError')
+    expect(error.name).toBe('ExternalServiceError')
+    expect(error.message).toBe('Stripe create payment intent failed')
+    expect(error.service).toBe('Stripe')
+    expect(error.operation).toBe('create payment intent')
+    expect(error.reason).toBeUndefined()
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(DomainError)
+    expect(error).toBeInstanceOf(ExternalServiceError)
+  })
+
+  it('constructs with service, operation, and reason, sets correct _tag, name, and message format with reason', () => {
+    const error = new ExternalServiceError(
+      'Stripe',
+      'create payment intent',
+      'connection timeout'
+    )
+    expect(error._tag).toBe('ExternalServiceError')
+    expect(error.name).toBe('ExternalServiceError')
+    expect(error.message).toBe(
+      'Stripe create payment intent failed: connection timeout'
+    )
+    expect(error.service).toBe('Stripe')
+    expect(error.operation).toBe('create payment intent')
+    expect(error.reason).toBe('connection timeout')
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(DomainError)
+    expect(error).toBeInstanceOf(ExternalServiceError)
   })
 })

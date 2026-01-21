@@ -1,4 +1,5 @@
 'use client'
+import type { CustomerBillingDetails } from '@flowglad/shared'
 import type React from 'react'
 import { createContext, useContext } from 'react'
 import type { RequestConfig } from './FlowgladContext'
@@ -17,6 +18,8 @@ export interface FlowgladConfigContextValues {
   requestConfig: RequestConfig | undefined
   /** Whether dev mode is enabled (returns mock data) */
   __devMode: boolean
+  /** Dev mode billing data for mock responses */
+  billingMocks: CustomerBillingDetails | undefined
 }
 
 const defaultConfigContextValues: FlowgladConfigContextValues = {
@@ -24,6 +27,7 @@ const defaultConfigContextValues: FlowgladConfigContextValues = {
   betterAuthBasePath: undefined,
   requestConfig: undefined,
   __devMode: false,
+  billingMocks: undefined,
 }
 
 const FlowgladConfigContext =
@@ -37,6 +41,7 @@ export interface FlowgladConfigProviderProps {
   betterAuthBasePath?: string
   requestConfig?: RequestConfig
   __devMode?: boolean
+  billingMocks?: CustomerBillingDetails
 }
 
 /**
@@ -49,6 +54,7 @@ export const FlowgladConfigProvider = ({
   betterAuthBasePath,
   requestConfig,
   __devMode = false,
+  billingMocks,
 }: FlowgladConfigProviderProps) => {
   return (
     <FlowgladConfigContext.Provider
@@ -57,6 +63,7 @@ export const FlowgladConfigProvider = ({
         betterAuthBasePath,
         requestConfig,
         __devMode,
+        billingMocks,
       }}
     >
       {children}
