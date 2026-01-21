@@ -124,28 +124,9 @@ export const EMAIL_TRIGGER_MAP: Partial<
       taskId: 'send-customer-trial-expired-notification',
     },
   },
-  'customer.auth.billing-portal-magic-link': {
-    summary: 'Magic link for customer billing portal access',
-    conditions: [
-      'Customer requested portal access',
-      'Customer has valid email',
-    ],
-    triggerTask: {
-      file: 'src/trigger/notifications/send-customer-billing-portal-magic-link.ts',
-      taskId: 'send-customer-billing-portal-magic-link',
-    },
-  },
-  'customer.auth.billing-portal-otp': {
-    summary: 'OTP code for customer billing portal access',
-    conditions: [
-      'Customer requested OTP',
-      'Customer has valid email',
-    ],
-    triggerTask: {
-      file: 'src/trigger/notifications/send-customer-billing-portal-otp.ts',
-      taskId: 'send-customer-billing-portal-otp',
-    },
-  },
+  // Note: 'customer.auth.billing-portal-magic-link' and 'customer.auth.billing-portal-otp'
+  // are sent directly via sendCustomerBillingPortalMagicLink and sendCustomerBillingPortalOTP
+  // in src/utils/email.ts, not via trigger tasks.
   'organization.subscription.created': {
     summary:
       'Notifies organization when a customer creates a subscription',
@@ -190,14 +171,8 @@ export const EMAIL_TRIGGER_MAP: Partial<
       taskId: 'send-organization-subscription-adjusted-notification',
     },
   },
-  'organization.payment.succeeded': {
-    summary: 'Notifies organization of a successful payment',
-    conditions: ['Payment succeeded'],
-    triggerTask: {
-      file: 'src/trigger/notifications/send-organization-payment-succeeded-notification.ts',
-      taskId: 'send-organization-payment-succeeded-notification',
-    },
-  },
+  // Note: 'organization.payment.succeeded' trigger task file does not exist.
+  // This notification may be sent differently or not yet implemented.
   'organization.payment.failed': {
     summary: 'Notifies organization of a failed payment',
     conditions: ['Payment failed'],

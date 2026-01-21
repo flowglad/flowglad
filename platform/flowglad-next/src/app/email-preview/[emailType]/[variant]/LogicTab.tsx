@@ -46,7 +46,7 @@ function CodeBlock({
     <div className="border border-gray-200 rounded-lg overflow-hidden">
       <button
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-gray-100 hover:bg-gray-150 text-left"
+        className="w-full flex items-center justify-between px-3 py-2 bg-gray-100 hover:bg-gray-200 text-left"
       >
         <code className="text-xs text-gray-700">{filePath}</code>
         <span className="text-xs text-gray-500">
@@ -104,9 +104,13 @@ function SourceLink({
   const [copied, setCopied] = useState(false)
 
   const handleCopy = async () => {
-    await navigator.clipboard.writeText(filePath)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
+    try {
+      await navigator.clipboard.writeText(filePath)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // Clipboard API unavailable - silently fail for dev tooling
+    }
   }
 
   return (

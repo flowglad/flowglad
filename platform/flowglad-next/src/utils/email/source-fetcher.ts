@@ -10,16 +10,25 @@ export interface FetchedSource {
   exportName?: string
 }
 
+/**
+ * Escapes special regex metacharacters in a string.
+ * This prevents regex injection when interpolating user/config values into patterns.
+ */
+function escapeRegex(s: string): string {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function extractExport(
   content: string,
   exportName: string
 ): { code: string; startLine: number; endLine: number } | null {
   const lines = content.split('\n')
+  const safeExportName = escapeRegex(exportName)
   const exportPatterns = [
-    new RegExp(`^export\\s+const\\s+${exportName}\\s*=`),
-    new RegExp(`^export\\s+function\\s+${exportName}\\s*[(<]`),
+    new RegExp(`^export\\s+const\\s+${safeExportName}\\s*=`),
+    new RegExp(`^export\\s+function\\s+${safeExportName}\\s*[(<]`),
     new RegExp(
-      `^export\\s+async\\s+function\\s+${exportName}\\s*[(<]`
+      `^export\\s+async\\s+function\\s+${safeExportName}\\s*[(<]`
     ),
   ]
 
