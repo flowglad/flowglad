@@ -15,28 +15,16 @@ or {
   // Match Date.now() anywhere in a createTriggerIdempotencyKey call
   `createTriggerIdempotencyKey($arg)` as $call where {
     $arg <: contains `Date.now()`,
-    register_diagnostic(
-      span=$call,
-      message="Idempotency keys must be deterministic. Date.now() makes keys non-deterministic. Use resource IDs instead.",
-      severity="error"
-    )
+    register_diagnostic(span=$call, message="Idempotency keys must be deterministic. Date.now() makes keys non-deterministic. Use resource IDs instead.", severity="error")
   },
   // Match new Date() anywhere in a createTriggerIdempotencyKey call
   `createTriggerIdempotencyKey($arg)` as $call where {
     $arg <: contains `new Date()`,
-    register_diagnostic(
-      span=$call,
-      message="Idempotency keys must be deterministic. new Date() makes keys non-deterministic. Use resource IDs instead.",
-      severity="error"
-    )
+    register_diagnostic(span=$call, message="Idempotency keys must be deterministic. new Date() makes keys non-deterministic. Use resource IDs instead.", severity="error")
   },
   // Match Math.random() anywhere in a createTriggerIdempotencyKey call
   `createTriggerIdempotencyKey($arg)` as $call where {
     $arg <: contains `Math.random()`,
-    register_diagnostic(
-      span=$call,
-      message="Idempotency keys must be deterministic. Math.random() makes keys non-deterministic. Use resource IDs instead.",
-      severity="error"
-    )
+    register_diagnostic(span=$call, message="Idempotency keys must be deterministic. Math.random() makes keys non-deterministic. Use resource IDs instead.", severity="error")
   }
 }
