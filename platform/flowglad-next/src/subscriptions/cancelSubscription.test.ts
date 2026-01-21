@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -67,6 +67,7 @@ import {
   noopInvalidateCache,
   withAdminCacheContext,
 } from '@/test-utils/transactionCallbacks'
+import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-cancellation-scheduled-notification'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -1541,7 +1542,7 @@ describe('Subscription Cancellation Test Suite', async () => {
         if (result.status === 'error') {
           expect(result.error).toBeInstanceOf(NotFoundError)
           expect(result.error.message).toMatch(
-            /No current billing period found/
+            /Current billing period for subscription not found/
           )
         }
       })
@@ -1734,6 +1735,53 @@ describe('Subscription Cancellation Test Suite', async () => {
           BillingRunStatus.Aborted
         )
       })
+    })
+
+    /**
+     * This test uses vi.spyOn to mock the notification function.
+     * This is justified because the notification is a Trigger.dev task that makes
+     * network calls to external services. Per testing guidelines, mocking is allowed
+     * when the mocked function makes a network call whose response needs to be
+     * controlled for the test.
+     */
+    it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
+      const notificationSpy = vi
+        .spyOn(
+          subscriptionCancellationNotifications,
+          'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
+        )
+        .mockResolvedValue(undefined)
+      try {
+        await adminTransaction(async ({ transaction }) => {
+          const subscription = await setupSubscription({
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentMethodId: paymentMethod.id,
+            priceId: price.id,
+          })
+          await setupBillingPeriod({
+            subscriptionId: subscription.id,
+            startDate: Date.now() - 60 * 60 * 1000,
+            endDate: Date.now() + 60 * 60 * 1000,
+          })
+          const params: ScheduleSubscriptionCancellationParams = {
+            id: subscription.id,
+            cancellation: {
+              timing:
+                SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+            },
+          }
+          ;(
+            await scheduleSubscriptionCancellation(
+              params,
+              createDiscardingEffectsContext(transaction)
+            )
+          ).unwrap()
+        })
+        expect(notificationSpy).toHaveBeenCalledTimes(1)
+      } finally {
+        notificationSpy.mockRestore()
+      }
     })
   })
 

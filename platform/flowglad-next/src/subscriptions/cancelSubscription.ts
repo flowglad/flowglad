@@ -489,7 +489,10 @@ export const scheduleSubscriptionCancellation = async (
       )
     if (!currentBillingPeriod) {
       return Result.err(
-        new NotFoundError('BillingPeriod', subscription.id)
+        new NotFoundError(
+          'Current billing period for subscription',
+          subscription.id
+        )
       )
     }
     endDate = currentBillingPeriod.endDate
