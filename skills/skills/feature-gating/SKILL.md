@@ -38,7 +38,9 @@ Implement feature access checks using Flowglad's `checkFeatureAccess` method to 
 
 **Impact: CRITICAL**
 
-The billing hook loads asynchronously. If you check feature access before loading completes, `checkFeatureAccess` returns `false` regardless of actual subscription status. This causes premium users to see upgrade prompts or paywalls incorrectly.
+The billing hook loads asynchronously. While loading, `checkFeatureAccess` is `null` (not a function). If you try to call it before loading completes, you'll get a runtime error or incorrect behavior. This causes premium users to see upgrade prompts or paywalls incorrectly.
+
+> **Note:** The `flowglad()` factory function used in server-side examples must be set up in your project (typically at `@/lib/flowglad`). See the [setup skill](../setup/SKILL.md) for configuration instructions.
 
 ### 1.1 Wait for Billing to Load
 
@@ -52,7 +54,8 @@ Users with active subscriptions will see upgrade prompts flash briefly if you do
 function PremiumFeature() {
   const { checkFeatureAccess } = useBilling()
 
-  // BUG: checkFeatureAccess returns false while loading!
+  // BUG: checkFeatureAccess is null while loading!
+  // This will throw: "checkFeatureAccess is not a function"
   if (!checkFeatureAccess('premium-feature')) {
     return <UpgradePrompt />
   }
@@ -61,15 +64,15 @@ function PremiumFeature() {
 }
 ```
 
-User sees UpgradePrompt flash even if they have access, because `checkFeatureAccess` returns `false` until billing data loads.
+This crashes because `checkFeatureAccess` is `null` until billing data loads, not a callable function.
 
-**Correct: wait for loaded state first**
+**Correct: check both loaded and checkFeatureAccess**
 
 ```tsx
 function PremiumFeature() {
   const { loaded, checkFeatureAccess } = useBilling()
 
-  if (!loaded) {
+  if (!loaded || !checkFeatureAccess) {
     return <LoadingSkeleton />
   }
 
@@ -81,7 +84,7 @@ function PremiumFeature() {
 }
 ```
 
-Always check `loaded` before calling `checkFeatureAccess` to ensure you have accurate subscription data.
+Always check both `loaded` and `checkFeatureAccess` before calling the function to ensure billing data is available.
 
 ### 1.2 Skeleton Loading Patterns
 
@@ -109,7 +112,7 @@ function Dashboard() {
 function Dashboard() {
   const { loaded, checkFeatureAccess } = useBilling()
 
-  if (!loaded) {
+  if (!loaded || !checkFeatureAccess) {
     return (
       <div className="space-y-4">
         <div className="h-8 w-48 bg-gray-200 animate-pulse rounded" />
@@ -291,7 +294,7 @@ Create a declarative component for gating content.
 function AnalyticsDashboard() {
   const { loaded, checkFeatureAccess } = useBilling()
 
-  if (!loaded) return <Skeleton />
+  if (!loaded || !checkFeatureAccess) return <Skeleton />
   if (!checkFeatureAccess('analytics')) return <UpgradePrompt feature="analytics" />
 
   return <Analytics />
@@ -300,7 +303,7 @@ function AnalyticsDashboard() {
 function ExportButton() {
   const { loaded, checkFeatureAccess } = useBilling()
 
-  if (!loaded) return <Skeleton />
+  if (!loaded || !checkFeatureAccess) return <Skeleton />
   if (!checkFeatureAccess('export')) return <UpgradePrompt feature="export" />
 
   return <ExportUI />
@@ -311,7 +314,7 @@ function ExportButton() {
 
 ```tsx
 // components/FeatureGate.tsx
-import { useBilling } from '@flowglad/react'
+import { useBilling } from '@flowglad/nextjs'
 import { ReactNode } from 'react'
 
 interface FeatureGateProps {
@@ -329,7 +332,7 @@ export function FeatureGate({
 }: FeatureGateProps) {
   const { loaded, checkFeatureAccess } = useBilling()
 
-  if (!loaded) {
+  if (!loaded || !checkFeatureAccess) {
     return <>{loading}</>
   }
 
@@ -371,8 +374,9 @@ Use HOC pattern when you need to gate entire pages or components.
 export default function AnalyticsPage() {
   const { loaded, checkFeatureAccess } = useBilling()
 
-  if (!loaded) return <PageSkeleton />
+  if (!loaded || !checkFeatureAccess) return <PageSkeleton />
   if (!checkFeatureAccess('analytics')) {
+    // Using redirect() in a client component - this won't work!
     redirect('/pricing')
     return null
   }
@@ -384,9 +388,12 @@ export default function AnalyticsPage() {
 **Correct: create withFeatureAccess HOC**
 
 ```tsx
+'use client'
+
 // lib/withFeatureAccess.tsx
-import { useBilling } from '@flowglad/react'
-import { redirect } from 'next/navigation'
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { useBilling } from '@flowglad/nextjs'
 import { ComponentType } from 'react'
 
 export function withFeatureAccess<P extends object>(
@@ -396,14 +403,21 @@ export function withFeatureAccess<P extends object>(
 ) {
   return function WithFeatureAccess(props: P) {
     const { loaded, checkFeatureAccess } = useBilling()
+    const router = useRouter()
 
-    if (!loaded) {
+    useEffect(() => {
+      if (loaded && checkFeatureAccess && !checkFeatureAccess(feature)) {
+        router.push(redirectTo)
+      }
+    }, [loaded, checkFeatureAccess, router])
+
+    if (!loaded || !checkFeatureAccess) {
       return <PageSkeleton />
     }
 
     if (!checkFeatureAccess(feature)) {
-      redirect(redirectTo)
-      return null
+      // Show skeleton while redirecting
+      return <PageSkeleton />
     }
 
     return <WrappedComponent {...props} />
@@ -417,6 +431,8 @@ function AnalyticsDashboard() {
 
 export default withFeatureAccess(AnalyticsDashboard, 'analytics')
 ```
+
+Note: For better UX without flash, prefer server-side gating (see Section 5.2) when possible.
 
 ---
 
@@ -438,7 +454,7 @@ Redirect users to pricing/upgrade page when they try to access gated features.
 function PremiumPage() {
   const { loaded, checkFeatureAccess } = useBilling()
 
-  if (!loaded) return <Skeleton />
+  if (!loaded || !checkFeatureAccess) return <Skeleton />
 
   if (!checkFeatureAccess('premium')) {
     return <div>Error: You don't have access to this feature</div>
@@ -455,7 +471,7 @@ function PremiumPage() {
 
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { useBilling } from '@flowglad/react'
+import { useBilling } from '@flowglad/nextjs'
 
 function PremiumPage() {
   const { loaded, checkFeatureAccess } = useBilling()
@@ -463,13 +479,13 @@ function PremiumPage() {
   const pathname = usePathname()
 
   useEffect(() => {
-    if (loaded && !checkFeatureAccess('premium')) {
+    if (loaded && checkFeatureAccess && !checkFeatureAccess('premium')) {
       // Redirect with return URL so user comes back after upgrade
       router.push(`/pricing?upgrade=premium&returnTo=${encodeURIComponent(pathname)}`)
     }
   }, [loaded, checkFeatureAccess, router, pathname])
 
-  if (!loaded || !checkFeatureAccess('premium')) {
+  if (!loaded || !checkFeatureAccess || !checkFeatureAccess('premium')) {
     return <Skeleton />
   }
 
