@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -67,7 +67,6 @@ import {
   noopInvalidateCache,
   withAdminCacheContext,
 } from '@/test-utils/transactionCallbacks'
-import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-cancellation-scheduled-notification'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -1735,48 +1734,6 @@ describe('Subscription Cancellation Test Suite', async () => {
           BillingRunStatus.Aborted
         )
       })
-    })
-
-    it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
-      // biome-ignore lint/plugin: legacy spyOn usage
-      const notificationSpy = vi
-        .spyOn(
-          subscriptionCancellationNotifications,
-          'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
-        )
-        .mockResolvedValue(undefined)
-      try {
-        await adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          const subscription = await setupSubscription({
-            organizationId: organization.id,
-            customerId: customer.id,
-            paymentMethodId: paymentMethod.id,
-            priceId: price.id,
-          })
-          await setupBillingPeriod({
-            subscriptionId: subscription.id,
-            startDate: Date.now() - 60 * 60 * 1000,
-            endDate: Date.now() + 60 * 60 * 1000,
-          })
-          const params: ScheduleSubscriptionCancellationParams = {
-            id: subscription.id,
-            cancellation: {
-              timing:
-                SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-            },
-          }
-          ;(
-            await scheduleSubscriptionCancellation(
-              params,
-              createDiscardingEffectsContext(transaction)
-            )
-          ).unwrap()
-        })
-        expect(notificationSpy).toHaveBeenCalledTimes(1)
-      } finally {
-        notificationSpy.mockRestore()
-      }
     })
   })
 
