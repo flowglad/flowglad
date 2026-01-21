@@ -355,7 +355,7 @@ describe('getTtlForNamespace', () => {
     const ttl = getTtlForNamespace(
       RedisKeyNamespace.SubscriptionsByCustomer
     )
-    expect(ttl).toBe(300) // default TTL
+    expect(ttl).toBe(600) // default TTL
   })
 
   it('returns default TTL when namespace not in CACHE_TTLS', () => {
@@ -366,7 +366,7 @@ describe('getTtlForNamespace', () => {
     const ttl = getTtlForNamespace(
       RedisKeyNamespace.SubscriptionsByCustomer
     )
-    expect(ttl).toBe(300) // default TTL
+    expect(ttl).toBe(600) // default TTL
   })
 
   it('returns default TTL when CACHE_TTLS is invalid JSON', () => {
@@ -375,7 +375,7 @@ describe('getTtlForNamespace', () => {
     const ttl = getTtlForNamespace(
       RedisKeyNamespace.SubscriptionsByCustomer
     )
-    expect(ttl).toBe(300) // default TTL
+    expect(ttl).toBe(600) // default TTL
   })
 })
 
