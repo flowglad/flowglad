@@ -999,15 +999,29 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should throw an error if the payment method does not have a Stripe payment method ID', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        await safelyUpdatePaymentMethod(
-          {
-            id: paymentMethod.id,
-            stripePaymentMethodId: null,
-          },
-          transaction
-        )
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          await safelyUpdatePaymentMethod(
+            {
+              id: paymentMethod.id,
+              stripePaymentMethodId: null,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
+          )
+        }
+      )
       await executeBillingRun(billingRun.id)
       const updatedBillingRun = await adminTransaction(
         ({ transaction }) =>
@@ -1298,15 +1312,29 @@ describe('billingRunHelpers', async () => {
 
       it('should rollback when payment method ID validation fails', async () => {
         // Setup payment method without stripe ID
-        await adminTransaction(async ({ transaction }) => {
-          await safelyUpdatePaymentMethod(
-            {
-              id: paymentMethod.id,
-              stripePaymentMethodId: null,
-            },
-            transaction
-          )
-        })
+        await adminTransaction(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            await safelyUpdatePaymentMethod(
+              {
+                id: paymentMethod.id,
+                stripePaymentMethodId: null,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+          }
+        )
 
         await executeBillingRun(billingRun.id)
 

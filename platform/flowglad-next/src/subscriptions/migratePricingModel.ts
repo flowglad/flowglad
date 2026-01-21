@@ -386,6 +386,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
   > => {
     const {
       transaction,
+      cacheRecomputationContext,
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,
@@ -394,6 +395,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
     const { externalId, newPricingModelId } = input
     const effectsCtx: TransactionEffectsContext = {
       transaction,
+      cacheRecomputationContext,
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,

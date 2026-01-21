@@ -50,7 +50,7 @@ const serializableParamsSchema = z.record(
  * - 'merchant': Merchant dashboard context with organization-scoped RLS
  * - 'customer': Customer billing portal context with customer-scoped RLS
  */
-export type TransactionContext =
+export type CacheRecomputationContext =
   | { type: 'admin'; livemode: boolean }
   | {
       type: 'merchant'
@@ -67,7 +67,7 @@ export type TransactionContext =
     }
 
 // Zod schema for transaction context (discriminated union)
-const transactionContextSchema = z.discriminatedUnion('type', [
+const cacheRecomputationContextSchema = z.discriminatedUnion('type', [
   z.object({
     type: z.literal('admin'),
     livemode: z.boolean(),
@@ -90,21 +90,21 @@ const transactionContextSchema = z.discriminatedUnion('type', [
 export interface CacheRecomputeMetadata {
   namespace: RedisKeyNamespace // Used to look up handler in registry
   params: SerializableParams // The params object (sans transaction)
-  transactionContext: TransactionContext
+  cacheRecomputationContext: CacheRecomputationContext
   createdAt: number
 }
 
 // Zod schema for runtime validation of recompute metadata
 const cacheRecomputeMetadataSchema = z.object({
-  namespace: z.nativeEnum(RedisKeyNamespace),
+  namespace: z.enum(RedisKeyNamespace),
   params: serializableParamsSchema,
-  transactionContext: transactionContextSchema,
+  cacheRecomputationContext: cacheRecomputationContextSchema,
   createdAt: z.number(),
 })
 
 export type RecomputeHandler = (
   params: SerializableParams,
-  transactionContext: TransactionContext
+  cacheRecomputationContext: CacheRecomputationContext
 ) => Promise<unknown>
 
 // In-memory registry for recompute handlers. Each process has its own registry,
@@ -155,7 +155,7 @@ function dependencyRegistryKey(
  * Type guard to check if a string is a valid RedisKeyNamespace.
  * Uses Zod's safeParse for runtime validation.
  */
-const redisKeyNamespaceSchema = z.nativeEnum(RedisKeyNamespace)
+const redisKeyNamespaceSchema = z.enum(RedisKeyNamespace)
 
 function isRedisKeyNamespace(
   value: string
@@ -231,10 +231,17 @@ export interface CacheConfig<TArgs extends unknown[], TResult> {
    * Declare what dependency keys this cache entry depends on.
    * When any of these dependencies are invalidated, this cache entry is invalidated.
    *
-   * Example: A subscription items cache entry for subscription "sub_123" might
-   * declare dependencies: ["subscription:sub_123", "subscriptionItems:sub_123"]
+   * Receives both the fetched result and the original arguments, allowing
+   * dependencies to be computed based on the actual data returned.
+   *
+   * Example: A usage meters cache might depend on:
+   * - pricingModelUsageMeters(pricingModelId) for set membership changes
+   * - usageMeter(meterId) for each meter in the result, for content changes
    */
-  dependenciesFn: (...args: TArgs) => CacheDependencyKey[]
+  dependenciesFn: (
+    result: TResult,
+    ...args: TArgs
+  ) => CacheDependencyKey[]
 }
 
 export interface CacheOptions {
@@ -536,7 +543,6 @@ export function cached<TArgs extends unknown[], TResult>(
 
       const key = config.keyFn(...fnArgs)
       const fullKey = `${config.namespace}:${key}`
-      const dependencies = config.dependenciesFn(...fnArgs)
       const span = trace.getActiveSpan()
 
       // If ignoreCache is set, skip cache lookup entirely
@@ -561,6 +567,9 @@ export function cached<TArgs extends unknown[], TResult>(
       // Cache miss - call wrapped function
       const result = await fn(...fnArgs)
 
+      // Compute dependencies based on the result
+      const dependencies = config.dependenciesFn(result, ...fnArgs)
+
       // Store in cache and register dependencies (fire-and-forget)
       await populateCache({
         fullKey,
@@ -584,8 +593,12 @@ export interface BulkCacheConfig<TKey, TResult> {
   keyFn: (key: TKey) => string
   /** Zod schema for validating cached data */
   schema: z.ZodType<TResult>
-  /** Get dependencies for a single key */
-  dependenciesFn: (key: TKey) => CacheDependencyKey[]
+  /**
+   * Get dependencies for a single key's cached items.
+   * Receives the items array and the key, allowing dependencies to be computed
+   * based on actual item IDs (e.g., individual item content dependencies).
+   */
+  dependenciesFn: (items: TResult, key: TKey) => CacheDependencyKey[]
 }
 
 /**
@@ -796,7 +809,8 @@ async function cachedBulkLookupImpl<TKey, TResult>(
         // Write to cache (fire-and-forget)
         const suffix = config.keyFn(key)
         const fullKey = `${config.namespace}:${suffix}`
-        const dependencies = config.dependenciesFn(key)
+        // Compute dependencies based on the actual items fetched
+        const dependencies = config.dependenciesFn(items, key)
 
         try {
           await writeClient.set(fullKey, JSON.stringify(items), {
@@ -854,6 +868,13 @@ async function cachedBulkLookupImpl<TKey, TResult>(
  * Critical ordering: delete registry BEFORE recomputation. This avoids a race
  * where recomputation re-registers the dependency and then we delete the
  * freshly rebuilt registry.
+ *
+ * KNOWN ISSUE: If recomputation fails after the registry is deleted, the cache
+ * key cannot be automatically retried on the next invalidation (since it's no
+ * longer in the registry). The cache entry will remain empty until the next
+ * cache miss triggers a fresh computation. A future improvement could implement
+ * conditional deletion or a two-phase approach where failed recomputations are
+ * re-registered for retry.
  *
  * Observability:
  * - Logs invalidation at info level (includes dependency and cache keys)
@@ -952,6 +973,7 @@ export async function recomputeCacheEntry(
   cacheKey: string
 ): Promise<void> {
   const client = redis()
+  const startTime = Date.now()
 
   try {
     // Get recomputation metadata
@@ -978,6 +1000,12 @@ export async function recomputeCacheEntry(
         cacheKey,
         error: parsed.error.message,
       })
+      logger.info('cache_recomputation', {
+        cacheKey,
+        success: false,
+        error: 'invalid_metadata',
+        latency_ms: Date.now() - startTime,
+      })
       return
     }
 
@@ -991,21 +1019,46 @@ export async function recomputeCacheEntry(
         namespace: metadata.namespace,
         cacheKey,
       })
+      logger.info('cache_recomputation', {
+        cacheKey,
+        namespace: metadata.namespace,
+        context_type: metadata.cacheRecomputationContext.type,
+        success: false,
+        error: 'no_handler',
+        latency_ms: Date.now() - startTime,
+      })
       return
     }
 
     // Call handler with stored params and context
-    await handler(metadata.params, metadata.transactionContext)
+    await handler(metadata.params, metadata.cacheRecomputationContext)
 
+    const latencyMs = Date.now() - startTime
     logger.debug('Recomputed cache entry', {
       cacheKey,
       namespace: metadata.namespace,
     })
+    logger.info('cache_recomputation', {
+      cacheKey,
+      namespace: metadata.namespace,
+      context_type: metadata.cacheRecomputationContext.type,
+      success: true,
+      latency_ms: latencyMs,
+    })
   } catch (error) {
+    const latencyMs = Date.now() - startTime
+    const errorMessage =
+      error instanceof Error ? error.message : String(error)
     // Fail open - log warning but don't propagate
     logger.warn('Failed to recompute cache entry', {
       cacheKey,
-      error: error instanceof Error ? error.message : String(error),
+      error: errorMessage,
+    })
+    logger.info('cache_recomputation', {
+      cacheKey,
+      success: false,
+      error: errorMessage,
+      latency_ms: latencyMs,
     })
   }
 }
@@ -1077,20 +1130,71 @@ export async function recomputeDependencies(
  * - etc.
  */
 export const CacheDependency = {
-  /** Invalidate when subscriptions for this customer change (create/update/delete) */
+  // === SET MEMBERSHIP DEPENDENCIES ===
+  // These track when items are added to or removed from a collection
+
+  /** Invalidate when subscriptions for this customer change (create/delete, but NOT content updates) */
   customerSubscriptions: (customerId: string): CacheDependencyKey =>
     `customerSubscriptions:${customerId}`,
-  /** Invalidate when items for this subscription change */
+  /** Invalidate when items for this subscription change (create/delete, but NOT content updates) */
   subscriptionItems: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionItems:${subscriptionId}`,
-  /** Invalidate when features for this subscription item change */
+  /** Invalidate when features for this subscription item change (create/delete, but NOT content updates) */
   subscriptionItemFeatures: (
     subscriptionItemId: string
   ): CacheDependencyKey =>
     `subscriptionItemFeatures:${subscriptionItemId}`,
+  /** Invalidate when usage meters for this pricing model change (create/archive, but NOT content updates) */
+  pricingModelUsageMeters: (
+    pricingModelId: string
+  ): CacheDependencyKey =>
+    `pricingModelUsageMeters:${pricingModelId}`,
+
+  // === CONTENT DEPENDENCIES ===
+  // These track when a specific item's properties change
+
+  /** Invalidate when this specific subscription's content changes (status, dates, etc.) */
+  subscription: (subscriptionId: string): CacheDependencyKey =>
+    `subscription:${subscriptionId}`,
+  /** Invalidate when this specific subscription item's content changes (quantity, etc.) */
+  subscriptionItem: (
+    subscriptionItemId: string
+  ): CacheDependencyKey => `subscriptionItem:${subscriptionItemId}`,
+  /** Invalidate when this specific subscription item feature's content changes (quantity, etc.) */
+  subscriptionItemFeature: (
+    subscriptionItemFeatureId: string
+  ): CacheDependencyKey =>
+    `subscriptionItemFeature:${subscriptionItemFeatureId}`,
+  /** Invalidate when this specific usage meter's content changes (name, slug, etc.) */
+  usageMeter: (usageMeterId: string): CacheDependencyKey =>
+    `usageMeter:${usageMeterId}`,
+  /** Invalidate when this specific purchase's content changes */
+  purchase: (purchaseId: string): CacheDependencyKey =>
+    `purchase:${purchaseId}`,
+  /** Invalidate when this specific payment method's content changes */
+  paymentMethod: (paymentMethodId: string): CacheDependencyKey =>
+    `paymentMethod:${paymentMethodId}`,
+  /** Invalidate when this specific invoice's content changes */
+  invoice: (invoiceId: string): CacheDependencyKey =>
+    `invoice:${invoiceId}`,
+  /** Invalidate when this specific invoice line item's content changes */
+  invoiceLineItem: (invoiceLineItemId: string): CacheDependencyKey =>
+    `invoiceLineItem:${invoiceLineItemId}`,
+
+  // === OTHER DEPENDENCIES ===
+
   /** Invalidate when ledger entries for this subscription change */
   subscriptionLedger: (subscriptionId: string): CacheDependencyKey =>
     `subscriptionLedger:${subscriptionId}`,
+  /** Invalidate when payment methods for this customer change */
+  customerPaymentMethods: (customerId: string): CacheDependencyKey =>
+    `customerPaymentMethods:${customerId}`,
+  /** Invalidate when purchases for this customer change */
+  customerPurchases: (customerId: string): CacheDependencyKey =>
+    `customerPurchases:${customerId}`,
+  /** Invalidate when invoices for this customer change */
+  customerInvoices: (customerId: string): CacheDependencyKey =>
+    `customerInvoices:${customerId}`,
 } as const
 
 // NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'

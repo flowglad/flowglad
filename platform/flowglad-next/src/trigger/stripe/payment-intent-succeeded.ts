@@ -8,6 +8,7 @@ import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/me
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import type { TransactionEffectsContext } from '@/db/types'
+import { ValidationError } from '@/errors'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
@@ -39,6 +40,8 @@ export const stripePaymentIntentSucceededTask = task({
             async (params) => {
               const effectsCtx: TransactionEffectsContext = {
                 transaction: params.transaction,
+                cacheRecomputationContext:
+                  params.cacheRecomputationContext,
                 invalidateCache: params.invalidateCache,
                 emitEvent: params.emitEvent,
                 enqueueLedgerCommand: params.enqueueLedgerCommand,
@@ -67,8 +70,11 @@ export const stripePaymentIntentSucceededTask = task({
           )
 
           if (!payment.purchaseId) {
-            throw new Error(
-              `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
+            return Result.err(
+              new ValidationError(
+                'purchaseId',
+                `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
+              )
             )
           }
 

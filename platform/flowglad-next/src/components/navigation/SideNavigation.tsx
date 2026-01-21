@@ -32,6 +32,7 @@ import {
 import { SIDEBAR_BANNER_SLIDES } from '@/config/sidebarBannerConfig'
 import { useAuthContext } from '@/contexts/authContext'
 import { useClickOutside } from '@/hooks/use-click-outside'
+import { useContextAwareNavigation } from '@/hooks/useContextAwareNavigation'
 import { cn } from '@/lib/utils'
 import { BusinessOnboardingStatus } from '@/types'
 import { signOut, useSession } from '@/utils/authClient'
@@ -57,19 +58,16 @@ export const SideNavigation = () => {
   const pathname = usePathname()
   const { organization } = useAuthContext()
   const { data: session } = useSession()
+  const { navigateToParentIfNeeded } = useContextAwareNavigation()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
       await invalidateTRPC()
       await focusedMembership.refetch()
-      /**
-       * Redirects the user back to `customers` page from
-       * `customer/id` when switching between live/test mode to avoid
-       * 404 or page crashes
-       */
-      if (pathname.startsWith('/customers/')) {
-        router.push('/customers')
+      // Navigate to parent page if on a detail page to avoid 404s after livemode switch
+      // Only refresh if staying on current page (navigation handles its own refresh)
+      if (!navigateToParentIfNeeded()) {
+        router.refresh()
       }
-      router.refresh()
     },
   })
   const { invalidate: invalidateTRPC } = trpc.useUtils()

@@ -13,6 +13,7 @@ import {
   selectUsageMeterById,
   selectUsageMeterBySlugAndCustomerId,
   selectUsageMeters,
+  selectUsageMetersByPricingModelId,
   selectUsageMetersCursorPaginated,
   selectUsageMetersPaginated,
   updateUsageMeter,
@@ -493,6 +494,90 @@ describe('usageMeterMethods', () => {
         expect(pricingModelIdMap.has(nonExistentUsageMeterId)).toBe(
           false
         )
+      })
+    })
+  })
+
+  describe('selectUsageMetersByPricingModelId', () => {
+    it('should return client-safe usage meter records for a pricing model', async () => {
+      const meter1 = await setupUsageMeter({
+        organizationId,
+        name: 'API Calls',
+        pricingModelId,
+        slug: 'api-calls',
+      })
+      const meter2 = await setupUsageMeter({
+        organizationId,
+        name: 'Storage',
+        pricingModelId,
+        slug: 'storage',
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectUsageMetersByPricingModelId(
+          pricingModelId,
+          transaction,
+          true // livemode
+        )
+
+        expect(result.length).toBe(2)
+        const ids = result.map((m) => m.id)
+        expect(ids).toContain(meter1.id)
+        expect(ids).toContain(meter2.id)
+
+        // Verify client-safe schema is returned (no internal fields exposed)
+        const meterResult = result.find((m) => m.id === meter1.id)!
+        expect(meterResult.name).toBe('API Calls')
+        expect(meterResult.slug).toBe('api-calls')
+        expect(meterResult.pricingModelId).toBe(pricingModelId)
+      })
+    })
+
+    it('should return empty array when pricing model has no usage meters', async () => {
+      // Create a pricing model with no meters
+      const emptyPricingModel = await setupPricingModel({
+        organizationId,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectUsageMetersByPricingModelId(
+          emptyPricingModel.id,
+          transaction,
+          true
+        )
+
+        expect(result).toEqual([])
+      })
+    })
+
+    it('should only return meters for the specified pricing model', async () => {
+      // Create meters for the test pricing model
+      const meter1 = await setupUsageMeter({
+        organizationId,
+        name: 'PM1 Meter',
+        pricingModelId,
+      })
+
+      // Create meters for a different pricing model
+      const otherPricingModel = await setupPricingModel({
+        organizationId,
+      })
+      await setupUsageMeter({
+        organizationId,
+        name: 'Other PM Meter',
+        pricingModelId: otherPricingModel.id,
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectUsageMetersByPricingModelId(
+          pricingModelId,
+          transaction,
+          true
+        )
+
+        expect(result.length).toBe(1)
+        expect(result[0].id).toBe(meter1.id)
+        expect(result[0].name).toBe('PM1 Meter')
       })
     })
   })

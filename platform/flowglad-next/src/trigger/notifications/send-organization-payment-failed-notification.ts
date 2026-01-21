@@ -1,8 +1,5 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { OrganizationPaymentFailedNotificationEmail } from '@/email-templates/organization/organization-payment-failed'
 import type { CurrencyCode } from '@/types'
 import {
@@ -15,9 +12,11 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
 interface PaymentFailedNotificationData {
+  paymentId: string
   organizationId: string
   customerId: string
   amount: number
@@ -44,31 +43,15 @@ const sendOrganizationPaymentFailedNotificationTask = task({
 
     const { organization, customer, usersAndMemberships } =
       await adminTransaction(async ({ transaction }) => {
-        const organization = await selectOrganizationById(
-          paymentData.organizationId,
+        return buildNotificationContext(
+          {
+            organizationId: paymentData.organizationId,
+            customerId: paymentData.customerId,
+            include: ['usersAndMemberships'],
+          },
           transaction
         )
-        const customer = await selectCustomerById(
-          paymentData.customerId,
-          transaction
-        )
-        const usersAndMemberships =
-          await selectMembershipsAndUsersByMembershipWhere(
-            {
-              organizationId: paymentData.organizationId,
-            },
-            transaction
-          )
-        return {
-          organization,
-          customer,
-          usersAndMemberships,
-        }
       })
-
-    if (!organization || !customer) {
-      throw new Error('Organization or customer not found')
-    }
 
     const eligibleRecipients = filterEligibleRecipients(
       usersAndMemberships,
@@ -102,7 +85,7 @@ const sendOrganizationPaymentFailedNotificationTask = task({
         `Payment Failed: ${customer.name} payment of ${paymentData.amount} ${paymentData.currency} failed`,
         paymentData.livemode
       ),
-      react: OrganizationPaymentFailedNotificationEmail({
+      react: await OrganizationPaymentFailedNotificationEmail({
         organizationName: organization.name,
         amount: paymentData.amount,
         currency: paymentData.currency,
@@ -130,7 +113,7 @@ export const idempotentSendOrganizationPaymentFailedNotification =
         },
         {
           idempotencyKey: await createTriggerIdempotencyKey(
-            `send-organization-payment-failed-notification-${paymentData.customerId}-${paymentData.amount}-${Date.now()}`
+            `send-organization-payment-failed-notification-${paymentData.paymentId}`
           ),
         }
       )

@@ -6,7 +6,10 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import type { CacheDependencyKey } from '@/utils/cache'
+import type {
+  CacheDependencyKey,
+  CacheRecomputationContext,
+} from '@/utils/cache'
 
 /**
  * No-op callbacks for use in tests that don't need to verify cache invalidation or event emission.
@@ -28,10 +31,15 @@ export const noopEnqueueLedgerCommand = (
  * Use this when the test doesn't need to verify or process callback behavior.
  */
 export function createDiscardingEffectsContext(
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  cacheRecomputationContext: CacheRecomputationContext = {
+    type: 'admin',
+    livemode: true,
+  }
 ): TransactionEffectsContext {
   return {
     transaction,
+    cacheRecomputationContext,
     invalidateCache: noopInvalidateCache,
     emitEvent: noopEmitEvent,
     enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -116,7 +124,11 @@ export function createCapturingCallbacks(): {
  * ```
  */
 export function createCapturingEffectsContext(
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  cacheRecomputationContext: CacheRecomputationContext = {
+    type: 'admin',
+    livemode: true,
+  }
 ): {
   ctx: TransactionEffectsContext
   effects: CapturedEffects
@@ -125,6 +137,7 @@ export function createCapturingEffectsContext(
   return {
     ctx: {
       transaction,
+      cacheRecomputationContext,
       ...callbacks,
     },
     effects,
@@ -155,8 +168,40 @@ export function createProcessingEffectsContext(
 ): TransactionEffectsContext {
   return {
     transaction: params.transaction,
+    cacheRecomputationContext: params.cacheRecomputationContext,
     invalidateCache: params.invalidateCache,
     emitEvent: params.emitEvent,
     enqueueLedgerCommand: params.enqueueLedgerCommand,
+  }
+}
+
+/**
+ * Adds admin cacheRecomputationContext to a params object based on its livemode value.
+ * Use this helper to reduce boilerplate when calling functions that require
+ * cacheRecomputationContext in tests.
+ *
+ * @example
+ * ```typescript
+ * await createPricingModelBookkeeping(
+ *   { pricingModel: { name: 'Test', isDefault: true } },
+ *   withAdminCacheContext({
+ *     transaction,
+ *     organizationId,
+ *     livemode,
+ *   })
+ * )
+ * ```
+ */
+export function withAdminCacheContext<
+  T extends { livemode: boolean },
+>(
+  params: T
+): T & { cacheRecomputationContext: CacheRecomputationContext } {
+  return {
+    ...params,
+    cacheRecomputationContext: {
+      type: 'admin',
+      livemode: params.livemode,
+    },
   }
 }

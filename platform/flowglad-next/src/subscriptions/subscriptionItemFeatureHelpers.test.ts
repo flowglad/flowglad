@@ -28,10 +28,10 @@ import { insertFeature } from '@/db/tableMethods/featureMethods'
 import { insertProductFeature } from '@/db/tableMethods/productFeatureMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import {
-  expireSubscriptionItems,
   insertSubscriptionItem,
   selectSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
   insertUsageCredit,
   selectUsageCredits,

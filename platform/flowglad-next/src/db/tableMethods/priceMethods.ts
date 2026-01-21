@@ -9,7 +9,6 @@ import {
 import { z } from 'zod'
 import {
   Price,
-  type PricingModelWithProductsAndUsageMeters,
   type ProductWithPrices,
   prices,
   pricesClientSelectSchema,
@@ -35,6 +34,7 @@ import {
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { FeatureType, PriceType } from '@/types'
+import { getNoChargeSlugForMeter } from '@/utils/usage/noChargePriceHelpers'
 import {
   type Feature,
   features,
@@ -72,6 +72,7 @@ import {
 import {
   derivePricingModelIdFromUsageMeter,
   pricingModelIdsForUsageMeters,
+  selectUsageMeterById,
 } from './usageMeterMethods'
 
 const config: ORMMethodCreatorConfig<
@@ -620,32 +621,9 @@ export const selectPriceBySlugForDefaultPricingModel = async (
     )
   }
 
-  // Filter to active products and prices, similar to selectPricingModelForCustomer
-  const filteredProducts: PricingModelWithProductsAndUsageMeters['products'] =
-    pricingModel.products
-      .filter(
-        (
-          product: PricingModelWithProductsAndUsageMeters['products'][number]
-        ) => product.active
-      )
-      .map(
-        (
-          product: PricingModelWithProductsAndUsageMeters['products'][number]
-        ) => ({
-          ...product,
-          prices: product.prices.filter(
-            (price: Price.ClientRecord) => price.active
-          ),
-        })
-      )
-      .filter(
-        (
-          product: PricingModelWithProductsAndUsageMeters['products'][number]
-        ) => product.prices.length > 0
-      )
-
   // Search through all products in the pricing model to find a price with the matching slug
-  for (const product of filteredProducts) {
+  // (inactive products and prices are already filtered out by selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere)
+  for (const product of pricingModel.products) {
     const price = product.prices.find(
       (p: Price.ClientRecord) => p.slug === params.slug
     )
@@ -830,6 +808,170 @@ const setPricesForProductToNonDefaultNonActive = async (
     .where(eq(prices.productId, productId))
 }
 
+/**
+ * Sets all prices for a usage meter to non-default.
+ * Used when setting a new price as default to clear the previous default.
+ *
+ * IMPORTANT: This unsets ALL defaults regardless of `active` status because
+ * the unique constraint on `isDefault` applies regardless of `active`.
+ * If we only unset active defaults, inactive defaults could violate the constraint.
+ *
+ * @param usageMeterId - The ID of the usage meter
+ * @param transaction - Database transaction
+ */
+export const setPricesForUsageMeterToNonDefault = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+): Promise<void> => {
+  await transaction
+    .update(prices)
+    .set({ isDefault: false })
+    .where(
+      and(
+        eq(prices.usageMeterId, usageMeterId),
+        eq(prices.isDefault, true)
+      )
+    )
+}
+
+/**
+ * Selects the default price for a usage meter.
+ * Returns only ACTIVE defaults, as inactive prices shouldn't be used
+ * as the default for new usage events.
+ *
+ * @param usageMeterId - The ID of the usage meter
+ * @param transaction - Database transaction
+ * @returns The default price record if found, null otherwise
+ */
+export const selectDefaultPriceForUsageMeter = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+): Promise<Price.Record | null> => {
+  const result = await transaction
+    .select()
+    .from(prices)
+    .where(
+      and(
+        eq(prices.usageMeterId, usageMeterId),
+        eq(prices.isDefault, true),
+        eq(prices.active, true)
+      )
+    )
+    .limit(1)
+  if (result.length === 0) {
+    return null
+  }
+  return pricesSelectSchema.parse(result[0])
+}
+
+/**
+ * Batch selects default prices for multiple usage meters.
+ * More efficient than calling selectDefaultPriceForUsageMeter for each meter individually.
+ * Returns only ACTIVE defaults, as inactive prices shouldn't be used
+ * as the default for new usage events.
+ *
+ * @param usageMeterIds - Array of usage meter IDs
+ * @param transaction - Database transaction
+ * @returns Map of usageMeterId to default Price.Record (meters without default prices are not included)
+ */
+export const selectDefaultPricesForUsageMeters = async (
+  usageMeterIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, Price.Record>> => {
+  if (usageMeterIds.length === 0) {
+    return new Map()
+  }
+
+  const results = await transaction
+    .select()
+    .from(prices)
+    .where(
+      and(
+        inArray(prices.usageMeterId, usageMeterIds),
+        eq(prices.isDefault, true),
+        eq(prices.active, true)
+      )
+    )
+
+  const defaultPriceByUsageMeterId = new Map<string, Price.Record>()
+  for (const result of results) {
+    const price = pricesSelectSchema.parse(result)
+    if (price.usageMeterId) {
+      defaultPriceByUsageMeterId.set(price.usageMeterId, price)
+    }
+  }
+
+  return defaultPriceByUsageMeterId
+}
+
+/**
+ * Ensures a usage meter has a default price.
+ * If no default price exists, sets the no_charge price as the default.
+ * This is called when the current default price is unset or deactivated.
+ *
+ * @param usageMeterId - The ID of the usage meter
+ * @param transaction - Database transaction
+ * @throws Error if the usage meter is not found
+ * @throws Error if the no_charge price is not found
+ */
+export const ensureUsageMeterHasDefaultPrice = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+): Promise<void> => {
+  // Check if meter has any active default price
+  const defaultPrice = await selectDefaultPriceForUsageMeter(
+    usageMeterId,
+    transaction
+  )
+  if (defaultPrice) {
+    return // Already has a default
+  }
+
+  // Set the no_charge price as default
+  const usageMeter = await selectUsageMeterById(
+    usageMeterId,
+    transaction
+  )
+  if (!usageMeter) {
+    throw new Error(`Usage meter ${usageMeterId} not found`)
+  }
+
+  const noChargeSlug = getNoChargeSlugForMeter(usageMeter.slug)
+
+  // Find the no_charge price for this meter
+  const noChargePrices = await selectPrices(
+    {
+      slug: noChargeSlug,
+      usageMeterId,
+    },
+    transaction
+  )
+
+  if (noChargePrices.length === 0) {
+    throw new Error(
+      `No charge price with slug ${noChargeSlug} not found for usage meter ${usageMeterId}`
+    )
+  }
+
+  const noChargePrice = noChargePrices[0]
+
+  // IMPORTANT: First unset ALL defaults (including inactive ones)
+  // The unique constraint on isDefault applies regardless of active status
+  await setPricesForUsageMeterToNonDefault(usageMeterId, transaction)
+
+  // Set the no_charge price as default and ensure it's active
+  // The no_charge price may have been inactive, so we explicitly set active: true
+  await updatePrice(
+    {
+      id: noChargePrice.id,
+      isDefault: true,
+      type: noChargePrice.type,
+      active: true,
+    },
+    transaction
+  )
+}
+
 const baseDangerouslyInsertPrice = createInsertFunction(
   prices,
   config
@@ -882,14 +1024,24 @@ export const safelyUpdatePrice = async (
   transaction: DbTransaction
 ) => {
   /**
-   * If price is default, reset other prices for the same product
+   * If price is being set as default, reset other prices for the same product/meter
    */
   if (price.isDefault) {
     const existingPrice = await selectPriceById(price.id, transaction)
-    // Only reset product prices if this is a non-usage price
+    // For non-usage prices, reset other prices for the same product
     if (Price.hasProductId(existingPrice)) {
       await setPricesForProductToNonDefault(
         existingPrice.productId,
+        transaction
+      )
+    }
+    // For usage prices, reset other prices for the same usage meter
+    if (
+      existingPrice.type === PriceType.Usage &&
+      existingPrice.usageMeterId
+    ) {
+      await setPricesForUsageMeterToNonDefault(
+        existingPrice.usageMeterId,
         transaction
       )
     }
@@ -1045,12 +1197,44 @@ export const selectResourceFeaturesForPrices = async (
     string,
     Feature.ResourceRecord[]
   >()
+  const productIdToLatestByResourceId = new Map<
+    string,
+    Map<string, Feature.ResourceRecord>
+  >()
   for (const result of validResults) {
     const productId = result.productFeature.productId
     const feature = resourceFeatureSelectSchema.parse(result.feature)
-    const existing = productIdToFeatures.get(productId) ?? []
-    existing.push(feature)
-    productIdToFeatures.set(productId, existing)
+    const resourceId = feature.resourceId
+    if (!resourceId) {
+      continue
+    }
+
+    const existingMapForProduct =
+      productIdToLatestByResourceId.get(productId) ??
+      new Map<string, Feature.ResourceRecord>()
+
+    const existingForResource = existingMapForProduct.get(resourceId)
+    if (
+      !existingForResource ||
+      feature.createdAt > existingForResource.createdAt
+    ) {
+      existingMapForProduct.set(resourceId, feature)
+      productIdToLatestByResourceId.set(
+        productId,
+        existingMapForProduct
+      )
+    }
+  }
+
+  // Materialize arrays for output map
+  for (const [
+    productId,
+    latestByResourceId,
+  ] of productIdToLatestByResourceId) {
+    productIdToFeatures.set(
+      productId,
+      Array.from(latestByResourceId.values())
+    )
   }
 
   // Map priceIds back to their features via productId

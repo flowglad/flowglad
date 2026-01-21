@@ -34,7 +34,6 @@ import {
 } from '../schema/organizations'
 import { payments } from '../schema/payments'
 import { purchases } from '../schema/purchases'
-import type { CustomerForPricingModel } from './pricingModelMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof customersTable,
@@ -510,17 +509,30 @@ export const setUserIdForCustomerRecords = async (
 }
 
 /**
+ * Minimal customer data needed for pricing model resolution in bulk operations.
+ * Only fetches the fields required to determine which pricing model applies to each customer.
+ *
+ * Note: pricingModelId is NOT NULL in the database schema, so it will always be a string.
+ */
+export type CustomerPricingInfo = {
+  id: string
+  pricingModelId: string
+  organizationId: string
+  livemode: boolean
+}
+
+/**
  * Performance-optimized batch fetch of customer pricing info.
  * Only selects the minimal fields needed for pricing model resolution.
  *
  * @param customerIds - Array of customer IDs to fetch
  * @param transaction - Database transaction
- * @returns Map of customerId to CustomerForPricingModel
+ * @returns Map of customerId to CustomerPricingInfo
  */
 export const selectCustomerPricingInfoBatch = async (
   customerIds: string[],
   transaction: DbTransaction
-): Promise<Map<string, CustomerForPricingModel>> => {
+): Promise<Map<string, CustomerPricingInfo>> => {
   if (customerIds.length === 0) {
     return new Map()
   }

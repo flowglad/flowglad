@@ -15,6 +15,10 @@ import {
   setupPrice,
   setupProduct,
   setupProductFeature,
+  setupResource,
+  setupResourceClaim,
+  setupResourceFeature,
+  setupResourceSubscriptionItemFeature,
   setupSubscription,
   setupSubscriptionItem,
   setupSubscriptionItemFeature,
@@ -39,16 +43,22 @@ import {
 } from '@/db/tableMethods/billingPeriodMethods'
 import { selectBillingRuns } from '@/db/tableMethods/billingRunMethods'
 import { insertPrice } from '@/db/tableMethods/priceMethods'
+import { selectActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 // Helpers to query the database after adjustments
 import {
-  expireSubscriptionItems,
   selectSubscriptionItems,
   selectSubscriptionItemsAndSubscriptionBySubscriptionId,
   updateSubscriptionItem,
 } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import { updateSubscription } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import {
+  claimResourceTransaction,
+  getResourceUsage,
+  releaseResourceTransaction,
+} from '@/resources/resourceClaimHelpers'
 import {
   adjustSubscription,
   autoDetectTiming,
@@ -3913,6 +3923,2289 @@ describe('adjustSubscription Integration Tests', async () => {
         // the subscription should be synced immediately
         expect(result.subscription.name).toBe('Basic Plan')
         return Result.ok(null)
+      })
+    })
+  })
+
+  /* ==========================================================================
+    adjustSubscription with Resource Claims
+
+    Tests for resource claim preservation and capacity validation during
+    subscription adjustments. Resource claims are scoped by (subscriptionId, resourceId)
+    rather than subscriptionItemFeatureId, which means they survive subscription
+    adjustments where old subscription items are expired and new ones are created.
+  ========================================================================== */
+  describe('adjustSubscription with resource claims', () => {
+    /**
+     * Path 1: Immediate upgrade with proration (billing run flow)
+     *
+     * When net charge > 0 and proration is enabled, adjustSubscription creates
+     * a billing run and defers the actual item adjustment to after payment succeeds
+     * in processOutcomeForBillingRun.
+     */
+    describe('Path 1: Immediate upgrade with proration (billing run flow)', () => {
+      it('creates billing run for prorated upgrade while preserving claim accessibility', async () => {
+        // Setup: Create a resource and resource feature
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        const resourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 5,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Basic Plan',
+          quantity: 1,
+          unitPrice: 1000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
+
+        // Claim 3 resources before adjustment
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalIds: ['user-1', 'user-2', 'user-3'],
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create premium plan with higher price (triggers proration charge)
+        const premiumPrice = await setupPrice({
+          productId: product.id,
+          name: 'Premium Plan',
+          type: PriceType.Subscription,
+          unitPrice: 5000, // Much higher to ensure positive proration
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const premiumResourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Premium Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 10,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: premiumResourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 15 * 24 * 60 * 60 * 1000, // 15 days ago
+              endDate: Date.now() + 15 * 24 * 60 * 60 * 1000, // 15 days from now
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: premiumPrice.id,
+              name: 'Premium Plan',
+              quantity: 1,
+              unitPrice: 5000,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Upgrade with proration enabled (should create billing run)
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Verify billing run was created (pendingBillingRunId is returned)
+          expect(typeof result.pendingBillingRunId).toBe('string')
+
+          // Verify claims are still accessible during pending billing run state
+          // (old subscription items haven't been expired yet)
+          const activeClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(activeClaims.length).toBe(3)
+          expect(
+            activeClaims.map((c) => c.externalId).sort()
+          ).toEqual(['user-1', 'user-2', 'user-3'])
+
+          // Verify usage still reflects old capacity (adjustment not applied yet)
+          const usage = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(usage.capacity).toBe(5) // Still old capacity
+          expect(usage.claimed).toBe(3)
+          expect(usage.available).toBe(2)
+
+          return Result.ok(null)
+        })
+      })
+
+      it('validates capacity before creating billing run for upgrade', async () => {
+        // Setup: Create a resource with current capacity
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        const resourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 10, // High capacity
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Premium Plan',
+          quantity: 1,
+          unitPrice: 5000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
+
+        // Claim 8 resources
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                quantity: 8,
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create a lower capacity plan (even though higher price)
+        const expensiveButLimitedPrice = await setupPrice({
+          productId: product.id,
+          name: 'Expensive Limited Plan',
+          type: PriceType.Subscription,
+          unitPrice: 10000, // Higher price
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const limitedResourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Limited Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 5, // Lower capacity than current claims
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: limitedResourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 15 * 24 * 60 * 60 * 1000,
+              endDate: Date.now() + 15 * 24 * 60 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: expensiveButLimitedPrice.id,
+              name: 'Expensive Limited Plan',
+              quantity: 1,
+              unitPrice: 10000,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Should reject because new capacity (5) < active claims (8)
+          await expect(
+            adjustSubscription(
+              {
+                id: subscription.id,
+                adjustment: {
+                  newSubscriptionItems: newItems,
+                  timing: SubscriptionAdjustmentTiming.Immediately,
+                  prorateCurrentBillingPeriod: true,
+                },
+              },
+              organization,
+              ctx
+            )
+          ).rejects.toThrow(
+            /Cannot reduce.*capacity to 5.*8.*claimed/
+          )
+
+          // Verify claims unchanged
+          const activeClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(activeClaims.length).toBe(8)
+
+          return Result.ok(null)
+        })
+      })
+    })
+
+    /**
+     * Path 2: Downgrade/zero-charge (immediate adjustment)
+     *
+     * When net charge <= 0 or timing is AtEndOfCurrentBillingPeriod,
+     * adjustSubscription calls handleSubscriptionItemAdjustment directly
+     * without creating a billing run.
+     */
+    describe('Path 2: Downgrade/zero-charge (immediate adjustment)', () => {
+      it('preserves existing claims after upgrade without proration', async () => {
+        // Setup: Create a resource and resource feature
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        const resourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 5, // 5 seat capacity
+        })
+
+        // Create product feature linking the feature to the product
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        // Setup subscription item with resource feature
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Current Plan',
+          quantity: 1,
+          unitPrice: 1000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
+
+        // Claim 3 resources
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalIds: ['user-1', 'user-2', 'user-3'],
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create a higher capacity plan
+        const premiumPrice = await setupPrice({
+          productId: product.id,
+          name: 'Premium Plan',
+          type: PriceType.Subscription,
+          unitPrice: 2000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const premiumResourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Premium Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 10, // 10 seat capacity
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: premiumResourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: premiumPrice.id,
+              name: 'Premium Plan',
+              quantity: 1,
+              unitPrice: 2000,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Upgrade without proration (no billing run)
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Verify claims are preserved
+          const activeClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(activeClaims.length).toBe(3)
+          expect(
+            activeClaims.map((c) => c.externalId).sort()
+          ).toEqual(['user-1', 'user-2', 'user-3'])
+
+          // Verify usage shows new capacity with existing claims
+          const usage = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(usage.capacity).toBe(10)
+          expect(usage.claimed).toBe(3)
+          expect(usage.available).toBe(7)
+
+          return Result.ok(null)
+        })
+      })
+
+      it('preserves existing claims after downgrade when new capacity >= active claims', async () => {
+        // Setup: Create a resource with high capacity
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        const highCapacityFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'High Capacity Seats',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 10, // 10 seat capacity
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: highCapacityFeature.id,
+          organizationId: organization.id,
+        })
+
+        const premiumPrice = await setupPrice({
+          productId: product.id,
+          name: 'Premium Plan',
+          type: PriceType.Subscription,
+          unitPrice: 2000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: premiumPrice.id,
+          name: 'Premium Plan',
+          quantity: 1,
+          unitPrice: 2000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: highCapacityFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
+
+        // Claim 3 resources (less than new capacity)
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                quantity: 3,
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create a lower capacity plan (but still >= claimed)
+        const basicPrice = await setupPrice({
+          productId: product.id,
+          name: 'Basic Plan',
+          type: PriceType.Subscription,
+          unitPrice: 500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const basicResourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Basic Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 5, // 5 seat capacity (still >= 3 claimed)
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: basicResourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: basicPrice.id,
+              name: 'Basic Plan',
+              quantity: 1,
+              unitPrice: 500,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Downgrade (immediate since no proration charge)
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Verify claims are preserved
+          const activeClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(activeClaims.length).toBe(3)
+
+          // Verify usage shows reduced capacity with existing claims
+          const usage = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(usage.capacity).toBe(5)
+          expect(usage.claimed).toBe(3)
+          expect(usage.available).toBe(2)
+
+          return Result.ok(null)
+        })
+      })
+
+      it('rejects downgrade when new capacity would be less than active claims', async () => {
+        // Setup: Create a resource with high capacity
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        const highCapacityFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'High Capacity Seats',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 10, // 10 seat capacity
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: highCapacityFeature.id,
+          organizationId: organization.id,
+        })
+
+        const premiumPrice = await setupPrice({
+          productId: product.id,
+          name: 'Premium Plan',
+          type: PriceType.Subscription,
+          unitPrice: 2000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: premiumPrice.id,
+          name: 'Premium Plan',
+          quantity: 1,
+          unitPrice: 2000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: highCapacityFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
+
+        // Claim 5 resources
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                quantity: 5,
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create a plan with capacity less than claims
+        const tinyPrice = await setupPrice({
+          productId: product.id,
+          name: 'Tiny Plan',
+          type: PriceType.Subscription,
+          unitPrice: 100,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const tinyResourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Tiny Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 3, // 3 seat capacity (less than 5 claimed)
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: tinyResourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: tinyPrice.id,
+              name: 'Tiny Plan',
+              quantity: 1,
+              unitPrice: 100,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Attempt downgrade - should throw error
+          await expect(
+            adjustSubscription(
+              {
+                id: subscription.id,
+                adjustment: {
+                  newSubscriptionItems: newItems,
+                  timing: SubscriptionAdjustmentTiming.Immediately,
+                  prorateCurrentBillingPeriod: false,
+                },
+              },
+              organization,
+              ctx
+            )
+          ).rejects.toThrow(
+            /Cannot reduce.*capacity to 3.*5.*claimed/
+          )
+
+          // Verify claims are unchanged
+          const activeClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(activeClaims.length).toBe(5)
+
+          // Verify subscription items are unchanged
+          const items = await selectSubscriptionItems(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          const activeItems = items.filter(
+            (i) => !i.expiredAt || i.expiredAt > Date.now()
+          )
+          expect(activeItems.length).toBe(1)
+          expect(activeItems[0].name).toBe('Premium Plan')
+
+          return Result.ok(null)
+        })
+      })
+    })
+
+    /**
+     * Path 3: End-of-period adjustment
+     *
+     * When timing is AtEndOfCurrentBillingPeriod, the adjustment is scheduled
+     * for the future but capacity validation happens immediately.
+     */
+    describe('Path 3: End-of-period adjustment', () => {
+      it('validates capacity at adjustment scheduling time, not when adjustment applies', async () => {
+        // Setup: Create a resource with high capacity
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        const highCapacityFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'High Capacity Seats',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 10,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: highCapacityFeature.id,
+          organizationId: organization.id,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Premium Plan',
+          quantity: 1,
+          unitPrice: 2000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: highCapacityFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
+
+        // Claim 5 resources
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                quantity: 5,
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create a plan with capacity less than current claims
+        const tinyProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Tiny Product',
+          pricingModelId: pricingModel.id,
+          livemode: subscription.livemode,
+        })
+
+        const tinyPrice = await setupPrice({
+          productId: tinyProduct.id,
+          name: 'Tiny Plan',
+          type: PriceType.Subscription,
+          unitPrice: 100,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const tinyResourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Tiny Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 3, // Less than 5 claimed
+        })
+
+        await setupProductFeature({
+          productId: tinyProduct.id,
+          featureId: tinyResourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: tinyPrice.id,
+              name: 'Tiny Plan',
+              quantity: 1,
+              unitPrice: 100,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Schedule end-of-period downgrade - should throw immediately
+          // because capacity validation happens at scheduling time
+          await expect(
+            adjustSubscription(
+              {
+                id: subscription.id,
+                adjustment: {
+                  newSubscriptionItems: newItems,
+                  timing:
+                    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+                },
+              },
+              organization,
+              ctx
+            )
+          ).rejects.toThrow(
+            /Cannot reduce.*capacity to 3.*5.*claimed/
+          )
+
+          // Verify claims unchanged
+          const activeClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(activeClaims.length).toBe(5)
+
+          return Result.ok(null)
+        })
+      })
+
+      it('preserves claims when scheduling valid end-of-period downgrade', async () => {
+        // Setup: Create a resource
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        const highCapacityFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'High Capacity Seats',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 10,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: highCapacityFeature.id,
+          organizationId: organization.id,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Premium Plan',
+          quantity: 1,
+          unitPrice: 2000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: highCapacityFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 10,
+        })
+
+        // Claim 3 resources (less than new capacity)
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalIds: ['user-1', 'user-2', 'user-3'],
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create a plan with capacity >= current claims
+        const basicProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Basic Product',
+          pricingModelId: pricingModel.id,
+          livemode: subscription.livemode,
+        })
+
+        const basicPrice = await setupPrice({
+          productId: basicProduct.id,
+          name: 'Basic Plan',
+          type: PriceType.Subscription,
+          unitPrice: 500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const basicResourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Basic Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 5, // More than 3 claimed
+        })
+
+        await setupProductFeature({
+          productId: basicProduct.id,
+          featureId: basicResourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: basicPrice.id,
+              name: 'Basic Plan',
+              quantity: 1,
+              unitPrice: 500,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Schedule end-of-period downgrade - should succeed
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // No billing run for end-of-period adjustments
+          expect(result.pendingBillingRunId).toBeUndefined()
+
+          // Verify claims still accessible (adjustment not applied yet)
+          const activeClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(activeClaims.length).toBe(3)
+          expect(
+            activeClaims.map((c) => c.externalId).sort()
+          ).toEqual(['user-1', 'user-2', 'user-3'])
+
+          // Verify capacity still shows old value (adjustment scheduled, not applied)
+          const usage = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(usage.capacity).toBe(10) // Still old capacity
+          expect(usage.claimed).toBe(3)
+          expect(usage.available).toBe(7)
+
+          return Result.ok(null)
+        })
+      })
+    })
+
+    /**
+     * Multi-item capacity aggregation
+     *
+     * A subscription can have multiple items that each provide capacity for
+     * the same resource. Validation must aggregate capacity across all items.
+     */
+    describe('Multi-item capacity aggregation', () => {
+      it('aggregates capacity across multiple subscription items when validating downgrade', async () => {
+        // Setup: Create a resource
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        // Create base plan with 3 seat capacity
+        const basePlanFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Base Plan Seats',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 3,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: basePlanFeature.id,
+          organizationId: organization.id,
+        })
+
+        // Create addon with 2 seat capacity
+        const addonProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Seat Addon',
+          pricingModelId: pricingModel.id,
+        })
+
+        const addonPrice = await setupPrice({
+          productId: addonProduct.id,
+          name: 'Seat Addon',
+          type: PriceType.Subscription,
+          unitPrice: 500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const addonFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Addon Seats',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 2,
+        })
+
+        await setupProductFeature({
+          productId: addonProduct.id,
+          featureId: addonFeature.id,
+          organizationId: organization.id,
+        })
+
+        // Setup subscription with both items (3 + 2 = 5 total capacity)
+        const baseItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Base Plan',
+          quantity: 1,
+          unitPrice: 1000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: baseItem.id,
+          featureId: basePlanFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 3,
+        })
+
+        const addonItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: addonPrice.id,
+          name: 'Seat Addon',
+          quantity: 1,
+          unitPrice: 500,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: addonItem.id,
+          featureId: addonFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 2,
+        })
+
+        // Claim 4 resources (uses capacity from both items)
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                quantity: 4,
+              },
+            },
+            transaction
+          )
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          // Attempt to remove the addon (new capacity would be 3, but 4 are claimed)
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              id: baseItem.id,
+              subscriptionId: subscription.id,
+              priceId: price.id,
+              name: 'Base Plan',
+              quantity: 1,
+              unitPrice: 1000,
+              livemode: subscription.livemode,
+              createdAt: baseItem.createdAt,
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: baseItem.addedDate,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+            // Addon is NOT included - effectively removing it
+          ]
+
+          // Should reject because removing addon leaves only 3 capacity but 4 claimed
+          await expect(
+            adjustSubscription(
+              {
+                id: subscription.id,
+                adjustment: {
+                  newSubscriptionItems: newItems,
+                  timing: SubscriptionAdjustmentTiming.Immediately,
+                  prorateCurrentBillingPeriod: false,
+                },
+              },
+              organization,
+              ctx
+            )
+          ).rejects.toThrow(
+            /Cannot reduce.*capacity to 3.*4.*claimed/
+          )
+
+          // Verify all 4 claims unchanged
+          const activeClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(activeClaims.length).toBe(4)
+
+          return Result.ok(null)
+        })
+      })
+
+      it('allows adjustment when aggregated capacity is sufficient', async () => {
+        // Setup: Create a resource
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        // Create base plan with 3 seat capacity
+        const basePlanFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Base Plan Seats',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 3,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: basePlanFeature.id,
+          organizationId: organization.id,
+        })
+
+        // Create addon with 2 seat capacity
+        const addonProduct = await setupProduct({
+          organizationId: organization.id,
+          name: 'Seat Addon',
+          pricingModelId: pricingModel.id,
+        })
+
+        const addonPrice = await setupPrice({
+          productId: addonProduct.id,
+          name: 'Seat Addon',
+          type: PriceType.Subscription,
+          unitPrice: 500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const addonFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Addon Seats',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 2,
+        })
+
+        await setupProductFeature({
+          productId: addonProduct.id,
+          featureId: addonFeature.id,
+          organizationId: organization.id,
+        })
+
+        // Setup subscription with both items (3 + 2 = 5 total capacity)
+        const baseItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Base Plan',
+          quantity: 1,
+          unitPrice: 1000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: baseItem.id,
+          featureId: basePlanFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 3,
+        })
+
+        const addonItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: addonPrice.id,
+          name: 'Seat Addon',
+          quantity: 1,
+          unitPrice: 500,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: addonItem.id,
+          featureId: addonFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 2,
+        })
+
+        // Claim 2 resources (can be satisfied by base plan alone)
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                quantity: 2,
+              },
+            },
+            transaction
+          )
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          // Remove the addon (new capacity would be 3, and only 2 are claimed)
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              id: baseItem.id,
+              subscriptionId: subscription.id,
+              priceId: price.id,
+              name: 'Base Plan',
+              quantity: 1,
+              unitPrice: 1000,
+              livemode: subscription.livemode,
+              createdAt: baseItem.createdAt,
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: baseItem.addedDate,
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Should succeed because 2 claimed <= 3 remaining capacity
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Verify claims are preserved
+          const activeClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(activeClaims.length).toBe(2)
+
+          // Verify usage shows reduced capacity
+          const usage = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(usage.capacity).toBe(3)
+          expect(usage.claimed).toBe(2)
+          expect(usage.available).toBe(1)
+
+          return Result.ok(null)
+        })
+      })
+    })
+
+    /**
+     * Post-adjustment operations
+     *
+     * After an adjustment, new subscription item features exist. Claims should
+     * be creatable against the new capacity and visible alongside old claims.
+     */
+    describe('Post-adjustment operations', () => {
+      it('allows claiming resources after adjustment with new subscription items', async () => {
+        // Setup: Create a resource
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        const resourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 5,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Current Plan',
+          quantity: 1,
+          unitPrice: 1000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
+
+        // Claim 2 resources before adjustment
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalIds: ['user-1', 'user-2'],
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create same-capacity plan for adjustment
+        const newPrice = await setupPrice({
+          productId: product.id,
+          name: 'New Plan',
+          type: PriceType.Subscription,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        // Note: The new price is for the same product, and the product already
+        // has a seats feature. We intentionally do NOT attach a second seats
+        // feature, otherwise capacity would double (5 + 5) after adjustment.
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: newPrice.id,
+              name: 'New Plan',
+              quantity: 1,
+              unitPrice: 1000,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Adjust subscription
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Verify old claims are still visible
+          const claimsAfterAdjustment =
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          expect(claimsAfterAdjustment.length).toBe(2)
+
+          // Claim 2 more resources with new subscription items
+          const newClaimResult = await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalIds: ['user-3', 'user-4'],
+              },
+            },
+            transaction
+          )
+
+          expect(newClaimResult.claims.length).toBe(2)
+
+          // Verify all 4 claims (old and new) are visible
+          const allClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(allClaims.length).toBe(4)
+          expect(allClaims.map((c) => c.externalId).sort()).toEqual([
+            'user-1',
+            'user-2',
+            'user-3',
+            'user-4',
+          ])
+
+          // Verify usage
+          const usage = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(usage.capacity).toBe(5)
+          expect(usage.claimed).toBe(4)
+          expect(usage.available).toBe(1)
+
+          return Result.ok(null)
+        })
+      })
+
+      it('allows releasing claims after adjustment', async () => {
+        // Setup: Create a resource
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        const resourceFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 5,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: resourceFeature.id,
+          organizationId: organization.id,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Current Plan',
+          quantity: 1,
+          unitPrice: 1000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: resourceFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 5,
+        })
+
+        // Claim 3 resources before adjustment
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalIds: ['user-1', 'user-2', 'user-3'],
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create same-capacity plan for adjustment
+        const newPrice = await setupPrice({
+          productId: product.id,
+          name: 'New Plan',
+          type: PriceType.Subscription,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        // Note: The new price is for the same product, and the product already
+        // has a seats feature. We intentionally do NOT attach a second seats
+        // feature, otherwise capacity would double (5 + 5) after adjustment.
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: newPrice.id,
+              name: 'New Plan',
+              quantity: 1,
+              unitPrice: 1000,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          // Adjust subscription
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Release one claim after adjustment
+          const releaseResult = await releaseResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalId: 'user-2',
+              },
+            },
+            transaction
+          )
+
+          expect(releaseResult.releasedClaims.length).toBe(1)
+          expect(releaseResult.releasedClaims[0].externalId).toBe(
+            'user-2'
+          )
+
+          // Verify remaining claims
+          const remainingClaims = await selectActiveResourceClaims(
+            {
+              subscriptionId: subscription.id,
+              resourceId: resource.id,
+            },
+            transaction
+          )
+          expect(remainingClaims.length).toBe(2)
+          expect(
+            remainingClaims.map((c) => c.externalId).sort()
+          ).toEqual(['user-1', 'user-3'])
+
+          // Verify usage
+          const usage = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(usage.capacity).toBe(5)
+          expect(usage.claimed).toBe(2)
+          expect(usage.available).toBe(3)
+
+          return Result.ok(null)
+        })
+      })
+    })
+
+    /**
+     * Edge cases for capacity boundary conditions
+     *
+     * Tests that validate behavior at exact capacity boundaries and
+     * document current behavior for interim period claiming.
+     */
+    describe('Capacity boundary edge cases', () => {
+      it('after immediate downgrade to exact capacity matching claims, further claims fail with no available capacity', async () => {
+        // Edge Case 1: Downgrade to exact capacity, then try to claim more
+        // Setup: 3 seat capacity, claim 2, downgrade to 2 seats, try to claim 3rd
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        // Create initial plan with 3 seat capacity
+        const initialFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Initial Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 3,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: initialFeature.id,
+          organizationId: organization.id,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Initial Plan',
+          quantity: 1,
+          unitPrice: 1000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: initialFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 3,
+        })
+
+        // Step 2: Claim 2 seats
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalIds: ['user-1', 'user-2'],
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create downgrade plan with exactly 2 seat capacity (matches claimed)
+        const downgradedPrice = await setupPrice({
+          productId: product.id,
+          name: 'Downgraded Plan',
+          type: PriceType.Subscription,
+          unitPrice: 500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const downgradedFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Downgraded Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 2, // Exactly matches claimed (2)
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: downgradedFeature.id,
+          organizationId: organization.id,
+        })
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: Date.now() + 10 * 60 * 1000,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          // Step 3: Downgrade to 2 seats (should succeed since 2 claims <= 2 capacity)
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: downgradedPrice.id,
+              name: 'Downgraded Plan',
+              quantity: 1,
+              unitPrice: 500,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: Date.now(),
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Verify claims are preserved
+          const claimsAfterDowngrade =
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          expect(claimsAfterDowngrade.length).toBe(2)
+
+          // Verify usage shows exact capacity match
+          const usageAfterDowngrade = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(usageAfterDowngrade.capacity).toBe(2)
+          expect(usageAfterDowngrade.claimed).toBe(2)
+          expect(usageAfterDowngrade.available).toBe(0)
+
+          // Step 4: Attempt to claim a 3rd seat - should fail
+          await expect(
+            claimResourceTransaction(
+              {
+                organizationId: organization.id,
+                customerId: customer.id,
+                input: {
+                  resourceSlug: resource.slug,
+                  subscriptionId: subscription.id,
+                  quantity: 1,
+                },
+              },
+              transaction
+            )
+          ).rejects.toThrow('No available capacity')
+
+          // Verify claims unchanged after failed claim attempt
+          const claimsAfterFailedClaim =
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          expect(claimsAfterFailedClaim.length).toBe(2)
+
+          return Result.ok(null)
+        })
+      })
+
+      it('during end-of-period downgrade interim, excess claims are temporary and expire at transition', async () => {
+        // Edge Case 2: End-of-period downgrade with interim claims
+        // This documents current behavior where claims during interim period
+        // succeed against OLD capacity, potentially resulting in claims > capacity
+        // after the transition
+
+        const resource = await setupResource({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Seats',
+        })
+
+        // Create initial plan with 3 seat capacity
+        const initialFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Initial Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 3,
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: initialFeature.id,
+          organizationId: organization.id,
+        })
+
+        const subscriptionItem = await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          name: 'Initial Plan',
+          quantity: 1,
+          unitPrice: 1000,
+        })
+
+        await setupResourceSubscriptionItemFeature({
+          subscriptionItemId: subscriptionItem.id,
+          featureId: initialFeature.id,
+          resourceId: resource.id,
+          pricingModelId: pricingModel.id,
+          amount: 3,
+        })
+
+        // Step 2: Claim 2 seats initially
+        await adminTransaction(async ({ transaction }) => {
+          return claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalIds: ['user-1', 'user-2'],
+              },
+            },
+            transaction
+          )
+        })
+
+        // Create downgrade plan with 2 seat capacity
+        const downgradedPrice = await setupPrice({
+          productId: product.id,
+          name: 'Downgraded Plan',
+          type: PriceType.Subscription,
+          unitPrice: 500,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          livemode: subscription.livemode,
+          isDefault: false,
+          currency: organization.defaultCurrency,
+        })
+
+        const downgradedFeature = await setupResourceFeature({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          name: 'Downgraded Seats Feature',
+          resourceId: resource.id,
+          livemode: subscription.livemode,
+          amount: 2, // Less than current 3
+        })
+
+        await setupProductFeature({
+          productId: product.id,
+          featureId: downgradedFeature.id,
+          organizationId: organization.id,
+        })
+
+        // Set billing period to end in the future
+        const periodEnd = Date.now() + 24 * 60 * 60 * 1000 // 1 day from now
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: Date.now() - 10 * 60 * 1000,
+              endDate: periodEnd,
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          // Step 3: Schedule end-of-period downgrade to 2 seats
+          const newItems: SubscriptionItem.Upsert[] = [
+            {
+              subscriptionId: subscription.id,
+              priceId: downgradedPrice.id,
+              name: 'Downgraded Plan',
+              quantity: 1,
+              unitPrice: 500,
+              livemode: subscription.livemode,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+              metadata: null,
+              addedDate: periodEnd, // Scheduled for end of period
+              externalId: null,
+              type: SubscriptionItemType.Static,
+              expiredAt: null,
+            },
+          ]
+
+          await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+              },
+            },
+            organization,
+            ctx
+          )
+
+          // Verify adjustment is scheduled (old items have expiredAt = periodEnd)
+          const items = await selectSubscriptionItems(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          const oldItem = items.find((i) => i.name === 'Initial Plan')
+          const newItem = items.find(
+            (i) => i.name === 'Downgraded Plan'
+          )
+
+          expect(oldItem?.name).toBe('Initial Plan')
+          expect(oldItem!.expiredAt).toBe(periodEnd)
+          expect(newItem?.name).toBe('Downgraded Plan')
+          expect(newItem!.addedDate).toBe(periodEnd)
+
+          // During interim: Capacity shows OLD value (3) because old items are still active
+          const interimUsage = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(interimUsage.capacity).toBe(3) // Old capacity still active
+          expect(interimUsage.claimed).toBe(2)
+          expect(interimUsage.available).toBe(1)
+
+          // Step 4: During interim period, claim a 3rd seat
+          // This SUCCEEDS because validation uses currently active items (old capacity=3)
+          const thirdClaimResult = await claimResourceTransaction(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              input: {
+                resourceSlug: resource.slug,
+                subscriptionId: subscription.id,
+                externalIds: ['user-3'],
+              },
+            },
+            transaction
+          )
+          expect(thirdClaimResult.claims.length).toBe(1)
+
+          // Verify 3 claims now exist
+          const claimsDuringInterim =
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          expect(claimsDuringInterim.length).toBe(3)
+
+          // Usage during interim shows all 3 claimed against old capacity
+          const usageWithThirdClaim = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction
+          )
+          expect(usageWithThirdClaim.capacity).toBe(3)
+          expect(usageWithThirdClaim.claimed).toBe(3)
+          expect(usageWithThirdClaim.available).toBe(0)
+
+          return Result.ok(null)
+        })
+
+        // Step 5: Simulate time passing - transition to new billing period
+        // Use anchorDate parameter to simulate checking capacity after period end
+        const afterTransitionAnchor = periodEnd + 1000 // 1 second after period end
+
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+
+          // Update billing period to reflect the new period
+          await updateBillingPeriod(
+            {
+              id: billingPeriod.id,
+              startDate: periodEnd, // New period starts where old one ended
+              endDate: periodEnd + 30 * 24 * 60 * 60 * 1000, // 30 days
+              status: BillingPeriodStatus.Active,
+            },
+            transaction
+          )
+
+          // After transition: Claims still exist but capacity is now reduced
+          const claimsAfterTransition =
+            await selectActiveResourceClaims(
+              {
+                subscriptionId: subscription.id,
+                resourceId: resource.id,
+              },
+              transaction
+            )
+          // All 3 claim records still exist in the database (not released yet)
+          // selectActiveResourceClaims uses Date.now(), so the temporary claim
+          // is still considered "active" in real time
+          expect(claimsAfterTransition.length).toBe(3)
+
+          // However, when checking usage at the anchor date (after transition),
+          // the temporary claim (user-3) has expiredAt = periodEnd, which is
+          // before afterTransitionAnchor. So it's correctly filtered out.
+          const usageAfterTransition = await getResourceUsage(
+            subscription.id,
+            resource.id,
+            transaction,
+            afterTransitionAnchor
+          )
+          expect(usageAfterTransition.capacity).toBe(2) // New capacity
+          // Temporary claim (user-3) expired at periodEnd, so only 2 claims count
+          expect(usageAfterTransition.claimed).toBe(2)
+          // Capacity matches claimed - no excess, no availability
+          expect(usageAfterTransition.available).toBe(0)
+
+          return Result.ok(null)
+        })
       })
     })
   })

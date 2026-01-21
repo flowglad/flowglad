@@ -12,7 +12,7 @@ export default async function Home() {
   const session = await getSession()
 
   if (!session) {
-    throw new Error('User not authenticated')
+    redirect('/sign-in')
   }
   const { user: betterAuthUser } = session
   const email = betterAuthUser.email

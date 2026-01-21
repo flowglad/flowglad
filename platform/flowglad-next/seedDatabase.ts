@@ -319,34 +319,49 @@ export const setupPaymentMethod = async (params: {
   stripePaymentMethodId?: string
   type?: PaymentMethodType
 }) => {
-  return adminTransaction(async ({ transaction }) => {
-    return safelyInsertPaymentMethod(
-      {
-        customerId: params.customerId,
-        type: params.type ?? PaymentMethodType.Card,
-        livemode: params.livemode ?? true,
-        default: true,
-        externalId: null,
-        billingDetails: {
-          name: 'Test',
-          email: 'test@test.com',
-          address: {
-            line1: '123 Test St',
-            line2: 'Apt 1',
-            country: 'US',
-            city: 'Test City',
-            state: 'Test State',
-            postal_code: '12345',
+  return adminTransaction(
+    async ({
+      transaction,
+      cacheRecomputationContext,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+    }) => {
+      const ctx = {
+        transaction,
+        cacheRecomputationContext,
+        invalidateCache: invalidateCache!,
+        emitEvent: emitEvent!,
+        enqueueLedgerCommand: enqueueLedgerCommand!,
+      }
+      return safelyInsertPaymentMethod(
+        {
+          customerId: params.customerId,
+          type: params.type ?? PaymentMethodType.Card,
+          livemode: params.livemode ?? true,
+          default: params.default ?? true,
+          externalId: null,
+          billingDetails: {
+            name: 'Test',
+            email: 'test@test.com',
+            address: {
+              line1: '123 Test St',
+              line2: 'Apt 1',
+              country: 'US',
+              city: 'Test City',
+              state: 'Test State',
+              postal_code: '12345',
+            },
           },
+          paymentMethodData: params.paymentMethodData ?? {},
+          metadata: {},
+          stripePaymentMethodId:
+            params.stripePaymentMethodId ?? `pm_${core.nanoid()}`,
         },
-        paymentMethodData: params.paymentMethodData ?? {},
-        metadata: {},
-        stripePaymentMethodId:
-          params.stripePaymentMethodId ?? `pm_${core.nanoid()}`,
-      },
-      transaction
-    )
-  })
+        ctx
+      )
+    }
+  )
 }
 
 interface SetupCustomerParams {
@@ -920,7 +935,7 @@ const setupSubscriptionPriceSchema = baseSetupPriceSchema.extend({
 const setupUsagePriceSchema =
   baseSetupPriceSchemaWithoutProductId.extend({
     type: z.literal(PriceType.Usage),
-    intervalUnit: z.nativeEnum(IntervalUnit).optional(),
+    intervalUnit: z.enum(IntervalUnit).optional(),
     intervalCount: z.number().optional(),
     usageMeterId: z.string(), // Required for Usage prices - replaces productId
     trialPeriodDays: z.never().optional(), // Usage prices don't have trial periods
@@ -1047,11 +1062,14 @@ export const setupPrice = async (
           transaction
         )
       case PriceType.Usage:
-        return safelyInsertPrice(
+        // Use insertPrice for usage prices to respect isDefault and active flags
+        // safelyInsertPrice always sets isDefault: false for usage prices
+        return insertPrice(
           {
             ...basePrice,
             ...priceConfig[PriceType.Usage],
             usageMeterId: usageMeterId!,
+            productId: null, // Usage prices don't have products
             type: PriceType.Usage,
             intervalUnit: intervalUnit ?? IntervalUnit.Month,
             intervalCount: intervalCount ?? 1,
@@ -2764,7 +2782,7 @@ export const setupResource = async (params: {
       {
         organizationId: params.organizationId,
         pricingModelId: params.pricingModelId,
-        slug: params.slug ?? 'seats',
+        slug: params.slug ?? `resource-${core.nanoid()}`,
         name: params.name ?? 'Seats',
         livemode: true,
         active: params.active ?? true,
@@ -2776,23 +2794,23 @@ export const setupResource = async (params: {
 
 export const setupResourceClaim = async (params: {
   organizationId: string
-  subscriptionItemFeatureId: string
   resourceId: string
   subscriptionId: string
   pricingModelId: string
   externalId?: string | null
   metadata?: Record<string, string | number | boolean> | null
+  expiredAt?: number | null
 }) => {
   return adminTransaction(async ({ transaction }) => {
     return insertResourceClaim(
       {
         organizationId: params.organizationId,
-        subscriptionItemFeatureId: params.subscriptionItemFeatureId,
         resourceId: params.resourceId,
         subscriptionId: params.subscriptionId,
         pricingModelId: params.pricingModelId,
         externalId: params.externalId ?? null,
         metadata: params.metadata ?? null,
+        expiredAt: params.expiredAt ?? null,
         livemode: true,
       },
       transaction

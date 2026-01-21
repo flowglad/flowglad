@@ -641,4 +641,8 @@ export const flowgladActionValidators = {
     method: HTTPMethod.POST,
     inputValidator: getResourceUsageSchema,
   },
+  [FlowgladActionKey.GetPricingModel]: {
+    method: HTTPMethod.POST,
+    inputValidator: z.object({}).strict(),
+  },
 } as const satisfies FlowgladActionValidatorMap

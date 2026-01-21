@@ -6,7 +6,10 @@ import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   checkoutSessionClientSelectSchema,
   customerBillingCreatePricedCheckoutSessionInputSchema,
@@ -24,6 +27,7 @@ import {
   setUserIdForCustomerRecords,
 } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   isSubscriptionCurrent,
   isSubscriptionInTerminalState,
@@ -133,13 +137,14 @@ const getBillingProcedure = customerProtectedProcedure
       purchases,
       subscriptions,
     } = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, cacheRecomputationContext }) => {
         return customerBillingTransaction(
           {
             externalId: customer.externalId,
             organizationId,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       },
       {
@@ -278,12 +283,14 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     return await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         const ctx = {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -369,12 +376,14 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
     return await comprehensiveAdminTransaction(
       async ({
         transaction,
+        cacheRecomputationContext,
         invalidateCache,
         emitEvent,
         enqueueLedgerCommand,
       }) => {
         const ctx = {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -580,17 +589,20 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     const { customer } = ctx
     const { paymentMethodId } = input
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { paymentMethod } =
-          await setDefaultPaymentMethodForCustomer(
-            {
-              paymentMethodId,
-            },
-            transaction
-          )
-
-        if (paymentMethod.customerId !== customer.id) {
+    return comprehensiveAuthenticatedTransaction(
+      async ({
+        transaction,
+        cacheRecomputationContext,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        // Verify ownership BEFORE making any mutations
+        const existingPaymentMethod = await selectPaymentMethodById(
+          paymentMethodId,
+          transaction
+        )
+        if (existingPaymentMethod.customerId !== customer.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
             message:
@@ -598,10 +610,25 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
           })
         }
 
-        return {
+        const effectsCtx = {
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
+        const { paymentMethod } =
+          await setDefaultPaymentMethodForCustomer(
+            {
+              paymentMethodId,
+            },
+            effectsCtx
+          )
+
+        return Result.ok({
           success: true,
           paymentMethod,
-        }
+        })
       },
       {
         apiKey: ctx.apiKey,

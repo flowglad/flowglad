@@ -12,6 +12,10 @@ import {
   setupPayment,
   setupPaymentMethod,
   setupProductFeature,
+  setupResource,
+  setupResourceClaim,
+  setupResourceFeature,
+  setupResourceSubscriptionItemFeature,
   setupSubscription,
   setupSubscriptionItem,
   setupSubscriptionItemFeature,
@@ -47,6 +51,7 @@ import {
   aggregateBalanceForLedgerAccountFromEntries,
   selectLedgerEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
+import { selectResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   safelyUpdateSubscriptionStatus,
@@ -2246,5 +2251,162 @@ describe('Ledger Interactions', () => {
         expect(finalBalance).toBe(evergreenAmount + grantAmount)
       })
     })
+  })
+})
+
+describe('Resource claim expiration during billing period transition', async () => {
+  const { organization, price, pricingModel } = await setupOrg()
+
+  it('releases resource claims with expiredAt set during billing period transition', async () => {
+    // Setup customer and payment method
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    // Create subscription with billing period in the past (ready for transition)
+    const now = Date.now()
+    const subscription = (await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      paymentMethodId: paymentMethod.id,
+      currentBillingPeriodEnd: now - 3000, // 3 seconds ago
+      currentBillingPeriodStart: now - 30 * 24 * 60 * 60 * 1000, // 30 days ago
+      renews: true,
+    })) as Subscription.StandardRecord
+
+    const billingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: subscription.currentBillingPeriodStart!,
+      endDate: subscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+
+    await setupBillingRun({
+      billingPeriodId: billingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+      subscriptionId: subscription.id,
+      status: BillingRunStatus.Scheduled,
+    })
+
+    await setupBillingPeriodItem({
+      billingPeriodId: billingPeriod.id,
+      quantity: 1,
+      unitPrice: 100,
+    })
+
+    // Create a resource for claims
+    const resource = await setupResource({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      slug: 'seats',
+      name: 'Seats',
+    })
+
+    // Create resource feature with capacity
+    const resourceFeature = await setupResourceFeature({
+      organizationId: organization.id,
+      name: 'Seats Feature',
+      resourceId: resource.id,
+      livemode: true,
+      pricingModelId: pricingModel.id,
+      amount: 10,
+    })
+
+    // Create subscription item
+    const subscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      priceId: price.id,
+      name: price.name ?? 'Basic Plan',
+      quantity: 1,
+      unitPrice: price.unitPrice,
+      type: SubscriptionItemType.Static,
+    })
+
+    // Link feature to subscription item
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: resourceFeature.id,
+      resourceId: resource.id,
+      pricingModelId: pricingModel.id,
+      amount: 10,
+    })
+
+    // Create two resource claims:
+    // 1. A normal claim without expiration
+    // 2. A claim with expiredAt set (simulating a claim made during interim period before a downgrade)
+    const normalClaim = await setupResourceClaim({
+      organizationId: organization.id,
+      resourceId: resource.id,
+      subscriptionId: subscription.id,
+      pricingModelId: pricingModel.id,
+      externalId: 'user_normal',
+    })
+
+    const expiredClaim = await setupResourceClaim({
+      organizationId: organization.id,
+      resourceId: resource.id,
+      subscriptionId: subscription.id,
+      pricingModelId: pricingModel.id,
+      externalId: 'user_expired',
+      expiredAt: now - 60 * 1000, // Expired 1 minute ago
+    })
+
+    // Verify initial state: both claims exist and are not released
+    const claimsBefore = await adminTransaction(
+      async ({ transaction }) => {
+        return selectResourceClaims(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+    expect(claimsBefore.length).toBe(2)
+    expect(claimsBefore.every((c) => c.releasedAt === null)).toBe(
+      true
+    )
+
+    // Transition the billing period
+    await comprehensiveAdminTransaction(async (params) =>
+      attemptToTransitionSubscriptionBillingPeriod(
+        billingPeriod,
+        createProcessingEffectsContext(params)
+      )
+    )
+
+    // Verify claims after transition
+    const claimsAfter = await adminTransaction(
+      async ({ transaction }) => {
+        return selectResourceClaims(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+    expect(claimsAfter.length).toBe(2)
+
+    // The normal claim should still be active (not released)
+    const normalClaimAfter = claimsAfter.find(
+      (c) => c.id === normalClaim.id
+    )
+    expect(normalClaimAfter).toMatchObject({
+      id: normalClaim.id,
+      releasedAt: null,
+      releaseReason: null,
+    })
+
+    // The expired claim should be released with reason 'expired'
+    const expiredClaimAfter = claimsAfter.find(
+      (c) => c.id === expiredClaim.id
+    )
+    expect(expiredClaimAfter).toMatchObject({
+      id: expiredClaim.id,
+      releaseReason: 'expired',
+    })
+    expect(expiredClaimAfter!.releasedAt).toBeGreaterThan(0)
   })
 })

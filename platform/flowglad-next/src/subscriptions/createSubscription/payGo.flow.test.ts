@@ -21,6 +21,7 @@ import { selectFeeCalculations } from '@/db/tableMethods/feeCalculationMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionType,
   FeatureUsageGrantFrequency,
@@ -37,6 +38,7 @@ import {
   type CoreStripePaymentIntent,
   processPaymentIntentStatusUpdated,
 } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { IntentMetadataType } from '@/utils/stripe'
 import { ingestAndProcessUsageEvent } from '@/utils/usage/usageEventHelpers'
@@ -154,14 +156,14 @@ describe('Pay as You Go Workflow E2E', () => {
                 email: 'test@test.com',
               },
             },
-            {
+            withAdminCacheContext({
               transaction,
               organizationId: organization.id,
               livemode: true,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
-            }
+            })
           )
           return Result.ok(result)
         }
@@ -172,7 +174,7 @@ describe('Pay as You Go Workflow E2E', () => {
     }
 
     // 1. Expect usage credits and initial billing
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction, livemode }) => {
       // expect there to be a usageCredit record for the meter and subscription
       const usageCredits = await selectUsageCredits(
         {
@@ -195,12 +197,17 @@ describe('Pay as You Go Workflow E2E', () => {
       expect(totalIssuedAmount).toBe(100)
 
       // call @customerBillingTransaction and check state
+      const cacheRecomputationContext: CacheRecomputationContext = {
+        type: 'admin',
+        livemode,
+      }
       const billingState1 = await customerBillingTransaction(
         {
           externalId: customer.externalId,
           organizationId: organization.id,
         },
-        transaction
+        transaction,
+        cacheRecomputationContext
       )
       const sub1 = billingState1.subscriptions[0]
       expect(sub1.status).toBe(SubscriptionStatus.Active)
@@ -235,13 +242,18 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 3. Call @customerBillingTransaction again and assert final state
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction, livemode }) => {
+      const cacheRecomputationContext: CacheRecomputationContext = {
+        type: 'admin',
+        livemode,
+      }
       const billingState2 = await customerBillingTransaction(
         {
           externalId: customer.externalId,
           organizationId: organization.id,
         },
-        transaction
+        transaction,
+        cacheRecomputationContext
       )
       const sub2 = billingState2.subscriptions[0]
       expect(sub2.status).toBe(SubscriptionStatus.Active)
@@ -275,13 +287,18 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 5. Call @customerBillingTransaction again and assert final state
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction, livemode }) => {
+      const cacheRecomputationContext: CacheRecomputationContext = {
+        type: 'admin',
+        livemode,
+      }
       const billingState2Prime = await customerBillingTransaction(
         {
           externalId: customer.externalId,
           organizationId: organization.id,
         },
-        transaction
+        transaction,
+        cacheRecomputationContext
       )
       const sub2Prime = billingState2Prime.subscriptions[0]
       expect(sub2Prime.status).toBe(SubscriptionStatus.Active)
@@ -380,32 +397,40 @@ describe('Pay as You Go Workflow E2E', () => {
       return Result.ok(result)
     })
 
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      // 5. Call @customerBillingTransaction again and assert final state
-      const billingState3 = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id,
-        },
-        transaction
-      )
+    await comprehensiveAdminTransaction(
+      async ({ transaction, livemode }) => {
+        // 5. Call @customerBillingTransaction again and assert final state
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
+        const billingState3 = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
 
-      const activatedSubscription = billingState3.subscriptions.find(
-        (s) => s.id === subscription.id
-      )
+        const activatedSubscription =
+          billingState3.subscriptions.find(
+            (s) => s.id === subscription.id
+          )
 
-      expect(activatedSubscription?.status).toBe(
-        SubscriptionStatus.Active
-      )
-      expect(
-        activatedSubscription?.experimental?.featureItems
-      ).toHaveLength(1)
-      expect(
-        activatedSubscription?.experimental?.usageMeterBalances?.[0]
-          .availableBalance
-      ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
-      return Result.ok(null)
-    })
+        expect(activatedSubscription?.status).toBe(
+          SubscriptionStatus.Active
+        )
+        expect(
+          activatedSubscription?.experimental?.featureItems
+        ).toHaveLength(1)
+        expect(
+          activatedSubscription?.experimental?.usageMeterBalances?.[0]
+            .availableBalance
+        ).toBe(1000) // 100 - 100 (usage) + 1000 (payment) = 1000
+        return Result.ok(null)
+      }
+    )
 
     // 6. Create a usage event after payment
     const newTransactionId = 'test2-' + core.nanoid()
@@ -431,23 +456,30 @@ describe('Pay as You Go Workflow E2E', () => {
     })
 
     // 7. Call @customerBillingTransaction again and assert final state after new usage
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      const billingState4 = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id,
-        },
-        transaction
-      )
-      const activatedSubscriptionAfterUsage =
-        billingState4.subscriptions.find(
-          (s) => s.id === subscription.id
+    await comprehensiveAdminTransaction(
+      async ({ transaction, livemode }) => {
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
+        const billingState4 = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
         )
-      expect(
-        activatedSubscriptionAfterUsage?.experimental
-          ?.usageMeterBalances?.[0].availableBalance
-      ).toBe(900) // 1000 - 100 (new usage) = 900
-      return Result.ok(null)
-    })
+        const activatedSubscriptionAfterUsage =
+          billingState4.subscriptions.find(
+            (s) => s.id === subscription.id
+          )
+        expect(
+          activatedSubscriptionAfterUsage?.experimental
+            ?.usageMeterBalances?.[0].availableBalance
+        ).toBe(900) // 1000 - 100 (new usage) = 900
+        return Result.ok(null)
+      }
+    )
   }, 120000)
 })

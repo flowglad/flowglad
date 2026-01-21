@@ -31,6 +31,8 @@ import {
   PriceType,
   PurchaseStatus,
 } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import { checkoutSessionClientSelectSchema } from '../schema/checkoutSessions'
 import {
   customerClientInsertSchema,
@@ -80,6 +82,44 @@ const config: ORMMethodCreatorConfig<
 export const selectPurchaseById = createSelectById(purchases, config)
 
 export const selectPurchases = createSelectFunction(purchases, config)
+
+/**
+ * Selects purchases by customer ID with caching enabled by default.
+ * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ *
+ * This cache entry depends on customerPurchases - invalidate when
+ * purchases for this customer are created or updated.
+ *
+ * Cache key includes livemode to prevent cross-mode data leakage, since RLS
+ * filters purchases by livemode and the same customer could have different
+ * purchases in live vs test mode.
+ */
+export const selectPurchasesByCustomerId = cached(
+  {
+    namespace: RedisKeyNamespace.PurchasesByCustomer,
+    keyFn: (
+      customerId: string,
+      _transaction: DbTransaction,
+      livemode: boolean
+    ) => `${customerId}:${livemode}`,
+    schema: purchasesSelectSchema.array(),
+    dependenciesFn: (purchases, customerId: string) => [
+      // Set membership: invalidate when purchases are added/removed for this customer
+      CacheDependency.customerPurchases(customerId),
+      // Content: invalidate when any purchase's properties change
+      ...purchases.map((p) => CacheDependency.purchase(p.id)),
+    ],
+  },
+  async (
+    customerId: string,
+    transaction: DbTransaction,
+    // livemode is used by keyFn for cache key generation, not in the query itself
+    // (RLS filters by livemode context set on the transaction)
+    _livemode: boolean
+  ) => {
+    return selectPurchases({ customerId }, transaction)
+  }
+)
 
 const baseInsertPurchase = createInsertFunction(purchases, config)
 
@@ -453,13 +493,14 @@ export const selectPurchasesTableRowData =
 
       return purchasesResult.map((purchase) => {
         const rawPrice = pricesById.get(purchase.priceId)
-        // Usage prices (with null productId) are filtered out by the innerJoin above.
-        // If a purchase references a usage price, this is a data integrity issue
-        // since purchases should only be created for product-backed prices.
+        // The price lookup can fail if:
+        // 1. The price was deleted (data integrity issue)
+        // 2. The price is a usage price with null productId (filtered out by innerJoin)
+        // Either case indicates a data integrity problem since purchases should
+        // only reference active, product-backed prices.
         if (!rawPrice) {
           throw new Error(
-            `Purchase ${purchase.id} references price ${purchase.priceId} which was not found. ` +
-              `This may indicate a usage price was incorrectly associated with a purchase.`
+            `Purchase ${purchase.id} references price ${purchase.priceId} which was not found in the query results.`
           )
         }
         // Parse price early so Price.hasProductId type guard works.

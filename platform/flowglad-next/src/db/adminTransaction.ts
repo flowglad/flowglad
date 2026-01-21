@@ -4,7 +4,9 @@ import { sql } from 'drizzle-orm'
 import type {
   AdminTransactionParams,
   ComprehensiveAdminTransactionParams,
+  TransactionEffectsContext,
 } from '@/db/types'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import { isNil } from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -68,10 +70,15 @@ const executeComprehensiveAdminTransaction = async <T>(
     )
     // Admin transactions typically run with higher privileges, no specific role needs to be set via JWT claims normally.
 
+    const cacheRecomputationContext: CacheRecomputationContext = {
+      type: 'admin',
+      livemode: effectiveLivemode,
+    }
     const paramsForFn: ComprehensiveAdminTransactionParams = {
       transaction,
       userId: 'ADMIN',
       livemode: effectiveLivemode,
+      cacheRecomputationContext,
       effects,
       invalidateCache,
       emitEvent,
@@ -160,4 +167,38 @@ export async function comprehensiveAdminTransaction<T>(
     throw output.error
   }
   return output.value
+}
+
+/**
+ * Convenience wrapper for adminTransaction that takes a Result-returning
+ * function and automatically unwraps the result.
+ *
+ * Use this at boundaries (routers, API routes, SSR components) where throwing is acceptable.
+ *
+ * @param fn - Function that receives TransactionEffectsContext and returns a Result
+ * @param options - Transaction options including livemode flag
+ * @returns The unwrapped value, throwing on error
+ *
+ * @example
+ * ```ts
+ * const data = await adminTransactionUnwrap(
+ *   async (ctx) => processData(ctx),
+ *   { livemode: true }
+ * )
+ * ```
+ */
+export async function adminTransactionUnwrap<T>(
+  fn: (ctx: TransactionEffectsContext) => Promise<Result<T, Error>>,
+  options?: AdminTransactionOptions
+): Promise<T> {
+  return comprehensiveAdminTransaction(async (params) => {
+    const ctx: TransactionEffectsContext = {
+      transaction: params.transaction,
+      cacheRecomputationContext: params.cacheRecomputationContext,
+      invalidateCache: params.invalidateCache,
+      emitEvent: params.emitEvent,
+      enqueueLedgerCommand: params.enqueueLedgerCommand,
+    }
+    return fn(ctx)
+  }, options)
 }

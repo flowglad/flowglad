@@ -41,12 +41,12 @@ export function Navbar() {
   )
   const [isChangePlanOpen, setIsChangePlanOpen] = useState(false)
 
-  if (!billing.loaded || !billing.loadBilling) {
-    return null // or loading skeleton
+  if (!session?.user) {
+    return null
   }
 
-  if (billing.errors) {
-    return null // or error message
+  if (!billing.loaded || billing.errors || !billing.customer) {
+    return null // or loading skeleton
   }
 
   async function handleSignOut() {
@@ -134,10 +134,6 @@ export function Navbar() {
     } finally {
       setIsUncancelling(false)
     }
-  }
-
-  if (!session?.user) {
-    return null
   }
 
   const accountName =

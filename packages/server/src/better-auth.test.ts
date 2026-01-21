@@ -1,6 +1,8 @@
 import {
+  type AuthenticatedActionKey,
   FlowgladActionKey,
   flowgladActionValidators,
+  type HybridActionKey,
 } from '@flowglad/shared'
 import { describe, expect, it } from 'vitest'
 import {
@@ -102,12 +104,25 @@ describe('resolveCustomerExternalId', () => {
 })
 
 describe('endpointKeyToActionKey exhaustiveness', () => {
-  it('covers every FlowgladActionKey value exactly once', () => {
-    const allActionKeys = Object.values(FlowgladActionKey)
+  /**
+   * Hybrid action keys that are handled separately from authenticated routes.
+   * These routes attempt authentication but gracefully fall back to unauthenticated behavior.
+   */
+  const hybridActionKeys: HybridActionKey[] = [
+    FlowgladActionKey.GetPricingModel,
+  ]
+
+  it('covers every AuthenticatedActionKey value exactly once (excludes hybrid routes)', () => {
+    const authenticatedActionKeys = Object.values(
+      FlowgladActionKey
+    ).filter(
+      (key): key is AuthenticatedActionKey =>
+        !hybridActionKeys.includes(key as HybridActionKey)
+    )
     const mappedActionKeys = Object.values(endpointKeyToActionKey)
 
-    // Every FlowgladActionKey must be in the mapping
-    for (const actionKey of allActionKeys) {
+    // Every AuthenticatedActionKey must be in the mapping
+    for (const actionKey of authenticatedActionKeys) {
       expect(mappedActionKeys).toContain(actionKey)
     }
 
@@ -116,17 +131,33 @@ describe('endpointKeyToActionKey exhaustiveness', () => {
       mappedActionKeys.length
     )
 
-    // Same count: ensures bidirectional completeness
-    expect(mappedActionKeys.length).toBe(allActionKeys.length)
+    // Same count: ensures bidirectional completeness for authenticated routes
+    expect(mappedActionKeys.length).toBe(
+      authenticatedActionKeys.length
+    )
   })
 
-  it('has a corresponding plugin endpoint for each mapped action key', () => {
+  it('has plugin endpoint for each authenticated action key', () => {
     const plugin = flowgladPlugin({})
     const endpointKeys = Object.keys(endpointKeyToActionKey)
 
+    // Each endpoint key should exist in plugin.endpoints
     for (const endpointKey of endpointKeys) {
       expect(plugin.endpoints).toHaveProperty(endpointKey)
     }
+  })
+
+  it('hybrid keys are NOT in endpointKeyToActionKey (handled separately)', () => {
+    const mappedActionKeys = Object.values(endpointKeyToActionKey)
+
+    for (const hybridKey of hybridActionKeys) {
+      expect(mappedActionKeys).not.toContain(hybridKey)
+    }
+  })
+
+  it('has plugin endpoint for GetPricingModel hybrid route', () => {
+    const plugin = flowgladPlugin({})
+    expect(plugin.endpoints).toHaveProperty('getPricingModel')
   })
 })
 
@@ -136,7 +167,8 @@ describe('flowgladPlugin', () => {
 
     expect(plugin.id).toBe('flowglad')
 
-    // Verify all 11 billing endpoints exist plus the getExternalId utility endpoint
+    // Verify authenticated billing endpoints plus the getExternalId utility endpoint.
+    // Note: The GetPricingModel hybrid endpoint is already included in this list.
     const expectedEndpoints = [
       'getExternalId',
       'getCustomerBilling',
@@ -155,6 +187,7 @@ describe('flowgladPlugin', () => {
       'claimResource',
       'releaseResource',
       'listResourceClaims',
+      'getPricingModel',
     ]
 
     for (const endpoint of expectedEndpoints) {
@@ -162,6 +195,15 @@ describe('flowgladPlugin', () => {
     }
     expect(Object.keys(plugin.endpoints)).toHaveLength(
       expectedEndpoints.length
+    )
+  })
+
+  it('does not include GetPricingModel in authenticated endpoint mapping', () => {
+    // GetPricingModel is a hybrid route that requires special handling
+    // It should NOT be in the endpointKeyToActionKey mapping
+    const mappedActionKeys = Object.values(endpointKeyToActionKey)
+    expect(mappedActionKeys).not.toContain(
+      FlowgladActionKey.GetPricingModel
     )
   })
 

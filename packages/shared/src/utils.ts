@@ -124,22 +124,13 @@ export const constructGetPrice = (
   type Price =
     FlowgladNode.CustomerRetrieveBillingResponse['pricingModel']['products'][number]['prices'][number]
 
-  // Collect prices from products (subscription and single payment prices)
-  const productPrices: Array<readonly [string | null, Price]> =
+  // Collect all prices from products (includes subscription, single payment, and usage prices)
+  const allPrices: Array<readonly [string | null, Price]> =
     pricingModel.products.flatMap((product) =>
       product.prices.map((price) => [price.slug, price] as const)
     )
 
-  // Collect prices from usage meters (usage prices)
-  const usageMeterPrices: Array<readonly [string | null, Price]> =
-    pricingModel.usageMeters.flatMap((usageMeter) =>
-      usageMeter.prices.map((price) => [price.slug, price] as const)
-    )
-
-  const pricesBySlug = new Map<string | null, Price>([
-    ...productPrices,
-    ...usageMeterPrices,
-  ])
+  const pricesBySlug = new Map<string | null, Price>(allPrices)
 
   const getPrice = (priceSlug: string): Price | null => {
     return pricesBySlug.get(priceSlug) ?? null

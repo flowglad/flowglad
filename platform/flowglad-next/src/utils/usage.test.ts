@@ -41,9 +41,13 @@ describe('createUsageMeterTransaction', () => {
   })
 
   describe('Successful creation', () => {
-    it('should create usage meter, product, and price with matching slugs', async () => {
+    it('creates usage meter and no_charge price when no custom price values provided', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -54,6 +58,7 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               userId,
               livemode: false,
               organizationId: organization.id,
@@ -70,26 +75,33 @@ describe('createUsageMeterTransaction', () => {
       expect(result.usageMeter.pricingModelId).toBe(pricingModel.id)
       expect(result.usageMeter.organizationId).toBe(organization.id)
 
-      // Verify price properties - usage prices have productId: null
-      expect(result.price.name).toBe('API Calls')
-      expect(result.price.slug).toBe('api-calls') // Same slug as usage meter
+      // When no custom values provided, price and noChargePrice are the same object
+      expect(result.price.id).toBe(result.noChargePrice.id)
+
+      // Verify no_charge price properties
+      expect(result.price.name).toBe('API Calls - No Charge')
+      expect(result.price.slug).toBe('api-calls_no_charge')
       expect(result.price.type).toBe(PriceType.Usage)
-      expect(result.price.unitPrice).toBe(0) // $0.00 as specified
+      expect(result.price.unitPrice).toBe(0)
       expect(result.price.usageMeterId).toBe(result.usageMeter.id)
-      expect(result.price.productId).toBeNull() // Usage prices don't have products
+      expect(result.price.productId).toBeNull()
       expect(result.price.pricingModelId).toBe(pricingModel.id)
       expect(result.price.intervalUnit).toBe(IntervalUnit.Month)
       expect(result.price.intervalCount).toBe(1)
       expect(result.price.usageEventsPerUnit).toBe(1)
-      // Usage prices always have isDefault=false (they don't use the default concept)
-      expect(result.price.isDefault).toBe(false)
+      // No-charge price is default when no user price is specified
+      expect(result.price.isDefault).toBe(true)
       expect(result.price.active).toBe(true)
       expect(result.price.currency).toBe(organization.defaultCurrency)
     })
 
-    it('should create usage meter with aggregationType', async () => {
+    it('creates usage meter with aggregationType', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -102,6 +114,7 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               userId,
               livemode: false,
               organizationId: organization.id,
@@ -115,6 +128,8 @@ describe('createUsageMeterTransaction', () => {
       expect(result.usageMeter.aggregationType).toBe(
         UsageMeterAggregationType.CountDistinctProperties
       )
+      // No-charge price should still be created
+      expect(result.noChargePrice.slug).toBe('unique-users_no_charge')
     })
   })
 
@@ -134,7 +149,11 @@ describe('createUsageMeterTransaction', () => {
       // Attempt to create usage meter with the same slug
       await expect(
         comprehensiveAdminTransaction(
-          async ({ transaction, invalidateCache }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
                 {
@@ -146,6 +165,7 @@ describe('createUsageMeterTransaction', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   userId,
                   livemode: false,
                   organizationId: organization.id,
@@ -200,7 +220,11 @@ describe('createUsageMeterTransaction', () => {
       // Create usage meter with the same slug - should succeed since
       // usage meter prices and product prices are in separate namespaces
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -211,6 +235,7 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               userId,
               livemode: false,
               organizationId: organization.id,
@@ -224,6 +249,9 @@ describe('createUsageMeterTransaction', () => {
       // Verify usage meter was created successfully
       expect(result.usageMeter.slug).toBe(slug)
       expect(result.usageMeter.name).toBe('New Usage Meter')
+
+      // Verify the no_charge price was created
+      expect(result.noChargePrice.slug).toBe(`${slug}_no_charge`)
 
       // Verify both the product price and usage meter price exist with same slug
       const usageMeters = await adminTransaction(
@@ -265,7 +293,11 @@ describe('createUsageMeterTransaction', () => {
 
       // Should succeed because the slug is unique
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -276,6 +308,7 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               userId,
               livemode: false,
               organizationId: organization.id,
@@ -287,7 +320,8 @@ describe('createUsageMeterTransaction', () => {
       )
 
       expect(result.usageMeter.slug).toBe(slug)
-      expect(result.price.slug).toBe(slug)
+      // When no custom values, price is the no_charge price
+      expect(result.price.slug).toBe(`${slug}_no_charge`)
       expect(result.price.productId).toBeNull()
       expect(result.price.active).toBe(true)
     })
@@ -327,7 +361,11 @@ describe('createUsageMeterTransaction', () => {
       // Attempt to create usage meter (should fail due to slug collision)
       await expect(
         comprehensiveAdminTransaction(
-          async ({ transaction, invalidateCache }) => {
+          async ({
+            transaction,
+            invalidateCache,
+            cacheRecomputationContext,
+          }) => {
             const usageMeterResult =
               await createUsageMeterTransaction(
                 {
@@ -339,6 +377,7 @@ describe('createUsageMeterTransaction', () => {
                 },
                 {
                   transaction,
+                  cacheRecomputationContext,
                   userId,
                   livemode: false,
                   organizationId: organization.id,
@@ -375,9 +414,13 @@ describe('createUsageMeterTransaction', () => {
   })
 
   describe('Custom price fields', () => {
-    it('should create usage meter with custom unitPrice and usageEventsPerUnit', async () => {
+    it('creates both custom price and no_charge price when custom values provided', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -392,6 +435,7 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               userId,
               livemode: false,
               organizationId: organization.id,
@@ -402,16 +446,31 @@ describe('createUsageMeterTransaction', () => {
         }
       )
 
-      // Verify price has custom values
+      // Verify custom price has user-specified values
       expect(result.price.unitPrice).toBe(1000)
       expect(result.price.usageEventsPerUnit).toBe(100)
+      expect(result.price.slug).toBe('custom-price-api-calls')
       expect(result.price.type).toBe(PriceType.Usage)
       expect(result.price.productId).toBeNull()
+      expect(result.price.isDefault).toBe(true) // User price is default
+
+      // Verify no_charge price was also created
+      expect(result.noChargePrice.id).not.toBe(result.price.id)
+      expect(result.noChargePrice.slug).toBe(
+        'custom-price-api-calls_no_charge'
+      )
+      expect(result.noChargePrice.unitPrice).toBe(0)
+      expect(result.noChargePrice.usageEventsPerUnit).toBe(1)
+      expect(result.noChargePrice.isDefault).toBe(false) // No-charge is not default when user price exists
     })
 
-    it('should create usage meter without price values (use defaults)', async () => {
+    it('creates only no_charge price when no custom values provided', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -423,6 +482,7 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               userId,
               livemode: false,
               organizationId: organization.id,
@@ -433,16 +493,27 @@ describe('createUsageMeterTransaction', () => {
         }
       )
 
-      // Verify price uses defaults
+      // Verify price and noChargePrice are the same object
+      expect(result.price.id).toBe(result.noChargePrice.id)
+
+      // Verify it's a no_charge price with defaults
       expect(result.price.unitPrice).toBe(0)
       expect(result.price.usageEventsPerUnit).toBe(1)
+      expect(result.price.slug).toBe(
+        'default-price-api-calls_no_charge'
+      )
       expect(result.price.type).toBe(PriceType.Usage)
       expect(result.price.productId).toBeNull()
+      expect(result.price.isDefault).toBe(true)
     })
 
-    it('should respect custom unitPrice when usageEventsPerUnit is not provided', async () => {
+    it('creates custom price when only unitPrice is provided', async () => {
       const result = await comprehensiveAdminTransaction(
-        async ({ transaction, invalidateCache }) => {
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
           const usageMeterResult = await createUsageMeterTransaction(
             {
               usageMeter: {
@@ -456,6 +527,7 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
+              cacheRecomputationContext,
               userId,
               livemode: false,
               organizationId: organization.id,
@@ -466,10 +538,197 @@ describe('createUsageMeterTransaction', () => {
         }
       )
 
-      // Verify custom unitPrice is used, default usageEventsPerUnit
+      // Custom price should exist with user's unitPrice and default usageEventsPerUnit
       expect(result.price.unitPrice).toBe(500)
       expect(result.price.usageEventsPerUnit).toBe(1)
+      expect(result.price.slug).toBe('partial-custom-price')
       expect(result.price.productId).toBeNull()
+      expect(result.price.isDefault).toBe(true)
+
+      // No-charge price should also exist
+      expect(result.noChargePrice.id).not.toBe(result.price.id)
+      expect(result.noChargePrice.slug).toBe(
+        'partial-custom-price_no_charge'
+      )
+      expect(result.noChargePrice.isDefault).toBe(false)
+    })
+
+    it('creates custom price when only usageEventsPerUnit is provided', async () => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
+          const usageMeterResult = await createUsageMeterTransaction(
+            {
+              usageMeter: {
+                name: 'Events Per Unit Only',
+                slug: 'events-per-unit-only',
+                pricingModelId: pricingModel.id,
+              },
+              price: {
+                usageEventsPerUnit: 50,
+              },
+            },
+            {
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+              invalidateCache,
+              cacheRecomputationContext,
+            }
+          )
+          return Result.ok(usageMeterResult)
+        }
+      )
+
+      // Custom price should exist with default unitPrice and user's usageEventsPerUnit
+      expect(result.price.unitPrice).toBe(0)
+      expect(result.price.usageEventsPerUnit).toBe(50)
+      expect(result.price.slug).toBe('events-per-unit-only')
+      expect(result.price.isDefault).toBe(true)
+
+      // No-charge price should also exist
+      expect(result.noChargePrice.id).not.toBe(result.price.id)
+      expect(result.noChargePrice.slug).toBe(
+        'events-per-unit-only_no_charge'
+      )
+      expect(result.noChargePrice.isDefault).toBe(false)
+    })
+  })
+
+  describe('No charge price auto-creation', () => {
+    it('creates no_charge price with correct name derived from usage meter name', async () => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
+          const usageMeterResult = await createUsageMeterTransaction(
+            {
+              usageMeter: {
+                name: 'Storage GB',
+                slug: 'storage-gb',
+                pricingModelId: pricingModel.id,
+              },
+            },
+            {
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+              invalidateCache,
+              cacheRecomputationContext,
+            }
+          )
+          return Result.ok(usageMeterResult)
+        }
+      )
+
+      expect(result.noChargePrice.name).toBe('Storage GB - No Charge')
+    })
+
+    it('creates no_charge price with correct pricingModelId and usageMeterId', async () => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
+          const usageMeterResult = await createUsageMeterTransaction(
+            {
+              usageMeter: {
+                name: 'Bandwidth',
+                slug: 'bandwidth',
+                pricingModelId: pricingModel.id,
+              },
+            },
+            {
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+              invalidateCache,
+              cacheRecomputationContext,
+            }
+          )
+          return Result.ok(usageMeterResult)
+        }
+      )
+
+      expect(result.noChargePrice.pricingModelId).toBe(
+        pricingModel.id
+      )
+      expect(result.noChargePrice.usageMeterId).toBe(
+        result.usageMeter.id
+      )
+    })
+
+    it('creates no_charge price with organization defaultCurrency', async () => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
+          const usageMeterResult = await createUsageMeterTransaction(
+            {
+              usageMeter: {
+                name: 'Requests',
+                slug: 'requests',
+                pricingModelId: pricingModel.id,
+              },
+            },
+            {
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+              invalidateCache,
+              cacheRecomputationContext,
+            }
+          )
+          return Result.ok(usageMeterResult)
+        }
+      )
+
+      expect(result.noChargePrice.currency).toBe(
+        organization.defaultCurrency
+      )
+    })
+
+    it('creates no_charge price as active by default', async () => {
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          cacheRecomputationContext,
+        }) => {
+          const usageMeterResult = await createUsageMeterTransaction(
+            {
+              usageMeter: {
+                name: 'Compute Hours',
+                slug: 'compute-hours',
+                pricingModelId: pricingModel.id,
+              },
+            },
+            {
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+              invalidateCache,
+              cacheRecomputationContext,
+            }
+          )
+          return Result.ok(usageMeterResult)
+        }
+      )
+
+      expect(result.noChargePrice.active).toBe(true)
     })
   })
 })

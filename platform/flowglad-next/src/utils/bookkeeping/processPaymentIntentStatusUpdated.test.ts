@@ -545,11 +545,23 @@ describe('Process payment intent status updated', async () => {
       }
 
       const result = await adminTransaction(
-        async ({ transaction }) => {
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
           return updatePaymentToReflectLatestChargeStatus(
             fakePayment,
             succeededCharge,
-            transaction
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
           )
         }
       )
@@ -558,12 +570,25 @@ describe('Process payment intent status updated', async () => {
 
     it('does not update the payment status if the current status already matches the charge status', async () => {
       fakePayment.status = PaymentStatus.Succeeded
-      const result = await adminTransaction(async ({ transaction }) =>
-        updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          succeededCharge,
-          transaction
-        )
+      const result = await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) =>
+          updatePaymentToReflectLatestChargeStatus(
+            fakePayment,
+            succeededCharge,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
+          )
       )
       expect(result.status).toEqual(PaymentStatus.Succeeded)
     })
@@ -573,18 +598,32 @@ describe('Process payment intent status updated', async () => {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
       }
-      await adminTransaction(async ({ transaction }) => {
-        await updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          succeededCharge,
-          transaction
-        )
-        const invoice = await selectInvoiceById(
-          fakePayment.invoiceId,
-          transaction
-        )
-        expect(invoice.status).toEqual(InvoiceStatus.Paid)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          await updatePaymentToReflectLatestChargeStatus(
+            fakePayment,
+            succeededCharge,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
+          )
+          const invoice = await selectInvoiceById(
+            fakePayment.invoiceId,
+            transaction
+          )
+          expect(invoice.status).toEqual(InvoiceStatus.Paid)
+        }
+      )
     })
 
     it('updates the associated purchase status when a purchaseId exists', async () => {
@@ -599,30 +638,57 @@ describe('Process payment intent status updated', async () => {
         status: PaymentStatus.Succeeded,
         purchaseId: purchase.id,
       }
-      await adminTransaction(async ({ transaction }) => {
-        await updatePaymentToReflectLatestChargeStatus(
-          updatedPayment,
-          succeededCharge,
-          transaction
-        )
-        const updatedPurchase = await selectPurchaseById(
-          purchase.id,
-          transaction
-        )
-        expect(updatedPurchase.status).toEqual(PurchaseStatus.Paid)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          await updatePaymentToReflectLatestChargeStatus(
+            updatedPayment,
+            succeededCharge,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
+          )
+          const updatedPurchase = await selectPurchaseById(
+            purchase.id,
+            transaction
+          )
+          expect(updatedPurchase.status).toEqual(PurchaseStatus.Paid)
+        }
+      )
     })
 
     it('throws an error if there is no associated invoice', async () => {
       // @ts-expect-error - no invoice id
       fakePayment.invoiceId = null
       await expect(
-        adminTransaction(async ({ transaction }) =>
-          updatePaymentToReflectLatestChargeStatus(
-            fakePayment,
-            succeededCharge,
-            transaction
-          )
+        adminTransaction(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) =>
+            updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              succeededCharge,
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
         )
       ).rejects.toThrow()
     })
@@ -633,59 +699,119 @@ describe('Process payment intent status updated', async () => {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
       }
-      await adminTransaction(async ({ transaction }) => {
-        const result = await updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          succeededCharge,
-          transaction
-        )
-        expect(result.status).toEqual(PaymentStatus.Succeeded)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const result =
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              succeededCharge,
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+          expect(result.status).toEqual(PaymentStatus.Succeeded)
+        }
+      )
     })
 
     it('maintains idempotency when called multiple times with the same charge status', async () => {
       fakePayment.status = PaymentStatus.Succeeded
-      await adminTransaction(async ({ transaction }) => {
-        const result1 =
-          await updatePaymentToReflectLatestChargeStatus(
-            fakePayment,
-            succeededCharge,
-            transaction
-          )
-        const result2 =
-          await updatePaymentToReflectLatestChargeStatus(
-            fakePayment,
-            succeededCharge,
-            transaction
-          )
-        expect(result1).toEqual(result2)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const ctx = {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache: invalidateCache!,
+            emitEvent: emitEvent!,
+            enqueueLedgerCommand: enqueueLedgerCommand!,
+          }
+          const result1 =
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              succeededCharge,
+              ctx
+            )
+          const result2 =
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              succeededCharge,
+              ctx
+            )
+          expect(result1).toEqual(result2)
+        }
+      )
     })
 
     it('updates the payment status to Failed when the charge status is failed', async () => {
       fakePayment.status = PaymentStatus.Processing
-      await adminTransaction(async ({ transaction }) => {
-        const result = await updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          failedCharge,
-          transaction
-        )
-        expect(result.status).toEqual(PaymentStatus.Failed)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const result =
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              failedCharge,
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+          expect(result.status).toEqual(PaymentStatus.Failed)
+        }
+      )
     })
 
     it('updates the failure message when the charge status is failed', async () => {
       fakePayment.status = PaymentStatus.Processing
-      await adminTransaction(async ({ transaction }) => {
-        const result = await updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          failedCharge,
-          transaction
-        )
-        expect(result.failureMessage).toEqual(
-          failedCharge.failure_message
-        )
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const result =
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              failedCharge,
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+          expect(result.failureMessage).toEqual(
+            failedCharge.failure_message
+          )
+        }
+      )
     })
   })
 
@@ -2913,11 +3039,13 @@ describe('Process payment intent status updated', async () => {
             emitEvent,
             enqueueLedgerCommand,
             invalidateCache,
+            cacheRecomputationContext,
           } = ctx
           const res = await processPaymentIntentStatusUpdated(
             paymentIntent,
             {
               transaction,
+              cacheRecomputationContext,
               emitEvent,
               enqueueLedgerCommand: (cmd) => {
                 enqueuedLedgerCommands.push(cmd)

@@ -1,7 +1,23 @@
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'vitest'
+import {
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
+} from '@/../seedDatabase'
+import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { PaymentMethodType } from '@/types'
-import { paymentMethodInsertFromStripeCardPaymentMethod } from './paymentMethodHelpers'
+import { core } from '@/utils/core'
+import {
+  paymentMethodForStripePaymentMethodId,
+  paymentMethodInsertFromStripeCardPaymentMethod,
+} from './paymentMethodHelpers'
 
 describe('paymentMethodInsertFromStripeCardPaymentMethod', () => {
   it('should correctly transform Stripe payment method to insert', () => {
@@ -77,5 +93,148 @@ describe('paymentMethodInsertFromStripeCardPaymentMethod', () => {
     })
     // should not have nested address
     expect(result.billingDetails.address.address).toBeUndefined()
+  })
+})
+
+describe('paymentMethodForStripePaymentMethodId', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let customer: Customer.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `test+${core.nanoid()}@test.com`,
+      livemode: true,
+    })
+  })
+
+  it('should create a new payment method when no existing payment method with the stripePaymentMethodId exists', async () => {
+    const stripePaymentMethodId = `pm_${core.nanoid()}`
+
+    const result = await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        cacheRecomputationContext,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        const paymentMethod =
+          await paymentMethodForStripePaymentMethodId(
+            {
+              stripePaymentMethodId,
+              livemode: true,
+              customerId: customer.id,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
+
+        // Verify the payment method was created with correct properties
+        expect(paymentMethod.stripePaymentMethodId).toBe(
+          stripePaymentMethodId
+        )
+        expect(paymentMethod.customerId).toBe(customer.id)
+        expect(paymentMethod.type).toBe(PaymentMethodType.Card)
+        expect(paymentMethod.pricingModelId).toBe(pricingModel.id)
+        expect(paymentMethod.livemode).toBe(true)
+        // The MSW mock returns these billing details
+        expect(paymentMethod.billingDetails.name).toBe('John Doe')
+        expect(paymentMethod.billingDetails.email).toBe(
+          'john.doe@example.com'
+        )
+
+        return Result.ok(paymentMethod)
+      }
+    )
+
+    // Verify the payment method was persisted to the database
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const [persistedPaymentMethod] = await selectPaymentMethods(
+        { stripePaymentMethodId },
+        transaction
+      )
+      // Use toMatchObject instead of toBeDefined for more precise assertion
+      expect(persistedPaymentMethod).toMatchObject({
+        id: result.id,
+        customerId: customer.id,
+        stripePaymentMethodId,
+      })
+      return Result.ok(null)
+    })
+  })
+
+  it('should return the existing payment method when one with the stripePaymentMethodId already exists', async () => {
+    const stripePaymentMethodId = `pm_${core.nanoid()}`
+
+    // Create an existing payment method with this stripePaymentMethodId
+    const existingPaymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+      type: PaymentMethodType.Card,
+      stripePaymentMethodId,
+    })
+
+    await comprehensiveAdminTransaction(
+      async ({
+        transaction,
+        cacheRecomputationContext,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        const paymentMethod =
+          await paymentMethodForStripePaymentMethodId(
+            {
+              stripePaymentMethodId,
+              livemode: true,
+              customerId: customer.id,
+            },
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
+
+        // Verify the function returned the existing payment method
+        expect(paymentMethod.id).toBe(existingPaymentMethod.id)
+        expect(paymentMethod.stripePaymentMethodId).toBe(
+          stripePaymentMethodId
+        )
+        expect(paymentMethod.customerId).toBe(customer.id)
+        expect(paymentMethod.pricingModelId).toBe(
+          existingPaymentMethod.pricingModelId
+        )
+
+        return Result.ok(paymentMethod)
+      }
+    )
+
+    // Verify no duplicate payment methods were created
+    await comprehensiveAdminTransaction(async ({ transaction }) => {
+      const paymentMethodsWithStripeId = await selectPaymentMethods(
+        { stripePaymentMethodId },
+        transaction
+      )
+      expect(paymentMethodsWithStripeId).toHaveLength(1)
+      expect(paymentMethodsWithStripeId[0]!.id).toBe(
+        existingPaymentMethod.id
+      )
+      return Result.ok(null)
+    })
   })
 })

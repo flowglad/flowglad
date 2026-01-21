@@ -7,6 +7,8 @@ import {
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'
 import {
+  isReservedPriceSlug,
+  RESERVED_USAGE_PRICE_SLUG_SUFFIX,
   singlePaymentPriceClientInsertSchema,
   subscriptionPriceClientInsertSchema,
   usagePriceClientInsertSchema,
@@ -137,6 +139,23 @@ export const setupUsageMeterPriceInputSchema =
     .extend({
       ...priceOptionalFieldSchema,
     })
+    .refine(
+      // Only validate if slug is provided - undefined/null slugs are allowed
+      (data) => !data.slug || !isReservedPriceSlug(data.slug),
+      {
+        message: `Usage price slugs ending with "${RESERVED_USAGE_PRICE_SLUG_SUFFIX}" are reserved for auto-generated fallback prices`,
+        path: ['slug'],
+      }
+    )
+    .refine(
+      // An inactive price cannot be the default - this would leave no active default
+      (data) => !(data.isDefault === true && data.active === false),
+      {
+        message:
+          'An inactive price cannot be set as default. Set active=true or isDefault=false.',
+        path: ['isDefault'],
+      }
+    )
 
 export type SetupUsageMeterPriceInput = z.infer<
   typeof setupUsageMeterPriceInputSchema
@@ -357,7 +376,7 @@ export const validateSetupPricingModelInput = (
     allPriceSlugs.add(price.slug)
   })
 
-  // Validate usage meter prices and implement implicit default logic
+  // Validate usage meter prices
   parsed.usageMeters.forEach((meterWithPrices) => {
     const prices = meterWithPrices.prices || []
 
@@ -373,12 +392,14 @@ export const validateSetupPricingModelInput = (
       }
     })
 
-    // Usage prices don't use isDefault - always set to false
-    // This avoids unique constraint issues and aligns with the data model where
-    // usage prices don't have a "default" concept (unlike product prices)
-    prices.forEach((price) => {
-      price.isDefault = false
-    })
+    // Validate at most one price per usage meter has isDefault: true
+    const defaultPrices = prices.filter((p) => p.isDefault)
+    if (defaultPrices.length > 1) {
+      throw new Error(
+        `Usage meter "${meterWithPrices.usageMeter.slug}" has multiple prices with isDefault=true. ` +
+          `At most one price per usage meter can be the default.`
+      )
+    }
   })
 
   return parsed

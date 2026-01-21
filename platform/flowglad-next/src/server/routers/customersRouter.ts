@@ -119,6 +119,8 @@ const createCustomerProcedure = protectedProcedure
               },
               {
                 transaction,
+                cacheRecomputationContext:
+                  transactionCtx.cacheRecomputationContext,
                 livemode,
                 organizationId,
                 invalidateCache: transactionCtx.invalidateCache,
@@ -372,13 +374,14 @@ export const getCustomerBilling = protectedProcedure
       purchases,
       subscriptions,
     } = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, cacheRecomputationContext }) => {
         return customerBillingTransaction(
           {
             externalId: input.externalId,
             organizationId,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       },
       {
