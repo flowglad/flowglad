@@ -166,13 +166,14 @@ describeIfRedisKey('cache recomputation integration', () => {
     })
 
     // Step 4: Invalidate cache and trigger recomputation
+    // Note: invalidateDependencies deletes the cache AND triggers fire-and-forget
+    // recomputation internally, so we cannot reliably check for null here - by the
+    // time we check, recomputation may have already completed.
     await invalidateDependencies([dependencyKey])
 
-    // Cache should be deleted immediately after invalidation
-    const cachedValueAfterInvalidation = await client.get(cacheKey)
-    expect(cachedValueAfterInvalidation).toBeNull()
-
-    // Trigger recomputation (simulates what would happen in a production scenario)
+    // Note: recomputeDependencies is a no-op here because invalidateDependencies
+    // deletes the registry before triggering recomputation. The actual recomputation
+    // happens via the fire-and-forget call in invalidateDependencies.
     await recomputeDependencies([dependencyKey])
 
     // Step 5: Poll until cache is repopulated by fire-and-forget recomputation
