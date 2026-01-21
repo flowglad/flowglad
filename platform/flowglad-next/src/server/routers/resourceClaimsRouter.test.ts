@@ -186,6 +186,8 @@ describe('resourceClaimsRouter', () => {
     )
 
     // Setup organization 2 for cross-tenant tests (shared)
+    // NOTE: org2's subscription is created in beforeAll (not beforeEach) because
+    // it's only used for read-only permission boundary tests, never mutated
     org2Data = await setupOrg()
     const userApiKeyOrg2 = await setupUserAndApiKey({
       organizationId: org2Data.organization.id,
@@ -412,7 +414,7 @@ describe('resourceClaimsRouter', () => {
 
     it('throws NOT_FOUND when the resource is not available on the subscription', async () => {
       // Create a resource that's not associated with the subscription
-      const unlinkedResource = await setupResource({
+      await setupResource({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
         slug: 'unlinked-resource',
