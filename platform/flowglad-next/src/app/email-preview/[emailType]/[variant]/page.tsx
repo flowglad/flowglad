@@ -1,11 +1,15 @@
 import { render } from '@react-email/render'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { getPreviewData } from '@/email-templates/previews/mockData'
+import {
+  getPreviewData,
+  getVariantsForEmailType,
+} from '@/email-templates/previews/mockData'
 import {
   EMAIL_REGISTRY,
   type EmailType,
 } from '@/utils/email/registry'
+import { VariantSelector } from './VariantSelector'
 
 interface EmailPreviewPageProps {
   params: Promise<{
@@ -37,6 +41,7 @@ export default async function EmailPreviewVariantPage({
   }
 
   const config = EMAIL_REGISTRY[emailType]
+  const variants = getVariantsForEmailType(emailType)
 
   // Load and render the template
   const template = await config.getTemplate()
@@ -54,7 +59,7 @@ export default async function EmailPreviewVariantPage({
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
-      <div className="border-b border-dashed sticky top-0 z-10">
+      <div className="border-b border-dashed sticky top-0 z-10 bg-background">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>
@@ -67,10 +72,11 @@ export default async function EmailPreviewVariantPage({
               <h1 className="text-xl font-semibold text-foreground">
                 {emailType}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Variant:{' '}
-                <span className="font-medium">{variant}</span>
-              </p>
+              <VariantSelector
+                emailType={emailType}
+                currentVariant={variant}
+                variants={variants}
+              />
             </div>
             <div className="text-right">
               <div className="flex gap-2 mb-2">
