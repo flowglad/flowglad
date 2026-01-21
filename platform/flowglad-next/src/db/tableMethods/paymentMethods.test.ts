@@ -2433,22 +2433,24 @@ describe('pricingModelId derivation', () => {
   describe('insertPayment', () => {
     it('should derive pricingModelId from subscription', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const payment = await insertPayment(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            invoiceId: invoice.id,
-            subscriptionId: subscription.id,
-            amount: 1000,
-            paymentMethod: PaymentMethodType.Card,
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            chargeDate: Date.now(),
-            stripePaymentIntentId: `pi_${nanoid()}`,
-            livemode: true,
-          },
-          transaction
-        )
+        const payment = (
+          await insertPayment(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              invoiceId: invoice.id,
+              subscriptionId: subscription.id,
+              amount: 1000,
+              paymentMethod: PaymentMethodType.Card,
+              currency: CurrencyCode.USD,
+              status: PaymentStatus.Succeeded,
+              chargeDate: Date.now(),
+              stripePaymentIntentId: `pi_${nanoid()}`,
+              livemode: true,
+            },
+            transaction
+          )
+        ).unwrap()
 
         expect(payment.pricingModelId).toBe(
           subscription.pricingModelId
@@ -2459,22 +2461,24 @@ describe('pricingModelId derivation', () => {
 
     it('should derive pricingModelId from purchase', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const payment = await insertPayment(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            invoiceId: invoice.id,
-            purchaseId: purchase.id,
-            amount: 1000,
-            paymentMethod: PaymentMethodType.Card,
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            chargeDate: Date.now(),
-            stripePaymentIntentId: `pi_${nanoid()}`,
-            livemode: true,
-          },
-          transaction
-        )
+        const payment = (
+          await insertPayment(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              invoiceId: invoice.id,
+              purchaseId: purchase.id,
+              amount: 1000,
+              paymentMethod: PaymentMethodType.Card,
+              currency: CurrencyCode.USD,
+              status: PaymentStatus.Succeeded,
+              chargeDate: Date.now(),
+              stripePaymentIntentId: `pi_${nanoid()}`,
+              livemode: true,
+            },
+            transaction
+          )
+        ).unwrap()
 
         expect(payment.pricingModelId).toBe(purchase.pricingModelId)
         expect(payment.pricingModelId).toBe(pricingModel.id)
@@ -2483,21 +2487,23 @@ describe('pricingModelId derivation', () => {
 
     it('should derive pricingModelId from invoice', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const payment = await insertPayment(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            invoiceId: invoice.id,
-            amount: 1000,
-            paymentMethod: PaymentMethodType.Card,
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            chargeDate: Date.now(),
-            stripePaymentIntentId: `pi_${nanoid()}`,
-            livemode: true,
-          },
-          transaction
-        )
+        const payment = (
+          await insertPayment(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              invoiceId: invoice.id,
+              amount: 1000,
+              paymentMethod: PaymentMethodType.Card,
+              currency: CurrencyCode.USD,
+              status: PaymentStatus.Succeeded,
+              chargeDate: Date.now(),
+              stripePaymentIntentId: `pi_${nanoid()}`,
+              livemode: true,
+            },
+            transaction
+          )
+        ).unwrap()
 
         expect(payment.pricingModelId).toBe(invoice.pricingModelId)
         expect(payment.pricingModelId).toBe(pricingModel.id)
@@ -2506,22 +2512,24 @@ describe('pricingModelId derivation', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const payment = await insertPayment(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            invoiceId: invoice.id,
-            amount: 1000,
-            paymentMethod: PaymentMethodType.Card,
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            chargeDate: Date.now(),
-            stripePaymentIntentId: `pi_${nanoid()}`,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          },
-          transaction
-        )
+        const payment = (
+          await insertPayment(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              invoiceId: invoice.id,
+              amount: 1000,
+              paymentMethod: PaymentMethodType.Card,
+              currency: CurrencyCode.USD,
+              status: PaymentStatus.Succeeded,
+              chargeDate: Date.now(),
+              stripePaymentIntentId: `pi_${nanoid()}`,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            },
+            transaction
+          )
+        ).unwrap()
 
         expect(payment.pricingModelId).toBe(pricingModel.id)
       })

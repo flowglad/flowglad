@@ -81,20 +81,24 @@ export const derivePricingModelIdForPayment = async (
     invoiceId: string
   },
   transaction: DbTransaction
-): Promise<string> => {
+): Promise<Result<string, NotFoundError>> => {
   // Try subscription first
   if (data.subscriptionId) {
-    return await derivePricingModelIdFromSubscription(
-      data.subscriptionId,
-      transaction
+    return Result.ok(
+      await derivePricingModelIdFromSubscription(
+        data.subscriptionId,
+        transaction
+      )
     )
   }
 
   // Try purchase second
   if (data.purchaseId) {
-    return await derivePricingModelIdFromPurchase(
-      data.purchaseId,
-      transaction
+    return Result.ok(
+      await derivePricingModelIdFromPurchase(
+        data.purchaseId,
+        transaction
+      )
     )
   }
 
@@ -103,7 +107,10 @@ export const derivePricingModelIdForPayment = async (
     data.invoiceId,
     transaction
   )
-  return invoiceRecord.pricingModelId
+  if (!invoiceRecord) {
+    return Result.err(new NotFoundError('Invoice', data.invoiceId))
+  }
+  return Result.ok(invoiceRecord.pricingModelId)
 }
 
 const baseInsertPayment = createInsertFunction(payments, config)
@@ -111,23 +118,30 @@ const baseInsertPayment = createInsertFunction(payments, config)
 export const insertPayment = async (
   paymentInsert: Payment.Insert,
   transaction: DbTransaction
-): Promise<Payment.Record> => {
-  const pricingModelId =
-    paymentInsert.pricingModelId ??
-    (await derivePricingModelIdForPayment(
+): Promise<Result<Payment.Record, NotFoundError>> => {
+  let pricingModelId = paymentInsert.pricingModelId
+  if (!pricingModelId) {
+    const derivationResult = await derivePricingModelIdForPayment(
       {
         subscriptionId: paymentInsert.subscriptionId,
         purchaseId: paymentInsert.purchaseId,
         invoiceId: paymentInsert.invoiceId,
       },
       transaction
-    ))
-  return baseInsertPayment(
-    {
-      ...paymentInsert,
-      pricingModelId,
-    },
-    transaction
+    )
+    if (derivationResult.status === 'error') {
+      return Result.err(derivationResult.error)
+    }
+    pricingModelId = derivationResult.value
+  }
+  return Result.ok(
+    await baseInsertPayment(
+      {
+        ...paymentInsert,
+        pricingModelId,
+      },
+      transaction
+    )
   )
 }
 
@@ -141,7 +155,9 @@ const upsertPayments = async (
   inserts: Payment.Insert[],
   target: Parameters<typeof baseUpsertPayments>[1],
   transaction: DbTransaction
-): Promise<Result<Payment.Record[], ValidationError>> => {
+): Promise<
+  Result<Payment.Record[], ValidationError | NotFoundError>
+> => {
   // Collect unique combinations that need pricingModelId derivation
   const insertsNeedingDerivation = inserts.filter(
     (insert) => !insert.pricingModelId
@@ -175,19 +191,27 @@ const upsertPayments = async (
   })
 
   // Batch derive pricingModelIds for unique combinations
-  const pricingModelIdResults = await Promise.all(
-    uniqueCombinations.map(async (combo) => ({
+  const pricingModelIdResults: {
+    key: string
+    pricingModelId: string
+  }[] = []
+  for (const combo of uniqueCombinations) {
+    const derivationResult = await derivePricingModelIdForPayment(
+      combo,
+      transaction
+    )
+    if (derivationResult.status === 'error') {
+      return Result.err(derivationResult.error)
+    }
+    pricingModelIdResults.push({
       key: createMapKey(
         combo.subscriptionId,
         combo.purchaseId,
         combo.invoiceId
       ),
-      pricingModelId: await derivePricingModelIdForPayment(
-        combo,
-        transaction
-      ),
-    }))
-  )
+      pricingModelId: derivationResult.value,
+    })
+  }
 
   // Build map for O(1) lookup
   const pricingModelIdMap = new Map(
@@ -236,7 +260,9 @@ const upsertPayments = async (
 export const upsertPaymentByStripeChargeId = async (
   payment: Payment.Insert,
   transaction: DbTransaction
-): Promise<Result<Payment.Record, ValidationError>> => {
+): Promise<
+  Result<Payment.Record, ValidationError | NotFoundError>
+> => {
   const [existingPayment] = await selectPayments(
     {
       stripeChargeId: payment.stripeChargeId,
@@ -254,7 +280,16 @@ export const upsertPaymentByStripeChargeId = async (
   if (upsertedPaymentsResult.status === 'error') {
     return Result.err(upsertedPaymentsResult.error)
   }
-  return Result.ok(upsertedPaymentsResult.value[0])
+  const upsertedPayment = upsertedPaymentsResult.value[0]
+  if (!upsertedPayment) {
+    return Result.err(
+      new ValidationError(
+        'payment',
+        `Upsert returned empty array for payment with stripeChargeId: ${payment.stripeChargeId}`
+      )
+    )
+  }
+  return Result.ok(upsertedPayment)
 }
 
 /**

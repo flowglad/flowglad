@@ -117,7 +117,7 @@ export const upsertPaymentForStripeCharge = async (
 ): Promise<
   Result<
     { payment: Payment.Record },
-    ValidationError | TerminalStateError
+    ValidationError | TerminalStateError | NotFoundError
   >
 > => {
   const { transaction, emitEvent } = ctx

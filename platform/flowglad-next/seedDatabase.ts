@@ -1144,34 +1144,37 @@ export const setupPayment = async ({
   subtotal?: number
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
-    const payment = await insertPayment(
-      {
-        stripeChargeId,
-        status,
-        amount,
-        livemode,
-        customerId,
-        organizationId,
-        stripePaymentIntentId: stripePaymentIntentId ?? core.nanoid(),
-        invoiceId,
-        billingPeriodId,
-        currency: CurrencyCode.USD,
-        paymentMethod: paymentMethod ?? PaymentMethodType.Card,
-        chargeDate: chargeDate ?? Date.now(),
-        taxCountry: CountryCode.US,
-        subscriptionId: subscriptionId ?? null,
-        purchaseId: purchaseId ?? null,
-        refunded,
-        refundedAmount,
-        refundedAt,
-        paymentMethodId,
-        stripeTaxTransactionId: stripeTaxTransactionId ?? null,
-        stripeTaxCalculationId: stripeTaxCalculationId ?? null,
-        taxAmount: taxAmount ?? 0,
-        subtotal: subtotal ?? amount,
-      },
-      transaction
-    )
+    const payment = (
+      await insertPayment(
+        {
+          stripeChargeId,
+          status,
+          amount,
+          livemode,
+          customerId,
+          organizationId,
+          stripePaymentIntentId:
+            stripePaymentIntentId ?? core.nanoid(),
+          invoiceId,
+          billingPeriodId,
+          currency: CurrencyCode.USD,
+          paymentMethod: paymentMethod ?? PaymentMethodType.Card,
+          chargeDate: chargeDate ?? Date.now(),
+          taxCountry: CountryCode.US,
+          subscriptionId: subscriptionId ?? null,
+          purchaseId: purchaseId ?? null,
+          refunded,
+          refundedAmount,
+          refundedAt,
+          paymentMethodId,
+          stripeTaxTransactionId: stripeTaxTransactionId ?? null,
+          stripeTaxCalculationId: stripeTaxCalculationId ?? null,
+          taxAmount: taxAmount ?? 0,
+          subtotal: subtotal ?? amount,
+        },
+        transaction
+      )
+    ).unwrap()
     return payment
   })
 }
