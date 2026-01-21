@@ -708,8 +708,8 @@ export const selectPricingModelWithProductsAndUsageMetersById =
 /**
  * Gets the pricingModel for a customer. If no pricingModel explicitly associated,
  * returns the default pricingModel for the organization.
- * Note: The returned pricing model already has inactive products and prices filtered out
- * by selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere.
+ * Note: Uses the cached atomic assembly function selectPricingModelWithProductsAndUsageMetersById
+ * which has inactive products and prices filtered out.
  * @param customer
  * @param transaction
  * @returns
@@ -719,33 +719,30 @@ export const selectPricingModelForCustomer = async (
   transaction: DbTransaction
 ): Promise<PricingModelWithProductsAndUsageMeters> => {
   if (customer.pricingModelId) {
-    const [pricingModel] =
-      await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-        { id: customer.pricingModelId },
-        transaction
-      )
-
-    if (pricingModel) {
-      return pricingModel
-    }
-  }
-  const [pricingModel] =
-    await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-      {
-        organizationId: customer.organizationId,
-        livemode: customer.livemode,
-        isDefault: true,
-      },
+    return selectPricingModelWithProductsAndUsageMetersById(
+      customer.pricingModelId,
       transaction
     )
+  }
 
-  if (!pricingModel) {
+  const defaultPricingModel = await selectDefaultPricingModel(
+    {
+      organizationId: customer.organizationId,
+      livemode: customer.livemode,
+    },
+    transaction
+  )
+
+  if (!defaultPricingModel) {
     throw new Error(
       `No default pricing model found for organization ${customer.organizationId}`
     )
   }
 
-  return pricingModel
+  return selectPricingModelWithProductsAndUsageMetersById(
+    defaultPricingModel.id,
+    transaction
+  )
 }
 
 /**
