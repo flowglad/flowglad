@@ -2,7 +2,7 @@
 
 **Version 1.0.0**
 Flowglad Engineering
-January 2026
+January 2025
 
 > **Note:**
 > This document is for AI agents to follow when integrating metered billing and usage tracking with Flowglad.
@@ -130,13 +130,16 @@ async function handleApiCall() {
 **Correct: all usage tracking flows through server**
 
 ```typescript
-// lib/flowglad.ts - Server-only factory
+// lib/flowglad.server.ts - Server-only factory
+// Use .server.ts extension or place in a server-only directory
+// to prevent accidental client-side imports
 import { FlowgladServer } from '@flowglad/nextjs/server'
 
 export const flowglad = (customerExternalId: string) => {
   return new FlowgladServer({
     customerExternalId,
     getCustomerDetails: async (externalId) => {
+      // Fetch user details from your database
       const user = await db.users.findOne({ id: externalId })
       return { email: user.email, name: user.name }
     },
@@ -237,8 +240,12 @@ await flowglad(userId).createUsageEvent({
   transactionId: `gen_${result.id}`,
 })
 
-// Option 2: Use request ID from incoming request
-const requestId = req.headers.get('x-request-id') || crypto.randomUUID()
+// Option 2: Use request ID from incoming request header
+// IMPORTANT: Only use if your client sends a stable x-request-id on retries
+const requestId = req.headers.get('x-request-id')
+if (!requestId) {
+  return Response.json({ error: 'x-request-id header required' }, { status: 400 })
+}
 await flowglad(userId).createUsageEvent({
   usageMeterSlug: 'api-calls',
   amount: 1,
@@ -246,7 +253,16 @@ await flowglad(userId).createUsageEvent({
 })
 
 // Option 3: Hash of operation parameters for deterministic operations
-const operationHash = hashParams({ userId, prompt, timestamp: hourBucket })
+import { createHash } from 'crypto'
+
+function hashOperationParams(params: Record<string, unknown>): string {
+  return createHash('sha256')
+    .update(JSON.stringify(params))
+    .digest('hex')
+    .slice(0, 16)
+}
+
+const operationHash = hashOperationParams({ userId, prompt })
 await flowglad(userId).createUsageEvent({
   usageMeterSlug: 'queries',
   amount: 1,
@@ -313,10 +329,15 @@ async function generateImage(userId: string, prompt: string) {
     prompt,
   })
 
+  // Use a stable identifier from the operation result
+  // The image URL or a hash of the image data provides idempotency
+  const imageId = image.data[0].url?.split('/').pop()?.split('.')[0] ||
+    createHash('sha256').update(prompt + userId).digest('hex').slice(0, 16)
+
   await flowglad(userId).createUsageEvent({
     usageMeterSlug: 'image-generations',
     amount: 1,
-    transactionId: `img_${image.data[0].revised_prompt?.slice(0, 20)}_${Date.now()}`,
+    transactionId: `img_${imageId}`,
   })
 
   return image
@@ -352,18 +373,35 @@ class InsufficientCreditsError extends Error {
   }
 }
 
-// In API route
+// In API route - throwing the error
 if (balance.availableBalance < requiredAmount) {
-  return Response.json(
-    {
-      error: 'insufficient_credits',
-      message: 'You need more credits to perform this action',
-      availableBalance: balance.availableBalance,
-      required: requiredAmount,
-      upgradeUrl: '/pricing',
-    },
-    { status: 402 } // Payment Required
+  throw new InsufficientCreditsError(
+    'image-generations',
+    balance.availableBalance,
+    requiredAmount
   )
+}
+
+// Catching and handling the error in your API route
+export async function POST(req: Request) {
+  try {
+    const result = await generateImage(userId, prompt)
+    return Response.json(result)
+  } catch (error) {
+    if (error instanceof InsufficientCreditsError) {
+      return Response.json(
+        {
+          error: 'insufficient_credits',
+          message: error.message,
+          availableBalance: error.availableBalance,
+          required: error.required,
+          upgradeUrl: '/pricing',
+        },
+        { status: 402 } // Payment Required
+      )
+    }
+    throw error // Re-throw unexpected errors
+  }
 }
 ```
 
@@ -394,6 +432,8 @@ function UsageDisplay() {
 **Correct: shows usage with limit and visual progress**
 
 ```tsx
+import { useBilling } from '@flowglad/nextjs'
+
 function UsageDisplay() {
   const { loaded, checkUsageBalance } = useBilling()
 
@@ -402,9 +442,23 @@ function UsageDisplay() {
   }
 
   const balance = checkUsageBalance('api-calls')
-  const percentUsed = balance.balanceLimit
-    ? (balance.usedBalance / balance.balanceLimit) * 100
+
+  // Handle unlimited plans (balanceLimit is null)
+  // For unlimited plans, show usage count without percentage
+  const hasLimit = balance.balanceLimit != null
+  const percentUsed = hasLimit
+    ? (balance.usedBalance / balance.balanceLimit!) * 100
     : 0
+
+  // For unlimited plans, skip the progress bar entirely
+  if (!hasLimit) {
+    return (
+      <div className="text-sm">
+        <span>API Calls: {balance.usedBalance.toLocaleString()}</span>
+        <span className="text-gray-500 ml-1">(Unlimited)</span>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-2">
@@ -665,3 +719,12 @@ const { reload } = useBilling()
 await fetch('/api/consume', { method: 'POST' })
 await reload()
 ```
+
+### HTTP Status Codes for Usage Errors
+
+| Status | Use Case |
+|--------|----------|
+| `401 Unauthorized` | User not authenticated |
+| `402 Payment Required` | Insufficient credits/balance |
+| `403 Forbidden` | User authenticated but lacks access to this feature |
+| `429 Too Many Requests` | Rate limited (separate from usage billing) |
