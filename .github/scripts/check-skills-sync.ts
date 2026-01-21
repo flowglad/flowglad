@@ -152,10 +152,14 @@ function getAllSkills(repoRoot: string): SkillMetadata[] {
  */
 function getChangedFiles(baseBranch: string): string[] {
   // Fetch the base branch to ensure we have the latest
-  const fetchResult = spawnSync('git', ['fetch', 'origin', baseBranch], {
-    encoding: 'utf-8',
-    stdio: ['pipe', 'pipe', 'pipe'],
-  })
+  const fetchResult = spawnSync(
+    'git',
+    ['fetch', 'origin', baseBranch],
+    {
+      encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'pipe'],
+    }
+  )
 
   if (fetchResult.status !== 0) {
     throw new Error(
@@ -206,7 +210,10 @@ function wasTimestampUpdated(
   try {
     // Get the current (HEAD) version
     const currentContent = readFileSync(skillPath, 'utf-8')
-    const currentMetadata = parseSkillMetadata(currentContent, skillPath)
+    const currentMetadata = parseSkillMetadata(
+      currentContent,
+      skillPath
+    )
 
     // Get the base branch version using spawnSync for safety
     const showResult = spawnSync(
@@ -232,7 +239,9 @@ function wasTimestampUpdated(
     }
 
     // Compare timestamps
-    return currentMetadata.sourcesReviewed !== baseMetadata.sourcesReviewed
+    return (
+      currentMetadata.sourcesReviewed !== baseMetadata.sourcesReviewed
+    )
   } catch (error) {
     console.error(`Error checking timestamp for ${skillPath}:`, error)
     return false
@@ -255,7 +264,9 @@ async function main(): Promise<void> {
     process.exit(1)
   }
 
-  console.log(`Checking skills sync against base branch: ${baseBranch}`)
+  console.log(
+    `Checking skills sync against base branch: ${baseBranch}`
+  )
   console.log(`Repository root: ${repoRoot}`)
   console.log('')
 
@@ -325,25 +336,25 @@ async function main(): Promise<void> {
     )
 
     for (const skill of affectedSkills) {
-      const skillChanged = changedFiles.includes(skill.path)
       const timestampUpdated = wasTimestampUpdated(
         skill.path,
         baseBranch
       )
 
-      if (!skillChanged && !timestampUpdated) {
+      // Timestamp must always be updated when source docs change
+      // (even if skill content was also updated)
+      if (!timestampUpdated) {
         errors.push({
           doc,
           skill: skill.name,
           skillPath: skill.path,
           message:
-            `Documentation file "${doc}" changed, but skill "${skill.name}" was not updated.\n` +
+            `Documentation file "${doc}" changed, but skill "${skill.name}" timestamp was not updated.\n` +
             `\n` +
-            `Either:\n` +
-            `  1. Update the skill content to reflect the documentation changes, OR\n` +
-            `  2. Update the "sources_reviewed" timestamp in ${skill.path} to confirm the skill is still accurate\n` +
+            `When source documentation changes, you must update the "sources_reviewed" timestamp\n` +
+            `in ${skill.path} to confirm you have reviewed the docs and the skill is accurate.\n` +
             `\n` +
-            `The sources_reviewed timestamp should be in ISO 8601 format with UTC timezone:\n` +
+            `Update the skill content if needed, then set the timestamp to:\n` +
             `  sources_reviewed: ${new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')}`,
         })
       }
