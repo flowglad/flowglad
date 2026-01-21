@@ -659,7 +659,7 @@ describe('batchUnexpireProductFeatures', () => {
     })
   })
 
-  it('does not emit cache invalidations when there are no subscription items for the affected products', async () => {
+  it('emits productFeaturesByPricingModel cache invalidation even when there are no subscription items', async () => {
     // Create an expired product feature but no subscription items
     const expiredPf = await setupProductFeature({
       productId: product.id,
@@ -679,8 +679,15 @@ describe('batchUnexpireProductFeatures', () => {
 
       // Feature was unexpired
       expect(result).toHaveLength(1)
-      // But no cache invalidations since no subscription items exist
-      expect(effects.cacheInvalidations).toHaveLength(0)
+      // Cache invalidation for productFeaturesByPricingModel is emitted
+      // even without subscription items, because the product features
+      // set for the pricing model has changed
+      expect(effects.cacheInvalidations).toHaveLength(1)
+      expect(effects.cacheInvalidations[0]).toBe(
+        CacheDependency.productFeaturesByPricingModel(
+          expiredPf.pricingModelId
+        )
+      )
     })
   })
 })

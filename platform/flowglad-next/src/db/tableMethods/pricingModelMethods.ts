@@ -28,6 +28,7 @@ import {
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
+  NotFoundError,
   type ORMMethodCreatorConfig,
   type SelectConditions,
   whereClauseFromObject,
@@ -725,10 +726,17 @@ export const selectPricingModelForCustomer = async (
   transaction: DbTransaction
 ): Promise<PricingModelWithProductsAndUsageMeters> => {
   if (customer.pricingModelId) {
-    return selectPricingModelWithProductsAndUsageMetersById(
-      customer.pricingModelId,
-      transaction
-    )
+    try {
+      return await selectPricingModelWithProductsAndUsageMetersById(
+        customer.pricingModelId,
+        transaction
+      )
+    } catch (error) {
+      // If the specific pricing model isn't found, fall back to default
+      if (!(error instanceof NotFoundError)) {
+        throw error
+      }
+    }
   }
 
   const defaultPricingModel = await selectDefaultPricingModel(

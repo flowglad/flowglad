@@ -2470,20 +2470,31 @@ export const setupProductFeature = async (
     organizationId: string
   }
 ) => {
-  return adminTransaction(async ({ transaction }) => {
-    const ctx = createTransactionEffectsContext(transaction, {
-      type: 'admin',
-      livemode: false,
-    })
-    return insertProductFeature(
-      {
-        livemode: true,
-        expiredAt: params.expiredAt ?? null,
-        ...params,
-      },
-      ctx
-    )
-  })
+  return adminTransaction(
+    async ({
+      transaction,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+      cacheRecomputationContext,
+    }) => {
+      return insertProductFeature(
+        {
+          livemode: params.livemode ?? true,
+          expiredAt: params.expiredAt ?? null,
+          ...params,
+        },
+        {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }
+      )
+    },
+    { livemode: params.livemode ?? false }
+  )
 }
 
 export const setupSubscriptionItemFeature = async (
