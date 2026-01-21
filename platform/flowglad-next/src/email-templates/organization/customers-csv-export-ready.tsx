@@ -1,7 +1,12 @@
 import { Img } from '@react-email/components'
 import * as React from 'react'
 import TestModeBanner from '../components/TestBanner'
-import { EmailLayout, Header, Paragraph } from '../components/themed'
+import {
+  EmailLayout,
+  Footer,
+  Header,
+  Paragraph,
+} from '../components/themed'
 
 export interface CustomersCsvExportReadyEmailProps {
   organizationName: string
@@ -32,6 +37,10 @@ export const CustomersCsvExportReadyEmail = ({
       <Paragraph variant="organization">
         The file is attached to this email and ready to download.
       </Paragraph>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }

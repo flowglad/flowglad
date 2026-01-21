@@ -276,7 +276,7 @@ Create a route handler to handle Flowglad API requests from your frontend. The S
       return (
         <html>
           <body>
-            <FlowgladProvider loadBilling={true}>
+            <FlowgladProvider>
               {children}
             </FlowgladProvider>
           </body>
@@ -292,7 +292,7 @@ Create a route handler to handle Flowglad API requests from your frontend. The S
 
     export default function App({ Component, pageProps }) {
       return (
-        <FlowgladProvider loadBilling={true}>
+        <FlowgladProvider>
           <Component {...pageProps} />
         </FlowgladProvider>
       )
@@ -306,7 +306,7 @@ Create a route handler to handle Flowglad API requests from your frontend. The S
 
     export default function App({ children }) {
       return (
-        <FlowgladProvider loadBilling={true}>
+        <FlowgladProvider>
           {children}
         </FlowgladProvider>
       )
@@ -386,5 +386,4 @@ Create a route handler to handle Flowglad API requests from your frontend. The S
     ```
   </Tab>
 </Tabs>
-
 

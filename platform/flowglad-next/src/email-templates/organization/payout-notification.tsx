@@ -1,7 +1,12 @@
 import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { EmailButton } from '../components/EmailButton'
-import { EmailLayout, Header, Paragraph } from '../components/themed'
+import {
+  EmailLayout,
+  Footer,
+  Header,
+  Paragraph,
+} from '../components/themed'
 
 interface PayoutNotificationEmailProps {
   organizationName: string
@@ -41,6 +46,10 @@ export const OrganizationOnboardingCompletedNotificationEmail = ({
           Contact Flowglad Team
         </EmailButton>
       </Section>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }

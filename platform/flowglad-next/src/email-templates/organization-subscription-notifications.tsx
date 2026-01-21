@@ -6,6 +6,7 @@ import {
   DetailItem,
   DetailSection,
   EmailLayout,
+  Footer,
   Header,
   Paragraph,
 } from './components/themed'
@@ -117,6 +118,10 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
       >
         {`You can manage this customer's subscription and access their information through your dashboard.`}
       </Paragraph>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }
@@ -196,6 +201,10 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
       >
         {`You can review this customer's history and manage their account through your dashboard.`}
       </Paragraph>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }
@@ -292,6 +301,10 @@ export const OrganizationSubscriptionCancellationScheduledNotificationEmail =
         >
           {`The subscription will remain active until the scheduled cancellation date. You can manage this customer's subscription through your dashboard.`}
         </Paragraph>
+        <Footer
+          organizationName={organizationName}
+          variant="organization"
+        />
       </EmailLayout>
     )
   }

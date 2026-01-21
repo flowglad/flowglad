@@ -39,7 +39,6 @@ export function PricingCardsGrid() {
     // Early return if billing isn't ready or has no pricing model
     if (
       !billing.loaded ||
-      !billing.loadBilling ||
       billing.errors ||
       !billing.pricingModel
     ) {
@@ -120,12 +119,8 @@ export function PricingCardsGrid() {
   }, [billing])
 
   // Early returns after all hooks to prevent type issues in the rest of the component
-  if (!billing.loaded || !billing.loadBilling) {
+  if (!billing.loaded || billing.errors || !billing.pricingModel) {
     return null // or loading skeleton
-  }
-
-  if (billing.errors) {
-    return null // or error message
   }
 
   const isPlanCurrent = (plan: PricingPlan): boolean => {
@@ -133,6 +128,9 @@ export function PricingCardsGrid() {
       !billing.currentSubscriptions ||
       billing.currentSubscriptions.length === 0
     ) {
+      return false
+    }
+    if (!billing.getPrice) {
       return false
     }
     const priceSlug = plan.slug

@@ -2,7 +2,12 @@ import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { emailBaseUrl } from '@/utils/core'
 import { EmailButton } from '../components/EmailButton'
-import { EmailLayout, Header, Paragraph } from '../components/themed'
+import {
+  EmailLayout,
+  Footer,
+  Header,
+  Paragraph,
+} from '../components/themed'
 
 interface OrganizationPayoutsEnabledNotificationEmailProps {
   organizationName: string
@@ -38,6 +43,10 @@ export const OrganizationPayoutsEnabledNotificationEmail = ({
       >
         <EmailButton href={dashboardLink}>View Dashboard</EmailButton>
       </Section>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }

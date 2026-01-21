@@ -2,7 +2,12 @@ import { Img, Section } from '@react-email/components'
 import * as React from 'react'
 import { emailBaseUrl } from '@/utils/core'
 import { EmailButton } from '../components/EmailButton'
-import { EmailLayout, Header, Paragraph } from '../components/themed'
+import {
+  EmailLayout,
+  Footer,
+  Header,
+  Paragraph,
+} from '../components/themed'
 
 export interface OrganizationInvitationEmailProps {
   organizationName: string
@@ -50,6 +55,10 @@ export const OrganizationInvitationEmail = ({
         If you did not expect this invitation, you can safely ignore
         this email.
       </Paragraph>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }

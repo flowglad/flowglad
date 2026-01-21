@@ -1,20 +1,18 @@
 import { logger, task } from '@trigger.dev/sdk'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Subscription } from '@/db/schema/subscriptions'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
-import core, { isNil } from '@/utils/core'
+import { isNil } from '@/utils/core'
 import {
   formatEmailSubject,
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
 const sendOrganizationSubscriptionCreatedNotificationTask = task({
@@ -37,31 +35,15 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
 
     const { organization, customer, usersAndMemberships } =
       await adminTransaction(async ({ transaction }) => {
-        const organization = await selectOrganizationById(
-          subscription.organizationId,
+        return buildNotificationContext(
+          {
+            organizationId: subscription.organizationId,
+            customerId: subscription.customerId,
+            include: ['usersAndMemberships'],
+          },
           transaction
         )
-        const customer = await selectCustomerById(
-          subscription.customerId,
-          transaction
-        )
-        const usersAndMemberships =
-          await selectMembershipsAndUsersByMembershipWhere(
-            {
-              organizationId: subscription.organizationId,
-            },
-            transaction
-          )
-        return {
-          organization,
-          customer,
-          usersAndMemberships,
-        }
       })
-
-    if (!organization || !customer) {
-      throw new Error('Organization or customer not found')
-    }
 
     const eligibleRecipients = filterEligibleRecipients(
       usersAndMemberships,
@@ -92,12 +74,15 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
       bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
-        `New Subscription: ${customer.name} subscribed to ${subscription.name}`,
+        `New Subscription: ${customer.name} subscribed to ${subscription.name ?? 'a plan'}`,
         subscription.livemode
       ),
-      react: OrganizationSubscriptionCreatedNotificationEmail({
+      /**
+       * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
+       */
+      react: await OrganizationSubscriptionCreatedNotificationEmail({
         organizationName: organization.name,
-        subscriptionName: subscription.name!,
+        subscriptionName: subscription.name ?? 'Unnamed subscription',
         customerId: customer.id,
         customerName: customer.name,
         customerEmail: customer.email,
