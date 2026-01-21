@@ -9,6 +9,7 @@ import {
   EMAIL_REGISTRY,
   type EmailType,
 } from '@/utils/email/registry'
+import { EmailPreviewContent } from './EmailPreviewContent'
 import { VariantSelector } from './VariantSelector'
 
 interface EmailPreviewPageProps {
@@ -103,29 +104,16 @@ export default async function EmailPreviewVariantPage({
 
       {/* Subject Preview - preserves email client appearance */}
       <div className="max-w-7xl mx-auto px-4 py-4">
-        <div className="bg-white rounded-lg shadow-sm border p-4 mb-4">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4 mb-4">
           <div className="text-sm text-gray-500 mb-1">Subject:</div>
           <div className="font-medium text-gray-900">{subject}</div>
         </div>
 
-        {/* Email Preview Frame - preserves email client appearance */}
-        <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
-          <div className="bg-gray-50 border-b px-4 py-2 flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-400" />
-            <div className="w-3 h-3 rounded-full bg-yellow-400" />
-            <div className="w-3 h-3 rounded-full bg-green-400" />
-            <span className="ml-2 text-sm text-gray-500">
-              Email Preview
-            </span>
-          </div>
-          <div className="p-0">
-            <iframe
-              srcDoc={emailHtml}
-              className="w-full min-h-[800px] border-0"
-              title={`Preview of ${emailType} - ${variant}`}
-            />
-          </div>
-        </div>
+        {/* Email Preview Frame with view toggle */}
+        <EmailPreviewContent
+          emailHtml={emailHtml}
+          title={`Preview of ${emailType} - ${variant}`}
+        />
       </div>
     </div>
   )
