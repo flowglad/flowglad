@@ -578,6 +578,15 @@ export const selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere =
   }
 
 /**
+ * Type guard to narrow Price.ClientRecord to Price.ClientUsageRecord.
+ */
+const isClientUsagePrice = (
+  price: Price.ClientRecord
+): price is Price.ClientUsageRecord => {
+  return price.type === PriceType.Usage
+}
+
+/**
  * Assembles a PricingModelWithProductsAndUsageMeters from cached atomic queries.
  * Each atom is cached independently with its own invalidation trigger.
  *
@@ -627,15 +636,12 @@ export const selectPricingModelWithProductsAndUsageMetersById =
       if (price.productId) {
         const existing = pricesByProductId.get(price.productId) ?? []
         pricesByProductId.set(price.productId, [...existing, price])
-      } else if (
-        price.usageMeterId &&
-        price.type === PriceType.Usage
-      ) {
+      } else if (price.usageMeterId && isClientUsagePrice(price)) {
         const existing =
           pricesByUsageMeterId.get(price.usageMeterId) ?? []
         pricesByUsageMeterId.set(price.usageMeterId, [
           ...existing,
-          price as Price.ClientUsageRecord,
+          price,
         ])
       }
     }

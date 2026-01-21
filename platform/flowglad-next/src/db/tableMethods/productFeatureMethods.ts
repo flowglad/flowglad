@@ -291,7 +291,10 @@ const baseBulkInsertProductFeatures = createBulkInsertFunction(
 
 export const bulkInsertProductFeatures = async (
   productFeatureInserts: ProductFeature.Insert[],
-  ctx: TransactionEffectsContext
+  ctx: Pick<
+    TransactionEffectsContext,
+    'transaction' | 'invalidateCache'
+  >
 ): Promise<ProductFeature.Record[]> => {
   const pricingModelIdMap = await pricingModelIdsForProducts(
     productFeatureInserts.map((insert) => insert.productId),
@@ -600,7 +603,7 @@ export const syncProductFeatures = async (
             organizationId: product.organizationId,
             livemode: product.livemode,
           })),
-          ctx as TransactionEffectsContext
+          ctx
         )
       : []
 
