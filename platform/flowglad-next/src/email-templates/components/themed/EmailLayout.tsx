@@ -8,15 +8,28 @@ import {
 import type * as React from 'react'
 import { BODY_FONT_FAMILY } from '../../styles/fontStyles'
 
-const main = {
-  backgroundColor: '#ffffff',
+/**
+ * Brand background color from globals.css:
+ * --background: hsl(51, 47%, 97%) → #FBFAF4 (cream)
+ */
+const main: React.CSSProperties = {
+  backgroundColor: '#FBFAF4',
   fontFamily: BODY_FONT_FAMILY,
 }
 
-const container = {
+/**
+ * Container with improved spacing based on industry best practices:
+ * - Narrower width (456px) for better readability
+ * - More vertical breathing room (40px top, 56px bottom)
+ * - Reduced side padding (16px) for better mobile responsiveness
+ */
+const container: React.CSSProperties = {
   margin: '0 auto',
-  padding: '20px 20px 48px',
-  width: '580px',
+  padding: '40px 16px 56px', // More vertical breathing room
+  width: '456px', // Narrower for better readability
+  maxWidth: '100%', // Responsive on mobile
+  borderLeft: '1px dashed #e5e3e0',
+  borderRight: '1px dashed #e5e3e0',
 }
 
 export const EmailLayout = ({

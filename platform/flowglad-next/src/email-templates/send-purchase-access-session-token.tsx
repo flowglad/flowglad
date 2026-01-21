@@ -107,8 +107,13 @@ const link = {
   color: '#FF6363',
 }
 
-const hr = {
+const hr: React.CSSProperties = {
   borderColor: '#dddddd',
+  borderTop: 'none',
+  borderLeft: 'none',
+  borderRight: 'none',
+  borderBottomWidth: '1px',
+  borderBottomStyle: 'dashed',
   marginTop: '48px',
 }
 

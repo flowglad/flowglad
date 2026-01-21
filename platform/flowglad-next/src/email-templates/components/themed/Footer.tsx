@@ -7,19 +7,30 @@ const footerStyle: React.CSSProperties = {
 }
 
 const dividerStyle: React.CSSProperties = {
-  borderColor: '#e6e6e6',
+  borderColor: '#e5e3e0', // --border from globals.css
+  borderTop: 'none',
+  borderLeft: 'none',
+  borderRight: 'none',
+  borderBottomWidth: '1px',
+  borderBottomStyle: 'dashed',
   margin: '0 0 24px 0',
 }
 
 const footerTextStyle: React.CSSProperties = {
-  color: '#666666',
+  color: '#666259', // --muted-foreground from globals.css
   fontSize: '12px',
   lineHeight: '20px',
   margin: '0 0 12px 0',
 }
 
+const morAttributionStyle: React.CSSProperties = {
+  ...footerTextStyle,
+  textAlign: 'center',
+  marginBottom: '16px',
+}
+
 const footerLinkStyle: React.CSSProperties = {
-  color: '#666666',
+  color: '#666259', // --muted-foreground from globals.css
   textDecoration: 'underline',
   marginRight: '16px',
 }
@@ -48,6 +59,8 @@ export interface FooterProps {
   showPoweredBy?: boolean
   /** Unsubscribe URL for marketing/promotional emails (CAN-SPAM compliance) */
   unsubscribeUrl?: string
+  /** Whether this is a Merchant of Record transaction - shows MoR attribution */
+  isMoR?: boolean
 }
 
 /**
@@ -55,15 +68,17 @@ export interface FooterProps {
  *
  * For customer-facing emails, shows organization attribution with optional "Powered by Flowglad".
  * For organization emails, shows Flowglad attribution.
+ * When isMoR is true, shows centered "Merchant of Record services provided to..." text.
  *
  * @example
  * ```tsx
- * // Customer email with billing portal link
+ * // Customer email with billing portal link and MoR attribution
  * <Footer
  *   organizationName="Acme Inc"
  *   variant="customer"
  *   billingPortalUrl="https://billing.acme.com"
  *   supportEmail="support@acme.com"
+ *   isMoR={true}
  * />
  *
  * // Organization email
@@ -81,6 +96,7 @@ export const Footer = ({
   links = [],
   showPoweredBy,
   unsubscribeUrl,
+  isMoR,
 }: FooterProps) => {
   // Default showPoweredBy to true for customer emails, false for organization
   const shouldShowPoweredBy = showPoweredBy ?? variant === 'customer'
@@ -107,6 +123,18 @@ export const Footer = ({
   return (
     <Section style={footerStyle} data-testid="email-footer">
       <Hr style={dividerStyle} data-testid="footer-divider" />
+
+      {/* MoR attribution - centered, above other footer content */}
+      {isMoR && variant === 'customer' && (
+        <Text
+          style={morAttributionStyle}
+          data-testid="mor-attribution"
+        >
+          Merchant of Record services provided to {organizationName}{' '}
+          by Flowglad
+        </Text>
+      )}
+
       <Text style={footerTextStyle} data-testid="footer-attribution">
         {attribution}
       </Text>
