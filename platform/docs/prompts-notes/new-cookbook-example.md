@@ -403,3 +403,5 @@ Common pricing models to document:
 - [ ] Total doc length is reasonable (aim for <200 lines of markdown)
 - [ ] Next steps CardGroup includes GitHub link to the specific example
 - [ ] All card href values are valid Mintlify paths (verified against docs.json)
+- [ ] Updated `guides/introduction.mdx` with a Card linking to the new guide under the appropriate framework section
+- [ ] Updated `guides/pricing-models.mdx` to add the framework link to the relevant pricing model section (e.g., `[Framework](/guides/framework/pricing-model)`)
