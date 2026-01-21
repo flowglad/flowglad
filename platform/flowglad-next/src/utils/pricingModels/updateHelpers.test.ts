@@ -6,6 +6,7 @@ import {
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
+import type { Price } from '@/db/schema/prices'
 import {
   selectProductFeatures,
   updateProductFeature,
@@ -20,6 +21,7 @@ import {
 import type { SetupPricingModelInput } from './setupSchemas'
 import { setupPricingModelTransaction } from './setupTransaction'
 import {
+  generateSyntheticUsagePriceSlug,
   resolveExistingIds,
   syncProductFeaturesForMultipleProducts,
 } from './updateHelpers'
@@ -398,6 +400,131 @@ describe('resolveExistingIds', () => {
     )
     expect(resolvedIds.resources.get('resource-b')).toBe(
       resourceB?.id
+    )
+  })
+
+  it('generates synthetic slugs for usage prices without real slugs and maps them to price IDs', async () => {
+    // Setup: create pricing model with usage meter prices that have NO explicit slug
+    const input: SetupPricingModelInput = {
+      name: 'Synthetic Slug Test Model',
+      isDefault: false,
+      usageMeters: [
+        {
+          usageMeter: {
+            slug: 'api-calls',
+            name: 'API Calls',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              // NO slug provided - should generate synthetic slug
+              unitPrice: 10,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageEventsPerUnit: 100,
+              trialPeriodDays: null,
+            },
+          ],
+        },
+        {
+          usageMeter: {
+            slug: 'storage',
+            name: 'Storage',
+          },
+          prices: [
+            {
+              type: PriceType.Usage,
+              // NO slug provided - should generate synthetic slug
+              unitPrice: 5,
+              isDefault: true,
+              active: true,
+              intervalCount: 1,
+              intervalUnit: IntervalUnit.Month,
+              usageEventsPerUnit: 50,
+              trialPeriodDays: null,
+            },
+          ],
+        },
+      ],
+      features: [],
+      products: [
+        {
+          product: {
+            name: 'Basic Plan',
+            slug: 'basic',
+            default: false,
+            active: true,
+          },
+          price: {
+            type: PriceType.Subscription,
+            slug: 'basic-monthly',
+            unitPrice: 999,
+            isDefault: true,
+            active: true,
+            intervalCount: 1,
+            intervalUnit: IntervalUnit.Month,
+            usageMeterId: null,
+            usageEventsPerUnit: null,
+          },
+          features: [],
+        },
+      ],
+    }
+
+    const setupResult = await adminTransaction(async (ctx) =>
+      (
+        await setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          ctx
+        )
+      ).unwrap()
+    )
+
+    // Test: resolve IDs
+    const resolvedIds = await adminTransaction(async (ctx) =>
+      resolveExistingIds(setupResult.pricingModel.id, ctx.transaction)
+    )
+
+    // Find the created usage prices (they should have null slugs in DB)
+    const usagePrices = setupResult.prices.filter(
+      (p): p is Price.UsageRecord => p.type === PriceType.Usage
+    )
+    const apiCallsPrice = usagePrices.find((p) => p.unitPrice === 10)
+    const storagePrice = usagePrices.find((p) => p.unitPrice === 5)
+
+    // Verify prices were created without slugs
+    // Use specific assertions to verify the price objects have expected properties
+    expect(apiCallsPrice?.unitPrice).toBe(10)
+    expect(storagePrice?.unitPrice).toBe(5)
+    expect(apiCallsPrice?.slug).toBeNull()
+    expect(storagePrice?.slug).toBeNull()
+
+    // Generate synthetic slugs using the same logic as diffing.ts
+    const apiCallsSyntheticSlug = generateSyntheticUsagePriceSlug(
+      apiCallsPrice!
+    )
+    const storageSyntheticSlug = generateSyntheticUsagePriceSlug(
+      storagePrice!
+    )
+
+    // Verify synthetic slugs are in the expected format
+    expect(apiCallsSyntheticSlug).toMatch(/^__generated__/)
+    expect(storageSyntheticSlug).toMatch(/^__generated__/)
+
+    // Verify resolveExistingIds maps synthetic slugs to price IDs
+    expect(resolvedIds.prices.has(apiCallsSyntheticSlug)).toBe(true)
+    expect(resolvedIds.prices.has(storageSyntheticSlug)).toBe(true)
+    expect(resolvedIds.prices.get(apiCallsSyntheticSlug)).toBe(
+      apiCallsPrice!.id
+    )
+    expect(resolvedIds.prices.get(storageSyntheticSlug)).toBe(
+      storagePrice!.id
     )
   })
 

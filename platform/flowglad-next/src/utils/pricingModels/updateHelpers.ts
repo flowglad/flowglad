@@ -26,6 +26,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { PriceType } from '@/types'
 
 /**
  * Maps of slugs to database IDs for all child entities of a pricing model.
@@ -35,12 +36,34 @@ export type ResolvedPricingModelIds = {
   features: Map<string, string>
   /** Product slug -> product ID */
   products: Map<string, string>
-  /** Price slug -> price ID */
+  /** Price slug -> price ID (includes synthetic slugs for prices without real slugs) */
   prices: Map<string, string>
   /** Usage meter slug -> usage meter ID */
   usageMeters: Map<string, string>
   /** Resource slug -> resource ID */
   resources: Map<string, string>
+}
+
+/**
+ * Generates a synthetic slug for a usage price that doesn't have a real slug.
+ *
+ * This function mirrors the logic in diffing.ts `getUsagePriceSlug` to ensure
+ * that the same synthetic slug is generated for both diffing and ID resolution.
+ *
+ * The synthetic slug is constructed from immutable price fields to ensure uniqueness
+ * and consistency. Mutable fields like `name` are intentionally excluded.
+ *
+ * @param price - A usage price record from the database
+ * @returns A synthetic slug string prefixed with `__generated__`
+ */
+export const generateSyntheticUsagePriceSlug = (
+  price: Price.UsageRecord
+): string => {
+  // Use the same format as diffing.ts getUsagePriceSlug
+  const currency = price.currency ?? 'USD'
+  const intervalCount = price.intervalCount ?? 1
+  const intervalUnit = price.intervalUnit ?? 'month'
+  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${intervalCount}_${intervalUnit}`
 }
 
 /**
@@ -106,8 +129,19 @@ export const resolveExistingIds = async (
   const priceMap = new Map<string, string>()
   for (const price of prices) {
     if (price.slug) {
+      // Map by real slug
       priceMap.set(price.slug, price.id)
+    } else if (price.type === PriceType.Usage) {
+      // For usage prices without slugs, generate a synthetic slug
+      // This mirrors the logic in diffing.ts to ensure consistent lookup
+      const syntheticSlug = generateSyntheticUsagePriceSlug(
+        price as Price.UsageRecord
+      )
+      priceMap.set(syntheticSlug, price.id)
     }
+    // Note: Product prices (Subscription/SinglePayment) without slugs
+    // are currently handled by the "silently skip" pattern in updateTransaction.
+    // If needed, synthetic slug generation could be added here for those too.
   }
 
   const usageMeterMap = new Map<string, string>()
