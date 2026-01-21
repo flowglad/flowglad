@@ -2,6 +2,7 @@ import { useFormContext } from 'react-hook-form'
 import { z } from 'zod'
 import {
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -30,7 +31,13 @@ export const customerSchema = z.object({
 
 export type CustomerFormValues = z.infer<typeof customerSchema>
 
-const CustomerFormFields = () => {
+interface CustomerFormFieldsProps {
+  showExternalId?: boolean
+}
+
+const CustomerFormFields = ({
+  showExternalId = false,
+}: CustomerFormFieldsProps) => {
   const form = useFormContext<{
     customer: Customer.ClientInsert
   }>()
@@ -63,6 +70,29 @@ const CustomerFormFields = () => {
           </FormItem>
         )}
       />
+      {showExternalId && (
+        <FormField
+          control={form.control}
+          name="customer.externalId"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>External ID</FormLabel>
+              <FormControl>
+                <Input
+                  placeholder="cust_abc123"
+                  {...field}
+                  value={field.value ?? ''}
+                />
+              </FormControl>
+              <FormDescription>
+                Your own identifier for this customer. If left blank,
+                one will be generated automatically.
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
     </div>
   )
 }
