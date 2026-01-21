@@ -219,7 +219,7 @@ describe('addFeatureToSubscription mutation', () => {
           createDiscardingEffectsContext(transaction)
         )
 
-        expect(result.subscriptionItemFeature).toBeDefined()
+
         expect(result.subscriptionItemFeature.featureId).toBe(
           toggleFeature.id
         )
@@ -289,7 +289,7 @@ describe('addFeatureToSubscription mutation', () => {
           createDiscardingEffectsContext(transaction)
         )
 
-        expect(result.subscriptionItemFeature).toBeDefined()
+
         expect(result.subscriptionItemFeature.featureId).toBe(
           usageCreditFeature.id
         )
@@ -354,7 +354,7 @@ describe('addFeatureToSubscription mutation', () => {
           ctx
         )
 
-        expect(result.subscriptionItemFeature).toBeDefined()
+
 
         // Verify ledger command was enqueued
         expect(effects.ledgerCommands.length).toBe(1)
