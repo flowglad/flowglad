@@ -118,10 +118,9 @@ describe('subscriptionStatusConfig', () => {
 
     expect(configuredStatuses).toHaveLength(allStatuses.length)
     for (const status of allStatuses) {
-      expect(subscriptionStatusConfig[status]).toMatchObject({
-        label: expect.any(String),
-        variant: expect.any(String),
-      })
+      const config = subscriptionStatusConfig[status]
+      expect(typeof config.label).toBe('string')
+      expect(typeof config.variant).toBe('string')
     }
   })
 })
@@ -199,10 +198,9 @@ describe('invoiceStatusConfig', () => {
 
     expect(configuredStatuses).toHaveLength(allStatuses.length)
     for (const status of allStatuses) {
-      expect(invoiceStatusConfig[status]).toMatchObject({
-        label: expect.any(String),
-        variant: expect.any(String),
-      })
+      const config = invoiceStatusConfig[status]
+      expect(typeof config.label).toBe('string')
+      expect(typeof config.variant).toBe('string')
     }
   })
 })
@@ -271,10 +269,9 @@ describe('paymentStatusConfig', () => {
 
     expect(configuredStatuses).toHaveLength(allStatuses.length)
     for (const status of allStatuses) {
-      expect(paymentStatusConfig[status]).toMatchObject({
-        label: expect.any(String),
-        variant: expect.any(String),
-      })
+      const config = paymentStatusConfig[status]
+      expect(typeof config.label).toBe('string')
+      expect(typeof config.variant).toBe('string')
     }
   })
 })
@@ -342,10 +339,9 @@ describe('purchaseStatusConfig', () => {
 
     expect(configuredStatuses).toHaveLength(allStatuses.length)
     for (const status of allStatuses) {
-      expect(purchaseStatusConfig[status]).toMatchObject({
-        label: expect.any(String),
-        variant: expect.any(String),
-      })
+      const config = purchaseStatusConfig[status]
+      expect(typeof config.label).toBe('string')
+      expect(typeof config.variant).toBe('string')
     }
   })
 })
@@ -362,19 +358,17 @@ describe('purchaseDisplayStatusConfig', () => {
       allDatabaseStatuses.length + 1
     )
 
-    // All database statuses should be present
+    // All database statuses should be present with required properties
     for (const status of allDatabaseStatuses) {
-      expect(purchaseDisplayStatusConfig[status]).toMatchObject({
-        label: expect.any(String),
-        variant: expect.any(String),
-      })
+      const config = purchaseDisplayStatusConfig[status]
+      expect(typeof config.label).toBe('string')
+      expect(typeof config.variant).toBe('string')
     }
 
-    // "concluded" should be present
-    expect(purchaseDisplayStatusConfig.concluded).toMatchObject({
-      label: expect.any(String),
-      variant: expect.any(String),
-    })
+    // "concluded" should be present with required properties
+    const concludedConfig = purchaseDisplayStatusConfig.concluded
+    expect(typeof concludedConfig.label).toBe('string')
+    expect(typeof concludedConfig.variant).toBe('string')
   })
 
   it('maps "concluded" to "muted" variant with CalendarCheck icon and appropriate tooltip', () => {
@@ -388,20 +382,23 @@ describe('purchaseDisplayStatusConfig', () => {
 })
 
 describe('getPurchaseDisplayStatus', () => {
-  // The function only needs endDate and status, so we use a minimal mock
+  // The function needs endDate, purchaseDate, and status
   const createMockPurchase = (overrides: {
     status: PurchaseStatus
     endDate: number | null
+    purchaseDate?: number | null
   }): Purchase.ClientRecord =>
     ({
       status: overrides.status,
       endDate: overrides.endDate,
+      purchaseDate: overrides.purchaseDate ?? null,
     }) as Purchase.ClientRecord
 
-  it('returns "concluded" when purchase has an endDate, regardless of database status', () => {
+  it('returns "concluded" when purchase has an endDate, regardless of database status or purchaseDate', () => {
     const purchase = createMockPurchase({
       status: PurchaseStatus.Paid,
       endDate: Date.now(),
+      purchaseDate: Date.now(),
     })
 
     const displayStatus = getPurchaseDisplayStatus(purchase)
@@ -409,10 +406,11 @@ describe('getPurchaseDisplayStatus', () => {
     expect(displayStatus).toBe('concluded')
   })
 
-  it('returns the database status when purchase has no endDate (status is Paid)', () => {
+  it('returns "paid" when purchase has a purchaseDate but no endDate, regardless of database status', () => {
     const purchase = createMockPurchase({
-      status: PurchaseStatus.Paid,
+      status: PurchaseStatus.Pending,
       endDate: null,
+      purchaseDate: Date.now(),
     })
 
     const displayStatus = getPurchaseDisplayStatus(purchase)
@@ -420,10 +418,23 @@ describe('getPurchaseDisplayStatus', () => {
     expect(displayStatus).toBe(PurchaseStatus.Paid)
   })
 
-  it('returns the database status when purchase has no endDate (status is Pending)', () => {
+  it('returns "paid" when purchaseDate exists even if database status is Open', () => {
+    const purchase = createMockPurchase({
+      status: PurchaseStatus.Open,
+      endDate: null,
+      purchaseDate: Date.now(),
+    })
+
+    const displayStatus = getPurchaseDisplayStatus(purchase)
+
+    expect(displayStatus).toBe(PurchaseStatus.Paid)
+  })
+
+  it('returns the database status when purchase has no endDate and no purchaseDate (status is Pending)', () => {
     const purchase = createMockPurchase({
       status: PurchaseStatus.Pending,
       endDate: null,
+      purchaseDate: null,
     })
 
     const displayStatus = getPurchaseDisplayStatus(purchase)
@@ -431,21 +442,35 @@ describe('getPurchaseDisplayStatus', () => {
     expect(displayStatus).toBe(PurchaseStatus.Pending)
   })
 
-  it('returns the database status when purchase has no endDate (status is Refunded)', () => {
+  it('returns the database status when purchase has no endDate and no purchaseDate (status is Open)', () => {
     const purchase = createMockPurchase({
-      status: PurchaseStatus.Refunded,
+      status: PurchaseStatus.Open,
       endDate: null,
+      purchaseDate: null,
     })
 
     const displayStatus = getPurchaseDisplayStatus(purchase)
 
-    expect(displayStatus).toBe(PurchaseStatus.Refunded)
+    expect(displayStatus).toBe(PurchaseStatus.Open)
+  })
+
+  it('returns the database status when purchase has no endDate and no purchaseDate (status is Failed)', () => {
+    const purchase = createMockPurchase({
+      status: PurchaseStatus.Failed,
+      endDate: null,
+      purchaseDate: null,
+    })
+
+    const displayStatus = getPurchaseDisplayStatus(purchase)
+
+    expect(displayStatus).toBe(PurchaseStatus.Failed)
   })
 
   it('returns "concluded" even when database status is Refunded if endDate exists', () => {
     const purchase = createMockPurchase({
       status: PurchaseStatus.Refunded,
       endDate: Date.now(),
+      purchaseDate: Date.now(),
     })
 
     const displayStatus = getPurchaseDisplayStatus(purchase)
@@ -477,10 +502,9 @@ describe('activeStatusConfig', () => {
 
     expect(configuredStatuses).toHaveLength(allStatuses.length)
     for (const status of allStatuses) {
-      expect(activeStatusConfig[status]).toMatchObject({
-        label: expect.any(String),
-        variant: expect.any(String),
-      })
+      const config = activeStatusConfig[status]
+      expect(typeof config.label).toBe('string')
+      expect(typeof config.variant).toBe('string')
     }
   })
 })

@@ -87,16 +87,23 @@ export const purchaseDisplayStatusConfig = {
 
 /**
  * Computes the display status for a purchase based on its lifecycle state.
- * - Returns 'concluded' if the purchase has an endDate
+ * Uses precedence: Concluded → Paid → database status
+ *
+ * - Returns 'concluded' if the purchase has an endDate (highest precedence)
+ * - Returns 'paid' if the purchase has a purchaseDate (payment confirmed)
  * - Otherwise returns the actual database status
  *
- * Use this with PurchaseDisplayStatusTag for consistent display in tables.
+ * This mirrors the purchaseDate-based logic used in PurchaseStatusCell
+ * to keep display and sorting/filtering consistent.
  */
 export const getPurchaseDisplayStatus = (
   purchase: Purchase.ClientRecord
 ): PurchaseDisplayStatus => {
   if (purchase.endDate) {
     return 'concluded'
+  }
+  if (purchase.purchaseDate) {
+    return PurchaseStatus.Paid
   }
   return purchase.status
 }
