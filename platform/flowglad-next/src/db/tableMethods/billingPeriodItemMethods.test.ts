@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { addDays, addMonths, subMonths } from 'date-fns'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -126,14 +126,19 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     expect(result[0].subscription.id).toBe(subscription.id)
     expect(result[0].billingPeriodItems.length).toBe(2)
 
-    // Verify the items are correctly associated
-    expect(result[0].billingPeriodItems[0].name).toBe('Test Item 1')
-    expect(result[0].billingPeriodItems[0].quantity).toBe(2)
-    expect(result[0].billingPeriodItems[0].unitPrice).toBe(100)
+    // Sort items by name to ensure deterministic ordering for assertions
+    const sortedItems = [...result[0].billingPeriodItems].sort(
+      (a, b) => a.name.localeCompare(b.name)
+    )
 
-    expect(result[0].billingPeriodItems[1].name).toBe('Test Item 2')
-    expect(result[0].billingPeriodItems[1].quantity).toBe(1)
-    expect(result[0].billingPeriodItems[1].unitPrice).toBe(50)
+    // Verify the items are correctly associated
+    expect(sortedItems[0].name).toBe('Test Item 1')
+    expect(sortedItems[0].quantity).toBe(2)
+    expect(sortedItems[0].unitPrice).toBe(100)
+
+    expect(sortedItems[1].name).toBe('Test Item 2')
+    expect(sortedItems[1].quantity).toBe(1)
+    expect(sortedItems[1].unitPrice).toBe(50)
   })
 
   it('should not return billing periods that do not overlap with the date range', async () => {
@@ -502,18 +507,23 @@ describe('selectBillingPeriodsWithItemsAndSubscriptionForDateRange', () => {
     expect(result[0].subscription.id).toBe(subscription.id)
     expect(result[0].billingPeriodItems.length).toBe(3)
 
+    // Sort items by name to ensure deterministic ordering for assertions
+    const sortedItems = [...result[0].billingPeriodItems].sort(
+      (a, b) => a.name.localeCompare(b.name)
+    )
+
     // Verify all items are correctly associated
-    expect(result[0].billingPeriodItems[0].name).toBe('Test Item 1')
-    expect(result[0].billingPeriodItems[0].quantity).toBe(1)
-    expect(result[0].billingPeriodItems[0].unitPrice).toBe(100)
+    expect(sortedItems[0].name).toBe('Test Item 1')
+    expect(sortedItems[0].quantity).toBe(1)
+    expect(sortedItems[0].unitPrice).toBe(100)
 
-    expect(result[0].billingPeriodItems[1].name).toBe('Test Item 2')
-    expect(result[0].billingPeriodItems[1].quantity).toBe(2)
-    expect(result[0].billingPeriodItems[1].unitPrice).toBe(50)
+    expect(sortedItems[1].name).toBe('Test Item 2')
+    expect(sortedItems[1].quantity).toBe(2)
+    expect(sortedItems[1].unitPrice).toBe(50)
 
-    expect(result[0].billingPeriodItems[2].name).toBe('Test Item 3')
-    expect(result[0].billingPeriodItems[2].quantity).toBe(3)
-    expect(result[0].billingPeriodItems[2].unitPrice).toBe(25)
+    expect(sortedItems[2].name).toBe('Test Item 3')
+    expect(sortedItems[2].quantity).toBe(3)
+    expect(sortedItems[2].unitPrice).toBe(25)
   })
 
   it('should handle billing periods with different subscription intervals', async () => {

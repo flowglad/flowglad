@@ -1,5 +1,6 @@
+import type { Mock } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import type Stripe from 'stripe'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCustomer,
   setupInvoice,
@@ -17,6 +18,31 @@ import {
   StripeConnectContractType,
 } from '@/types'
 import { nanoid } from '@/utils/core'
+
+// Import actual stripe module functions we want to keep
+import * as actualStripe from './stripe'
+
+// Create mocks for specific functions
+const mockRefundPayment = mock<typeof actualStripe.refundPayment>()
+const mockGetPaymentIntent =
+  mock<typeof actualStripe.getPaymentIntent>()
+const mockGetStripeCharge =
+  mock<typeof actualStripe.getStripeCharge>()
+const mockListRefundsForCharge =
+  mock<typeof actualStripe.listRefundsForCharge>()
+const mockReverseStripeTaxTransaction =
+  mock<typeof actualStripe.reverseStripeTaxTransaction>()
+
+// Mock the stripe utils
+mock.module('./stripe', () => ({
+  ...actualStripe,
+  refundPayment: mockRefundPayment,
+  getPaymentIntent: mockGetPaymentIntent,
+  getStripeCharge: mockGetStripeCharge,
+  listRefundsForCharge: mockListRefundsForCharge,
+  reverseStripeTaxTransaction: mockReverseStripeTaxTransaction,
+}))
+
 import {
   refundPaymentTransaction,
   sumNetTotalSettledPaymentsForPaymentSet,
@@ -54,18 +80,6 @@ const makeStripeRefundResponse = ({
     },
   }
 }
-// Mock the stripe utils
-vi.mock('./stripe', async () => {
-  const actual = await vi.importActual('./stripe')
-  return {
-    ...actual,
-    refundPayment: vi.fn(),
-    getPaymentIntent: vi.fn(),
-    getStripeCharge: vi.fn(),
-    listRefundsForCharge: vi.fn(),
-    reverseStripeTaxTransaction: vi.fn(),
-  }
-})
 
 describe('sumNetTotalSettledPaymentsForPaymentSet', () => {
   it('should sum only succeeded payments and refunded payments', () => {
@@ -213,7 +227,7 @@ describe('refundPaymentTransaction', () => {
   let payment: Payment.Record
 
   beforeEach(async () => {
-    vi.clearAllMocks()
+    mock.clearAllMocks()
 
     const setup = await setupOrg()
     organization = setup.organization
@@ -248,7 +262,7 @@ describe('refundPaymentTransaction', () => {
       const partialRefundAmount = 3000 // $30.00
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+      mockRefundPayment.mockResolvedValue(
         makeStripeRefundResponse({
           amount: partialRefundAmount,
           created: refundCreatedTimestamp,
@@ -281,7 +295,7 @@ describe('refundPaymentTransaction', () => {
       const fullRefundAmount = 10000 // $100.00 (full amount)
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+      mockRefundPayment.mockResolvedValue(
         makeStripeRefundResponse({
           amount: fullRefundAmount,
           created: refundCreatedTimestamp,
@@ -308,7 +322,7 @@ describe('refundPaymentTransaction', () => {
       const stripeRefundAmount = 3000 // Stripe confirms $30.00
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+      mockRefundPayment.mockResolvedValue(
         makeStripeRefundResponse({
           // This is what Stripe actually refunded
           amount: stripeRefundAmount,
@@ -331,7 +345,7 @@ describe('refundPaymentTransaction', () => {
     it('should correctly handle edge case where refund equals payment amount', async () => {
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+      mockRefundPayment.mockResolvedValue(
         makeStripeRefundResponse({
           // Exact match
           amount: payment.amount,
@@ -358,7 +372,7 @@ describe('refundPaymentTransaction', () => {
       const secondRefundCreatedTimestamp =
         firstRefundCreatedTimestamp + 10
 
-      vi.mocked(stripeUtils.refundPayment)
+      mockRefundPayment
         .mockResolvedValueOnce(
           makeStripeRefundResponse({
             amount: 3000,
@@ -524,16 +538,14 @@ describe('refundPaymentTransaction', () => {
         taxAmount: 800,
       })
 
-      vi.mocked(
-        stripeUtils.reverseStripeTaxTransaction
-      ).mockResolvedValue(null)
+      mockReverseStripeTaxTransaction.mockResolvedValue(null)
     })
 
     it('calls reverseStripeTaxTransaction with mode: full on full refund for MOR organization', async () => {
       const fullRefundAmount = 10800
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+      mockRefundPayment.mockResolvedValue(
         makeStripeRefundResponse({
           amount: fullRefundAmount,
           created: refundCreatedTimestamp,
@@ -563,7 +575,7 @@ describe('refundPaymentTransaction', () => {
       const partialRefundAmount = 5000
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+      mockRefundPayment.mockResolvedValue(
         makeStripeRefundResponse({
           amount: partialRefundAmount,
           created: refundCreatedTimestamp,
@@ -597,16 +609,16 @@ describe('refundPaymentTransaction', () => {
       const fullRefundAmount = 10800
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+      mockRefundPayment.mockResolvedValue(
         makeStripeRefundResponse({
           amount: fullRefundAmount,
           created: refundCreatedTimestamp,
         })
       )
 
-      vi.mocked(
-        stripeUtils.reverseStripeTaxTransaction
-      ).mockRejectedValue(new Error('Stripe API error'))
+      mockReverseStripeTaxTransaction.mockRejectedValue(
+        new Error('Stripe API error')
+      )
 
       await adminTransaction(async ({ transaction }) => {
         const updatedPayment = await refundPaymentTransaction(
@@ -638,7 +650,7 @@ describe('refundPaymentTransaction', () => {
 
       const refundCreatedTimestamp = Math.floor(Date.now() / 1000)
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+      mockRefundPayment.mockResolvedValue(
         makeStripeRefundResponse({
           amount: 10000,
           created: refundCreatedTimestamp,
@@ -678,7 +690,7 @@ describe('refundPaymentTransaction', () => {
         stripeTaxTransactionId: `tax_txn_${nanoid()}`,
       })
 
-      vi.mocked(stripeUtils.refundPayment).mockResolvedValue(
+      mockRefundPayment.mockResolvedValue(
         makeStripeRefundResponse({
           amount: 10000,
           created: refundCreatedTimestamp,

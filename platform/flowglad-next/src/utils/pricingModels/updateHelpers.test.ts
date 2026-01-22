@@ -1,5 +1,5 @@
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
   adminTransaction,
@@ -1213,7 +1213,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Verify feature-b was removed (expired)
     expect(removeResult.removed.length).toBe(1)
     expect(removeResult.removed[0].featureId).toBe(
-      featureSlugToIdMap.get('feature-b')
+      featureSlugToIdMap.get('feature-b')!
     )
     expect(typeof removeResult.removed[0].expiredAt).toBe('number')
 
@@ -1241,7 +1241,7 @@ describe('syncProductFeaturesForMultipleProducts', () => {
     // Verify feature-b was added back (unexpired)
     expect(reAddResult.added.length).toBe(1)
     expect(reAddResult.added[0].featureId).toBe(
-      featureSlugToIdMap.get('feature-b')
+      featureSlugToIdMap.get('feature-b')!
     )
     expect(reAddResult.added[0].expiredAt).toBeNull()
     expect(reAddResult.removed.length).toBe(0)

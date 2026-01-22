@@ -1,56 +1,50 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { CurrencyCode } from '@/types'
+import actualCore from '@/utils/core'
+
+// Import actual modules before mocking
+import * as actualEmail from '@/utils/email'
 import { EMAIL_REGISTRY } from './registry'
+
+// Mock the email module to control network calls
+const mockResponse = {
+  data: { id: 'mock-email-id' },
+  error: null,
+} as const
+
+const mockSafeSend = mock<typeof actualEmail.safeSend>()
+const mockEnvVariable = mock<typeof actualCore.envVariable>()
+
+mock.module('@/utils/email', () => ({
+  ...actualEmail,
+  safeSend: mockSafeSend,
+}))
+
+mock.module('@/utils/core', () => ({
+  ...actualCore,
+  default: {
+    ...actualCore,
+    envVariable: mockEnvVariable,
+  },
+}))
+
 import {
   getDefaultSubject,
   getEmailConfig,
   sendEmail,
 } from './sendEmail'
 
-// Mock the email module to control network calls
-// Use vi.hoisted() to ensure the mock is available when vi.mock is hoisted
-const mockResponse = {
-  data: { id: 'mock-email-id' },
-  error: null,
-} as const
-
-const { mockSafeSend, mockEnvVariable } = vi.hoisted(() => ({
-  mockSafeSend: vi.fn(),
-  mockEnvVariable: vi.fn(),
-}))
-
-vi.mock('@/utils/email', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@/utils/email')>()
-  return {
-    ...original,
-    safeSend: mockSafeSend,
-  }
-})
-
-vi.mock('@/utils/core', async (importOriginal) => {
-  const original =
-    await importOriginal<typeof import('@/utils/core')>()
-  return {
-    ...original,
-    default: {
-      ...original.default,
-      envVariable: mockEnvVariable,
-    },
-  }
-})
-
 beforeEach(() => {
   mockSafeSend.mockClear()
   mockSafeSend.mockResolvedValue(mockResponse)
   mockEnvVariable.mockClear()
   // Default: return test email for DEV_EMAIL_REDIRECT, undefined for others
-  mockEnvVariable.mockImplementation((key: string) => {
+  mockEnvVariable.mockImplementation(((key: string) => {
     if (key === 'DEV_EMAIL_REDIRECT') {
       return 'test-redirect@flowglad.com'
     }
     return undefined
-  })
+  }) as any)
 })
 
 describe('sendEmail', () => {

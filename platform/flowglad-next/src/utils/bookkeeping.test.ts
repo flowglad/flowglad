@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupInvoice,
@@ -888,10 +888,10 @@ describe('createCustomerBookkeeping', () => {
       )
       expect(billingPeriods).toHaveLength(1)
       expect(billingPeriods[0].startDate).toEqual(
-        subscription.currentBillingPeriodStart
+        subscription.currentBillingPeriodStart!
       )
       expect(billingPeriods[0].endDate).toEqual(
-        subscription.currentBillingPeriodEnd
+        subscription.currentBillingPeriodEnd!
       )
     })
 
@@ -2186,16 +2186,16 @@ describe('createFreePlanPriceInsert', () => {
         defaultCurrency
       )
 
-      // Check that all required fields are present
-      expect(result.productId).toMatchObject({})
-      expect(result.unitPrice).toMatchObject({})
-      expect(result.isDefault).toMatchObject({})
-      expect(result.type).toMatchObject({})
-      expect(result.currency).toMatchObject({})
-      expect(result.livemode).toMatchObject({})
-      expect(result.active).toMatchObject({})
-      expect(result.name).toMatchObject({})
-      expect(result.slug).toMatchObject({})
+      // Check that all required fields have expected values
+      expect(result.productId).toBe(defaultProduct.id)
+      expect(result.unitPrice).toBe(0)
+      expect(result.isDefault).toBe(true)
+      expect(result.type).toBe(PriceType.SinglePayment)
+      expect(result.currency).toBe(defaultCurrency)
+      expect(result.livemode).toBe(defaultProduct.livemode)
+      expect(result.active).toBe(true)
+      expect(result.name).toBe('Free Plan')
+      expect(result.slug).toBe('free')
     })
 
     it('should return a valid Price.Insert object for subscription', () => {
@@ -2205,18 +2205,18 @@ describe('createFreePlanPriceInsert', () => {
         IntervalUnit.Month
       )
 
-      // Check that all required fields are present
-      expect(result.productId).toMatchObject({})
-      expect(result.unitPrice).toMatchObject({})
-      expect(result.isDefault).toMatchObject({})
-      expect(result.type).toMatchObject({})
-      expect(result.currency).toMatchObject({})
-      expect(result.livemode).toMatchObject({})
-      expect(result.active).toMatchObject({})
-      expect(result.name).toMatchObject({})
-      expect(result.slug).toMatchObject({})
-      expect(result.intervalUnit).toMatchObject({})
-      expect(result.intervalCount).toMatchObject({})
+      // Check that all required fields have expected values
+      expect(result.productId).toBe(defaultProduct.id)
+      expect(result.unitPrice).toBe(0)
+      expect(result.isDefault).toBe(true)
+      expect(result.type).toBe(PriceType.Subscription)
+      expect(result.currency).toBe(defaultCurrency)
+      expect(result.livemode).toBe(defaultProduct.livemode)
+      expect(result.active).toBe(true)
+      expect(result.name).toBe('Free Plan')
+      expect(result.slug).toBe('free')
+      expect(result.intervalUnit).toBe(IntervalUnit.Month)
+      expect(result.intervalCount).toBe(1)
     })
   })
 })

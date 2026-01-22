@@ -1,8 +1,8 @@
-import { vi } from 'vitest'
+import { mock } from 'bun:test'
 
 // Create a base task mock factory
 const createTaskMock = (taskName: string) => ({
-  trigger: vi.fn().mockResolvedValue(undefined),
+  trigger: mock(async () => undefined as void),
   taskName,
 })
 

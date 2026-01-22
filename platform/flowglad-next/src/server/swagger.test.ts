@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   PRICE_ID_DESCRIPTION,
   PRICE_SLUG_DESCRIPTION,
@@ -235,8 +235,8 @@ describe('Swagger Configuration', () => {
       //   expect(openApiDoc.servers?.[0]?.url).toBe(
       //     'https://app.flowglad.com'
       //   )
-      //   expect(openApiDoc.security).toBeDefined()
-      //   expect(openApiDoc.security?.[0].ApiKeyAuth).toBeDefined()
+      //   expect(openApiDoc.security).toMatchObject({})
+      //   expect(openApiDoc.security?.[0].ApiKeyAuth).toMatchObject({})
     })
 
     // it('should have valid security scheme configuration', () => {

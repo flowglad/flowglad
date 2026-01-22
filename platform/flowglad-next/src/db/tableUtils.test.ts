@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { and as drizzleAnd, eq, inArray, or, sql } from 'drizzle-orm'
 import { boolean, integer, pgTable, text } from 'drizzle-orm/pg-core'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -135,7 +135,7 @@ describe('createCursorPaginatedSelectFunction', () => {
     })
     expect(result.items.length).toBe(0)
     expect(result.hasNextPage).toBe(false)
-    expect(result.endCursor).toMatchObject({})
+    expect(result.endCursor).toBeNull()
   })
 
   it('should maintain correct order by creation date (newest first)', async () => {
@@ -447,8 +447,8 @@ describe('createCursorPaginatedSelectFunction', () => {
     expect(result.items.length).toBe(5)
     expect(result.hasNextPage).toBe(false)
     expect(result.hasPreviousPage).toBe(true)
-    expect(result.startCursor).toMatchObject({})
-    expect(result.endCursor).toMatchObject({})
+    expect(result.startCursor).toEqual(expect.any(String))
+    expect(result.endCursor).toEqual(expect.any(String))
     expect(result.total).toBe(15)
   })
 

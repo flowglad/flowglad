@@ -4,7 +4,7 @@
  * Tests the framework itself with simple mock dependencies.
  */
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it } from 'bun:test'
 import {
   behaviorTest,
   clearImplementations,

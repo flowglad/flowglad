@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -318,7 +318,7 @@ describe('Subscription Billing Period Transition', async () => {
       // And a billing run was created with scheduledFor equal to the new period's start date
       expect(typeof newBillingRun).toBe('object')
       expect(newBillingRun?.scheduledFor).toEqual(
-        updatedSub.currentBillingPeriodStart
+        updatedSub.currentBillingPeriodStart!
       )
     })
   })
@@ -889,8 +889,8 @@ describe('Ledger Interactions', () => {
             le.amount === grantAmount
         )
 
-        expect(creditEntry).toMatchObject({})
-        expect(creditEntry?.ledgerTransactionId).toMatchObject({})
+        expect(typeof creditEntry).toBe('object')
+        expect(typeof creditEntry?.ledgerTransactionId).toBe('string')
 
         const balance =
           await aggregateBalanceForLedgerAccountFromEntries(
@@ -1395,10 +1395,10 @@ describe('Ledger Interactions', () => {
         )
         expect(usageCredits.length).toBe(1)
         const newCredit = usageCredits[0]
-        expect(newCredit).toMatchObject({})
+        expect(typeof newCredit).toBe('object')
         expect(newCredit.issuedAmount).toBe(everyGrantAmount)
         expect(newCredit.usageMeterId).toBe(otherUsageMeter.id)
-        expect(newCredit.expiresAt).toMatchObject({}) // Recurring grants should expire
+        expect(typeof newCredit.expiresAt).toBe('number') // Recurring grants should expire
 
         // Verify balances
         const balanceForOnceMeter =

@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -170,10 +170,12 @@ describe('Single Free Subscription Constraint', () => {
           transaction
         )
 
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should succeed
+        const result = await verifyCanCreateSubscription(
+          params,
+          transaction
+        )
+        expect(Result.isOk(result)).toBe(true)
       })
     })
 
@@ -208,10 +210,12 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should succeed
+        const result = await verifyCanCreateSubscription(
+          params,
+          transaction
+        )
+        expect(Result.isOk(result)).toBe(true)
       })
     })
 
@@ -264,10 +268,12 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should succeed
+        const result = await verifyCanCreateSubscription(
+          params,
+          transaction
+        )
+        expect(Result.isOk(result)).toBe(true)
       })
     })
   })
