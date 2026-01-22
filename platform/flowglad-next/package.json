@@ -217,6 +217,7 @@
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@trigger.dev/build": "4.3.2",
     "@types/bcrypt": "^5.0.2",
     "@types/bignumber.js": "^5.0.4",

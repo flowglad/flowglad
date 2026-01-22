@@ -3,10 +3,14 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
-import { PurchaseStatusTag } from '@/components/ui/status-tag'
+import {
+  getPurchaseDisplayStatus,
+  type PurchaseDisplayStatus,
+  PurchaseDisplayStatusTag,
+} from '@/components/ui/status-tag'
 import type { Customer } from '@/db/schema/customers'
 import type { Purchase } from '@/db/schema/purchases'
-import { CurrencyCode, PurchaseStatus } from '@/types'
+import { CurrencyCode } from '@/types'
 import { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
@@ -52,15 +56,15 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
   },
   {
     id: 'status',
-    accessorFn: (row) => row.purchase.status,
+    accessorFn: (row) => getPurchaseDisplayStatus(row.purchase),
     header: 'Status',
     size: 110,
     minSize: 110,
     maxSize: 130,
     cell: ({ row }) => {
-      const status = row.getValue('status') as PurchaseStatus
+      const status = row.getValue('status') as PurchaseDisplayStatus
       return (
-        <PurchaseStatusTag
+        <PurchaseDisplayStatusTag
           status={status}
           showTooltip
           tooltipVariant="muted"

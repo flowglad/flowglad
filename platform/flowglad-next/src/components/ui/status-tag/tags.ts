@@ -2,6 +2,7 @@ import {
   activeStatusConfig,
   invoiceStatusConfig,
   paymentStatusConfig,
+  purchaseDisplayStatusConfig,
   purchaseStatusConfig,
   subscriptionStatusConfig,
 } from './configs'
@@ -37,13 +38,26 @@ export const InvoiceStatusTag = createStatusTag(invoiceStatusConfig)
 export const PaymentStatusTag = createStatusTag(paymentStatusConfig)
 
 /**
- * Pre-built status tag for purchase statuses.
+ * Pre-built status tag for purchase statuses (database values only).
  *
  * @example
  * <PurchaseStatusTag status={purchase.status} />
  * <PurchaseStatusTag status={purchase.status} showTooltip />
  */
 export const PurchaseStatusTag = createStatusTag(purchaseStatusConfig)
+
+/**
+ * Pre-built status tag for purchase display statuses.
+ * Includes the derived "Concluded" status for purchases with an endDate.
+ * Use with `getPurchaseDisplayStatus()` helper for table displays.
+ *
+ * @example
+ * import { PurchaseDisplayStatusTag, getPurchaseDisplayStatus } from '@/components/ui/status-tag'
+ * <PurchaseDisplayStatusTag status={getPurchaseDisplayStatus(purchase)} />
+ */
+export const PurchaseDisplayStatusTag = createStatusTag(
+  purchaseDisplayStatusConfig
+)
 
 /**
  * Pre-built status tag for boolean active/inactive statuses.
@@ -55,5 +69,6 @@ export const PurchaseStatusTag = createStatusTag(purchaseStatusConfig)
  */
 export const ActiveStatusTag = createStatusTag(activeStatusConfig)
 
-// Re-export helper for convenience
+// Re-export helpers for convenience
 export { booleanToActiveStatus } from './configs/active'
+export { getPurchaseDisplayStatus } from './configs/purchase'

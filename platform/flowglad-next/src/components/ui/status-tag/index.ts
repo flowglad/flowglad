@@ -4,8 +4,11 @@ export { statusConfigToPageHeaderBadge } from './adapters/pageHeader'
 export {
   type ActiveStatus,
   activeStatusConfig,
+  getPurchaseDisplayStatus,
   invoiceStatusConfig,
+  type PurchaseDisplayStatus,
   paymentStatusConfig,
+  purchaseDisplayStatusConfig,
   purchaseStatusConfig,
   subscriptionStatusConfig,
 } from './configs'
@@ -18,6 +21,7 @@ export {
   booleanToActiveStatus,
   InvoiceStatusTag,
   PaymentStatusTag,
+  PurchaseDisplayStatusTag,
   PurchaseStatusTag,
   SubscriptionStatusTag,
 } from './tags'

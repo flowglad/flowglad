@@ -1,4 +1,5 @@
 import {
+  CalendarCheck,
   Check,
   Clock,
   FileText,
@@ -7,6 +8,7 @@ import {
   ShieldAlert,
   XCircle,
 } from 'lucide-react'
+import type { Purchase } from '@/db/schema/purchases'
 import { PurchaseStatus } from '@/types'
 import type { StatusConfigItem } from '../types'
 
@@ -61,3 +63,40 @@ export const purchaseStatusConfig = {
       'Flagged as potentially fraudulent. Review recommended before taking action.',
   },
 } satisfies Record<PurchaseStatus, StatusConfigItem>
+
+/**
+ * Display status for purchases that includes both database statuses
+ * and the derived "Concluded" status (for purchases with an endDate).
+ */
+export type PurchaseDisplayStatus = PurchaseStatus | 'concluded'
+
+/**
+ * Extended config that includes the "Concluded" display status.
+ * Use this with PurchaseDisplayStatusTag for table displays.
+ */
+export const purchaseDisplayStatusConfig = {
+  ...purchaseStatusConfig,
+  concluded: {
+    label: 'Concluded',
+    variant: 'muted',
+    icon: CalendarCheck,
+    tooltip:
+      'Purchase period has ended. The subscription or access term is complete.',
+  },
+} satisfies Record<PurchaseDisplayStatus, StatusConfigItem>
+
+/**
+ * Computes the display status for a purchase based on its lifecycle state.
+ * - Returns 'concluded' if the purchase has an endDate
+ * - Otherwise returns the actual database status
+ *
+ * Use this with PurchaseDisplayStatusTag for consistent display in tables.
+ */
+export const getPurchaseDisplayStatus = (
+  purchase: Purchase.ClientRecord
+): PurchaseDisplayStatus => {
+  if (purchase.endDate) {
+    return 'concluded'
+  }
+  return purchase.status
+}

@@ -1,12 +1,8 @@
 /**
  * @vitest-environment jsdom
  */
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { createStatusTag } from './createStatusTag'
@@ -34,19 +30,19 @@ function XIcon({ className }: { className?: string }) {
 const testConfig = {
   active: {
     label: 'Active',
-    variant: 'success' as const,
+    variant: 'success',
     icon: CheckIcon,
     tooltip: 'This is active',
   },
   pending: {
     label: 'Pending',
-    variant: 'warning' as const,
+    variant: 'warning',
     tooltip: 'This is pending',
     // No icon defined
   },
   canceled: {
     label: 'Canceled',
-    variant: 'muted' as const,
+    variant: 'muted',
     icon: XIcon,
     // No tooltip defined
   },
@@ -148,6 +144,7 @@ describe('StatusTag', () => {
     })
 
     it('renders tooltip content when showTooltip is true and user hovers', async () => {
+      const user = userEvent.setup()
       render(
         <TooltipProvider delayDuration={0}>
           <StatusTag
@@ -159,14 +156,17 @@ describe('StatusTag', () => {
       )
 
       const badge = screen.getByRole('status')
-      fireEvent.mouseEnter(badge)
+      await user.hover(badge)
 
       await waitFor(() => {
-        expect(screen.getByText('This is active')).toBeInTheDocument()
+        // Radix UI renders tooltip text in multiple places (visible content + accessible hidden span)
+        const tooltipElements = screen.getAllByText('This is active')
+        expect(tooltipElements.length).toBeGreaterThan(0)
       })
     })
 
     it('does not render tooltip when showTooltip is true but config has no tooltip', async () => {
+      const user = userEvent.setup()
       render(
         <TooltipProvider delayDuration={0}>
           <StatusTag
@@ -178,7 +178,7 @@ describe('StatusTag', () => {
       )
 
       const badge = screen.getByRole('status')
-      fireEvent.mouseEnter(badge)
+      await user.hover(badge)
 
       // Badge should still render, but no tooltip content
       expect(badge).toHaveTextContent('Canceled')
@@ -189,6 +189,7 @@ describe('StatusTag', () => {
     })
 
     it('overrides tooltip text when tooltip prop is provided', async () => {
+      const user = userEvent.setup()
       render(
         <TooltipProvider delayDuration={0}>
           <StatusTag
@@ -201,14 +202,15 @@ describe('StatusTag', () => {
       )
 
       const badge = screen.getByRole('status')
-      fireEvent.mouseEnter(badge)
+      await user.hover(badge)
 
       await waitFor(() => {
-        expect(screen.getByText('Custom tooltip')).toBeInTheDocument()
+        // Radix UI renders tooltip text in multiple places (visible content + accessible hidden span)
+        const tooltipElements = screen.getAllByText('Custom tooltip')
+        expect(tooltipElements.length).toBeGreaterThan(0)
       })
-      expect(
-        screen.queryByText('This is active')
-      ).not.toBeInTheDocument()
+      // Original tooltip text should not appear
+      expect(screen.queryAllByText('This is active')).toHaveLength(0)
     })
 
     it('adds tabIndex={0} for keyboard accessibility when showTooltip is true', () => {

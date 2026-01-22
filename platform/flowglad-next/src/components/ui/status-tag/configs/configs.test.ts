@@ -1,4 +1,21 @@
+import {
+  AlertCircle,
+  AlertTriangle,
+  CalendarCheck,
+  Check,
+  Clock,
+  FilePenLine,
+  FileText,
+  FileX,
+  PauseCircle,
+  RefreshCcw,
+  RefreshCw,
+  ShieldAlert,
+  X,
+  XCircle,
+} from 'lucide-react'
 import { describe, expect, it } from 'vitest'
+import type { Purchase } from '@/db/schema/purchases'
 import {
   InvoiceStatus,
   PaymentStatus,
@@ -8,7 +25,11 @@ import {
 import { type ActiveStatus, activeStatusConfig } from './active'
 import { invoiceStatusConfig } from './invoice'
 import { paymentStatusConfig } from './payment'
-import { purchaseStatusConfig } from './purchase'
+import {
+  getPurchaseDisplayStatus,
+  purchaseDisplayStatusConfig,
+  purchaseStatusConfig,
+} from './purchase'
 import { subscriptionStatusConfig } from './subscription'
 
 describe('subscriptionStatusConfig', () => {
@@ -17,7 +38,7 @@ describe('subscriptionStatusConfig', () => {
 
     expect(config.label).toBe('Active')
     expect(config.variant).toBe('success')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(Check)
     expect(config.tooltip).toContain('active')
   })
 
@@ -27,7 +48,7 @@ describe('subscriptionStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Canceled')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(X)
     expect(config.tooltip).toContain('terminated')
     expect(config.tooltip).toContain('no longer has access')
   })
@@ -38,7 +59,7 @@ describe('subscriptionStatusConfig', () => {
 
     expect(config.variant).toBe('destructive')
     expect(config.label).toBe('Past Due')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(AlertCircle)
     expect(config.tooltip).toContain('failed')
   })
 
@@ -48,7 +69,7 @@ describe('subscriptionStatusConfig', () => {
 
     expect(config.variant).toBe('info')
     expect(config.label).toBe('Trialing')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(Clock)
     expect(config.tooltip).toContain('trial')
   })
 
@@ -60,6 +81,7 @@ describe('subscriptionStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Cancellation Scheduled')
+    expect(config.icon).toBe(Clock)
     expect(config.tooltip).toContain('cancellation')
     expect(config.tooltip).toContain('Full access continues')
   })
@@ -70,7 +92,7 @@ describe('subscriptionStatusConfig', () => {
 
     expect(config.variant).toBe('warning')
     expect(config.label).toBe('Incomplete')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(AlertTriangle)
   })
 
   it('maps SubscriptionStatus.IncompleteExpired to "muted" variant with XCircle icon', () => {
@@ -79,7 +101,7 @@ describe('subscriptionStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Incomplete Expired')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(XCircle)
   })
 
   it('maps SubscriptionStatus.Paused to "amethyst" variant with PauseCircle icon', () => {
@@ -87,7 +109,7 @@ describe('subscriptionStatusConfig', () => {
 
     expect(config.variant).toBe('amethyst')
     expect(config.label).toBe('Paused')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(PauseCircle)
   })
 
   it('covers all SubscriptionStatus enum values', () => {
@@ -110,7 +132,7 @@ describe('invoiceStatusConfig', () => {
 
     expect(config.variant).toBe('success')
     expect(config.label).toBe('Paid')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(Check)
   })
 
   it('maps InvoiceStatus.AwaitingPaymentConfirmation to "info" variant with Clock icon', () => {
@@ -119,7 +141,7 @@ describe('invoiceStatusConfig', () => {
 
     expect(config.variant).toBe('info')
     expect(config.label).toBe('Confirming')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(Clock)
   })
 
   it('maps InvoiceStatus.Void to "muted" variant with FileX icon (terminal state)', () => {
@@ -127,7 +149,7 @@ describe('invoiceStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Void')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(FileX)
   })
 
   it('maps InvoiceStatus.Draft to "muted" variant with FilePenLine icon', () => {
@@ -135,7 +157,7 @@ describe('invoiceStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Draft')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(FilePenLine)
   })
 
   it('maps InvoiceStatus.Open to "info" variant with FileText icon', () => {
@@ -143,7 +165,7 @@ describe('invoiceStatusConfig', () => {
 
     expect(config.variant).toBe('info')
     expect(config.label).toBe('Open')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(FileText)
   })
 
   it('maps InvoiceStatus.Uncollectible to "destructive" variant with XCircle icon', () => {
@@ -151,7 +173,7 @@ describe('invoiceStatusConfig', () => {
 
     expect(config.variant).toBe('destructive')
     expect(config.label).toBe('Uncollectible')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(XCircle)
   })
 
   it('maps InvoiceStatus.FullyRefunded to "muted" variant with RefreshCcw icon', () => {
@@ -159,7 +181,7 @@ describe('invoiceStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Refunded')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(RefreshCcw)
   })
 
   it('maps InvoiceStatus.PartiallyRefunded to "warning" variant with RefreshCw icon', () => {
@@ -168,7 +190,7 @@ describe('invoiceStatusConfig', () => {
 
     expect(config.variant).toBe('warning')
     expect(config.label).toBe('Partial Refund')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(RefreshCw)
   })
 
   it('covers all InvoiceStatus enum values', () => {
@@ -191,7 +213,7 @@ describe('paymentStatusConfig', () => {
 
     expect(config.variant).toBe('success')
     expect(config.label).toBe('Succeeded')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(Check)
   })
 
   it('maps PaymentStatus.RequiresAction to "warning" variant with AlertTriangle icon', () => {
@@ -199,7 +221,7 @@ describe('paymentStatusConfig', () => {
 
     expect(config.variant).toBe('warning')
     expect(config.label).toBe('Action Required')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(AlertTriangle)
   })
 
   it('maps PaymentStatus.Failed to "destructive" variant with XCircle icon', () => {
@@ -207,7 +229,7 @@ describe('paymentStatusConfig', () => {
 
     expect(config.variant).toBe('destructive')
     expect(config.label).toBe('Failed')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(XCircle)
   })
 
   it('maps PaymentStatus.Processing to "info" variant with Clock icon', () => {
@@ -215,7 +237,7 @@ describe('paymentStatusConfig', () => {
 
     expect(config.variant).toBe('info')
     expect(config.label).toBe('Processing')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(Clock)
   })
 
   it('maps PaymentStatus.Canceled to "muted" variant with X icon', () => {
@@ -223,7 +245,7 @@ describe('paymentStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Canceled')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(X)
   })
 
   it('maps PaymentStatus.Refunded to "muted" variant with RefreshCcw icon', () => {
@@ -231,7 +253,7 @@ describe('paymentStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Refunded')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(RefreshCcw)
   })
 
   it('maps PaymentStatus.RequiresConfirmation to "warning" variant with AlertCircle icon', () => {
@@ -240,7 +262,7 @@ describe('paymentStatusConfig', () => {
 
     expect(config.variant).toBe('warning')
     expect(config.label).toBe('Needs Confirmation')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(AlertCircle)
   })
 
   it('covers all PaymentStatus enum values', () => {
@@ -263,7 +285,7 @@ describe('purchaseStatusConfig', () => {
 
     expect(config.variant).toBe('success')
     expect(config.label).toBe('Paid')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(Check)
   })
 
   it('maps PurchaseStatus.Fraudulent to "destructive" variant with ShieldAlert icon', () => {
@@ -271,7 +293,7 @@ describe('purchaseStatusConfig', () => {
 
     expect(config.variant).toBe('destructive')
     expect(config.label).toBe('Fraudulent')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(ShieldAlert)
   })
 
   it('maps PurchaseStatus.Open to "info" variant with FileText icon', () => {
@@ -279,7 +301,7 @@ describe('purchaseStatusConfig', () => {
 
     expect(config.variant).toBe('info')
     expect(config.label).toBe('Open')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(FileText)
   })
 
   it('maps PurchaseStatus.Pending to "info" variant with Clock icon (waiting on payment provider)', () => {
@@ -287,7 +309,7 @@ describe('purchaseStatusConfig', () => {
 
     expect(config.variant).toBe('info')
     expect(config.label).toBe('Pending')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(Clock)
   })
 
   it('maps PurchaseStatus.Failed to "destructive" variant with XCircle icon', () => {
@@ -295,7 +317,7 @@ describe('purchaseStatusConfig', () => {
 
     expect(config.variant).toBe('destructive')
     expect(config.label).toBe('Failed')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(XCircle)
   })
 
   it('maps PurchaseStatus.Refunded to "muted" variant with RefreshCcw icon', () => {
@@ -303,7 +325,7 @@ describe('purchaseStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Refunded')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(RefreshCcw)
   })
 
   it('maps PurchaseStatus.PartialRefund to "warning" variant with RefreshCw icon', () => {
@@ -311,7 +333,7 @@ describe('purchaseStatusConfig', () => {
 
     expect(config.variant).toBe('warning')
     expect(config.label).toBe('Partial Refund')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(RefreshCw)
   })
 
   it('covers all PurchaseStatus enum values', () => {
@@ -328,13 +350,117 @@ describe('purchaseStatusConfig', () => {
   })
 })
 
+describe('purchaseDisplayStatusConfig', () => {
+  it('includes all PurchaseStatus enum values plus "concluded"', () => {
+    const configuredStatuses = Object.keys(
+      purchaseDisplayStatusConfig
+    )
+    const allDatabaseStatuses = Object.values(PurchaseStatus)
+
+    // Should have all database statuses plus "concluded"
+    expect(configuredStatuses).toHaveLength(
+      allDatabaseStatuses.length + 1
+    )
+
+    // All database statuses should be present
+    for (const status of allDatabaseStatuses) {
+      expect(purchaseDisplayStatusConfig[status]).toMatchObject({
+        label: expect.any(String),
+        variant: expect.any(String),
+      })
+    }
+
+    // "concluded" should be present
+    expect(purchaseDisplayStatusConfig.concluded).toMatchObject({
+      label: expect.any(String),
+      variant: expect.any(String),
+    })
+  })
+
+  it('maps "concluded" to "muted" variant with CalendarCheck icon and appropriate tooltip', () => {
+    const config = purchaseDisplayStatusConfig.concluded
+
+    expect(config.variant).toBe('muted')
+    expect(config.label).toBe('Concluded')
+    expect(config.icon).toBe(CalendarCheck)
+    expect(config.tooltip).toContain('ended')
+  })
+})
+
+describe('getPurchaseDisplayStatus', () => {
+  // The function only needs endDate and status, so we use a minimal mock
+  const createMockPurchase = (overrides: {
+    status: PurchaseStatus
+    endDate: number | null
+  }): Purchase.ClientRecord =>
+    ({
+      status: overrides.status,
+      endDate: overrides.endDate,
+    }) as Purchase.ClientRecord
+
+  it('returns "concluded" when purchase has an endDate, regardless of database status', () => {
+    const purchase = createMockPurchase({
+      status: PurchaseStatus.Paid,
+      endDate: Date.now(),
+    })
+
+    const displayStatus = getPurchaseDisplayStatus(purchase)
+
+    expect(displayStatus).toBe('concluded')
+  })
+
+  it('returns the database status when purchase has no endDate (status is Paid)', () => {
+    const purchase = createMockPurchase({
+      status: PurchaseStatus.Paid,
+      endDate: null,
+    })
+
+    const displayStatus = getPurchaseDisplayStatus(purchase)
+
+    expect(displayStatus).toBe(PurchaseStatus.Paid)
+  })
+
+  it('returns the database status when purchase has no endDate (status is Pending)', () => {
+    const purchase = createMockPurchase({
+      status: PurchaseStatus.Pending,
+      endDate: null,
+    })
+
+    const displayStatus = getPurchaseDisplayStatus(purchase)
+
+    expect(displayStatus).toBe(PurchaseStatus.Pending)
+  })
+
+  it('returns the database status when purchase has no endDate (status is Refunded)', () => {
+    const purchase = createMockPurchase({
+      status: PurchaseStatus.Refunded,
+      endDate: null,
+    })
+
+    const displayStatus = getPurchaseDisplayStatus(purchase)
+
+    expect(displayStatus).toBe(PurchaseStatus.Refunded)
+  })
+
+  it('returns "concluded" even when database status is Refunded if endDate exists', () => {
+    const purchase = createMockPurchase({
+      status: PurchaseStatus.Refunded,
+      endDate: Date.now(),
+    })
+
+    const displayStatus = getPurchaseDisplayStatus(purchase)
+
+    expect(displayStatus).toBe('concluded')
+  })
+})
+
 describe('activeStatusConfig', () => {
   it('maps "active" to "success" variant with Check icon', () => {
     const config = activeStatusConfig.active
 
     expect(config.variant).toBe('success')
     expect(config.label).toBe('Active')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(Check)
   })
 
   it('maps "inactive" to "muted" variant with X icon', () => {
@@ -342,7 +468,7 @@ describe('activeStatusConfig', () => {
 
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Inactive')
-    expect(typeof config.icon).toBe('function')
+    expect(config.icon).toBe(X)
   })
 
   it('covers all ActiveStatus values', () => {
