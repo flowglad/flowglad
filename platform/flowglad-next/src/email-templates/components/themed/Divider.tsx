@@ -41,7 +41,7 @@ export const Divider = ({
     borderLeft: 'none',
     borderRight: 'none',
     borderBottomWidth: '1px',
-    borderBottomStyle: 'solid',
+    borderBottomStyle: 'dashed',
     marginTop,
     marginBottom,
     ...style,
