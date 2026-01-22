@@ -1,12 +1,10 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
+import { FlowgladProvider } from '@flowglad/nextjs'
 import { PropsWithChildren } from 'react'
 import { Navbar } from '@/components/navbar'
-import {
-  FlowgladProviderWrapper,
-  ReactQueryProvider,
-} from '@/components/providers'
+import { ReactQueryProvider } from '@/components/providers'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -33,10 +31,10 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReactQueryProvider>
-          <FlowgladProviderWrapper betterAuthBasePath="/api/auth">
+          <FlowgladProvider betterAuthBasePath="/api/auth">
             <Navbar />
             {children}
-          </FlowgladProviderWrapper>
+          </FlowgladProvider>
         </ReactQueryProvider>
       </body>
     </html>
