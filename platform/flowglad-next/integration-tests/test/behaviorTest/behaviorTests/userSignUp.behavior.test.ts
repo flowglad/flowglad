@@ -16,32 +16,32 @@
  */
 
 import { expect } from 'bun:test'
+import { teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
 import {
-  BusinessOnboardingStatus,
-  CurrencyCode,
-  StripeConnectContractType,
-} from '@/types'
-import { teardownOrg } from '../../../../seedDatabase'
-import {
   type AuthenticateUserResult,
   authenticateUserBehavior,
-} from '../behaviors/authBehaviors'
+} from '@/test/behaviorTest/behaviors/authBehaviors'
 import {
   type CreateOrganizationResult,
   createOrganizationBehavior,
-} from '../behaviors/orgSetupBehaviors'
+} from '@/test/behaviorTest/behaviors/orgSetupBehaviors'
 import {
   type CompleteStripeOnboardingResult,
   finalizeStripeOnboardingBehavior,
   type InitiateStripeConnectResult,
   initiateStripeConnectBehavior,
-} from '../behaviors/stripeOnboardingBehaviors'
-import { CountryDep } from '../dependencies/countryDependencies'
-import { behaviorTest } from '../index'
+} from '@/test/behaviorTest/behaviors/stripeOnboardingBehaviors'
+import { CountryDep } from '@/test/behaviorTest/dependencies/countryDependencies'
+import { behaviorTest } from '@/test/behaviorTest/index'
+import {
+  BusinessOnboardingStatus,
+  CurrencyCode,
+  StripeConnectContractType,
+} from '@/types'
 
 // =============================================================================
 // Shared teardown function

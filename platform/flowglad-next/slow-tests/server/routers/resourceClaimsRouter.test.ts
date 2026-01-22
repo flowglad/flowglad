@@ -41,6 +41,7 @@ import type { Resource } from '@/db/schema/resources'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { insertFeature } from '@/db/tableMethods/featureMethods'
+import { resourceClaimsRouter } from '@/server/routers/resourceClaimsRouter'
 import type { TRPCApiContext } from '@/server/trpcContext'
 import {
   FeatureType,
@@ -49,7 +50,6 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
-import { resourceClaimsRouter } from './resourceClaimsRouter'
 
 const createCaller = (
   organization: Organization.Record,

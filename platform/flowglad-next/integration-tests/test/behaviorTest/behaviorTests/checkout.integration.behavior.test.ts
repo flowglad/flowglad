@@ -40,6 +40,20 @@ import {
 import { selectLatestFeeCalculation } from '@/db/tableMethods/feeCalculationMethods'
 import { selectInvoices } from '@/db/tableMethods/invoiceMethods'
 import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { authenticateUserBehavior } from '@/test/behaviorTest/behaviors/authBehaviors'
+import {
+  createProductWithPriceBehavior,
+  initiateCheckoutSessionBehavior,
+  type ProvideBillingAddressResult,
+  provideBillingAddressBehavior,
+} from '@/test/behaviorTest/behaviors/checkoutBehaviors'
+import { createOrganizationBehavior } from '@/test/behaviorTest/behaviors/orgSetupBehaviors'
+import { completeStripeOnboardingBehavior } from '@/test/behaviorTest/behaviors/stripeOnboardingBehaviors'
+import { CountryDep } from '@/test/behaviorTest/dependencies/countryDependencies'
+import {
+  behaviorTest,
+  defineBehavior,
+} from '@/test/behaviorTest/index'
 import {
   cleanupStripeTestData,
   createTestPaymentMethod,
@@ -61,17 +75,6 @@ import {
   createPaymentIntentForCheckoutSession,
   updatePaymentIntent,
 } from '@/utils/stripe'
-import { authenticateUserBehavior } from '../behaviors/authBehaviors'
-import {
-  createProductWithPriceBehavior,
-  initiateCheckoutSessionBehavior,
-  type ProvideBillingAddressResult,
-  provideBillingAddressBehavior,
-} from '../behaviors/checkoutBehaviors'
-import { createOrganizationBehavior } from '../behaviors/orgSetupBehaviors'
-import { completeStripeOnboardingBehavior } from '../behaviors/stripeOnboardingBehaviors'
-import { CountryDep } from '../dependencies/countryDependencies'
-import { behaviorTest, defineBehavior } from '../index'
 
 // =============================================================================
 // Result Types for Extended Chain

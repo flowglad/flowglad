@@ -1,4 +1,12 @@
 /// <reference types="@testing-library/jest-dom" />
+
+// Set environment variables FIRST, before any imports that might use them
+process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
+process.env.UNKEY_ROOT_KEY =
+  process.env.UNKEY_ROOT_KEY || 'unkey_test_mock'
+process.env.BETTER_AUTH_URL =
+  process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+
 import { afterAll, afterEach, beforeAll, mock } from 'bun:test'
 import { webcrypto } from 'node:crypto'
 
@@ -50,12 +58,6 @@ import { expect } from 'bun:test'
 import * as matchers from '@testing-library/jest-dom/matchers'
 
 expect.extend(matchers)
-
-process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
-process.env.UNKEY_ROOT_KEY =
-  process.env.UNKEY_ROOT_KEY || 'unkey_test_mock'
-process.env.BETTER_AUTH_URL =
-  process.env.BETTER_AUTH_URL || 'http://localhost:3000'
 
 if (!global.crypto) {
   global.crypto = webcrypto as unknown as Crypto
