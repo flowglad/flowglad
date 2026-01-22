@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -10,15 +10,15 @@ import type { Organization } from '@/db/schema/organizations'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { updateCustomer } from '@/db/tableMethods/customerMethods'
 import { SubscriptionStatus } from '@/types'
+import * as actualEmail from '@/utils/email'
 import { runSendCustomerSubscriptionCanceledNotification } from './send-customer-subscription-canceled-notification'
 
 // Mock email sending since it makes network calls
-vi.mock('@/utils/email', () => ({
-  safeSend: vi
-    .fn()
-    .mockResolvedValue({ data: { id: 'test-email-id' } }),
-  formatEmailSubject: vi.fn((subject) => subject),
-  getBccForLivemode: vi.fn(() => []),
+const mockSafeSend = mock<typeof actualEmail.safeSend>()
+
+mock.module('@/utils/email', () => ({
+  ...actualEmail,
+  safeSend: mockSafeSend,
 }))
 
 describe('runSendCustomerSubscriptionCanceledNotification', () => {
@@ -27,7 +27,11 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
   let subscription: Subscription.Record
 
   beforeEach(async () => {
-    vi.clearAllMocks()
+    mockSafeSend.mockClear()
+    mockSafeSend.mockResolvedValue({
+      data: { id: 'test-email-id' },
+      error: null,
+    })
 
     const orgSetup = await setupOrg()
     organization = orgSetup.organization
