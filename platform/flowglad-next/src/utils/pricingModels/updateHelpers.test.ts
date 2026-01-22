@@ -506,11 +506,14 @@ describe('resolveExistingIds', () => {
     expect(storagePrice?.slug).toBeNull()
 
     // Generate synthetic slugs using the same logic as diffing.ts
+    // Pass the meter slug for global uniqueness
     const apiCallsSyntheticSlug = generateSyntheticUsagePriceSlug(
-      apiCallsPrice!
+      apiCallsPrice!,
+      'api-calls'
     )
     const storageSyntheticSlug = generateSyntheticUsagePriceSlug(
-      storagePrice!
+      storagePrice!,
+      'storage'
     )
 
     // Verify synthetic slugs are in the expected format

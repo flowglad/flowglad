@@ -1117,7 +1117,8 @@ describe('diffUsageMeterPrices', () => {
 
     const result = diffUsageMeterPrices(
       existingPrices,
-      proposedPrices
+      proposedPrices,
+      'test-meter'
     )
 
     expect(result.toRemove).toHaveLength(1)
@@ -1131,23 +1132,29 @@ describe('diffUsageMeterPrices', () => {
   })
 
   it('returns empty diff arrays when both inputs are undefined', () => {
-    const result = diffUsageMeterPrices(undefined, undefined)
+    const result = diffUsageMeterPrices(
+      undefined,
+      undefined,
+      'test-meter'
+    )
     expect(result.toRemove).toEqual([])
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toEqual([])
   })
 
   it('returns empty diff arrays when both inputs are empty arrays', () => {
-    const result = diffUsageMeterPrices([], [])
+    const result = diffUsageMeterPrices([], [], 'test-meter')
     expect(result.toRemove).toEqual([])
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toEqual([])
   })
 
   it('identifies prices to create when existing is undefined', () => {
-    const result = diffUsageMeterPrices(undefined, [
-      createUsagePrice({ slug: 'new-price' }),
-    ])
+    const result = diffUsageMeterPrices(
+      undefined,
+      [createUsagePrice({ slug: 'new-price' })],
+      'test-meter'
+    )
     expect(result.toCreate).toHaveLength(1)
     expect(result.toCreate[0].slug).toBe('new-price')
     expect(result.toRemove).toEqual([])
@@ -1157,7 +1164,8 @@ describe('diffUsageMeterPrices', () => {
   it('identifies prices to remove when proposed is undefined', () => {
     const result = diffUsageMeterPrices(
       [createUsagePrice({ slug: 'old-price' })],
-      undefined
+      undefined,
+      'test-meter'
     )
     expect(result.toRemove).toHaveLength(1)
     expect(result.toRemove[0].slug).toBe('old-price')

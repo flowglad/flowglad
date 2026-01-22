@@ -48,22 +48,29 @@ export type ResolvedPricingModelIds = {
  * Generates a synthetic slug for a usage price that doesn't have a real slug.
  *
  * This function mirrors the logic in diffing.ts `getUsagePriceSlug` to ensure
- * that the same synthetic slug is generated for both diffing and ID resolution.
+ * the same synthetic slug is generated in both places for consistent lookups.
+ *
+ * The meter slug is included to ensure global uniqueness across all usage meters,
+ * since resolveExistingIds builds a global price map where identical prices from
+ * different meters would otherwise collide.
  *
  * The synthetic slug is constructed from immutable price fields to ensure uniqueness
  * and consistency. Mutable fields like `name` are intentionally excluded.
  *
  * @param price - A usage price record from the database
+ * @param meterSlug - The usage meter slug (for global uniqueness)
  * @returns A synthetic slug string prefixed with `__generated__`
  */
 export const generateSyntheticUsagePriceSlug = (
-  price: Price.UsageRecord
+  price: Price.UsageRecord,
+  meterSlug: string
 ): string => {
-  // Use the same format as diffing.ts getUsagePriceSlug
+  // Include meterSlug for global uniqueness across all usage meters
+  // This must match diffing.ts getUsagePriceSlug format exactly
   const currency = price.currency ?? 'USD'
   const intervalCount = price.intervalCount ?? 1
   const intervalUnit = price.intervalUnit ?? 'month'
-  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${intervalCount}_${intervalUnit}`
+  return `__generated__${meterSlug}_${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${intervalCount}_${intervalUnit}`
 }
 
 /**
@@ -126,6 +133,12 @@ export const resolveExistingIds = async (
     }
   }
 
+  // Build meter ID -> meter slug map for synthetic slug generation
+  const meterIdToSlug = new Map<string, string>()
+  for (const meter of usageMeters) {
+    meterIdToSlug.set(meter.id, meter.slug)
+  }
+
   const priceMap = new Map<string, string>()
   for (const price of prices) {
     if (price.slug) {
@@ -134,10 +147,16 @@ export const resolveExistingIds = async (
     } else if (price.type === PriceType.Usage) {
       // For usage prices without slugs, generate a synthetic slug
       // This mirrors the logic in diffing.ts to ensure consistent lookup
-      const syntheticSlug = generateSyntheticUsagePriceSlug(
-        price as Price.UsageRecord
-      )
-      priceMap.set(syntheticSlug, price.id)
+      const usagePrice = price as Price.UsageRecord
+      const meterSlug = meterIdToSlug.get(usagePrice.usageMeterId)
+      if (meterSlug) {
+        const syntheticSlug = generateSyntheticUsagePriceSlug(
+          usagePrice,
+          meterSlug
+        )
+        priceMap.set(syntheticSlug, price.id)
+      }
+      // If meter slug not found, skip - the price can't be looked up anyway
     }
     // Note: Product prices (Subscription/SinglePayment) without slugs
     // are currently handled by the "silently skip" pattern in updateTransaction.

@@ -248,9 +248,11 @@ export const diffUsageMeters = (
       const proposed = proposedMeter as unknown as UsageMeterDiffInput
 
       // Diff the prices within this usage meter
+      // Pass the meter slug for globally unique synthetic price slugs
       const priceDiff = diffUsageMeterPrices(
         existing.prices,
-        proposed.prices
+        proposed.prices,
+        existing.usageMeter.slug
       )
 
       return {
@@ -329,9 +331,13 @@ export type UsageMeterDiffResult = {
 /**
  * Extracts the slug from a usage price for slug-based diffing.
  * Falls back to generating a slug from other identifying fields if slug is not present.
+ *
+ * @param price - The usage price input
+ * @param meterSlug - The slug of the usage meter this price belongs to (for global uniqueness)
  */
 const getUsagePriceSlug = (
-  price: SetupUsageMeterPriceInput
+  price: SetupUsageMeterPriceInput,
+  meterSlug: string
 ): string => {
   // Prices should have a slug
   if (price.slug) {
@@ -341,22 +347,27 @@ const getUsagePriceSlug = (
   // Note: `name` is intentionally excluded because it's a mutable display field.
   // Including `name` would cause price updates (name change only) to be treated
   // as replacements (delete + create) instead of updates, breaking price IDs.
-  // All immutable price fields must be included to prevent collisions.
+  // The meterSlug is included to ensure global uniqueness across all meters,
+  // since resolveExistingIds builds a global price map.
   const currency = price.currency ?? 'USD'
   const intervalCount = price.intervalCount ?? 1
   const intervalUnit = price.intervalUnit ?? 'month'
-  return `__generated__${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${intervalCount}_${intervalUnit}`
+  return `__generated__${meterSlug}_${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${intervalCount}_${intervalUnit}`
 }
 
 /**
  * Converts usage prices to a format compatible with diffSluggedResources.
+ *
+ * @param prices - The usage price inputs
+ * @param meterSlug - The slug of the usage meter these prices belong to
  */
 const toSluggedUsagePrices = (
-  prices: SetupUsageMeterPriceInput[]
+  prices: SetupUsageMeterPriceInput[],
+  meterSlug: string
 ): SluggedResource<SetupUsageMeterPriceInput>[] => {
   return prices.map((p) => ({
     ...p,
-    slug: getUsagePriceSlug(p),
+    slug: getUsagePriceSlug(p, meterSlug),
   }))
 }
 
@@ -365,18 +376,20 @@ const toSluggedUsagePrices = (
  *
  * @param existingPrices - Array of existing usage prices (or undefined/empty)
  * @param proposedPrices - Array of proposed usage prices (or undefined/empty)
+ * @param meterSlug - The slug of the usage meter (for global uniqueness of synthetic slugs)
  * @returns A UsageMeterPriceDiffResult containing prices to remove, create, and update
  */
 export const diffUsageMeterPrices = (
   existingPrices: SetupUsageMeterPriceInput[] | undefined,
-  proposedPrices: SetupUsageMeterPriceInput[] | undefined
+  proposedPrices: SetupUsageMeterPriceInput[] | undefined,
+  meterSlug: string
 ): UsageMeterPriceDiffResult => {
   const existing = existingPrices || []
   const proposed = proposedPrices || []
 
   // Convert to slugged format for generic diffing
-  const sluggedExisting = toSluggedUsagePrices(existing)
-  const sluggedProposed = toSluggedUsagePrices(proposed)
+  const sluggedExisting = toSluggedUsagePrices(existing, meterSlug)
+  const sluggedProposed = toSluggedUsagePrices(proposed, meterSlug)
 
   // Use generic diffing
   const baseDiff = diffSluggedResources(
