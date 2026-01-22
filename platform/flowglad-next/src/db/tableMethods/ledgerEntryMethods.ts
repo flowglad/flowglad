@@ -82,20 +82,39 @@ export const derivePricingModelIdForLedgerEntry = async (
 ): Promise<Result<string, NotFoundError>> => {
   // Try subscription first
   if (data.subscriptionId) {
-    const pricingModelId = await derivePricingModelIdFromSubscription(
-      data.subscriptionId,
-      transaction
-    )
-    return Result.ok(pricingModelId)
+    try {
+      const pricingModelId =
+        await derivePricingModelIdFromSubscription(
+          data.subscriptionId,
+          transaction
+        )
+      return Result.ok(pricingModelId)
+    } catch (error) {
+      return Result.err(
+        new NotFoundError(
+          'pricingModelId',
+          `subscription ${data.subscriptionId} does not have a pricingModelId`
+        )
+      )
+    }
   }
 
   // Try usage meter second
   if (data.usageMeterId) {
-    const pricingModelId = await derivePricingModelIdFromUsageMeter(
-      data.usageMeterId,
-      transaction
-    )
-    return Result.ok(pricingModelId)
+    try {
+      const pricingModelId = await derivePricingModelIdFromUsageMeter(
+        data.usageMeterId,
+        transaction
+      )
+      return Result.ok(pricingModelId)
+    } catch (error) {
+      return Result.err(
+        new NotFoundError(
+          'pricingModelId',
+          `usage meter ${data.usageMeterId} does not have a pricingModelId`
+        )
+      )
+    }
   }
 
   return Result.err(

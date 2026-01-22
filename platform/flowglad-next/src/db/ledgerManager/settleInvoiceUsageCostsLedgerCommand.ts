@@ -41,7 +41,7 @@ import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMeth
 import { bulkInsertUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
-import type { NotFoundError } from '@/errors'
+import { NotFoundError } from '@/errors'
 import {
   LedgerEntryDirection,
   LedgerEntryStatus,
@@ -359,19 +359,22 @@ const createUsageCreditsForInvoiceLineItems = async (
   const usageCostLineItems = invoiceLineItems.filter(
     (lineItem) => lineItem.type === SubscriptionItemType.Usage
   )
-  usageCostLineItems.forEach((lineItem) => {
+  for (const lineItem of usageCostLineItems) {
     const ledgerAccount = ledgerAccountsById.get(
       lineItem.ledgerAccountId!
     )
     if (!ledgerAccount) {
-      throw new Error(
-        `Ledger account not found for line item ${lineItem.id}.`
+      return Result.err(
+        new NotFoundError(
+          'ledgerAccount',
+          `not found for line item ${lineItem.id}`
+        )
       )
     }
     usageCreditInserts.push(
       usageCreditInsertFromInvoiceLineItem(lineItem, ledgerAccount)
     )
-  })
+  }
   return await bulkInsertUsageCredits(usageCreditInserts, transaction)
 }
 
@@ -424,14 +427,11 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
     (ili) => ili.type === SubscriptionItemType.Usage
   )
   if (ledgerAccounts.length !== usageLineItems.length) {
-    throw new Error(
-      `Expected ${
-        command.payload.invoiceLineItems.filter(
-          (ili) => ili.type === SubscriptionItemType.Usage
-        ).length
-      } ledger accounts for usage line items, but got ${
-        ledgerAccounts.length
-      }. One of the invoice line items is attempting to settle usage costs for a ledger account that is not within its organization + subscription + livemode scope.`
+    return Result.err(
+      new NotFoundError(
+        'ledgerAccounts',
+        `Expected ${usageLineItems.length} ledger accounts for usage line items, but got ${ledgerAccounts.length}. One of the invoice line items is attempting to settle usage costs for a ledger account that is not within its organization + subscription + livemode scope.`
+      )
     )
   }
   // 3. Create maps for efficient lookups. This avoids nested loops and improves performance.
