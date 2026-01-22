@@ -198,10 +198,12 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = await adminTransaction(async ({ transaction }) => {
-        return await processSettleInvoiceUsageCostsLedgerCommand(
-          command,
-          transaction
-        )
+        return (
+          await processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
 
       // expects:
@@ -365,10 +367,12 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = await adminTransaction(async ({ transaction }) => {
-        return await processSettleInvoiceUsageCostsLedgerCommand(
-          command,
-          transaction
-        )
+        return (
+          await processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
 
       // expects:
@@ -450,10 +454,12 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = await adminTransaction(async ({ transaction }) => {
-        return await processSettleInvoiceUsageCostsLedgerCommand(
-          command,
-          transaction
-        )
+        return (
+          await processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
 
       // expects:
@@ -490,20 +496,24 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       }
       // 2. Successfully execute the command once.
       await adminTransaction(async ({ transaction }) => {
-        await processSettleInvoiceUsageCostsLedgerCommand(
-          command,
-          transaction
-        )
+        ;(
+          await processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
 
       // execute & expects:
       // 3. Calling the command processing function a second time should fail.
       await expect(
         adminTransaction(async ({ transaction }) => {
-          await processSettleInvoiceUsageCostsLedgerCommand(
-            command,
-            transaction
-          )
+          ;(
+            await processSettleInvoiceUsageCostsLedgerCommand(
+              command,
+              transaction
+            )
+          ).unwrap()
         })
       ).rejects.toThrow()
 
@@ -540,10 +550,12 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
       // execute & expects:
       await expect(
         adminTransaction(async ({ transaction }) => {
-          await processSettleInvoiceUsageCostsLedgerCommand(
-            command,
-            transaction
-          )
+          ;(
+            await processSettleInvoiceUsageCostsLedgerCommand(
+              command,
+              transaction
+            )
+          ).unwrap()
         })
       ).rejects.toThrowError(
         'Expected 1 ledger accounts for usage line items, but got 0'
@@ -590,10 +602,12 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = await adminTransaction(async ({ transaction }) => {
-        return await processSettleInvoiceUsageCostsLedgerCommand(
-          command,
-          transaction
-        )
+        return (
+          await processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
 
       // expects:
@@ -668,10 +682,12 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
         ledgerTransaction,
         ledgerEntries: createdLedgerEntries,
       } = await adminTransaction(async ({ transaction }) => {
-        return await processSettleInvoiceUsageCostsLedgerCommand(
-          command,
-          transaction
-        )
+        return (
+          await processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
 
       // expects:
@@ -751,10 +767,12 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // execute:
       await adminTransaction(async ({ transaction }) => {
-        await processSettleInvoiceUsageCostsLedgerCommand(
-          command,
-          transaction
-        )
+        ;(
+          await processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
 
       // expects:
@@ -815,10 +833,12 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // execute:
       await adminTransaction(async ({ transaction }) => {
-        await processSettleInvoiceUsageCostsLedgerCommand(
-          command,
-          transaction
-        )
+        ;(
+          await processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
 
       // expects:
@@ -895,10 +915,12 @@ describe('settleInvoiceUsageCostsLedgerCommand', () => {
 
       // execute:
       await adminTransaction(async ({ transaction }) => {
-        await processSettleInvoiceUsageCostsLedgerCommand(
-          command,
-          transaction
-        )
+        ;(
+          await processSettleInvoiceUsageCostsLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
 
       // expects:

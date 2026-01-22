@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -32,6 +33,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import type { NotFoundError } from '@/errors'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -361,7 +363,7 @@ export const adjustSubscription = async (
   input: AdjustSubscriptionParams,
   organization: Organization.Record,
   ctx: TransactionEffectsContext
-): Promise<AdjustSubscriptionResult> => {
+): Promise<Result<AdjustSubscriptionResult, NotFoundError>> => {
   const { transaction } = ctx
   const { adjustment, id } = input
   const { newSubscriptionItems } = adjustment
@@ -794,14 +796,18 @@ export const adjustSubscription = async (
       livemode: subscription.livemode,
     }))
 
-    await handleSubscriptionItemAdjustment(
-      {
-        subscriptionId: id,
-        newSubscriptionItems: preparedItems,
-        adjustmentDate: adjustmentDate,
-      },
-      ctx
-    )
+    const itemAdjustmentResult =
+      await handleSubscriptionItemAdjustment(
+        {
+          subscriptionId: id,
+          newSubscriptionItems: preparedItems,
+          adjustmentDate: adjustmentDate,
+        },
+        ctx
+      )
+    if (Result.isError(itemAdjustmentResult)) {
+      return Result.err(itemAdjustmentResult.error)
+    }
 
     // For AtEndOfCurrentBillingPeriod, don't sync with future-dated items
     // Sync using current time to preserve the current subscription state
@@ -889,7 +895,7 @@ export const adjustSubscription = async (
   // handleSubscriptionItemAdjustment (called by processOutcomeForBillingRun)
   // after the actual subscription item changes are applied.
 
-  return {
+  return Result.ok({
     subscription: standardSubscriptionSelectSchema.parse(
       updatedSubscription
     ),
@@ -897,5 +903,5 @@ export const adjustSubscription = async (
     resolvedTiming,
     isUpgrade,
     pendingBillingRunId,
-  }
+  })
 }

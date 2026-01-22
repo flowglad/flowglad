@@ -411,7 +411,7 @@ describe('derivePricingModelIdForCheckoutSession', () => {
           transaction
         )
       ).rejects.toThrow(
-        'Cannot derive pricingModelId for checkout session: no valid parent found'
+        'pricingModelId for checkout session not found: no valid parent (priceId, purchaseId, invoiceId, or customerId) found'
       )
     })
   })

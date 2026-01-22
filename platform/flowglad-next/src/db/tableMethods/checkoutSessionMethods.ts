@@ -16,6 +16,7 @@ import {
   type SelectConditions,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -97,15 +98,17 @@ export const derivePricingModelIdForCheckoutSession = async (
       transaction
     )
     if (!customer.pricingModelId) {
-      throw new Error(
-        `Customer ${data.customerId} does not have a pricingModelId`
+      throw new NotFoundError(
+        'pricingModelId for customer',
+        data.customerId
       )
     }
     return customer.pricingModelId
   }
 
-  throw new Error(
-    'Cannot derive pricingModelId for checkout session: no valid parent found'
+  throw new NotFoundError(
+    'pricingModelId for checkout session',
+    'no valid parent (priceId, purchaseId, invoiceId, or customerId) found'
   )
 }
 
