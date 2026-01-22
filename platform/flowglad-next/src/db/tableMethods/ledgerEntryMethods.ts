@@ -90,12 +90,15 @@ export const derivePricingModelIdForLedgerEntry = async (
         )
       return Result.ok(pricingModelId)
     } catch (error) {
-      return Result.err(
-        new NotFoundError(
-          'pricingModelId',
-          `subscription ${data.subscriptionId} does not have a pricingModelId`
+      if (error instanceof NotFoundError) {
+        return Result.err(
+          new NotFoundError(
+            'pricingModelId',
+            `subscription ${data.subscriptionId} does not have a pricingModelId`
+          )
         )
-      )
+      }
+      throw error
     }
   }
 
@@ -108,12 +111,15 @@ export const derivePricingModelIdForLedgerEntry = async (
       )
       return Result.ok(pricingModelId)
     } catch (error) {
-      return Result.err(
-        new NotFoundError(
-          'pricingModelId',
-          `usage meter ${data.usageMeterId} does not have a pricingModelId`
+      if (error instanceof NotFoundError) {
+        return Result.err(
+          new NotFoundError(
+            'pricingModelId',
+            `usage meter ${data.usageMeterId} does not have a pricingModelId`
+          )
         )
-      )
+      }
+      throw error
     }
   }
 

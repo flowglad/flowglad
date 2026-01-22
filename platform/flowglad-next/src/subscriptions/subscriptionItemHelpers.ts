@@ -405,10 +405,22 @@ const grantProratedCreditsForFeatures = async (params: {
     return Result.err(ledgerEntriesResult.error)
   }
 
+  // Type guard to validate all entries are CreditGrantRecognized
+  const ledgerEntries = ledgerEntriesResult.value
+  const isCreditGrantRecognized = (
+    entry: LedgerEntry.Record
+  ): entry is LedgerEntry.CreditGrantRecognizedRecord =>
+    entry.entryType === LedgerEntryType.CreditGrantRecognized
+
+  if (!ledgerEntries.every(isCreditGrantRecognized)) {
+    throw new Error(
+      'Unexpected ledger entry type: expected all entries to be CreditGrantRecognized'
+    )
+  }
+
   return Result.ok({
     usageCredits,
-    ledgerEntries:
-      ledgerEntriesResult.value as LedgerEntry.CreditGrantRecognizedRecord[],
+    ledgerEntries,
   })
 }
 
