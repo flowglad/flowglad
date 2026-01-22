@@ -67,8 +67,8 @@
     },
     "./better-auth": {
       "types": "./dist/types/better-auth.d.ts",
-      "import": "./dist/esm/better-auth.js",
-      "require": "./dist/cjs/better-auth.js"
+      "import": "./dist/esm/better-auth/index.js",
+      "require": "./dist/cjs/better-auth/index.js"
     },
     "./express": {
       "types": "./dist/types/express/index.d.ts",
