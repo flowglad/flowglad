@@ -71,8 +71,9 @@ export const sendMessage = publicProcedure
         'flowglad-docs'
       )
 
-      // 2. Build context from retrieved docs
-      const context = docResults
+      // 2. Build context from retrieved docs (filter out docs without text)
+      const docsWithText = docResults.filter((doc) => doc.text)
+      const context = docsWithText
         .map((doc) => `[${doc.title || doc.path}]\n${doc.text}`)
         .join('\n\n---\n\n')
 
@@ -98,7 +99,7 @@ ${context}`
         response:
           result.text ||
           'I apologize, but I was unable to generate a response.',
-        sources: docResults.slice(0, 3).map((doc) => ({
+        sources: docsWithText.slice(0, 3).map((doc) => ({
           title: doc.title,
           path: doc.path,
         })),
