@@ -619,6 +619,39 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     }
   }
 
+  /**
+   * Guard: Only create a payment record if there's actually an amount to charge.
+   * This prevents orphaned $0 payment records when the invoice is already fully
+   * paid via credits or prior payments (amountToCharge = 0).
+   * This check must come BEFORE Stripe ID validation since we don't need
+   * Stripe IDs when there's nothing to charge.
+   * See: https://github.com/flowglad/flowglad/issues/1317
+   */
+  if (amountToCharge <= 0) {
+    const processBillingPeriodResult =
+      await processNoMoreDueForBillingPeriod(
+        {
+          billingRun,
+          billingPeriod,
+          invoice,
+        },
+        transaction
+      )
+    return {
+      invoice: processBillingPeriodResult.invoice,
+      feeCalculation,
+      customer,
+      organization,
+      billingPeriod: processBillingPeriodResult.billingPeriod,
+      subscription,
+      paymentMethod,
+      totalDueAmount,
+      totalAmountPaid,
+      amountToCharge,
+      payments,
+    }
+  }
+
   const stripeCustomerId = customer.stripeCustomerId
   const stripePaymentMethodId = paymentMethod.stripePaymentMethodId
   if (!stripeCustomerId) {
