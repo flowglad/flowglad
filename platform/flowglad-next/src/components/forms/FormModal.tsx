@@ -103,6 +103,10 @@ interface FormModalProps<T extends FieldValues>
    * @default false
    */
   allowContentOverflow?: boolean
+  /**
+   * Whether the submit button should be disabled. Defaults to false.
+   */
+  submitDisabled?: boolean
 }
 
 interface NestedFormModalProps<T extends FieldValues>
@@ -249,6 +253,7 @@ const FormModal = <T extends FieldValues>({
   hideFooter = false,
   mode = 'modal',
   allowContentOverflow = false,
+  submitDisabled = false,
 }: FormModalProps<T>) => {
   const id = useId()
   const router = useRouter()
@@ -336,7 +341,7 @@ const FormModal = <T extends FieldValues>({
         size="default"
         type="submit"
         form={id}
-        disabled={isSubmitting}
+        disabled={isSubmitting || submitDisabled}
       >
         {submitButtonText ?? 'Submit'}
       </Button>

@@ -1,6 +1,7 @@
 import { sentenceCase } from 'change-case'
 import { AlertTriangle } from 'lucide-react'
 import type React from 'react'
+import { useEffect } from 'react'
 import { useFormContext } from 'react-hook-form'
 import {
   FormControl,
@@ -22,11 +23,12 @@ import { DestinationEnvironment } from '@/types'
 
 interface ClonePricingModelFormFieldsProps {
   hasLivemodePricingModel?: boolean
+  onWarningChange?: (showWarning: boolean) => void
 }
 
 const ClonePricingModelFormFields: React.FC<
   ClonePricingModelFormFieldsProps
-> = ({ hasLivemodePricingModel = false }) => {
+> = ({ hasLivemodePricingModel = false, onWarningChange }) => {
   const form = useFormContext<ClonePricingModelInput>()
   const selectedDestination = form.watch('destinationEnvironment')
 
@@ -34,6 +36,11 @@ const ClonePricingModelFormFields: React.FC<
   const showLivemodeWarning =
     hasLivemodePricingModel &&
     selectedDestination === DestinationEnvironment.Livemode
+
+  // Notify parent when warning state changes
+  useEffect(() => {
+    onWarningChange?.(showLivemodeWarning)
+  }, [showLivemodeWarning, onWarningChange])
 
   return (
     <div className="flex flex-col gap-3">

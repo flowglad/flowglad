@@ -1,5 +1,6 @@
 import { sentenceCase } from 'change-case'
 import type React from 'react'
+import { useCallback, useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import ClonePricingModelFormFields from '@/components/forms/ClonePricingModelFormFields'
@@ -32,6 +33,13 @@ const ClonePricingModelModal: React.FC<
   const hasLivemodePricingModel =
     livemode && (tableData?.total ?? 0) >= 1
 
+  // Track whether the livemode warning is being shown to disable submit
+  const [showLivemodeWarning, setShowLivemodeWarning] =
+    useState(false)
+  const handleWarningChange = useCallback((showWarning: boolean) => {
+    setShowLivemodeWarning(showWarning)
+  }, [])
+
   const clonePricingModelMutation =
     trpc.pricingModels.clone.useMutation({
       onSuccess: ({ pricingModel }) => {
@@ -59,9 +67,11 @@ const ClonePricingModelModal: React.FC<
       }}
       onSubmit={clonePricingModelMutation.mutateAsync}
       submitButtonText="Clone Pricing Model"
+      submitDisabled={showLivemodeWarning}
     >
       <ClonePricingModelFormFields
         hasLivemodePricingModel={hasLivemodePricingModel}
+        onWarningChange={handleWarningChange}
       />
     </FormModal>
   )
