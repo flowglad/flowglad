@@ -339,11 +339,19 @@ function checkTimestampUpdate(
     const baseContent = showResult.stdout || ''
     const baseMetadata = parseSkillMetadata(baseContent, skillPath)
 
-    // If either doesn't have metadata, consider it not updated
-    if (!currentMetadata || !baseMetadata) {
-      return {
-        updated: currentMetadata !== null && baseMetadata === null,
-      }
+    // Handle cases where metadata is missing in one version
+    if (!currentMetadata) {
+      // Current file has no metadata - not updated
+      return { updated: false }
+    }
+
+    if (!baseMetadata) {
+      // Metadata was newly added - validate the new timestamp
+      const validationError = validateTimestamp(
+        currentMetadata.sourcesReviewed,
+        null
+      )
+      return { updated: true, validationError }
     }
 
     // Compare timestamps
