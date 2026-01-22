@@ -21,10 +21,10 @@ bun run safely <script-path> --db <database-url> [--danger-mode]
 
 ```bash
 # Local (allowed)
-bun run safely src/scripts/migrate.ts --db "postgresql://test:test@localhost:5432/test_db"
+bun run safely src/scripts/migrate.ts --db "postgresql://user:****@localhost:5432/test_db"
 
 # Non-local (requires explicit flag + user confirmation)
-bun run safely src/scripts/migrate.ts --db "postgresql://user:pass@prod.example.com:5432/db" --danger-mode
+bun run safely src/scripts/migrate.ts --db "postgresql://user:****@prod.example.com:5432/db" --danger-mode
 ```
 
 ## Recognized Local Hosts

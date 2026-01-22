@@ -53,7 +53,11 @@ function parseArgs(): ParsedArgs {
     const arg = args[i]
 
     if (arg === '--db' || arg === '--database') {
-      databaseUrl = args[++i] || null
+      const nextArg = args[i + 1]
+      if (nextArg && !nextArg.startsWith('--')) {
+        databaseUrl = nextArg
+        i++
+      }
     } else if (arg === '--danger-mode') {
       dangerMode = true
     } else if (!arg.startsWith('--') && !scriptPath) {
@@ -67,7 +71,10 @@ function parseArgs(): ParsedArgs {
 function isLocalDatabaseUrl(url: string): boolean {
   try {
     const parsed = new URL(url)
-    const hostname = parsed.hostname.toLowerCase()
+    // Remove brackets from IPv6 addresses (URL parser returns [::1] as hostname)
+    const hostname = parsed.hostname
+      .toLowerCase()
+      .replace(/^\[|\]$/g, '')
 
     return LOCAL_HOST_PATTERNS.some(
       (pattern) =>
@@ -218,7 +225,7 @@ export {
 }
 
 // Run if executed directly
-if (require.main === module) {
+if (import.meta.main) {
   main().catch((error) => {
     // eslint-disable-next-line no-console
     console.error('❌ Error:', error)
