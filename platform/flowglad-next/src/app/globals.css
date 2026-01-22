@@ -200,12 +200,12 @@
     --lapis-muted-foreground: 207 70% 42%;
     --lapis-background: 207 80% 92%;
     --lapis-border: 207 100% 29% / 20%;
-    
+
     --amethyst-foreground: 251 47% 45%;
     --amethyst-muted-foreground: 251 42% 55%;
     --amethyst-background: 251 60% 93%;
     --amethyst-border: 251 47% 45% / 20%;
-    
+
     --citrine-foreground: 49 70% 28%;
     --citrine-muted-foreground: 49 55% 42%;
     --citrine-background: 49 60% 88%;
@@ -219,7 +219,6 @@
     --status-destructive-bg: 0 86% 94%;
     --status-destructive-fg: 0 74% 42%;
     --status-destructive-border: 0 86% 89%;
-
 
     --status-muted-bg: var(--muted);
     --status-muted-fg: var(--muted-foreground);
@@ -295,7 +294,6 @@
     --status-destructive-bg: 0 74% 42% / 30%;
     --status-destructive-fg: 0 86% 89%;
     --status-destructive-border: 0 74% 42%;
-
 
     /* muted inherits from existing --muted, --muted-foreground, --border */
   }

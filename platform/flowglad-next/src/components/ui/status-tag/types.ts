@@ -7,6 +7,7 @@ export type StatusVariant =
   | 'destructive'
   | 'info'
   | 'muted'
+  | 'amethyst'
 
 /**
  * Icon component type that accepts LucideIcon or any component with className support.

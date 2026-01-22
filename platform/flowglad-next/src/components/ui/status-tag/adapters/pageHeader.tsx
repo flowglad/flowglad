@@ -28,6 +28,7 @@ const variantMapping: Record<StatusVariant, PageHeaderVariant> = {
   destructive: 'destructive', // red → destructive
   info: 'muted', // blue → muted (PageHeaderNew has no info variant)
   muted: 'muted', // gray → muted
+  amethyst: 'muted', // purple → muted (PageHeaderNew has no amethyst variant)
 }
 
 interface StatusConfigToPageHeaderBadgeOptions {

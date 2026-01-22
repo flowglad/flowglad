@@ -10,6 +10,7 @@ import type { StatusVariant } from './types'
  * - --status-destructive-bg, --status-destructive-fg, --status-destructive-border
  * - --lapis-background, --lapis-foreground, --lapis-border (info)
  * - --status-muted-bg, --status-muted-fg, --status-muted-border
+ * - --amethyst-background, --amethyst-foreground, --amethyst-border (amethyst)
  */
 export const variantStyles: Record<StatusVariant, string> = {
   success:
@@ -21,4 +22,6 @@ export const variantStyles: Record<StatusVariant, string> = {
   info: 'bg-lapis-background text-lapis-foreground border-lapis-border',
   muted:
     'bg-status-muted-bg text-status-muted-fg border-status-muted-border',
+  amethyst:
+    'bg-amethyst-background text-amethyst-foreground border-amethyst-border',
 }

@@ -82,10 +82,10 @@ describe('subscriptionStatusConfig', () => {
     expect(typeof config.icon).toBe('function')
   })
 
-  it('maps SubscriptionStatus.Paused to "warning" variant with PauseCircle icon', () => {
+  it('maps SubscriptionStatus.Paused to "amethyst" variant with PauseCircle icon', () => {
     const config = subscriptionStatusConfig[SubscriptionStatus.Paused]
 
-    expect(config.variant).toBe('warning')
+    expect(config.variant).toBe('amethyst')
     expect(config.label).toBe('Paused')
     expect(typeof config.icon).toBe('function')
   })

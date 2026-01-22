@@ -75,7 +75,7 @@ export const subscriptionStatusConfig = {
   },
   [SubscriptionStatus.Paused]: {
     label: 'Paused',
-    variant: 'warning',
+    variant: 'amethyst',
     icon: PauseCircle,
     tooltip:
       'Subscription is on hold—no billing or access. Can be resumed at any time.',
