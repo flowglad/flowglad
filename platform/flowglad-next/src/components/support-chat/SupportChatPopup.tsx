@@ -88,7 +88,7 @@ export function SupportChatPopup({
 
     sendMessageMutation.mutate({
       message,
-      history: updatedMessages.map((m) => ({
+      history: messagesRef.current.map((m) => ({
         role: m.role,
         content: m.content,
       })),
