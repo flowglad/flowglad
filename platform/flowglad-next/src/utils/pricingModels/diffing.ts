@@ -32,6 +32,7 @@ import type {
   SetupPricingModelProductPriceInput,
   SetupUsageMeterPriceInput,
 } from './setupSchemas'
+import { buildSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**
  * A resource with a slug identifier.
@@ -330,7 +331,7 @@ export type UsageMeterDiffResult = {
 
 /**
  * Extracts the slug from a usage price for slug-based diffing.
- * Falls back to generating a slug from other identifying fields if slug is not present.
+ * Falls back to generating a synthetic slug if the price has no real slug.
  *
  * @param price - The usage price input
  * @param meterSlug - The slug of the usage meter this price belongs to (for global uniqueness)
@@ -339,20 +340,12 @@ const getUsagePriceSlug = (
   price: SetupUsageMeterPriceInput,
   meterSlug: string
 ): string => {
-  // Prices should have a slug
+  // Use real slug if present
   if (price.slug) {
     return price.slug
   }
-  // Fallback: generate a unique key from immutable identifying fields.
-  // Note: `name` is intentionally excluded because it's a mutable display field.
-  // Including `name` would cause price updates (name change only) to be treated
-  // as replacements (delete + create) instead of updates, breaking price IDs.
-  // The meterSlug is included to ensure global uniqueness across all meters,
-  // since resolveExistingIds builds a global price map.
-  const currency = price.currency ?? 'USD'
-  const intervalCount = price.intervalCount ?? 1
-  const intervalUnit = price.intervalUnit ?? 'month'
-  return `__generated__${meterSlug}_${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${intervalCount}_${intervalUnit}`
+  // Fallback: use shared synthetic slug generator for consistency with updateHelpers.ts
+  return buildSyntheticUsagePriceSlug(price, meterSlug)
 }
 
 /**

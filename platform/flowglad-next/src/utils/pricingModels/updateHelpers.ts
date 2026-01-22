@@ -27,6 +27,7 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import { PriceType } from '@/types'
+import { buildSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**
  * Maps of slugs to database IDs for all child entities of a pricing model.
@@ -45,33 +46,10 @@ export type ResolvedPricingModelIds = {
 }
 
 /**
- * Generates a synthetic slug for a usage price that doesn't have a real slug.
- *
- * This function mirrors the logic in diffing.ts `getUsagePriceSlug` to ensure
- * the same synthetic slug is generated in both places for consistent lookups.
- *
- * The meter slug is included to ensure global uniqueness across all usage meters,
- * since resolveExistingIds builds a global price map where identical prices from
- * different meters would otherwise collide.
- *
- * The synthetic slug is constructed from immutable price fields to ensure uniqueness
- * and consistency. Mutable fields like `name` are intentionally excluded.
- *
- * @param price - A usage price record from the database
- * @param meterSlug - The usage meter slug (for global uniqueness)
- * @returns A synthetic slug string prefixed with `__generated__`
+ * Re-export buildSyntheticUsagePriceSlug as generateSyntheticUsagePriceSlug for backwards compatibility.
+ * This function generates a synthetic slug for a usage price that doesn't have a real slug.
  */
-export const generateSyntheticUsagePriceSlug = (
-  price: Price.UsageRecord,
-  meterSlug: string
-): string => {
-  // Include meterSlug for global uniqueness across all usage meters
-  // This must match diffing.ts getUsagePriceSlug format exactly
-  const currency = price.currency ?? 'USD'
-  const intervalCount = price.intervalCount ?? 1
-  const intervalUnit = price.intervalUnit ?? 'month'
-  return `__generated__${meterSlug}_${price.unitPrice}_${price.usageEventsPerUnit}_${currency}_${intervalCount}_${intervalUnit}`
-}
+export { buildSyntheticUsagePriceSlug as generateSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**
  * Fetches all child entities of a pricing model and creates slug->id maps
@@ -150,7 +128,7 @@ export const resolveExistingIds = async (
       const usagePrice = price as Price.UsageRecord
       const meterSlug = meterIdToSlug.get(usagePrice.usageMeterId)
       if (meterSlug) {
-        const syntheticSlug = generateSyntheticUsagePriceSlug(
+        const syntheticSlug = buildSyntheticUsagePriceSlug(
           usagePrice,
           meterSlug
         )
