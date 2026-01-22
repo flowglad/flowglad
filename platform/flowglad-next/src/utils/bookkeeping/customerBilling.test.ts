@@ -972,9 +972,13 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   let customer: Customer.Record
   let user: User.Record
 
+  // Store spy references for cleanup
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  let spies: Array<{ mockRestore: () => void }> = []
+
   beforeEach(async () => {
-    // Reset all mocks
-    mock.clearAllMocks()
+    // Reset spy references
+    spies = []
 
     // Set up first organization with pricing model and product
     const orgData = await setupOrg()
@@ -1016,71 +1020,82 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     })
 
     // Mock the requestingCustomerAndUser to return our test data
-    spyOn(
-      databaseAuthentication,
-      'requestingCustomerAndUser'
-    ).mockResolvedValue([
-      {
-        user,
-        customer,
-      },
-    ])
+    spies.push(
+      spyOn(
+        databaseAuthentication,
+        'requestingCustomerAndUser'
+      ).mockResolvedValue([
+        {
+          user,
+          customer,
+        },
+      ])
+    )
 
     // Mock the organization ID retrieval for customer billing portal
-    spyOn(
-      customerBillingPortalState,
-      'getCustomerBillingPortalOrganizationId'
-    ).mockResolvedValue(organization.id)
+    spies.push(
+      spyOn(
+        customerBillingPortalState,
+        'getCustomerBillingPortalOrganizationId'
+      ).mockResolvedValue(organization.id)
+    )
 
     // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
-    spyOn(
-      customerBillingPortalState,
-      'setCustomerBillingPortalOrganizationId'
-    ).mockResolvedValue(undefined)
+    spies.push(
+      spyOn(
+        customerBillingPortalState,
+        'setCustomerBillingPortalOrganizationId'
+      ).mockResolvedValue(undefined)
+    )
 
     // Mock selectBetterAuthUserById to always return a valid user
-    spyOn(
-      betterAuthSchemaMethods,
-      'selectBetterAuthUserById'
-    ).mockResolvedValue({
-      id: user.betterAuthId || 'mock_better_auth_id',
-      email: user.email!,
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any)
+    spies.push(
+      spyOn(
+        betterAuthSchemaMethods,
+        'selectBetterAuthUserById'
+      ).mockResolvedValue({
+        id: user.betterAuthId || 'mock_better_auth_id',
+        email: user.email!,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+    )
 
     // Mock getDatabaseAuthenticationInfo to return proper auth info for customer
-    spyOn(
-      databaseAuthentication,
-      'getDatabaseAuthenticationInfo'
-    ).mockResolvedValue({
-      userId: user.id,
-      livemode: true,
-      jwtClaim: {
-        sub: user.id,
-        user_metadata: {
-          id: user.id,
+    spies.push(
+      spyOn(
+        databaseAuthentication,
+        'getDatabaseAuthenticationInfo'
+      ).mockResolvedValue({
+        userId: user.id,
+        livemode: true,
+        jwtClaim: {
+          sub: user.id,
+          user_metadata: {
+            id: user.id,
+            email: user.email!,
+            aud: 'stub',
+            role: 'customer',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          app_metadata: {
+            provider: '',
+          },
           email: user.email!,
-          aud: 'stub',
           role: 'customer',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        app_metadata: {
-          provider: '',
-        },
-        email: user.email!,
-        role: 'customer',
-        organization_id: organization.id,
-        session_id: 'mock_session_123',
-        aud: 'stub',
-      } as any,
-    } as any)
+          organization_id: organization.id,
+          session_id: 'mock_session_123',
+          aud: 'stub',
+        } as any,
+      } as any)
+    )
   })
 
   afterEach(() => {
-    mock.restore()
+    // Restore each spy individually to avoid undoing mock.module() overrides
+    spies.forEach((spy) => spy.mockRestore())
   })
 
   it('should fail when price is not accessible to customer (from different organization)', async () => {

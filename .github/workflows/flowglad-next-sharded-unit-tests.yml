@@ -81,7 +81,7 @@ jobs:
 
           # Run bun test with the selected files
           if [ -n "$shard_files" ]; then
-            bun test --reporter=verbose $shard_files
+            bun test $shard_files
           else
             echo "No files to test in this shard"
           fi

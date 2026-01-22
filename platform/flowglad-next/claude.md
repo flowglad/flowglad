@@ -42,23 +42,27 @@ This tells Vitest to run that specific test file in a jsdom environment.
 
 ### bun:test Patterns and Pitfalls
 
-**Mock Restoration**: When using `spyOn()`, always use `mock.restore()` in `afterEach` - not `mock.clearAllMocks()`. The difference:
-- `mock.clearAllMocks()` - Only resets call counts and arguments
-- `mock.restore()` - Actually restores the original function implementations
-
-Without `mock.restore()`, spied functions leak across test files causing mysterious failures.
+**Mock Restoration**: When using `spyOn()` alongside `mock.module()`, restore spies individually - not with `mock.restore()`. The global `mock.restore()` can undo `mock.module()` overrides, breaking subsequent tests that rely on those module mocks.
 
 ```typescript
-import { afterEach, beforeEach, mock, spyOn } from 'bun:test'
+import { afterEach, beforeEach, spyOn } from 'bun:test'
+
+// Store spy references for cleanup
+let spies: Array<{ mockRestore: () => void }> = []
 
 beforeEach(() => {
-  spyOn(someModule, 'someFunction').mockResolvedValue(mockValue)
+  spies = []
+  spies.push(spyOn(someModule, 'someFunction').mockResolvedValue(mockValue))
+  spies.push(spyOn(otherModule, 'otherFunction').mockResolvedValue(otherValue))
 })
 
 afterEach(() => {
-  mock.restore() // REQUIRED - restores original implementations
+  // Restore each spy individually to preserve mock.module() overrides
+  spies.forEach((spy) => spy.mockRestore())
 })
 ```
+
+If you have NO `mock.module()` calls in your test file, you can use `mock.restore()` globally. But when mixing `spyOn()` with `mock.module()`, always restore spies individually.
 
 **Assertion Patterns**: Avoid `.resolves.not.toThrow()` - it doesn't work correctly in bun:test for functions that return values. Instead, just await the function:
 

@@ -86,9 +86,13 @@ let invoice2: Invoice.Record
 let invoice3: Invoice.Record
 let apiKeyToken: string
 
+// Store spy references for cleanup
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let spies: Array<{ mockRestore: () => void }> = []
+
 beforeEach(async () => {
-  // Reset all mocks
-  mock.clearAllMocks()
+  // Reset spy references
+  spies = []
 
   // Reset global auth session (mocked in bun.setup.ts)
   globalThis.__mockedAuthSession = null
@@ -181,43 +185,52 @@ beforeEach(async () => {
   })
 
   // Mock the requestingCustomerAndUser to return our test data
-  spyOn(
-    databaseAuthentication,
-    'requestingCustomerAndUser'
-  ).mockResolvedValue([
-    {
-      user,
-      customer,
-    },
-  ])
+  spies.push(
+    spyOn(
+      databaseAuthentication,
+      'requestingCustomerAndUser'
+    ).mockResolvedValue([
+      {
+        user,
+        customer,
+      },
+    ])
+  )
 
   // Mock the organization ID retrieval for customer billing portal
-  spyOn(
-    customerBillingPortalState,
-    'getCustomerBillingPortalOrganizationId'
-  ).mockResolvedValue(organization.id)
+  spies.push(
+    spyOn(
+      customerBillingPortalState,
+      'getCustomerBillingPortalOrganizationId'
+    ).mockResolvedValue(organization.id)
+  )
 
   // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
-  spyOn(
-    customerBillingPortalState,
-    'setCustomerBillingPortalOrganizationId'
-  ).mockResolvedValue(undefined)
+  spies.push(
+    spyOn(
+      customerBillingPortalState,
+      'setCustomerBillingPortalOrganizationId'
+    ).mockResolvedValue(undefined)
+  )
 
   // Mock selectBetterAuthUserById to always return a valid user
-  spyOn(
-    betterAuthSchemaMethods,
-    'selectBetterAuthUserById'
-  ).mockResolvedValue({
-    id: user.betterAuthId || 'mock_better_auth_id',
-    email: user.email!,
-    emailVerified: true,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  } as any)
+  spies.push(
+    spyOn(
+      betterAuthSchemaMethods,
+      'selectBetterAuthUserById'
+    ).mockResolvedValue({
+      id: user.betterAuthId || 'mock_better_auth_id',
+      email: user.email!,
+      emailVerified: true,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    } as any)
+  )
 })
 
 afterEach(() => {
-  mock.restore()
+  // Restore each spy individually to avoid undoing mock.module() overrides
+  spies.forEach((spy) => spy.mockRestore())
 })
 
 // Create a context for testing the procedures
