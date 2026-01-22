@@ -16,7 +16,6 @@ import {
   bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
   selectFeatures,
 } from '@/db/tableMethods/featureMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   bulkInsertPrices,
@@ -224,10 +223,17 @@ export const createProductTransaction = async (
   },
   ctx: TransactionEffectsContext & {
     livemode: boolean
-    userId: string
+    organizationId: string
   }
 ) => {
-  const { userId, transaction, livemode, invalidateCache } = ctx
+  const { transaction, livemode, organizationId, invalidateCache } =
+    ctx
+  if (!organizationId) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Organization ID is required to create a product.',
+    })
+  }
   // Validate that usage prices are not created with featureIds
   if (payload.featureIds && payload.featureIds.length > 0) {
     const hasUsagePrice = payload.prices.some(
@@ -256,17 +262,12 @@ export const createProductTransaction = async (
     }
   }
 
-  const [
-    {
-      organization: { id: organizationId, defaultCurrency },
-    },
-  ] = await selectMembershipAndOrganizations(
-    {
-      userId,
-      focused: true,
-    },
+  // Fetch organization directly for defaultCurrency
+  const organization = await selectOrganizationById(
+    organizationId,
     transaction
   )
+  const { defaultCurrency } = organization
   const createdProduct = await insertProduct(
     {
       ...payload.product,
@@ -334,6 +335,13 @@ export const editProductTransaction = async (
   const { transaction, livemode, organizationId, invalidateCache } =
     ctx
   const { product, featureIds, price } = payload
+
+  if (!organizationId) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Organization ID is required to edit a product.',
+    })
+  }
 
   // Fetch the existing product to check if it's a default product
   const existingProduct = await selectProductById(

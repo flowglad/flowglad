@@ -38,12 +38,11 @@ export const createUsageMeterTransaction = async (
     transaction,
     livemode,
     organizationId,
-    userId: _userId,
     invalidateCache,
     cacheRecomputationContext,
     emitEvent,
     enqueueLedgerCommand,
-  }: AuthenticatedTransactionParams &
+  }: Omit<AuthenticatedTransactionParams, 'userId'> &
     Required<Pick<AuthenticatedTransactionParams, 'invalidateCache'>>
 ): Promise<{
   usageMeter: UsageMeter.Record
