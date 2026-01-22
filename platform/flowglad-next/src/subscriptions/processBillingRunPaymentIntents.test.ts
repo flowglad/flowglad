@@ -813,7 +813,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       expect(result.status).toBe('error')
       if (result.status === 'error') {
         expect(result.error.message).toMatch(
-          /No latest charge found for payment intent pi_no_charge/
+          /LatestCharge not found: pi_no_charge/
         )
       }
     })
