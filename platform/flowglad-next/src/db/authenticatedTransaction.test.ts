@@ -51,14 +51,8 @@ import {
 import { insertUser } from './tableMethods/userMethods'
 import type { DbTransaction } from './types'
 
-// Mutable auth state for testing
-const mockedAuth: {
-  session: null | { user: { id: string; email: string } }
-} = { session: null }
-
-mock.module('@/utils/auth', () => ({
-  getSession: async () => mockedAuth.session,
-}))
+// Note: @/utils/auth is mocked globally in bun.setup.ts
+// Tests can set globalThis.__mockedAuthSession to configure the session
 
 const currentOrganizationIdQueryResultSchema = z
   .object({ organization_id: z.string() })
@@ -95,7 +89,7 @@ describe('authenticatedTransaction', () => {
   let membershipB2: Membership.Record // userB in testOrg2
 
   beforeEach(async () => {
-    mockedAuth.session = null
+    globalThis.__mockedAuthSession = null
 
     // Setup two test organizations
     const org1Setup = await setupOrg()
@@ -293,7 +287,7 @@ describe('authenticatedTransaction', () => {
         )
       })
 
-      mockedAuth.session = {
+      globalThis.__mockedAuthSession = {
         user: {
           id: betterAuthId,
           email,
@@ -1914,7 +1908,7 @@ describe('cacheRecomputationContext derivation', () => {
     // Configure session mock to simulate logged-in user via Better Auth.
     // Use __testOnlyOrganizationId to trigger the customer billing portal auth path
     // via the built-in test escape hatch in getCustomerBillingPortalOrganizationId.
-    mockedAuth.session = {
+    globalThis.__mockedAuthSession = {
       user: { id: betterAuthId, email: user.email! },
     }
 
@@ -1949,7 +1943,7 @@ describe('cacheRecomputationContext derivation', () => {
     expect(result.verified).toBe(true)
 
     // Reset session mock
-    mockedAuth.session = null
+    globalThis.__mockedAuthSession = null
   })
 
   it('sets type to merchant when using API key auth (non-customer role)', async () => {

@@ -13,6 +13,21 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
+
+// Mock modules BEFORE importing them
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(),
+    get: mock(),
+    delete: mock(),
+  })),
+}))
+
+// Note: @/utils/auth is mocked globally in bun.setup.ts
+// Tests can set globalThis.__mockedAuthSession to configure the session
+
+// Now import everything else (including mocked modules)
 import { TRPCError } from '@trpc/server'
 import {
   setupBillingPeriod,
@@ -44,6 +59,7 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
+import { customerBillingPortalRouter } from '@/server/routers/customerBillingPortalRouter'
 import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
 import {
   InvoiceStatus,
@@ -54,28 +70,6 @@ import {
 import { auth } from '@/utils/auth'
 import core from '@/utils/core'
 import * as customerBillingPortalState from '@/utils/customerBillingPortalState'
-import { customerBillingPortalRouter } from './customerBillingPortalRouter'
-
-// Mock next/headers to avoid Next.js context errors
-mock.module('next/headers', () => ({
-  headers: mock(() => new Headers()),
-  cookies: mock(() => ({
-    set: mock(),
-    get: mock(),
-    delete: mock(),
-  })),
-}))
-
-// Mock auth with factory function to avoid hoisting issues
-mock.module('@/utils/auth', () => ({
-  auth: {
-    api: {
-      signInMagicLink: mock(),
-      createUser: mock(),
-    },
-  },
-  getSession: mock().mockResolvedValue(null),
-}))
 
 // Setup test data variables
 let organization: Organization.Record
@@ -96,12 +90,8 @@ beforeEach(async () => {
   // Reset all mocks
   mock.clearAllMocks()
 
-  // Set default mock implementations for auth
-  ;(
-    auth.api.signInMagicLink as unknown as Mock<any>
-  ).mockResolvedValue({
-    success: true,
-  } as any)
+  // Reset global auth session (mocked in bun.setup.ts)
+  globalThis.__mockedAuthSession = null
 
   // Set up organization with products and prices
   const orgSetup = await setupOrg()
@@ -290,6 +280,7 @@ describe('Customer Billing Portal Router', () => {
       })
 
       // Verify all invoices are returned when no pagination
+      expect(Array.isArray(result.invoices)).toBe(true)
       expect(result.invoices.length).toBeGreaterThanOrEqual(3)
     })
 

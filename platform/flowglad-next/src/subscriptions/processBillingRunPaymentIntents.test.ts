@@ -109,15 +109,44 @@ describe('processOutcomeForBillingRun integration tests', async () => {
   let subscription: Subscription.Record
   beforeEach(async () => {
     // Configure mock to return a charge object based on the ID passed
+    // The status is determined by patterns in the charge ID
     ;(getStripeCharge as Mock<any>).mockImplementation(
-      async (chargeId: string) =>
-        createMockStripeCharge({
+      async (chargeId: string) => {
+        // Determine status based on charge ID pattern
+        let status: 'succeeded' | 'pending' | 'failed' = 'succeeded'
+        let paid = true
+        if (chargeId.includes('failed')) {
+          status = 'failed'
+          paid = false
+        } else if (
+          chargeId.includes('pending') ||
+          chargeId.includes('processing')
+        ) {
+          status = 'pending'
+          paid = false
+        }
+
+        return createMockStripeCharge({
           id: chargeId,
-          status: 'succeeded',
+          status,
           amount: 1000,
-          paid: true,
-          captured: true,
+          paid,
+          captured: status === 'succeeded',
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+              exp_month: 12,
+              exp_year: 2030,
+              fingerprint: 'test_fingerprint',
+              funding: 'credit',
+              country: 'US',
+              network: 'visa',
+            },
+          } as any,
         })
+      }
     )
 
     customer = await setupCustomer({

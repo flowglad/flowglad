@@ -919,7 +919,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         // Verify subscription was canceled immediately
         expect(result.status).toBe(SubscriptionStatus.Canceled)
-        expect(result.canceledAt).toMatchObject({})
+        expect(typeof result.canceledAt).toBe('number')
         expect(effects.events).toHaveLength(1)
         expect(effects.events[0]).toMatchObject({
           type: FlowgladEventType.SubscriptionCanceled,
@@ -977,7 +977,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
           // Verify subscription was canceled regardless of initial status
           expect(result.status).toBe(SubscriptionStatus.Canceled)
-          expect(result.canceledAt).toMatchObject({})
+          expect(typeof result.canceledAt).toBe('number')
           expect(effects.events).toHaveLength(1)
           expect(effects.events[0]).toMatchObject({
             type: FlowgladEventType.SubscriptionCanceled,

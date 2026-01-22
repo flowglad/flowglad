@@ -70,7 +70,7 @@ describe('apiKeyHelpers', () => {
         }
       )
 
-      expect(result.apiKey.id).toMatch(/^api_key_/)
+      expect(result.apiKey.id).toMatch(/^apikey_/)
       expect(result.apiKey.name).toBe('Test API Key')
       expect(result.apiKey.type).toBe(FlowgladApiKeyType.Secret)
       expect(typeof result.shownOnlyOnceKey).toBe('string')
@@ -180,7 +180,7 @@ describe('apiKeyHelpers', () => {
         }
       )
 
-      expect(result.apiKey.id).toMatch(/^api_key_/)
+      expect(result.apiKey.id).toMatch(/^apikey_/)
       expect(result.apiKey.name).toBe('Test API Key')
     })
 

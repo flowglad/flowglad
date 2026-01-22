@@ -44,6 +44,7 @@ import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import {
   createMockConfirmationResult,
   createMockPaymentIntentResponse,
+  createMockStripeCharge,
 } from '@/test/helpers/stripeMocks'
 import {
   BillingPeriodStatus,
@@ -64,6 +65,8 @@ const mockCreatePaymentIntentForBillingRun =
   mock<typeof actualStripe.createPaymentIntentForBillingRun>()
 const mockConfirmPaymentIntentForBillingRun =
   mock<typeof actualStripe.confirmPaymentIntentForBillingRun>()
+const mockGetStripeCharge =
+  mock<typeof actualStripe.getStripeCharge>()
 
 // Mock Stripe functions
 mock.module('@/utils/stripe', () => ({
@@ -72,11 +75,13 @@ mock.module('@/utils/stripe', () => ({
     mockCreatePaymentIntentForBillingRun,
   confirmPaymentIntentForBillingRun:
     mockConfirmPaymentIntentForBillingRun,
+  getStripeCharge: mockGetStripeCharge,
 }))
 
 import {
   confirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
+  getStripeCharge,
 } from '@/utils/stripe'
 import { executeBillingRun } from './billingRunHelpers'
 
@@ -94,6 +99,44 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
   let subscriptionItem: SubscriptionItem.Record
 
   beforeEach(async () => {
+    // Reset mocks before each test (reset clears both history AND implementations)
+    mockCreatePaymentIntentForBillingRun.mockReset()
+    mockConfirmPaymentIntentForBillingRun.mockReset()
+    mockGetStripeCharge.mockReset()
+
+    // Set default mock implementations
+    // Tests can override with mockResolvedValueOnce or mockImplementation
+    ;(
+      createPaymentIntentForBillingRun as Mock<any>
+    ).mockImplementation(
+      async (params: {
+        amount: number
+        stripeCustomerId: string
+        stripePaymentMethodId: string
+        billingRunId: string
+        billingPeriodId: string
+      }) => {
+        return createMockPaymentIntentResponse({
+          amount: params.amount,
+          customer: params.stripeCustomerId,
+          payment_method: params.stripePaymentMethodId,
+          metadata: {
+            billingRunId: params.billingRunId,
+            type: 'billing_run',
+            billingPeriodId: params.billingPeriodId,
+          },
+        })
+      }
+    )
+
+    ;(
+      confirmPaymentIntentForBillingRun as Mock<any>
+    ).mockImplementation(async (paymentIntentId: string) => {
+      return createMockConfirmationResult(paymentIntentId, {
+        status: 'succeeded',
+      })
+    })
+
     const orgData = await setupOrg()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
@@ -147,6 +190,31 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       type: SubscriptionItemType.Static,
       description: 'Test Description',
     })
+
+    // Configure getStripeCharge mock to return a succeeded charge
+    ;(getStripeCharge as Mock<any>).mockImplementation(
+      async (chargeId: string) => {
+        return createMockStripeCharge({
+          id: chargeId,
+          status: 'succeeded',
+          amount: 1000,
+          paid: true,
+          captured: true,
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+              exp_month: 12,
+              exp_year: 2025,
+              country: 'US',
+              fingerprint: 'fingerprint_test',
+              funding: 'credit',
+            },
+          } as any,
+        })
+      }
+    )
   })
 
   afterEach(async () => {

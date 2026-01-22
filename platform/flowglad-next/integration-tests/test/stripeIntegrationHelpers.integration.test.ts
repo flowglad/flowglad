@@ -5,7 +5,7 @@ import {
   createTestStripeCustomer,
   describeIfStripeKey,
   getStripeTestClient,
-} from './stripeIntegrationHelpers'
+} from '@/test/stripeIntegrationHelpers'
 
 /**
  * Smoke tests for Stripe integration test infrastructure.

@@ -136,8 +136,8 @@ describe('confirmCheckoutSessionTransaction', () => {
         return Result.ok(result)
       }
     )
-    // Reset mocks
-    mock.restore()
+    // Reset mocks - clearAllMocks clears call counts on all mock functions
+    mock.clearAllMocks()
   })
 
   describe('Checkout Session Validation', () => {
@@ -423,7 +423,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       })
 
       // Verify pricing model was associated with the correct default pricing model
-      expect(result.customer.pricingModelId).toMatchObject({})
+      expect(typeof result.customer.pricingModelId).toBe('string')
       expect(result.customer.pricingModelId).toEqual(pricingModel.id)
     })
 

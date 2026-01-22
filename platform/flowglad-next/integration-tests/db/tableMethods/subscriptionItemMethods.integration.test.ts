@@ -14,6 +14,10 @@ import type { Price } from '@/db/schema/prices'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import {
+  selectSubscriptionItemsWithPricesBySubscriptionId,
+  selectSubscriptionItemsWithPricesBySubscriptionIds,
+} from '@/db/tableMethods/subscriptionItemMethods.server'
+import {
   cleanupRedisTestKeys,
   describeIfRedisKey,
   getRedisTestClient,
@@ -21,10 +25,6 @@ import {
 import { CacheDependency } from '@/utils/cache'
 import { invalidateDependencies } from '@/utils/cache.internal'
 import { RedisKeyNamespace } from '@/utils/redis'
-import {
-  selectSubscriptionItemsWithPricesBySubscriptionId,
-  selectSubscriptionItemsWithPricesBySubscriptionIds,
-} from './subscriptionItemMethods.server'
 
 /**
  * Integration tests for cached subscription item methods.

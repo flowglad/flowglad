@@ -758,7 +758,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toMatchObject({})
+        expect(typeof result).toBe('number')
         expect(result).toEqual(expectedDate.getTime())
       })
 
@@ -770,7 +770,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toMatchObject({})
+        expect(typeof result).toBe('number')
         expect(result).toEqual(expectedDate.getTime())
       })
 
@@ -782,7 +782,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toMatchObject({})
+        expect(typeof result).toBe('number')
         expect(result).toEqual(expectedDate.getTime())
       })
     })

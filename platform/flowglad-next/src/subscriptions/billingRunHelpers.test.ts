@@ -1282,6 +1282,7 @@ describe('billingRunHelpers', async () => {
       })
 
       it('should rollback when customer ID validation fails', async () => {
+        mockCreatePaymentIntentForBillingRun.mockClear()
         // Setup customer without stripe ID
         await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
@@ -1319,6 +1320,7 @@ describe('billingRunHelpers', async () => {
       })
 
       it('should rollback when payment method ID validation fails', async () => {
+        mockCreatePaymentIntentForBillingRun.mockClear()
         // Setup payment method without stripe ID
         await adminTransaction(
           async ({
@@ -1629,11 +1631,11 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.invoice).toMatchObject({})
+      expect(result.invoice.id).toMatch(/^inv_/)
       expect(result.invoice.billingPeriodId).toBe(billingPeriod.id)
       expect(result.invoice.customerId).toBe(customer.id)
       expect(result.invoice.organizationId).toBe(organization.id)
-      expect(result.invoice.currency).toMatchObject({})
+      expect(typeof result.invoice.currency).toBe('string')
     })
 
     it('should use existing invoice when one exists for the billing period', async () => {
@@ -1796,7 +1798,7 @@ describe('billingRunHelpers', async () => {
         expect(result.payment.organizationId).toBe(organization.id)
         expect(result.payment.customerId).toBe(customer.id)
         expect(result.payment.invoiceId).toBe(result.invoice.id)
-        expect(result.payment.taxCountry).toMatchObject({})
+        expect(typeof result.payment.taxCountry).toBe('string')
         expect(result.payment.paymentMethod).toBe(paymentMethod.type)
         expect(result.payment.stripePaymentIntentId).toContain(
           'placeholder____'
@@ -1927,8 +1929,8 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toMatchObject({})
-      expect(result.feeCalculation.currency).toMatchObject({})
+      expect(result.feeCalculation.id).toMatch(/^feec_/)
+      expect(typeof result.feeCalculation.currency).toBe('string')
     })
 
     it('should return all expected properties in the result object', async () => {
@@ -1939,17 +1941,17 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.invoice).toMatchObject({})
-      expect(result.payment).toMatchObject({})
-      expect(result.feeCalculation).toMatchObject({})
-      expect(result.customer).toMatchObject({})
-      expect(result.organization).toMatchObject({})
-      expect(result.billingPeriod).toMatchObject({})
-      expect(result.subscription).toMatchObject({})
-      expect(result.paymentMethod).toMatchObject({})
-      expect(result.totalDueAmount).toMatchObject({})
-      expect(result.totalAmountPaid).toMatchObject({})
-      expect(result.payments).toMatchObject({})
+      expect(result.invoice.id).toMatch(/^inv_/)
+      expect(result.payment!.id).toMatch(/^pym_/)
+      expect(result.feeCalculation.id).toMatch(/^feec_/)
+      expect(result.customer.id).toMatch(/^cust_/)
+      expect(result.organization.id).toMatch(/^org_/)
+      expect(result.billingPeriod.id).toMatch(/^billing_period_/)
+      expect(result.subscription.id).toMatch(/^sub_/)
+      expect(result.paymentMethod.id).toMatch(/^pm_/)
+      expect(typeof result.totalDueAmount).toBe('number')
+      expect(typeof result.totalAmountPaid).toBe('number')
+      expect(Array.isArray(result.payments)).toBe(true)
     })
 
     it('should handle nested billing details address for tax country', async () => {
