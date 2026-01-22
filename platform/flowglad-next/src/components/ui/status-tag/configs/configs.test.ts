@@ -19,6 +19,7 @@ import type { Purchase } from '@/db/schema/purchases'
 import {
   InvoiceStatus,
   PaymentStatus,
+  PriceType,
   PurchaseStatus,
   SubscriptionStatus,
 } from '@/types'
@@ -382,17 +383,53 @@ describe('purchaseDisplayStatusConfig', () => {
 })
 
 describe('getPurchaseDisplayStatus', () => {
-  // The function needs endDate, purchaseDate, and status
+  /**
+   * Creates a type-safe mock Purchase.SinglePaymentPurchaseClientRecord
+   * with sensible defaults for all required fields.
+   * Only status, endDate, and purchaseDate are configurable since
+   * getPurchaseDisplayStatus only uses these fields.
+   */
   const createMockPurchase = (overrides: {
     status: PurchaseStatus
     endDate: number | null
     purchaseDate?: number | null
-  }): Purchase.ClientRecord =>
-    ({
-      status: overrides.status,
-      endDate: overrides.endDate,
-      purchaseDate: overrides.purchaseDate ?? null,
-    }) as Purchase.ClientRecord
+  }): Purchase.SinglePaymentPurchaseClientRecord => ({
+    // Base table fields
+    id: 'prch_test_123',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    livemode: false,
+
+    // Purchase-specific fields
+    name: 'Test Purchase',
+    customerId: 'cust_test_123',
+    organizationId: 'org_test_123',
+    priceId: 'price_test_123',
+    pricingModelId: 'pm_test_123',
+    quantity: 1,
+    bankPaymentOnly: false,
+    proposal: null,
+    archived: false,
+    billingAddress: null,
+    billingCycleAnchor: null,
+    metadata: null,
+
+    // Single payment discriminator
+    priceType: PriceType.SinglePayment,
+    firstInvoiceValue: 0,
+    totalPurchaseValue: 100,
+
+    // Subscription fields (null for single payment)
+    trialPeriodDays: null,
+    pricePerBillingCycle: null,
+    intervalUnit: null,
+    intervalCount: null,
+
+    // Overridable fields for testing
+    status: overrides.status,
+    endDate: overrides.endDate,
+    purchaseDate: overrides.purchaseDate ?? null,
+  })
 
   it('returns "concluded" when purchase has an endDate, regardless of database status or purchaseDate', () => {
     const purchase = createMockPurchase({
@@ -476,6 +513,30 @@ describe('getPurchaseDisplayStatus', () => {
     const displayStatus = getPurchaseDisplayStatus(purchase)
 
     expect(displayStatus).toBe('concluded')
+  })
+
+  it('returns "concluded" when endDate is 0 (epoch timestamp is a valid date value)', () => {
+    const purchase = createMockPurchase({
+      status: PurchaseStatus.Paid,
+      endDate: 0,
+      purchaseDate: Date.now(),
+    })
+
+    const displayStatus = getPurchaseDisplayStatus(purchase)
+
+    expect(displayStatus).toBe('concluded')
+  })
+
+  it('returns "paid" when purchaseDate is 0 and endDate is null (epoch timestamp is a valid date value)', () => {
+    const purchase = createMockPurchase({
+      status: PurchaseStatus.Pending,
+      endDate: null,
+      purchaseDate: 0,
+    })
+
+    const displayStatus = getPurchaseDisplayStatus(purchase)
+
+    expect(displayStatus).toBe(PurchaseStatus.Paid)
   })
 })
 

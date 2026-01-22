@@ -99,10 +99,10 @@ export const purchaseDisplayStatusConfig = {
 export const getPurchaseDisplayStatus = (
   purchase: Purchase.ClientRecord
 ): PurchaseDisplayStatus => {
-  if (purchase.endDate) {
+  if (purchase.endDate != null) {
     return 'concluded'
   }
-  if (purchase.purchaseDate) {
+  if (purchase.purchaseDate != null) {
     return PurchaseStatus.Paid
   }
   return purchase.status
