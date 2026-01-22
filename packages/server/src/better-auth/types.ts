@@ -74,6 +74,20 @@ export type FlowgladBetterAuthPluginOptions = {
     name: string
     email: string
   }>
+
+  /**
+   * Optional callback invoked when Flowglad customer auto-creation fails inside
+   * the Better Auth `after` hooks (sign-up / organization creation).
+   *
+   * If not provided, failures are logged with `console.error` and the auth
+   * operation continues (best-effort).
+   */
+  onCustomerCreateError?: (params: {
+    hook: 'afterSignUp' | 'afterOrganizationCreate'
+    customerType: 'user' | 'organization'
+    session: InnerSession
+    error: unknown
+  }) => void | Promise<void>
 }
 
 export type FlowgladBetterAuthPlugin = BetterAuthPlugin

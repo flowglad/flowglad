@@ -103,6 +103,34 @@ const createFlowgladCustomer = async (
   await flowgladServer.findOrCreateCustomer()
 }
 
+const reportCustomerCreateError = async (
+  options: FlowgladBetterAuthPluginOptions,
+  params: {
+    hook: 'afterSignUp' | 'afterOrganizationCreate'
+    customerType: 'user' | 'organization'
+    session: InnerSession
+    error: unknown
+  }
+): Promise<void> => {
+  if (options.onCustomerCreateError) {
+    await options.onCustomerCreateError(params)
+    return
+  }
+
+  if (params.hook === 'afterSignUp') {
+    console.error(
+      'Failed to create Flowglad customer after sign-up:',
+      params.error
+    )
+    return
+  }
+
+  console.error(
+    'Failed to create Flowglad customer after organization creation:',
+    params.error
+  )
+}
+
 /**
  * Helper function to create Flowglad customer for an organization
  * Can be called directly when organization is created programmatically
@@ -195,11 +223,13 @@ export const flowgladPlugin = (
             try {
               await createFlowgladCustomer(options, session)
             } catch (error) {
-              // Log error but don't fail the sign-up process
-              console.error(
-                'Failed to create Flowglad customer after sign-up:',
-                error
-              )
+              // Best-effort: do not fail the sign-up process
+              await reportCustomerCreateError(options, {
+                hook: 'afterSignUp',
+                customerType,
+                session,
+                error,
+              })
             }
           }),
         },
@@ -279,11 +309,13 @@ export const flowgladPlugin = (
             try {
               await createFlowgladCustomer(options, orgSession)
             } catch (error) {
-              // Log error but don't fail the organization creation process
-              console.error(
-                'Failed to create Flowglad customer after organization creation:',
-                error
-              )
+              // Best-effort: do not fail the organization creation process
+              await reportCustomerCreateError(options, {
+                hook: 'afterOrganizationCreate',
+                customerType,
+                session: orgSession,
+                error,
+              })
             }
           }),
         },

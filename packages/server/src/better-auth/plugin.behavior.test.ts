@@ -9,6 +9,7 @@ const flowgladServerState = vi.hoisted(() => ({
     config: unknown
     findOrCreateCustomerCalls: number
   }>,
+  shouldThrowOnFindOrCreateCustomer: false,
 }))
 
 vi.mock('../FlowgladServer', () => ({
@@ -27,6 +28,9 @@ vi.mock('../FlowgladServer', () => ({
 
     public findOrCreateCustomer = async (): Promise<void> => {
       this.state.findOrCreateCustomerCalls += 1
+      if (flowgladServerState.shouldThrowOnFindOrCreateCustomer) {
+        throw new Error('Flowglad customer creation failed')
+      }
     }
   },
 }))
@@ -99,6 +103,7 @@ describe('createFlowgladCustomerForOrganization', () => {
 describe('flowgladPlugin after hooks', () => {
   it('sign-up hook creates a Flowglad customer when customerType is user/undefined and returned.user.id exists', async () => {
     flowgladServerState.instances.length = 0
+    flowgladServerState.shouldThrowOnFindOrCreateCustomer = false
     const plugin = flowgladPlugin({})
 
     const hook =
@@ -134,6 +139,7 @@ describe('flowgladPlugin after hooks', () => {
 
   it('sign-up hook does nothing when returned.user.id is missing', async () => {
     flowgladServerState.instances.length = 0
+    flowgladServerState.shouldThrowOnFindOrCreateCustomer = false
     const plugin = flowgladPlugin({})
 
     const hook =
@@ -155,6 +161,7 @@ describe('flowgladPlugin after hooks', () => {
 
   it('sign-up hook does nothing when customerType is organization', async () => {
     flowgladServerState.instances.length = 0
+    flowgladServerState.shouldThrowOnFindOrCreateCustomer = false
     const plugin = flowgladPlugin({ customerType: 'organization' })
 
     const hook =
@@ -180,6 +187,7 @@ describe('flowgladPlugin after hooks', () => {
 
   it('organization-create hook creates an org Flowglad customer and prefers owner email from adapter lookup', async () => {
     flowgladServerState.instances.length = 0
+    flowgladServerState.shouldThrowOnFindOrCreateCustomer = false
     const plugin = flowgladPlugin({ customerType: 'organization' })
 
     const hook =
@@ -276,6 +284,7 @@ describe('flowgladPlugin after hooks', () => {
 
   it('organization-create hook falls back to name "Organization" when returned.organization.name is not a string', async () => {
     flowgladServerState.instances.length = 0
+    flowgladServerState.shouldThrowOnFindOrCreateCustomer = false
     const plugin = flowgladPlugin({ customerType: 'organization' })
 
     const hook =
@@ -315,6 +324,7 @@ describe('flowgladPlugin after hooks', () => {
 
   it('organization-create hook does nothing when customerType is not organization', async () => {
     flowgladServerState.instances.length = 0
+    flowgladServerState.shouldThrowOnFindOrCreateCustomer = false
     const plugin = flowgladPlugin({ customerType: 'user' })
 
     const hook =
@@ -335,5 +345,105 @@ describe('flowgladPlugin after hooks', () => {
     } as Parameters<typeof hook.handler>[0])
 
     expect(flowgladServerState.instances).toHaveLength(0)
+  })
+
+  it('sign-up hook calls onCustomerCreateError when Flowglad customer creation fails (and does not throw)', async () => {
+    flowgladServerState.instances.length = 0
+    flowgladServerState.shouldThrowOnFindOrCreateCustomer = true
+
+    const onCustomerCreateError = vi.fn()
+    const plugin = flowgladPlugin({ onCustomerCreateError })
+
+    const hook =
+      plugin.hooks.after.find((h) =>
+        h.matcher({ path: '/sign-up' } as Parameters<
+          typeof h.matcher
+        >[0])
+      ) ?? null
+    if (!hook) {
+      throw new Error('Expected sign-up hook')
+    }
+
+    await expect(
+      hook.handler({
+        context: {
+          returned: {
+            user: { id: 'user-1', email: 'u@x.com', name: 'User' },
+          },
+        },
+      } as Parameters<typeof hook.handler>[0])
+    ).resolves.toBe(undefined)
+
+    expect(flowgladServerState.instances).toHaveLength(1)
+    expect(
+      flowgladServerState.instances[0]?.findOrCreateCustomerCalls
+    ).toBe(1)
+
+    expect(onCustomerCreateError).toHaveBeenCalledTimes(1)
+    expect(onCustomerCreateError).toHaveBeenCalledWith({
+      hook: 'afterSignUp',
+      customerType: 'user',
+      session: {
+        user: {
+          id: 'user-1',
+          name: 'User',
+          email: 'u@x.com',
+          organizationId: null,
+        },
+      },
+      error: expect.any(Error),
+    })
+  })
+
+  it('organization-create hook calls onCustomerCreateError when Flowglad customer creation fails (and does not throw)', async () => {
+    flowgladServerState.instances.length = 0
+    flowgladServerState.shouldThrowOnFindOrCreateCustomer = true
+
+    const onCustomerCreateError = vi.fn()
+    const plugin = flowgladPlugin({
+      customerType: 'organization',
+      onCustomerCreateError,
+    })
+
+    const hook =
+      plugin.hooks.after.find((h) =>
+        h.matcher({ path: '/organization/create' } as Parameters<
+          typeof h.matcher
+        >[0])
+      ) ?? null
+    if (!hook) {
+      throw new Error('Expected organization-create hook')
+    }
+
+    await expect(
+      hook.handler({
+        context: {
+          session: {
+            user: { id: 'user-1', email: 'owner@acme.com' },
+          },
+          returned: { organization: { id: 'org-1', name: 'Acme' } },
+        },
+      } as Parameters<typeof hook.handler>[0])
+    ).resolves.toBe(undefined)
+
+    expect(flowgladServerState.instances).toHaveLength(1)
+    expect(
+      flowgladServerState.instances[0]?.findOrCreateCustomerCalls
+    ).toBe(1)
+
+    expect(onCustomerCreateError).toHaveBeenCalledTimes(1)
+    expect(onCustomerCreateError).toHaveBeenCalledWith({
+      hook: 'afterOrganizationCreate',
+      customerType: 'organization',
+      session: {
+        user: {
+          id: 'user-1',
+          name: 'Acme',
+          email: 'owner@acme.com',
+          organizationId: 'org-1',
+        },
+      },
+      error: expect.any(Error),
+    })
   })
 })
