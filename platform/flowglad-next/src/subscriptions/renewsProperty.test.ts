@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -186,11 +186,11 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         )
 
         // Verify billing run was created
-        expect(result.billingRun).toMatchObject({})
+        expect(typeof result.billingRun).toBe('object')
         expect(result.billingRun!.status).toBe(
           BillingRunStatus.Scheduled
         )
-        expect(result.billingRun!.scheduledFor).toMatchObject({})
+        expect(typeof result.billingRun!.scheduledFor).toBe('number')
       })
 
       it('should create trial subscription with renews: true when trialEnd is provided', async () => {
@@ -637,7 +637,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(result.subscription.status).toBe(
           SubscriptionStatus.Canceled
         )
-        expect(result.subscription.canceledAt).toMatchObject({})
+        expect(typeof result.subscription.canceledAt).toBe('number')
 
         // Verify no new billing period was created
         await adminTransaction(async (ctx) => {

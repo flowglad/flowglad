@@ -451,7 +451,24 @@ const toSluggedProducts = (
 }
 
 /**
+ * Removes keys with undefined values from an object (shallow).
+ * This normalizes objects so that { foo: undefined } compares equal to {}.
+ */
+const stripUndefinedValues = <T extends Record<string, unknown>>(
+  obj: T
+): Partial<T> => {
+  const result: Partial<T> = {}
+  for (const key of Object.keys(obj) as Array<keyof T>) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key]
+    }
+  }
+  return result
+}
+
+/**
  * Checks if two prices are different by comparing their JSON representations.
+ * Normalizes both objects to treat undefined values as equivalent to missing keys.
  */
 const pricesAreDifferent = (
   existingPrice: SetupPricingModelProductPriceInput | undefined,
@@ -465,8 +482,11 @@ const pricesAreDifferent = (
   if (existingPrice === undefined || proposedPrice === undefined) {
     return true
   }
-  // Both defined - compare using deep equality
-  return !R.equals(existingPrice, proposedPrice)
+  // Both defined - normalize and compare using deep equality
+  // This ensures { foo: undefined } is treated as equal to {}
+  const normalizedExisting = stripUndefinedValues(existingPrice)
+  const normalizedProposed = stripUndefinedValues(proposedPrice)
+  return !R.equals(normalizedExisting, normalizedProposed)
 }
 
 /**

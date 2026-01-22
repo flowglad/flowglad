@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -2215,7 +2215,7 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
     // Since usage prices don't have isDefault set, one of them becomes the default
     // (the specific choice depends on query ordering which is non-deterministic)
     expect([usagePrice1.id, usagePrice2.id]).toContain(
-      usageMeterResult!.defaultPrice?.id
+      usageMeterResult!.defaultPrice!.id
     )
   })
 

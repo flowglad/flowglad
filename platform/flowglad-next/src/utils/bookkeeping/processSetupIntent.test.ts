@@ -1,12 +1,12 @@
-import Stripe from 'stripe'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  setSystemTime,
+} from 'bun:test'
+import Stripe from 'stripe'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -743,12 +743,11 @@ describe('Process setup intent', async () => {
       const mockDate = new Date(2024, 0, 1, 12, 0, 0) // Jan 1, 2024, 12:00:00
 
       beforeEach(() => {
-        vi.useFakeTimers()
-        vi.setSystemTime(mockDate)
+        setSystemTime(mockDate)
       })
 
       afterEach(() => {
-        vi.useRealTimers()
+        setSystemTime() // Reset to real time
       })
 
       it('should return a future date for trialPeriodDays = 7', () => {
@@ -759,7 +758,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toMatchObject({})
+        expect(typeof result).toBe('number')
         expect(result).toEqual(expectedDate.getTime())
       })
 
@@ -771,7 +770,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toMatchObject({})
+        expect(typeof result).toBe('number')
         expect(result).toEqual(expectedDate.getTime())
       })
 
@@ -783,7 +782,7 @@ describe('Process setup intent', async () => {
         )
         // expects:
         const result = calculateTrialEnd(params)
-        expect(result).toMatchObject({})
+        expect(typeof result).toBe('number')
         expect(result).toEqual(expectedDate.getTime())
       })
     })

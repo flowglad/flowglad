@@ -4,8 +4,9 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -45,6 +46,7 @@ import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
+import { createSpyTracker } from '@/test/spyTracker'
 import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionType,
@@ -64,24 +66,24 @@ import {
 } from './customerBilling'
 
 // Mock next/headers to avoid Next.js context errors
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(),
+    get: mock(),
+    delete: mock(),
   })),
 }))
 
 // Mock auth with factory function to avoid hoisting issues
-vi.mock('@/utils/auth', () => ({
+mock.module('@/utils/auth', () => ({
   auth: {
     api: {
-      signInMagicLink: vi.fn(),
-      createUser: vi.fn(),
+      signInMagicLink: mock(),
+      createUser: mock(),
     },
   },
-  getSession: vi.fn().mockResolvedValue(null),
+  getSession: mock().mockResolvedValue(null),
 }))
 
 describe('setDefaultPaymentMethodForCustomer', () => {
@@ -971,9 +973,11 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   let customer: Customer.Record
   let user: User.Record
 
+  // Track spies for cleanup (see @/test/spyTracker.ts for details)
+  const spyTracker = createSpyTracker()
+
   beforeEach(async () => {
-    // Reset all mocks
-    vi.clearAllMocks()
+    spyTracker.reset()
 
     // Set up first organization with pricing model and product
     const orgData = await setupOrg()
@@ -1015,76 +1019,81 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     })
 
     // Mock the requestingCustomerAndUser to return our test data
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
-      databaseAuthentication,
-      'requestingCustomerAndUser'
-    ).mockResolvedValue([
-      {
-        user,
-        customer,
-      },
-    ])
+    spyTracker.track(
+      spyOn(
+        databaseAuthentication,
+        'requestingCustomerAndUser'
+      ).mockResolvedValue([
+        {
+          user,
+          customer,
+        },
+      ])
+    )
 
     // Mock the organization ID retrieval for customer billing portal
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
-      customerBillingPortalState,
-      'getCustomerBillingPortalOrganizationId'
-    ).mockResolvedValue(organization.id)
+    spyTracker.track(
+      spyOn(
+        customerBillingPortalState,
+        'getCustomerBillingPortalOrganizationId'
+      ).mockResolvedValue(organization.id)
+    )
 
     // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
-      customerBillingPortalState,
-      'setCustomerBillingPortalOrganizationId'
-    ).mockResolvedValue(undefined)
+    spyTracker.track(
+      spyOn(
+        customerBillingPortalState,
+        'setCustomerBillingPortalOrganizationId'
+      ).mockResolvedValue(undefined)
+    )
 
     // Mock selectBetterAuthUserById to always return a valid user
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
-      betterAuthSchemaMethods,
-      'selectBetterAuthUserById'
-    ).mockResolvedValue({
-      id: user.betterAuthId || 'mock_better_auth_id',
-      email: user.email!,
-      emailVerified: true,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    } as any)
+    spyTracker.track(
+      spyOn(
+        betterAuthSchemaMethods,
+        'selectBetterAuthUserById'
+      ).mockResolvedValue({
+        id: user.betterAuthId || 'mock_better_auth_id',
+        email: user.email!,
+        emailVerified: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      } as any)
+    )
 
     // Mock getDatabaseAuthenticationInfo to return proper auth info for customer
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(
-      databaseAuthentication,
-      'getDatabaseAuthenticationInfo'
-    ).mockResolvedValue({
-      userId: user.id,
-      livemode: true,
-      jwtClaim: {
-        sub: user.id,
-        user_metadata: {
-          id: user.id,
+    spyTracker.track(
+      spyOn(
+        databaseAuthentication,
+        'getDatabaseAuthenticationInfo'
+      ).mockResolvedValue({
+        userId: user.id,
+        livemode: true,
+        jwtClaim: {
+          sub: user.id,
+          user_metadata: {
+            id: user.id,
+            email: user.email!,
+            aud: 'stub',
+            role: 'customer',
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          },
+          app_metadata: {
+            provider: '',
+          },
           email: user.email!,
-          aud: 'stub',
           role: 'customer',
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-        app_metadata: {
-          provider: '',
-        },
-        email: user.email!,
-        role: 'customer',
-        organization_id: organization.id,
-        session_id: 'mock_session_123',
-        aud: 'stub',
-      } as any,
-    } as any)
+          organization_id: organization.id,
+          session_id: 'mock_session_123',
+          aud: 'stub',
+        } as any,
+      } as any)
+    )
   })
 
   afterEach(() => {
-    vi.clearAllMocks()
+    spyTracker.restoreAll()
   })
 
   it('should fail when price is not accessible to customer (from different organization)', async () => {

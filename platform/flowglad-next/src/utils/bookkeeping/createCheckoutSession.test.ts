@@ -5,7 +5,7 @@ import {
   describe,
   expect,
   it,
-} from 'vitest'
+} from 'bun:test'
 import {
   setupCustomer,
   setupOrg,

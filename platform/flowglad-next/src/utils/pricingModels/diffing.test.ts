@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import {
   CurrencyCode,
   FeatureType,
@@ -49,7 +49,9 @@ describe('diffSluggedResources', () => {
     const result = diffSluggedResources(existing, proposed)
 
     // Expectation: 'foo' should be in toRemove
-    expect(result.toRemove).toEqual([{ slug: 'foo', name: 'Foo' }])
+    expect(result.toRemove).toEqual([
+      { slug: 'foo', name: 'Foo' },
+    ] as any)
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toHaveLength(1)
     expect(result.toUpdate[0].existing.slug).toBe('bar')
@@ -67,7 +69,9 @@ describe('diffSluggedResources', () => {
 
     // Expectation: 'bar' should be in toCreate
     expect(result.toRemove).toEqual([])
-    expect(result.toCreate).toEqual([{ slug: 'bar', name: 'Bar' }])
+    expect(result.toCreate).toEqual([
+      { slug: 'bar', name: 'Bar' },
+    ] as any)
     expect(result.toUpdate).toHaveLength(1)
     expect(result.toUpdate[0].existing.slug).toBe('foo')
   })
@@ -86,7 +90,7 @@ describe('diffSluggedResources', () => {
     expect(result.toUpdate[0]).toEqual({
       existing: { slug: 'foo', name: 'Old' },
       proposed: { slug: 'foo', name: 'New' },
-    })
+    } as any)
   })
 
   it('should handle empty existing array', () => {
@@ -98,7 +102,9 @@ describe('diffSluggedResources', () => {
 
     // Expectation: 'foo' should be in toCreate
     expect(result.toRemove).toEqual([])
-    expect(result.toCreate).toEqual([{ slug: 'foo', name: 'Foo' }])
+    expect(result.toCreate).toEqual([
+      { slug: 'foo', name: 'Foo' },
+    ] as any)
     expect(result.toUpdate).toEqual([])
   })
 
@@ -110,7 +116,9 @@ describe('diffSluggedResources', () => {
     const result = diffSluggedResources(existing, proposed)
 
     // Expectation: 'foo' should be in toRemove
-    expect(result.toRemove).toEqual([{ slug: 'foo', name: 'Foo' }])
+    expect(result.toRemove).toEqual([
+      { slug: 'foo', name: 'Foo' },
+    ] as any)
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toEqual([])
   })
@@ -123,8 +131,12 @@ describe('diffSluggedResources', () => {
     const result = diffSluggedResources(existing, proposed)
 
     // Expectation: 'foo' in toRemove, 'bar' in toCreate
-    expect(result.toRemove).toEqual([{ slug: 'foo', name: 'Foo' }])
-    expect(result.toCreate).toEqual([{ slug: 'bar', name: 'Bar' }])
+    expect(result.toRemove).toEqual([
+      { slug: 'foo', name: 'Foo' },
+    ] as any)
+    expect(result.toCreate).toEqual([
+      { slug: 'bar', name: 'Bar' },
+    ] as any)
     expect(result.toUpdate).toEqual([])
   })
 

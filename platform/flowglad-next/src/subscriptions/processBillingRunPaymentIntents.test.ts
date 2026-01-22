@@ -1,5 +1,6 @@
+import type { Mock } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -46,7 +47,10 @@ import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMet
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import { createMockPaymentIntentEventResponse } from '@/test/helpers/stripeMocks'
+import {
+  createMockPaymentIntentEventResponse,
+  createMockStripeCharge,
+} from '@/test/helpers/stripeMocks'
 import {
   createCapturingEffectsContext,
   createDiscardingEffectsContext,
@@ -68,7 +72,23 @@ import {
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
+// Import actual stripe module before mocking
+import * as actualStripeModule from '@/utils/stripe'
 import { IntentMetadataType } from '@/utils/stripe'
+
+// Create mock for getStripeCharge
+const mockGetStripeCharge =
+  mock<typeof actualStripeModule.getStripeCharge>()
+
+// Mock getStripeCharge
+mock.module('@/utils/stripe', () => ({
+  ...actualStripeModule,
+  getStripeCharge: mockGetStripeCharge,
+}))
+
+// Import the mocked version for assertions
+import { getStripeCharge } from '@/utils/stripe'
+
 import { isFirstPayment } from './billingRunHelpers'
 import { createSubscriptionWorkflow } from './createSubscription/workflow'
 import { processOutcomeForBillingRun } from './processBillingRunPaymentIntents'
@@ -88,6 +108,47 @@ describe('processOutcomeForBillingRun integration tests', async () => {
   let billingPeriodItem: BillingPeriodItem.Record
   let subscription: Subscription.Record
   beforeEach(async () => {
+    // Configure mock to return a charge object based on the ID passed
+    // The status is determined by patterns in the charge ID
+    ;(getStripeCharge as Mock<any>).mockImplementation(
+      async (chargeId: string) => {
+        // Determine status based on charge ID pattern
+        let status: 'succeeded' | 'pending' | 'failed' = 'succeeded'
+        let paid = true
+        if (chargeId.includes('failed')) {
+          status = 'failed'
+          paid = false
+        } else if (
+          chargeId.includes('pending') ||
+          chargeId.includes('processing')
+        ) {
+          status = 'pending'
+          paid = false
+        }
+
+        return createMockStripeCharge({
+          id: chargeId,
+          status,
+          amount: 1000,
+          paid,
+          captured: status === 'succeeded',
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+              exp_month: 12,
+              exp_year: 2030,
+              fingerprint: 'test_fingerprint',
+              funding: 'credit',
+              country: 'US',
+              network: 'visa',
+            },
+          } as any,
+        })
+      }
+    )
+
     customer = await setupCustomer({
       organizationId: organization.id,
     })

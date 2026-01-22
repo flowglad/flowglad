@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -11,7 +11,12 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
+import {
+  CurrencyCode,
+  FeatureType,
+  IntervalUnit,
+  PriceType,
+} from '@/types'
 import { core } from '@/utils/core'
 import type { Organization } from '../schema/organizations'
 import {
@@ -365,20 +370,18 @@ describe('priceMethods.ts', () => {
       })
 
       // Attempt to update the second price to be default
-      // This should fail because 'price' is already the default for this product
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          await updatePrice(
-            {
-              id: secondPrice.id,
-              isDefault: true,
-              type: PriceType.Subscription,
-            },
-            ctx
-          )
-        })
-      ).resolves.not.toThrow()
+      // This should succeed - updating an existing price to be default is allowed
+      await adminTransaction(async (ctx) => {
+        await updatePrice(
+          {
+            id: secondPrice.id,
+            isDefault: true,
+            type: PriceType.Subscription,
+          },
+          ctx
+        )
+      })
+      // If we reach here without throwing, the test passes
     })
 
     it('allows inserting a non-default price when a default price already exists', async () => {
@@ -2357,7 +2360,7 @@ describe('priceMethods.ts', () => {
         expect(features[0].id).toBe(resourceFeature.id)
         expect(features[0].resourceId).toBe(resource.id)
         expect(features[0].amount).toBe(5)
-        expect(features[0].type).toBe('resource')
+        expect(features[0].type).toBe(FeatureType.Resource)
       })
     })
 

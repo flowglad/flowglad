@@ -1,6 +1,14 @@
+import type { Mock } from 'bun:test'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 // These seed methods (and the clearDatabase helper) come from our test support code.
 // They create real records in our test database.
 import {
@@ -85,10 +93,10 @@ import {
 // Mock the trigger task - we test that it's called with correct parameters
 // The actual billing run execution is tested in billingRunHelpers.test.ts
 // Create the mock function inside the factory to avoid hoisting issues
-vi.mock('@/trigger/attempt-billing-run', () => {
-  const mockTriggerFn = vi
-    .fn()
-    .mockResolvedValue({ id: 'mock-billing-run-handle-id' })
+mock.module('@/trigger/attempt-billing-run', () => {
+  const mockTriggerFn = mock().mockResolvedValue({
+    id: 'mock-billing-run-handle-id',
+  })
   // Store reference so we can access it in tests
   ;(globalThis as any).__mockAttemptBillingRunTrigger = mockTriggerFn
   return {
@@ -99,10 +107,10 @@ vi.mock('@/trigger/attempt-billing-run', () => {
 })
 
 // Mock customer subscription adjusted notification
-vi.mock(
+mock.module(
   '@/trigger/notifications/send-customer-subscription-adjusted-notification',
   () => {
-    const mockFn = vi.fn().mockResolvedValue(undefined)
+    const mockFn = mock().mockResolvedValue(undefined)
     ;(globalThis as any).__mockCustomerAdjustedNotification = mockFn
     return {
       idempotentSendCustomerSubscriptionAdjustedNotification: mockFn,
@@ -111,10 +119,10 @@ vi.mock(
 )
 
 // Mock organization subscription adjusted notification
-vi.mock(
+mock.module(
   '@/trigger/notifications/send-organization-subscription-adjusted-notification',
   () => {
-    const mockFn = vi.fn().mockResolvedValue(undefined)
+    const mockFn = mock().mockResolvedValue(undefined)
     ;(globalThis as any).__mockOrgAdjustedNotification = mockFn
     return {
       idempotentSendOrganizationSubscriptionAdjustedNotification:
@@ -126,17 +134,17 @@ vi.mock(
 // Get the mock function for use in tests
 const getMockTrigger = () => {
   return (globalThis as any)
-    .__mockAttemptBillingRunTrigger as ReturnType<typeof vi.fn>
+    .__mockAttemptBillingRunTrigger as Mock<any>
 }
 
 const getMockCustomerNotification = () => {
   return (globalThis as any)
-    .__mockCustomerAdjustedNotification as ReturnType<typeof vi.fn>
+    .__mockCustomerAdjustedNotification as Mock<any>
 }
 
 const getMockOrgNotification = () => {
   return (globalThis as any)
-    .__mockOrgAdjustedNotification as ReturnType<typeof vi.fn>
+    .__mockOrgAdjustedNotification as Mock<any>
 }
 
 // Helper to normalize Date | number into milliseconds since epoch
@@ -161,7 +169,7 @@ function expectSubscriptionItemsToMatch(
 
     if (matchingResultItem) {
       // Verify common fields match (excluding dates and system-generated fields)
-      expect(matchingResultItem.name).toBe(newItem.name)
+      expect(matchingResultItem.name).toBe(newItem.name!)
       expect(matchingResultItem.quantity).toBe(newItem.quantity)
       expect(matchingResultItem.unitPrice).toBe(newItem.unitPrice)
       expect(matchingResultItem.type).toBe(newItem.type)
@@ -175,10 +183,10 @@ function expectSubscriptionItemsToMatch(
           toMs(newItem.expiredAt)!
         )
       }
-      expect(matchingResultItem.externalId).toBe(newItem.externalId)
+      expect(matchingResultItem.externalId).toBe(newItem.externalId!)
       expect(matchingResultItem.metadata).toEqual(newItem.metadata)
       expect(matchingResultItem.subscriptionId).toBe(subscription.id)
-      expect(matchingResultItem.priceId).toBe(newItem.priceId)
+      expect(matchingResultItem.priceId).toBe(newItem.priceId!)
       expect(matchingResultItem.livemode).toBe(subscription.livemode)
     }
   })
@@ -1111,7 +1119,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
         expect(triggerCall).toMatchObject({
           billingRun: expect.objectContaining({
             id: expect.any(String),
@@ -1300,7 +1308,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any as any
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems
         ).toMatchObject(
@@ -2155,7 +2163,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(synced.name).toBe('Current Plan')
-        expect(synced.priceId).toBe(currentItem.priceId)
+        expect(synced.priceId).toBe(currentItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2205,7 +2213,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('Premium Feature')
-        expect(synced.priceId).toBe(premiumItem.priceId)
+        expect(synced.priceId).toBe(premiumItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2244,7 +2252,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('Enterprise Plan')
-        expect(synced.priceId).toBe(expensiveItem.priceId)
+        expect(synced.priceId).toBe(expensiveItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2310,7 +2318,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(syncedAfter.name).toBe('Standard Plan')
-        expect(syncedAfter.priceId).toBe(secondaryItem.priceId)
+        expect(syncedAfter.priceId).toBe(secondaryItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2368,7 +2376,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(synced.name).toBe('New Premium')
-        expect(synced.priceId).toBe(newPremiumItem.priceId)
+        expect(synced.priceId).toBe(newPremiumItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2456,7 +2464,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('High Quantity')
-        expect(synced.priceId).toBe(highQuantityItem.priceId)
+        expect(synced.priceId).toBe(highQuantityItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2495,7 +2503,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('Newer Item')
-        expect(synced.priceId).toBe(newerItem.priceId)
+        expect(synced.priceId).toBe(newerItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2688,8 +2696,8 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(mockOrgNotification).toHaveBeenCalledTimes(1)
 
         // Verify customer notification payload
-        const customerPayload =
-          mockCustomerNotification.mock.calls[0][0]
+        const customerPayload = mockCustomerNotification.mock
+          .calls[0][0] as any
         expect(customerPayload.adjustmentType).toBe('downgrade')
         expect(customerPayload.subscriptionId).toBe(subscription.id)
         expect(customerPayload.customerId).toBe(customer.id)
@@ -2701,7 +2709,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(customerPayload.newItems[0].unitPrice).toBe(999)
 
         // Verify organization notification payload
-        const orgPayload = mockOrgNotification.mock.calls[0][0]
+        const orgPayload = mockOrgNotification.mock.calls[0][0] as any
         expect(orgPayload.adjustmentType).toBe('downgrade')
         expect(typeof orgPayload.currency).toBe('string')
         expect(orgPayload.currency.length).toBeGreaterThan(0)
@@ -3072,7 +3080,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Should trigger billing run for upgrade
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
 
         // The resolved item should have the correct priceId
         expect(
@@ -3191,7 +3199,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Should trigger billing run for upgrade (3 * testPrice.unitPrice > 100)
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
 
         // The expanded item should have all the correct fields from the price
         expect(
@@ -3299,7 +3307,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Should trigger billing run for upgrade
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
 
         // Should have both items resolved
         expect(
@@ -3388,7 +3396,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Should trigger billing run for upgrade
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
 
         // The item should be resolved correctly from the UUID
         expect(

@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest'
+import type { Mock } from 'bun:test'
+import { describe, expect, it, mock, spyOn } from 'bun:test'
 import { CurrencyCode, DiscountAmountType } from '@/types'
 import { rawStringAmountToCountableCurrencyAmount } from '@/utils/stripe'
 
 // Mock the stripe utils
-vi.mock('@/utils/stripe', () => ({
-  rawStringAmountToCountableCurrencyAmount: vi.fn(
+mock.module('@/utils/stripe', () => ({
+  rawStringAmountToCountableCurrencyAmount: mock(
     (currency, amount) => {
       // Mock conversion: "10.50" -> 1050 (cents)
       return Math.round(parseFloat(amount) * 100)
@@ -337,10 +338,9 @@ describe('Amount Calculation Logic', () => {
         },
         __rawAmountString: 'invalid',
       }
-
       // Mock the function to throw an error for invalid input
-      vi.mocked(
-        rawStringAmountToCountableCurrencyAmount
+      ;(
+        rawStringAmountToCountableCurrencyAmount as Mock<any>
       ).mockImplementationOnce(() => {
         throw new Error('Invalid currency amount')
       })
