@@ -2578,7 +2578,8 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         await expect(
-          adminTransaction(async ({ transaction }) => {
+          adminTransaction(async (ctx) => {
+            const { transaction } = ctx
             const invalidItems: SubscriptionItem.Upsert[] = [
               {
                 ...subscriptionItemCore,
@@ -3239,7 +3240,7 @@ describe('adjustSubscription Integration Tests', async () => {
             trialPeriodDays: 0,
             slug: uniqueSlug,
           },
-          transaction
+          ctx
         )
 
         const idPrice = await insertPrice(
@@ -3257,7 +3258,7 @@ describe('adjustSubscription Integration Tests', async () => {
             active: true,
             trialPeriodDays: 0,
           },
-          transaction
+          ctx
         )
 
         await updateBillingPeriod(
@@ -3984,7 +3985,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources before adjustment
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4142,7 +4144,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 8 resources
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4298,7 +4301,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4464,7 +4468,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources (less than new capacity)
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4627,7 +4632,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 5 resources
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4791,7 +4797,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 5 resources
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4944,7 +4951,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources (less than new capacity)
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5168,7 +5176,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 4 resources (uses capacity from both items)
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5340,7 +5349,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 2 resources (can be satisfied by base plan alone)
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5473,7 +5483,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 2 resources before adjustment
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5646,7 +5657,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources before adjustment
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5818,7 +5830,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Step 2: Claim 2 seats
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -6002,7 +6015,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Step 2: Claim 2 seats initially
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,

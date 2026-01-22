@@ -128,12 +128,9 @@ export const updatePricingModelTransaction = async (
     pricingModelId: string
     proposedInput: SetupPricingModelInput
   },
-  transactionParams: Pick<
-    TransactionEffectsContext,
-    'transaction' | 'invalidateCache'
-  >
+  ctx: TransactionEffectsContext
 ): Promise<UpdatePricingModelResult> => {
-  const { transaction, invalidateCache } = transactionParams
+  const { transaction, invalidateCache } = ctx
   // Step 1: Fetch existing pricing model data and organization
   const [existingInput, pricingModel] = await Promise.all([
     getPricingModelSetupData(pricingModelId, transaction),
@@ -180,7 +177,7 @@ export const updatePricingModelTransaction = async (
   if (Object.keys(pricingModelUpdate).length > 0) {
     result.pricingModel = await safelyUpdatePricingModel(
       { id: pricingModelId, ...pricingModelUpdate },
-      transaction
+      ctx
     )
   }
 
@@ -202,7 +199,7 @@ export const updatePricingModelTransaction = async (
     const createdUsageMeters =
       await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
         usageMeterInserts,
-        transaction
+        ctx
       )
 
     result.usageMeters.created = createdUsageMeters
@@ -245,7 +242,7 @@ export const updatePricingModelTransaction = async (
     if (usageMeterPriceInserts.length > 0) {
       const createdUsagePrices = await bulkInsertPrices(
         usageMeterPriceInserts,
-        transaction
+        ctx
       )
       result.prices.created.push(...createdUsagePrices)
 
@@ -275,10 +272,7 @@ export const updatePricingModelTransaction = async (
           `Usage meter ${existing.usageMeter.slug} not found in ID map`
         )
       }
-      return updateUsageMeter(
-        { id: meterId, ...updateObj },
-        transaction
-      )
+      return updateUsageMeter({ id: meterId, ...updateObj }, ctx)
     })
     .filter((p): p is Promise<UsageMeter.Record> => p !== null)
 
@@ -310,7 +304,7 @@ export const updatePricingModelTransaction = async (
             isDefault: false,
             type: PriceType.Usage,
           },
-          transaction
+          ctx
         )
         result.prices.deactivated.push(deactivatedPrice)
       }
@@ -340,7 +334,7 @@ export const updatePricingModelTransaction = async (
       )
       const createdPrices = await bulkInsertPrices(
         newPriceInserts,
-        transaction
+        ctx
       )
       result.prices.created.push(...createdPrices)
 
@@ -379,7 +373,7 @@ export const updatePricingModelTransaction = async (
             isDefault: false,
             type: PriceType.Usage,
           },
-          transaction
+          ctx
         )
         result.prices.deactivated.push(deactivatedPrice)
       }
@@ -406,7 +400,7 @@ export const updatePricingModelTransaction = async (
             usageMeterId,
           },
         ],
-        transaction
+        ctx
       )
       result.prices.created.push(newPrice)
       if (newPrice.slug) {
@@ -605,7 +599,7 @@ export const updatePricingModelTransaction = async (
     const createdFeatures =
       await bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug(
         featureInserts,
-        transaction
+        ctx
       )
 
     result.features.created = createdFeatures
@@ -662,7 +656,7 @@ export const updatePricingModelTransaction = async (
       }
       return updateFeature(
         { id: featureId, type: existing.type, ...transformedUpdate },
-        transaction
+        ctx
       )
     })
     .filter((p): p is Promise<Feature.Record> => p !== null)
@@ -682,7 +676,7 @@ export const updatePricingModelTransaction = async (
       }
       return updateFeature(
         { id: featureId, active: false, type: featureInput.type },
-        transaction
+        ctx
       )
     }
   )
@@ -709,7 +703,7 @@ export const updatePricingModelTransaction = async (
 
     const createdProducts = await bulkInsertProducts(
       productInserts,
-      transaction
+      ctx
     )
 
     result.products.created = createdProducts
@@ -748,10 +742,7 @@ export const updatePricingModelTransaction = async (
       }
     )
 
-    const createdPrices = await bulkInsertPrices(
-      priceInserts,
-      transaction
-    )
+    const createdPrices = await bulkInsertPrices(priceInserts, ctx)
     result.prices.created = createdPrices
 
     // Merge newly created price IDs into map
@@ -797,7 +788,7 @@ export const updatePricingModelTransaction = async (
 
       return updateProduct(
         { id: productId, ...productUpdateObj },
-        transaction
+        ctx
       )
     })
     .filter((p): p is Promise<Product.Record> => p !== null)
@@ -837,7 +828,7 @@ export const updatePricingModelTransaction = async (
           isDefault: false,
           type: existingPriceType,
         },
-        transaction
+        ctx
       )
     })
 
@@ -861,10 +852,7 @@ export const updatePricingModelTransaction = async (
         })
     )
 
-    const createdPrices = await bulkInsertPrices(
-      newPriceInserts,
-      transaction
-    )
+    const createdPrices = await bulkInsertPrices(newPriceInserts, ctx)
     result.prices.created.push(...createdPrices)
 
     // Merge newly created price IDs into map
@@ -884,10 +872,7 @@ export const updatePricingModelTransaction = async (
           `Product ${productInput.product.slug} not found in ID map for deactivation`
         )
       }
-      return updateProduct(
-        { id: productId, active: false },
-        transaction
-      )
+      return updateProduct({ id: productId, active: false }, ctx)
     }
   )
 
@@ -913,7 +898,7 @@ export const updatePricingModelTransaction = async (
           isDefault: false,
           type: productInput.price!.type,
         },
-        transaction
+        ctx
       )
     })
     .filter((p): p is Promise<Price.Record> => p !== null)
@@ -949,7 +934,7 @@ export const updatePricingModelTransaction = async (
         organizationId: pricingModel.organizationId,
         livemode: pricingModel.livemode,
       },
-      { transaction, invalidateCache }
+      ctx
     )
 
   result.productFeatures.added = productFeaturesResult.added

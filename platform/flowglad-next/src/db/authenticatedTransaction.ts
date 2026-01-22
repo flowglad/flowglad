@@ -35,7 +35,9 @@ interface AuthenticatedTransactionOptions {
  * Delegates to comprehensiveAuthenticatedTransaction by wrapping the result.
  */
 export async function authenticatedTransaction<T>(
-  fn: (params: AuthenticatedTransactionParams) => Promise<T>,
+  fn: (
+    params: ComprehensiveAuthenticatedTransactionParams
+  ) => Promise<T>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   return comprehensiveAuthenticatedTransaction(async (params) => {

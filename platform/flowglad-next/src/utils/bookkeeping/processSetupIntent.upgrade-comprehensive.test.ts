@@ -588,9 +588,9 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      // This should throw an error
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // This should return an error Result
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             secondCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -599,8 +599,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             secondSetupIntent,
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('already has an active subscription')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'already has an active subscription'
+        )
+      }
 
       // Verify that only one paid subscription exists
       await adminTransaction(async ({ transaction }) => {
@@ -717,30 +723,32 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // This should fail because only one free subscription is allowed per customer
       await adminTransaction(async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_free_test_${core.nanoid()}`
-        await expect(
-          createSubscriptionWorkflow(
-            {
-              organization,
-              customer,
-              product: {
-                ...freeProduct,
-                default: freeProduct.default ?? false,
-              },
-              price: freePrice,
-              quantity: 1,
-              livemode: true,
-              startDate: Date.now(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              defaultPaymentMethod: paymentMethod,
-              stripeSetupIntentId,
-              autoStart: true,
+        const secondFreeResult = await createSubscriptionWorkflow(
+          {
+            organization,
+            customer,
+            product: {
+              ...freeProduct,
+              default: freeProduct.default ?? false,
             },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          'already has an active free subscription. Only one free subscription is allowed per customer.'
+            price: freePrice,
+            quantity: 1,
+            livemode: true,
+            startDate: Date.now(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
         )
+        expect(Result.isError(secondFreeResult)).toBe(true)
+        if (Result.isError(secondFreeResult)) {
+          expect(secondFreeResult.error.message).toContain(
+            'already has an active free subscription. Only one free subscription is allowed per customer.'
+          )
+        }
       })
 
       await adminTransaction(async ({ transaction }) => {
@@ -903,8 +911,8 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof firstSubscriptionId).toBe('string')
 
       // Attempt to process the second setup intent (should fail)
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const concurrentResult = await adminTransaction(
+        async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             secondCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
@@ -913,8 +921,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
             secondSetupIntent,
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('already has an active subscription')
+        }
+      )
+      expect(Result.isError(concurrentResult)).toBe(true)
+      if (Result.isError(concurrentResult)) {
+        expect(concurrentResult.error.message).toContain(
+          'already has an active subscription'
+        )
+      }
 
       // Verify only one paid subscription exists
       await adminTransaction(async ({ transaction }) => {

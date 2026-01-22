@@ -44,18 +44,20 @@ export const customerBillingTransaction = async (
   cacheRecomputationContext: CacheRecomputationContext
 ) => {
   const [customer] = await selectCustomers(params, transaction)
-  const subscriptions = await selectRichSubscriptionsAndActiveItems(
-    { customerId: customer.id },
-    transaction,
-    cacheRecomputationContext
-  )
-  const pricingModel = await selectPricingModelForCustomer(
-    customer,
-    transaction
-  )
-  // Use cached queries for payment methods, purchases, and invoices
-  // These are invalidated via CacheDependency.customerPaymentMethods/customerPurchases/customerInvoices
-  const [invoices, paymentMethods, purchases] = await Promise.all([
+  // All queries below depend only on customer, so they can run in parallel
+  const [
+    subscriptions,
+    pricingModel,
+    invoices,
+    paymentMethods,
+    purchases,
+  ] = await Promise.all([
+    selectRichSubscriptionsAndActiveItems(
+      { customerId: customer.id },
+      transaction,
+      cacheRecomputationContext
+    ),
+    selectPricingModelForCustomer(customer, transaction),
     selectCustomerFacingInvoicesWithLineItems(
       customer.id,
       transaction,

@@ -96,6 +96,7 @@ import {
   insertUsageMeter,
 } from '@/db/tableMethods/usageMeterMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
+import { createTransactionEffectsContext } from '@/db/types'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -172,6 +173,10 @@ export const setupOrg = async (params?: {
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: true,
+    })
     const [country] = await selectCountries(
       { code: params?.countryCode ?? CountryCode.US },
       transaction
@@ -240,7 +245,7 @@ export const setupOrg = async (params?: {
         default: true,
         slug: `default-product-${core.nanoid()}`,
       },
-      transaction
+      ctx
     )
 
     const price = (await insertPrice(
@@ -260,7 +265,7 @@ export const setupOrg = async (params?: {
         externalId: null,
         slug: `default-product-price-${core.nanoid()}`,
       },
-      transaction
+      ctx
     )) as Price.SubscriptionRecord
     return {
       organization,
@@ -289,12 +294,18 @@ export const setupProduct = async ({
   default?: boolean
   slug?: string
 }) => {
+  const effectiveLivemode =
+    typeof livemode === 'boolean' ? livemode : true
   return adminTransaction(async ({ transaction }) => {
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: effectiveLivemode,
+    })
     return await insertProduct(
       {
         name,
         organizationId,
-        livemode: typeof livemode === 'boolean' ? livemode : true,
+        livemode: effectiveLivemode,
         description: 'Flowglad Live Product',
         imageURL: 'https://flowglad.com/logo.png',
         active,
@@ -305,7 +316,7 @@ export const setupProduct = async ({
         default: isDefault,
         slug: slug ?? `flowglad-test-product-price+${core.nanoid()}`,
       },
-      transaction
+      ctx
     )
   })
 }
@@ -993,6 +1004,10 @@ export const setupPrice = async (
     type !== PriceType.Usage ? validatedInput.productId : null
 
   return adminTransaction(async ({ transaction }) => {
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode,
+    })
     // For usage prices, derive pricingModelId from usage meter
     const pricingModelId =
       type === PriceType.Usage && usageMeterId
@@ -1048,7 +1063,7 @@ export const setupPrice = async (
             ...priceConfig[PriceType.SinglePayment],
             type: PriceType.SinglePayment,
           },
-          transaction
+          ctx
         )
       case PriceType.Subscription:
         return safelyInsertPrice(
@@ -1059,7 +1074,7 @@ export const setupPrice = async (
             intervalUnit: intervalUnit ?? IntervalUnit.Month,
             intervalCount: intervalCount ?? 1,
           },
-          transaction
+          ctx
         )
       case PriceType.Usage:
         // Use insertPrice for usage prices to respect isDefault and active flags
@@ -1074,7 +1089,7 @@ export const setupPrice = async (
             intervalUnit: intervalUnit ?? IntervalUnit.Month,
             intervalCount: intervalCount ?? 1,
           },
-          transaction
+          ctx
         )
       default:
         throw new Error(`Invalid price type: ${type}`)
@@ -1563,6 +1578,10 @@ export const setupUsageMeter = async ({
   aggregationType?: UsageMeterAggregationType
 }) => {
   return adminTransaction(async ({ transaction }) => {
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode,
+    })
     let pricingModelToUseId: string | null = null
     if (pricingModelId) {
       const pricingModel = await selectPricingModelById(
@@ -1595,7 +1614,7 @@ export const setupUsageMeter = async ({
         slug: slug ?? `${snakeCase(name)}-${core.nanoid()}`,
         ...(aggregationType && { aggregationType }),
       },
-      transaction
+      ctx
     )
   })
 }
@@ -1698,6 +1717,10 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
 > => {
   const { organizationId, productId, livemode, featureSpecs } = params
   return adminTransaction(async ({ transaction }) => {
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode,
+    })
     const product = await selectProductById(productId, transaction)
     if (!product) {
       throw new Error('Product not found')
@@ -1760,10 +1783,7 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
         )
       }
 
-      const feature = await insertFeature(
-        featureInsertData,
-        transaction
-      )
+      const feature = await insertFeature(featureInsertData, ctx)
       const productFeature = await insertProductFeature(
         {
           organizationId,
@@ -1771,7 +1791,7 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
           productId,
           featureId: feature.id,
         },
-        transaction
+        ctx
       )
       createdData.push({ feature, productFeature })
     }
@@ -2375,6 +2395,10 @@ export const setupToggleFeature = async (
   }
 ) => {
   return adminTransaction(async ({ transaction }) => {
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: params.livemode,
+    })
     const pricingModelId =
       params.pricingModelId ??
       (
@@ -2396,7 +2420,7 @@ export const setupToggleFeature = async (
       pricingModelId: pricingModelId ?? '',
       ...params,
     }
-    return insertFeature(insert, transaction)
+    return insertFeature(insert, ctx)
   })
 }
 
@@ -2410,6 +2434,10 @@ export const setupUsageCreditGrantFeature = async (
   }
 ): Promise<Feature.UsageCreditGrantRecord> => {
   return adminTransaction(async ({ transaction }) => {
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: params.livemode,
+    })
     const pricingModelId =
       params.pricingModelId ??
       (
@@ -2431,7 +2459,7 @@ export const setupUsageCreditGrantFeature = async (
     }
     return insertFeature(
       insert,
-      transaction
+      ctx
     ) as Promise<Feature.UsageCreditGrantRecord>
   })
 }
@@ -2444,16 +2472,31 @@ export const setupProductFeature = async (
     organizationId: string
   }
 ) => {
-  return adminTransaction(async ({ transaction }) => {
-    return insertProductFeature(
-      {
-        livemode: true,
-        expiredAt: params.expiredAt ?? null,
-        ...params,
-      },
-      transaction
-    )
-  })
+  return adminTransaction(
+    async ({
+      transaction,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+      cacheRecomputationContext,
+    }) => {
+      return insertProductFeature(
+        {
+          livemode: params.livemode ?? true,
+          expiredAt: params.expiredAt ?? null,
+          ...params,
+        },
+        {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+          cacheRecomputationContext,
+        }
+      )
+    },
+    { livemode: params.livemode ?? false }
+  )
 }
 
 export const setupSubscriptionItemFeature = async (
@@ -2827,6 +2870,10 @@ export const setupResourceFeature = async (
   }
 ): Promise<Feature.ResourceRecord> => {
   return adminTransaction(async ({ transaction }) => {
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: params.livemode,
+    })
     const resolvedPricingModelId =
       params.pricingModelId ??
       (
@@ -2857,7 +2904,7 @@ export const setupResourceFeature = async (
     }
     return insertFeature(
       insert,
-      transaction
+      ctx
     ) as Promise<Feature.ResourceRecord>
   })
 }

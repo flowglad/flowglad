@@ -10,7 +10,7 @@ import {
 } from './redis'
 import { traced } from './tracing'
 
-const DEFAULT_TTL = 300 // 5 minutes
+const DEFAULT_TTL = 600 // 10 minutes
 const DEPENDENCY_REGISTRY_TTL = 86400 // 24 hours - longer than any cache TTL
 
 /**
@@ -858,6 +858,11 @@ async function cachedBulkLookupImpl<TKey, TResult>(
 /**
  * Invalidate all cache entries that depend on the given dependency keys.
  *
+ * **@internal** - Do not call directly from application code!
+ * Import from `@/utils/cache.internal` for internal/test use only.
+ * Use `TransactionEffectsContext.invalidateCache()` to ensure invalidations
+ * happen after transaction commit, avoiding race conditions.
+ *
  * This is the core invalidation function. It:
  * 1. For each dependency, uses SMEMBERS to get all cache keys from Redis Set
  * 2. Checks which keys have recomputation metadata BEFORE deleting
@@ -879,6 +884,8 @@ async function cachedBulkLookupImpl<TKey, TResult>(
  * Observability:
  * - Logs invalidation at info level (includes dependency and cache keys)
  * - Logs errors but does not throw (fire-and-forget)
+ *
+ * @internal
  */
 export async function invalidateDependencies(
   dependencies: CacheDependencyKey[]
@@ -959,6 +966,9 @@ export async function invalidateDependencies(
 /**
  * Recompute a single cache entry using stored metadata.
  *
+ * **@internal** - Do not call directly from application code!
+ * Import from `@/utils/cache.internal` for internal/test use only.
+ *
  * This function:
  * 1. Looks up recomputation metadata for the cache key
  * 2. If found, looks up the registered handler for that namespace
@@ -968,6 +978,8 @@ export async function invalidateDependencies(
  * - If metadata not found: no-op (entry wasn't recomputable)
  * - If handler not registered: logs warning (process may not have loaded the module)
  * - If handler throws: logs warning, does not propagate (fail open)
+ *
+ * @internal
  */
 export async function recomputeCacheEntry(
   cacheKey: string
@@ -1066,6 +1078,9 @@ export async function recomputeCacheEntry(
 /**
  * Recompute all cache entries associated with the given dependencies.
  *
+ * **@internal** - Do not call directly from application code!
+ * Import from `@/utils/cache.internal` for internal/test use only.
+ *
  * This function:
  * 1. Collects all cache keys from all dependencies
  * 2. Deduplicates the cache keys (same key may appear in multiple dependency sets)
@@ -1073,6 +1088,8 @@ export async function recomputeCacheEntry(
  *
  * Called after invalidateDependencies() to trigger fire-and-forget recomputation
  * for any cache entries that have recomputation metadata.
+ *
+ * @internal
  */
 export async function recomputeDependencies(
   dependencies: CacheDependencyKey[]
@@ -1195,6 +1212,41 @@ export const CacheDependency = {
   /** Invalidate when invoices for this customer change */
   customerInvoices: (customerId: string): CacheDependencyKey =>
     `customerInvoices:${customerId}`,
+
+  // Pricing model cache atoms - keyed by pricingModelId
+  /** Invalidate when the pricing model record changes */
+  pricingModel: (pricingModelId: string): CacheDependencyKey =>
+    `pricingModel:${pricingModelId}`,
+  /** Invalidate when products for this pricing model change (set membership) */
+  productsByPricingModel: (
+    pricingModelId: string
+  ): CacheDependencyKey => `productsByPricingModel:${pricingModelId}`,
+  /** Invalidate when prices for this pricing model change (set membership) */
+  pricesByPricingModel: (
+    pricingModelId: string
+  ): CacheDependencyKey => `pricesByPricingModel:${pricingModelId}`,
+  /** Invalidate when features for this pricing model change (set membership) */
+  featuresByPricingModel: (
+    pricingModelId: string
+  ): CacheDependencyKey => `featuresByPricingModel:${pricingModelId}`,
+  /** Invalidate when product-feature associations for this pricing model change */
+  productFeaturesByPricingModel: (
+    pricingModelId: string
+  ): CacheDependencyKey =>
+    `productFeaturesByPricingModel:${pricingModelId}`,
+
+  // Individual entity content dependencies - keyed by entity ID
+  /** Invalidate when this specific product's content changes (name, description, active, etc.) */
+  product: (productId: string): CacheDependencyKey =>
+    `product:${productId}`,
+  /** Invalidate when this specific price's content changes (amount, currency, active, etc.) */
+  price: (priceId: string): CacheDependencyKey => `price:${priceId}`,
+  /** Invalidate when this specific feature's content changes (name, slug, type, etc.) */
+  feature: (featureId: string): CacheDependencyKey =>
+    `feature:${featureId}`,
+  /** Invalidate when this specific product feature's content changes */
+  productFeature: (productFeatureId: string): CacheDependencyKey =>
+    `productFeature:${productFeatureId}`,
 } as const
 
 // NOTE: cachedRecomputable() has been moved to './cache-recomputable.ts'

@@ -192,7 +192,8 @@ describe('Customer Role RLS Policies', () => {
     org2Price = org2Data.price
 
     // Setup users
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       userA = await insertUser(
         {
           id: `usr_${core.nanoid()}`,
@@ -241,7 +242,8 @@ describe('Customer Role RLS Policies', () => {
       livemode: true,
     })
     // Update with userId
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       customerA_Org1 = await updateCustomer(
         {
           id: customerA_Org1.id,
@@ -257,7 +259,8 @@ describe('Customer Role RLS Policies', () => {
       email: userB.email!,
       livemode: true,
     })
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       customerB_Org1 = await updateCustomer(
         {
           id: customerB_Org1.id,
@@ -284,7 +287,8 @@ describe('Customer Role RLS Policies', () => {
       email: userC.email!,
       livemode: true,
     })
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       customerA_Org2 = await updateCustomer(
         {
           id: customerA_Org2.id,
@@ -300,7 +304,8 @@ describe('Customer Role RLS Policies', () => {
       email: userD.email!,
       livemode: true,
     })
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       customerD_Org2 = await updateCustomer(
         {
           id: customerD_Org2.id,
@@ -428,7 +433,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // Try to query all customers - should only see self
           const customersVisible = await selectCustomers(
             {},
@@ -489,7 +495,8 @@ describe('Customer Role RLS Policies', () => {
         customerB_Org1,
         userB,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // Try to query all customers
           const customersVisible = await selectCustomers(
             {},
@@ -540,7 +547,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // Query all subscriptions - should only see own
           const subscriptions = await selectSubscriptions(
             {},
@@ -573,7 +581,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const paymentMethods = await selectPaymentMethods(
             {},
             transaction
@@ -593,7 +602,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const payments = await selectPayments({}, transaction)
           return payments
         }
@@ -611,7 +621,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // Try to update customerB's name - should fail due to RLS
           const updateResult = await updateCustomer(
             { id: customerB_Org1.id, name: 'Hacked Name' },
@@ -626,11 +637,10 @@ describe('Customer Role RLS Policies', () => {
       expect(updateAttempt).toBeNull()
 
       // Verify customerB's name is unchanged using admin transaction
-      const verifyCustomerB = await adminTransaction(
-        async ({ transaction }) => {
-          return selectCustomerById(customerB_Org1.id, transaction)
-        }
-      )
+      const verifyCustomerB = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return selectCustomerById(customerB_Org1.id, transaction)
+      })
       expect(verifyCustomerB.name).toBe('Customer B Org1')
     })
 
@@ -640,7 +650,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // Try to update customerB's subscription - should fail
           const cancelResult = await updateSubscription(
             {
@@ -660,7 +671,8 @@ describe('Customer Role RLS Policies', () => {
 
       // Verify subscription is still active using admin transaction
       const verifySubscription = await adminTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return selectSubscriptionById(
             subscriptionB_Org1.id,
             transaction
@@ -679,7 +691,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // Try to query all customers (should only see self in org1)
           const customers = await selectCustomers({}, transaction)
 
@@ -731,7 +744,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const customers = await selectCustomers({}, transaction)
           const invoices = await selectInvoices({}, transaction)
           const subscriptions = await selectSubscriptions(
@@ -747,7 +761,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org2,
         userC,
         org2,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const customers = await selectCustomers({}, transaction)
           const invoices = await selectInvoices({}, transaction)
           const subscriptions = await selectSubscriptions(
@@ -797,7 +812,8 @@ describe('Customer Role RLS Policies', () => {
         customerD_Org2,
         userD,
         org2,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // Try to access org1 customers
           const org1Customers = await selectCustomers(
             { organizationId: org1.id },
@@ -839,7 +855,8 @@ describe('Customer Role RLS Policies', () => {
           customerA_Org1,
           userA,
           org1,
-          async ({ transaction }) => {
+          async (ctx) => {
+            const { transaction } = ctx
             // Query with specific conditions
             const paidInvoices = await selectInvoices(
               { status: InvoiceStatus.Paid },
@@ -904,33 +921,33 @@ describe('Customer Role RLS Policies', () => {
       })
 
       // Create user for the empty customer
-      const emptyUser = await adminTransaction(
-        async ({ transaction }) => {
-          const user = await insertUser(
-            {
-              id: `usr_${core.nanoid()}`,
-              email: emptyCustomer.email,
-              name: 'Empty Customer',
-              betterAuthId: `bau_${core.nanoid()}`,
-            },
-            transaction
-          )
+      const emptyUser = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const user = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: emptyCustomer.email,
+            name: 'Empty Customer',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
 
-          // Update customer with userId
-          await updateCustomer(
-            { id: emptyCustomer.id, userId: user.id },
-            transaction
-          )
+        // Update customer with userId
+        await updateCustomer(
+          { id: emptyCustomer.id, userId: user.id },
+          transaction
+        )
 
-          return user
-        }
-      )
+        return user
+      })
 
       const result = await authenticatedCustomerTransaction(
         emptyCustomer,
         emptyUser,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const invoices = await selectInvoices({}, transaction)
           const subscriptions = await selectSubscriptions(
             {},
@@ -983,7 +1000,8 @@ describe('Customer Role RLS Policies', () => {
       })
 
       // Associate customerA with PM A
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateCustomer(
           { id: customerA_Org1.id, pricingModelId: pmA.id },
           transaction
@@ -994,7 +1012,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return selectProducts({}, transaction)
         }
       )
@@ -1027,30 +1046,30 @@ describe('Customer Role RLS Policies', () => {
         pricingModelId: differentPm.id,
       })
 
-      const differentPmUser = await adminTransaction(
-        async ({ transaction }) => {
-          const user = await insertUser(
-            {
-              id: `usr_${core.nanoid()}`,
-              email: customerWithDifferentPm.email,
-              name: 'Different PM User',
-              betterAuthId: `bau_${core.nanoid()}`,
-            },
-            transaction
-          )
-          await updateCustomer(
-            { id: customerWithDifferentPm.id, userId: user.id },
-            transaction
-          )
-          return user
-        }
-      )
+      const differentPmUser = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const user = await insertUser(
+          {
+            id: `usr_${core.nanoid()}`,
+            email: customerWithDifferentPm.email,
+            name: 'Different PM User',
+            betterAuthId: `bau_${core.nanoid()}`,
+          },
+          transaction
+        )
+        await updateCustomer(
+          { id: customerWithDifferentPm.id, userId: user.id },
+          transaction
+        )
+        return user
+      })
 
       const visibleProducts = await authenticatedCustomerTransaction(
         customerWithDifferentPm,
         differentPmUser,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return selectProducts({}, transaction)
         }
       )
@@ -1067,7 +1086,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // Get customer record
           const customer = await selectCustomerById(
             customerA_Org1.id,
@@ -1135,7 +1155,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           // First, try to read customerB's subscription
           const readAttempt = await selectSubscriptionById(
             subscriptionB_Org1.id,
@@ -1189,7 +1210,8 @@ describe('Customer Role RLS Policies', () => {
 
     beforeEach(async () => {
       // Setup pricing models for testing
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         pricingModelA = await insertPricingModel(
           {
             organizationId: org1.id,
@@ -1224,7 +1246,7 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
           },
-          transaction
+          ctx
         )
 
         productInModelB = await insertProduct(
@@ -1242,7 +1264,7 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
           },
-          transaction
+          ctx
         )
 
         // Create prices for products
@@ -1264,7 +1286,7 @@ describe('Customer Role RLS Policies', () => {
             usageEventsPerUnit: null,
             usageMeterId: null,
           },
-          transaction
+          ctx
         )
 
         priceInModelB = await insertPrice(
@@ -1285,7 +1307,7 @@ describe('Customer Role RLS Policies', () => {
             usageEventsPerUnit: null,
             usageMeterId: null,
           },
-          transaction
+          ctx
         )
 
         // Create active and inactive products/prices for testing
@@ -1304,7 +1326,7 @@ describe('Customer Role RLS Policies', () => {
             active: true,
             livemode: true,
           },
-          transaction
+          ctx
         )
 
         inactiveProduct = await insertProduct(
@@ -1322,7 +1344,7 @@ describe('Customer Role RLS Policies', () => {
             active: false,
             livemode: true,
           },
-          transaction
+          ctx
         )
 
         activePrice = await insertPrice(
@@ -1343,7 +1365,7 @@ describe('Customer Role RLS Policies', () => {
             usageEventsPerUnit: null,
             usageMeterId: null,
           },
-          transaction
+          ctx
         )
 
         inactivePrice = await insertPrice(
@@ -1364,7 +1386,7 @@ describe('Customer Role RLS Policies', () => {
             usageEventsPerUnit: null,
             usageMeterId: null,
           },
-          transaction
+          ctx
         )
 
         // Assign customerA_Org1 to pricing model A
@@ -1387,7 +1409,8 @@ describe('Customer Role RLS Policies', () => {
       })
 
       // Refresh the customer objects AFTER the admin transaction commits
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         customerA_Org1 = await selectCustomerById(
           customerA_Org1.id,
           transaction
@@ -1420,7 +1443,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               const checkoutSession = await insertCheckoutSession(
                 {
                   organizationId: org1.id,
@@ -1452,7 +1476,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               const checkoutSession = await insertCheckoutSession(
                 {
                   organizationId: org1.id,
@@ -1486,7 +1511,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               // Try to create checkout session for customerB while authenticated as customerA
               await insertCheckoutSession(
                 {
@@ -1524,7 +1550,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               // Try to create checkout session for customer in org2
               await insertCheckoutSession(
                 {
@@ -1556,7 +1583,8 @@ describe('Customer Role RLS Policies', () => {
 
       it('should prevent customer from creating checkout session for customer in another organization sharing same user id', async () => {
         // First, update customerA_Org2 to share the same userId as customerA_Org1
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           await updateCustomer(
             {
               id: customerA_Org2.id,
@@ -1573,7 +1601,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               // Try to create checkout session for customerA_Org2 (same user, different org)
               await insertCheckoutSession(
                 {
@@ -1613,7 +1642,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               // CustomerA is in pricing model A, trying to use price from model B
               await insertCheckoutSession(
                 {
@@ -1658,7 +1688,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               // Try to use a price from org2 while in org1
               await insertCheckoutSession(
                 {
@@ -1693,7 +1724,8 @@ describe('Customer Role RLS Policies', () => {
       it('should prevent checkout with price from inactive product', async () => {
         // Create a price for the inactive product
         const priceForInactiveProduct = await adminTransaction(
-          async ({ transaction }) => {
+          async (ctx) => {
+            const { transaction } = ctx
             return await insertPrice(
               {
                 productId: inactiveProduct.id,
@@ -1712,7 +1744,7 @@ describe('Customer Role RLS Policies', () => {
                 usageEventsPerUnit: null,
                 usageMeterId: null,
               },
-              transaction
+              ctx
             )
           }
         )
@@ -1724,7 +1756,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               await insertCheckoutSession(
                 {
                   organizationId: org1.id,
@@ -1761,7 +1794,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               await insertCheckoutSession(
                 {
                   organizationId: org1.id,
@@ -1792,30 +1826,29 @@ describe('Customer Role RLS Policies', () => {
 
       it('should prevent checkout when both product and price are inactive', async () => {
         // Create an inactive price for inactive product
-        const bothInactive = await adminTransaction(
-          async ({ transaction }) => {
-            return await insertPrice(
-              {
-                productId: inactiveProduct.id,
-                name: 'Both Inactive',
-                externalId: `price_${core.nanoid()}`,
-                slug: `both-inactive-${core.nanoid()}`,
-                type: PriceType.Subscription,
-                unitPrice: 8000,
-                intervalUnit: IntervalUnit.Month,
-                intervalCount: 1,
-                active: false, // Both product and price inactive
-                livemode: true,
-                isDefault: false,
-                trialPeriodDays: 0,
-                currency: CurrencyCode.USD,
-                usageEventsPerUnit: null,
-                usageMeterId: null,
-              },
-              transaction
-            )
-          }
-        )
+        const bothInactive = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return await insertPrice(
+            {
+              productId: inactiveProduct.id,
+              name: 'Both Inactive',
+              externalId: `price_${core.nanoid()}`,
+              slug: `both-inactive-${core.nanoid()}`,
+              type: PriceType.Subscription,
+              unitPrice: 8000,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              active: false, // Both product and price inactive
+              livemode: true,
+              isDefault: false,
+              trialPeriodDays: 0,
+              currency: CurrencyCode.USD,
+              usageEventsPerUnit: null,
+              usageMeterId: null,
+            },
+            ctx
+          )
+        })
 
         let error: Error | null = null
 
@@ -1824,7 +1857,8 @@ describe('Customer Role RLS Policies', () => {
             customerA_Org1,
             userA,
             org1,
-            async ({ transaction }) => {
+            async (ctx) => {
+              const { transaction } = ctx
               await insertCheckoutSession(
                 {
                   organizationId: org1.id,
@@ -1871,7 +1905,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const subscriptions = await selectSubscriptions(
             {},
             transaction
@@ -1919,7 +1954,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const allCustomers = await selectCustomers({}, transaction)
           const nullCustomerQuery = await selectCustomerById(
             nullUserCustomer.id,
@@ -1938,7 +1974,8 @@ describe('Customer Role RLS Policies', () => {
 
     it('should handle archived customers correctly', async () => {
       // Archive customerA using admin transaction
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateCustomer(
           { id: customerA_Org1.id, archived: true },
           transaction
@@ -1950,7 +1987,8 @@ describe('Customer Role RLS Policies', () => {
         customerA_Org1,
         userA,
         org1,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const customers = await selectCustomers({}, transaction)
           const archivedCustomers = await selectCustomers(
             { archived: true },
@@ -1976,7 +2014,8 @@ describe('Customer Role RLS Policies', () => {
       expect(result.otherCustomers[0].id).toBe(customerA_Org1.id)
 
       // Restore archived status for cleanup
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateCustomer(
           { id: customerA_Org1.id, archived: false },
           transaction
@@ -1995,7 +2034,8 @@ describe('Customer Role RLS Policies', () => {
           customerA_Org1,
           userA,
           org1,
-          async ({ transaction }) => {
+          async (ctx) => {
+            const { transaction } = ctx
             await insertCustomer(
               {
                 organizationId: org1.id,
@@ -2087,7 +2127,8 @@ describe('Customer Role RLS Policies', () => {
         customerWithDefaultPricingModel,
         user,
         organization,
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return selectPricingModelForCustomer(
             customerWithDefaultPricingModel,
             transaction
