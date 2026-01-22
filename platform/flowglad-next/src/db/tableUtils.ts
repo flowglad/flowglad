@@ -21,6 +21,7 @@ import {
 import {
   bigserial,
   boolean,
+  type CheckBuilder,
   type ForeignKeyBuilder,
   type IndexBuilder,
   type IndexBuilderOn,
@@ -729,7 +730,11 @@ const livemodePolicy = (tableName: string) =>
  * Type for table extras that can be returned by pgTable callbacks.
  * This includes policies, indexes, unique indexes, and foreign keys.
  */
-export type TableExtra = PgPolicy | IndexBuilder | ForeignKeyBuilder
+export type TableExtra =
+  | PgPolicy
+  | IndexBuilder
+  | ForeignKeyBuilder
+  | CheckBuilder
 
 /**
  * Type for the livemode index helper function provided to livemodePolicyTable callbacks.
