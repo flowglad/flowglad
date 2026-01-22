@@ -10,7 +10,7 @@ interface SupportChatMessageProps {
   isLatest: boolean
 }
 
-function getSourceUrl(path: string): string {
+export function getSourceUrl(path: string): string {
   // Remove .mdx extension if present and ensure path starts with /
   const withoutExtension = path.replace(/\.mdx$/, '')
   const normalizedPath = withoutExtension.startsWith('/')
@@ -19,7 +19,7 @@ function getSourceUrl(path: string): string {
   return `https://docs.flowglad.com${normalizedPath}`
 }
 
-function getSourceDisplayName(source: {
+export function getSourceDisplayName(source: {
   title?: string
   path: string
 }): string {
