@@ -63,18 +63,11 @@ export const createProduct = protectedProcedure
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
         if (!organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
               'Organization ID is required for this operation.',
-          })
-        }
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User ID is required for this operation.',
           })
         }
         try {
@@ -93,7 +86,7 @@ export const createProduct = protectedProcedure
               ],
               featureIds,
             },
-            { ...transactionCtx, livemode, userId }
+            { ...transactionCtx, livemode, organizationId }
           )
           return Result.ok({
             product: txResult.product,
@@ -121,18 +114,11 @@ export const updateProduct = protectedProcedure
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
         if (!organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
               'Organization ID is required for this operation.',
-          })
-        }
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User ID is required for this operation.',
           })
         }
         try {

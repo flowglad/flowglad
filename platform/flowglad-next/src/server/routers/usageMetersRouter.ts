@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
@@ -49,16 +50,12 @@ export const createUsageMeter = protectedProcedure
           invalidateCache,
         } = transactionCtx
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
-        if (!userId) {
-          throw new Error(
-            'userId is required to create a usage meter'
-          )
-        }
         if (!organizationId) {
-          throw new Error(
-            'organizationId is required to create a usage meter'
-          )
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
         }
         try {
           const { usageMeter } = await createUsageMeterTransaction(
@@ -69,7 +66,6 @@ export const createUsageMeter = protectedProcedure
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode,
               organizationId,
               invalidateCache,
