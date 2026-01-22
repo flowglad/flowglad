@@ -7,9 +7,6 @@ process.env.UNKEY_ROOT_KEY =
 process.env.BETTER_AUTH_URL =
   process.env.BETTER_AUTH_URL || 'http://localhost:3000'
 
-import { afterAll, afterEach, beforeAll, mock } from 'bun:test'
-import { webcrypto } from 'node:crypto'
-
 /**
  * Global mutable auth state for testing.
  * Tests can set `globalThis.__mockedAuthSession` to control what getSession() returns.
@@ -24,27 +21,14 @@ declare global {
 }
 globalThis.__mockedAuthSession = null
 
-// IMPORTANT: All mock.module() calls must come BEFORE any imports that might
-// transitively load the mocked modules. This ensures the mocks are registered
-// before module resolution caches the real implementations.
-mock.module('server-only', () => ({}))
+// IMPORTANT: Import mocks first, before any other imports.
+// Mock module registration order is critical in bun:test - mock.module() calls
+// must precede any imports that transitively load the mocked modules.
+// See bun.mocks.ts for details.
+import './bun.mocks'
 
-mock.module('@/utils/auth', () => ({
-  auth: {
-    api: {
-      signInMagicLink: mock(async () => ({ success: true })),
-      createUser: mock(async () => ({})),
-      getSession: async () => globalThis.__mockedAuthSession,
-    },
-  },
-  getSession: async () => globalThis.__mockedAuthSession,
-}))
-
-mock.module('@trigger.dev/core', () => ({
-  idempotencyKeys: {
-    create: async (key: string) => `mock-${key}-${Math.random()}`,
-  },
-}))
+import { afterAll, afterEach, beforeAll } from 'bun:test'
+import { webcrypto } from 'node:crypto'
 
 // Now import the remaining modules (after mocks are set up)
 import { GlobalRegistrator } from '@happy-dom/global-registrator'

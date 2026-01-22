@@ -1,22 +1,5 @@
-import {
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-} from 'bun:test'
+import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
-
-// Import actual module before mocking
-import * as actualCore from '@/utils/core'
-
-// Mock IS_DEV to true since resourceClaimsRouter uses devOnlyProcedure
-mock.module('@/utils/core', () => ({
-  ...actualCore,
-  IS_DEV: true,
-}))
-
 import {
   setupCustomer,
   setupOrg,

@@ -61,6 +61,7 @@ import {
 import { insertUser } from '@/db/tableMethods/userMethods'
 import { customerBillingPortalRouter } from '@/server/routers/customerBillingPortalRouter'
 import type { ScheduleSubscriptionCancellationParams } from '@/subscriptions/schemas'
+import { createSpyTracker } from '@/test/spyTracker'
 import {
   InvoiceStatus,
   PaymentMethodType,
@@ -86,13 +87,11 @@ let invoice2: Invoice.Record
 let invoice3: Invoice.Record
 let apiKeyToken: string
 
-// Store spy references for cleanup
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let spies: Array<{ mockRestore: () => void }> = []
+// Track spies for cleanup (see @/test/spyTracker.ts for details)
+const spyTracker = createSpyTracker()
 
 beforeEach(async () => {
-  // Reset spy references
-  spies = []
+  spyTracker.reset()
 
   // Reset global auth session (mocked in bun.setup.ts)
   globalThis.__mockedAuthSession = null
@@ -185,7 +184,7 @@ beforeEach(async () => {
   })
 
   // Mock the requestingCustomerAndUser to return our test data
-  spies.push(
+  spyTracker.track(
     spyOn(
       databaseAuthentication,
       'requestingCustomerAndUser'
@@ -198,7 +197,7 @@ beforeEach(async () => {
   )
 
   // Mock the organization ID retrieval for customer billing portal
-  spies.push(
+  spyTracker.track(
     spyOn(
       customerBillingPortalState,
       'getCustomerBillingPortalOrganizationId'
@@ -206,7 +205,7 @@ beforeEach(async () => {
   )
 
   // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
-  spies.push(
+  spyTracker.track(
     spyOn(
       customerBillingPortalState,
       'setCustomerBillingPortalOrganizationId'
@@ -214,7 +213,7 @@ beforeEach(async () => {
   )
 
   // Mock selectBetterAuthUserById to always return a valid user
-  spies.push(
+  spyTracker.track(
     spyOn(
       betterAuthSchemaMethods,
       'selectBetterAuthUserById'
@@ -229,8 +228,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
-  // Restore each spy individually to avoid undoing mock.module() overrides
-  spies.forEach((spy) => spy.mockRestore())
+  spyTracker.restoreAll()
 })
 
 // Create a context for testing the procedures

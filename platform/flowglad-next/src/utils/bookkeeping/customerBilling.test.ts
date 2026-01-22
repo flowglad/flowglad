@@ -46,6 +46,7 @@ import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
+import { createSpyTracker } from '@/test/spyTracker'
 import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionType,
@@ -972,13 +973,11 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   let customer: Customer.Record
   let user: User.Record
 
-  // Store spy references for cleanup
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  let spies: Array<{ mockRestore: () => void }> = []
+  // Track spies for cleanup (see @/test/spyTracker.ts for details)
+  const spyTracker = createSpyTracker()
 
   beforeEach(async () => {
-    // Reset spy references
-    spies = []
+    spyTracker.reset()
 
     // Set up first organization with pricing model and product
     const orgData = await setupOrg()
@@ -1020,7 +1019,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     })
 
     // Mock the requestingCustomerAndUser to return our test data
-    spies.push(
+    spyTracker.track(
       spyOn(
         databaseAuthentication,
         'requestingCustomerAndUser'
@@ -1033,7 +1032,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     )
 
     // Mock the organization ID retrieval for customer billing portal
-    spies.push(
+    spyTracker.track(
       spyOn(
         customerBillingPortalState,
         'getCustomerBillingPortalOrganizationId'
@@ -1041,7 +1040,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     )
 
     // Mock setCustomerBillingPortalOrganizationId to avoid cookies error
-    spies.push(
+    spyTracker.track(
       spyOn(
         customerBillingPortalState,
         'setCustomerBillingPortalOrganizationId'
@@ -1049,7 +1048,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     )
 
     // Mock selectBetterAuthUserById to always return a valid user
-    spies.push(
+    spyTracker.track(
       spyOn(
         betterAuthSchemaMethods,
         'selectBetterAuthUserById'
@@ -1063,7 +1062,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
     )
 
     // Mock getDatabaseAuthenticationInfo to return proper auth info for customer
-    spies.push(
+    spyTracker.track(
       spyOn(
         databaseAuthentication,
         'getDatabaseAuthenticationInfo'
@@ -1094,8 +1093,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   })
 
   afterEach(() => {
-    // Restore each spy individually to avoid undoing mock.module() overrides
-    spies.forEach((spy) => spy.mockRestore())
+    spyTracker.restoreAll()
   })
 
   it('should fail when price is not accessible to customer (from different organization)', async () => {

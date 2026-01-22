@@ -7,7 +7,9 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: 'node', // Integration tests don't need jsdom
-      include: ['src/**/*.integration.test.{js,ts,tsx}'],
+      include: [
+        'integration-tests/**/*.integration.test.{js,ts,tsx}',
+      ],
       setupFiles: ['./vitest.integration.setup.ts'],
       testTimeout: 30000, // Longer timeout for API calls
       hookTimeout: 30000,
