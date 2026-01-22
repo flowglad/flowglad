@@ -29,6 +29,7 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError as DbNotFoundError } from '@/db/tableUtils'
 import type {
   DbTransaction,
   TransactionEffectsContext,
@@ -391,7 +392,7 @@ export const adjustSubscription = async (
   try {
     subscription = await selectSubscriptionById(id, transaction)
   } catch (error) {
-    if (error instanceof NotFoundError) {
+    if (error instanceof DbNotFoundError) {
       return Result.err(new NotFoundError('Subscription', id))
     }
     throw error
@@ -885,7 +886,7 @@ export const adjustSubscription = async (
     try {
       price = await selectPriceById(subscription.priceId, transaction)
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (error instanceof DbNotFoundError) {
         return Result.err(
           new NotFoundError('Price', subscription.priceId)
         )

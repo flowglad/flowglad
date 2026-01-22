@@ -5,6 +5,7 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerAndOrganizationByCustomerWhere } from '@/db/tableMethods/customerMethods'
+import { NotFoundError as DBNotFoundError } from '@/db/tableUtils'
 import {
   AuthorizationError,
   ConflictError,
@@ -29,7 +30,8 @@ const tracingMiddleware = tracingMiddlewareFactory(t)
 /**
  * Middleware that converts domain errors to TRPCErrors with appropriate HTTP status codes.
  * This ensures that business logic errors result in correct HTTP responses:
- * - NotFoundError → 404 NOT_FOUND
+ * - NotFoundError (domain) → 404 NOT_FOUND
+ * - NotFoundError (DB/tableUtils) → 404 NOT_FOUND
  * - ValidationError → 400 BAD_REQUEST
  * - TerminalStateError → 400 BAD_REQUEST
  * - ConflictError → 409 CONFLICT
@@ -43,6 +45,13 @@ const domainErrorMiddleware = t.middleware(async ({ next }) => {
       throw error
     }
     if (error instanceof DomainNotFoundError) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: error.message,
+        cause: error,
+      })
+    }
+    if (error instanceof DBNotFoundError) {
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: error.message,
