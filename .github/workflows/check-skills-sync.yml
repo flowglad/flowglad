@@ -6,6 +6,9 @@ on:
       - 'platform/docs/**/*.mdx'
       - 'platform/docs/**/*.md'
       - 'skills/skills/**/*.md'
+      - '.github/scripts/check-skills-sync.ts'
+      - '.github/scripts/check-skills-sync.test.ts'
+      - '.github/workflows/check-skills-sync.yml'
 
 jobs:
   check-sync:
@@ -21,7 +24,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
         with:
-          bun-version: latest
+          bun-version: 1.1.x
 
       - name: Check skills are synced with docs
         env:

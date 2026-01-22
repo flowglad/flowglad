@@ -60,7 +60,10 @@ export function validateTimestamp(
   // Check newer than old timestamp (if there was one)
   if (oldTimestamp) {
     const oldDate = new Date(oldTimestamp)
-    if (!isNaN(oldDate.getTime()) && newDate.getTime() <= oldDate.getTime()) {
+    if (
+      !isNaN(oldDate.getTime()) &&
+      newDate.getTime() <= oldDate.getTime()
+    ) {
       return `New timestamp "${newTimestamp}" must be later than previous timestamp "${oldTimestamp}".`
     }
   }
@@ -80,6 +83,14 @@ export function validateBranchName(branch: string): boolean {
   // - Must not contain shell metacharacters or spaces
   const safeBranchPattern = /^[a-zA-Z0-9_.\-/]+$/
   return safeBranchPattern.test(branch) && branch.length > 0
+}
+
+/**
+ * Formats a timestamp for display in error messages.
+ * Returns ISO 8601 format without milliseconds.
+ */
+function formatTimestampForDisplay(date: Date = new Date()): string {
+  return date.toISOString().replace(/\.\d{3}Z$/, 'Z')
 }
 
 /**
@@ -118,7 +129,7 @@ export function parseSkillMetadata(
 
   // Parse source_files (YAML list)
   const sourceFilesMatch = metadataBlock.match(
-    /source_files:\s*\n((?:\s+-\s+.+\n?)+)/
+    /source_files:\s*\n((?:\s+-\s+.+(?:\n|$))+)/
   )
   const sourceFiles: string[] = []
 
@@ -233,8 +244,7 @@ function getChangedFiles(baseBranch: string): string[] {
  */
 export function isDocFile(filePath: string): boolean {
   return (
-    (filePath.startsWith('platform/docs/') ||
-      filePath.startsWith('platform/docs/snippets/')) &&
+    filePath.startsWith('platform/docs/') &&
     (filePath.endsWith('.mdx') || filePath.endsWith('.md'))
   )
 }
@@ -250,7 +260,10 @@ function checkTimestampUpdate(
   try {
     // Get the current (HEAD) version
     const currentContent = readFileSync(skillPath, 'utf-8')
-    const currentMetadata = parseSkillMetadata(currentContent, skillPath)
+    const currentMetadata = parseSkillMetadata(
+      currentContent,
+      skillPath
+    )
 
     // Get the base branch version using spawnSync for safety
     const showResult = spawnSync(
@@ -301,7 +314,10 @@ function checkTimestampUpdate(
     return { updated: false }
   } catch (error) {
     console.error(`Error checking timestamp for ${skillPath}:`, error)
-    return { updated: false }
+    return {
+      updated: false,
+      validationError: `Failed to check timestamp: ${error instanceof Error ? error.message : String(error)}`,
+    }
   }
 }
 
@@ -408,7 +424,7 @@ async function main(): Promise<void> {
             `in ${skill.path} to confirm you have reviewed the docs and the skill is accurate.\n` +
             `\n` +
             `Update the skill content if needed, then set the timestamp to:\n` +
-            `  sources_reviewed: ${new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')}`,
+            `  sources_reviewed: ${formatTimestampForDisplay()}`,
         })
       } else if (result.validationError) {
         // Timestamp was updated but invalid
@@ -422,7 +438,7 @@ async function main(): Promise<void> {
             `${result.validationError}\n` +
             `\n` +
             `Set the timestamp to:\n` +
-            `  sources_reviewed: ${new Date().toISOString().replace(/\.\d{3}Z$/, 'Z')}`,
+            `  sources_reviewed: ${formatTimestampForDisplay()}`,
         })
       }
     }
