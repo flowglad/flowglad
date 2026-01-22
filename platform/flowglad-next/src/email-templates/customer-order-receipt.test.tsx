@@ -62,24 +62,19 @@ describe('OrderReceiptEmail', () => {
       'Payment: $60.00'
     )
 
-    // Check line items
+    // Check line items - quantity is displayed inline with name (×N) format for qty > 1
     expect(getByTestId('line-item-name-0')).toHaveTextContent(
-      'Test Product'
+      'Test Product (×2)'
     )
     expect(getByTestId('line-item-price-0')).toHaveTextContent(
       '$25.00'
     )
-    expect(getByTestId('line-item-quantity-0')).toHaveTextContent(
-      'Quantity: 2'
-    )
+    // Second item has quantity 1, so no quantity suffix is shown
     expect(getByTestId('line-item-name-1')).toHaveTextContent(
       'Another Product'
     )
     expect(getByTestId('line-item-price-1')).toHaveTextContent(
       '$10.00'
-    )
-    expect(getByTestId('line-item-quantity-1')).toHaveTextContent(
-      'Quantity: 1'
     )
 
     // Check totals - should not show subtotal when there's no tax

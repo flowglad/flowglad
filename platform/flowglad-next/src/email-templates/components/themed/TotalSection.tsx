@@ -4,8 +4,13 @@ import type { CurrencyCode } from '@/types'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { DetailItem } from './DetailItem'
 
-const hr = {
+const hr: React.CSSProperties = {
   borderColor: '#cccccc',
+  borderTop: 'none',
+  borderLeft: 'none',
+  borderRight: 'none',
+  borderBottomWidth: '1px',
+  borderBottomStyle: 'dashed',
   margin: '20px 0',
 }
 
