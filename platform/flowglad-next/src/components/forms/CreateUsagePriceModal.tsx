@@ -16,6 +16,8 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import { createPriceFormSchema } from '@/db/schema/prices'
 import type { UsageMeter } from '@/db/schema/usageMeters'
@@ -95,6 +97,46 @@ function NameAndSlugFields() {
         )}
       />
     </>
+  )
+}
+
+/**
+ * Toggle field for setting whether this price is the default for the usage meter.
+ */
+function IsDefaultField() {
+  const { control } = useFormContext<CreateUsagePriceFormSchema>()
+
+  return (
+    <FormField
+      control={control}
+      name="price.isDefault"
+      render={({ field }) => (
+        <FormItem>
+          <FormLabel>Default Price</FormLabel>
+          <FormControl>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="price-isDefault"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                aria-label="Set as default price"
+              />
+              <Label
+                htmlFor="price-isDefault"
+                className="cursor-pointer w-full"
+              >
+                {field.value ? 'Default' : 'Not Default'}
+              </Label>
+            </div>
+          </FormControl>
+          <FormDescription>
+            The default price is used when usage events are created
+            with just the meter identifier.
+          </FormDescription>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
   )
 }
 
@@ -187,6 +229,7 @@ export const CreateUsagePriceModal = ({
       setIsOpen={setIsOpen}
     >
       <NameAndSlugFields />
+      <IsDefaultField />
       <PriceFormFields
         priceOnly={true}
         pricingModelId={usageMeter.pricingModelId}
