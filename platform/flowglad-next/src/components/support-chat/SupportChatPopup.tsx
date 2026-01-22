@@ -5,6 +5,7 @@ import * as motion from 'motion/react-client'
 import {
   type Dispatch,
   type SetStateAction,
+  useCallback,
   useEffect,
   useRef,
 } from 'react'
@@ -33,28 +34,41 @@ export function SupportChatPopup({
   showDiscordLink,
 }: SupportChatPopupProps) {
   const scrollAnchorRef = useRef<HTMLDivElement>(null)
+  // Use a ref to track messages synchronously, avoiding stale closure issues
+  // when multiple messages are sent rapidly before React re-renders
+  const messagesRef = useRef<ChatMessage[]>(messages)
+
+  // Keep ref in sync with prop (for initial mount and any external updates)
+  useEffect(() => {
+    messagesRef.current = messages
+  }, [messages])
+
+  // Helper to update both ref (sync) and state (async) together
+  const updateMessages = useCallback(
+    (newMessages: ChatMessage[]) => {
+      messagesRef.current = newMessages
+      setMessages(newMessages)
+    },
+    [setMessages]
+  )
 
   const sendMessageMutation =
     trpc.supportChat.sendMessage.useMutation({
       onSuccess: (data) => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: data.response,
-          },
-        ])
+        const assistantMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: data.response,
+        }
+        updateMessages([...messagesRef.current, assistantMessage])
       },
       onError: () => {
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: crypto.randomUUID(),
-            role: 'assistant',
-            content: ERROR_MESSAGE,
-          },
-        ])
+        const errorMessage: ChatMessage = {
+          id: crypto.randomUUID(),
+          role: 'assistant',
+          content: ERROR_MESSAGE,
+        }
+        updateMessages([...messagesRef.current, errorMessage])
       },
     })
 
@@ -64,11 +78,16 @@ export function SupportChatPopup({
       role: 'user',
       content: message,
     }
-    setMessages((prev) => [...prev, userMessage])
+
+    // Build updated messages array including the new user message
+    const updatedMessages = [...messagesRef.current, userMessage]
+
+    // Update ref synchronously so subsequent rapid calls see this message
+    updateMessages(updatedMessages)
 
     sendMessageMutation.mutate({
       message,
-      history: messages.map((m) => ({
+      history: updatedMessages.map((m) => ({
         role: m.role,
         content: m.content,
       })),
