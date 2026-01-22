@@ -33,7 +33,7 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <ReactQueryProvider>
-          <FlowgladProviderWrapper>
+          <FlowgladProviderWrapper betterAuthBasePath="/api/auth">
             <Navbar />
             {children}
           </FlowgladProviderWrapper>
