@@ -295,10 +295,9 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
           emitEvent,
           enqueueLedgerCommand,
         }
-        const subscription = await scheduleSubscriptionCancellation(
-          input,
-          ctx
-        )
+        const subscriptionResult =
+          await scheduleSubscriptionCancellation(input, ctx)
+        const subscription = subscriptionResult.unwrap()
         return Result.ok({
           subscription: {
             ...subscription,
