@@ -2,7 +2,12 @@
 autoInstall = false
 
 [test]
-preload = ["./bun.setup.ts"]
+# NOTE: No default preload here - each test script specifies its own preload
+# to avoid conflicts between unit tests (MSW mocking) and integration tests (real APIs)
+# - Unit tests: --preload ./bun.setup.ts (MSW + happy-dom)
+# - Integration tests: --preload ./bun.integration.setup.ts (real Stripe/Redis)
+# - RLS tests: --preload ./bun.rls.setup.ts (real DB, stub Redis)
+
 # Include only .test.ts files in src/ (not .test.tsx - those run via vitest)
 # Integration, flow, and RLS tests live in integration-tests/ and are run separately
 include = ["src/**/*.test.ts"]
