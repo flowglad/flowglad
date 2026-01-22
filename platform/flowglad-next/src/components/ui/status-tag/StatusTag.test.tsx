@@ -59,8 +59,8 @@ describe('StatusTag', () => {
 
       const badge = screen.getByRole('status')
       expect(badge).toHaveTextContent('Active')
-      expect(badge).toHaveClass('bg-status-success-bg')
-      expect(badge).toHaveClass('text-status-success-fg')
+      expect(badge).toHaveClass('bg-jade-background')
+      expect(badge).toHaveClass('text-jade-foreground')
       expect(badge).toHaveAttribute('aria-label', 'Active')
     })
 

@@ -208,10 +208,6 @@
     --citrine-border: 49 70% 28% / 20%;
 
     /* Status Badge Colors - Light Mode */
-    --status-success-bg: 153 61% 90%;
-    --status-success-fg: 152 41.3% 24.7%;
-    --status-success-border: 152 41.3% 24.7% / 20%;
-
     --status-warning-bg: 48 96% 89%;
     --status-warning-fg: 32 81% 29%;
     --status-warning-border: 48 96% 83%;
@@ -291,10 +287,6 @@
     --citrine-border: 49 85% 78% / 20%;
 
     /* Status Badge Colors - Dark Mode */
-    --status-success-bg: 152 39% 31% / 33%;
-    --status-success-fg: 153 48% 83%;
-    --status-success-border: 153 48% 83% / 20%;
-
     --status-warning-bg: 32 81% 29% / 30%;
     --status-warning-fg: 48 96% 83%;
     --status-warning-border: 32 81% 29%;

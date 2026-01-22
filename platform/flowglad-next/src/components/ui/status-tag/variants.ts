@@ -5,7 +5,7 @@ import type { StatusVariant } from './types'
  * All colors auto-switch between light/dark mode via globals.css.
  *
  * Required CSS variables in globals.css:
- * - --status-success-bg, --status-success-fg, --status-success-border
+ * - --jade-background, --jade-foreground, --jade-border (success)
  * - --status-warning-bg, --status-warning-fg, --status-warning-border
  * - --status-destructive-bg, --status-destructive-fg, --status-destructive-border
  * - --status-info-bg, --status-info-fg, --status-info-border
@@ -13,7 +13,7 @@ import type { StatusVariant } from './types'
  */
 export const variantStyles: Record<StatusVariant, string> = {
   success:
-    'bg-status-success-bg text-status-success-fg border-status-success-border',
+    'bg-jade-background text-jade-foreground border-jade-border',
   warning:
     'bg-status-warning-bg text-status-warning-fg border-status-warning-border',
   destructive:
