@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import type {
   BillingPeriodTransitionLedgerCommand,
@@ -312,10 +313,9 @@ export const processOutcomeForBillingRun = async (
       `Invoice for billing period ${billingRun.billingPeriodId} not found.`
     )
   }
-  const { payment } = await processPaymentIntentStatusUpdated(
-    event,
-    ctx
-  )
+  const { payment } = (
+    await processPaymentIntentStatusUpdated(event, ctx)
+  ).unwrap()
 
   if (billingRunStatus === BillingRunStatus.Succeeded) {
     await createStripeTaxTransactionIfNeededForPayment(
@@ -418,11 +418,6 @@ export const processOutcomeForBillingRun = async (
   // Re-Select Invoice after changes have been made
   invoice = await selectInvoiceById(invoice.id, transaction)
 
-  // Track subscription item adjustment result for cache invalidation
-  let subscriptionItemAdjustmentResult:
-    | Awaited<ReturnType<typeof handleSubscriptionItemAdjustment>>
-    | undefined
-
   // Handle subscription item adjustments after successful payment
   if (
     billingRun.isAdjustment &&
@@ -437,7 +432,7 @@ export const processOutcomeForBillingRun = async (
         transaction
       )
 
-    subscriptionItemAdjustmentResult =
+    const subscriptionItemAdjustmentResult =
       await handleSubscriptionItemAdjustment(
         {
           subscriptionId: subscription.id,
@@ -446,6 +441,11 @@ export const processOutcomeForBillingRun = async (
         },
         ctx
       )
+    // Note: Result is checked for errors but the value is not used.
+    // handleSubscriptionItemAdjustment handles cache invalidation internally.
+    if (Result.isError(subscriptionItemAdjustmentResult)) {
+      throw subscriptionItemAdjustmentResult.error
+    }
 
     // Sync subscription record with updated items
     await syncSubscriptionWithActiveItems(

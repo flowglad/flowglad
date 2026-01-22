@@ -55,10 +55,9 @@ const processPaymentIntent = async ({
   const { payment, purchase, invoice, checkoutSession } =
     await comprehensiveAdminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const { payment } = await processPaymentIntentStatusUpdated(
-        paymentIntent,
-        ctx
-      )
+      const { payment } = (
+        await processPaymentIntentStatusUpdated(paymentIntent, ctx)
+      ).unwrap()
       if (!payment.purchaseId) {
         throw new Error(
           `No purchase id found for payment ${payment.id}`

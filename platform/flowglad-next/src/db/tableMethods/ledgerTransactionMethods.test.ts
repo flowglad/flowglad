@@ -130,7 +130,7 @@ describe('Ledger Transaction Methods', () => {
     it('should successfully insert ledger transaction with idempotency key and derive pricingModelId', async () => {
       await adminTransaction(async ({ transaction }) => {
         const idempotencyKey = `idem_${core.nanoid()}`
-        const result =
+        const result = (
           await insertLedgerTransactionOrDoNothingByIdempotencyKey(
             {
               organizationId: organization.id,
@@ -142,6 +142,7 @@ describe('Ledger Transaction Methods', () => {
             },
             transaction
           )
+        ).unwrap()
 
         expect(result).toHaveLength(1)
         const ledgerTransaction = result[0]
@@ -158,7 +159,7 @@ describe('Ledger Transaction Methods', () => {
         const idempotencyKey = `idem_${core.nanoid()}`
 
         // First insert
-        const firstResult =
+        const firstResult = (
           await insertLedgerTransactionOrDoNothingByIdempotencyKey(
             {
               organizationId: organization.id,
@@ -170,11 +171,12 @@ describe('Ledger Transaction Methods', () => {
             },
             transaction
           )
+        ).unwrap()
 
         expect(firstResult).toHaveLength(1)
 
         // Second insert with same idempotency key should do nothing
-        const secondResult =
+        const secondResult = (
           await insertLedgerTransactionOrDoNothingByIdempotencyKey(
             {
               organizationId: organization.id,
@@ -186,6 +188,7 @@ describe('Ledger Transaction Methods', () => {
             },
             transaction
           )
+        ).unwrap()
 
         expect(secondResult).toHaveLength(0)
       })
@@ -194,7 +197,7 @@ describe('Ledger Transaction Methods', () => {
     it('should use provided pricingModelId without derivation', async () => {
       await adminTransaction(async ({ transaction }) => {
         const idempotencyKey = `idem_${core.nanoid()}`
-        const result =
+        const result = (
           await insertLedgerTransactionOrDoNothingByIdempotencyKey(
             {
               organizationId: organization.id,
@@ -207,6 +210,7 @@ describe('Ledger Transaction Methods', () => {
             },
             transaction
           )
+        ).unwrap()
 
         expect(result).toHaveLength(1)
         expect(result[0].pricingModelId).toBe(pricingModel.id)

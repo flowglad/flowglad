@@ -2073,10 +2073,11 @@ export const setupDebitLedgerEntry = async (
   }
 
   return adminTransaction(async ({ transaction }) => {
-    return insertLedgerEntry(
+    const result = await insertLedgerEntry(
       debitEntryInsertFromDebigLedgerParams(params),
       transaction
     )
+    return result.unwrap()
   })
 }
 
@@ -2188,10 +2189,11 @@ export const setupCreditLedgerEntry = async (
   params: CreditLedgerEntrySetupParams & CoreLedgerEntryUserParams
 ): Promise<LedgerEntry.Record> => {
   return adminTransaction(async ({ transaction }) => {
-    return insertLedgerEntry(
+    const result = await insertLedgerEntry(
       creditLedgerEntryInsertFromCreditLedgerParams(params),
       transaction
     )
+    return result.unwrap()
   })
 }
 
@@ -2386,7 +2388,7 @@ export const setupLedgerEntries = async (params: {
   entries: QuickLedgerEntry[]
 }) => {
   return await adminTransaction(async ({ transaction }) => {
-    return bulkInsertLedgerEntries(
+    const result = await bulkInsertLedgerEntries(
       params.entries.map((entry) => {
         if (
           debitableEntryTypes.includes(
@@ -2424,6 +2426,7 @@ export const setupLedgerEntries = async (params: {
       }),
       transaction
     )
+    return result.unwrap()
   })
 }
 

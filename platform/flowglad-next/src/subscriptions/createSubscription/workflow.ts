@@ -274,11 +274,9 @@ export const createSubscriptionWorkflow = async (
       )
     }
     const { price } = params
-    const subscriptionItemFeatures =
-      await createSubscriptionFeatureItems(
-        subscriptionItems,
-        transaction
-      )
+    const subscriptionItemFeatures = yield* Result.await(
+      createSubscriptionFeatureItems(subscriptionItems, transaction)
+    )
 
     const {
       subscription: updatedSubscription,

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { and, asc, eq, inArray, lt, not, or, sql } from 'drizzle-orm'
 import {
   type LedgerEntry,
@@ -12,10 +13,11 @@ import {
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
-  NotFoundError,
   type ORMMethodCreatorConfig,
+  NotFoundError as TableNotFoundError,
   whereClauseFromObject,
 } from '@/db/tableUtils'
+import { NotFoundError } from '@/errors'
 import {
   type CurrencyCode,
   LedgerEntryDirection,
@@ -37,6 +39,7 @@ import {
 } from '../schema/usageMeters'
 import { createDateNotPassedFilter } from '../tableUtils'
 import type { DbTransaction } from '../types'
+import { derivePricingModelIdForLedgerEntryFromMaps } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromSubscription,
   pricingModelIdsForSubscriptions,
@@ -67,6 +70,9 @@ export const selectLedgerEntryById = createSelectById(
  * Derives pricingModelId for a ledger entry with COALESCE logic.
  * Priority: subscription > usageMeter
  * Used for ledger entry inserts.
+ *
+ * Returns Result.err(NotFoundError) when neither subscriptionId nor usageMeterId
+ * is provided, or when the pricing model cannot be found.
  */
 export const derivePricingModelIdForLedgerEntry = async (
   data: {
@@ -74,25 +80,61 @@ export const derivePricingModelIdForLedgerEntry = async (
     usageMeterId?: string | null
   },
   transaction: DbTransaction
-): Promise<string> => {
+): Promise<Result<string, NotFoundError>> => {
   // Try subscription first
   if (data.subscriptionId) {
-    return await derivePricingModelIdFromSubscription(
-      data.subscriptionId,
-      transaction
-    )
+    try {
+      const pricingModelId =
+        await derivePricingModelIdFromSubscription(
+          data.subscriptionId,
+          transaction
+        )
+      return Result.ok(pricingModelId)
+    } catch (error) {
+      if (
+        error instanceof NotFoundError ||
+        error instanceof TableNotFoundError
+      ) {
+        return Result.err(
+          new NotFoundError(
+            'pricingModelId',
+            `subscription ${data.subscriptionId} does not have a pricingModelId`
+          )
+        )
+      }
+      throw error
+    }
   }
 
   // Try usage meter second
   if (data.usageMeterId) {
-    return await derivePricingModelIdFromUsageMeter(
-      data.usageMeterId,
-      transaction
-    )
+    try {
+      const pricingModelId = await derivePricingModelIdFromUsageMeter(
+        data.usageMeterId,
+        transaction
+      )
+      return Result.ok(pricingModelId)
+    } catch (error) {
+      if (
+        error instanceof NotFoundError ||
+        error instanceof TableNotFoundError
+      ) {
+        return Result.err(
+          new NotFoundError(
+            'pricingModelId',
+            `usage meter ${data.usageMeterId} does not have a pricingModelId`
+          )
+        )
+      }
+      throw error
+    }
   }
 
-  throw new Error(
-    'Cannot derive pricingModelId: subscriptionId and usageMeterId are both null or missing pricingModelId'
+  return Result.err(
+    new NotFoundError(
+      'pricingModelId',
+      'subscriptionId and usageMeterId are both null'
+    )
   )
 }
 
@@ -104,23 +146,36 @@ const baseInsertLedgerEntry = createInsertFunction(
 export const insertLedgerEntry = async (
   ledgerEntryInsert: LedgerEntry.Insert,
   transaction: DbTransaction
-): Promise<LedgerEntry.Record> => {
-  const pricingModelId = ledgerEntryInsert.pricingModelId
-    ? ledgerEntryInsert.pricingModelId
-    : await derivePricingModelIdForLedgerEntry(
-        {
-          subscriptionId: ledgerEntryInsert.subscriptionId,
-          usageMeterId: ledgerEntryInsert.usageMeterId,
-        },
-        transaction
-      )
-  return baseInsertLedgerEntry(
+): Promise<Result<LedgerEntry.Record, NotFoundError>> => {
+  if (ledgerEntryInsert.pricingModelId) {
+    const record = await baseInsertLedgerEntry(
+      ledgerEntryInsert,
+      transaction
+    )
+    return Result.ok(record)
+  }
+
+  const pricingModelIdResult =
+    await derivePricingModelIdForLedgerEntry(
+      {
+        subscriptionId: ledgerEntryInsert.subscriptionId,
+        usageMeterId: ledgerEntryInsert.usageMeterId,
+      },
+      transaction
+    )
+
+  if (Result.isError(pricingModelIdResult)) {
+    return Result.err(pricingModelIdResult.error)
+  }
+
+  const record = await baseInsertLedgerEntry(
     {
       ...ledgerEntryInsert,
-      pricingModelId,
+      pricingModelId: pricingModelIdResult.value,
     },
     transaction
   )
+  return Result.ok(record)
 }
 
 export const updateLedgerEntry = createUpdateFunction(
@@ -141,7 +196,7 @@ const baseBulkInsertLedgerEntries = createBulkInsertFunction(
 export const bulkInsertLedgerEntries = async (
   ledgerEntryInserts: LedgerEntry.Insert[],
   transaction: DbTransaction
-): Promise<LedgerEntry.Record[]> => {
+): Promise<Result<LedgerEntry.Record[], NotFoundError>> => {
   // Collect all unique subscription and usage meter IDs
   const subscriptionIds = Array.from(
     new Set(
@@ -167,62 +222,37 @@ export const bulkInsertLedgerEntries = async (
   const usageMeterPricingModelIdMap =
     await pricingModelIdsForUsageMeters(usageMeterIds, transaction)
 
-  // Derive pricingModelId for each insert
-  const ledgerEntriesWithPricingModelId = ledgerEntryInserts.map(
-    (ledgerEntryInsert): LedgerEntry.Insert => {
-      if (ledgerEntryInsert.pricingModelId) {
-        return ledgerEntryInsert
-      }
-
-      // If we have a subscriptionId, we expect it to resolve in the batch map.
-      if (ledgerEntryInsert.subscriptionId) {
-        const subscriptionPricingModelId =
-          subscriptionPricingModelIdMap.get(
-            ledgerEntryInsert.subscriptionId
-          )
-
-        if (!subscriptionPricingModelId) {
-          throw new Error(
-            `Cannot derive pricingModelId: subscription ${ledgerEntryInsert.subscriptionId} not found or missing pricingModelId`
-          )
-        }
-
-        return {
-          ...ledgerEntryInsert,
-          pricingModelId: subscriptionPricingModelId,
-        }
-      }
-
-      // Otherwise fall back to usage meter if provided.
-      if (ledgerEntryInsert.usageMeterId) {
-        const usageMeterPricingModelId =
-          usageMeterPricingModelIdMap.get(
-            ledgerEntryInsert.usageMeterId
-          )
-
-        if (!usageMeterPricingModelId) {
-          throw new Error(
-            `Cannot derive pricingModelId: usage meter ${ledgerEntryInsert.usageMeterId} not found or missing pricingModelId`
-          )
-        }
-
-        return {
-          ...ledgerEntryInsert,
-          pricingModelId: usageMeterPricingModelId,
-        }
-      }
-
-      // No subscriptionId and no usageMeterId – nothing to derive from.
-      throw new Error(
-        'Cannot derive pricingModelId: subscriptionId and usageMeterId are both null or missing pricingModelId'
-      )
+  // Derive pricingModelId for each insert using the helper
+  const ledgerEntriesWithPricingModelId: LedgerEntry.Insert[] = []
+  for (const ledgerEntryInsert of ledgerEntryInserts) {
+    if (ledgerEntryInsert.pricingModelId) {
+      ledgerEntriesWithPricingModelId.push(ledgerEntryInsert)
+      continue
     }
-  )
 
-  return baseBulkInsertLedgerEntries(
+    const pricingModelIdResult =
+      derivePricingModelIdForLedgerEntryFromMaps({
+        subscriptionId: ledgerEntryInsert.subscriptionId,
+        usageMeterId: ledgerEntryInsert.usageMeterId,
+        subscriptionPricingModelIdMap,
+        usageMeterPricingModelIdMap,
+      })
+
+    if (Result.isError(pricingModelIdResult)) {
+      return Result.err(pricingModelIdResult.error)
+    }
+
+    ledgerEntriesWithPricingModelId.push({
+      ...ledgerEntryInsert,
+      pricingModelId: pricingModelIdResult.value,
+    })
+  }
+
+  const records = await baseBulkInsertLedgerEntries(
     ledgerEntriesWithPricingModelId,
     transaction
   )
+  return Result.ok(records)
 }
 
 const balanceTypeWhereStatement = (

@@ -314,12 +314,10 @@ const adjustSubscriptionProcedure = protectedProcedure
     const adjustmentResult =
       await comprehensiveAuthenticatedTransaction(
         async (transactionCtx) => {
-          return Result.ok(
-            await adjustSubscription(
-              input,
-              ctx.organization!,
-              transactionCtx
-            )
+          return adjustSubscription(
+            input,
+            ctx.organization!,
+            transactionCtx
           )
         },
         {

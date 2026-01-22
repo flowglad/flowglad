@@ -1,7 +1,14 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Membership } from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
 import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
+import { NotFoundError } from '@/db/tableUtils'
 import { OrganizationSubscriptionCancellationScheduledNotificationEmail } from '@/email-templates/organization-subscription-notifications'
+import { ValidationError } from '@/errors'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
@@ -15,96 +22,143 @@ import {
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
+/**
+ * Core run function for send-organization-subscription-cancellation-scheduled-notification task.
+ * Exported for testing purposes.
+ */
+export const runSendOrganizationSubscriptionCancellationScheduledNotification =
+  async (params: {
+    subscription: Subscription.Record
+    scheduledCancellationDate: number
+  }) => {
+    const { subscription, scheduledCancellationDate } = params
+    logger.log(
+      'Sending organization subscription cancellation scheduled notification',
+      {
+        subscription,
+        scheduledCancellationDate,
+      }
+    )
+
+    let dataResult: Result<
+      {
+        organization: Organization.Record
+        customer: Customer.Record
+        usersAndMemberships: Array<{
+          user: User.Record
+          membership: Membership.Record
+        }>
+      },
+      NotFoundError | ValidationError
+    >
+    try {
+      const data = await adminTransaction(async ({ transaction }) => {
+        return buildNotificationContext(
+          {
+            organizationId: subscription.organizationId,
+            customerId: subscription.customerId,
+            include: ['usersAndMemberships'],
+          },
+          transaction
+        )
+      })
+      dataResult = Result.ok(data)
+    } catch (error) {
+      // Only convert NotFoundError to Result.err; rethrow other errors
+      // for Trigger.dev to retry (e.g., transient DB failures)
+      if (error instanceof NotFoundError) {
+        dataResult = Result.err(error)
+      } else if (
+        error instanceof Error &&
+        error.message.includes('not found')
+      ) {
+        // Handle errors from buildNotificationContext
+        dataResult = Result.err(
+          new NotFoundError('Resource', error.message)
+        )
+      } else {
+        throw error
+      }
+    }
+
+    if (Result.isError(dataResult)) {
+      return dataResult
+    }
+    const { organization, customer, usersAndMemberships } =
+      dataResult.value
+
+    const eligibleRecipients = filterEligibleRecipients(
+      usersAndMemberships,
+      'subscriptionCancellationScheduled',
+      subscription.livemode
+    )
+
+    if (eligibleRecipients.length === 0) {
+      return Result.ok({
+        message: 'No recipients opted in for this notification',
+      })
+    }
+
+    const recipientEmails = eligibleRecipients
+      .map(({ user }) => user.email)
+      .filter(
+        (email): email is string => !isNil(email) && email !== ''
+      )
+
+    if (recipientEmails.length === 0) {
+      return Result.ok({
+        message: 'No valid email addresses for eligible recipients',
+      })
+    }
+
+    const cancellationDate = new Date(scheduledCancellationDate)
+    const subscriptionName = subscription.name || 'subscription'
+
+    await safeSend({
+      from: 'Flowglad <notifications@flowglad.com>',
+      bcc: getBccForLivemode(subscription.livemode),
+      to: recipientEmails,
+      subject: formatEmailSubject(
+        `Cancellation Scheduled: ${customer.name} scheduled cancellation for ${subscriptionName} on ${formatDate(cancellationDate)}`,
+        subscription.livemode
+      ),
+      /**
+       * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
+       */
+      react:
+        await OrganizationSubscriptionCancellationScheduledNotificationEmail(
+          {
+            organizationName: organization.name,
+            subscriptionName,
+            customerId: customer.id,
+            customerName: customer.name,
+            customerEmail: customer.email,
+            scheduledCancellationDate: cancellationDate,
+            livemode: subscription.livemode,
+          }
+        ),
+    })
+
+    return Result.ok({
+      message:
+        'Organization subscription cancellation scheduled notification sent successfully',
+    })
+  }
+
 const sendOrganizationSubscriptionCancellationScheduledNotificationTask =
   task({
     id: 'send-organization-subscription-cancellation-scheduled-notification',
     run: async (
-      {
-        subscription,
-        scheduledCancellationDate,
-      }: {
+      payload: {
         subscription: Subscription.Record
         scheduledCancellationDate: number
       },
       { ctx }
     ) => {
-      logger.log(
-        'Sending organization subscription cancellation scheduled notification',
-        {
-          subscription,
-          scheduledCancellationDate,
-          ctx,
-        }
+      logger.log('Task context', { ctx })
+      return runSendOrganizationSubscriptionCancellationScheduledNotification(
+        payload
       )
-
-      const { organization, customer, usersAndMemberships } =
-        await adminTransaction(async ({ transaction }) => {
-          return buildNotificationContext(
-            {
-              organizationId: subscription.organizationId,
-              customerId: subscription.customerId,
-              include: ['usersAndMemberships'],
-            },
-            transaction
-          )
-        })
-
-      const eligibleRecipients = filterEligibleRecipients(
-        usersAndMemberships,
-        'subscriptionCancellationScheduled',
-        subscription.livemode
-      )
-
-      if (eligibleRecipients.length === 0) {
-        return {
-          message: 'No recipients opted in for this notification',
-        }
-      }
-
-      const recipientEmails = eligibleRecipients
-        .map(({ user }) => user.email)
-        .filter(
-          (email): email is string => !isNil(email) && email !== ''
-        )
-
-      if (recipientEmails.length === 0) {
-        return {
-          message: 'No valid email addresses for eligible recipients',
-        }
-      }
-
-      const cancellationDate = new Date(scheduledCancellationDate)
-      const subscriptionName = subscription.name || 'subscription'
-
-      await safeSend({
-        from: 'Flowglad <notifications@flowglad.com>',
-        bcc: getBccForLivemode(subscription.livemode),
-        to: recipientEmails,
-        subject: formatEmailSubject(
-          `Cancellation Scheduled: ${customer.name} scheduled cancellation for ${subscriptionName} on ${formatDate(cancellationDate)}`,
-          subscription.livemode
-        ),
-        /**
-         * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
-         */
-        react:
-          await OrganizationSubscriptionCancellationScheduledNotificationEmail(
-            {
-              organizationName: organization.name,
-              subscriptionName,
-              customerId: customer.id,
-              customerName: customer.name,
-              customerEmail: customer.email,
-              scheduledCancellationDate: cancellationDate,
-              livemode: subscription.livemode,
-            }
-          ),
-      })
-
-      return {
-        message:
-          'Organization subscription cancellation scheduled notification sent successfully',
-      }
     },
   })
 
