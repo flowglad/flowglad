@@ -2117,6 +2117,152 @@ describe('billingRunHelpers', async () => {
       )
     })
 
+    it('does not create a payment record when amountToCharge is 0 due to existing payments fully covering totalDueAmount', async () => {
+      // Setup: Create a billing period item with a known price
+      const knownPrice = 10000 // $100 in cents
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriodItem(
+          {
+            id: staticBillingPeriodItem.id,
+            unitPrice: knownPrice,
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+      })
+
+      // Create an invoice for this billing period
+      const testInvoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+
+      // Create an existing payment that FULLY covers the totalDueAmount
+      // This simulates the scenario from issue #1317 where prior payments
+      // have already covered the full amount
+      await setupPayment({
+        stripeChargeId: 'ch_fullcover_' + core.nanoid(),
+        status: PaymentStatus.Succeeded,
+        amount: knownPrice, // Full amount - should result in amountToCharge = 0
+        livemode: billingPeriod.livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: 'pi_fullcover_' + core.nanoid(),
+        invoiceId: testInvoice.id,
+        paymentMethod: paymentMethod.type,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: billingPeriod.subscriptionId,
+        paymentMethodId: paymentMethod.id,
+      })
+
+      // Execute the billing run
+      const result = await adminTransaction(({ transaction }) =>
+        executeBillingRunCalculationAndBookkeepingSteps(
+          billingRun,
+          transaction
+        )
+      )
+
+      // Verify the scenario: totalDueAmount > 0 but amountToCharge = 0
+      expect(result.totalDueAmount).toBeGreaterThan(0)
+      expect(result.totalAmountPaid).toBe(knownPrice)
+      expect(result.amountToCharge).toBe(0)
+
+      // The fix: no payment record should be created when amountToCharge is 0
+      // Previously this would create an orphaned $0 payment with status: Processing
+      expect(result.payment).toBeUndefined()
+
+      // Verify the invoice is marked as paid
+      expect(result.invoice.status).toBe(InvoiceStatus.Paid)
+
+      // Verify the billing run is marked as succeeded
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(billingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(
+        BillingRunStatus.Succeeded
+      )
+    })
+
+    it('succeeds without Stripe IDs when amountToCharge is 0 (prior payments fully cover amount)', async () => {
+      // Setup: Create a billing period item with a known price
+      const knownPrice = 10000 // $100 in cents
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriodItem(
+          {
+            id: staticBillingPeriodItem.id,
+            unitPrice: knownPrice,
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+      })
+
+      // Create an invoice for this billing period
+      const testInvoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+
+      // Create an existing payment that FULLY covers the totalDueAmount
+      await setupPayment({
+        stripeChargeId: 'ch_fullcover_nostripe_' + core.nanoid(),
+        status: PaymentStatus.Succeeded,
+        amount: knownPrice, // Full amount - should result in amountToCharge = 0
+        livemode: billingPeriod.livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId:
+          'pi_fullcover_nostripe_' + core.nanoid(),
+        invoiceId: testInvoice.id,
+        paymentMethod: paymentMethod.type,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: billingPeriod.subscriptionId,
+        paymentMethodId: paymentMethod.id,
+      })
+
+      // Remove Stripe IDs - this should NOT cause failure when amountToCharge is 0
+      // This is the key difference from the previous test: we're verifying that
+      // the amountToCharge <= 0 guard comes BEFORE Stripe ID validation
+      await adminTransaction(async ({ transaction }) => {
+        await updatePaymentMethod(
+          {
+            id: paymentMethod.id,
+            stripePaymentMethodId: null,
+          },
+          transaction
+        )
+      })
+
+      // Execute the billing run - should succeed, not throw
+      const result = await adminTransaction(({ transaction }) =>
+        executeBillingRunCalculationAndBookkeepingSteps(
+          billingRun,
+          transaction
+        )
+      )
+
+      // Verify the scenario worked correctly
+      expect(result.totalDueAmount).toBeGreaterThan(0)
+      expect(result.amountToCharge).toBe(0)
+      expect(result.payment).toBeUndefined()
+      expect(result.invoice.status).toBe(InvoiceStatus.Paid)
+
+      // Verify the billing run is marked as succeeded
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(billingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(
+        BillingRunStatus.Succeeded
+      )
+    })
+
     it('should throw an error if customer has no stripe customer ID', async () => {
       // Update customer to remove stripe customer ID
       await adminTransaction(async ({ transaction }) => {
