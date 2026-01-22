@@ -15,6 +15,12 @@ const mockResponse = {
 const mockSafeSend = mock<typeof actualEmail.safeSend>()
 const mockEnvVariable = mock<typeof actualCore.envVariable>()
 
+// Track calls per test to avoid cross-file interference
+let lastSafeSendCall: {
+  emailPayload: Parameters<typeof actualEmail.safeSend>[0]
+  metadata: Parameters<typeof actualEmail.safeSend>[1]
+} | null = null
+
 mock.module('@/utils/email', () => ({
   ...actualEmail,
   safeSend: mockSafeSend,
@@ -35,8 +41,12 @@ import {
 } from './sendEmail'
 
 beforeEach(() => {
+  lastSafeSendCall = null
   mockSafeSend.mockClear()
-  mockSafeSend.mockResolvedValue(mockResponse)
+  mockSafeSend.mockImplementation(((emailPayload, metadata) => {
+    lastSafeSendCall = { emailPayload, metadata }
+    return Promise.resolve(mockResponse)
+  }) as typeof actualEmail.safeSend)
   mockEnvVariable.mockClear()
   // Default: return test email for DEV_EMAIL_REDIRECT, undefined for others
   mockEnvVariable.mockImplementation(((key: string) => {
@@ -98,12 +108,12 @@ describe('sendEmail', () => {
         livemode: true,
       })
 
-      expect(mockSafeSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          subject: 'Payouts Enabled for Acme Inc',
-        }),
-        expect.anything()
+      expect(lastSafeSendCall!.emailPayload.subject).toBe(
+        'Payouts Enabled for Acme Inc'
       )
+      expect(lastSafeSendCall!.metadata).toEqual({
+        templateName: 'organization.notification.payouts-enabled',
+      })
     })
 
     it('uses subjectOverride when provided', async () => {
@@ -117,12 +127,12 @@ describe('sendEmail', () => {
         subjectOverride: 'Custom Subject',
       })
 
-      expect(mockSafeSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          subject: 'Custom Subject',
-        }),
-        expect.anything()
+      expect(lastSafeSendCall!.emailPayload.subject).toBe(
+        'Custom Subject'
       )
+      expect(lastSafeSendCall!.metadata).toEqual({
+        templateName: 'organization.notification.payouts-enabled',
+      })
     })
 
     it('adds [TEST] prefix when livemode is false', async () => {
@@ -135,12 +145,12 @@ describe('sendEmail', () => {
         livemode: false,
       })
 
-      expect(mockSafeSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          subject: '[TEST] Payouts Enabled for Acme Inc',
-        }),
-        expect.anything()
+      expect(lastSafeSendCall!.emailPayload.subject).toBe(
+        '[TEST] Payouts Enabled for Acme Inc'
       )
+      expect(lastSafeSendCall!.metadata).toEqual({
+        templateName: 'organization.notification.payouts-enabled',
+      })
     })
   })
 
@@ -162,12 +172,12 @@ describe('sendEmail', () => {
         livemode: true,
       })
 
-      expect(mockSafeSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          from: 'Acme Inc Billing <acme-inc-billing@flowglad.com>',
-        }),
-        expect.anything()
+      expect(lastSafeSendCall!.emailPayload.from).toBe(
+        'Acme Inc Billing <acme-inc-billing@flowglad.com>'
       )
+      expect(lastSafeSendCall!.metadata).toEqual({
+        templateName: 'customer.subscription.created',
+      })
     })
 
     it('uses Flowglad branding for organization emails', async () => {
@@ -180,12 +190,12 @@ describe('sendEmail', () => {
         livemode: true,
       })
 
-      expect(mockSafeSend).toHaveBeenCalledWith(
-        expect.objectContaining({
-          from: 'Flowglad <notifications@flowglad.com>',
-        }),
-        expect.anything()
+      expect(lastSafeSendCall!.emailPayload.from).toBe(
+        'Flowglad <notifications@flowglad.com>'
       )
+      expect(lastSafeSendCall!.metadata).toEqual({
+        templateName: 'organization.notification.payouts-enabled',
+      })
     })
   })
 
