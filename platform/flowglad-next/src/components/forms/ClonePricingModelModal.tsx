@@ -20,6 +20,18 @@ interface ClonePricingModelModalProps {
 const ClonePricingModelModal: React.FC<
   ClonePricingModelModalProps
 > = ({ isOpen, setIsOpen, pricingModel }) => {
+  const { livemode } = useAuthenticatedContext()
+  const trpcUtils = trpc.useUtils()
+
+  // Check if org already has a livemode PM
+  // We need to know if cloning to livemode would be blocked
+  const { data: tableData } =
+    trpc.pricingModels.getTableRows.useQuery({
+      pageSize: 1,
+    })
+  const hasLivemodePricingModel =
+    livemode && (tableData?.total ?? 0) >= 1
+
   const clonePricingModelMutation =
     trpc.pricingModels.clone.useMutation({
       onSuccess: ({ pricingModel }) => {
@@ -28,12 +40,13 @@ const ClonePricingModelModal: React.FC<
             `Pricing model cloned into ${sentenceCase(pricingModel.livemode ? DestinationEnvironment.Livemode : DestinationEnvironment.Testmode)} environment`
           )
         }
+        // Invalidate to refresh the count for "can create" check and clone warning
+        trpcUtils.pricingModels.getTableRows.invalidate()
       },
       onError: (error) => {
         toast.error('Failed to clone pricing model')
       },
     })
-  const { livemode } = useAuthenticatedContext()
   return (
     <FormModal
       isOpen={isOpen}
@@ -47,7 +60,9 @@ const ClonePricingModelModal: React.FC<
       onSubmit={clonePricingModelMutation.mutateAsync}
       submitButtonText="Clone Pricing Model"
     >
-      <ClonePricingModelFormFields />
+      <ClonePricingModelFormFields
+        hasLivemodePricingModel={hasLivemodePricingModel}
+      />
     </FormModal>
   )
 }

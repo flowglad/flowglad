@@ -1,4 +1,5 @@
 import { sentenceCase } from 'change-case'
+import { AlertTriangle } from 'lucide-react'
 import type React from 'react'
 import { useFormContext } from 'react-hook-form'
 import {
@@ -19,8 +20,20 @@ import {
 import type { ClonePricingModelInput } from '@/db/schema/pricingModels'
 import { DestinationEnvironment } from '@/types'
 
-const ClonePricingModelFormFields: React.FC = () => {
+interface ClonePricingModelFormFieldsProps {
+  hasLivemodePricingModel?: boolean
+}
+
+const ClonePricingModelFormFields: React.FC<
+  ClonePricingModelFormFieldsProps
+> = ({ hasLivemodePricingModel = false }) => {
   const form = useFormContext<ClonePricingModelInput>()
+  const selectedDestination = form.watch('destinationEnvironment')
+
+  // Show warning if user is about to clone to livemode but already has one
+  const showLivemodeWarning =
+    hasLivemodePricingModel &&
+    selectedDestination === DestinationEnvironment.Livemode
 
   return (
     <div className="flex flex-col gap-3">
@@ -72,6 +85,21 @@ const ClonePricingModelFormFields: React.FC = () => {
           </FormItem>
         )}
       />
+
+      {showLivemodeWarning && (
+        <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">
+          <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-amber-800 dark:text-amber-200">
+            <p className="font-medium">Cannot clone to Live mode</p>
+            <p className="mt-1">
+              Your organization already has a livemode pricing model.
+              Each organization can have at most one livemode pricing
+              model. Please select "Test mode" as the destination
+              environment instead.
+            </p>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
