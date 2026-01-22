@@ -7,7 +7,7 @@
   "typesVersions": {
     "*": {
       "better-auth": [
-        "./dist/types/better-auth.d.ts"
+        "./dist/types/better-auth/index.d.ts"
       ],
       "express": [
         "./dist/types/express/index.d.ts"
@@ -66,7 +66,7 @@
       "require": "./dist/cjs/index.js"
     },
     "./better-auth": {
-      "types": "./dist/types/better-auth.d.ts",
+      "types": "./dist/types/better-auth/index.d.ts",
       "import": "./dist/esm/better-auth/index.js",
       "require": "./dist/cjs/better-auth/index.js"
     },
