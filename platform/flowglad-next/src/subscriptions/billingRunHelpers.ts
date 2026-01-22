@@ -615,25 +615,12 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     }
   }
 
-  const stripeCustomerId = customer.stripeCustomerId
-  const stripePaymentMethodId = paymentMethod.stripePaymentMethodId
-  if (!stripeCustomerId) {
-    throw new Error(
-      `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
-        ` Customer: ${customer.id}; Billing Period: ${billingPeriod.id}`
-    )
-  }
-  if (!stripePaymentMethodId) {
-    throw new Error(
-      `Cannot run billing for a billing period with a payment method that does not have a stripe payment method id.` +
-        `Payment Method: ${paymentMethod.id}; Billing Period: ${billingPeriod.id}`
-    )
-  }
-
   /**
    * Guard: Only create a payment record if there's actually an amount to charge.
    * This prevents orphaned $0 payment records when the invoice is already fully
    * paid via credits or prior payments (amountToCharge = 0).
+   * This check must come BEFORE Stripe ID validation since we don't need
+   * Stripe IDs when there's nothing to charge.
    * See: https://github.com/flowglad/flowglad/issues/1317
    */
   if (amountToCharge <= 0) {
@@ -659,6 +646,21 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       amountToCharge,
       payments,
     }
+  }
+
+  const stripeCustomerId = customer.stripeCustomerId
+  const stripePaymentMethodId = paymentMethod.stripePaymentMethodId
+  if (!stripeCustomerId) {
+    throw new Error(
+      `Cannot run billing for a billing period with a customer that does not have a stripe customer id.` +
+        ` Customer: ${customer.id}; Billing Period: ${billingPeriod.id}`
+    )
+  }
+  if (!stripePaymentMethodId) {
+    throw new Error(
+      `Cannot run billing for a billing period with a payment method that does not have a stripe payment method id.` +
+        `Payment Method: ${paymentMethod.id}; Billing Period: ${billingPeriod.id}`
+    )
   }
 
   const paymentInsert: Payment.Insert = {
