@@ -121,9 +121,6 @@ const config: Config = {
           background: 'hsl(var(--citrine-background))',
           border: 'hsl(var(--citrine-border))',
         },
-        'status-warning-bg': 'hsl(var(--status-warning-bg))',
-        'status-warning-fg': 'hsl(var(--status-warning-fg))',
-        'status-warning-border': 'hsl(var(--status-warning-border))',
         'status-destructive-bg': 'hsl(var(--status-destructive-bg))',
         'status-destructive-fg': 'hsl(var(--status-destructive-fg))',
         'status-destructive-border':

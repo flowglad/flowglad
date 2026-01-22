@@ -198,13 +198,13 @@
 
     --lapis-foreground: 207 100% 29%;
     --lapis-muted-foreground: 207 70% 42%;
-    --lapis-background: 207 80% 92%;
-    --lapis-border: 207 100% 29% / 20%;
+    --lapis-background: 207 55% 93%;
+    --lapis-border: 207 60% 35% / 18%;
 
     --amethyst-foreground: 251 47% 45%;
     --amethyst-muted-foreground: 251 42% 55%;
-    --amethyst-background: 251 60% 93%;
-    --amethyst-border: 251 47% 45% / 20%;
+    --amethyst-background: 251 45% 94%;
+    --amethyst-border: 251 35% 45% / 18%;
 
     --citrine-foreground: 49 70% 28%;
     --citrine-muted-foreground: 49 55% 42%;
@@ -212,13 +212,9 @@
     --citrine-border: 49 70% 28% / 20%;
 
     /* Status Badge Colors - Light Mode */
-    --status-warning-bg: 48 96% 89%;
-    --status-warning-fg: 32 81% 29%;
-    --status-warning-border: 48 96% 83%;
-
-    --status-destructive-bg: 0 86% 94%;
-    --status-destructive-fg: 0 74% 42%;
-    --status-destructive-border: 0 86% 89%;
+    --status-destructive-bg: 0 55% 95%;
+    --status-destructive-fg: 0 50% 45%;
+    --status-destructive-border: 0 55% 90%;
 
     --status-muted-bg: var(--muted);
     --status-muted-fg: var(--muted-foreground);
@@ -273,13 +269,13 @@
 
     --lapis-foreground: 205 100% 73%;
     --lapis-muted-foreground: 205 80% 60%;
-    --lapis-background: 207 70% 30% / 33%;
-    --lapis-border: 205 100% 73% / 20%;
+    --lapis-background: 207 50% 30% / 28%;
+    --lapis-border: 205 65% 70% / 18%;
 
     --amethyst-foreground: 251 52% 82%;
     --amethyst-muted-foreground: 251 47% 68%;
-    --amethyst-background: 251 45% 35% / 33%;
-    --amethyst-border: 251 52% 82% / 20%;
+    --amethyst-background: 251 35% 35% / 28%;
+    --amethyst-border: 251 40% 82% / 18%;
 
     --citrine-foreground: 49 85% 78%;
     --citrine-muted-foreground: 49 72% 62%;
@@ -287,13 +283,9 @@
     --citrine-border: 49 85% 78% / 20%;
 
     /* Status Badge Colors - Dark Mode */
-    --status-warning-bg: 32 81% 29% / 30%;
-    --status-warning-fg: 48 96% 83%;
-    --status-warning-border: 32 81% 29%;
-
-    --status-destructive-bg: 0 74% 42% / 30%;
-    --status-destructive-fg: 0 86% 89%;
-    --status-destructive-border: 0 74% 42%;
+    --status-destructive-bg: 0 45% 40% / 25%;
+    --status-destructive-fg: 0 50% 82%;
+    --status-destructive-border: 0 45% 40%;
 
     /* muted inherits from existing --muted, --muted-foreground, --border */
   }
