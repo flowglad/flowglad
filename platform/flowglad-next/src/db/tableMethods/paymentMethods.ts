@@ -130,12 +130,17 @@ export const derivePricingModelIdForPayment = async (
   }
 
   // Fall back to invoice (invoiceId is always present)
-  const invoiceRecord = await selectInvoiceById(
-    data.invoiceId,
-    transaction
-  )
-  if (!invoiceRecord) {
-    return Result.err(new NotFoundError('Invoice', data.invoiceId))
+  let invoiceRecord
+  try {
+    invoiceRecord = await selectInvoiceById(
+      data.invoiceId,
+      transaction
+    )
+  } catch (error) {
+    if (error instanceof TableUtilsNotFoundError) {
+      return Result.err(new NotFoundError('Invoice', data.invoiceId))
+    }
+    throw error
   }
   return Result.ok(invoiceRecord.pricingModelId)
 }

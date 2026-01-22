@@ -24,6 +24,7 @@ import {
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
 import { bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter } from '@/db/tableMethods/usageCreditMethods'
+import { NotFoundError as TableUtilsNotFoundError } from '@/db/tableUtils'
 import type {
   DbTransaction,
   TransactionEffectsContext,
@@ -415,8 +416,8 @@ export const ledgerCommandForPaymentSucceeded = async (
   try {
     price = await selectPriceById(params.priceId, transaction)
   } catch (error) {
-    if (error instanceof NotFoundError) {
-      return Result.err(error)
+    if (error instanceof TableUtilsNotFoundError) {
+      return Result.err(new NotFoundError('Price', params.priceId))
     }
     throw error
   }
