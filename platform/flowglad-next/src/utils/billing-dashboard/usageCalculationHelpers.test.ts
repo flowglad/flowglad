@@ -866,6 +866,7 @@ describe('getUsageMetersWithEvents', () => {
     const pm2 = await setupPricingModel({
       organizationId: organization.id,
       name: 'Second Pricing Model',
+      livemode: false,
     })
 
     const customer = await setupCustomer({

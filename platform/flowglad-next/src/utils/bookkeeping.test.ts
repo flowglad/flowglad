@@ -191,6 +191,7 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Custom Pricing Model',
         isDefault: false,
+        livemode: false,
       })
 
       // Create a default product for the custom pricing model
@@ -287,6 +288,7 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Empty Pricing Model',
         isDefault: false,
+        livemode: false,
       })
 
       // Create a non-default product (so there's no default product)
@@ -382,6 +384,7 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Pricing Model No Default Price',
         isDefault: false,
+        livemode: false,
       })
 
       // Create a default product

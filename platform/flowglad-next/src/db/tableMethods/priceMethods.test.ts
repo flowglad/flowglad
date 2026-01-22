@@ -1241,13 +1241,14 @@ describe('priceMethods.ts', () => {
           organizationId: organization.id,
           name: 'Custom Pricing Model',
           isDefault: false,
+          livemode: false,
         })
 
         // Create a product and price in the custom pricing model
         const customProduct = await setupProduct({
           organizationId: organization.id,
           name: 'Custom Product',
-          livemode: true,
+          livemode: false,
           pricingModelId: customPricingModel.id,
         })
 
@@ -1497,13 +1498,14 @@ describe('priceMethods.ts', () => {
             organizationId: organization.id,
             name: 'Non-Default Pricing Model',
             isDefault: false,
+            livemode: false,
           })
 
           // Create a product in the non-default pricing model
           const nonDefaultProduct = await setupProduct({
             organizationId: organization.id,
             name: 'Non-Default Product',
-            livemode: true,
+            livemode: false,
             pricingModelId: nonDefaultPricingModel.id,
           })
 

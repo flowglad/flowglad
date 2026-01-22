@@ -3,6 +3,7 @@ import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import {
   setupOrg,
+  setupOrganizationOnly,
   setupPrice,
   setupPricingModel,
   setupProduct,
@@ -1116,13 +1117,10 @@ describe('clonePricingModelTransaction', () => {
   })
 
   describe('Livemode Handling', () => {
-    it('should inherit livemode from source pricing model when destinationEnvironment is not specified', async () => {
-      // Setup source pricing model with livemode = true
-      const livemodeSource = await setupPricingModel({
-        organizationId: organization.id,
-        name: 'Livemode Source',
-        livemode: true,
-      })
+    it('should convert livemode source to testmode when destinationEnvironment is Testmode', async () => {
+      // Use the existing livemode PM from setupOrg() as the source
+      // setupOrg() already created a livemode PM with a product, so use that
+      const livemodeSource = sourcePricingModel
 
       // Add various artifacts to the source pricing model
       const usageMeter = await setupUsageMeter({
@@ -1168,24 +1166,25 @@ describe('clonePricingModelTransaction', () => {
         livemode: true,
       })
 
-      // Clone without specifying destinationEnvironment
+      // Clone with destinationEnvironment: Testmode (required since org already has livemode PM)
+      // This tests that the clone correctly converts to the destination environment
       const clonedPricingModel = await adminTransaction(
         async (ctx) => {
           return clonePricingModelTransaction(
             {
               id: livemodeSource.id,
-              name: 'Cloned Livemode',
-              // destinationEnvironment not specified
+              name: 'Cloned to Testmode',
+              destinationEnvironment: DestinationEnvironment.Testmode,
             },
             ctx
           )
         }
       )
 
-      // Verify pricing model livemode
-      expect(clonedPricingModel.livemode).toBe(true)
+      // Verify pricing model converted to testmode
+      expect(clonedPricingModel.livemode).toBe(false)
 
-      // Verify usage meters livemode
+      // Verify usage meters converted to testmode
       const clonedUsageMeters = await adminTransaction(
         async (ctx) => {
           return selectUsageMeters(
@@ -1195,9 +1194,9 @@ describe('clonePricingModelTransaction', () => {
         }
       )
       expect(clonedUsageMeters).toHaveLength(1)
-      expect(clonedUsageMeters[0].livemode).toBe(true)
+      expect(clonedUsageMeters[0].livemode).toBe(false)
 
-      // Verify features livemode
+      // Verify features converted to testmode
       const clonedFeatures = await adminTransaction(async (ctx) => {
         return selectFeatures(
           { pricingModelId: clonedPricingModel.id },
@@ -1205,17 +1204,17 @@ describe('clonePricingModelTransaction', () => {
         )
       })
       expect(clonedFeatures).toHaveLength(1)
-      expect(clonedFeatures[0].livemode).toBe(true)
+      expect(clonedFeatures[0].livemode).toBe(false)
 
-      // Verify products and prices livemode
+      // Verify products and prices converted to testmode
       expect(clonedPricingModel.products).toHaveLength(1)
-      expect(clonedPricingModel.products[0].livemode).toBe(true)
+      expect(clonedPricingModel.products[0].livemode).toBe(false)
       expect(clonedPricingModel.products[0].prices).toHaveLength(1)
       expect(clonedPricingModel.products[0].prices[0].livemode).toBe(
-        true
+        false
       )
 
-      // Verify product features livemode
+      // Verify product features converted to testmode
       const clonedProductFeatures = await adminTransaction(
         async (ctx) => {
           return selectProductFeatures(
@@ -1225,20 +1224,22 @@ describe('clonePricingModelTransaction', () => {
         }
       )
       expect(clonedProductFeatures).toHaveLength(1)
-      expect(clonedProductFeatures[0].livemode).toBe(true)
+      expect(clonedProductFeatures[0].livemode).toBe(false)
     })
 
     it('should use specified destinationEnvironment (Livemode) when provided', async () => {
-      // Setup source pricing model with livemode = false (testmode)
+      // Create a fresh organization with only a testmode PM (no livemode PM)
+      // so we can clone to livemode without violating the unique constraint
+      const freshOrg = await setupOrganizationOnly()
       const testmodeSource = await setupPricingModel({
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         name: 'Testmode Source',
         livemode: false,
       })
 
       // Add artifacts to the source pricing model (all testmode)
       const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         pricingModelId: testmodeSource.id,
         name: 'Test Meter',
         slug: 'test-meter-2',
@@ -1246,7 +1247,7 @@ describe('clonePricingModelTransaction', () => {
       })
 
       const feature = await setupToggleFeature({
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         pricingModelId: testmodeSource.id,
         name: 'Test Feature',
         slug: 'test-feature-2',
@@ -1256,7 +1257,7 @@ describe('clonePricingModelTransaction', () => {
 
       const product = await setupProduct({
         name: 'Testmode Product',
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         pricingModelId: testmodeSource.id,
         livemode: false,
         active: true,
@@ -1276,7 +1277,7 @@ describe('clonePricingModelTransaction', () => {
       await setupProductFeature({
         productId: product.id,
         featureId: feature.id,
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         livemode: false,
       })
 
@@ -1341,14 +1342,10 @@ describe('clonePricingModelTransaction', () => {
     })
 
     it('should use specified destinationEnvironment (Testmode) when provided', async () => {
-      // Setup source pricing model with livemode = true
-      const livemodeSource = await setupPricingModel({
-        organizationId: organization.id,
-        name: 'Livemode Source 2',
-        livemode: true,
-      })
+      // Use the existing livemode PM from setupOrg() as the source
+      const livemodeSource = sourcePricingModel
 
-      // Add artifacts to the source pricing model (all livemode)
+      // Add additional artifacts to the source pricing model (all livemode)
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         pricingModelId: livemodeSource.id,
@@ -1366,7 +1363,7 @@ describe('clonePricingModelTransaction', () => {
         livemode: true,
       })
 
-      const product = await setupProduct({
+      const livemodeProduct = await setupProduct({
         name: 'Livemode Product 2',
         organizationId: organization.id,
         pricingModelId: livemodeSource.id,
@@ -1375,7 +1372,7 @@ describe('clonePricingModelTransaction', () => {
       })
 
       await setupPrice({
-        productId: product.id,
+        productId: livemodeProduct.id,
         name: 'Livemode Price 2',
         type: PriceType.Subscription,
         intervalUnit: IntervalUnit.Month,
@@ -1386,7 +1383,7 @@ describe('clonePricingModelTransaction', () => {
       })
 
       await setupProductFeature({
-        productId: product.id,
+        productId: livemodeProduct.id,
         featureId: feature.id,
         organizationId: organization.id,
         livemode: true,
@@ -1524,13 +1521,14 @@ describe('clonePricingModelTransaction', () => {
       expect(testmodeDefaultPricingModel.isDefault).toBe(true)
       expect(testmodeDefaultPricingModel.livemode).toBe(false)
 
-      // Clone the livemode default pricing model
+      // Clone the livemode default pricing model to testmode (can't clone to livemode due to unique constraint)
       const clonedLivemodePricingModel = await adminTransaction(
         async (ctx) => {
           return clonePricingModelTransaction(
             {
               id: livemodeDefaultPricingModel.id,
               name: 'Cloned Livemode PM',
+              destinationEnvironment: DestinationEnvironment.Testmode,
             },
             ctx
           )
@@ -1539,7 +1537,7 @@ describe('clonePricingModelTransaction', () => {
 
       // The cloned pricing model should NOT be default (cloning never sets isDefault=true)
       expect(clonedLivemodePricingModel.isDefault).toBe(false)
-      expect(clonedLivemodePricingModel.livemode).toBe(true)
+      expect(clonedLivemodePricingModel.livemode).toBe(false)
 
       // Verify the original livemode default is still default (unchanged by cloning)
       const refreshedLivemodeDefault = await adminTransaction(
@@ -1565,14 +1563,14 @@ describe('clonePricingModelTransaction', () => {
       expect(refreshedTestmodeDefault.isDefault).toBe(true)
       expect(refreshedTestmodeDefault.livemode).toBe(false)
 
-      // Clone testmode to livemode with destinationEnvironment
-      const clonedCrossEnvironment = await adminTransaction(
+      // Clone testmode within same environment (can't clone to livemode due to unique constraint)
+      const clonedTestmodePricingModel = await adminTransaction(
         async (ctx) => {
           return clonePricingModelTransaction(
             {
               id: testmodeDefaultPricingModel.id,
-              name: 'Cloned Cross Environment',
-              destinationEnvironment: DestinationEnvironment.Livemode,
+              name: 'Cloned Testmode PM',
+              destinationEnvironment: DestinationEnvironment.Testmode,
             },
             ctx
           )
@@ -1580,8 +1578,8 @@ describe('clonePricingModelTransaction', () => {
       )
 
       // The cloned pricing model should NOT be default
-      expect(clonedCrossEnvironment.isDefault).toBe(false)
-      expect(clonedCrossEnvironment.livemode).toBe(true)
+      expect(clonedTestmodePricingModel.isDefault).toBe(false)
+      expect(clonedTestmodePricingModel.livemode).toBe(false)
 
       // Verify both original defaults are still default
       const finalLivemodeDefault = await adminTransaction(

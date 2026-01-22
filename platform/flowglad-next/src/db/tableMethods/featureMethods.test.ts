@@ -111,6 +111,7 @@ describe('insertFeature uniqueness constraints', () => {
     const newPricingModelForOrg1 = await setupPricingModel({
       organizationId: organization1.id,
       name: 'Second PricingModel for Org 1',
+      livemode: false,
     })
 
     await adminTransaction(async (ctx) => {

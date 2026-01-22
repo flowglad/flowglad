@@ -32,7 +32,10 @@ import {
   selectCustomerById,
   updateCustomer,
 } from '@/db/tableMethods/customerMethods'
-import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
+import {
+  selectPricingModelById,
+  selectPricingModels,
+} from '@/db/tableMethods/pricingModelMethods'
 import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionItemFeatureMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
@@ -81,11 +84,13 @@ describe('Pricing Model Migration Test Suite', async () => {
     pricingModel1 = await setupPricingModel({
       organizationId: organization.id,
       name: 'Pricing Model 1',
+      livemode: false,
     })
 
     pricingModel2 = await setupPricingModel({
       organizationId: organization.id,
       name: 'Pricing Model 2',
+      livemode: false,
     })
 
     // Setup products and prices on each pricing model
@@ -432,6 +437,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const emptyPricingModel = await setupPricingModel({
         organizationId: organization.id,
         name: 'Empty Pricing Model',
+        livemode: false,
       })
 
       const subscription = await setupSubscription({
@@ -1270,6 +1276,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const otherPricingModel = await setupPricingModel({
         organizationId: org2.id,
         name: 'Other Org Pricing Model',
+        livemode: false,
       })
 
       const result = await adminTransaction(
@@ -1436,6 +1443,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const otherPricingModel = await setupPricingModel({
         organizationId: org2.id,
         name: 'Other Org Pricing Model',
+        livemode: false,
       })
 
       await expect(
@@ -1477,38 +1485,16 @@ describe('Pricing Model Migration Test Suite', async () => {
         )
       })
 
-      // Setup: Create a live pricing model with a default product
-      const livePricingModel = await setupPricingModel({
-        organizationId: organization.id,
-        name: 'Live Pricing Model',
-      })
-
-      // Update pricing model to livemode=true
-      await adminTransaction(async ({ transaction }) => {
-        await transaction
-          .update(pricingModels)
-          .set({ livemode: true })
-          .where(eq(pricingModels.id, livePricingModel.id))
-      })
-
-      // Create a default product with default price for the live pricing model
-      const liveProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: livePricingModel.id,
-        name: 'Live Product',
-        default: true,
-      })
-
-      await setupPrice({
-        name: 'Live Free Plan',
-        livemode: true,
-        productId: liveProduct.id,
-        type: PriceType.Subscription,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        unitPrice: 0,
-        isDefault: true,
-      })
+      // Setup: Get the livemode pricing model that setupOrg already created
+      const livePricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const pms = await selectPricingModels(
+            { organizationId: organization.id, livemode: true },
+            transaction
+          )
+          return pms[0]!
+        }
+      )
 
       // customer.livemode is false, livePricingModel.livemode is true
       await expect(

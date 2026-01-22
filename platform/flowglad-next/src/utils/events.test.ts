@@ -41,7 +41,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
+      livemode: false,
     })
 
     // Call the actual function
@@ -78,7 +78,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
+      livemode: false,
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -112,19 +112,19 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
+      livemode: false,
     })
 
     // Set up required dependencies for payment
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
       pricingModelId: pricingModel.id,
-      livemode: true,
+      livemode: false,
     })
     const price = await setupPrice({
       productId: product.id,
@@ -132,20 +132,20 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       type: PriceType.SinglePayment,
       unitPrice: 5000,
       isDefault: false,
-      livemode: true,
+      livemode: false,
     })
     const invoice = await setupInvoice({
       organizationId: orgData.organization.id,
       customerId: customer.id,
       priceId: price.id,
-      livemode: true,
+      livemode: false,
     })
 
     const paymentMethod = await setupPaymentMethod({
       customerId: customer.id,
       organizationId: orgData.organization.id,
       type: PaymentMethodType.Card,
-      livemode: true,
+      livemode: false,
     })
 
     const payment = await adminTransaction(
@@ -158,7 +158,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
             currency: CurrencyCode.USD,
             chargeDate: Date.now(),
             paymentMethod: PaymentMethodType.Card,
-            livemode: true,
+            livemode: false,
             customerId: customer.id,
             organizationId: orgData.organization.id,
             stripePaymentIntentId: `pi_${core.nanoid()}`,
@@ -200,19 +200,19 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
+      livemode: false,
     })
 
     // Set up required dependencies for payment
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
       pricingModelId: pricingModel.id,
-      livemode: true,
+      livemode: false,
     })
     const price = await setupPrice({
       productId: product.id,
@@ -220,20 +220,20 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       type: PriceType.SinglePayment,
       unitPrice: 5000,
       isDefault: false,
-      livemode: true,
+      livemode: false,
     })
     const invoice = await setupInvoice({
       organizationId: orgData.organization.id,
       customerId: customer.id,
       priceId: price.id,
-      livemode: true,
+      livemode: false,
     })
 
     const paymentMethod = await setupPaymentMethod({
       customerId: customer.id,
       organizationId: orgData.organization.id,
       type: PaymentMethodType.Card,
-      livemode: true,
+      livemode: false,
     })
 
     const payment = await adminTransaction(
@@ -246,7 +246,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
             currency: CurrencyCode.USD,
             chargeDate: Date.now(),
             paymentMethod: PaymentMethodType.Card,
-            livemode: true,
+            livemode: false,
             customerId: customer.id,
             organizationId: orgData.organization.id,
             stripePaymentIntentId: `pi_${core.nanoid()}`,
@@ -288,19 +288,19 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
+      livemode: false,
     })
 
     // Set up required dependencies for purchase
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
       pricingModelId: pricingModel.id,
-      livemode: true,
+      livemode: false,
     })
     const price = await setupPrice({
       productId: product.id,
@@ -308,14 +308,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       type: PriceType.SinglePayment,
       unitPrice: 5000,
       isDefault: false,
-      livemode: true,
+      livemode: false,
     })
 
     const purchase = await setupPurchase({
       organizationId: orgData.organization.id,
       customerId: customer.id,
       priceId: price.id,
-      livemode: true,
+      livemode: false,
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -349,19 +349,19 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
+      livemode: false,
     })
 
     // Set up required dependencies for subscription
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
       pricingModelId: pricingModel.id,
-      livemode: true,
+      livemode: false,
     })
     const price = await setupPrice({
       productId: product.id,
@@ -369,12 +369,12 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       type: PriceType.SinglePayment,
       unitPrice: 5000,
       isDefault: false,
-      livemode: true,
+      livemode: false,
     })
     const paymentMethod = await setupPaymentMethod({
       organizationId: orgData.organization.id,
       customerId: customer.id,
-      livemode: true,
+      livemode: false,
     })
 
     const subscription = await setupSubscription({
@@ -382,7 +382,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
-      livemode: true,
+      livemode: false,
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -416,19 +416,19 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
+      livemode: false,
     })
 
     // Set up required dependencies for subscription
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
       pricingModelId: pricingModel.id,
-      livemode: true,
+      livemode: false,
     })
     const price = await setupPrice({
       productId: product.id,
@@ -436,12 +436,12 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       type: PriceType.SinglePayment,
       unitPrice: 5000,
       isDefault: false,
-      livemode: true,
+      livemode: false,
     })
     const paymentMethod = await setupPaymentMethod({
       organizationId: orgData.organization.id,
       customerId: customer.id,
-      livemode: true,
+      livemode: false,
     })
 
     const subscription = await setupSubscription({
@@ -449,7 +449,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
-      livemode: true,
+      livemode: false,
     })
 
     await adminTransaction(async ({ transaction }) => {
@@ -483,19 +483,19 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
     const customer = await setupCustomer({
       organizationId: orgData.organization.id,
       externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
+      livemode: false,
     })
 
     // Set up required dependencies for subscription
     const pricingModel = await setupPricingModel({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
       pricingModelId: pricingModel.id,
-      livemode: true,
+      livemode: false,
     })
     const price = await setupPrice({
       productId: product.id,
@@ -503,12 +503,12 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       type: PriceType.SinglePayment,
       unitPrice: 5000,
       isDefault: false,
-      livemode: true,
+      livemode: false,
     })
     const paymentMethod = await setupPaymentMethod({
       organizationId: orgData.organization.id,
       customerId: customer.id,
-      livemode: true,
+      livemode: false,
     })
 
     const subscription = await setupSubscription({
@@ -516,7 +516,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       customerId: customer.id,
       priceId: price.id,
       paymentMethodId: paymentMethod.id,
-      livemode: true,
+      livemode: false,
     })
 
     await adminTransaction(async ({ transaction }) => {

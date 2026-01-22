@@ -982,10 +982,12 @@ describe('Customer Role RLS Policies', () => {
       const pmA = await setupPricingModel({
         organizationId: org1.id,
         name: 'PM A',
+        livemode: false,
       })
       const pmB = await setupPricingModel({
         organizationId: org1.id,
         name: 'PM B',
+        livemode: false,
       })
 
       const productA = await setupProduct({
@@ -1037,12 +1039,13 @@ describe('Customer Role RLS Policies', () => {
         organizationId: org1.id,
         name: 'Different Pricing Model',
         isDefault: false,
+        livemode: false,
       })
 
       const customerWithDifferentPm = await setupCustomer({
         organizationId: org1.id,
         email: `diffpm_${core.nanoid()}@test.com`,
-        livemode: true,
+        livemode: false,
         pricingModelId: differentPm.id,
       })
 

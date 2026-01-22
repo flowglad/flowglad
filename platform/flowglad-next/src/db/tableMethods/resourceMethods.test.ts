@@ -26,6 +26,7 @@ describe('resourceMethods', () => {
     secondPricingModel = await setupPricingModel({
       organizationId: organization.id,
       name: 'Second Pricing Model',
+      livemode: false,
     })
   })
 

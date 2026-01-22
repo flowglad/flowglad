@@ -33,7 +33,7 @@ describe('pricesRouter - Default Price Constraints', () => {
   let defaultPriceId: string
   let regularProductId: string
   let regularPriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     // Set up organization and pricing model with default product and price
@@ -699,7 +699,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   let usagePriceBId: string
   let subscriptionPriceId: string
   let inactiveUsagePriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
@@ -1074,7 +1074,7 @@ describe('pricesRouter - API Contract Updates', () => {
   let pricingModelId: string
   let usageMeterId: string
   let regularProductId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
@@ -1298,7 +1298,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
   let usageMeterId: string
   let usagePriceId: string
   let subscriptionPriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
@@ -1661,7 +1661,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
   let usageMeterId: string
   let regularProductId: string
   let existingUsagePriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
@@ -2067,7 +2067,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
   let usageMeterId: string
   let noChargePriceId: string
   let regularUsagePriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {

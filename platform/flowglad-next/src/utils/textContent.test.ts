@@ -321,6 +321,7 @@ describe('savePricingModelIntegrationMarkdown', () => {
     organization = orgData.organization
     pricingModel = await setupPricingModel({
       organizationId: organization.id,
+      livemode: false,
     })
     mockPutMarkdownFile.mockReset()
     mockGetMarkdownFile.mockReset()
@@ -393,6 +394,7 @@ describe('getPricingModelIntegrationMarkdown', () => {
     organization = orgData.organization
     pricingModel = await setupPricingModel({
       organizationId: organization.id,
+      livemode: false,
     })
     mockPutMarkdownFile.mockReset()
     mockGetMarkdownFile.mockReset()

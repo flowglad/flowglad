@@ -31,6 +31,7 @@ describe('usageMeterMethods', () => {
     defaultPricingModelId = pricingModel.id // This is the default pricing model
     const nonDefaultPricingModel = await setupPricingModel({
       organizationId,
+      livemode: false,
     })
     pricingModelId = nonDefaultPricingModel.id
     pricingModelName = nonDefaultPricingModel.name
@@ -556,6 +557,7 @@ describe('usageMeterMethods', () => {
       // Create a pricing model with no meters
       const emptyPricingModel = await setupPricingModel({
         organizationId,
+        livemode: false,
       })
 
       await adminTransaction(async (ctx) => {
@@ -580,6 +582,7 @@ describe('usageMeterMethods', () => {
       // Create meters for a different pricing model
       const otherPricingModel = await setupPricingModel({
         organizationId,
+        livemode: false,
       })
       await setupUsageMeter({
         organizationId,

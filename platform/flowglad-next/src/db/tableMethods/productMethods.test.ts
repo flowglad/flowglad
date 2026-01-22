@@ -44,6 +44,7 @@ describe('getProductTableRows', () => {
     const pricingModel = await setupPricingModel({
       organizationId,
       name: 'Test PricingModel',
+      livemode: false,
     })
     pricingModelId = pricingModel.id
 
@@ -71,7 +72,7 @@ describe('getProductTableRows', () => {
       intervalCount: 1,
       unitPrice: 1000,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: true,
       trialPeriodDays: 0,
       externalId: undefined,
@@ -87,7 +88,7 @@ describe('getProductTableRows', () => {
       intervalCount: 1,
       unitPrice: 10000,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: true,
       trialPeriodDays: 0,
       externalId: undefined,
@@ -173,6 +174,7 @@ describe('getProductTableRows', () => {
     const otherPricingModel = await setupPricingModel({
       organizationId: otherOrg.id,
       name: 'Other PricingModel',
+      livemode: false,
     })
     const otherProduct = await setupProduct({
       organizationId: otherOrg.id,
@@ -187,7 +189,7 @@ describe('getProductTableRows', () => {
       intervalCount: 1,
       unitPrice: 2000,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: true,
       trialPeriodDays: 0,
       externalId: undefined,
@@ -233,7 +235,7 @@ describe('getProductTableRows', () => {
         intervalCount: 1,
         unitPrice: 1000 * i,
         currency: CurrencyCode.USD,
-        livemode: true,
+        livemode: false,
         isDefault: true,
 
         trialPeriodDays: 0,
@@ -304,7 +306,7 @@ describe('getProductTableRows', () => {
       intervalCount: 1,
       unitPrice: 10000,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: false,
       trialPeriodDays: 0,
       externalId: undefined,
@@ -347,7 +349,7 @@ describe('getProductTableRows', () => {
       intervalCount: 1,
       unitPrice: 2000,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: true,
       trialPeriodDays: 0,
       externalId: undefined,
@@ -380,7 +382,10 @@ describe('Database Constraints', () => {
     const { organization } = await setupOrg()
     organizationId = organization.id
 
-    const pricingModel = await setupPricingModel({ organizationId })
+    const pricingModel = await setupPricingModel({
+      organizationId,
+      livemode: false,
+    })
     pricingModelId = pricingModel.id
 
     const defaultProduct = await setupProduct({
@@ -388,6 +393,7 @@ describe('Database Constraints', () => {
       name: 'Default Product',
       pricingModelId,
       default: true,
+      livemode: false,
     })
     defaultProductId = defaultProduct.id
   })
@@ -397,7 +403,7 @@ describe('Database Constraints', () => {
       name: 'Another Default Product',
       organizationId,
       pricingModelId,
-      livemode: true,
+      livemode: false,
       active: true,
       default: true,
       singularQuantityLabel: 'seat',
@@ -446,7 +452,7 @@ describe('Database Constraints', () => {
           name: 'Non-Default Product',
           organizationId,
           pricingModelId,
-          livemode: true,
+          livemode: false,
           active: true,
           default: false,
           singularQuantityLabel: 'seat',
@@ -469,6 +475,7 @@ describe('Database Constraints', () => {
       // Create a second pricingModel
       const secondPricingModel = await setupPricingModel({
         organizationId,
+        livemode: false,
       })
 
       // Create a default product in the second pricing model
@@ -477,7 +484,7 @@ describe('Database Constraints', () => {
           name: 'Default Product in Second PricingModel',
           organizationId,
           pricingModelId: secondPricingModel.id,
-          livemode: true,
+          livemode: false,
           active: true,
           default: true,
           singularQuantityLabel: 'seat',
@@ -518,7 +525,7 @@ describe('Slug uniqueness policies', () => {
             name: 'First Product',
             organizationId,
             pricingModelId,
-            livemode: true,
+            livemode: false,
             active: true,
             default: false,
             singularQuantityLabel: 'unit',
@@ -536,7 +543,7 @@ describe('Slug uniqueness policies', () => {
             name: 'Second Product',
             organizationId,
             pricingModelId,
-            livemode: true,
+            livemode: false,
             active: true,
             default: false,
             singularQuantityLabel: 'unit',
@@ -563,7 +570,7 @@ describe('Slug uniqueness policies', () => {
             name: 'First Product',
             organizationId,
             pricingModelId,
-            livemode: true,
+            livemode: false,
             active: true,
             default: false,
             singularQuantityLabel: 'unit',
@@ -581,7 +588,7 @@ describe('Slug uniqueness policies', () => {
             name: 'Second Product',
             organizationId,
             pricingModelId,
-            livemode: true,
+            livemode: false,
             active: true,
             default: false,
             singularQuantityLabel: 'unit',
@@ -610,11 +617,13 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     const pricingModel = await setupPricingModel({
       organizationId: organization.id,
       name: 'Test PricingModel',
+      livemode: false,
     })
     const product = await setupProduct({
       organizationId: organization.id,
       name: 'Product Without Features',
       pricingModelId: pricingModel.id,
+      livemode: false,
     })
 
     // Set up a price
@@ -626,7 +635,7 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
       intervalCount: 1,
       unitPrice: 999,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: true,
       trialPeriodDays: 0,
       externalId: undefined,
@@ -658,11 +667,13 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     const pricingModel = await setupPricingModel({
       organizationId: organization.id,
       name: 'Test PricingModel',
+      livemode: false,
     })
     const product = await setupProduct({
       organizationId: organization.id,
       name: 'Test Product',
       pricingModelId: pricingModel.id,
+      livemode: false,
     })
 
     // Set up prices
@@ -674,7 +685,7 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
       intervalCount: 1,
       unitPrice: 1000,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: true,
       trialPeriodDays: 0,
       externalId: undefined,
@@ -689,7 +700,7 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
       intervalCount: 1,
       unitPrice: 10000,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: false,
       trialPeriodDays: 0,
       externalId: undefined,
@@ -829,7 +840,7 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
       intervalCount: 1,
       unitPrice: 1000,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: true,
       trialPeriodDays: 0,
     })
@@ -918,7 +929,7 @@ describe('selectProductsCursorPaginated excludeProductsWithNoPrices', () => {
       intervalCount: 1,
       unitPrice: 1000,
       currency: CurrencyCode.USD,
-      livemode: true,
+      livemode: false,
       isDefault: true,
       trialPeriodDays: 0,
     })

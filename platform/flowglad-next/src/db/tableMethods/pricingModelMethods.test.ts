@@ -41,6 +41,7 @@ describe('safelyUpdatePricingModel', () => {
       organizationId: organization.id,
       name: 'Non-Default PricingModel',
       isDefault: false,
+      livemode: false,
     })
   })
 
@@ -558,6 +559,7 @@ describe('selectPricingModelForCustomer', () => {
       organizationId: organization.id,
       name: 'Ion Pricing Model',
       isDefault: false,
+      livemode: false,
     })
 
     // Create active product for both pricing models
@@ -737,6 +739,7 @@ describe('selectPricingModelForCustomer', () => {
       organizationId: organization.id,
       name: 'Empty Pricing Model',
       isDefault: false,
+      livemode: false,
     })
 
     const customer = await setupCustomer({
@@ -1430,6 +1433,7 @@ describe('selectPricingModelSlugResolutionData', () => {
       organizationId: organization.id,
       name: 'Second Pricing Model',
       isDefault: false,
+      livemode: false,
     })
 
     const result = await adminTransaction(async (ctx) => {
@@ -1568,6 +1572,7 @@ describe('selectPricingModelSlugResolutionData', () => {
       organizationId: organization.id,
       name: 'Empty Pricing Model',
       isDefault: false,
+      livemode: false,
     })
 
     const result = await adminTransaction(async (ctx) => {
@@ -1589,6 +1594,7 @@ describe('selectPricingModelSlugResolutionData', () => {
       organizationId: organization.id,
       name: 'Second Pricing Model',
       isDefault: false,
+      livemode: false,
     })
 
     const result = await adminTransaction(async (ctx) => {
@@ -1761,6 +1767,7 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
       organizationId: organization.id,
       name: 'Usage Only Pricing Model',
       isDefault: false,
+      livemode: false,
     })
 
     // Create a usage meter (usage prices now belong to meters, not products)

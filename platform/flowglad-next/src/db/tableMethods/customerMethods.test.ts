@@ -1555,6 +1555,7 @@ describe('selectCustomerPricingInfoBatch', () => {
       organizationId: organization.id,
       name: 'Second Pricing Model',
       isDefault: false,
+      livemode: false,
     })
   })
 

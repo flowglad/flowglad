@@ -165,6 +165,46 @@ export const dropDatabase = async () => {
   await db.delete(countries)
 }
 
+/**
+ * Creates an organization without any pricing models.
+ * Use this when you need a fresh organization that doesn't have the default livemode PM,
+ * e.g., for testing cloning to livemode.
+ */
+export const setupOrganizationOnly = async (params?: {
+  countryCode?: CountryCode
+}) => {
+  await insertCountries()
+  return adminTransaction(async ({ transaction }) => {
+    const [country] = await selectCountries(
+      { code: params?.countryCode ?? CountryCode.US },
+      transaction
+    )
+    const organization = await insertOrganization(
+      {
+        name: `Flowglad Test ${core.nanoid()}`,
+        countryId: country.id,
+        defaultCurrency: CurrencyCode.USD,
+        onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
+        stripeConnectContractType: StripeConnectContractType.Platform,
+        featureFlags: {},
+        contactEmail: 'test@test.com',
+        billingAddress: {
+          address: {
+            line1: '123 Test St',
+            line2: 'Apt 1',
+            city: 'Test City',
+            state: 'Test State',
+            postal_code: '12345',
+            country: 'US',
+          },
+        },
+      },
+      transaction
+    )
+    return organization
+  })
+}
+
 export const setupOrg = async (params?: {
   monthlyBillingVolumeFreeTier?: number
   feePercentage?: string
