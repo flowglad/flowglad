@@ -698,7 +698,11 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     billingPeriodId: billingPeriod.id,
   }
 
-  const payment = await insertPayment(paymentInsert, transaction)
+  const paymentResult = await insertPayment(
+    paymentInsert,
+    transaction
+  )
+  const payment = paymentResult.unwrap()
 
   /**
    * Eagerly update the billing run status to AwaitingPaymentConfirmation

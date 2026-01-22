@@ -654,7 +654,7 @@ export const setupBillingRun = async ({
   subscriptionId: string
 }): Promise<BillingRun.Record> => {
   return await adminTransaction(async ({ transaction }) => {
-    return safelyInsertBillingRun(
+    const result = await safelyInsertBillingRun(
       {
         billingPeriodId,
         paymentMethodId,
@@ -668,6 +668,7 @@ export const setupBillingRun = async ({
       },
       transaction
     )
+    return result.unwrap()
   })
 }
 
@@ -1143,34 +1144,37 @@ export const setupPayment = async ({
   subtotal?: number
 }): Promise<Payment.Record> => {
   return adminTransaction(async ({ transaction }) => {
-    const payment = await insertPayment(
-      {
-        stripeChargeId,
-        status,
-        amount,
-        livemode,
-        customerId,
-        organizationId,
-        stripePaymentIntentId: stripePaymentIntentId ?? core.nanoid(),
-        invoiceId,
-        billingPeriodId,
-        currency: CurrencyCode.USD,
-        paymentMethod: paymentMethod ?? PaymentMethodType.Card,
-        chargeDate: chargeDate ?? Date.now(),
-        taxCountry: CountryCode.US,
-        subscriptionId: subscriptionId ?? null,
-        purchaseId: purchaseId ?? null,
-        refunded,
-        refundedAmount,
-        refundedAt,
-        paymentMethodId,
-        stripeTaxTransactionId: stripeTaxTransactionId ?? null,
-        stripeTaxCalculationId: stripeTaxCalculationId ?? null,
-        taxAmount: taxAmount ?? 0,
-        subtotal: subtotal ?? amount,
-      },
-      transaction
-    )
+    const payment = (
+      await insertPayment(
+        {
+          stripeChargeId,
+          status,
+          amount,
+          livemode,
+          customerId,
+          organizationId,
+          stripePaymentIntentId:
+            stripePaymentIntentId ?? core.nanoid(),
+          invoiceId,
+          billingPeriodId,
+          currency: CurrencyCode.USD,
+          paymentMethod: paymentMethod ?? PaymentMethodType.Card,
+          chargeDate: chargeDate ?? Date.now(),
+          taxCountry: CountryCode.US,
+          subscriptionId: subscriptionId ?? null,
+          purchaseId: purchaseId ?? null,
+          refunded,
+          refundedAmount,
+          refundedAt,
+          paymentMethodId,
+          stripeTaxTransactionId: stripeTaxTransactionId ?? null,
+          stripeTaxCalculationId: stripeTaxCalculationId ?? null,
+          taxAmount: taxAmount ?? 0,
+          subtotal: subtotal ?? amount,
+        },
+        transaction
+      )
+    ).unwrap()
     return payment
   })
 }
@@ -1408,11 +1412,11 @@ export const setupCheckoutSession = async ({
     insert = activateSubscriptionCheckoutSessionInsert
   }
   return adminTransaction(async ({ transaction }) => {
-    const checkoutSession = await insertCheckoutSession(
+    const checkoutSessionResult = await insertCheckoutSession(
       insert,
       transaction
     )
-    return checkoutSession
+    return checkoutSessionResult.unwrap()
   })
 }
 

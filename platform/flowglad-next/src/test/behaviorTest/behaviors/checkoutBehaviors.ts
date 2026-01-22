@@ -273,7 +273,7 @@ export const initiateCheckoutSessionBehavior = defineBehavior({
       )
 
       // Create checkout session without billing address
-      const checkoutSession = await insertCheckoutSession(
+      const checkoutSessionResult = await insertCheckoutSession(
         {
           organizationId: prev.organization.id,
           customerId: customer.id,
@@ -295,6 +295,7 @@ export const initiateCheckoutSessionBehavior = defineBehavior({
         },
         transaction
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       return {
         customerId: customer.id,
