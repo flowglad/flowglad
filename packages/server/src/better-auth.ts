@@ -163,8 +163,14 @@ export type FlowgladBetterAuthPluginOptions = {
 
   /**
    * Type of customer to use. Defaults to "user".
-   * - "user": Uses session.user.id as externalId
-   * - "organization": Uses session.user.organizationId (requires org plugin)
+   *
+   * External ID resolution (via `getExternalId` / billing endpoints):
+   * - "user": Uses `session.session.userId`
+   * - "organization": Uses `session.session.activeOrganizationId` (requires org plugin + active org selected)
+   *
+   * Customer auto-creation hooks:
+   * - For sign-up, the created user's `id` is used.
+   * - For organization creation, the created organization's `id` is used.
    */
   customerType?: 'user' | 'organization'
 

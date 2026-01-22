@@ -146,8 +146,8 @@ The Flowglad Better Auth plugin provides two main capabilities:
 1. **Automatic Customer Creation**: When users sign up (for `customerType: "user"`) or organizations are created (for `customerType: "organization"`), the plugin automatically creates a corresponding Flowglad customer.
 
 2. **Customer External ID Resolution**: The plugin adds a `getExternalId` endpoint to your Better Auth API that automatically returns the correct customer external ID based on your `customerType` configuration:
-   - For `customerType: "user"`: Returns `session.user.id`
-   - For `customerType: "organization"`: Returns `session.user.activeOrganizationId` (requires the organization plugin)
+   - For `customerType: "user"`: Returns `session.session.userId`
+   - For `customerType: "organization"`: Returns `session.session.activeOrganizationId` (requires the organization plugin)
    - For custom `getCustomer`: Returns the `externalId` from your custom function
 
 ## Usage
@@ -179,20 +179,20 @@ When setting up your Flowglad route handler, use `getExternalId` to automaticall
 
 ```ts title="app/api/flowglad/[...path]/route.ts"
 import { nextRouteHandler } from "@flowglad/nextjs/server"
-    import { flowglad } from "@/lib/flowglad"
-    import { auth } from "@/lib/auth"
-    import { headers } from "next/headers"
+import { flowglad } from "@/lib/flowglad"
+import { auth } from "@/lib/auth"
+import { headers } from "next/headers"
 
 export const { GET, POST } = nextRouteHandler({
   flowglad,
   getCustomerExternalId: async () => {
     // Use the Flowglad plugin's getExternalId endpoint
     // This handles the customerType configuration automatically
-      const { externalId } = await auth.api.getExternalId({
-        headers: await headers(),
-      })
+    const { externalId } = await auth.api.getExternalId({
+      headers: await headers(),
+    })
 
-      if (!externalId) {
+    if (!externalId) {
       throw new Error("Unable to determine customer external ID")
     }
 
@@ -213,9 +213,14 @@ type FlowgladBetterAuthPluginOptions = {
   apiKey?: string
 
   /**
+   * Optional base URL for Flowglad API. Defaults to https://app.flowglad.com
+   */
+  baseURL?: string
+
+  /**
    * Type of customer to use. Defaults to "user".
-   * - "user": Uses session.user.id as externalId
-   * - "organization": Uses session.user.activeOrganizationId (requires org plugin)
+   * - "user": Uses session.session.userId as externalId
+   * - "organization": Uses session.session.activeOrganizationId (requires org plugin)
    */
   customerType?: "user" | "organization"
 
@@ -298,11 +303,11 @@ Make sure:
 This means the user is not authenticated. Make sure:
 - You're passing the correct headers to `auth.api.getExternalId()`
 - The user has an active session
-- For organization customers, make sure the organization plugin is installed and the user has an `activeOrganizationId`
+- For organization customers, make sure the organization plugin is installed and the session includes `activeOrganizationId` (Better Auth exposes this on `session.session.activeOrganizationId`)
 
 ### Organization customer creation issues
 
 Make sure:
 - The `organization()` plugin is installed before the `flowgladPlugin`
 - `customerType` is set to `"organization"`
-- The user has an `activeOrganizationId` in their `session` object once the organization has been created
+- The session includes `activeOrganizationId` (Better Auth exposes this on `session.session.activeOrganizationId`) once the organization has been created
