@@ -1,5 +1,5 @@
-import { Result } from 'better-result'
 import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import {
   findDefaultProduct,

@@ -41,18 +41,17 @@ describe('Template Integration Tests', () => {
       ]
 
       for (const { template, expectedName } of templates) {
-        const result = await adminTransaction(
-          async (ctx) =>
-            (
-              await setupPricingModelTransaction(
-                {
-                  input: template.input,
-                  organizationId: organization.id,
-                  livemode: false,
-                },
-                ctx
-              )
-            ).unwrap()
+        const result = await adminTransaction(async (ctx) =>
+          (
+            await setupPricingModelTransaction(
+              {
+                input: template.input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
 
         expect(typeof result.pricingModel.id).toBe('string')

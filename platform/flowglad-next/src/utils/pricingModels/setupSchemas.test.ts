@@ -1,5 +1,5 @@
-import { Result } from 'better-result'
 import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
 import {
   CurrencyCode,
