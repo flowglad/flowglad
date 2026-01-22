@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Toaster } from 'sonner'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { SupportChatWidget } from '@/components/support-chat'
 import './globals.css'
 
@@ -110,7 +111,9 @@ export default async function RootLayout({
             <div className="h-12 w-full bg-orange-primary-500"></div>
           )} */}
           <Toaster />
-          <SupportChatWidget />
+          <ErrorBoundary fallback={null}>
+            <SupportChatWidget />
+          </ErrorBoundary>
           {/* <ChatActionsProvider>
             <AIModal />
           </ChatActionsProvider> */}
