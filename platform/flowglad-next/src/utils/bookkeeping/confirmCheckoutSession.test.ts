@@ -156,12 +156,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session is not open')
       await comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -177,12 +176,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session is not open')
 
@@ -199,12 +197,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session is not open')
     })
@@ -695,12 +692,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session has no customer email')
     })
@@ -797,12 +793,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session has no customer email')
     })
