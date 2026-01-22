@@ -23,7 +23,7 @@
     "test:watch": "bun run test:backend:watch & bun run test:frontend:watch",
     "test:integration": "vitest run --config vitest.integration.config.ts && bun run test:rls",
     "test:integration:watch": "vitest --config vitest.integration.config.ts",
-    "test:slow": "bash -c 'shopt -s globstar && bun test slow-tests/**/*.test.ts'",
+    "test:slow": "bash -c 'shopt -s globstar && bun test --timeout 30000 slow-tests/**/*.test.ts'",
     "test:setup": "export NODE_ENV=test && docker-compose -f docker-compose.test.yml down --volumes && docker-compose -f docker-compose.test.yml up -d --wait && docker-compose -f docker-compose.test.yml ps && bun run migrations:push",
     "test:teardown": "docker-compose -f docker-compose.test.yml down --volumes",
     "test:local": "bun run test:setup && DATABASE_URL=postgresql://test:test@localhost:5432/test_db ./src/scripts/run_subscription_tests.sh && bun run test:teardown",
