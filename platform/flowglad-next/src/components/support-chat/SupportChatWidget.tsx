@@ -8,10 +8,16 @@ import { SupportChatTrigger } from './SupportChatTrigger'
 
 const STORAGE_KEY = 'flowglad-support-chat-messages'
 
+const sourceSchema = z.object({
+  title: z.string().optional(),
+  path: z.string(),
+})
+
 const chatMessageSchema = z.object({
   id: z.string(),
   role: z.enum(['user', 'assistant']),
   content: z.string(),
+  sources: z.array(sourceSchema).optional(),
 })
 
 const chatMessagesSchema = z.array(chatMessageSchema)

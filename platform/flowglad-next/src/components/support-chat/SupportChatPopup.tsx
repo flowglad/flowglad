@@ -59,6 +59,7 @@ export function SupportChatPopup({
           id: crypto.randomUUID(),
           role: 'assistant',
           content: data.response,
+          sources: data.sources,
         }
         updateMessages([...messagesRef.current, assistantMessage])
       },
