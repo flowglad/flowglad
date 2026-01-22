@@ -26,12 +26,13 @@ const ClonePricingModelModal: React.FC<
 
   // Check if org already has a livemode PM
   // We need to know if cloning to livemode would be blocked
-  const { data: tableData } =
+  // Explicitly query for livemode PMs so testmode users also see the warning
+  const { data: livemodeTableData } =
     trpc.pricingModels.getTableRows.useQuery({
       pageSize: 1,
+      filters: { livemode: true },
     })
-  const hasLivemodePricingModel =
-    livemode && (tableData?.total ?? 0) >= 1
+  const hasLivemodePricingModel = (livemodeTableData?.total ?? 0) >= 1
 
   // Track whether the livemode warning is being shown to disable submit
   const [showLivemodeWarning, setShowLivemodeWarning] =

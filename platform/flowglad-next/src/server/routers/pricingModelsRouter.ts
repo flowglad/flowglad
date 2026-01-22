@@ -302,6 +302,7 @@ const getTableRowsProcedure = protectedProcedure
       z.object({
         organizationId: z.string().optional(),
         isDefault: z.boolean().optional(),
+        livemode: z.boolean().optional(),
       })
     )
   )
