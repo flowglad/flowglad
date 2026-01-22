@@ -32,8 +32,7 @@ jobs:
         run: bun run check
 
   flowglad-next-unit-tests:
-    # Only run unit tests in the merge queue as the final pre-merge check.
-    if: github.event_name == 'merge_group'
+    # Run unit tests on every CI run (PRs and merge queue)
     uses: ./.github/workflows/flowglad-next-sharded-unit-tests.yml
 
   flowglad-next-docker-build:
