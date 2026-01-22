@@ -64,7 +64,7 @@ jobs:
           NODE_ENV: test
       - name: Run sharded backend tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: |
-          # Get sorted list of backend test files (exclude integration, RLS, and tsx files)
+          # Get sorted list of backend test files (exclude integration and RLS tests)
           files=$(find src -name "*.test.ts" ! -name "*.integration.test.ts" ! -name "*.rls.test.ts" | sort)
           total=$(echo "$files" | wc -l | tr -d ' ')
 

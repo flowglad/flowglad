@@ -21,6 +21,7 @@ import { UsageEvent } from '@/db/schema/usageEvents'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { updateUsageMeter } from '@/db/tableMethods/usageMeterMethods'
+import { usageEventsRouter } from '@/server/routers/usageEventsRouter'
 import type { TRPCApiContext } from '@/server/trpcContext'
 import {
   IntervalUnit,
@@ -28,7 +29,6 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
-import { usageEventsRouter } from './usageEventsRouter'
 
 const createCaller = (
   organization: Organization.Record,

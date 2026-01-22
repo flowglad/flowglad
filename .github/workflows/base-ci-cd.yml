@@ -97,6 +97,11 @@ jobs:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
         run: bun run test:integration
+      - name: Run slow tests
+        env:
+          NODE_ENV: test
+          CLAUDECODE: 1
+        run: bun run test:slow
       - name: Run test teardown
         if: always()
         run: bun run test:teardown
