@@ -8,6 +8,7 @@ import {
   selectPaymentById,
   selectPayments,
 } from '@/db/tableMethods/paymentMethods'
+import { NotFoundError as TableUtilsNotFoundError } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
 import { PaymentStatus, StripeConnectContractType } from '@/types'
@@ -39,7 +40,7 @@ export const refundPaymentTransaction = async (
   try {
     payment = await selectPaymentById(id, transaction)
   } catch (error) {
-    if (error instanceof NotFoundError) {
+    if (error instanceof TableUtilsNotFoundError) {
       return Result.err(new NotFoundError('Payment', id))
     }
     throw error
