@@ -34,7 +34,7 @@ Keep responses concise, friendly, and conversational.`
 
 const chatMessageSchema = z.object({
   role: z.enum(['user', 'assistant']),
-  content: z.string(),
+  content: z.string().max(2000),
 })
 
 const sendMessageInputSchema = z.object({
