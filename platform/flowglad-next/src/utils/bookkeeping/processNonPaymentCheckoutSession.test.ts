@@ -123,7 +123,7 @@ describe('processNonPaymentCheckoutSession', () => {
       expect(result.purchase.status).toEqual(PurchaseStatus.Paid)
 
       // Verify purchaseDate is set (not null)
-      expect(result.purchase.purchaseDate).toMatchObject({})
+      expect(typeof result.purchase.purchaseDate).toBe('number')
 
       // Verify purchaseDate is a recent timestamp (within the last minute)
       const purchaseDateTimestamp = result.purchase.purchaseDate!

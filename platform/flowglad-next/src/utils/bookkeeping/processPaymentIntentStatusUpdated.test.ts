@@ -281,7 +281,7 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     expect(command!.livemode).toBe(true)
     const usageCredit = command!.payload.usageCredit
     expect(usageCredit.issuedAmount).toBe(777)
-    expect(usageCredit.usageMeterId).toMatchObject({})
+    expect(typeof usageCredit.usageMeterId).toBe('string')
     expect(usageCredit.sourceReferenceId).toBe(payment.invoiceId)
     expect(usageCredit.paymentId).toBe(payment.id)
     expect(usageCredit.status).toBe(UsageCreditStatus.Posted)

@@ -976,7 +976,7 @@ describe('Checkout Sessions', async () => {
           return Result.ok(bookkeeping)
         }
       )
-      expect(result.customer.stripeCustomerId).toMatchObject({})
+      expect(typeof result.customer.stripeCustomerId).toBe('string')
     })
 
     it('should create new purchase when none exists', async () => {
