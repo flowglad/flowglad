@@ -732,6 +732,10 @@ describe('createCustomerBookkeeping', () => {
   })
 
   describe('subscription behavior based on pricing model price type', () => {
+    // Use testmode for these tests to avoid livemode uniqueness constraint
+    // (setupOrg creates one livemode PM which we leave untouched)
+    const testLivemode = false
+
     it('should create a non-renewing subscription when default pricing model has SinglePayment price', async () => {
       // Create a pricing model with SinglePayment default price
       const singlePaymentPricingModel = await adminTransaction(
@@ -747,7 +751,7 @@ describe('createCustomerBookkeeping', () => {
             withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
             })
           )
           return output
@@ -781,7 +785,7 @@ describe('createCustomerBookkeeping', () => {
             withAdminCacheContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -828,7 +832,7 @@ describe('createCustomerBookkeeping', () => {
             withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
             })
           )
           return output
@@ -862,7 +866,7 @@ describe('createCustomerBookkeeping', () => {
             withAdminCacheContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -917,7 +921,7 @@ describe('createCustomerBookkeeping', () => {
             withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
             })
           )
           return output
@@ -937,7 +941,7 @@ describe('createCustomerBookkeeping', () => {
             withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
             })
           )
           return output
@@ -969,7 +973,7 @@ describe('createCustomerBookkeeping', () => {
               withAdminCacheContext({
                 transaction,
                 organizationId: organization.id,
-                livemode,
+                livemode: testLivemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
@@ -1010,7 +1014,7 @@ describe('createCustomerBookkeeping', () => {
               withAdminCacheContext({
                 transaction,
                 organizationId: organization.id,
-                livemode,
+                livemode: testLivemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
