@@ -60,6 +60,7 @@ import {
   updatePurchaseStatusToReflectLatestPayment,
 } from './bookkeeping'
 
+// This test uses setupOrg() which creates livemode entities, so we keep livemode=true
 const livemode = true
 describe('createCustomerBookkeeping', () => {
   let organization: Organization.Record
@@ -191,6 +192,7 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Custom Pricing Model',
         isDefault: false,
+        livemode: false, // Use testmode to avoid livemode uniqueness constraint
       })
 
       // Create a default product for the custom pricing model
@@ -200,6 +202,7 @@ describe('createCustomerBookkeeping', () => {
         pricingModelId: customPricingModel.id,
         default: true,
         active: true,
+        livemode: false,
       })
 
       // Create a default price for the custom product
@@ -287,6 +290,7 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Empty Pricing Model',
         isDefault: false,
+        livemode: false,
       })
 
       // Create a non-default product (so there's no default product)
@@ -296,6 +300,7 @@ describe('createCustomerBookkeeping', () => {
         pricingModelId: emptyPricingModel.id,
         default: false, // Not default
         active: true,
+        livemode: false,
       })
 
       // Capture emitted events
@@ -382,6 +387,7 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Pricing Model No Default Price',
         isDefault: false,
+        livemode: false,
       })
 
       // Create a default product
@@ -391,6 +397,7 @@ describe('createCustomerBookkeeping', () => {
         pricingModelId: pricingModelNoDefaultPrice.id,
         default: true,
         active: true,
+        livemode: false,
       })
 
       // Create a non-default price
@@ -1055,7 +1062,7 @@ describe('createCustomerBookkeeping', () => {
 
 describe('createPricingModelBookkeeping', () => {
   let organizationId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     // Set up a basic organization
@@ -1262,6 +1269,17 @@ describe('createPricingModelBookkeeping', () => {
     })
 
     it('should not affect default pricing models across livemode boundaries', async () => {
+      // Get the existing live mode default (from setupOrg)
+      const liveModeDefaultPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const defaultPM = await selectDefaultPricingModel(
+            { organizationId, livemode: true },
+            transaction
+          )
+          return defaultPM
+        }
+      )
+
       // First, create a test mode (livemode: false) default pricing model
       const testModeDefaultPricingModel = await adminTransaction(
         async ({ transaction }) => {
@@ -1282,17 +1300,6 @@ describe('createPricingModelBookkeeping', () => {
         }
       )
 
-      // Get the existing live mode default (from setupOrg)
-      const liveModeDefaultPricingModel = await adminTransaction(
-        async ({ transaction }) => {
-          const defaultPM = await selectDefaultPricingModel(
-            { organizationId, livemode: true },
-            transaction
-          )
-          return defaultPM
-        }
-      )
-
       // Verify we have two defaults - one for each livemode
       expect(testModeDefaultPricingModel.isDefault).toBe(true)
       expect(testModeDefaultPricingModel.livemode).toBe(false)
@@ -1302,45 +1309,33 @@ describe('createPricingModelBookkeeping', () => {
       expect(liveModeDefaultPricingModel?.isDefault).toBe(true)
       expect(liveModeDefaultPricingModel?.livemode).toBe(true)
 
-      // Create a new live mode default pricing model
-      const newLiveModeDefault = await adminTransaction(
+      // Create a new test mode default pricing model - this should change the testmode default
+      // but NOT affect the livemode default
+      const newTestModeDefault = await adminTransaction(
         async ({ transaction }) => {
           const output = await createPricingModelBookkeeping(
             {
               pricingModel: {
-                name: 'New Live Mode Default Pricing Model',
+                name: 'New Test Mode Default Pricing Model',
                 isDefault: true,
               },
             },
             withDiscardingEffectsContext({
               transaction,
               organizationId,
-              livemode: true,
+              livemode: false,
             })
           )
           return output.unwrap().pricingModel
         }
       )
 
-      // Verify the new live mode pricing model is default
-      expect(newLiveModeDefault.isDefault).toBe(true)
-      expect(newLiveModeDefault.livemode).toBe(true)
+      // Verify the new test mode pricing model is default
+      expect(newTestModeDefault.isDefault).toBe(true)
+      expect(newTestModeDefault.livemode).toBe(false)
 
-      // Check that the test mode default is still the default for test mode
-      const refreshedTestModeDefault = await adminTransaction(
-        async ({ transaction }) => {
-          const pm = await selectPricingModelById(
-            testModeDefaultPricingModel.id,
-            transaction
-          )
-          return pm
-        }
-      )
-      expect(refreshedTestModeDefault.isDefault).toBe(true)
-      expect(refreshedTestModeDefault.livemode).toBe(false)
-
-      // Check that the old live mode default is no longer default
-      const refreshedOldLiveModeDefault = await adminTransaction(
+      // Check that the livemode default is STILL the default (unaffected by testmode changes)
+      const refreshedLiveModeDefault = await adminTransaction(
         async ({ transaction }) => {
           const pm = await selectPricingModelById(
             liveModeDefaultPricingModel!.id,
@@ -1349,8 +1344,21 @@ describe('createPricingModelBookkeeping', () => {
           return pm
         }
       )
-      expect(refreshedOldLiveModeDefault.isDefault).toBe(false)
-      expect(refreshedOldLiveModeDefault.livemode).toBe(true)
+      expect(refreshedLiveModeDefault.isDefault).toBe(true)
+      expect(refreshedLiveModeDefault.livemode).toBe(true)
+
+      // Check that the old test mode default is no longer default
+      const refreshedOldTestModeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          const pm = await selectPricingModelById(
+            testModeDefaultPricingModel.id,
+            transaction
+          )
+          return pm
+        }
+      )
+      expect(refreshedOldTestModeDefault.isDefault).toBe(false)
+      expect(refreshedOldTestModeDefault.livemode).toBe(false)
 
       // Verify we still have exactly one default per livemode
       const allPricingModels = await adminTransaction(
@@ -1371,9 +1379,9 @@ describe('createPricingModelBookkeeping', () => {
       )
 
       expect(liveDefaults).toHaveLength(1)
-      expect(liveDefaults[0].id).toBe(newLiveModeDefault.id)
+      expect(liveDefaults[0].id).toBe(liveModeDefaultPricingModel!.id)
       expect(testDefaults).toHaveLength(1)
-      expect(testDefaults[0].id).toBe(testModeDefaultPricingModel.id)
+      expect(testDefaults[0].id).toBe(newTestModeDefault.id)
     })
   })
 

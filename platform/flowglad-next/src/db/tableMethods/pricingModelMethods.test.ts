@@ -29,89 +29,118 @@ import {
 
 describe('safelyUpdatePricingModel', () => {
   let organization: Organization.Record
-  let pricingModelA: PricingModel.Record // default
-  let pricingModelB: PricingModel.Record // not default
+  let livemodePricingModel: PricingModel.Record // livemode default
+  let testmodeDefaultPricingModel: PricingModel.Record // testmode default (from setupOrg)
+  let testmodeNonDefaultPricingModel: PricingModel.Record // testmode not default
 
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
-    pricingModelA = orgData.pricingModel
+    livemodePricingModel = orgData.pricingModel // livemode: true, isDefault: true
 
-    pricingModelB = await setupPricingModel({
+    // Get the testmode default pricing model that setupOrg created
+    testmodeDefaultPricingModel = await adminTransaction(
+      async ({ transaction }) => {
+        const [pm] = await selectPricingModels(
+          {
+            organizationId: organization.id,
+            livemode: false,
+            isDefault: true,
+          },
+          transaction
+        )
+        return pm!
+      }
+    )
+
+    testmodeNonDefaultPricingModel = await setupPricingModel({
       organizationId: organization.id,
       name: 'Non-Default PricingModel',
       isDefault: false,
+      livemode: false, // Use testmode to avoid livemode uniqueness constraint
     })
   })
 
-  it('should make a non-default pricingModel the new default, and unset the old default', async () => {
+  it('should make a non-default pricingModel the new default, and unset the old default within the same livemode', async () => {
+    // Make testmode non-default PM the new default
     await adminTransaction(async (ctx) => {
       await safelyUpdatePricingModel(
-        { id: pricingModelB.id, isDefault: true },
+        { id: testmodeNonDefaultPricingModel.id, isDefault: true },
         ctx
       )
     })
 
-    const updatedPricingModelA = await adminTransaction(
+    const updatedTestmodeDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(pricingModelA.id, transaction)
+        selectPricingModelById(
+          testmodeDefaultPricingModel.id,
+          transaction
+        )
     )
-    const updatedPricingModelB = await adminTransaction(
+    const updatedTestmodeNonDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(pricingModelB.id, transaction)
+        selectPricingModelById(
+          testmodeNonDefaultPricingModel.id,
+          transaction
+        )
     )
 
-    expect(updatedPricingModelB.isDefault).toBe(true)
-    expect(updatedPricingModelA.isDefault).toBe(false)
+    // The non-default should now be default
+    expect(updatedTestmodeNonDefault.isDefault).toBe(true)
+    // The old default should no longer be default
+    expect(updatedTestmodeDefault.isDefault).toBe(false)
   })
 
   it("should update a non-default pricingModel's properties without affecting the default status of other pricingModels", async () => {
     const newName = 'New PricingModel Name'
-    const updatedPricingModelB = await adminTransaction(
+    const updatedPricingModel = await adminTransaction(
       async (ctx) => {
         return await safelyUpdatePricingModel(
-          { id: pricingModelB.id, name: newName },
+          { id: testmodeNonDefaultPricingModel.id, name: newName },
           ctx
         )
       }
     )
 
-    const updatedPricingModelA = await adminTransaction(
+    const refreshedTestmodeDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(pricingModelA.id, transaction)
+        selectPricingModelById(
+          testmodeDefaultPricingModel.id,
+          transaction
+        )
     )
 
-    expect(updatedPricingModelB.name).toBe(newName)
-    expect(updatedPricingModelB.isDefault).toBe(false)
-    expect(updatedPricingModelA.isDefault).toBe(true)
+    expect(updatedPricingModel.name).toBe(newName)
+    expect(updatedPricingModel.isDefault).toBe(false)
+    expect(refreshedTestmodeDefault.isDefault).toBe(true)
   })
 
-  it('should allow unsetting a default pricingModel, leaving the organization with no default', async () => {
-    const updatedPricingModelA = await adminTransaction(
+  it('should allow unsetting a default pricingModel, leaving the organization with no default for that livemode', async () => {
+    const updatedPricingModel = await adminTransaction(
       async (ctx) => {
         return await safelyUpdatePricingModel(
-          { id: pricingModelA.id, isDefault: false },
+          { id: testmodeDefaultPricingModel.id, isDefault: false },
           ctx
         )
       }
     )
 
-    expect(updatedPricingModelA.isDefault).toBe(false)
+    expect(updatedPricingModel.isDefault).toBe(false)
   })
 
   it('should update a property on a default pricingModel without changing its default status', async () => {
     const newName = 'New Name For Default PricingModel'
-    const updatedPricingModelA = await adminTransaction(
+    const updatedPricingModel = await adminTransaction(
       async (ctx) => {
         return await safelyUpdatePricingModel(
-          { id: pricingModelA.id, name: newName },
+          { id: livemodePricingModel.id, name: newName },
           ctx
         )
       }
     )
 
-    expect(updatedPricingModelA.name).toBe(newName)
-    expect(updatedPricingModelA.isDefault).toBe(true)
+    expect(updatedPricingModel.name).toBe(newName)
+    expect(updatedPricingModel.isDefault).toBe(true)
   })
 
   it('should not affect the default pricingModel of another organization', async () => {
@@ -120,10 +149,10 @@ describe('safelyUpdatePricingModel', () => {
     const otherOrgData = await setupOrg()
     const otherOrgDefaultPricingModel = otherOrgData.pricingModel
 
-    // Action: Make pricingModelB the new default for the FIRST organization.
+    // Action: Make testmodeNonDefaultPricingModel the new default for the FIRST organization (testmode).
     await adminTransaction(async (ctx) => {
       await safelyUpdatePricingModel(
-        { id: pricingModelB.id, isDefault: true },
+        { id: testmodeNonDefaultPricingModel.id, isDefault: true },
         ctx
       )
     })
@@ -138,20 +167,80 @@ describe('safelyUpdatePricingModel', () => {
     )
     expect(refreshedOtherOrgPricingModel.isDefault).toBe(true)
 
-    // Sanity check: The old default for the first organization should now be false.
-    const refreshedPricingModelA = await adminTransaction(
+    // Sanity check: The old testmode default for the first organization should now be false.
+    const refreshedTestmodeDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(pricingModelA.id, transaction)
+        selectPricingModelById(
+          testmodeDefaultPricingModel.id,
+          transaction
+        )
     )
-    expect(refreshedPricingModelA.isDefault).toBe(false)
+    expect(refreshedTestmodeDefault.isDefault).toBe(false)
   })
 
   it('should not affect default pricingModels across livemode boundaries when updating', async () => {
-    // Get the testmode pricing model that setupOrg already created
-    const testModePricingModel = await adminTransaction(
-      async (ctx) => {
-        const { transaction } = ctx
-        const [pricingModel] = await selectPricingModels(
+    // Verify we have two default pricing models - one for each livemode
+    expect(livemodePricingModel.isDefault).toBe(true)
+    expect(livemodePricingModel.livemode).toBe(true)
+    expect(testmodeDefaultPricingModel.isDefault).toBe(true)
+    expect(testmodeDefaultPricingModel.livemode).toBe(false)
+
+    // Make testmodeNonDefaultPricingModel the new default for testmode
+    await adminTransaction(async (ctx) => {
+      await safelyUpdatePricingModel(
+        { id: testmodeNonDefaultPricingModel.id, isDefault: true },
+        ctx
+      )
+    })
+
+    // Check that only the testmode default was affected
+    const refreshedLivemodePricingModel = await adminTransaction(
+      async ({ transaction }) =>
+        selectPricingModelById(livemodePricingModel.id, transaction)
+    )
+    const refreshedTestmodeNonDefault = await adminTransaction(
+      async ({ transaction }) =>
+        selectPricingModelById(
+          testmodeNonDefaultPricingModel.id,
+          transaction
+        )
+    )
+    const refreshedTestmodeDefault = await adminTransaction(
+      async ({ transaction }) =>
+        selectPricingModelById(
+          testmodeDefaultPricingModel.id,
+          transaction
+        )
+    )
+
+    // testmodeNonDefaultPricingModel should now be the default for testmode
+    expect(refreshedTestmodeNonDefault.isDefault).toBe(true)
+    expect(refreshedTestmodeNonDefault.livemode).toBe(false)
+
+    // Old testmode default should no longer be default
+    expect(refreshedTestmodeDefault.isDefault).toBe(false)
+    expect(refreshedTestmodeDefault.livemode).toBe(false)
+
+    // Livemode default should remain unchanged
+    expect(refreshedLivemodePricingModel.isDefault).toBe(true)
+    expect(refreshedLivemodePricingModel.livemode).toBe(true)
+  })
+})
+
+describe('safelyInsertPricingModel', () => {
+  let organization: Organization.Record
+  let existingLivemodeDefaultPricingModel: PricingModel.Record
+  let existingTestmodeDefaultPricingModel: PricingModel.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    existingLivemodeDefaultPricingModel = orgData.pricingModel // livemode: true, isDefault: true
+
+    // Get the testmode default pricing model that setupOrg created
+    existingTestmodeDefaultPricingModel = await adminTransaction(
+      async ({ transaction }) => {
+        const [pm] = await selectPricingModels(
           {
             organizationId: organization.id,
             livemode: false,
@@ -159,71 +248,20 @@ describe('safelyUpdatePricingModel', () => {
           },
           transaction
         )
-        return pricingModel!
+        return pm!
       }
     )
-
-    // Verify we have two default pricing models - one for each livemode
-    expect(pricingModelA.isDefault).toBe(true)
-    expect(pricingModelA.livemode).toBe(true)
-    expect(testModePricingModel.isDefault).toBe(true)
-    expect(testModePricingModel.livemode).toBe(false)
-
-    // Make pricingModelB (livemode: true) the new default
-    await adminTransaction(async (ctx) => {
-      await safelyUpdatePricingModel(
-        { id: pricingModelB.id, isDefault: true },
-        ctx
-      )
-    })
-
-    // Check that only the livemode: true default was affected
-    const refreshedPricingModelA = await adminTransaction(
-      async ({ transaction }) =>
-        selectPricingModelById(pricingModelA.id, transaction)
-    )
-    const refreshedPricingModelB = await adminTransaction(
-      async ({ transaction }) =>
-        selectPricingModelById(pricingModelB.id, transaction)
-    )
-    const refreshedTestModePricingModel = await adminTransaction(
-      async ({ transaction }) =>
-        selectPricingModelById(testModePricingModel.id, transaction)
-    )
-
-    // pricingModelB should now be the default for livemode: true
-    expect(refreshedPricingModelB.isDefault).toBe(true)
-    expect(refreshedPricingModelB.livemode).toBe(true)
-
-    // pricingModelA should no longer be default
-    expect(refreshedPricingModelA.isDefault).toBe(false)
-    expect(refreshedPricingModelA.livemode).toBe(true)
-
-    // Test mode default should remain unchanged
-    expect(refreshedTestModePricingModel.isDefault).toBe(true)
-    expect(refreshedTestModePricingModel.livemode).toBe(false)
-  })
-})
-
-describe('safelyInsertPricingModel', () => {
-  let organization: Organization.Record
-  let existingDefaultPricingModel: PricingModel.Record
-
-  beforeEach(async () => {
-    const orgData = await setupOrg()
-    organization = orgData.organization
-    existingDefaultPricingModel = orgData.pricingModel // This is the default pricingModel
   })
 
-  it('should make the new pricingModel the default and unset the old default', async () => {
+  it('should make the new pricingModel the default and unset the old default within the same livemode', async () => {
+    // Insert a new testmode default PM (we use testmode since we can only have one livemode PM)
     const newPricingModel = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
       return safelyInsertPricingModel(
         {
           name: 'New Default PricingModel',
           organizationId: organization.id,
           isDefault: true,
-          livemode: true,
+          livemode: false, // Use testmode
         },
         ctx
       )
@@ -232,7 +270,7 @@ describe('safelyInsertPricingModel', () => {
     const refreshedOldDefault = await adminTransaction(
       async ({ transaction }) =>
         selectPricingModelById(
-          existingDefaultPricingModel.id,
+          existingTestmodeDefaultPricingModel.id,
           transaction
         )
     )
@@ -243,13 +281,12 @@ describe('safelyInsertPricingModel', () => {
 
   it('should insert a non-default pricingModel without affecting the existing default', async () => {
     const newPricingModel = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
       return safelyInsertPricingModel(
         {
           name: 'New Non-Default PricingModel',
           organizationId: organization.id,
           isDefault: false,
-          livemode: true,
+          livemode: false, // Use testmode
         },
         ctx
       )
@@ -258,7 +295,7 @@ describe('safelyInsertPricingModel', () => {
     const refreshedOldDefault = await adminTransaction(
       async ({ transaction }) =>
         selectPricingModelById(
-          existingDefaultPricingModel.id,
+          existingTestmodeDefaultPricingModel.id,
           transaction
         )
     )
@@ -272,15 +309,14 @@ describe('safelyInsertPricingModel', () => {
     const otherOrgData = await setupOrg()
     const otherOrgDefaultPricingModel = otherOrgData.pricingModel
 
-    // Insert a new default pricingModel for the FIRST organization
+    // Insert a new default pricingModel for the FIRST organization (testmode)
     await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
       return safelyInsertPricingModel(
         {
           name: 'New Default PricingModel for Org 1',
           organizationId: organization.id,
           isDefault: true,
-          livemode: true,
+          livemode: false, // Use testmode
         },
         ctx
       )
@@ -298,69 +334,52 @@ describe('safelyInsertPricingModel', () => {
   })
 
   it('should not affect default pricingModels across livemode boundaries when inserting', async () => {
-    // Create a test mode (livemode: false) default pricing model for the same organization
-    const testModeDefaultPricingModel = await adminTransaction(
-      async (ctx) => {
-        const { transaction } = ctx
-        return safelyInsertPricingModel(
-          {
-            name: 'Test Mode Default PricingModel',
-            organizationId: organization.id,
-            isDefault: true,
-            livemode: false,
-          },
-          ctx
-        )
-      }
-    )
-
     // Verify we have two default pricing models - one for each livemode
-    expect(existingDefaultPricingModel.isDefault).toBe(true)
-    expect(existingDefaultPricingModel.livemode).toBe(true)
-    expect(testModeDefaultPricingModel.isDefault).toBe(true)
-    expect(testModeDefaultPricingModel.livemode).toBe(false)
+    expect(existingLivemodeDefaultPricingModel.isDefault).toBe(true)
+    expect(existingLivemodeDefaultPricingModel.livemode).toBe(true)
+    expect(existingTestmodeDefaultPricingModel.isDefault).toBe(true)
+    expect(existingTestmodeDefaultPricingModel.livemode).toBe(false)
 
-    // Insert a new default for livemode: true
-    const newLivemodeDefault = await adminTransaction(async (ctx) => {
-      const { transaction } = ctx
+    // Insert a new testmode default PM and verify it doesn't affect livemode default
+    const newTestmodeDefault = await adminTransaction(async (ctx) => {
       return safelyInsertPricingModel(
         {
-          name: 'New Live Mode Default PricingModel',
+          name: 'New Testmode Default PricingModel',
           organizationId: organization.id,
           isDefault: true,
-          livemode: true,
+          livemode: false,
         },
         ctx
       )
     })
 
-    // Check that only the livemode: true default was affected
-    const refreshedOldLivemodeDefault = await adminTransaction(
+    // Check that only the testmode default was affected
+    const refreshedLivemodeDefault = await adminTransaction(
       async ({ transaction }) =>
         selectPricingModelById(
-          existingDefaultPricingModel.id,
+          existingLivemodeDefaultPricingModel.id,
           transaction
         )
     )
-    const refreshedTestModeDefault = await adminTransaction(
+    const refreshedOldTestmodeDefault = await adminTransaction(
       async ({ transaction }) =>
         selectPricingModelById(
-          testModeDefaultPricingModel.id,
+          existingTestmodeDefaultPricingModel.id,
           transaction
         )
     )
 
-    // New livemode pricing model should be default
-    expect(newLivemodeDefault.isDefault).toBe(true)
-    expect(newLivemodeDefault.livemode).toBe(true)
+    // New testmode pricing model should be default
+    expect(newTestmodeDefault.isDefault).toBe(true)
+    expect(newTestmodeDefault.livemode).toBe(false)
 
-    // Old livemode default should no longer be default
-    expect(refreshedOldLivemodeDefault.isDefault).toBe(false)
-    expect(refreshedOldLivemodeDefault.livemode).toBe(true)
+    // Old testmode default should no longer be default
+    expect(refreshedOldTestmodeDefault.isDefault).toBe(false)
+    expect(refreshedOldTestmodeDefault.livemode).toBe(false)
 
-    // Test mode default should remain unchanged
-    expect(refreshedTestModeDefault.isDefault).toBe(true)
-    expect(refreshedTestModeDefault.livemode).toBe(false)
+    // Livemode default should remain unchanged
+    expect(refreshedLivemodeDefault.isDefault).toBe(true)
+    expect(refreshedLivemodeDefault.livemode).toBe(true)
   })
 })
 
