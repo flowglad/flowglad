@@ -49,7 +49,8 @@
     "dev:dbCopy:prod:schema": "dotenvx run -f .env.local -- bun run src/scripts/dbCopy.ts --prod --schema-only",
     "dev:dbCopy:staging:migrate": "dotenvx run -f .env.local -- bun run src/scripts/dbCopy.ts --staging --run-migrations",
     "dev:dbCopy:prod:migrate": "dotenvx run -f .env.local -- bun run src/scripts/dbCopy.ts --prod --run-migrations",
-    "pgcp": "bun run src/scripts/pgcp.ts"
+    "pgcp": "bun run src/scripts/pgcp.ts",
+    "safely": "bun run src/scripts/safelyRunScript.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^2.0.69",
