@@ -597,8 +597,11 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       transaction
     )
     if (!result) {
-      throw new Error(
-        `processActivateSubscriptionCheckoutSessionSetupIntentSucceeded: Subscription not found for checkout session ${checkoutSession.id}`
+      return Result.err(
+        new NotFoundError(
+          'Subscription',
+          checkoutSession.targetSubscriptionId!
+        )
       )
     }
 

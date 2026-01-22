@@ -179,16 +179,18 @@ export const createBillingPeriodAndItems = async (
 export const attemptBillingPeriodClose = async (
   billingPeriod: BillingPeriod.Record,
   transaction: DbTransaction
-) => {
+): Promise<Result<BillingPeriod.Record, Error>> => {
   if (isBillingPeriodInTerminalState(billingPeriod)) {
-    return billingPeriod
+    return Result.ok(billingPeriod)
   }
   let updatedBillingPeriod = billingPeriod
   if (billingPeriod.endDate > Date.now()) {
-    throw Error(
-      `Cannot close billing period ${
-        billingPeriod.id
-      }, at time ${new Date().toISOString()}, when its endDate is ${new Date(billingPeriod.endDate).toISOString()}`
+    return Result.err(
+      new Error(
+        `Cannot close billing period ${
+          billingPeriod.id
+        }, at time ${new Date().toISOString()}, when its endDate is ${new Date(billingPeriod.endDate).toISOString()}`
+      )
     )
   }
   const { billingPeriodItems } =
@@ -219,7 +221,7 @@ export const attemptBillingPeriodClose = async (
       transaction
     )
   }
-  return updatedBillingPeriod
+  return Result.ok(updatedBillingPeriod)
 }
 
 export const attemptToTransitionSubscriptionBillingPeriod = async (
@@ -247,10 +249,14 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     )
   }
 
-  const updatedBillingPeriod = await attemptBillingPeriodClose(
+  const billingPeriodCloseResult = await attemptBillingPeriodClose(
     currentBillingPeriod,
     transaction
   )
+  if (Result.isError(billingPeriodCloseResult)) {
+    return Result.err(billingPeriodCloseResult.error)
+  }
+  const updatedBillingPeriod = billingPeriodCloseResult.value
   let subscription = await selectSubscriptionById(
     currentBillingPeriod.subscriptionId,
     transaction

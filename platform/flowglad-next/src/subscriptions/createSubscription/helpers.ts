@@ -743,12 +743,15 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
           )
 
         // Insert the prorated items
-        finalBillingPeriodItems = (
+        const proratedItemsResult =
           await bulkInsertBillingPeriodItems(
             proratedItems,
             transaction
           )
-        ).unwrap()
+        if (Result.isError(proratedItemsResult)) {
+          return Result.err(proratedItemsResult.error)
+        }
+        finalBillingPeriodItems = proratedItemsResult.value
       }
     }
 

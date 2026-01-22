@@ -393,7 +393,15 @@ export const ledgerCommandForPaymentSucceeded = async (
     NotFoundError
   >
 > => {
-  const price = await selectPriceById(params.priceId, transaction)
+  let price: Price.Record
+  try {
+    price = await selectPriceById(params.priceId, transaction)
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return Result.err(error)
+    }
+    throw error
+  }
   // Use type guard for consistent pattern and proper TypeScript narrowing
   if (
     !Price.hasProductId(price) ||
