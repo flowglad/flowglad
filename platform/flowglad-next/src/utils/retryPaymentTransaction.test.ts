@@ -19,12 +19,15 @@ const mockGetPaymentIntent =
   mock<typeof actualStripe.getPaymentIntent>()
 const mockConfirmPaymentIntent =
   mock<typeof actualStripe.confirmPaymentIntent>()
+const mockGetStripeCharge =
+  mock<typeof actualStripe.getStripeCharge>()
 
 // Mock the stripe utils
 mock.module('./stripe', () => ({
   ...actualStripe,
   getPaymentIntent: mockGetPaymentIntent,
   confirmPaymentIntent: mockConfirmPaymentIntent,
+  getStripeCharge: mockGetStripeCharge,
 }))
 
 import { retryPaymentTransaction } from './paymentHelpers'
@@ -78,6 +81,15 @@ describe('retryPaymentTransaction', () => {
       amount: 1000,
       currency: 'usd',
     } as unknown as Stripe.Response<Stripe.PaymentIntent>)
+
+    // Mock getStripeCharge to return a succeeded charge
+    mockGetStripeCharge.mockResolvedValue({
+      id: newChargeId,
+      object: 'charge',
+      status: 'succeeded',
+      amount: 1000,
+      currency: 'usd',
+    } as unknown as Stripe.Response<Stripe.Charge>)
 
     const updatedFailedPayment = await adminTransaction(
       async ({ transaction }) => {
