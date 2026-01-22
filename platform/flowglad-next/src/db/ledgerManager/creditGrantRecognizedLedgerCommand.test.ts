@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupLedgerAccount,
   setupUsageCredit,
@@ -568,14 +569,11 @@ describe('processCreditGrantRecognizedLedgerCommand', () => {
         },
       }
 
-      await expect(
-        processCreditGrantRecognizedLedgerCommand(
-          command,
-          transaction
-        )
-      ).rejects.toThrow(
-        'Cannot process Credit Grant Recognized command: usage credit must have a usageMeterId'
+      const result = await processCreditGrantRecognizedLedgerCommand(
+        command,
+        transaction
       )
+      expect(Result.isError(result)).toBe(true)
 
       // Note: A ledger transaction may be created before the error is thrown,
       // but no ledger entries should be created

@@ -460,14 +460,15 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     // First call should create the usage credit
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return ledgerCommandForPaymentSucceeded(
+      const result = await ledgerCommandForPaymentSucceeded(
         { priceId: singlePaymentPrice.id, payment },
         transaction
       )
+      return result.unwrap()
     })
 
     // Second call should no-op due to unique index and bulkInsertOrDoNothing
-    const secondLedgerCommand = await adminTransaction(
+    const secondLedgerCommandResult = await adminTransaction(
       async (ctx) => {
         const { transaction } = ctx
         return ledgerCommandForPaymentSucceeded(
@@ -476,6 +477,7 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         )
       }
     )
+    const secondLedgerCommand = secondLedgerCommandResult.unwrap()
     expect(secondLedgerCommand).toBeUndefined()
 
     // Assert only one usage credit exists for this payment

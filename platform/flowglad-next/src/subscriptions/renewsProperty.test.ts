@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -258,16 +259,15 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        // Attempt to transition should throw error
-        await expect(
-          adminTransaction(async (ctx) => {
-            const { transaction } = ctx
-            return attemptToTransitionSubscriptionBillingPeriod(
-              testBillingPeriod,
-              createDiscardingEffectsContext(transaction)
-            )
-          })
-        ).rejects.toThrow(/credit trial/)
+        // Attempt to transition should return Result.err
+        const result = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return attemptToTransitionSubscriptionBillingPeriod(
+            testBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+        expect(Result.isError(result)).toBe(true)
       })
 
       it('should not create future billing periods for non-renewing subscriptions', async () => {

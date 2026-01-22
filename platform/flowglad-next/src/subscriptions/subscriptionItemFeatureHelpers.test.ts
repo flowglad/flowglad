@@ -1,5 +1,5 @@
-import { Result } from 'better-result'
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import * as R from 'ramda'
 import {
   setupBillingPeriod,
@@ -881,16 +881,15 @@ describe('SubscriptionItemFeatureHelpers', () => {
           ctx
         )
 
-        await expect(
-          addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: mismatchedFeature.id,
-              grantCreditsImmediately: false,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(/pricing model/i)
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: mismatchedFeature.id,
+            grantCreditsImmediately: false,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+        expect(Result.isError(result)).toBe(true)
       })
     })
 

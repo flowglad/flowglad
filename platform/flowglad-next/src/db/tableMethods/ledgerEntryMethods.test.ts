@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCreditLedgerEntry,
@@ -3662,13 +3663,13 @@ describe('ledgerEntryMethods', () => {
     describe('derivePricingModelIdForLedgerEntry', () => {
       it('should derive pricingModelId from subscription when subscriptionId is provided', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const pricingModelId =
-            await derivePricingModelIdForLedgerEntry(
-              {
-                subscriptionId: subscription.id,
-              },
-              transaction
-            )
+          const result = await derivePricingModelIdForLedgerEntry(
+            {
+              subscriptionId: subscription.id,
+            },
+            transaction
+          )
+          const pricingModelId = result.unwrap()
 
           expect(pricingModelId).toBe(subscription.pricingModelId)
           expect(pricingModelId).toBe(pricingModel.id)
@@ -3677,13 +3678,13 @@ describe('ledgerEntryMethods', () => {
 
       it('should derive pricingModelId from usage meter when usageMeterId is provided', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const pricingModelId =
-            await derivePricingModelIdForLedgerEntry(
-              {
-                usageMeterId: usageMeter.id,
-              },
-              transaction
-            )
+          const result = await derivePricingModelIdForLedgerEntry(
+            {
+              usageMeterId: usageMeter.id,
+            },
+            transaction
+          )
+          const pricingModelId = result.unwrap()
 
           expect(pricingModelId).toBe(usageMeter.pricingModelId)
           expect(pricingModelId).toBe(pricingModel.id)
@@ -3692,40 +3693,41 @@ describe('ledgerEntryMethods', () => {
 
       it('should prioritize subscriptionId over usageMeterId when both are provided', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const pricingModelId =
-            await derivePricingModelIdForLedgerEntry(
-              {
-                subscriptionId: subscription.id,
-                usageMeterId: usageMeter.id,
-              },
-              transaction
-            )
+          const result = await derivePricingModelIdForLedgerEntry(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+            },
+            transaction
+          )
+          const pricingModelId = result.unwrap()
 
           // Should use subscription's pricingModelId, not usage meter's
           expect(pricingModelId).toBe(subscription.pricingModelId)
         })
       })
 
-      it('should throw error when usage meter does not exist and no subscriptionId is provided', async () => {
+      it('should return Result.err when usage meter does not exist and no subscriptionId is provided', async () => {
         await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
-          await expect(
-            derivePricingModelIdForLedgerEntry(
-              {
-                usageMeterId: nonExistentUsageMeterId,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
+          const result = await derivePricingModelIdForLedgerEntry(
+            {
+              usageMeterId: nonExistentUsageMeterId,
+            },
+            transaction
+          )
+          expect(Result.isError(result)).toBe(true)
         })
       })
 
-      it('should throw error when neither subscriptionId nor usageMeterId is provided', async () => {
+      it('should return Result.err when neither subscriptionId nor usageMeterId is provided', async () => {
         await adminTransaction(async ({ transaction }) => {
-          await expect(
-            derivePricingModelIdForLedgerEntry({}, transaction)
-          ).rejects.toThrow()
+          const result = await derivePricingModelIdForLedgerEntry(
+            {},
+            transaction
+          )
+          expect(Result.isError(result)).toBe(true)
         })
       })
     })

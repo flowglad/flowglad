@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { addDays, addMonths, subMonths } from 'date-fns'
 import {
   setupBillingPeriod,
@@ -888,35 +889,34 @@ describe('pricingModelId derivation', () => {
       })
     })
 
-    it('should throw error when one billing period does not exist', async () => {
+    it('should return Result.err when one billing period does not exist', async () => {
       await adminTransaction(async ({ transaction }) => {
         const nonExistentBillingPeriodId = `bp_${core.nanoid()}`
 
-        await expect(
-          bulkInsertBillingPeriodItems(
-            [
-              {
-                billingPeriodId: billingPeriod.id,
-                quantity: 1,
-                unitPrice: 1000,
-                name: 'Test Item 1',
-                description: 'Test description 1',
-                type: SubscriptionItemType.Static,
-                livemode: true,
-              },
-              {
-                billingPeriodId: nonExistentBillingPeriodId,
-                quantity: 2,
-                unitPrice: 2000,
-                name: 'Test Item 2',
-                description: 'Test description 2',
-                type: SubscriptionItemType.Static,
-                livemode: true,
-              },
-            ],
-            transaction
-          )
-        ).rejects.toThrow()
+        const result = await bulkInsertBillingPeriodItems(
+          [
+            {
+              billingPeriodId: billingPeriod.id,
+              quantity: 1,
+              unitPrice: 1000,
+              name: 'Test Item 1',
+              description: 'Test description 1',
+              type: SubscriptionItemType.Static,
+              livemode: true,
+            },
+            {
+              billingPeriodId: nonExistentBillingPeriodId,
+              quantity: 2,
+              unitPrice: 2000,
+              name: 'Test Item 2',
+              description: 'Test description 2',
+              type: SubscriptionItemType.Static,
+              livemode: true,
+            },
+          ],
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
       })
     })
   })

@@ -14,6 +14,7 @@ import {
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
+  NotFoundError as TableNotFoundError,
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import { NotFoundError } from '@/errors'
@@ -90,7 +91,10 @@ export const derivePricingModelIdForLedgerEntry = async (
         )
       return Result.ok(pricingModelId)
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (
+        error instanceof NotFoundError ||
+        error instanceof TableNotFoundError
+      ) {
         return Result.err(
           new NotFoundError(
             'pricingModelId',
@@ -111,7 +115,10 @@ export const derivePricingModelIdForLedgerEntry = async (
       )
       return Result.ok(pricingModelId)
     } catch (error) {
-      if (error instanceof NotFoundError) {
+      if (
+        error instanceof NotFoundError ||
+        error instanceof TableNotFoundError
+      ) {
         return Result.err(
           new NotFoundError(
             'pricingModelId',

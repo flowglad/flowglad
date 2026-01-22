@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -653,13 +654,13 @@ describe('pricingModelId derivation', () => {
       })
     })
 
-    it('should throw error when one subscription item does not exist in bulk upsert', async () => {
+    it('should return Result.err when one subscription item does not exist in bulk upsert', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
 
-        await expect(
-          bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
+        const result =
+          await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
             [
               {
                 subscriptionItemId: subscriptionItem.id,
@@ -678,7 +679,7 @@ describe('pricingModelId derivation', () => {
             ],
             transaction
           )
-        ).rejects.toThrow()
+        expect(Result.isError(result)).toBe(true)
       })
     })
   })
