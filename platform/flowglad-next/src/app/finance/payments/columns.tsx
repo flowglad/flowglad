@@ -103,7 +103,13 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const status = row.getValue('status') as PaymentStatus
-      return <PaymentStatusTag status={status} />
+      return (
+        <PaymentStatusTag
+          status={status}
+          showTooltip
+          tooltipVariant="muted"
+        />
+      )
     },
     size: 115,
     minSize: 115,

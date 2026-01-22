@@ -86,7 +86,11 @@ export const createColumns = (
     cell: ({ row }) => {
       const active = row.getValue('active') as boolean
       return (
-        <ActiveStatusTag status={booleanToActiveStatus(active)} />
+        <ActiveStatusTag
+          status={booleanToActiveStatus(active)}
+          showTooltip
+          tooltipVariant="muted"
+        />
       )
     },
   },

@@ -15,42 +15,49 @@ export const purchaseStatusConfig = {
     label: 'Open',
     variant: 'info',
     icon: FileText,
-    tooltip: 'Purchase is open and awaiting payment.',
+    tooltip:
+      'Checkout started but not completed. Waiting for customer to submit payment.',
   },
   [PurchaseStatus.Pending]: {
     label: 'Pending',
     variant: 'warning',
     icon: Clock,
-    tooltip: 'Purchase is being processed.',
+    tooltip:
+      'Payment submitted. Waiting for confirmation from payment provider.',
   },
   [PurchaseStatus.Paid]: {
     label: 'Paid',
     variant: 'success',
     icon: Check,
-    tooltip: 'Purchase has been paid successfully.',
+    tooltip:
+      'Payment received. Product or subscription access granted.',
   },
   [PurchaseStatus.Failed]: {
     label: 'Failed',
     variant: 'destructive',
     icon: XCircle,
-    tooltip: 'Purchase payment failed.',
+    tooltip:
+      'Payment was declined or encountered an error. No charge was made.',
   },
   [PurchaseStatus.Refunded]: {
     label: 'Refunded',
     variant: 'muted',
     icon: RefreshCcw,
-    tooltip: 'Purchase was fully refunded.',
+    tooltip:
+      'Full refund issued. Customer has been credited the original amount.',
   },
   [PurchaseStatus.PartialRefund]: {
     label: 'Partial Refund',
     variant: 'warning',
     icon: RefreshCw,
-    tooltip: 'Purchase was partially refunded.',
+    tooltip:
+      'Partial refund issued. Customer received some but not all funds back.',
   },
   [PurchaseStatus.Fraudulent]: {
     label: 'Fraudulent',
     variant: 'destructive',
     icon: ShieldAlert,
-    tooltip: 'Purchase was flagged as fraudulent.',
+    tooltip:
+      'Flagged as potentially fraudulent. Review recommended before taking action.',
   },
 } satisfies Record<PurchaseStatus, StatusConfigItem>

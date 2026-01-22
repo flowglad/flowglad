@@ -15,45 +15,48 @@ export const paymentStatusConfig = {
     label: 'Processing',
     variant: 'info',
     icon: Clock,
-    tooltip: 'Payment is being processed by the payment provider.',
+    tooltip:
+      'Submitted to payment provider. Typically confirms within seconds.',
   },
   [PaymentStatus.Succeeded]: {
     label: 'Succeeded',
     variant: 'success',
     icon: Check,
-    tooltip: 'Payment completed successfully.',
+    tooltip:
+      'Successfully charged. Funds will be deposited to your account.',
   },
   [PaymentStatus.Failed]: {
     label: 'Failed',
     variant: 'destructive',
     icon: XCircle,
     tooltip:
-      'Payment failed. Customer may need to retry with a different payment method.',
+      'Charge was declined. Customer may need to update their payment method.',
   },
   [PaymentStatus.Canceled]: {
     label: 'Canceled',
     variant: 'muted',
     icon: X,
-    tooltip: 'Payment was canceled before completion.',
+    tooltip: 'Canceled before completion. No charge was made.',
   },
   [PaymentStatus.Refunded]: {
     label: 'Refunded',
     variant: 'muted',
     icon: RefreshCcw,
-    tooltip: 'Payment was refunded to the customer.',
+    tooltip:
+      'Funds returned to customer. May take 5–10 days to appear on their statement.',
   },
   [PaymentStatus.RequiresConfirmation]: {
     label: 'Needs Confirmation',
     variant: 'warning',
     icon: AlertCircle,
     tooltip:
-      'Payment requires additional confirmation before it can be processed.',
+      'Waiting for additional confirmation (e.g., bank approval).',
   },
   [PaymentStatus.RequiresAction]: {
     label: 'Action Required',
     variant: 'warning',
     icon: AlertTriangle,
     tooltip:
-      'Customer action required (e.g., 3D Secure authentication).',
+      'Customer must complete authentication (e.g., 3D Secure) to proceed.',
   },
 } satisfies Record<PaymentStatus, StatusConfigItem>

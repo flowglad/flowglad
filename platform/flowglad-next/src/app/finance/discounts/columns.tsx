@@ -178,6 +178,8 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
     cell: ({ row }) => (
       <ActiveStatusTag
         status={booleanToActiveStatus(row.getValue('active'))}
+        showTooltip
+        tooltipVariant="muted"
       />
     ),
     size: 110,

@@ -17,52 +17,52 @@ export const invoiceStatusConfig = {
     variant: 'muted',
     icon: FilePenLine,
     tooltip:
-      'Invoice has not been finalized. It can still be edited.',
+      'Editable invoice that has not been sent. Finalize to allow payment.',
   },
   [InvoiceStatus.Open]: {
     label: 'Open',
     variant: 'info',
     icon: FileText,
-    tooltip:
-      'Invoice is finalized and awaiting payment from the customer.',
+    tooltip: 'Finalized and sent. Waiting for customer payment.',
   },
   [InvoiceStatus.Paid]: {
     label: 'Paid',
     variant: 'success',
     icon: Check,
-    tooltip: 'Invoice has been paid in full.',
+    tooltip: 'Fully paid. No balance remaining.',
   },
   [InvoiceStatus.Uncollectible]: {
     label: 'Uncollectible',
     variant: 'destructive',
     icon: XCircle,
     tooltip:
-      'Invoice has been marked as uncollectible. Payment is not expected.',
+      'Marked as uncollectible after failed collection attempts. Closed without payment.',
   },
   [InvoiceStatus.Void]: {
     label: 'Void',
     variant: 'muted',
     icon: FileX,
-    tooltip: 'Invoice has been voided and is no longer valid.',
+    tooltip:
+      'Canceled and removed from customer balance. Cannot be paid or modified.',
   },
   [InvoiceStatus.FullyRefunded]: {
     label: 'Refunded',
     variant: 'muted',
     icon: RefreshCcw,
-    tooltip: 'Payment was fully refunded to the customer.',
+    tooltip: 'Originally paid, then fully refunded to the customer.',
   },
   [InvoiceStatus.PartiallyRefunded]: {
     label: 'Partial Refund',
     variant: 'warning',
     icon: RefreshCw,
     tooltip:
-      'Payment was partially refunded. Some amount is still retained.',
+      'Originally paid, then partially refunded. Remaining balance was retained.',
   },
   [InvoiceStatus.AwaitingPaymentConfirmation]: {
     label: 'Confirming',
     variant: 'info',
     icon: Clock,
     tooltip:
-      'Payment is being processed. Awaiting confirmation from payment provider.',
+      'Payment submitted. Waiting for confirmation from payment provider.',
   },
 } satisfies Record<InvoiceStatus, StatusConfigItem>

@@ -8,13 +8,14 @@ export const activeStatusConfig = {
     label: 'Active',
     variant: 'success',
     icon: Check,
-    tooltip: 'This item is currently active and available for use.',
+    tooltip:
+      'Enabled and operational. Will be used in applicable workflows.',
   },
   inactive: {
     label: 'Inactive',
     variant: 'muted',
     icon: X,
-    tooltip: 'This item is inactive and not available for use.',
+    tooltip: 'Disabled. Will not be used until reactivated.',
   },
 } satisfies Record<ActiveStatus, StatusConfigItem>
 

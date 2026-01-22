@@ -59,7 +59,13 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
     maxSize: 130,
     cell: ({ row }) => {
       const status = row.getValue('status') as PurchaseStatus
-      return <PurchaseStatusTag status={status} />
+      return (
+        <PurchaseStatusTag
+          status={status}
+          showTooltip
+          tooltipVariant="muted"
+        />
+      )
     },
   },
   {

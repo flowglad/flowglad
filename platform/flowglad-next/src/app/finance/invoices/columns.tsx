@@ -91,7 +91,13 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const invoice = row.original.invoice
-      return <InvoiceStatusTag status={invoice.status} />
+      return (
+        <InvoiceStatusTag
+          status={invoice.status}
+          showTooltip
+          tooltipVariant="muted"
+        />
+      )
     },
     size: 115,
     minSize: 115,

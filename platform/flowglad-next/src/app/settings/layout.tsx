@@ -1,5 +1,16 @@
 import SidebarLayout from '@/components/SidebarLayout'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
-const SettingsLayout = SidebarLayout
-
-export default SettingsLayout
+export default function SettingsLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <SidebarLayout>
+      <TooltipProvider delayDuration={300}>
+        {children}
+      </TooltipProvider>
+    </SidebarLayout>
+  )
+}

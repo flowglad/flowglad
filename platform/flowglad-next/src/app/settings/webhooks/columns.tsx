@@ -114,6 +114,8 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
     cell: ({ row }) => (
       <ActiveStatusTag
         status={booleanToActiveStatus(row.getValue('active'))}
+        showTooltip
+        tooltipVariant="muted"
       />
     ),
     size: 110,
