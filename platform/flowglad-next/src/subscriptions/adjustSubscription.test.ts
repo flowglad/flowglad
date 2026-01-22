@@ -2077,7 +2077,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(result.status).toBe('error')
         if (result.status === 'error') {
-          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error._tag).toBe('NotFoundError')
         }
         return Result.ok(null)
       })
@@ -2126,7 +2126,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(pastResult.status).toBe('error')
         if (pastResult.status === 'error') {
-          expect(pastResult.error._tag).toBe('ValidationError')
+          expect(pastResult.error._tag).toBe('NotFoundError')
         }
 
         await updateBillingPeriod(
@@ -2169,7 +2169,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
         expect(futureResult.status).toBe('error')
         if (futureResult.status === 'error') {
-          expect(futureResult.error._tag).toBe('ValidationError')
+          expect(futureResult.error._tag).toBe('NotFoundError')
         }
         return Result.ok(null)
       })
@@ -3204,7 +3204,7 @@ describe('adjustSubscription Integration Tests', async () => {
         if (result.status === 'error') {
           expect(result.error._tag).toBe('NotFoundError')
           expect(result.error.message).toContain(
-            'Price "nonexistent-slug" not found'
+            'Price not found: nonexistent-slug'
           )
         }
         return Result.ok(null)
