@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  extractSkillName,
   isDocFile,
   parseSkillMetadata,
-  SkillMetadata,
   validateBranchName,
   validateTimestamp,
 } from './check-skills-sync'
@@ -14,7 +14,9 @@ describe('validateBranchName', () => {
     expect(validateBranchName('release-1.0.0')).toBe(true)
     expect(validateBranchName('user_branch')).toBe(true)
     expect(validateBranchName('v1.2.3')).toBe(true)
-    expect(validateBranchName('feature/JIRA-123_description')).toBe(true)
+    expect(validateBranchName('feature/JIRA-123_description')).toBe(
+      true
+    )
     expect(validateBranchName('refs/heads/main')).toBe(true)
   })
 
@@ -35,10 +37,66 @@ describe('validateBranchName', () => {
   })
 })
 
+describe('extractSkillName', () => {
+  it('extracts skill name from standard skills/skills/<name>/SKILL.md path', () => {
+    expect(extractSkillName('skills/skills/setup/SKILL.md')).toBe(
+      'setup'
+    )
+    expect(extractSkillName('skills/skills/checkout/SKILL.md')).toBe(
+      'checkout'
+    )
+    expect(
+      extractSkillName('skills/skills/feature-gating/SKILL.md')
+    ).toBe('feature-gating')
+    expect(
+      extractSkillName('skills/skills/usage-tracking/SKILL.md')
+    ).toBe('usage-tracking')
+  })
+
+  it('extracts skill name from paths with additional prefix directories', () => {
+    expect(
+      extractSkillName('some/path/skills/skills/my-skill/SKILL.md')
+    ).toBe('my-skill')
+    expect(
+      extractSkillName(
+        '/absolute/path/to/repo/skills/skills/test/SKILL.md'
+      )
+    ).toBe('test')
+  })
+
+  it('returns full path when pattern does not match', () => {
+    // Missing skills/skills/ pattern
+    expect(extractSkillName('other/path/SKILL.md')).toBe(
+      'other/path/SKILL.md'
+    )
+
+    // Only one 'skills' directory
+    expect(extractSkillName('skills/setup/SKILL.md')).toBe(
+      'skills/setup/SKILL.md'
+    )
+
+    // Wrong filename
+    expect(extractSkillName('skills/skills/setup/README.md')).toBe(
+      'skills/skills/setup/README.md'
+    )
+  })
+
+  it('handles paths with special characters in skill name', () => {
+    expect(extractSkillName('skills/skills/my_skill/SKILL.md')).toBe(
+      'my_skill'
+    )
+    expect(extractSkillName('skills/skills/skill.v2/SKILL.md')).toBe(
+      'skill.v2'
+    )
+  })
+})
+
 describe('isDocFile', () => {
   it('returns true for .mdx files in platform/docs/', () => {
     expect(isDocFile('platform/docs/quickstart.mdx')).toBe(true)
-    expect(isDocFile('platform/docs/features/checkout-sessions.mdx')).toBe(true)
+    expect(
+      isDocFile('platform/docs/features/checkout-sessions.mdx')
+    ).toBe(true)
     expect(isDocFile('platform/docs/sdks/setup.mdx')).toBe(true)
   })
 
@@ -48,7 +106,9 @@ describe('isDocFile', () => {
   })
 
   it('returns true for files in platform/docs/snippets/', () => {
-    expect(isDocFile('platform/docs/snippets/setup-nextjs.mdx')).toBe(true)
+    expect(isDocFile('platform/docs/snippets/setup-nextjs.mdx')).toBe(
+      true
+    )
     expect(isDocFile('platform/docs/snippets/intro.md')).toBe(true)
   })
 
@@ -80,17 +140,21 @@ source_files:
 
 Some content here.`
 
-    const result = parseSkillMetadata(content, 'skills/skills/setup/SKILL.md')
+    const result = parseSkillMetadata(
+      content,
+      'skills/skills/setup/SKILL.md'
+    )
 
-    expect(result).not.toBeNull()
-    const metadata = result as SkillMetadata
-    expect(metadata.sourcesReviewed).toBe('2026-01-21T12:00:00Z')
-    expect(metadata.sourceFiles).toEqual([
-      'platform/docs/quickstart.mdx',
-      'platform/docs/sdks/setup.mdx',
-    ])
-    expect(metadata.path).toBe('skills/skills/setup/SKILL.md')
-    expect(metadata.name).toBe('setup')
+    // Verify result has expected structure (implicitly tests non-null)
+    expect(result).toMatchObject({
+      sourcesReviewed: '2026-01-21T12:00:00Z',
+      sourceFiles: [
+        'platform/docs/quickstart.mdx',
+        'platform/docs/sdks/setup.mdx',
+      ],
+      path: 'skills/skills/setup/SKILL.md',
+      name: 'setup',
+    })
   })
 
   it('parses metadata with a single source file', () => {
@@ -103,15 +167,16 @@ source_files:
 
 # Checkout`
 
-    const result = parseSkillMetadata(content, 'skills/skills/checkout/SKILL.md')
+    const result = parseSkillMetadata(
+      content,
+      'skills/skills/checkout/SKILL.md'
+    )
 
-    expect(result).not.toBeNull()
-    const metadata = result as SkillMetadata
-    expect(metadata.sourcesReviewed).toBe('2026-01-15T08:30:00Z')
-    expect(metadata.sourceFiles).toEqual([
-      'platform/docs/features/checkout-sessions.mdx',
-    ])
-    expect(metadata.name).toBe('checkout')
+    expect(result).toMatchObject({
+      sourcesReviewed: '2026-01-15T08:30:00Z',
+      sourceFiles: ['platform/docs/features/checkout-sessions.mdx'],
+      name: 'checkout',
+    })
   })
 
   it('parses metadata with empty source_files list', () => {
@@ -128,10 +193,10 @@ source_files:
       'skills/skills/standalone/SKILL.md'
     )
 
-    expect(result).not.toBeNull()
-    const metadata = result as SkillMetadata
-    expect(metadata.sourcesReviewed).toBe('2026-01-21T12:00:00Z')
-    expect(metadata.sourceFiles).toEqual([])
+    expect(result).toMatchObject({
+      sourcesReviewed: '2026-01-21T12:00:00Z',
+      sourceFiles: [],
+    })
   })
 
   it('returns null when metadata block is missing', () => {
@@ -139,7 +204,10 @@ source_files:
 
 This skill has no metadata block.`
 
-    const result = parseSkillMetadata(content, 'skills/skills/test/SKILL.md')
+    const result = parseSkillMetadata(
+      content,
+      'skills/skills/test/SKILL.md'
+    )
 
     expect(result).toBeNull()
   })
@@ -153,7 +221,10 @@ source_files:
 
 # Missing Marker`
 
-    const result = parseSkillMetadata(content, 'skills/skills/test/SKILL.md')
+    const result = parseSkillMetadata(
+      content,
+      'skills/skills/test/SKILL.md'
+    )
 
     expect(result).toBeNull()
   })
@@ -173,8 +244,7 @@ source_files:
       'some/path/skills/skills/my-skill/SKILL.md'
     )
 
-    expect(result).not.toBeNull()
-    expect((result as SkillMetadata).name).toBe('my-skill')
+    expect(result).toMatchObject({ name: 'my-skill' })
   })
 
   it('uses full path as name when skills directory structure is not found', () => {
@@ -189,8 +259,7 @@ source_files:
 
     const result = parseSkillMetadata(content, 'other/path/SKILL.md')
 
-    expect(result).not.toBeNull()
-    expect((result as SkillMetadata).name).toBe('other/path/SKILL.md')
+    expect(result).toMatchObject({ name: 'other/path/SKILL.md' })
   })
 
   it('handles metadata with extra whitespace', () => {
@@ -204,15 +273,18 @@ source_files:
 
 # Test`
 
-    const result = parseSkillMetadata(content, 'skills/skills/test/SKILL.md')
+    const result = parseSkillMetadata(
+      content,
+      'skills/skills/test/SKILL.md'
+    )
 
-    expect(result).not.toBeNull()
-    const metadata = result as SkillMetadata
-    expect(metadata.sourcesReviewed).toBe('2026-01-21T12:00:00Z')
-    expect(metadata.sourceFiles).toEqual([
-      'platform/docs/quickstart.mdx',
-      'platform/docs/setup.mdx',
-    ])
+    expect(result).toMatchObject({
+      sourcesReviewed: '2026-01-21T12:00:00Z',
+      sourceFiles: [
+        'platform/docs/quickstart.mdx',
+        'platform/docs/setup.mdx',
+      ],
+    })
   })
 
   it('parses metadata when YAML frontmatter precedes the HTML comment block', () => {
@@ -234,13 +306,16 @@ source_files:
 
 # Test Skill`
 
-    const result = parseSkillMetadata(content, 'skills/skills/test/SKILL.md')
+    const result = parseSkillMetadata(
+      content,
+      'skills/skills/test/SKILL.md'
+    )
 
-    expect(result).not.toBeNull()
-    const metadata = result as SkillMetadata
-    expect(metadata.sourcesReviewed).toBe('2026-01-21T12:00:00Z')
-    expect(metadata.sourceFiles).toEqual(['platform/docs/quickstart.mdx'])
-    expect(metadata.name).toBe('test')
+    expect(result).toMatchObject({
+      sourcesReviewed: '2026-01-21T12:00:00Z',
+      sourceFiles: ['platform/docs/quickstart.mdx'],
+      name: 'test',
+    })
   })
 })
 
@@ -253,7 +328,9 @@ describe('validateTimestamp', () => {
   it('returns undefined for valid timestamps that are later than the previous timestamp', () => {
     const oldTimestamp = '2025-01-15T12:00:00Z'
     const newTimestamp = '2025-01-20T12:00:00Z'
-    expect(validateTimestamp(newTimestamp, oldTimestamp)).toBeUndefined()
+    expect(
+      validateTimestamp(newTimestamp, oldTimestamp)
+    ).toBeUndefined()
   })
 
   it('returns error for timestamps with invalid format', () => {
@@ -265,7 +342,9 @@ describe('validateTimestamp', () => {
 
   it('returns error for timestamps in the future (beyond 10 second grace period)', () => {
     const futureDate = new Date(Date.now() + 60000) // 1 minute in future
-    const futureTimestamp = futureDate.toISOString().replace(/\.\d{3}Z$/, 'Z')
+    const futureTimestamp = futureDate
+      .toISOString()
+      .replace(/\.\d{3}Z$/, 'Z')
     const result = validateTimestamp(futureTimestamp, null)
     expect(result).toContain('in the future')
   })
@@ -287,8 +366,12 @@ describe('validateTimestamp', () => {
   it('allows timestamps within 10 second grace period of current time', () => {
     // Create a timestamp that is 5 seconds in the future (within grace period)
     const nearFuture = new Date(Date.now() + 5000)
-    const nearFutureTimestamp = nearFuture.toISOString().replace(/\.\d{3}Z$/, 'Z')
-    expect(validateTimestamp(nearFutureTimestamp, null)).toBeUndefined()
+    const nearFutureTimestamp = nearFuture
+      .toISOString()
+      .replace(/\.\d{3}Z$/, 'Z')
+    expect(
+      validateTimestamp(nearFutureTimestamp, null)
+    ).toBeUndefined()
   })
 
   it('handles timestamps with milliseconds in ISO format', () => {

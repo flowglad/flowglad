@@ -22,6 +22,17 @@ export interface SkillMetadata {
   name: string
 }
 
+export interface InvalidSkill {
+  path: string
+  absolutePath: string
+  reason: string
+}
+
+export interface SkillDiscoveryResult {
+  valid: SkillMetadata[]
+  invalid: InvalidSkill[]
+}
+
 interface SyncError {
   doc: string
   skill: string
@@ -94,6 +105,28 @@ function formatTimestampForDisplay(date: Date = new Date()): string {
 }
 
 /**
+ * Extracts the skill name from a skill file path.
+ *
+ * Expected path pattern: .../skills/skills/<skill-name>/SKILL.md
+ * The function explicitly looks for "skills/skills/<name>" pattern to avoid
+ * ambiguity when there are multiple "skills" directories in the path.
+ *
+ * @param skillPath - Relative or absolute path to the SKILL.md file
+ * @returns The skill name, or the full path if pattern doesn't match
+ */
+export function extractSkillName(skillPath: string): string {
+  // Match the explicit pattern: skills/skills/<name>/SKILL.md
+  // This handles both forward slashes and is explicit about the expected structure
+  const match = skillPath.match(/skills\/skills\/([^/]+)\/SKILL\.md$/)
+  if (match) {
+    return match[1]
+  }
+
+  // Fallback: return the full path if pattern doesn't match
+  return skillPath
+}
+
+/**
  * Parse the metadata block from a skill file.
  * Metadata is in an HTML comment at the top of the file:
  *
@@ -128,6 +161,7 @@ export function parseSkillMetadata(
     : ''
 
   // Parse source_files (YAML list)
+  // The regex matches one or more list items; empty lists return null and default to []
   const sourceFilesMatch = metadataBlock.match(
     /source_files:\s*\n((?:\s+-\s+.+(?:\n|$))+)/
   )
@@ -143,57 +177,62 @@ export function parseSkillMetadata(
     }
   }
 
-  // Extract skill name from path
-  const pathParts = skillPath.split('/')
-  const skillsIndex = pathParts.indexOf('skills')
-  const name =
-    skillsIndex >= 0 && pathParts.length > skillsIndex + 2
-      ? pathParts[skillsIndex + 2]
-      : skillPath
-
   return {
     sourcesReviewed,
     sourceFiles,
     path: skillPath,
-    name,
+    name: extractSkillName(skillPath),
   }
 }
 
 /**
- * Get all skill files and their metadata
+ * Discovers all skill files in the repository and categorizes them as valid or invalid.
+ *
+ * This function scans the skills/skills/ directory for SKILL.md files and attempts
+ * to parse their metadata. Skills with valid metadata are returned in the `valid` array,
+ * while skills with missing or malformed metadata are returned in the `invalid` array.
+ *
+ * @param repoRoot - Absolute path to the repository root
+ * @returns Object containing arrays of valid skills and invalid skills
  */
-function getAllSkills(repoRoot: string): SkillMetadata[] {
+export function discoverAllSkills(
+  repoRoot: string
+): SkillDiscoveryResult {
   const skillsDir = join(repoRoot, 'skills', 'skills')
-  const skills: SkillMetadata[] = []
+  const result: SkillDiscoveryResult = {
+    valid: [],
+    invalid: [],
+  }
 
   if (!existsSync(skillsDir)) {
     console.log(`Skills directory not found: ${skillsDir}`)
-    return skills
+    return result
   }
 
   const entries = readdirSync(skillsDir, { withFileTypes: true })
 
   for (const entry of entries) {
     if (entry.isDirectory()) {
-      const skillPath = join(skillsDir, entry.name, 'SKILL.md')
-      if (existsSync(skillPath)) {
-        const content = readFileSync(skillPath, 'utf-8')
-        const metadata = parseSkillMetadata(
-          content,
-          relative(repoRoot, skillPath)
-        )
+      const absolutePath = join(skillsDir, entry.name, 'SKILL.md')
+      if (existsSync(absolutePath)) {
+        const relativePath = relative(repoRoot, absolutePath)
+        const content = readFileSync(absolutePath, 'utf-8')
+        const metadata = parseSkillMetadata(content, relativePath)
+
         if (metadata) {
-          skills.push(metadata)
+          result.valid.push(metadata)
         } else {
-          console.warn(
-            `Warning: Skill file missing metadata block: ${skillPath}`
-          )
+          result.invalid.push({
+            path: relativePath,
+            absolutePath,
+            reason: 'Missing required @flowglad/skill metadata block',
+          })
         }
       }
     }
   }
 
-  return skills
+  return result
 }
 
 /**
@@ -252,26 +291,35 @@ export function isDocFile(filePath: string): boolean {
 /**
  * Check if the sources_reviewed timestamp was changed in this PR
  * and validate that the new timestamp is valid.
+ *
+ * @param skillPath - Relative path to the skill file (e.g., "skills/skills/setup/SKILL.md")
+ * @param baseBranch - The base branch to compare against (e.g., "main")
+ * @param repoRoot - Absolute path to the repository root
+ * @returns Result indicating if timestamp was updated and any validation errors
  */
 function checkTimestampUpdate(
   skillPath: string,
-  baseBranch: string
+  baseBranch: string,
+  repoRoot: string
 ): TimestampCheckResult {
   try {
-    // Get the current (HEAD) version
-    const currentContent = readFileSync(skillPath, 'utf-8')
+    // Get the current (HEAD) version using absolute path
+    const absoluteSkillPath = join(repoRoot, skillPath)
+    const currentContent = readFileSync(absoluteSkillPath, 'utf-8')
     const currentMetadata = parseSkillMetadata(
       currentContent,
       skillPath
     )
 
     // Get the base branch version using spawnSync for safety
+    // Note: git show uses the relative path from repo root
     const showResult = spawnSync(
       'git',
       ['show', `origin/${baseBranch}:${skillPath}`],
       {
         encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
+        cwd: repoRoot,
       }
     )
 
@@ -322,6 +370,26 @@ function checkTimestampUpdate(
 }
 
 /**
+ * Prints a detailed error message for a skill missing metadata and exits.
+ */
+function reportMissingMetadataAndExit(
+  invalidSkill: InvalidSkill
+): never {
+  console.error(`\nError: Skill file missing required metadata block`)
+  console.error(`  File: ${invalidSkill.absolutePath}`)
+  console.error(`  Reason: ${invalidSkill.reason}`)
+  console.error(``)
+  console.error(`  Required format at the top of the file:`)
+  console.error(`  <!--`)
+  console.error(`  @flowglad/skill`)
+  console.error(`  sources_reviewed: YYYY-MM-DDTHH:MM:SSZ`)
+  console.error(`  source_files:`)
+  console.error(`    - platform/docs/path/to/source.mdx`)
+  console.error(`  -->`)
+  process.exit(1)
+}
+
+/**
  * Main function
  */
 async function main(): Promise<void> {
@@ -360,41 +428,14 @@ async function main(): Promise<void> {
   }
   console.log('')
 
-  // Get all skills and their metadata
-  const skills = getAllSkills(repoRoot)
+  // Discover all skills and check for any with missing metadata
+  const { valid: skills, invalid: invalidSkills } =
+    discoverAllSkills(repoRoot)
   console.log(`Found ${skills.length} skills with metadata`)
 
-  // Check for skills without metadata (error case)
-  const skillsDir = join(repoRoot, 'skills', 'skills')
-  if (existsSync(skillsDir)) {
-    const entries = readdirSync(skillsDir, { withFileTypes: true })
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const skillPath = join(skillsDir, entry.name, 'SKILL.md')
-        if (existsSync(skillPath)) {
-          const content = readFileSync(skillPath, 'utf-8')
-          const metadata = parseSkillMetadata(
-            content,
-            relative(repoRoot, skillPath)
-          )
-          if (!metadata) {
-            console.error(
-              `\nError: Skill file missing required metadata block`
-            )
-            console.error(`  File: ${skillPath}`)
-            console.error(``)
-            console.error(`  Required format at the top of the file:`)
-            console.error(`  <!--`)
-            console.error(`  @flowglad/skill`)
-            console.error(`  sources_reviewed: YYYY-MM-DDTHH:MM:SSZ`)
-            console.error(`  source_files:`)
-            console.error(`    - platform/docs/path/to/source.mdx`)
-            console.error(`  -->`)
-            process.exit(1)
-          }
-        }
-      }
-    }
+  // Fail immediately if any skills are missing metadata
+  if (invalidSkills.length > 0) {
+    reportMissingMetadataAndExit(invalidSkills[0])
   }
 
   console.log('')
@@ -409,7 +450,11 @@ async function main(): Promise<void> {
     )
 
     for (const skill of affectedSkills) {
-      const result = checkTimestampUpdate(skill.path, baseBranch)
+      const result = checkTimestampUpdate(
+        skill.path,
+        baseBranch,
+        repoRoot
+      )
 
       // Timestamp must always be updated when source docs change
       if (!result.updated) {
