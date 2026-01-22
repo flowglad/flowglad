@@ -2,6 +2,7 @@ import { TRPCError } from '@trpc/server'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   integer,
   pgTable,
   text,
@@ -224,6 +225,17 @@ export const prices = pgTable(
             ))
           )`,
     }),
+    // CHECK constraint: enforce mutual exclusivity between productId and usageMeterId based on price type
+    // Usage prices: must have usageMeterId, must NOT have productId
+    // Non-usage prices: must have productId, must NOT have usageMeterId
+    check(
+      'prices_product_usage_meter_mutual_exclusivity',
+      sql`(
+        ("type" = 'usage' AND "product_id" IS NULL AND "usage_meter_id" IS NOT NULL)
+        OR
+        ("type" != 'usage' AND "product_id" IS NOT NULL AND "usage_meter_id" IS NULL)
+      )`
+    ),
   ])
 ).enableRLS()
 
@@ -284,10 +296,9 @@ const subscriptionPriceColumns = {
 
 /**
  * Usage price columns.
- * Note: productId is handled differently for insert vs select schemas:
+ * Note: productId is null for usage prices - they belong to usage meters, not products.
  * - Insert: accepts null/undefined via safeZodNullOrUndefined
- * - Select (v1): coerces any existing productId value to null via z.any().transform(() => null)
- * This allows migration of existing records while enforcing null for new records.
+ * - Select (v2 strict): requires productId to be null, rejects non-null values
  */
 const usagePriceColumns = {
   ...subscriptionPriceColumns,
@@ -302,13 +313,8 @@ const usagePriceColumns = {
   ),
   type: z.literal(PriceType.Usage),
   // Override productId: usage prices don't have a productId (it's null)
-  // v1: coerce to null regardless of input (for migration compatibility)
-  // Uses z.unknown() to accept any input type, then transforms to null
-  // .pipe(z.null()) is required for OpenAPI schema generation compatibility
-  productId: z
-    .unknown()
-    .transform(() => null as null)
-    .pipe(z.null()),
+  // v2 strict: requires productId to be null, rejects non-null values
+  productId: z.null(),
 }
 
 /**

@@ -223,7 +223,7 @@ export const getTableRows = protectedProcedure
       z.object({
         active: z.boolean().optional(),
         pricingModelId: z.string().optional(),
-        excludeUsageProducts: z.boolean().optional(),
+        excludeProductsWithNoPrices: z.boolean().optional(),
       })
     )
   )

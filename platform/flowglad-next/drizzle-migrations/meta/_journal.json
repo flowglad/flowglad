@@ -1947,6 +1947,13 @@
       "when": 1768943179069,
       "tag": "0278_lovely_goliath",
       "breakpoints": true
+    },
+    {
+      "idx": 279,
+      "version": "7",
+      "when": 1768948359543,
+      "tag": "0279_funny_namor",
+      "breakpoints": true
     }
   ]
 }
