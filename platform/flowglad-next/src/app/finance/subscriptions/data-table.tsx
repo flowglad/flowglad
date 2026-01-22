@@ -29,7 +29,6 @@ import {
 import type { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
 import { columns } from './columns'
-import { mockSubscriptionsData } from './mock-data'
 
 export interface SubscriptionsTableFilters {
   status?: SubscriptionStatus
@@ -102,11 +101,6 @@ interface SubscriptionsDataTableProps {
   hiddenColumns?: string[]
   /** Default plan type filter value. Defaults to 'paid'. */
   defaultPlanType?: 'all' | 'paid' | 'free'
-  /**
-   * When true, displays mock data showing all subscription status variants.
-   * Useful for development and testing. This can be deleted once no longer needed.
-   */
-  useMockData?: boolean
 }
 
 export function SubscriptionsDataTable({
@@ -115,7 +109,6 @@ export function SubscriptionsDataTable({
   onCreateSubscription,
   hiddenColumns = [],
   defaultPlanType = 'paid',
-  useMockData = false,
 }: SubscriptionsDataTableProps) {
   const router = useRouter()
 
@@ -259,10 +252,7 @@ export function SubscriptionsDataTable({
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
-  // When useMockData is true, use mock data instead of fetched data
-  const tableData = useMockData
-    ? mockSubscriptionsData
-    : data?.items || []
+  const tableData = data?.items || []
 
   const table = useReactTable({
     data: tableData,
@@ -278,9 +268,7 @@ export function SubscriptionsDataTable({
     manualPagination: true,
     manualSorting: true,
     manualFiltering: true,
-    pageCount: useMockData
-      ? Math.ceil(mockSubscriptionsData.length / currentPageSize)
-      : Math.ceil((data?.total || 0) / currentPageSize),
+    pageCount: Math.ceil((data?.total || 0) / currentPageSize),
     onColumnSizingChange: setColumnSizing,
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: (updater) => {
@@ -386,7 +374,7 @@ export function SubscriptionsDataTable({
           ))}
         </TableHeader>
         <TableBody>
-          {isLoading && !useMockData ? (
+          {isLoading ? (
             <TableRow>
               <TableCell
                 colSpan={columns.length}
@@ -399,7 +387,7 @@ export function SubscriptionsDataTable({
             table.getRowModel().rows.map((row) => (
               <TableRow
                 key={row.id}
-                className={`cursor-pointer ${isFetching && !useMockData ? 'opacity-50' : ''}`}
+                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
                 onClick={(e) => {
                   // Only navigate if not clicking on interactive elements
                   const target = e.target as HTMLElement
@@ -443,13 +431,9 @@ export function SubscriptionsDataTable({
       <div className="py-2 px-6">
         <DataTablePagination
           table={table}
-          totalCount={
-            useMockData ? mockSubscriptionsData.length : data?.total
-          }
+          totalCount={data?.total}
           isFiltered={hasActiveFilters || !!searchQuery}
-          filteredCount={
-            useMockData ? mockSubscriptionsData.length : data?.total
-          }
+          filteredCount={data?.total}
           entityName="subscription"
         />
       </div>

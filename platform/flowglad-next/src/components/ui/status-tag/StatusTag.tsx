@@ -76,6 +76,7 @@ export function StatusTag<T extends string>({
         variant="outline"
         role="status"
         aria-label="Unknown status"
+        className="font-medium"
       >
         Unknown
       </Badge>
@@ -112,6 +113,7 @@ export function StatusTag<T extends string>({
       className={cn(
         variantStyles[variant],
         sizeStyles[size],
+        'font-medium',
         // Make focusable for keyboard accessibility when tooltip is shown
         showTooltip &&
           'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',

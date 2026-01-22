@@ -282,10 +282,10 @@ describe('purchaseStatusConfig', () => {
     expect(typeof config.icon).toBe('function')
   })
 
-  it('maps PurchaseStatus.Pending to "warning" variant with Clock icon', () => {
+  it('maps PurchaseStatus.Pending to "info" variant with Clock icon (waiting on payment provider)', () => {
     const config = purchaseStatusConfig[PurchaseStatus.Pending]
 
-    expect(config.variant).toBe('warning')
+    expect(config.variant).toBe('info')
     expect(config.label).toBe('Pending')
     expect(typeof config.icon).toBe('function')
   })

@@ -20,7 +20,7 @@ export const purchaseStatusConfig = {
   },
   [PurchaseStatus.Pending]: {
     label: 'Pending',
-    variant: 'warning',
+    variant: 'info',
     icon: Clock,
     tooltip:
       'Payment submitted. Waiting for confirmation from payment provider.',

@@ -189,7 +189,7 @@
     --jade-foreground: 152 41.3% 24.7%;
     --jade-muted-foreground: 152 37.8% 38.4%;
     --jade-background: 153 61% 90%;
-    --jade-border: 152 41.3% 24.7% / 20%;
+    --jade-border: 152 41.3% 24.7% / 15%;
 
     --brownstone-foreground: 28 68% 30%;
     --brownstone-muted-foreground: 28 55% 45%;
@@ -206,10 +206,10 @@
     --amethyst-background: 251 45% 94%;
     --amethyst-border: 251 35% 45% / 18%;
 
-    --citrine-foreground: 49 70% 28%;
-    --citrine-muted-foreground: 49 55% 42%;
-    --citrine-background: 49 60% 88%;
-    --citrine-border: 49 70% 28% / 20%;
+    --citrine-foreground: 49 68% 26%;
+    --citrine-muted-foreground: 49 56% 40%;
+    --citrine-background: 49 61% 88%;
+    --citrine-border: 49 68% 26% / 20%;
 
     /* Status Badge Colors - Light Mode */
     --status-destructive-bg: 0 55% 95%;
@@ -260,7 +260,7 @@
     --jade-foreground: 153 48% 83%;
     --jade-muted-foreground: 152 45% 66%;
     --jade-background: 152 39% 31% / 33%;
-    --jade-border: 153 48% 83% / 20%;
+    --jade-border: 153 48% 83% / 15%;
 
     --brownstone-foreground: 28 75% 78%;
     --brownstone-muted-foreground: 28 60% 62%;
@@ -277,10 +277,10 @@
     --amethyst-background: 251 35% 35% / 28%;
     --amethyst-border: 251 40% 82% / 18%;
 
-    --citrine-foreground: 49 85% 78%;
-    --citrine-muted-foreground: 49 72% 62%;
-    --citrine-background: 49 78% 32% / 33%;
-    --citrine-border: 49 85% 78% / 20%;
+    --citrine-foreground: 49 88% 80%;
+    --citrine-muted-foreground: 49 74% 64%;
+    --citrine-background: 49 86% 32% / 33%;
+    --citrine-border: 49 88% 80% / 20%;
 
     /* Status Badge Colors - Dark Mode */
     --status-destructive-bg: 0 45% 40% / 25%;
