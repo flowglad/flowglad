@@ -1,4 +1,14 @@
-import { beforeAll } from 'vitest'
+/**
+ * Integration test setup for bun:test
+ *
+ * This runs before integration tests to set up the environment and seed the database.
+ * Unlike unit tests, integration tests make real API calls to Stripe and other services.
+ */
+
+// Import mocks first (required for bun:test)
+import './bun.mocks'
+
+import { beforeAll } from 'bun:test'
 import { seedDatabase } from './seedDatabase'
 
 // NO MSW servers - we want real API calls
