@@ -13,10 +13,14 @@ export default async function OrgRequiredLayout({
     headers: await headers(),
   })
 
+  if (!session?.user) {
+    redirect('/sign-in')
+  }
+
   const activeOrganizationId = session?.session?.activeOrganizationId
 
   if (!activeOrganizationId) {
-    redirect('/create-org')
+    redirect('/select-org')
   }
 
   return (
