@@ -128,7 +128,7 @@ describe('createNonInvoiceCheckoutSession', () => {
 
     it('should allow creating checkout sessions for non-default products', async () => {
       // This test verifies that the existing functionality still works for non-default products
-      const checkoutSession = await adminTransaction(
+      const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
           createNonInvoiceCheckoutSession(
             {
@@ -138,6 +138,7 @@ describe('createNonInvoiceCheckoutSession', () => {
             transaction
           )
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(typeof checkoutSession.stripePaymentIntentId).toBe(
         'string'
@@ -151,7 +152,7 @@ describe('createNonInvoiceCheckoutSession', () => {
 
   describe('Product checkout sessions', () => {
     it('should create a checkout session for a SinglePayment product', async () => {
-      const checkoutSession = await adminTransaction(
+      const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
           createNonInvoiceCheckoutSession(
             {
@@ -161,6 +162,7 @@ describe('createNonInvoiceCheckoutSession', () => {
             transaction
           )
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(typeof checkoutSession.stripePaymentIntentId).toBe(
         'string'
@@ -178,7 +180,7 @@ describe('createNonInvoiceCheckoutSession', () => {
     })
 
     it('should create a checkout session for a Subscription product', async () => {
-      const checkoutSession = await adminTransaction(
+      const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
           createNonInvoiceCheckoutSession(
             {
@@ -188,6 +190,7 @@ describe('createNonInvoiceCheckoutSession', () => {
             transaction
           )
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(checkoutSession.stripePaymentIntentId).toBeNull()
       expect(typeof checkoutSession.stripeSetupIntentId).toBe(
@@ -205,7 +208,7 @@ describe('createNonInvoiceCheckoutSession', () => {
     })
 
     it('should create a checkout session for a Usage-based product', async () => {
-      const checkoutSession = await adminTransaction(
+      const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
           createNonInvoiceCheckoutSession(
             {
@@ -215,6 +218,7 @@ describe('createNonInvoiceCheckoutSession', () => {
             transaction
           )
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(typeof checkoutSession.stripeSetupIntentId).toBe(
         'string'
@@ -233,7 +237,7 @@ describe('createNonInvoiceCheckoutSession', () => {
 
   describe('Add payment method checkout sessions', () => {
     it('should create a checkout session for AddPaymentMethod', async () => {
-      const checkoutSession = await adminTransaction(
+      const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
           createNonInvoiceCheckoutSession(
             {
@@ -245,6 +249,7 @@ describe('createNonInvoiceCheckoutSession', () => {
             transaction
           )
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(typeof checkoutSession.stripeSetupIntentId).toBe(
         'string'
@@ -270,7 +275,7 @@ describe('createNonInvoiceCheckoutSession', () => {
         livemode: false,
       })
 
-      const checkoutSession = await adminTransaction(
+      const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
           createNonInvoiceCheckoutSession(
             {
@@ -281,6 +286,7 @@ describe('createNonInvoiceCheckoutSession', () => {
             transaction
           )
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
       expect(checkoutSession.pricingModelId).toBe(
@@ -298,7 +304,7 @@ describe('createNonInvoiceCheckoutSession', () => {
         livemode: false,
       })
 
-      const checkoutSession = await adminTransaction(
+      const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
           createNonInvoiceCheckoutSession(
             {
@@ -309,6 +315,7 @@ describe('createNonInvoiceCheckoutSession', () => {
             transaction
           )
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
       expect(checkoutSession.pricingModelId).toBe(
@@ -326,7 +333,7 @@ describe('createNonInvoiceCheckoutSession', () => {
         livemode: false,
       })
 
-      const checkoutSession = await adminTransaction(
+      const checkoutSessionResult = await adminTransaction(
         async ({ transaction }) =>
           createNonInvoiceCheckoutSession(
             {
@@ -337,6 +344,7 @@ describe('createNonInvoiceCheckoutSession', () => {
             transaction
           )
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(checkoutSession.pricingModelId).toBe(pricingModel.id)
       expect(checkoutSession.pricingModelId).toBe(

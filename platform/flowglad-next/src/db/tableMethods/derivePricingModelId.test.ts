@@ -12,6 +12,7 @@ import {
   setupUsageMeter,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import { ValidationError } from '@/errors'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -315,17 +316,17 @@ describe('derivePricingModelIdForCheckoutSession', () => {
 
   it('should derive pricingModelId from priceId when provided (Product session)', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdForCheckoutSession(
-          {
-            priceId: price.id,
-            purchaseId: null,
-            invoiceId: null,
-            customerId: null,
-            type: CheckoutSessionType.Product,
-          },
-          transaction
-        )
+      const result = await derivePricingModelIdForCheckoutSession(
+        {
+          priceId: price.id,
+          purchaseId: null,
+          invoiceId: null,
+          customerId: null,
+          type: CheckoutSessionType.Product,
+        },
+        transaction
+      )
+      const derivedPricingModelId = result.unwrap()
 
       expect(derivedPricingModelId).toBe(product.pricingModelId)
       expect(derivedPricingModelId).toBe(pricingModel.id)
@@ -341,17 +342,17 @@ describe('derivePricingModelIdForCheckoutSession', () => {
     })
 
     await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdForCheckoutSession(
-          {
-            priceId: price.id,
-            purchaseId: null,
-            invoiceId: null,
-            customerId: customer.id,
-            type: CheckoutSessionType.ActivateSubscription,
-          },
-          transaction
-        )
+      const result = await derivePricingModelIdForCheckoutSession(
+        {
+          priceId: price.id,
+          purchaseId: null,
+          invoiceId: null,
+          customerId: customer.id,
+          type: CheckoutSessionType.ActivateSubscription,
+        },
+        transaction
+      )
+      const derivedPricingModelId = result.unwrap()
 
       expect(derivedPricingModelId).toBe(product.pricingModelId)
       expect(derivedPricingModelId).toBe(subscription.pricingModelId)
@@ -361,17 +362,17 @@ describe('derivePricingModelIdForCheckoutSession', () => {
 
   it('should derive pricingModelId from purchaseId when priceId not provided (Purchase session)', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdForCheckoutSession(
-          {
-            priceId: null,
-            purchaseId: purchase.id,
-            invoiceId: null,
-            customerId: null,
-            type: CheckoutSessionType.Purchase,
-          },
-          transaction
-        )
+      const result = await derivePricingModelIdForCheckoutSession(
+        {
+          priceId: null,
+          purchaseId: purchase.id,
+          invoiceId: null,
+          customerId: null,
+          type: CheckoutSessionType.Purchase,
+        },
+        transaction
+      )
+      const derivedPricingModelId = result.unwrap()
 
       expect(derivedPricingModelId).toBe(purchase.pricingModelId)
       expect(derivedPricingModelId).toBe(pricingModel.id)
@@ -380,39 +381,42 @@ describe('derivePricingModelIdForCheckoutSession', () => {
 
   it('should derive pricingModelId from customerId for AddPaymentMethod session when other IDs not provided', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
-        await derivePricingModelIdForCheckoutSession(
-          {
-            priceId: null,
-            purchaseId: null,
-            invoiceId: null,
-            customerId: customer.id,
-            type: CheckoutSessionType.AddPaymentMethod,
-          },
-          transaction
-        )
+      const result = await derivePricingModelIdForCheckoutSession(
+        {
+          priceId: null,
+          purchaseId: null,
+          invoiceId: null,
+          customerId: customer.id,
+          type: CheckoutSessionType.AddPaymentMethod,
+        },
+        transaction
+      )
+      const derivedPricingModelId = result.unwrap()
 
       expect(derivedPricingModelId).toBe(customer.pricingModelId)
       expect(derivedPricingModelId).toBe(pricingModel.id)
     })
   })
 
-  it('should throw an error when no valid parent is provided', async () => {
+  it('should return error when no valid parent is provided', async () => {
     await adminTransaction(async ({ transaction }) => {
-      await expect(
-        derivePricingModelIdForCheckoutSession(
-          {
-            priceId: null,
-            purchaseId: null,
-            invoiceId: null,
-            customerId: null,
-            type: CheckoutSessionType.Product,
-          },
-          transaction
-        )
-      ).rejects.toThrow(
-        'pricingModelId for checkout session not found: no valid parent (priceId, purchaseId, invoiceId, or customerId) found'
+      const result = await derivePricingModelIdForCheckoutSession(
+        {
+          priceId: null,
+          purchaseId: null,
+          invoiceId: null,
+          customerId: null,
+          type: CheckoutSessionType.Product,
+        },
+        transaction
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.message).toBe(
+          'Invalid checkoutSession: Cannot derive pricingModelId for checkout session: no valid parent found'
+        )
+      }
     })
   })
 
@@ -544,7 +548,7 @@ describe('insertCheckoutSession with derived pricingModelId', () => {
 
   it('should automatically derive and set pricingModelId when inserting Product checkout session', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const checkoutSession = await insertCheckoutSession(
+      const checkoutSessionResult = await insertCheckoutSession(
         {
           organizationId: organization.id,
           type: CheckoutSessionType.Product,
@@ -572,6 +576,7 @@ describe('insertCheckoutSession with derived pricingModelId', () => {
         },
         transaction
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       expect(checkoutSession.pricingModelId).toBe(
         product.pricingModelId

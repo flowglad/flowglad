@@ -2834,7 +2834,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('should throw error for paid subscription without payment method (security)', async () => {
+    it('returns ValidationError when paid subscription has no payment method (security)', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
@@ -3806,7 +3806,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('should handle authentication correctly and return proper error for paid subscription without payment method', async () => {
+    it('returns ValidationError when paid subscription has no payment method via procedure transaction', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()

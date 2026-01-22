@@ -317,11 +317,12 @@ describe('Process setup intent', async () => {
           checkoutSession.id,
           transaction
         )
-        await safelyUpdateCheckoutSessionStatus(
+        const statusResult = await safelyUpdateCheckoutSessionStatus(
           checkoutSession,
           CheckoutSessionStatus.Succeeded,
           transaction
         )
+        statusResult.unwrap()
       })
 
       await expect(
@@ -396,11 +397,12 @@ describe('Process setup intent', async () => {
           checkoutSession.id,
           transaction
         )
-        await safelyUpdateCheckoutSessionStatus(
+        const statusResult = await safelyUpdateCheckoutSessionStatus(
           checkoutSession,
           CheckoutSessionStatus.Succeeded,
           transaction
         )
+        statusResult.unwrap()
       })
 
       const result = await adminTransaction(

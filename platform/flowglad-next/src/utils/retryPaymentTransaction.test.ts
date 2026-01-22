@@ -106,14 +106,14 @@ describe('retryPaymentTransaction', () => {
       }
     )
 
-    const retriedPayment = await adminTransaction(
-      async ({ transaction }) => {
+    const retriedPayment = (
+      await adminTransaction(async ({ transaction }) => {
         return retryPaymentTransaction(
           { id: updatedFailedPayment.id },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(retriedPayment.id).not.toBe(updatedFailedPayment.id)
     expect(retriedPayment.stripeChargeId).not.toBe(

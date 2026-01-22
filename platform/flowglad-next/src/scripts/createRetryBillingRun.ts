@@ -39,7 +39,7 @@ async function createRetryBillingRun(db: PostgresJsDatabase) {
       transaction
     )
     const scheduledFor = new Date()
-    const billingRun = await createBillingRun(
+    const billingRunResult = await createBillingRun(
       {
         billingPeriod: billingPeriod,
         paymentMethod,
@@ -47,6 +47,7 @@ async function createRetryBillingRun(db: PostgresJsDatabase) {
       },
       transaction
     )
+    const billingRun = billingRunResult.unwrap()
     console.log(
       `Billing run created for billing period ${params.billing_period_id}, scheduled for ${scheduledFor},`
     )
