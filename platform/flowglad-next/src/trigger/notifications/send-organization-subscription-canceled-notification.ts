@@ -1,7 +1,14 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Membership } from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
 import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
+import { NotFoundError } from '@/db/tableUtils'
 import { OrganizationSubscriptionCanceledNotificationEmail } from '@/email-templates/organization-subscription-notifications'
+import { ValidationError } from '@/errors'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
@@ -15,26 +22,33 @@ import {
 import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
-const sendOrganizationSubscriptionCanceledNotificationTask = task({
-  id: 'send-organization-subscription-canceled-notification',
-  run: async (
-    {
-      subscription,
-    }: {
-      subscription: Subscription.Record
-    },
-    { ctx }
-  ) => {
+/**
+ * Core run function for send-organization-subscription-canceled-notification task.
+ * Exported for testing purposes.
+ */
+export const runSendOrganizationSubscriptionCanceledNotification =
+  async (params: { subscription: Subscription.Record }) => {
+    const { subscription } = params
     logger.log(
       'Sending organization subscription canceled notification',
       {
         subscription,
-        ctx,
       }
     )
 
-    const { organization, customer, usersAndMemberships } =
-      await adminTransaction(async ({ transaction }) => {
+    let dataResult: Result<
+      {
+        organization: Organization.Record
+        customer: Customer.Record
+        usersAndMemberships: Array<{
+          user: User.Record
+          membership: Membership.Record
+        }>
+      },
+      NotFoundError | ValidationError
+    >
+    try {
+      const data = await adminTransaction(async ({ transaction }) => {
         return buildNotificationContext(
           {
             organizationId: subscription.organizationId,
@@ -44,6 +58,30 @@ const sendOrganizationSubscriptionCanceledNotificationTask = task({
           transaction
         )
       })
+      dataResult = Result.ok(data)
+    } catch (error) {
+      // Only convert NotFoundError to Result.err; rethrow other errors
+      // for Trigger.dev to retry (e.g., transient DB failures)
+      if (error instanceof NotFoundError) {
+        dataResult = Result.err(error)
+      } else if (
+        error instanceof Error &&
+        error.message.includes('not found')
+      ) {
+        // Handle errors from buildNotificationContext
+        dataResult = Result.err(
+          new NotFoundError('Resource', error.message)
+        )
+      } else {
+        throw error
+      }
+    }
+
+    if (Result.isError(dataResult)) {
+      return dataResult
+    }
+    const { organization, customer, usersAndMemberships } =
+      dataResult.value
 
     const eligibleRecipients = filterEligibleRecipients(
       usersAndMemberships,
@@ -52,9 +90,9 @@ const sendOrganizationSubscriptionCanceledNotificationTask = task({
     )
 
     if (eligibleRecipients.length === 0) {
-      return {
+      return Result.ok({
         message: 'No recipients opted in for this notification',
-      }
+      })
     }
 
     const recipientEmails = eligibleRecipients
@@ -64,9 +102,9 @@ const sendOrganizationSubscriptionCanceledNotificationTask = task({
       )
 
     if (recipientEmails.length === 0) {
-      return {
+      return Result.ok({
         message: 'No valid email addresses for eligible recipients',
-      }
+      })
     }
 
     await safeSend({
@@ -95,10 +133,24 @@ const sendOrganizationSubscriptionCanceledNotificationTask = task({
       }),
     })
 
-    return {
+    return Result.ok({
       message:
         'Organization subscription canceled notification sent successfully',
-    }
+    })
+  }
+
+const sendOrganizationSubscriptionCanceledNotificationTask = task({
+  id: 'send-organization-subscription-canceled-notification',
+  run: async (
+    payload: {
+      subscription: Subscription.Record
+    },
+    { ctx }
+  ) => {
+    logger.log('Task context', { ctx })
+    return runSendOrganizationSubscriptionCanceledNotification(
+      payload
+    )
   },
 })
 
