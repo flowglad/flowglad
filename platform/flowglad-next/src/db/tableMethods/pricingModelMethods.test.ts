@@ -321,29 +321,30 @@ describe('safelyInsertPricingModel', () => {
     expect(testModeDefaultPricingModel.isDefault).toBe(true)
     expect(testModeDefaultPricingModel.livemode).toBe(false)
 
-    // Insert a new default for livemode: true
-    const newLivemodeDefault = await adminTransaction(async (ctx) => {
+    // Insert a new default for livemode: false (testmode)
+    // This should only affect the testmode default, not the livemode default
+    const newTestmodeDefault = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return safelyInsertPricingModel(
         {
-          name: 'New Live Mode Default PricingModel',
+          name: 'New Test Mode Default PricingModel',
           organizationId: organization.id,
           isDefault: true,
-          livemode: true,
+          livemode: false,
         },
         ctx
       )
     })
 
-    // Check that only the livemode: true default was affected
-    const refreshedOldLivemodeDefault = await adminTransaction(
+    // Check that only the livemode: false (testmode) default was affected
+    const refreshedLivemodeDefault = await adminTransaction(
       async ({ transaction }) =>
         selectPricingModelById(
           existingDefaultPricingModel.id,
           transaction
         )
     )
-    const refreshedTestModeDefault = await adminTransaction(
+    const refreshedOldTestModeDefault = await adminTransaction(
       async ({ transaction }) =>
         selectPricingModelById(
           testModeDefaultPricingModel.id,
@@ -351,17 +352,17 @@ describe('safelyInsertPricingModel', () => {
         )
     )
 
-    // New livemode pricing model should be default
-    expect(newLivemodeDefault.isDefault).toBe(true)
-    expect(newLivemodeDefault.livemode).toBe(true)
+    // New testmode pricing model should be default
+    expect(newTestmodeDefault.isDefault).toBe(true)
+    expect(newTestmodeDefault.livemode).toBe(false)
 
-    // Old livemode default should no longer be default
-    expect(refreshedOldLivemodeDefault.isDefault).toBe(false)
-    expect(refreshedOldLivemodeDefault.livemode).toBe(true)
+    // Old testmode default should no longer be default
+    expect(refreshedOldTestModeDefault.isDefault).toBe(false)
+    expect(refreshedOldTestModeDefault.livemode).toBe(false)
 
-    // Test mode default should remain unchanged
-    expect(refreshedTestModeDefault.isDefault).toBe(true)
-    expect(refreshedTestModeDefault.livemode).toBe(false)
+    // Livemode default should remain unchanged
+    expect(refreshedLivemodeDefault.isDefault).toBe(true)
+    expect(refreshedLivemodeDefault.livemode).toBe(true)
   })
 })
 

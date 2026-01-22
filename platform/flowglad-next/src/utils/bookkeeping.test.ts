@@ -1058,7 +1058,7 @@ describe('createCustomerBookkeeping', () => {
 
 describe('createPricingModelBookkeeping', () => {
   let organizationId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     // Set up a basic organization

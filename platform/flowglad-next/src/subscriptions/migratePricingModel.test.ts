@@ -1326,7 +1326,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: withAdminCacheContext({
                 transaction,
-                livemode: true,
+                livemode: false,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1372,7 +1372,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: withAdminCacheContext({
                 transaction,
-                livemode: true,
+                livemode: false,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1398,7 +1398,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: withAdminCacheContext({
                 transaction,
-                livemode: true,
+                livemode: false,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1426,7 +1426,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: withAdminCacheContext({
                 transaction,
-                livemode: true,
+                livemode: false,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1460,7 +1460,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: withAdminCacheContext({
                 transaction,
-                livemode: true,
+                livemode: false,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1511,7 +1511,7 @@ describe('Pricing Model Migration Test Suite', async () => {
               },
               transactionCtx: withAdminCacheContext({
                 transaction,
-                livemode: true,
+                livemode: false,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
@@ -1740,7 +1740,7 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             transactionCtx: withAdminCacheContext({
               transaction,
-              livemode: true,
+              livemode: false,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,

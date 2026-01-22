@@ -70,9 +70,28 @@ describe('clonePricingModelTransaction', () => {
   beforeEach(async () => {
     const orgSetup = await setupOrg()
     organization = orgSetup.organization
-    product = orgSetup.product
-    price = orgSetup.price
-    sourcePricingModel = orgSetup.pricingModel
+    // Use a testmode pricing model as the source to avoid unique constraint
+    // violations when cloning (since setupOrg already creates a livemode PM)
+    sourcePricingModel = await setupPricingModel({
+      organizationId: organization.id,
+      name: 'Testmode Source Pricing Model',
+      livemode: false,
+    })
+    // Create testmode product and price for the source PM
+    product = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: sourcePricingModel.id,
+      name: 'Testmode Product',
+      livemode: false,
+    })
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Testmode Price',
+      livemode: false,
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      isDefault: true,
+    })
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: organization.id,
       livemode: false,
