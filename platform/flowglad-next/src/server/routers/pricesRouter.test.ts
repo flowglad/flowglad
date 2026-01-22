@@ -2271,6 +2271,12 @@ describe('pricesRouter - No Charge Price Protection', () => {
         id: regularUsagePriceId,
       })
 
+      // Verify no_charge price is now non-default before we test setting it back
+      const intermediateState = await pricesRouter
+        .createCaller(ctx)
+        .get({ id: noChargePriceId })
+      expect(intermediateState.price.isDefault).toBe(false)
+
       // Now update the no_charge price including the unchanged slug in the payload
       // This should NOT trigger the reserved slug validation since the slug is unchanged
       const result = await pricesRouter.createCaller(ctx).update({
