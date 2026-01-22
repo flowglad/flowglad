@@ -381,6 +381,27 @@ describe('safelyInsertPricingModel', () => {
     expect(refreshedLivemodeDefault.isDefault).toBe(true)
     expect(refreshedLivemodeDefault.livemode).toBe(true)
   })
+
+  it('should reject inserting a second livemode pricing model with the expected error message', async () => {
+    // setupOrg already creates a livemode pricing model (existingLivemodeDefaultPricingModel)
+    // Attempting to insert another livemode PM should throw an error
+
+    await expect(
+      adminTransaction(async (ctx) => {
+        return safelyInsertPricingModel(
+          {
+            name: 'Second Livemode PricingModel',
+            organizationId: organization.id,
+            isDefault: false,
+            livemode: true, // This should be rejected
+          },
+          ctx
+        )
+      })
+    ).rejects.toThrow(
+      'Organization already has a livemode pricing model. Only one livemode pricing model is allowed per organization.'
+    )
+  })
 })
 
 describe('selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere', () => {

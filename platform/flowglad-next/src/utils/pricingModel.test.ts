@@ -1486,6 +1486,28 @@ describe('clonePricingModelTransaction', () => {
       expect(finalTestmodeDefault.isDefault).toBe(true)
       expect(finalTestmodeDefault.livemode).toBe(false)
     })
+
+    it('should reject cloning to livemode when organization already has a livemode pricing model', async () => {
+      // setupOrg creates a livemode pricing model, so attempting to clone
+      // another pricing model to livemode should fail with the expected error
+
+      await expect(
+        adminTransaction(async (ctx) => {
+          return clonePricingModelTransaction(
+            {
+              id: sourcePricingModel.id,
+              name: 'Attempted Livemode Clone',
+              destinationEnvironment: DestinationEnvironment.Livemode,
+            },
+            ctx
+          )
+        })
+      ).rejects.toThrow(
+        'Cannot clone to livemode: Your organization already has a livemode pricing model. ' +
+          'Each organization can have at most one livemode pricing model. ' +
+          'To clone this pricing model, please select "Test mode" as the destination environment instead.'
+      )
+    })
   })
 
   describe('Parent Association Validation', () => {

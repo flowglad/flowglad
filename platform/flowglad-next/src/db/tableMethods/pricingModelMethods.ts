@@ -163,28 +163,30 @@ export const selectDefaultPricingModel = async (
 }
 
 /**
- * Counts the number of livemode pricing models for an organization.
+ * Checks if an organization already has a livemode pricing model.
  * Used to enforce the constraint that each organization can have at most
  * one livemode pricing model.
  *
+ * Uses EXISTS for efficiency since we only need to check existence, not count.
+ *
  * @param organizationId - The organization to check
  * @param transaction - Database transaction
- * @returns The count of livemode pricing models for the organization
+ * @returns true if a livemode pricing model exists, false otherwise
  */
-export const countLivemodePricingModels = async (
+export const hasLivemodePricingModel = async (
   organizationId: string,
   transaction: DbTransaction
-): Promise<number> => {
+): Promise<boolean> => {
   const result = await transaction
-    .select({ count: sql<number>`COUNT(*)`.mapWith(Number) })
-    .from(pricingModels)
-    .where(
-      and(
-        eq(pricingModels.organizationId, organizationId),
-        eq(pricingModels.livemode, true)
-      )
-    )
-  return result[0]?.count ?? 0
+    .select({
+      exists: sql<boolean>`EXISTS (
+        SELECT 1 FROM ${pricingModels}
+        WHERE ${pricingModels.organizationId} = ${organizationId}
+        AND ${pricingModels.livemode} = true
+      )`.mapWith(Boolean),
+    })
+    .from(sql`(SELECT 1) AS dummy`)
+  return result[0]?.exists ?? false
 }
 
 export const makePricingModelDefault = async (
@@ -276,11 +278,11 @@ export const safelyInsertPricingModel = async (
 ) => {
   // Check if org already has a livemode pricing model
   if (pricingModel.livemode) {
-    const existingCount = await countLivemodePricingModels(
+    const exists = await hasLivemodePricingModel(
       pricingModel.organizationId,
       ctx.transaction
     )
-    if (existingCount >= 1) {
+    if (exists) {
       throw new Error(
         'Organization already has a livemode pricing model. Only one livemode pricing model is allowed per organization.'
       )

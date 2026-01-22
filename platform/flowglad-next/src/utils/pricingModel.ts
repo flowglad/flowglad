@@ -26,7 +26,7 @@ import {
   selectPricesAndProductsByProductWhere,
 } from '@/db/tableMethods/priceMethods'
 import {
-  countLivemodePricingModels,
+  hasLivemodePricingModel,
   insertPricingModel,
   selectPricingModelById,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
@@ -480,11 +480,11 @@ export const clonePricingModelTransaction = async (
 
   // Validate livemode uniqueness before creating
   if (livemode) {
-    const existingCount = await countLivemodePricingModels(
+    const exists = await hasLivemodePricingModel(
       pricingModel.organizationId,
       transaction
     )
-    if (existingCount >= 1) {
+    if (exists) {
       throw new Error(
         'Cannot clone to livemode: Your organization already has a livemode pricing model. ' +
           'Each organization can have at most one livemode pricing model. ' +
