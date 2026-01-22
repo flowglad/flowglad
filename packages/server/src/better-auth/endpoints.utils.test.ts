@@ -6,7 +6,6 @@ import {
   getStringProp,
   isAdapterLike,
   isRecord,
-  stringOrFallback,
 } from './endpoints'
 import type { BetterAuthSessionResult } from './types'
 
@@ -24,18 +23,6 @@ describe('endpoints.ts utilities', () => {
     it('returns true for plain objects', () => {
       expect(isRecord({})).toBe(true)
       expect(isRecord({ a: 1 })).toBe(true)
-    })
-  })
-
-  describe('stringOrFallback', () => {
-    it('returns the value when it is a string (including empty string)', () => {
-      expect(stringOrFallback('hello', 'fallback')).toBe('hello')
-      expect(stringOrFallback('', 'fallback')).toBe('')
-    })
-
-    it('returns the fallback when value is null or undefined', () => {
-      expect(stringOrFallback(null, 'fallback')).toBe('fallback')
-      expect(stringOrFallback(undefined, 'fallback')).toBe('fallback')
     })
   })
 
