@@ -1,4 +1,5 @@
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -15,8 +16,11 @@ import {
 
 describe('trpcErrorHandler', () => {
   beforeEach(() => {
-    mock.clearAllMocks()
     spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    mock.restore()
   })
 
   describe('extractErrorDetails', () => {

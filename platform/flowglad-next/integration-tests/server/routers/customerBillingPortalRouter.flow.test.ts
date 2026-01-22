@@ -217,7 +217,7 @@ beforeEach(async () => {
 })
 
 afterEach(() => {
-  mock.clearAllMocks()
+  mock.restore()
 })
 
 // Create a context for testing the procedures

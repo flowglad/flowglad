@@ -40,6 +40,52 @@ This includes:
 
 This tells Vitest to run that specific test file in a jsdom environment.
 
+### bun:test Patterns and Pitfalls
+
+**Mock Restoration**: When using `spyOn()`, always use `mock.restore()` in `afterEach` - not `mock.clearAllMocks()`. The difference:
+- `mock.clearAllMocks()` - Only resets call counts and arguments
+- `mock.restore()` - Actually restores the original function implementations
+
+Without `mock.restore()`, spied functions leak across test files causing mysterious failures.
+
+```typescript
+import { afterEach, beforeEach, mock, spyOn } from 'bun:test'
+
+beforeEach(() => {
+  spyOn(someModule, 'someFunction').mockResolvedValue(mockValue)
+})
+
+afterEach(() => {
+  mock.restore() // REQUIRED - restores original implementations
+})
+```
+
+**Assertion Patterns**: Avoid `.resolves.not.toThrow()` - it doesn't work correctly in bun:test for functions that return values. Instead, just await the function:
+
+```typescript
+// BAD - returns "Thrown value: undefined" even on success
+await expect(someAsyncFunction()).resolves.not.toThrow()
+
+// GOOD - if it throws, the test fails
+await someAsyncFunction()
+```
+
+**Database Result Ordering**: Never assume database query ordering unless explicitly specified. Sort results before asserting:
+
+```typescript
+// BAD - assumes database returns items in a specific order
+expect(result[0].name).toBe('Item 1')
+
+// GOOD - sort first for deterministic assertions
+const sorted = [...result].sort((a, b) => a.name.localeCompare(b.name))
+expect(sorted[0].name).toBe('Item 1')
+```
+
+**Filtering Tests**: Use `--test-name-pattern` to filter by test name:
+```bash
+bun test --test-name-pattern "should insert usage event"
+```
+
 ## When Writing TRPC Code
 1. Always specify mutation and query outputs using `.output()`
 2. If possible, do not write raw ORM code in the procedures. It's pure tech debt. Instead, use db/tableMethods/fooMethods.ts where you can.

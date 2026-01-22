@@ -1080,7 +1080,7 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
   })
 
   afterEach(() => {
-    mock.clearAllMocks()
+    mock.restore()
   })
 
   it('should fail when price is not accessible to customer (from different organization)', async () => {
