@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, DollarSign, Plus } from 'lucide-react'
+import { DollarSign, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -14,6 +14,10 @@ import { SubscriptionResourceUsage } from '@/components/subscriptions/Subscripti
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
+  statusConfigToPageHeaderBadge,
+  subscriptionStatusConfig,
+} from '@/components/ui/status-tag'
+import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
@@ -23,10 +27,7 @@ import { useAuthContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModel } from '@/db/schema/pricingModels'
-import {
-  getSubscriptionDateInfo,
-  getSubscriptionStatusBadge,
-} from '@/lib/subscription-utils'
+import { getSubscriptionDateInfo } from '@/lib/subscription-utils'
 import type { RichSubscription } from '@/subscriptions/schemas'
 import {
   FeatureType,
@@ -117,7 +118,10 @@ const InnerSubscriptionPage = ({
     return <div>Loading...</div>
   }
 
-  const statusBadge = getSubscriptionStatusBadge(subscription.status)
+  const statusBadge = statusConfigToPageHeaderBadge(
+    subscription.status,
+    subscriptionStatusConfig
+  )
 
   return (
     <PageContainer>
@@ -131,18 +135,7 @@ const InnerSubscriptionPage = ({
           badges={[
             {
               ...statusBadge,
-              label: (
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>{statusBadge.label}</span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>Status</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ),
+              tooltip: 'Subscription status',
             },
             ...(pricingModel
               ? [

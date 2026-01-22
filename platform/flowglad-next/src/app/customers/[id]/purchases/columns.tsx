@@ -1,14 +1,13 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
+import { PurchaseStatusTag } from '@/components/ui/status-tag'
 import type { Customer } from '@/db/schema/customers'
 import type { Purchase } from '@/db/schema/purchases'
-import { CurrencyCode } from '@/types'
+import { CurrencyCode, PurchaseStatus } from '@/types'
 import { formatDate } from '@/utils/core'
-import { getPurchaseStatusLabel } from '@/utils/purchaseHelpers'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
 export type PurchaseTableRowData = {
@@ -16,25 +15,6 @@ export type PurchaseTableRowData = {
   customer: Customer.ClientRecord
   revenue?: number
   currency: CurrencyCode
-}
-
-const PurchaseStatusCell = ({
-  purchase,
-}: {
-  purchase: Purchase.ClientRecord
-}) => {
-  const badgeLabel = getPurchaseStatusLabel(purchase)
-  let badgeClassName: string = 'bg-muted text-muted-foreground'
-
-  if (purchase.purchaseDate && !purchase.endDate) {
-    badgeClassName = 'bg-jade-background text-jade-foreground'
-  }
-
-  return (
-    <Badge variant="secondary" className={badgeClassName}>
-      {badgeLabel}
-    </Badge>
-  )
 }
 
 export const columns: ColumnDef<PurchaseTableRowData>[] = [
@@ -73,14 +53,14 @@ export const columns: ColumnDef<PurchaseTableRowData>[] = [
   },
   {
     id: 'status',
-    accessorFn: (row) => getPurchaseStatusLabel(row.purchase),
+    accessorFn: (row) => row.purchase.status,
     header: 'Status',
     size: 110,
     minSize: 110,
     maxSize: 130,
     cell: ({ row }) => {
-      const purchase = row.original.purchase
-      return <PurchaseStatusCell purchase={purchase} />
+      const status = row.getValue('status') as PurchaseStatus
+      return <PurchaseStatusTag status={status} />
     },
   },
   {

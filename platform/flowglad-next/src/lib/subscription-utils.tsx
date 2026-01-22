@@ -135,6 +135,11 @@ export function getSubscriptionDateInfo(subscription: {
  * Converts a subscription status to a badge configuration with appropriate icon and variant
  * @param status - The subscription status to convert
  * @returns StatusBadge configuration for the PageHeaderNew component
+ *
+ * @deprecated Use `statusConfigToPageHeaderBadge` from `@/components/ui/status-tag` instead.
+ * @example
+ * import { statusConfigToPageHeaderBadge, subscriptionStatusConfig } from '@/components/ui/status-tag'
+ * const badge = statusConfigToPageHeaderBadge(subscription.status, subscriptionStatusConfig)
  */
 export function getSubscriptionStatusBadge(
   status: SubscriptionStatus

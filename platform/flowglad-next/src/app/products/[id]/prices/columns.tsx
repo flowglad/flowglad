@@ -5,10 +5,13 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { ChartColumnIncreasing, RotateCw } from 'lucide-react'
 import * as React from 'react'
 import PricingCellView from '@/components/PricingCellView'
-import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { Checkbox } from '@/components/ui/checkbox'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 // Other imports
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
@@ -88,7 +91,9 @@ export const columns: ColumnDef<PriceTableRowData>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const active = row.getValue('active') as boolean
-      return <StatusBadge active={active} />
+      return (
+        <ActiveStatusTag status={booleanToActiveStatus(active)} />
+      )
     },
     size: 110,
     minSize: 105,

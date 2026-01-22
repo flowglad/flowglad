@@ -1,0 +1,304 @@
+/**
+ * @vitest-environment jsdom
+ */
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
+import { TooltipProvider } from '@/components/ui/tooltip'
+import { createStatusTag } from './createStatusTag'
+import { StatusTag } from './StatusTag'
+import type { StatusConfigItem } from './types'
+
+// Test icons as simple components
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <span data-testid="check-icon" className={className}>
+      ✓
+    </span>
+  )
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <span data-testid="x-icon" className={className}>
+      ✗
+    </span>
+  )
+}
+
+// Test config with known values
+const testConfig = {
+  active: {
+    label: 'Active',
+    variant: 'success' as const,
+    icon: CheckIcon,
+    tooltip: 'This is active',
+  },
+  pending: {
+    label: 'Pending',
+    variant: 'warning' as const,
+    tooltip: 'This is pending',
+    // No icon defined
+  },
+  canceled: {
+    label: 'Canceled',
+    variant: 'muted' as const,
+    icon: XIcon,
+    // No tooltip defined
+  },
+} satisfies Record<string, StatusConfigItem>
+
+describe('StatusTag', () => {
+  describe('rendering with valid config', () => {
+    it('renders "Active" label with success variant classes when status is "active"', () => {
+      render(<StatusTag status="active" config={testConfig} />)
+
+      const badge = screen.getByRole('status')
+      expect(badge).toHaveTextContent('Active')
+      expect(badge).toHaveClass('bg-status-success-bg')
+      expect(badge).toHaveClass('text-status-success-fg')
+      expect(badge).toHaveAttribute('aria-label', 'Active')
+    })
+
+    it('renders Check icon when status is "active" and config defines an icon', () => {
+      render(<StatusTag status="active" config={testConfig} />)
+
+      expect(screen.getByTestId('check-icon')).toBeInTheDocument()
+    })
+
+    it('renders without icon when status is "pending" and config has no icon defined', () => {
+      render(<StatusTag status="pending" config={testConfig} />)
+
+      expect(
+        screen.queryByTestId('check-icon')
+      ).not.toBeInTheDocument()
+      expect(screen.queryByTestId('x-icon')).not.toBeInTheDocument()
+    })
+
+    it('hides icon when showIcon={false} even if config defines an icon', () => {
+      render(
+        <StatusTag
+          status="active"
+          config={testConfig}
+          showIcon={false}
+        />
+      )
+
+      expect(
+        screen.queryByTestId('check-icon')
+      ).not.toBeInTheDocument()
+    })
+
+    it('overrides label when label prop is provided', () => {
+      render(
+        <StatusTag
+          status="active"
+          config={testConfig}
+          label="Custom Label"
+        />
+      )
+
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Custom Label'
+      )
+      expect(screen.getByRole('status')).not.toHaveTextContent(
+        'Active'
+      )
+    })
+  })
+
+  describe('size variants', () => {
+    it('applies px-2 and text-xs classes when size="sm"', () => {
+      render(
+        <StatusTag status="active" config={testConfig} size="sm" />
+      )
+
+      const badge = screen.getByRole('status')
+      expect(badge).toHaveClass('px-2')
+      expect(badge).toHaveClass('text-xs')
+    })
+
+    it('applies px-2.5 classes when size="md" (default)', () => {
+      render(<StatusTag status="active" config={testConfig} />)
+
+      const badge = screen.getByRole('status')
+      expect(badge).toHaveClass('px-2.5')
+    })
+  })
+
+  describe('tooltip behavior', () => {
+    it('does not render tooltip content when showTooltip is false', () => {
+      render(
+        <TooltipProvider>
+          <StatusTag
+            status="active"
+            config={testConfig}
+            showTooltip={false}
+          />
+        </TooltipProvider>
+      )
+
+      expect(
+        screen.queryByText('This is active')
+      ).not.toBeInTheDocument()
+    })
+
+    it('renders tooltip content when showTooltip is true and user hovers', async () => {
+      render(
+        <TooltipProvider delayDuration={0}>
+          <StatusTag
+            status="active"
+            config={testConfig}
+            showTooltip
+          />
+        </TooltipProvider>
+      )
+
+      const badge = screen.getByRole('status')
+      fireEvent.mouseEnter(badge)
+
+      await waitFor(() => {
+        expect(screen.getByText('This is active')).toBeInTheDocument()
+      })
+    })
+
+    it('does not render tooltip when showTooltip is true but config has no tooltip', async () => {
+      render(
+        <TooltipProvider delayDuration={0}>
+          <StatusTag
+            status="canceled"
+            config={testConfig}
+            showTooltip
+          />
+        </TooltipProvider>
+      )
+
+      const badge = screen.getByRole('status')
+      fireEvent.mouseEnter(badge)
+
+      // Badge should still render, but no tooltip content
+      expect(badge).toHaveTextContent('Canceled')
+      // Give some time for potential tooltip to render
+      await new Promise((resolve) => setTimeout(resolve, 100))
+      // Tooltip content should not appear since config has no tooltip
+      expect(screen.queryByRole('tooltip')).not.toBeInTheDocument()
+    })
+
+    it('overrides tooltip text when tooltip prop is provided', async () => {
+      render(
+        <TooltipProvider delayDuration={0}>
+          <StatusTag
+            status="active"
+            config={testConfig}
+            showTooltip
+            tooltip="Custom tooltip"
+          />
+        </TooltipProvider>
+      )
+
+      const badge = screen.getByRole('status')
+      fireEvent.mouseEnter(badge)
+
+      await waitFor(() => {
+        expect(screen.getByText('Custom tooltip')).toBeInTheDocument()
+      })
+      expect(
+        screen.queryByText('This is active')
+      ).not.toBeInTheDocument()
+    })
+
+    it('adds tabIndex={0} for keyboard accessibility when showTooltip is true', () => {
+      render(
+        <TooltipProvider>
+          <StatusTag
+            status="active"
+            config={testConfig}
+            showTooltip
+          />
+        </TooltipProvider>
+      )
+
+      expect(screen.getByRole('status')).toHaveAttribute(
+        'tabIndex',
+        '0'
+      )
+    })
+
+    it('does not add tabIndex when showTooltip is false', () => {
+      render(
+        <StatusTag
+          status="active"
+          config={testConfig}
+          showTooltip={false}
+        />
+      )
+
+      expect(screen.getByRole('status')).not.toHaveAttribute(
+        'tabIndex'
+      )
+    })
+  })
+
+  describe('unknown status handling', () => {
+    it('throws Error with status name in message when config is missing in development', () => {
+      const originalEnv = process.env.NODE_ENV
+      vi.stubEnv('NODE_ENV', 'development')
+
+      expect(() => {
+        // @ts-expect-error - Testing with unknown status value
+        render(<StatusTag status="unknown" config={testConfig} />)
+      }).toThrow('[StatusTag] Missing config for status: "unknown"')
+
+      vi.stubEnv('NODE_ENV', originalEnv)
+    })
+
+    it('renders Badge with "Unknown" text when status not in config and NODE_ENV is production', () => {
+      const originalEnv = process.env.NODE_ENV
+      vi.stubEnv('NODE_ENV', 'production')
+
+      // @ts-expect-error - Testing with nonexistent status value
+      render(<StatusTag status="nonexistent" config={testConfig} />)
+
+      expect(screen.getByRole('status')).toHaveTextContent('Unknown')
+      expect(screen.getByRole('status')).toHaveAttribute(
+        'aria-label',
+        'Unknown status'
+      )
+
+      vi.stubEnv('NODE_ENV', originalEnv)
+    })
+  })
+
+  describe('accessibility', () => {
+    it('renders with role="status" attribute', () => {
+      render(<StatusTag status="active" config={testConfig} />)
+
+      expect(screen.getByRole('status')).toBeInTheDocument()
+    })
+
+    it('sets aria-hidden="true" on icon element', () => {
+      const { container } = render(
+        <StatusTag status="active" config={testConfig} />
+      )
+
+      const icon = container.querySelector(
+        '[data-testid="check-icon"]'
+      )?.parentElement
+      expect(icon).toHaveAttribute('aria-hidden', 'true')
+    })
+  })
+})
+
+describe('createStatusTag', () => {
+  it('creates component that renders status without requiring config prop', () => {
+    const TestStatusTag = createStatusTag(testConfig)
+
+    render(<TestStatusTag status="active" />)
+
+    expect(screen.getByRole('status')).toHaveTextContent('Active')
+  })
+})
