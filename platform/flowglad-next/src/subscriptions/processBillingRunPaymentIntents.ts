@@ -313,10 +313,9 @@ export const processOutcomeForBillingRun = async (
       `Invoice for billing period ${billingRun.billingPeriodId} not found.`
     )
   }
-  const { payment } = await processPaymentIntentStatusUpdated(
-    event,
-    ctx
-  )
+  const { payment } = (
+    await processPaymentIntentStatusUpdated(event, ctx)
+  ).unwrap()
 
   if (billingRunStatus === BillingRunStatus.Succeeded) {
     await createStripeTaxTransactionIfNeededForPayment(

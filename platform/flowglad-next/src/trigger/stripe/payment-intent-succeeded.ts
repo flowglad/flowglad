@@ -57,11 +57,12 @@ export const stripePaymentIntentSucceededTask = task({
         const { invoice, organization, customer, payment, purchase } =
           await comprehensiveAdminTransaction(async (ctx) => {
             const { transaction } = ctx
-            const { payment } =
+            const { payment } = (
               await processPaymentIntentStatusUpdated(
                 payload.data.object,
                 ctx
               )
+            ).unwrap()
 
             // Only fetch purchase if purchaseId exists
             const purchase = payment.purchaseId

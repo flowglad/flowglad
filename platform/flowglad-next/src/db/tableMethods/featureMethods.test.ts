@@ -399,11 +399,12 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: SubscriptionItemType.Static,
           })
 
-          const createdFeatures =
+          const createdFeatures = (
             await createSubscriptionFeatureItems(
               [newSubscriptionItem],
               transaction
             )
+          ).unwrap()
 
           // Should not create any features because the productFeature is expired
           expect(createdFeatures.length).toBe(0)
@@ -490,11 +491,12 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: SubscriptionItemType.Static,
           })
 
-          const createdFeatures =
+          const createdFeatures = (
             await createSubscriptionFeatureItems(
               [newSubscriptionItem],
               transaction
             )
+          ).unwrap()
 
           // Should create the feature because productFeature is unexpired
           expect(createdFeatures.length).toBeGreaterThan(0)
@@ -518,11 +520,12 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: SubscriptionItemType.Static,
           })
 
-          const featuresWhileInactive =
+          const featuresWhileInactive = (
             await createSubscriptionFeatureItems(
               [itemWhileInactive],
               transaction
             )
+          ).unwrap()
 
           // Should not have the feature
           expect(featuresWhileInactive.length).toBe(0)

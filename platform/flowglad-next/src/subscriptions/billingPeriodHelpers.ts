@@ -29,6 +29,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import {
   releaseAllResourceClaimsForSubscription,
   releaseExpiredResourceClaims,
@@ -140,7 +141,15 @@ export const billingPeriodAndItemsInsertsFromSubscription = (
 export const createBillingPeriodAndItems = async (
   params: CreateBillingPeriodParams,
   transaction: DbTransaction
-) => {
+): Promise<
+  Result<
+    {
+      billingPeriod: BillingPeriod.Record
+      billingPeriodItems: BillingPeriodItem.Record[]
+    },
+    NotFoundError
+  >
+> => {
   const { billingPeriodInsert, billingPeriodItemInserts } =
     billingPeriodAndItemsInsertsFromSubscription(params)
 
@@ -150,7 +159,7 @@ export const createBillingPeriodAndItems = async (
   )
   let billingPeriodItems: BillingPeriodItem.Record[] = []
   if (billingPeriodItemInserts.length > 0) {
-    billingPeriodItems = (
+    const billingPeriodItemsResult =
       await bulkInsertBillingPeriodItems(
         billingPeriodItemInserts.map((item) => ({
           ...item,
@@ -158,10 +167,13 @@ export const createBillingPeriodAndItems = async (
         })) as BillingPeriodItem.Insert[],
         transaction
       )
-    ).unwrap()
+    if (Result.isError(billingPeriodItemsResult)) {
+      return Result.err(billingPeriodItemsResult.error)
+    }
+    billingPeriodItems = billingPeriodItemsResult.value
   }
 
-  return { billingPeriod, billingPeriodItems }
+  return Result.ok({ billingPeriod, billingPeriodItems })
 }
 
 export const attemptBillingPeriodClose = async (
@@ -228,8 +240,10 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     !currentBillingPeriod.endDate ||
     isNaN(currentBillingPeriod.endDate)
   ) {
-    throw new Error(
-      `Invalid endDate for billing period ${currentBillingPeriod.id}`
+    return Result.err(
+      new Error(
+        `Invalid endDate for billing period ${currentBillingPeriod.id}`
+      )
     )
   }
 
@@ -242,13 +256,17 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     transaction
   )
   if (subscription.status === SubscriptionStatus.CreditTrial) {
-    throw new Error(
-      `Cannot transition subscription ${subscription.id} in credit trial status`
+    return Result.err(
+      new Error(
+        `Cannot transition subscription ${subscription.id} in credit trial status`
+      )
     )
   }
   if (!subscription.renews) {
-    throw new Error(
-      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods.`
+    return Result.err(
+      new Error(
+        `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods.`
+      )
     )
   }
   let billingRun: BillingRun.Record | null = null
@@ -278,8 +296,10 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       transaction
     )
     if (!subscription.renews) {
-      throw new Error(
-        `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods (should never hit this)`
+      return Result.err(
+        new Error(
+          `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods (should never hit this)`
+        )
       )
     }
 
@@ -314,20 +334,26 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       updatedBillingPeriod,
     })
   }
-  const result =
+  const futureBillingPeriodResult =
     await attemptToCreateFutureBillingPeriodForSubscription(
       subscription,
       transaction
     )
-  if (!result) {
+  if (Result.isError(futureBillingPeriodResult)) {
+    return Result.err(futureBillingPeriodResult.error)
+  }
+  const futureBillingPeriodValue = futureBillingPeriodResult.value
+  if (!futureBillingPeriodValue) {
     subscription = await safelyUpdateSubscriptionStatus(
       subscription,
       SubscriptionStatus.PastDue,
       transaction
     )
     if (!subscription.renews) {
-      throw new Error(
-        `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods (should never hit this)`
+      return Result.err(
+        new Error(
+          `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods (should never hit this)`
+        )
       )
     }
     invalidateCache(
@@ -339,7 +365,7 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
       updatedBillingPeriod,
     })
   }
-  const newBillingPeriod = result.billingPeriod
+  const newBillingPeriod = futureBillingPeriodValue.billingPeriod
   const paymentMethodId =
     subscription.defaultPaymentMethodId ??
     subscription.backupPaymentMethodId
@@ -412,13 +438,17 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
    * See above, in practice this should never happen because above code updates status to past due if there is no payment method.
    */
   if (subscription.status === SubscriptionStatus.CreditTrial) {
-    throw new Error(
-      `Subscription ${subscription.id} was updated to credit trial status. Credit_trial status is a status that can only be created, not updated to.`
+    return Result.err(
+      new Error(
+        `Subscription ${subscription.id} was updated to credit trial status. Credit_trial status is a status that can only be created, not updated to.`
+      )
     )
   }
   if (!subscription.renews) {
-    throw new Error(
-      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods.`
+    return Result.err(
+      new Error(
+        `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot have billing periods.`
+      )
     )
   }
 
@@ -483,7 +513,15 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
       billingPeriod: BillingPeriod.Record
     },
     transaction: DbTransaction
-  ) => {
+  ): Promise<
+    Result<
+      {
+        billingPeriod: BillingPeriod.Record
+        billingPeriodItems: BillingPeriodItem.Record[]
+      },
+      NotFoundError
+    >
+  > => {
     const { subscription, billingPeriod } = params
     const { startDate, endDate } = generateNextBillingPeriod({
       interval: subscription.interval,
@@ -506,10 +544,10 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
         { billingPeriodId: existingFutureBillingPeriod.id },
         transaction
       )
-      return {
+      return Result.ok({
         billingPeriod: existingFutureBillingPeriod,
         billingPeriodItems,
-      }
+      })
     }
 
     const subscriptionItems =
@@ -519,7 +557,7 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
         transaction
       )
 
-    const { billingPeriod: newBillingPeriod, billingPeriodItems } =
+    const billingPeriodAndItemsResult =
       await createBillingPeriodAndItems(
         {
           subscription,
@@ -529,31 +567,43 @@ export const createNextBillingPeriodBasedOnPreviousBillingPeriod =
         },
         transaction
       )
-    return {
-      billingPeriod: newBillingPeriod,
-      billingPeriodItems,
+    if (Result.isError(billingPeriodAndItemsResult)) {
+      return Result.err(billingPeriodAndItemsResult.error)
     }
+    return Result.ok({
+      billingPeriod: billingPeriodAndItemsResult.value.billingPeriod,
+      billingPeriodItems:
+        billingPeriodAndItemsResult.value.billingPeriodItems,
+    })
   }
 
 export const attemptToCreateFutureBillingPeriodForSubscription =
   async (
     subscription: Subscription.StandardRecord,
     transaction: DbTransaction
-  ) => {
+  ): Promise<
+    Result<
+      {
+        billingPeriod: BillingPeriod.Record
+        billingPeriodItems: BillingPeriodItem.Record[]
+      } | null,
+      NotFoundError
+    >
+  > => {
     if (
       subscription.canceledAt &&
       subscription.canceledAt < Date.now()
     ) {
-      return null
+      return Result.ok(null)
     }
     if (
       subscription.cancelScheduledAt &&
       subscription.cancelScheduledAt < Date.now()
     ) {
-      return null
+      return Result.ok(null)
     }
     if (isSubscriptionInTerminalState(subscription.status)) {
-      return null
+      return Result.ok(null)
     }
     const billingPeriodsForSubscription = await selectBillingPeriods(
       { subscriptionId: subscription.id },
@@ -568,7 +618,7 @@ export const attemptToCreateFutureBillingPeriodForSubscription =
       subscription.cancelScheduledAt >=
         mostRecentBillingPeriod.endDate
     ) {
-      return null
+      return Result.ok(null)
     }
 
     const result =
@@ -579,15 +629,19 @@ export const attemptToCreateFutureBillingPeriodForSubscription =
         },
         transaction
       )
+    if (Result.isError(result)) {
+      return Result.err(result.error)
+    }
     await updateSubscription(
       {
         id: subscription.id,
-        currentBillingPeriodEnd: result.billingPeriod.endDate,
-        currentBillingPeriodStart: result.billingPeriod.startDate,
+        currentBillingPeriodEnd: result.value.billingPeriod.endDate,
+        currentBillingPeriodStart:
+          result.value.billingPeriod.startDate,
         status: subscription.status,
         renews: subscription.renews,
       },
       transaction
     )
-    return result
+    return Result.ok(result.value)
   }

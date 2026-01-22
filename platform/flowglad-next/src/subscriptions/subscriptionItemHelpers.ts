@@ -553,12 +553,18 @@ export const handleSubscriptionItemAdjustment = async (
   // Create features for newly created/updated subscription items
   // createSubscriptionFeatureItems already filters out items without priceId,
   // so manuallyCreated items (which have priceId = null) won't get features created
-  const createdFeatures = R.isEmpty(createdOrUpdatedSubscriptionItems)
-    ? []
-    : await createSubscriptionFeatureItems(
+  let createdFeatures: SubscriptionItemFeature.Record[] = []
+  if (!R.isEmpty(createdOrUpdatedSubscriptionItems)) {
+    const createdFeaturesResult =
+      await createSubscriptionFeatureItems(
         createdOrUpdatedSubscriptionItems,
         transaction
       )
+    if (Result.isError(createdFeaturesResult)) {
+      return Result.err(createdFeaturesResult.error)
+    }
+    createdFeatures = createdFeaturesResult.value
+  }
 
   // Plan takes precedence: Expire manual features that overlap with plan features
   if (manualItem && createdFeatures.length > 0) {

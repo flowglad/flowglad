@@ -177,7 +177,10 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         transaction
       )
     })
-    expect(result).toBeUndefined()
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value).toBeUndefined()
+    }
   })
 
   it('returns undefined when product has no features', async () => {
@@ -188,7 +191,10 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         transaction
       )
     })
-    expect(result).toBeUndefined()
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value).toBeUndefined()
+    }
   })
 
   it('returns undefined when product has only non-UsageCredit features', async () => {
@@ -207,7 +213,10 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         transaction
       )
     })
-    expect(result).toBeUndefined()
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value).toBeUndefined()
+    }
   })
 
   it('returns undefined when customer has no current subscription', async () => {
@@ -248,7 +257,10 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         transaction
       )
     })
-    expect(result).toBeUndefined()
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value).toBeUndefined()
+    }
   })
 
   it('creates UsageCredit and returns CreditGrantRecognized ledger command (happy path)', async () => {
@@ -265,13 +277,16 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         },
       ],
     })
-    const command = await adminTransaction(async (ctx) => {
+    const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return ledgerCommandForPaymentSucceeded(
         { priceId: singlePaymentPrice.id, payment },
         transaction
       )
     })
+    expect(Result.isOk(result)).toBe(true)
+    if (!Result.isOk(result)) return
+    const command = result.value
     expect(command).toMatchObject({ organizationId: organization.id })
     expect(command!.type).toBe(
       LedgerTransactionType.CreditGrantRecognized
@@ -310,13 +325,16 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         },
       ],
     })
-    const command = await adminTransaction(async (ctx) => {
+    const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return ledgerCommandForPaymentSucceeded(
         { priceId: singlePaymentPrice.id, payment },
         transaction
       )
     })
+    expect(Result.isOk(result)).toBe(true)
+    if (!Result.isOk(result)) return
+    const command = result.value
     expect(typeof command).toBe('object')
     expect(command!.payload.usageCredit.issuedAmount).toBe(111)
   })
@@ -401,13 +419,16 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         },
       ],
     })
-    const command = await adminTransaction(async (ctx) => {
+    const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return ledgerCommandForPaymentSucceeded(
         { priceId: singlePaymentPrice.id, payment },
         transaction
       )
     })
+    expect(Result.isOk(result)).toBe(true)
+    if (!Result.isOk(result)) return
+    const command = result.value
     expect(typeof command).toBe('object')
     // additionally re-select the usage credit to ensure it was persisted via the same transactional flow
     const reselected = await adminTransaction(async (ctx) => {
@@ -1542,7 +1563,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         })
       ).rejects.toThrow(/No metadata found/)
     })
@@ -1565,7 +1586,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         })
       ).rejects.toThrow(/No latest charge/)
     })
@@ -1657,7 +1678,7 @@ describe('Process payment intent status updated', async () => {
               fakePI,
               ctx
             )
-            return Result.ok(res)
+            return Result.ok(res.unwrap())
           }
         )
         expect(payment).toMatchObject({})
@@ -1715,7 +1736,7 @@ describe('Process payment intent status updated', async () => {
               fakePI,
               ctx
             )
-            return Result.ok(res)
+            return Result.ok(res.unwrap())
           })
         ).rejects.toThrow('No billing runs found with id: br_err')
       })
@@ -1776,7 +1797,7 @@ describe('Process payment intent status updated', async () => {
               fakePI,
               ctx
             )
-            return Result.ok(res)
+            return Result.ok(res.unwrap())
           }
         )
         expect(typeof payment).toBe('object')
@@ -1921,7 +1942,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         }
       )
       expect(typeof payment).toBe('object')
@@ -1994,7 +2015,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         })
       const { payment: payment2 } =
         await comprehensiveAdminTransaction(async (ctx) => {
@@ -2003,7 +2024,7 @@ describe('Process payment intent status updated', async () => {
             fakePI,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         })
       expect(payment1.id).toEqual(payment2.id)
     })
@@ -2145,7 +2166,7 @@ describe('Process payment intent status updated', async () => {
             paymentIntent,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         }
       )
 
@@ -2290,7 +2311,7 @@ describe('Process payment intent status updated', async () => {
             paymentIntent,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         }
       )
 
@@ -2377,7 +2398,7 @@ describe('Process payment intent status updated', async () => {
             paymentIntent,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         }
       )
 
@@ -2462,7 +2483,7 @@ describe('Process payment intent status updated', async () => {
             paymentIntent,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         }
       )
 
@@ -2576,7 +2597,7 @@ describe('Process payment intent status updated', async () => {
             mockPaymentIntent,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         }
       )
 
@@ -2781,7 +2802,7 @@ describe('Process payment intent status updated', async () => {
             mockPaymentIntent,
             ctx
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         }
       )
 
@@ -3066,7 +3087,7 @@ describe('Process payment intent status updated', async () => {
               invalidateCache,
             }
           )
-          return Result.ok(res)
+          return Result.ok(res.unwrap())
         }
       )
 
