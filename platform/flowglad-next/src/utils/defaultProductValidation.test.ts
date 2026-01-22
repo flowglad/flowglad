@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 import { PriceType } from '@/types'
 import { validateDefaultProductSchema } from './defaultProductValidation'
 
 describe('defaultProductValidation', () => {
   describe('validateDefaultProductSchema', () => {
-    it('should pass validation for valid default product', () => {
+    it('returns Ok for valid default product', () => {
       const product = {
         name: 'Free Plan',
         slug: 'free-plan',
@@ -17,12 +18,11 @@ describe('defaultProductValidation', () => {
         },
       }
 
-      expect(() =>
-        validateDefaultProductSchema(product)
-      ).not.toThrow()
+      const result = validateDefaultProductSchema(product)
+      expect(Result.isOk(result)).toBe(true)
     })
 
-    it('should fail for product with non-zero price', () => {
+    it('returns ValidationError for product with non-zero price', () => {
       const product = {
         name: 'Paid Plan',
         slug: 'paid-plan',
@@ -34,12 +34,16 @@ describe('defaultProductValidation', () => {
         },
       }
 
-      expect(() => validateDefaultProductSchema(product)).toThrow(
-        'Default products must have zero price'
-      )
+      const result = validateDefaultProductSchema(product)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Default products must have zero price'
+        )
+      }
     })
 
-    it('should fail for product with trial days', () => {
+    it('returns ValidationError for product with trial days', () => {
       const product = {
         name: 'Trial Plan',
         slug: 'trial-plan',
@@ -51,9 +55,13 @@ describe('defaultProductValidation', () => {
         },
       }
 
-      expect(() => validateDefaultProductSchema(product)).toThrow(
-        'Default products cannot have trials'
-      )
+      const result = validateDefaultProductSchema(product)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Default products cannot have trials'
+        )
+      }
     })
   })
 

@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import {
   findDefaultProduct,
@@ -134,37 +135,39 @@ describe('findDefaultProduct', () => {
 })
 
 describe('validateSingleDefaultProduct', () => {
-  it('does not throw when there is zero or one default product', () => {
+  it('returns Ok when there is zero or one default product', () => {
     // Zero default products
     const noDefault = createPricingModelInput([
       createProductInput({ slug: 'pro', default: false }),
     ])
-    expect(() =>
-      validateSingleDefaultProduct(noDefault)
-    ).not.toThrow()
+    expect(Result.isOk(validateSingleDefaultProduct(noDefault))).toBe(
+      true
+    )
 
     // One default product
     const oneDefault = createPricingModelInput([
       createProductInput({ slug: 'default', default: true }),
       createProductInput({ slug: 'pro', default: false }),
     ])
-    expect(() =>
-      validateSingleDefaultProduct(oneDefault)
-    ).not.toThrow()
+    expect(
+      Result.isOk(validateSingleDefaultProduct(oneDefault))
+    ).toBe(true)
   })
 
-  it('throws error when there are multiple products with default=true', () => {
+  it('returns error when there are multiple products with default=true', () => {
     const multipleDefaults = createPricingModelInput([
       createProductInput({ slug: 'default-1', default: true }),
       createProductInput({ slug: 'default-2', default: true }),
       createProductInput({ slug: 'pro', default: false }),
     ])
 
-    expect(() =>
-      validateSingleDefaultProduct(multipleDefaults)
-    ).toThrow(
-      'Only one product can be marked as default. Found 2 default products: default-1, default-2'
-    )
+    const result = validateSingleDefaultProduct(multipleDefaults)
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Only one product can be marked as default. Found 2 default products: default-1, default-2'
+      )
+    }
   })
 })
 
@@ -387,7 +390,7 @@ describe('protectDefaultProduct', () => {
     features: ['feature-a', 'feature-b'],
   })
 
-  it('throws error when proposed input has multiple default products', () => {
+  it('returns error when proposed input has multiple default products', () => {
     const existing = createPricingModelInput([
       existingDefault,
       existingPro,
@@ -397,20 +400,28 @@ describe('protectDefaultProduct', () => {
       createProductInput({ slug: 'default-2', default: true }),
     ])
 
-    expect(() => protectDefaultProduct(existing, proposed)).toThrow(
-      'Only one product can be marked as default'
-    )
+    const result = protectDefaultProduct(existing, proposed)
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Only one product can be marked as default'
+      )
+    }
   })
 
-  it('throws error when existing input has no default product', () => {
+  it('returns error when existing input has no default product', () => {
     const existingNoDefault = createPricingModelInput([existingPro])
     const proposed = createPricingModelInput([
       createProductInput({ slug: 'new-plan', default: false }),
     ])
 
-    expect(() =>
-      protectDefaultProduct(existingNoDefault, proposed)
-    ).toThrow('No default product found in existing input')
+    const result = protectDefaultProduct(existingNoDefault, proposed)
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'No default product found in existing input'
+      )
+    }
   })
 
   it('adds back the existing default product when proposed removes it', () => {
@@ -422,11 +433,11 @@ describe('protectDefaultProduct', () => {
       existingPro, // default product is missing
     ])
 
-    const result = protectDefaultProduct(existing, proposed)
+    const result = protectDefaultProduct(existing, proposed).unwrap()
 
     expect(result.products).toHaveLength(2)
     const restoredDefault = result.products.find(
-      (p) => p.product.default === true
+      (p: SetupPricingModelProductInput) => p.product.default === true
     )
     expect(restoredDefault!.product.slug).toBe('default-plan')
     expect(restoredDefault!.product.name).toBe('Default Plan')
@@ -455,14 +466,15 @@ describe('protectDefaultProduct', () => {
     const result = protectDefaultProduct(
       existing,
       proposedWithDemotedDefault
-    )
+    ).unwrap()
 
     // Should have exactly 2 products (no duplicates)
     expect(result.products).toHaveLength(2)
 
     // The default product should preserve default: true
     const defaultProduct = result.products.find(
-      (p) => p.product.slug === 'default-plan'
+      (p: SetupPricingModelProductInput) =>
+        p.product.slug === 'default-plan'
     )
     expect(defaultProduct!.product.default).toBe(true)
     expect(defaultProduct!.product.active).toBe(true)
@@ -483,7 +495,8 @@ describe('protectDefaultProduct', () => {
 
     // Pro product should be unchanged
     const proProduct = result.products.find(
-      (p) => p.product.slug === 'pro-plan'
+      (p: SetupPricingModelProductInput) =>
+        p.product.slug === 'pro-plan'
     )
     expect(proProduct).toBe(existingPro)
   })
@@ -510,7 +523,7 @@ describe('protectDefaultProduct', () => {
     const result = protectDefaultProduct(
       existing,
       proposedWithAllowedChanges
-    )
+    ).unwrap()
 
     // Should return proposed as-is since only allowed fields changed
     expect(result).toBe(proposedWithAllowedChanges)
@@ -538,10 +551,10 @@ describe('protectDefaultProduct', () => {
     const result = protectDefaultProduct(
       existing,
       proposedWithProtectedChanges
-    )
+    ).unwrap()
 
     const protectedDefault = result.products.find(
-      (p) => p.product.default === true
+      (p: SetupPricingModelProductInput) => p.product.default === true
     )
 
     // Allowed changes should be applied
@@ -563,7 +576,8 @@ describe('protectDefaultProduct', () => {
 
     // Non-default product should be unchanged
     const proProduct = result.products.find(
-      (p) => p.product.slug === 'pro-plan'
+      (p: SetupPricingModelProductInput) =>
+        p.product.slug === 'pro-plan'
     )
     expect(proProduct).toBe(existingPro)
   })
@@ -590,14 +604,14 @@ describe('protectDefaultProduct', () => {
     const result = protectDefaultProduct(
       existing,
       proposedWithDifferentDefault
-    )
+    ).unwrap()
 
     // The result should have the default product with existing's protected fields
     // and proposed's allowed fields
     expect(result.products).toHaveLength(1)
 
     const defaultProduct = result.products.find(
-      (p) => p.product.default === true
+      (p: SetupPricingModelProductInput) => p.product.default === true
     )
     // Protected fields from existing default
     expect(defaultProduct!.product.slug).toBe('default-plan')
@@ -636,25 +650,28 @@ describe('protectDefaultProduct', () => {
       newProduct, // newly added product
     ])
 
-    const result = protectDefaultProduct(existing, proposed)
+    const result = protectDefaultProduct(existing, proposed).unwrap()
 
     expect(result.products).toHaveLength(3)
 
     // Default was merged
     const defaultProduct = result.products.find(
-      (p) => p.product.slug === 'default-plan'
+      (p: SetupPricingModelProductInput) =>
+        p.product.slug === 'default-plan'
     )
     expect(defaultProduct?.product.name).toBe('Updated Default')
     expect(defaultProduct?.price.unitPrice).toBe(0) // protected
 
     // Other products unchanged
     const proProduct = result.products.find(
-      (p) => p.product.slug === 'pro-plan'
+      (p: SetupPricingModelProductInput) =>
+        p.product.slug === 'pro-plan'
     )
     expect(proProduct).toBe(existingPro)
 
     const addedProduct = result.products.find(
-      (p) => p.product.slug === 'new-plan'
+      (p: SetupPricingModelProductInput) =>
+        p.product.slug === 'new-plan'
     )
     expect(addedProduct).toBe(newProduct)
   })

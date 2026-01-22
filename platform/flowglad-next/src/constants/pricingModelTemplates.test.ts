@@ -10,9 +10,8 @@ describe('Pricing Model Templates', () => {
   describe('Template Input Validation', () => {
     it('should validate all template inputs', () => {
       PRICING_MODEL_TEMPLATES.forEach((template) => {
-        const validated = validateSetupPricingModelInput(
-          template.input
-        )
+        const result = validateSetupPricingModelInput(template.input)
+        const validated = result.unwrap()
         expect(validated).toMatchObject({
           products: expect.any(Array),
         })
