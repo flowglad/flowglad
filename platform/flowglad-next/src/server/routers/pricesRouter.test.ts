@@ -2247,6 +2247,52 @@ describe('pricesRouter - No Charge Price Protection', () => {
       expect(result.price.name).toBe('New Name for No Charge Price')
     })
 
+    it('allows setting isDefault to true on no_charge prices when slug is unchanged in payload', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      // First set the regular price as default (so no_charge becomes non-default)
+      await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: regularUsagePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+        },
+        id: regularUsagePriceId,
+      })
+
+      // Verify no_charge price is now non-default before we test setting it back
+      const intermediateState = await pricesRouter
+        .createCaller(ctx)
+        .get({ id: noChargePriceId })
+      expect(intermediateState.price.isDefault).toBe(false)
+
+      // Now update the no_charge price including the unchanged slug in the payload
+      // This should NOT trigger the reserved slug validation since the slug is unchanged
+      const result = await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: noChargePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+          slug: 'test-usage-meter_no_charge', // Same slug as before - unchanged
+        },
+        id: noChargePriceId,
+      })
+
+      expect(result.price.isDefault).toBe(true)
+      expect(result.price.slug).toBe('test-usage-meter_no_charge')
+    })
+
     it('rejects unsetting isDefault on no_charge prices that are currently default', async () => {
       const { apiKey, user } = await setupUserAndApiKey({
         organizationId,
