@@ -32,6 +32,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import { PaymentStatus } from '@/types'
 import { getCurrentMonthStartTimestamp } from '@/utils/core'
 import { customers } from '../schema/customers'
@@ -202,8 +203,9 @@ const upsertPayments = async (
     const pricingModelId = pricingModelIdMap.get(key)
 
     if (!pricingModelId) {
-      throw new Error(
-        `Could not derive pricingModelId for payment with invoiceId: ${insert.invoiceId}, subscriptionId: ${insert.subscriptionId}, purchaseId: ${insert.purchaseId}`
+      throw new NotFoundError(
+        'pricingModelId for payment',
+        `invoiceId: ${insert.invoiceId}, subscriptionId: ${insert.subscriptionId}, purchaseId: ${insert.purchaseId}`
       )
     }
 

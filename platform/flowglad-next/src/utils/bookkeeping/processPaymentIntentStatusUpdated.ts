@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import type { CreditGrantRecognizedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
@@ -27,6 +28,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import { sendCustomerPaymentFailedNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-failed-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
 import {
@@ -385,14 +387,27 @@ export type CoreStripePaymentIntent = Pick<
 export const ledgerCommandForPaymentSucceeded = async (
   params: { priceId: string; payment: Payment.Record },
   transaction: DbTransaction
-): Promise<CreditGrantRecognizedLedgerCommand | undefined> => {
-  const price = await selectPriceById(params.priceId, transaction)
+): Promise<
+  Result<
+    CreditGrantRecognizedLedgerCommand | undefined,
+    NotFoundError
+  >
+> => {
+  let price: Price.Record
+  try {
+    price = await selectPriceById(params.priceId, transaction)
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return Result.err(error)
+    }
+    throw error
+  }
   // Use type guard for consistent pattern and proper TypeScript narrowing
   if (
     !Price.hasProductId(price) ||
     price.type !== PriceType.SinglePayment
   ) {
-    return undefined
+    return Result.ok(undefined)
   }
   const { features } = await selectProductPriceAndFeaturesByProductId(
     price.productId,
@@ -404,7 +419,7 @@ export const ledgerCommandForPaymentSucceeded = async (
     .find((feature) => feature.type === FeatureType.UsageCreditGrant)
 
   if (!usageCreditFeature) {
-    return undefined
+    return Result.ok(undefined)
   }
 
   if (
@@ -422,7 +437,7 @@ export const ledgerCommandForPaymentSucceeded = async (
     transaction
   )
   if (!subscription) {
-    return undefined
+    return Result.ok(undefined)
   }
   const { payment } = params
   const usageCreditInsert: UsageCredit.Insert = {
@@ -443,19 +458,23 @@ export const ledgerCommandForPaymentSucceeded = async (
     metadata: {},
     notes: null,
   }
-  const [usageCredit] =
+  const usageCreditsResult =
     await bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter(
       [usageCreditInsert],
       transaction
     )
+  if (Result.isError(usageCreditsResult)) {
+    return Result.err(usageCreditsResult.error)
+  }
+  const [usageCredit] = usageCreditsResult.value
   /**
    * If the usage credit was not inserted because it already exists,
    * return undefined
    */
   if (!usageCredit) {
-    return undefined
+    return Result.ok(undefined)
   }
-  return {
+  return Result.ok({
     type: LedgerTransactionType.CreditGrantRecognized,
     payload: {
       usageCredit,
@@ -463,7 +482,7 @@ export const ledgerCommandForPaymentSucceeded = async (
     organizationId: subscription.organizationId,
     livemode: subscription.livemode,
     subscriptionId: subscription.id,
-  }
+  })
 }
 
 /**
@@ -476,7 +495,7 @@ export const ledgerCommandForPaymentSucceeded = async (
 export const processPaymentIntentStatusUpdated = async (
   paymentIntent: CoreStripePaymentIntent,
   ctx: TransactionEffectsContext
-): Promise<{ payment: Payment.Record }> => {
+): Promise<Result<{ payment: Payment.Record }, NotFoundError>> => {
   const { transaction, emitEvent, enqueueLedgerCommand } = ctx
   const metadata = stripeIntentMetadataSchema.parse(
     paymentIntent.metadata
@@ -544,13 +563,18 @@ export const processPaymentIntentStatusUpdated = async (
         transaction
       )
       if (checkoutSession.priceId) {
-        const ledgerCommand = await ledgerCommandForPaymentSucceeded(
-          {
-            priceId: checkoutSession.priceId,
-            payment,
-          },
-          transaction
-        )
+        const ledgerCommandResult =
+          await ledgerCommandForPaymentSucceeded(
+            {
+              priceId: checkoutSession.priceId,
+              payment,
+            },
+            transaction
+          )
+        if (Result.isError(ledgerCommandResult)) {
+          return Result.err(ledgerCommandResult.error)
+        }
+        const ledgerCommand = ledgerCommandResult.value
         if (ledgerCommand) {
           enqueueLedgerCommand(ledgerCommand)
         }
@@ -607,5 +631,5 @@ export const processPaymentIntentStatusUpdated = async (
       processedAt: null,
     })
   }
-  return { payment }
+  return Result.ok({ payment })
 }

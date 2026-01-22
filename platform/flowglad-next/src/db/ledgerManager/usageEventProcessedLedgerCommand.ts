@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type {
   LedgerCommandResult,
   UsageEventProcessedLedgerCommand,
@@ -18,6 +19,7 @@ import {
 import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMethods'
 import { bulkInsertUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
 import type { DbTransaction } from '@/db/types'
+import type { NotFoundError } from '@/errors'
 import {
   LedgerEntryDirection,
   LedgerEntryStatus,
@@ -148,7 +150,7 @@ export const createLedgerEntryInsertsForUsageCreditApplications =
 export const processUsageEventProcessedLedgerCommand = async (
   command: UsageEventProcessedLedgerCommand,
   transaction: DbTransaction
-): Promise<LedgerCommandResult> => {
+): Promise<Result<LedgerCommandResult, NotFoundError>> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -223,12 +225,15 @@ export const processUsageEventProcessedLedgerCommand = async (
     usageCostLedgerEntry,
     ...creditApplicationLedgerEntries,
   ]
-  const createdLedgerEntries = await bulkInsertLedgerEntries(
+  const createdLedgerEntriesResult = await bulkInsertLedgerEntries(
     ledgerEntryInserts,
     transaction
   )
-  return {
-    ledgerTransaction,
-    ledgerEntries: createdLedgerEntries,
+  if (Result.isError(createdLedgerEntriesResult)) {
+    return Result.err(createdLedgerEntriesResult.error)
   }
+  return Result.ok({
+    ledgerTransaction,
+    ledgerEntries: createdLedgerEntriesResult.value,
+  })
 }

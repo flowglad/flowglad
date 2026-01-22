@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -169,20 +170,26 @@ describe('Subscription Billing Period Transition', async () => {
     })
   })
 
-  // Test 2: Billing period endDate in the future should throw an error
-  it('should throw an error if the billing period endDate is in the future', async () => {
+  // Test 2: Billing period endDate in the future should return an error Result
+  it('should return Result.err if the billing period endDate is in the future', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Create a copy of billingPeriod with an endDate in the future
       const futureBillingPeriod = {
         ...billingPeriod,
         endDate: Date.now() + 24 * 60 * 60 * 1000,
       }
-      await expect(
-        attemptToTransitionSubscriptionBillingPeriod(
+      const result =
+        await attemptToTransitionSubscriptionBillingPeriod(
           futureBillingPeriod,
           createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow(/Cannot close billing period/)
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(
+          /Cannot close billing period/
+        )
+      }
     })
   })
 
@@ -457,19 +464,20 @@ describe('Subscription Billing Period Transition', async () => {
     })
   })
 
-  // Test 13: When required billing period data is missing (e.g. endDate), throw an error.
-  it('should throw an error when billing period endDate is missing', async () => {
+  // Test 13: When required billing period data is missing (e.g. endDate), return an error Result.
+  it('should return Result.err when billing period endDate is missing', async () => {
     await adminTransaction(async ({ transaction }) => {
       const invalidBillingPeriod = {
         ...billingPeriod,
         endDate: null,
       }
-      await expect(
-        attemptToTransitionSubscriptionBillingPeriod(
+      const result =
+        await attemptToTransitionSubscriptionBillingPeriod(
           invalidBillingPeriod as unknown as BillingPeriod.Record,
           createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow()
+
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -580,7 +588,7 @@ describe('Subscription Billing Period Transition', async () => {
 
     it('should create a trial billing period in the database with no billing period items', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const { billingPeriod, billingPeriodItems } =
+        const { billingPeriod, billingPeriodItems } = (
           await createBillingPeriodAndItems(
             {
               subscription,
@@ -590,6 +598,7 @@ describe('Subscription Billing Period Transition', async () => {
             },
             transaction
           )
+        ).unwrap()
         expect(billingPeriod.trialPeriod).toBe(true)
         expect(billingPeriodItems).toHaveLength(0)
       })
@@ -618,14 +627,18 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
 
-      await expect(
-        attemptToTransitionSubscriptionBillingPeriod(
+      const result =
+        await attemptToTransitionSubscriptionBillingPeriod(
           billingPeriod,
           createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow(
-        `Cannot transition subscription ${subscription.id} in credit trial status`
-      )
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          `Cannot transition subscription ${subscription.id} in credit trial status`
+        )
+      }
     })
   })
 
