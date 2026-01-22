@@ -15,67 +15,69 @@ export const subscriptionStatusConfig = {
     label: 'Active',
     variant: 'success',
     icon: Check,
-    tooltip: 'This subscription is active and billing normally.',
+    tooltip: 'Subscription is active and billing normally.',
   },
   [SubscriptionStatus.Trialing]: {
     label: 'Trialing',
-    variant: 'warning',
+    variant: 'info',
     icon: Clock,
     tooltip:
-      'Customer is in a free trial period. Billing begins when the trial ends.',
+      'Customer has full access during the free trial. Billing begins automatically when the trial ends if a payment method is on file.',
   },
   [SubscriptionStatus.CreditTrial]: {
     label: 'Credit Trial',
-    variant: 'warning',
+    variant: 'info',
     icon: Clock,
     tooltip:
-      'Customer is using trial credits. This status is deprecated.',
+      'Customer is using pre-allocated trial credits. This status is deprecated—new subscriptions should use "Trialing" instead.',
   },
   [SubscriptionStatus.PastDue]: {
     label: 'Past Due',
     variant: 'destructive',
     icon: AlertCircle,
     tooltip:
-      'Payment failed but subscription is still active. Retry will be attempted.',
+      'Payment failed but access continues. The system will automatically retry. If retries fail, status changes to Unpaid.',
   },
   [SubscriptionStatus.Unpaid]: {
     label: 'Unpaid',
-    variant: 'warning',
+    variant: 'destructive',
     icon: AlertCircle,
-    tooltip: 'Payment has failed and the subscription is unpaid.',
+    tooltip:
+      'All automatic payment retries have failed. The customer must update their payment method to restore service.',
   },
   [SubscriptionStatus.CancellationScheduled]: {
     label: 'Cancellation Scheduled',
-    variant: 'destructive',
+    variant: 'muted',
     icon: Clock,
     tooltip:
-      'Will be canceled at the end of the current billing period.',
+      'Customer has requested cancellation. Full access continues until the end of the current billing period.',
   },
   [SubscriptionStatus.Incomplete]: {
     label: 'Incomplete',
     variant: 'warning',
     icon: AlertTriangle,
     tooltip:
-      'Subscription setup was not completed. Customer action may be required.',
+      'Checkout was started but not completed. The customer needs to provide a valid payment method.',
   },
   [SubscriptionStatus.IncompleteExpired]: {
     label: 'Incomplete Expired',
-    variant: 'destructive',
+    variant: 'muted',
     icon: XCircle,
     tooltip:
-      'The incomplete subscription has expired and cannot be activated.',
+      'The checkout session expired before completion. A new subscription must be created to proceed.',
   },
   [SubscriptionStatus.Canceled]: {
     label: 'Canceled',
     variant: 'muted',
     icon: X,
     tooltip:
-      'This subscription has been canceled and is no longer active.',
+      'This subscription has been terminated. The customer no longer has access.',
   },
   [SubscriptionStatus.Paused]: {
     label: 'Paused',
     variant: 'warning',
     icon: PauseCircle,
-    tooltip: 'This subscription is paused and not currently billing.',
+    tooltip:
+      'Subscription is on hold—no billing or access. Can be resumed at any time.',
   },
 } satisfies Record<SubscriptionStatus, StatusConfigItem>

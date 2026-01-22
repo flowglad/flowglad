@@ -8,7 +8,7 @@ import type { StatusVariant } from './types'
  * - --jade-background, --jade-foreground, --jade-border (success)
  * - --status-warning-bg, --status-warning-fg, --status-warning-border
  * - --status-destructive-bg, --status-destructive-fg, --status-destructive-border
- * - --status-info-bg, --status-info-fg, --status-info-border
+ * - --lapis-background, --lapis-foreground, --lapis-border (info)
  * - --status-muted-bg, --status-muted-fg, --status-muted-border
  */
 export const variantStyles: Record<StatusVariant, string> = {
@@ -18,7 +18,7 @@ export const variantStyles: Record<StatusVariant, string> = {
     'bg-status-warning-bg text-status-warning-fg border-status-warning-border',
   destructive:
     'bg-status-destructive-bg text-status-destructive-fg border-status-destructive-border',
-  info: 'bg-status-info-bg text-status-info-fg border-status-info-border',
+  info: 'bg-lapis-background text-lapis-foreground border-lapis-border',
   muted:
     'bg-status-muted-bg text-status-muted-fg border-status-muted-border',
 }

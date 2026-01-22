@@ -103,7 +103,13 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const status = row.getValue('status') as SubscriptionStatus
-      return <SubscriptionStatusTag status={status} />
+      return (
+        <SubscriptionStatusTag
+          status={status}
+          showTooltip
+          tooltipVariant="muted"
+        />
+      )
     },
     size: 110,
     minSize: 105,

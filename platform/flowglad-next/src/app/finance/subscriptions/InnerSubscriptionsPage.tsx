@@ -12,7 +12,8 @@ function InnerSubscriptionsPage() {
         hideBorder
         className="pb-2"
       />
-      <SubscriptionsDataTable hiddenColumns={['id']} />
+      {/* TODO: Remove useMockData once testing is complete */}
+      <SubscriptionsDataTable hiddenColumns={['id']} useMockData />
     </PageContainer>
   )
 }

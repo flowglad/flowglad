@@ -96,6 +96,31 @@ const config: Config = {
           background: 'hsl(var(--jade-background))',
           border: 'hsl(var(--jade-border))',
         },
+        lapis: {
+          foreground: 'hsl(var(--lapis-foreground))',
+          'muted-foreground': 'hsl(var(--lapis-muted-foreground))',
+          background: 'hsl(var(--lapis-background))',
+          border: 'hsl(var(--lapis-border))',
+        },
+        brownstone: {
+          foreground: 'hsl(var(--brownstone-foreground))',
+          'muted-foreground':
+            'hsl(var(--brownstone-muted-foreground))',
+          background: 'hsl(var(--brownstone-background))',
+          border: 'hsl(var(--brownstone-border))',
+        },
+        amethyst: {
+          foreground: 'hsl(var(--amethyst-foreground))',
+          'muted-foreground': 'hsl(var(--amethyst-muted-foreground))',
+          background: 'hsl(var(--amethyst-background))',
+          border: 'hsl(var(--amethyst-border))',
+        },
+        citrine: {
+          foreground: 'hsl(var(--citrine-foreground))',
+          'muted-foreground': 'hsl(var(--citrine-muted-foreground))',
+          background: 'hsl(var(--citrine-background))',
+          border: 'hsl(var(--citrine-border))',
+        },
         'status-warning-bg': 'hsl(var(--status-warning-bg))',
         'status-warning-fg': 'hsl(var(--status-warning-fg))',
         'status-warning-border': 'hsl(var(--status-warning-border))',
@@ -103,9 +128,6 @@ const config: Config = {
         'status-destructive-fg': 'hsl(var(--status-destructive-fg))',
         'status-destructive-border':
           'hsl(var(--status-destructive-border))',
-        'status-info-bg': 'hsl(var(--status-info-bg))',
-        'status-info-fg': 'hsl(var(--status-info-fg))',
-        'status-info-border': 'hsl(var(--status-info-border))',
         'status-muted-bg': 'hsl(var(--status-muted-bg))',
         'status-muted-fg': 'hsl(var(--status-muted-fg))',
         'status-muted-border': 'hsl(var(--status-muted-border))',

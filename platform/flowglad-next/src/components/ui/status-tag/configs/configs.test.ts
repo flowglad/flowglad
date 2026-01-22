@@ -28,7 +28,8 @@ describe('subscriptionStatusConfig', () => {
     expect(config.variant).toBe('muted')
     expect(config.label).toBe('Canceled')
     expect(typeof config.icon).toBe('function')
-    expect(config.tooltip).toContain('canceled')
+    expect(config.tooltip).toContain('terminated')
+    expect(config.tooltip).toContain('no longer has access')
   })
 
   it('maps SubscriptionStatus.PastDue to "destructive" variant with AlertCircle icon (action required)', () => {
@@ -41,25 +42,26 @@ describe('subscriptionStatusConfig', () => {
     expect(config.tooltip).toContain('failed')
   })
 
-  it('maps SubscriptionStatus.Trialing to "warning" variant with Clock icon and trial tooltip', () => {
+  it('maps SubscriptionStatus.Trialing to "info" variant with Clock icon and trial tooltip', () => {
     const config =
       subscriptionStatusConfig[SubscriptionStatus.Trialing]
 
-    expect(config.variant).toBe('warning')
+    expect(config.variant).toBe('info')
     expect(config.label).toBe('Trialing')
     expect(typeof config.icon).toBe('function')
     expect(config.tooltip).toContain('trial')
   })
 
-  it('maps SubscriptionStatus.CancellationScheduled to "destructive" variant with Clock icon', () => {
+  it('maps SubscriptionStatus.CancellationScheduled to "muted" variant with Clock icon', () => {
     const config =
       subscriptionStatusConfig[
         SubscriptionStatus.CancellationScheduled
       ]
 
-    expect(config.variant).toBe('destructive')
+    expect(config.variant).toBe('muted')
     expect(config.label).toBe('Cancellation Scheduled')
-    expect(config.tooltip).toContain('canceled')
+    expect(config.tooltip).toContain('cancellation')
+    expect(config.tooltip).toContain('Full access continues')
   })
 
   it('maps SubscriptionStatus.Incomplete to "warning" variant with AlertTriangle icon', () => {
@@ -71,11 +73,11 @@ describe('subscriptionStatusConfig', () => {
     expect(typeof config.icon).toBe('function')
   })
 
-  it('maps SubscriptionStatus.IncompleteExpired to "destructive" variant with XCircle icon', () => {
+  it('maps SubscriptionStatus.IncompleteExpired to "muted" variant with XCircle icon', () => {
     const config =
       subscriptionStatusConfig[SubscriptionStatus.IncompleteExpired]
 
-    expect(config.variant).toBe('destructive')
+    expect(config.variant).toBe('muted')
     expect(config.label).toBe('Incomplete Expired')
     expect(typeof config.icon).toBe('function')
   })

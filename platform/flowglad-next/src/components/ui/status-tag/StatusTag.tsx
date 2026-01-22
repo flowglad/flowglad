@@ -20,6 +20,8 @@ export interface StatusTagProps<T extends string> {
   showTooltip?: boolean
   /** Override the tooltip text from config */
   tooltip?: string
+  /** Tooltip visual variant: 'default' (dark) or 'muted' (light with border) */
+  tooltipVariant?: 'default' | 'muted'
   /** Override whether to show icon. Defaults to true if config has icon. */
   showIcon?: boolean
   /** Override the label text from config */
@@ -53,6 +55,7 @@ export function StatusTag<T extends string>({
   config,
   showTooltip = false,
   tooltip,
+  tooltipVariant = 'default',
   showIcon,
   label,
   className,
@@ -111,7 +114,7 @@ export function StatusTag<T extends string>({
         sizeStyles[size],
         // Make focusable for keyboard accessibility when tooltip is shown
         showTooltip &&
-          'cursor-help focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
         className
       )}
       // Enable keyboard focus when tooltips are used
@@ -130,7 +133,11 @@ export function StatusTag<T extends string>({
     return (
       <Tooltip>
         <TooltipTrigger asChild>{badge}</TooltipTrigger>
-        <TooltipContent side="top" className="max-w-xs">
+        <TooltipContent
+          side="bottom"
+          variant={tooltipVariant}
+          className="max-w-xs text-sm px-3 py-2"
+        >
           <p>{displayTooltip}</p>
         </TooltipContent>
       </Tooltip>
