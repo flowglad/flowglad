@@ -3,6 +3,7 @@
 import { AnimatePresence } from 'motion/react'
 import { useEffect, useState } from 'react'
 import { z } from 'zod'
+import ErrorBoundary from '@/components/ErrorBoundary'
 import { SupportChatPopup } from './SupportChatPopup'
 import { SupportChatTrigger } from './SupportChatTrigger'
 
@@ -71,23 +72,25 @@ export function SupportChatWidget() {
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
-      <AnimatePresence mode="wait">
-        {isOpen ? (
-          <SupportChatPopup
-            key="popup"
-            messages={messages}
-            setMessages={setMessages}
-            onClose={() => setIsOpen(false)}
-            showDiscordLink={showDiscordLink}
-          />
-        ) : (
-          <SupportChatTrigger
-            key="trigger"
-            onClick={() => setIsOpen(true)}
-          />
-        )}
-      </AnimatePresence>
-    </div>
+    <ErrorBoundary fallback={null}>
+      <div className="fixed bottom-6 right-6 z-50">
+        <AnimatePresence mode="wait">
+          {isOpen ? (
+            <SupportChatPopup
+              key="popup"
+              messages={messages}
+              setMessages={setMessages}
+              onClose={() => setIsOpen(false)}
+              showDiscordLink={showDiscordLink}
+            />
+          ) : (
+            <SupportChatTrigger
+              key="trigger"
+              onClick={() => setIsOpen(true)}
+            />
+          )}
+        </AnimatePresence>
+      </div>
+    </ErrorBoundary>
   )
 }
