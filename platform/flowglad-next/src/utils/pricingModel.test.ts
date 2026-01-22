@@ -1066,7 +1066,7 @@ describe('clonePricingModelTransaction', () => {
       // Check products and prices
       expect(clonedPricingModel.products).toHaveLength(2)
       const basicProduct = clonedPricingModel.products.find(
-        (p) => p.name === 'Default Product'
+        (p) => p.name === 'Testmode Product'
       )
       const proProduct = clonedPricingModel.products.find(
         (p) => p.name === 'Pro Plan'
@@ -1137,13 +1137,18 @@ describe('clonePricingModelTransaction', () => {
 
   describe('Livemode Handling', () => {
     it('should convert livemode source to testmode when destinationEnvironment is Testmode', async () => {
-      // Use the existing livemode PM from setupOrg() as the source
-      // setupOrg() already created a livemode PM with a product, so use that
-      const livemodeSource = sourcePricingModel
+      // Create a fresh organization with only a livemode PM (no testmode PM conflict)
+      // so we can properly test livemode-to-testmode conversion
+      const freshOrg = await setupOrganizationOnly()
+      const livemodeSource = await setupPricingModel({
+        organizationId: freshOrg.id,
+        name: 'Livemode Source',
+        livemode: true,
+      })
 
       // Add various artifacts to the source pricing model
       const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         pricingModelId: livemodeSource.id,
         name: 'Test Meter',
         slug: 'test-meter',
@@ -1151,7 +1156,7 @@ describe('clonePricingModelTransaction', () => {
       })
 
       const feature = await setupToggleFeature({
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         pricingModelId: livemodeSource.id,
         name: 'Test Feature',
         slug: 'test-feature',
@@ -1161,7 +1166,7 @@ describe('clonePricingModelTransaction', () => {
 
       const product = await setupProduct({
         name: 'Livemode Product',
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         pricingModelId: livemodeSource.id,
         livemode: true,
         active: true,
@@ -1181,11 +1186,11 @@ describe('clonePricingModelTransaction', () => {
       await setupProductFeature({
         productId: product.id,
         featureId: feature.id,
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         livemode: true,
       })
 
-      // Clone with destinationEnvironment: Testmode (required since org already has livemode PM)
+      // Clone with destinationEnvironment: Testmode
       // This tests that the clone correctly converts to the destination environment
       const clonedPricingModel = await adminTransaction(
         async (ctx) => {
@@ -1361,12 +1366,17 @@ describe('clonePricingModelTransaction', () => {
     })
 
     it('should use specified destinationEnvironment (Testmode) when provided', async () => {
-      // Use the existing livemode PM from setupOrg() as the source
-      const livemodeSource = sourcePricingModel
+      // Create a fresh organization to avoid conflicts with beforeEach features
+      const freshOrg = await setupOrganizationOnly()
+      const livemodeSource = await setupPricingModel({
+        organizationId: freshOrg.id,
+        name: 'Livemode Source for Testmode Conversion',
+        livemode: true,
+      })
 
-      // Add additional artifacts to the source pricing model (all livemode)
+      // Add artifacts to the source pricing model (all livemode)
       const usageMeter = await setupUsageMeter({
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         pricingModelId: livemodeSource.id,
         name: 'Test Meter',
         slug: 'test-meter-3',
@@ -1374,7 +1384,7 @@ describe('clonePricingModelTransaction', () => {
       })
 
       const feature = await setupToggleFeature({
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         pricingModelId: livemodeSource.id,
         name: 'Test Feature',
         slug: 'test-feature-3',
@@ -1384,7 +1394,7 @@ describe('clonePricingModelTransaction', () => {
 
       const livemodeProduct = await setupProduct({
         name: 'Livemode Product 2',
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         pricingModelId: livemodeSource.id,
         livemode: true,
         active: true,
@@ -1404,7 +1414,7 @@ describe('clonePricingModelTransaction', () => {
       await setupProductFeature({
         productId: livemodeProduct.id,
         featureId: feature.id,
-        organizationId: organization.id,
+        organizationId: freshOrg.id,
         livemode: true,
       })
 
@@ -1515,11 +1525,22 @@ describe('clonePricingModelTransaction', () => {
     })
 
     it('should not affect default pricing models across livemode boundaries when cloning', async () => {
-      // Note: sourcePricingModel from beforeEach is already a livemode=true, isDefault=true pricing model
-      // So we'll use that as our livemode default
-      const livemodeDefaultPricingModel = sourcePricingModel
+      // Get the livemode pricing model that setupOrg created (it's the default livemode PM)
+      const livemodeDefaultPricingModel = await adminTransaction(
+        async (ctx) => {
+          const [pricingModel] = await selectPricingModels(
+            {
+              organizationId: organization.id,
+              livemode: true,
+              isDefault: true,
+            },
+            ctx.transaction
+          )
+          return pricingModel!
+        }
+      )
 
-      // Get the testmode pricing model that setupOrg already created
+      // Get the testmode default PM that setupOrg created
       const testmodeDefaultPricingModel = await adminTransaction(
         async (ctx) => {
           const [pricingModel] = await selectPricingModels(

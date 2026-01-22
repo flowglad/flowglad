@@ -131,9 +131,11 @@ describe('Pricing Model Migration Test Suite', async () => {
     })
 
     // Setup customer on pricing model 1
+    // Must specify livemode: false to match the pricing model's livemode
     customer = await setupCustomer({
       organizationId: organization.id,
       pricingModelId: pricingModel1.id,
+      livemode: false,
     })
   })
 
@@ -531,6 +533,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         customerId: customer.id,
         priceId: price1.id,
         status: SubscriptionStatus.Active,
+        livemode: false,
       })
 
       // Setup: Add a paid subscription on pricing model 1
@@ -557,6 +560,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         customerId: customer.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
+        livemode: false,
       })
 
       // Execute migration (automatically updates customer's pricingModelId)
@@ -579,6 +583,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Verify billing state via customerBillingTransaction
+      // Must use livemode: false to match the customer and subscriptions
       const billingState = await adminTransaction(
         async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
@@ -589,7 +594,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             transaction,
             { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false }
       )
 
       // Verify the new pricing model is returned
@@ -899,6 +905,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         customerId: customer.id,
         priceId: price1.id,
         status: SubscriptionStatus.Active,
+        livemode: false,
       })
 
       const oldSubscriptionItem = await setupSubscriptionItem({
@@ -938,6 +945,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       )
 
       // Get billing state
+      // Must use livemode: false to match the customer and subscriptions
       const billingState = await adminTransaction(
         async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
@@ -948,7 +956,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             transaction,
             { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false }
       )
 
       // Verify currentSubscriptions has only the new subscription
