@@ -162,6 +162,31 @@ export const selectDefaultPricingModel = async (
   return pricingModel
 }
 
+/**
+ * Counts the number of livemode pricing models for an organization.
+ * Used to enforce the constraint that each organization can have at most
+ * one livemode pricing model.
+ *
+ * @param organizationId - The organization to check
+ * @param transaction - Database transaction
+ * @returns The count of livemode pricing models for the organization
+ */
+export const countLivemodePricingModels = async (
+  organizationId: string,
+  transaction: DbTransaction
+): Promise<number> => {
+  const result = await transaction
+    .select({ count: sql<number>`COUNT(*)`.mapWith(Number) })
+    .from(pricingModels)
+    .where(
+      and(
+        eq(pricingModels.organizationId, organizationId),
+        eq(pricingModels.livemode, true)
+      )
+    )
+  return result[0]?.count ?? 0
+}
+
 export const makePricingModelDefault = async (
   newDefaultPricingModelOrId: PricingModel.Record | string,
   ctx: TransactionEffectsContext
@@ -249,6 +274,19 @@ export const safelyInsertPricingModel = async (
   pricingModel: PricingModel.Insert,
   ctx: TransactionEffectsContext
 ) => {
+  // Check if org already has a livemode pricing model
+  if (pricingModel.livemode) {
+    const existingCount = await countLivemodePricingModels(
+      pricingModel.organizationId,
+      ctx.transaction
+    )
+    if (existingCount >= 1) {
+      throw new Error(
+        'Organization already has a livemode pricing model. Only one livemode pricing model is allowed per organization.'
+      )
+    }
+  }
+
   if (pricingModel.isDefault) {
     await setPricingModelsForOrganizationToNonDefault(
       {
