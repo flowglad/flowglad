@@ -5,7 +5,6 @@ import {
   setupOrg,
   setupPaymentMethod,
   setupPrice,
-  setupPricingModel,
   setupProduct,
   setupPurchase,
   setupSubscription,
@@ -115,15 +114,11 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for payment
-    const pricingModel = await setupPricingModel({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    // Set up required dependencies for payment (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
-      pricingModelId: pricingModel.id,
+      pricingModelId: orgData.pricingModel.id,
       livemode: true,
     })
     const price = await setupPrice({
@@ -203,15 +198,11 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for payment
-    const pricingModel = await setupPricingModel({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    // Set up required dependencies for payment (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
-      pricingModelId: pricingModel.id,
+      pricingModelId: orgData.pricingModel.id,
       livemode: true,
     })
     const price = await setupPrice({
@@ -291,15 +282,11 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for purchase
-    const pricingModel = await setupPricingModel({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    // Set up required dependencies for purchase (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
-      pricingModelId: pricingModel.id,
+      pricingModelId: orgData.pricingModel.id,
       livemode: true,
     })
     const price = await setupPrice({
@@ -352,15 +339,11 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for subscription
-    const pricingModel = await setupPricingModel({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    // Set up required dependencies for subscription (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
-      pricingModelId: pricingModel.id,
+      pricingModelId: orgData.pricingModel.id,
       livemode: true,
     })
     const price = await setupPrice({
@@ -419,15 +402,11 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for subscription
-    const pricingModel = await setupPricingModel({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    // Set up required dependencies for subscription (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
-      pricingModelId: pricingModel.id,
+      pricingModelId: orgData.pricingModel.id,
       livemode: true,
     })
     const price = await setupPrice({
@@ -486,15 +465,11 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for subscription
-    const pricingModel = await setupPricingModel({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    // Set up required dependencies for subscription (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
-      pricingModelId: pricingModel.id,
+      pricingModelId: orgData.pricingModel.id,
       livemode: true,
     })
     const price = await setupPrice({

@@ -1074,7 +1074,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
     org1Data = await setupOrg() // Sets up org, product, price in livemode (presumably true)
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,
-      livemode: true, // API key for org1 is livemode: true
+      livemode: false, // API key for org1 is livemode: false to avoid conflict with setupOrg's livemode=true pricing model
     })
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
@@ -1088,7 +1088,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
     await authenticatedTransaction(
       async (ctx) => {
         const { transaction, livemode } = ctx
-        expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode should be false based on API key
+        expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode should be false to avoid unique constraint violation
 
         const newPricingModelInput: PricingModel.Insert = {
           name: 'Test Allowed RLS PricingModel',
