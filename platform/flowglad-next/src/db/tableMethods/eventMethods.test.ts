@@ -1,0 +1,819 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
+import {
+  setupCustomer,
+  setupInvoice,
+  setupOrg,
+  setupPayment,
+  setupPaymentMethod,
+  setupPrice,
+  setupPurchase,
+  setupSubscription,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Payment } from '@/db/schema/payments'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { Purchase } from '@/db/schema/purchases'
+import type { Subscription } from '@/db/schema/subscriptions'
+import {
+  EventNoun,
+  FlowgladEventType,
+  InvoiceStatus,
+  PaymentMethodType,
+  PaymentStatus,
+  PriceType,
+} from '@/types'
+import core from '@/utils/core'
+import {
+  bulkInsertOrDoNothingEventsByHash,
+  derivePricingModelIdFromEventPayload,
+  pricingModelIdsForEventPayloads,
+  selectEventById,
+} from './eventMethods'
+
+describe('pricingModelIdsForEventPayloads', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let subscription: Subscription.Record
+  let payment: Payment.Record
+  let purchase: Purchase.Record
+  let invoice: Invoice.Record
+  let paymentMethod: PaymentMethod.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: true,
+      active: true,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `test+${Date.now()}@test.com`,
+      livemode: true,
+      pricingModelId: pricingModel.id,
+    })
+
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      type: PaymentMethodType.Card,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      paymentMethodId: paymentMethod.id,
+      livemode: true,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      status: InvoiceStatus.Draft,
+      livemode: true,
+      priceId: price.id,
+    })
+
+    payment = await setupPayment({
+      organizationId: organization.id,
+      customerId: customer.id,
+      invoiceId: invoice.id,
+      amount: 1000,
+      status: PaymentStatus.Succeeded,
+      stripeChargeId: `ch_${core.nanoid()}`,
+      livemode: true,
+    })
+
+    purchase = await setupPurchase({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      livemode: true,
+    })
+  })
+
+  it('returns an empty map when given an empty payloads array', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await pricingModelIdsForEventPayloads(
+        [],
+        transaction
+      )
+
+      expect(result).toBeInstanceOf(Map)
+      expect(result.size).toBe(0)
+    })
+  })
+
+  it('returns pricingModelId for a customer payload', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await pricingModelIdsForEventPayloads(
+        [{ id: customer.id, object: EventNoun.Customer }],
+        transaction
+      )
+
+      expect(result.size).toBe(1)
+      expect(result.get(customer.id)).toBe(pricingModel.id)
+    })
+  })
+
+  it('returns pricingModelId for a subscription payload', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await pricingModelIdsForEventPayloads(
+        [{ id: subscription.id, object: EventNoun.Subscription }],
+        transaction
+      )
+
+      expect(result.size).toBe(1)
+      expect(result.get(subscription.id)).toBe(pricingModel.id)
+    })
+  })
+
+  it('returns pricingModelId for a payment payload', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await pricingModelIdsForEventPayloads(
+        [{ id: payment.id, object: EventNoun.Payment }],
+        transaction
+      )
+
+      expect(result.size).toBe(1)
+      expect(result.get(payment.id)).toBe(pricingModel.id)
+    })
+  })
+
+  it('returns pricingModelId for a purchase payload', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await pricingModelIdsForEventPayloads(
+        [{ id: purchase.id, object: EventNoun.Purchase }],
+        transaction
+      )
+
+      expect(result.size).toBe(1)
+      expect(result.get(purchase.id)).toBe(pricingModel.id)
+    })
+  })
+
+  it('returns pricingModelIds for multiple payloads of different types', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await pricingModelIdsForEventPayloads(
+        [
+          { id: customer.id, object: EventNoun.Customer },
+          { id: subscription.id, object: EventNoun.Subscription },
+          { id: payment.id, object: EventNoun.Payment },
+          { id: purchase.id, object: EventNoun.Purchase },
+        ],
+        transaction
+      )
+
+      expect(result.size).toBe(4)
+      expect(result.get(customer.id)).toBe(pricingModel.id)
+      expect(result.get(subscription.id)).toBe(pricingModel.id)
+      expect(result.get(payment.id)).toBe(pricingModel.id)
+      expect(result.get(purchase.id)).toBe(pricingModel.id)
+    })
+  })
+
+  it('returns pricingModelIds for multiple payloads of the same type', async () => {
+    const customer2 = await setupCustomer({
+      organizationId: organization.id,
+      email: `test2+${Date.now()}@test.com`,
+      livemode: true,
+      pricingModelId: pricingModel.id,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await pricingModelIdsForEventPayloads(
+        [
+          { id: customer.id, object: EventNoun.Customer },
+          { id: customer2.id, object: EventNoun.Customer },
+        ],
+        transaction
+      )
+
+      expect(result.size).toBe(2)
+      expect(result.get(customer.id)).toBe(pricingModel.id)
+      expect(result.get(customer2.id)).toBe(pricingModel.id)
+    })
+  })
+
+  it('does not include non-existent IDs in the result map', async () => {
+    const nonExistentId = `cust_${core.nanoid()}`
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await pricingModelIdsForEventPayloads(
+        [
+          { id: nonExistentId, object: EventNoun.Customer },
+          { id: customer.id, object: EventNoun.Customer },
+        ],
+        transaction
+      )
+
+      expect(result.size).toBe(1)
+      expect(result.has(nonExistentId)).toBe(false)
+      expect(result.get(customer.id)).toBe(pricingModel.id)
+    })
+  })
+
+  it('handles unsupported EventNoun types by not including them in query results', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      // User and Product are EventNoun values that aren't queried by this function
+      const result = await pricingModelIdsForEventPayloads(
+        [
+          { id: 'user_123', object: EventNoun.User },
+          { id: 'prod_123', object: EventNoun.Product },
+          { id: customer.id, object: EventNoun.Customer },
+        ],
+        transaction
+      )
+
+      // Only the customer should be in the result
+      expect(result.size).toBe(1)
+      expect(result.get(customer.id)).toBe(pricingModel.id)
+      expect(result.has('user_123')).toBe(false)
+      expect(result.has('prod_123')).toBe(false)
+    })
+  })
+})
+
+describe('derivePricingModelIdFromEventPayload', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let subscription: Subscription.Record
+  let payment: Payment.Record
+  let purchase: Purchase.Record
+  let invoice: Invoice.Record
+  let paymentMethod: PaymentMethod.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: true,
+      active: true,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `test+${Date.now()}@test.com`,
+      livemode: true,
+      pricingModelId: pricingModel.id,
+    })
+
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      type: PaymentMethodType.Card,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      paymentMethodId: paymentMethod.id,
+      livemode: true,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      status: InvoiceStatus.Draft,
+      livemode: true,
+      priceId: price.id,
+    })
+
+    payment = await setupPayment({
+      organizationId: organization.id,
+      customerId: customer.id,
+      invoiceId: invoice.id,
+      amount: 1000,
+      status: PaymentStatus.Succeeded,
+      stripeChargeId: `ch_${core.nanoid()}`,
+      livemode: true,
+    })
+
+    purchase = await setupPurchase({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      livemode: true,
+    })
+  })
+
+  it('returns pricingModelId for a customer payload', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await derivePricingModelIdFromEventPayload(
+        { id: customer.id, object: EventNoun.Customer },
+        transaction
+      )
+
+      expect(result).toBe(pricingModel.id)
+    })
+  })
+
+  it('returns pricingModelId for a subscription payload', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await derivePricingModelIdFromEventPayload(
+        { id: subscription.id, object: EventNoun.Subscription },
+        transaction
+      )
+
+      expect(result).toBe(pricingModel.id)
+    })
+  })
+
+  it('returns pricingModelId for a payment payload', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await derivePricingModelIdFromEventPayload(
+        { id: payment.id, object: EventNoun.Payment },
+        transaction
+      )
+
+      expect(result).toBe(pricingModel.id)
+    })
+  })
+
+  it('returns pricingModelId for a purchase payload', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await derivePricingModelIdFromEventPayload(
+        { id: purchase.id, object: EventNoun.Purchase },
+        transaction
+      )
+
+      expect(result).toBe(pricingModel.id)
+    })
+  })
+
+  it('throws an error when the payload ID does not exist', async () => {
+    const nonExistentId = `cust_${core.nanoid()}`
+
+    await adminTransaction(async ({ transaction }) => {
+      await expect(
+        derivePricingModelIdFromEventPayload(
+          { id: nonExistentId, object: EventNoun.Customer },
+          transaction
+        )
+      ).rejects.toThrow(
+        `Pricing model id not found for event payload ${nonExistentId} (object type: customer)`
+      )
+    })
+  })
+
+  it('throws an error for unsupported EventNoun types', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      await expect(
+        derivePricingModelIdFromEventPayload(
+          { id: 'user_123', object: EventNoun.User },
+          transaction
+        )
+      ).rejects.toThrow(
+        'Pricing model id not found for event payload user_123 (object type: user)'
+      )
+    })
+  })
+})
+
+describe('bulkInsertOrDoNothingEventsByHash', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let subscription: Subscription.Record
+  let payment: Payment.Record
+  let purchase: Purchase.Record
+  let invoice: Invoice.Record
+  let paymentMethod: PaymentMethod.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      type: PriceType.SinglePayment,
+      unitPrice: 1000,
+      livemode: true,
+      isDefault: true,
+      active: true,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `test+${Date.now()}@test.com`,
+      livemode: true,
+      pricingModelId: pricingModel.id,
+    })
+
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      type: PaymentMethodType.Card,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      paymentMethodId: paymentMethod.id,
+      livemode: true,
+    })
+
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      status: InvoiceStatus.Draft,
+      livemode: true,
+      priceId: price.id,
+    })
+
+    payment = await setupPayment({
+      organizationId: organization.id,
+      customerId: customer.id,
+      invoiceId: invoice.id,
+      amount: 1000,
+      status: PaymentStatus.Succeeded,
+      stripeChargeId: `ch_${core.nanoid()}`,
+      livemode: true,
+    })
+
+    purchase = await setupPurchase({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      livemode: true,
+    })
+  })
+
+  it('inserts events with pricingModelId derived from customer payload', async () => {
+    const hash = `hash_${core.nanoid()}`
+    const now = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.CustomerCreated,
+            payload: {
+              id: customer.id,
+              object: EventNoun.Customer,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash,
+            organizationId: organization.id,
+            livemode: true,
+          },
+        ],
+        transaction
+      )
+
+      expect(result).toHaveLength(1)
+      expect(result[0].pricingModelId).toBe(pricingModel.id)
+      expect(result[0].hash).toBe(hash)
+    })
+  })
+
+  it('inserts events with pricingModelId derived from payment payload', async () => {
+    const hash = `hash_${core.nanoid()}`
+    const now = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.PaymentSucceeded,
+            payload: {
+              id: payment.id,
+              object: EventNoun.Payment,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash,
+            organizationId: organization.id,
+            livemode: true,
+          },
+        ],
+        transaction
+      )
+
+      expect(result).toHaveLength(1)
+      expect(result[0].pricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('inserts events with pricingModelId derived from subscription payload', async () => {
+    const hash = `hash_${core.nanoid()}`
+    const now = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.SubscriptionCreated,
+            payload: {
+              id: subscription.id,
+              object: EventNoun.Subscription,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash,
+            organizationId: organization.id,
+            livemode: true,
+          },
+        ],
+        transaction
+      )
+
+      expect(result).toHaveLength(1)
+      expect(result[0].pricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('inserts events with pricingModelId derived from purchase payload', async () => {
+    const hash = `hash_${core.nanoid()}`
+    const now = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.PurchaseCompleted,
+            payload: {
+              id: purchase.id,
+              object: EventNoun.Purchase,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash,
+            organizationId: organization.id,
+            livemode: true,
+          },
+        ],
+        transaction
+      )
+
+      expect(result).toHaveLength(1)
+      expect(result[0].pricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('uses provided pricingModelId instead of deriving it', async () => {
+    const hash = `hash_${core.nanoid()}`
+    const now = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.CustomerCreated,
+            payload: {
+              id: customer.id,
+              object: EventNoun.Customer,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash,
+            organizationId: organization.id,
+            livemode: true,
+            pricingModelId: pricingModel.id, // Pre-provided
+          },
+        ],
+        transaction
+      )
+
+      expect(result).toHaveLength(1)
+      expect(result[0].pricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('inserts multiple events with mixed pricingModelId derivation', async () => {
+    const hash1 = `hash_${core.nanoid()}`
+    const hash2 = `hash_${core.nanoid()}`
+    const now = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.CustomerCreated,
+            payload: {
+              id: customer.id,
+              object: EventNoun.Customer,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash: hash1,
+            organizationId: organization.id,
+            livemode: true,
+            // No pricingModelId - will be derived
+          },
+          {
+            type: FlowgladEventType.PaymentSucceeded,
+            payload: {
+              id: payment.id,
+              object: EventNoun.Payment,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash: hash2,
+            organizationId: organization.id,
+            livemode: true,
+            pricingModelId: pricingModel.id, // Pre-provided
+          },
+        ],
+        transaction
+      )
+
+      expect(result).toHaveLength(2)
+      expect(result[0].pricingModelId).toBe(pricingModel.id)
+      expect(result[1].pricingModelId).toBe(pricingModel.id)
+    })
+  })
+
+  it('does not insert duplicate events with the same hash', async () => {
+    const hash = `hash_${core.nanoid()}`
+    const now = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      // First insert
+      const firstResult = await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.CustomerCreated,
+            payload: {
+              id: customer.id,
+              object: EventNoun.Customer,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash,
+            organizationId: organization.id,
+            livemode: true,
+          },
+        ],
+        transaction
+      )
+
+      expect(firstResult).toHaveLength(1)
+      const eventId = firstResult[0].id
+
+      // Second insert with same hash - should do nothing
+      const secondResult = await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.CustomerCreated,
+            payload: {
+              id: customer.id,
+              object: EventNoun.Customer,
+            },
+            occurredAt: now + 1000, // Different timestamp
+            submittedAt: now + 1000,
+            metadata: { different: 'metadata' },
+            hash, // Same hash
+            organizationId: organization.id,
+            livemode: true,
+          },
+        ],
+        transaction
+      )
+
+      // Second insert returns empty since it did nothing
+      expect(secondResult).toHaveLength(0)
+
+      // Verify the original event was not modified
+      const originalEvent = await selectEventById(
+        eventId,
+        transaction
+      )
+      expect(originalEvent?.id).toBe(eventId)
+      expect(originalEvent?.occurredAt).toBe(now)
+    })
+  })
+
+  it('throws an error when payload ID does not exist and cannot derive pricingModelId', async () => {
+    const nonExistentId = `cust_${core.nanoid()}`
+    const hash = `hash_${core.nanoid()}`
+    const now = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      await expect(
+        bulkInsertOrDoNothingEventsByHash(
+          [
+            {
+              type: FlowgladEventType.CustomerCreated,
+              payload: {
+                id: nonExistentId,
+                object: EventNoun.Customer,
+              },
+              occurredAt: now,
+              submittedAt: now,
+              metadata: {},
+              hash,
+              organizationId: organization.id,
+              livemode: true,
+            },
+          ],
+          transaction
+        )
+      ).rejects.toThrow(
+        `Pricing model id not found for event payload ${nonExistentId}`
+      )
+    })
+  })
+
+  it('inserts events from multiple organizations in a single batch', async () => {
+    const org2Data = await setupOrg()
+    const customer2 = await setupCustomer({
+      organizationId: org2Data.organization.id,
+      email: `test2+${Date.now()}@test.com`,
+      livemode: true,
+      pricingModelId: org2Data.pricingModel.id,
+    })
+
+    const hash1 = `hash_${core.nanoid()}`
+    const hash2 = `hash_${core.nanoid()}`
+    const now = Date.now()
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await bulkInsertOrDoNothingEventsByHash(
+        [
+          {
+            type: FlowgladEventType.CustomerCreated,
+            payload: {
+              id: customer.id,
+              object: EventNoun.Customer,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash: hash1,
+            organizationId: organization.id,
+            livemode: true,
+          },
+          {
+            type: FlowgladEventType.CustomerCreated,
+            payload: {
+              id: customer2.id,
+              object: EventNoun.Customer,
+            },
+            occurredAt: now,
+            submittedAt: now,
+            metadata: {},
+            hash: hash2,
+            organizationId: org2Data.organization.id,
+            livemode: true,
+          },
+        ],
+        transaction
+      )
+
+      expect(result).toHaveLength(2)
+      // First event should have org1's pricingModelId
+      expect(result[0].pricingModelId).toBe(pricingModel.id)
+      expect(result[0].organizationId).toBe(organization.id)
+      // Second event should have org2's pricingModelId
+      expect(result[1].pricingModelId).toBe(org2Data.pricingModel.id)
+      expect(result[1].organizationId).toBe(org2Data.organization.id)
+    })
+  })
+})

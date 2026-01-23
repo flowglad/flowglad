@@ -2,6 +2,7 @@ import { sql } from 'drizzle-orm'
 import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import {
   constructIndex,
   livemodePolicyTable,
@@ -34,10 +35,15 @@ export const webhooks = pgTable(
     url: text('url').notNull(),
     name: text('name').notNull(),
     active: boolean('active').notNull().default(true),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.active]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     merchantPolicy(
       `Enable read for own organizations (${TABLE_NAME})`,
       {
@@ -57,6 +63,7 @@ const columnRefinements = {
 const readOnlyColumns = {
   livemode: true,
   organizationId: true,
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {} as const
@@ -72,6 +79,9 @@ export const {
   },
 } = buildSchemas(webhooks, {
   refine: columnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns,
     readOnlyColumns,
