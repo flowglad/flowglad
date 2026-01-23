@@ -27,7 +27,7 @@ const PayPurchasePage = async ({
         transaction
       )
       const { price, organization, purchase, product } = result
-      const checkoutSession = await findOrCreateCheckoutSession(
+      const checkoutSessionResult = await findOrCreateCheckoutSession(
         {
           productId: product.id,
           organizationId: organization.id,
@@ -37,6 +37,7 @@ const PayPurchasePage = async ({
         },
         transaction
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       const discount = checkoutSession.discountId
         ? await selectDiscountById(

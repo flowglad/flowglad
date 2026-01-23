@@ -1,76 +1,74 @@
-import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { setupOrg } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
-import type { Organization } from '@/db/schema/organizations'
-import type { User } from '@/db/schema/users'
-import { insertMembership } from '@/db/tableMethods/membershipMethods'
-import { insertUser } from '@/db/tableMethods/userMethods'
-import { organizationsRouter } from '@/server/routers/organizationsRouter'
-import type { TRPCContext } from '@/server/trpcContext'
-import { CountryCode, StripeConnectContractType } from '@/types'
-import { getSession } from '@/utils/auth'
-import core from '@/utils/core'
-import { server } from '../../../mocks/server'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+// Mock modules BEFORE importing them
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(),
+    get: mock(),
+    delete: mock(),
   })),
 }))
 
-vi.mock('@/utils/auth', () => ({
-  auth: {
-    api: {
-      getSession: vi.fn(),
-    },
-  },
-  getSession: vi.fn(),
-}))
+// Now import everything else (including mocked modules)
+import { HttpResponse, http } from 'msw'
+import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
+import * as databaseAuthentication from '@/db/databaseAuthentication'
+import type { Organization } from '@/db/schema/organizations'
+import type { User } from '@/db/schema/users'
+import { organizationsRouter } from '@/server/routers/organizationsRouter'
+import type { TRPCContext } from '@/server/trpcContext'
+import { CountryCode, StripeConnectContractType } from '@/types'
+import core from '@/utils/core'
+import { server } from '../../../mocks/server'
 
 const createAuthedContext = async (params: {
   organization: Organization.Record
   livemode?: boolean
-}) => {
+}): Promise<{ ctx: TRPCContext; user: User.Record }> => {
   const { organization } = params
   const livemode = params.livemode ?? true
 
-  const betterAuthId = `ba_test_${core.nanoid()}`
-  const email = `merchant+${core.nanoid()}@example.com`
-
-  const user = await adminTransaction(async ({ transaction }) => {
-    const insertedUser: User.Record = await insertUser(
-      {
-        id: `usr_test_${core.nanoid()}`,
-        email,
-        name: 'Test Merchant',
-        betterAuthId,
-      },
-      transaction
-    )
-
-    await insertMembership(
-      {
-        userId: insertedUser.id,
-        organizationId: organization.id,
-        focused: true,
-        livemode,
-      },
-      transaction
-    )
-
-    return insertedUser
+  // Create a user with API key - this will be used for the mock
+  const { user } = await setupUserAndApiKey({
+    organizationId: organization.id,
+    livemode,
   })
 
-  vi.mocked(getSession).mockResolvedValue({
-    user: {
-      id: betterAuthId,
-      email,
+  // Mock getDatabaseAuthenticationInfo to return proper auth info
+  // This bypasses the getSession() call which is problematic to mock
+  spyOn(
+    databaseAuthentication,
+    'getDatabaseAuthenticationInfo'
+  ).mockResolvedValue({
+    userId: user.id,
+    livemode,
+    jwtClaim: {
+      role: 'merchant',
+      sub: user.id,
+      email: user.email!,
+      organization_id: organization.id,
+      auth_type: 'webapp',
+      user_metadata: {
+        id: user.id,
+        user_metadata: {},
+        aud: 'stub',
+        email: user.email!,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        role: 'merchant',
+        app_metadata: { provider: '' },
+      },
+      app_metadata: { provider: 'webapp' },
     },
-  } as unknown as Awaited<ReturnType<typeof getSession>>)
+  })
 
   const ctx: TRPCContext = {
     user,
@@ -88,7 +86,7 @@ const createAuthedContext = async (params: {
 
 describe('requestStripeConnectOnboardingLink mutation', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    mock.clearAllMocks()
     process.env.NEXT_PUBLIC_APP_URL = 'https://app.flowglad.com'
   })
 

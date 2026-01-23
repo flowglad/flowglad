@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupInvoice,
@@ -148,8 +148,8 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    const payment = await adminTransaction(
-      async ({ transaction }) => {
+    const payment = (
+      await adminTransaction(async ({ transaction }) => {
         return await insertPayment(
           {
             stripeChargeId: `ch_${core.nanoid()}`,
@@ -166,8 +166,8 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       await commitPaymentSucceededEvent(payment, transaction)
@@ -236,8 +236,8 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    const payment = await adminTransaction(
-      async ({ transaction }) => {
+    const payment = (
+      await adminTransaction(async ({ transaction }) => {
         return await insertPayment(
           {
             stripeChargeId: `ch_${core.nanoid()}`,
@@ -254,8 +254,8 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       await commitPaymentCanceledEvent(payment, transaction)

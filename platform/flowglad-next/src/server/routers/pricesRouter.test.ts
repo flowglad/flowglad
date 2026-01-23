@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
-import { beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import * as orgSetup from '@/db/tableMethods/organizationMethods'
@@ -33,7 +33,7 @@ describe('pricesRouter - Default Price Constraints', () => {
   let defaultPriceId: string
   let regularProductId: string
   let regularPriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     // Set up organization and pricing model with default product and price
@@ -699,7 +699,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   let usagePriceBId: string
   let subscriptionPriceId: string
   let inactiveUsagePriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
@@ -1074,7 +1074,7 @@ describe('pricesRouter - API Contract Updates', () => {
   let pricingModelId: string
   let usageMeterId: string
   let regularProductId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
@@ -1298,7 +1298,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
   let usageMeterId: string
   let usagePriceId: string
   let subscriptionPriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
@@ -1661,7 +1661,7 @@ describe('pricesRouter - Reserved Slug Validation', () => {
   let usageMeterId: string
   let regularProductId: string
   let existingUsagePriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
@@ -2067,7 +2067,7 @@ describe('pricesRouter - No Charge Price Protection', () => {
   let usageMeterId: string
   let noChargePriceId: string
   let regularUsagePriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     const result = await adminTransaction(async (ctx) => {
@@ -2245,6 +2245,52 @@ describe('pricesRouter - No Charge Price Protection', () => {
       })
 
       expect(result.price.name).toBe('New Name for No Charge Price')
+    })
+
+    it('allows setting isDefault to true on no_charge prices when slug is unchanged in payload', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      // First set the regular price as default (so no_charge becomes non-default)
+      await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: regularUsagePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+        },
+        id: regularUsagePriceId,
+      })
+
+      // Verify no_charge price is now non-default before we test setting it back
+      const intermediateState = await pricesRouter
+        .createCaller(ctx)
+        .get({ id: noChargePriceId })
+      expect(intermediateState.price.isDefault).toBe(false)
+
+      // Now update the no_charge price including the unchanged slug in the payload
+      // This should NOT trigger the reserved slug validation since the slug is unchanged
+      const result = await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: noChargePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+          slug: 'test-usage-meter_no_charge', // Same slug as before - unchanged
+        },
+        id: noChargePriceId,
+      })
+
+      expect(result.price.isDefault).toBe(true)
+      expect(result.price.slug).toBe('test-usage-meter_no_charge')
     })
 
     it('rejects unsetting isDefault on no_charge prices that are currently default', async () => {

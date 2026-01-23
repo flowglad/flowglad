@@ -26,6 +26,8 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { PriceType } from '@/types'
+import { buildSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**
  * Maps of slugs to database IDs for all child entities of a pricing model.
@@ -35,13 +37,19 @@ export type ResolvedPricingModelIds = {
   features: Map<string, string>
   /** Product slug -> product ID */
   products: Map<string, string>
-  /** Price slug -> price ID */
+  /** Price slug -> price ID (includes synthetic slugs for prices without real slugs) */
   prices: Map<string, string>
   /** Usage meter slug -> usage meter ID */
   usageMeters: Map<string, string>
   /** Resource slug -> resource ID */
   resources: Map<string, string>
 }
+
+/**
+ * Re-export buildSyntheticUsagePriceSlug as generateSyntheticUsagePriceSlug for backwards compatibility.
+ * This function generates a synthetic slug for a usage price that doesn't have a real slug.
+ */
+export { buildSyntheticUsagePriceSlug as generateSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**
  * Fetches all child entities of a pricing model and creates slug->id maps
@@ -103,11 +111,34 @@ export const resolveExistingIds = async (
     }
   }
 
+  // Build meter ID -> meter slug map for synthetic slug generation
+  const meterIdToSlug = new Map<string, string>()
+  for (const meter of usageMeters) {
+    meterIdToSlug.set(meter.id, meter.slug)
+  }
+
   const priceMap = new Map<string, string>()
   for (const price of prices) {
     if (price.slug) {
+      // Map by real slug
       priceMap.set(price.slug, price.id)
+    } else if (price.type === PriceType.Usage) {
+      // For usage prices without slugs, generate a synthetic slug
+      // This mirrors the logic in diffing.ts to ensure consistent lookup
+      const usagePrice = price as Price.UsageRecord
+      const meterSlug = meterIdToSlug.get(usagePrice.usageMeterId)
+      if (meterSlug) {
+        const syntheticSlug = buildSyntheticUsagePriceSlug(
+          usagePrice,
+          meterSlug
+        )
+        priceMap.set(syntheticSlug, price.id)
+      }
+      // If meter slug not found, skip - the price can't be looked up anyway
     }
+    // Note: Product prices (Subscription/SinglePayment) without slugs
+    // are currently handled by the "silently skip" pattern in updateTransaction.
+    // If needed, synthetic slug generation could be added here for those too.
   }
 
   const usageMeterMap = new Map<string, string>()

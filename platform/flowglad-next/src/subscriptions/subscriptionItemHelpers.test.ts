@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -882,14 +882,16 @@ describe('subscriptionItemHelpers', () => {
             },
           ]
 
-          const result = await handleSubscriptionItemAdjustment(
-            {
-              subscriptionId: subscription.id,
-              newSubscriptionItems,
-              adjustmentDate: midPeriodDate,
-            },
-            ctx
-          )
+          const result = (
+            await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: subscription.id,
+                newSubscriptionItems,
+                adjustmentDate: midPeriodDate,
+              },
+              ctx
+            )
+          ).unwrap()
 
           // Verify subscription item was created
           const activeItems =
@@ -993,14 +995,16 @@ describe('subscriptionItemHelpers', () => {
             },
           ]
 
-          const result = await handleSubscriptionItemAdjustment(
-            {
-              subscriptionId: subscription.id,
-              newSubscriptionItems,
-              adjustmentDate: periodStartDate,
-            },
-            ctx
-          )
+          const result = (
+            await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: subscription.id,
+                newSubscriptionItems,
+                adjustmentDate: periodStartDate,
+              },
+              ctx
+            )
+          ).unwrap()
 
           // Verify subscription item was created
           expect(
@@ -1182,14 +1186,16 @@ describe('subscriptionItemHelpers', () => {
             },
           ]
 
-          const result = await handleSubscriptionItemAdjustment(
-            {
-              subscriptionId: subscription.id,
-              newSubscriptionItems,
-              adjustmentDate: midPeriodDate,
-            },
-            ctx
-          )
+          const result = (
+            await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: subscription.id,
+                newSubscriptionItems,
+                adjustmentDate: midPeriodDate,
+              },
+              ctx
+            )
+          ).unwrap()
 
           // Verify features were created including the Once feature
           expect(result.createdFeatures.length).toBeGreaterThan(0)
@@ -1357,14 +1363,16 @@ describe('subscriptionItemHelpers', () => {
       it('should handle empty newSubscriptionItems array', async () => {
         await comprehensiveAdminTransaction(async (ctx) => {
           const { transaction } = ctx
-          const result = await handleSubscriptionItemAdjustment(
-            {
-              subscriptionId: subscription.id,
-              newSubscriptionItems: [],
-              adjustmentDate: now,
-            },
-            ctx
-          )
+          const result = (
+            await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: subscription.id,
+                newSubscriptionItems: [],
+                adjustmentDate: now,
+              },
+              ctx
+            )
+          ).unwrap()
 
           expect(result.createdOrUpdatedSubscriptionItems).toEqual([])
           expect(result.createdFeatures).toEqual([])
@@ -1412,14 +1420,16 @@ describe('subscriptionItemHelpers', () => {
             },
           ]
 
-          const result = await handleSubscriptionItemAdjustment(
-            {
-              subscriptionId: emptySubscription.id,
-              newSubscriptionItems,
-              adjustmentDate: now,
-            },
-            ctx
-          )
+          const result = (
+            await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: emptySubscription.id,
+                newSubscriptionItems,
+                adjustmentDate: now,
+              },
+              ctx
+            )
+          ).unwrap()
 
           expect(
             result.createdOrUpdatedSubscriptionItems.length
@@ -1559,14 +1569,16 @@ describe('subscriptionItemHelpers', () => {
             },
           ]
 
-          const result = await handleSubscriptionItemAdjustment(
-            {
-              subscriptionId: subscription.id,
-              newSubscriptionItems: twoIdenticalItems,
-              adjustmentDate: now,
-            },
-            ctx
-          )
+          const result = (
+            await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: subscription.id,
+                newSubscriptionItems: twoIdenticalItems,
+                adjustmentDate: now,
+              },
+              ctx
+            )
+          ).unwrap()
 
           // Should create 2 separate subscription item records
           expect(
@@ -1629,14 +1641,16 @@ describe('subscriptionItemHelpers', () => {
             },
           ]
 
-          const result = await handleSubscriptionItemAdjustment(
-            {
-              subscriptionId: subscription.id,
-              newSubscriptionItems: oneItemQuantityTwo,
-              adjustmentDate: now,
-            },
-            ctx
-          )
+          const result = (
+            await handleSubscriptionItemAdjustment(
+              {
+                subscriptionId: subscription.id,
+                newSubscriptionItems: oneItemQuantityTwo,
+                adjustmentDate: now,
+              },
+              ctx
+            )
+          ).unwrap()
 
           // Should create 1 subscription item record with quantity 2
           expect(
@@ -1703,14 +1717,16 @@ describe('subscriptionItemHelpers', () => {
               },
             ]
 
-            const result1 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: firstAdjustmentItems,
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result1 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: firstAdjustmentItems,
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // Verify first adjustment granted credits
             expect(result1.usageCredits.length).toBe(1)
@@ -1737,14 +1753,16 @@ describe('subscriptionItemHelpers', () => {
               },
             ]
 
-            const result2 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: secondAdjustmentItems,
-                adjustmentDate: midPeriodDate + 1000,
-              },
-              ctx
-            )
+            const result2 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: secondAdjustmentItems,
+                  adjustmentDate: midPeriodDate + 1000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // KEY ASSERTION: Second adjustment should NOT grant additional credits
             // because we already have credits for this featureId in this billing period
@@ -1824,14 +1842,16 @@ describe('subscriptionItemHelpers', () => {
               },
             ]
 
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: adjustmentItems,
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: adjustmentItems,
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // Both features should get credits in the same adjustment
             expect(result.usageCredits.length).toBe(2)
@@ -1844,25 +1864,27 @@ describe('subscriptionItemHelpers', () => {
             expect(meterIds).toContain(usageMeter2.id)
 
             // Second adjustment: Same features, no new credits should be granted
-            const result2 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Second Adjustment With Both Features',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate + 1000,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate + 1000,
-              },
-              ctx
-            )
+            const result2 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Second Adjustment With Both Features',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate + 1000,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate + 1000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // No new credits - both features already have credits in this billing period
             expect(result2.usageCredits.length).toBe(0)
@@ -1903,14 +1925,16 @@ describe('subscriptionItemHelpers', () => {
               },
             ]
 
-            const result1 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: firstAdjustmentItems,
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result1 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: firstAdjustmentItems,
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result1.usageCredits.length).toBe(1)
             const originalCredit = result1.usageCredits[0]
@@ -1935,14 +1959,16 @@ describe('subscriptionItemHelpers', () => {
               },
             ]
 
-            const result2 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: secondAdjustmentItems,
-                adjustmentDate: midPeriodDate + 1000,
-              },
-              ctx
-            )
+            const result2 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: secondAdjustmentItems,
+                  adjustmentDate: midPeriodDate + 1000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // No new credits should be created
             expect(result2.usageCredits.length).toBe(0)
@@ -1994,14 +2020,16 @@ describe('subscriptionItemHelpers', () => {
               },
             ]
 
-            const result1 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: adjustment1Items,
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result1 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: adjustment1Items,
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result1.usageCredits.length).toBe(1)
             const firstCreditAmount =
@@ -2023,14 +2051,16 @@ describe('subscriptionItemHelpers', () => {
               },
             ]
 
-            const result2 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: adjustment2Items,
-                adjustmentDate: midPeriodDate + 1000,
-              },
-              ctx
-            )
+            const result2 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: adjustment2Items,
+                  adjustmentDate: midPeriodDate + 1000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result2.usageCredits.length).toBe(0) // Deduplicated!
 
@@ -2048,14 +2078,16 @@ describe('subscriptionItemHelpers', () => {
               },
             ]
 
-            const result3 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: adjustment3Items,
-                adjustmentDate: midPeriodDate + 2000,
-              },
-              ctx
-            )
+            const result3 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: adjustment3Items,
+                  adjustmentDate: midPeriodDate + 2000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result3.usageCredits.length).toBe(0) // Deduplicated!
 
@@ -2097,14 +2129,16 @@ describe('subscriptionItemHelpers', () => {
                 },
               ]
 
-              const result = await handleSubscriptionItemAdjustment(
-                {
-                  subscriptionId: subscription.id,
-                  newSubscriptionItems: adjustmentItems,
-                  adjustmentDate: midPeriodDate + i * 1000,
-                },
-                ctx
-              )
+              const result = (
+                await handleSubscriptionItemAdjustment(
+                  {
+                    subscriptionId: subscription.id,
+                    newSubscriptionItems: adjustmentItems,
+                    adjustmentDate: midPeriodDate + i * 1000,
+                  },
+                  ctx
+                )
+              ).unwrap()
 
               // Only first adjustment should grant credits
               if (i === 0) {
@@ -2153,75 +2187,81 @@ describe('subscriptionItemHelpers', () => {
               billingPeriodStartDate + 15 * oneDayInMs
 
             // First adjustment creates sub_feature_AAA
-            const result1 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'First',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result1 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'First',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             const firstSubFeatureId = result1.createdFeatures.find(
               (f) => f.featureId === feature.id
             )!.id
 
             // Second adjustment creates sub_feature_BBB
-            const result2 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Second',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate + 1000,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate + 1000,
-              },
-              ctx
-            )
+            const result2 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Second',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate + 1000,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate + 1000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             const secondSubFeatureId = result2.createdFeatures.find(
               (f) => f.featureId === feature.id
             )!.id
 
             // Third adjustment creates sub_feature_CCC
-            const result3 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Third',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate + 2000,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate + 2000,
-              },
-              ctx
-            )
+            const result3 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Third',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate + 2000,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate + 2000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             const thirdSubFeatureId = result3.createdFeatures.find(
               (f) => f.featureId === feature.id
@@ -2261,25 +2301,27 @@ describe('subscriptionItemHelpers', () => {
             const day25 = billingPeriodStartDate + 25 * oneDayInMs
 
             // First adjustment at day 10 should grant ~67 credits (100 * 0.667)
-            const result1 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Day 10 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: day10,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: day10,
-              },
-              ctx
-            )
+            const result1 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Day 10 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: day10,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: day10,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result1.usageCredits.length).toBe(1)
             const firstCreditAmount =
@@ -2289,48 +2331,52 @@ describe('subscriptionItemHelpers', () => {
             expect(firstCreditAmount).toBeLessThan(70)
 
             // Second adjustment at day 20 (would be ~33 credits if granted)
-            const result2 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Day 20 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: day20,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: day20,
-              },
-              ctx
-            )
+            const result2 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Day 20 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: day20,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: day20,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result2.usageCredits.length).toBe(0) // Deduplicated
 
             // Third adjustment at day 25 (would be ~17 credits if granted)
-            const result3 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Day 25 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: day25,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: day25,
-              },
-              ctx
-            )
+            const result3 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Day 25 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: day25,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: day25,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result3.usageCredits.length).toBe(0) // Deduplicated
 
@@ -2383,25 +2429,27 @@ describe('subscriptionItemHelpers', () => {
               billingPeriodStartDate + 15 * oneDayInMs
 
             // First adjustment: grants full 500 credits (Once = no proration)
-            const result1 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'First With Once',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result1 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'First With Once',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // Should have 2 credits: one for EveryBillingPeriod, one for Once
             const onceCredits = result1.usageCredits.filter(
@@ -2411,25 +2459,27 @@ describe('subscriptionItemHelpers', () => {
             expect(onceCredits[0].expiresAt).toBeNull() // Once credits don't expire
 
             // Second adjustment
-            const result2 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Second With Once',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate + 1000,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate + 1000,
-              },
-              ctx
-            )
+            const result2 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Second With Once',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate + 1000,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate + 1000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // No new Once credits should be granted
             const newOnceCredits = result2.usageCredits.filter(
@@ -2438,25 +2488,27 @@ describe('subscriptionItemHelpers', () => {
             expect(newOnceCredits.length).toBe(0)
 
             // Third adjustment
-            const result3 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Third With Once',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate + 2000,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate + 2000,
-              },
-              ctx
-            )
+            const result3 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Third With Once',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate + 2000,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate + 2000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // Still no new Once credits
             expect(
@@ -2506,25 +2558,27 @@ describe('subscriptionItemHelpers', () => {
               billingPeriodStartDate + 15 * oneDayInMs
 
             // First adjustment: grants both Once (500) and EveryBillingPeriod (50 prorated)
-            const result1 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Item With Both',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result1 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Item With Both',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // Should have 2 credits (one for each feature type)
             expect(result1.usageCredits.length).toBe(2)
@@ -2543,25 +2597,27 @@ describe('subscriptionItemHelpers', () => {
             )
 
             // Second adjustment: no new credits for either feature
-            const result2 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Item 2 With Both',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate + 1000,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate + 1000,
-              },
-              ctx
-            )
+            const result2 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Item 2 With Both',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate + 1000,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate + 1000,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result2.usageCredits.length).toBe(0)
 
@@ -2621,25 +2677,27 @@ describe('subscriptionItemHelpers', () => {
             // At 50% remaining, prorated amount = 100 * 0.5 = 50
             // Existing credits = 100
             // Delta = 50 - 100 = -50 (negative, so no credits granted)
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Manual Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Manual Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // Delta is negative (existing credits > new prorated amount)
             // So NO new credits should be granted
@@ -2690,25 +2748,27 @@ describe('subscriptionItemHelpers', () => {
 
             // feature.amount is 100, prorated = 100 * 0.5 = 50
             // existing = 50, delta = 50 - 50 = 0 (no credits)
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Manual Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Manual Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // feature.amount=100, at 50% = 50 prorated
             // existing = 50, delta = 0
@@ -2755,25 +2815,27 @@ describe('subscriptionItemHelpers', () => {
 
             // feature.amount is 100, prorated = 100 * 0.5 = 50
             // existing = 20, delta = 50 - 20 = 30 credits
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Upgrade Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Upgrade Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // Should grant exactly 30 delta credits (50 prorated - 20 existing)
             expect(result.usageCredits.length).toBe(1)
@@ -2838,25 +2900,27 @@ describe('subscriptionItemHelpers', () => {
             // feature.amount=100, at 50% = 50 prorated
             // existing = 50 (ManualAdjustment), delta = 50 - 50 = 0
             // No new credits should be granted
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Another Manual Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Another Manual Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // Delta = 0, so no new credits granted
             expect(result.usageCredits.length).toBe(0)
@@ -2947,25 +3011,27 @@ describe('subscriptionItemHelpers', () => {
             // Feature 2: 100 - 50 = 50
             // Total: 50 (wrong!)
 
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Adjustment With Both Features',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Adjustment With Both Features',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // Should create 2 features (one for each feature definition)
             const usageCreditGrantFeatures =
@@ -3055,48 +3121,52 @@ describe('subscriptionItemHelpers', () => {
               billingPeriodStartDate + 15 * oneDayInMs
 
             // Grant credits to subscription 1
-            const result1 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Subscription 1 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result1 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Subscription 1 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result1.usageCredits.length).toBe(1)
 
             // Grant credits to subscription 2 - should NOT be affected by subscription 1
-            const result2 = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription2.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription2.id,
-                    name: 'Subscription 2 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: midPeriodDate,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: midPeriodDate,
-              },
-              ctx
-            )
+            const result2 = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription2.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription2.id,
+                      name: 'Subscription 2 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: midPeriodDate,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: midPeriodDate,
+                },
+                ctx
+              )
+            ).unwrap()
 
             // KEY ASSERTION: Subscription 2 should also get credits
             expect(result2.usageCredits.length).toBe(1)
@@ -3185,7 +3255,7 @@ describe('subscriptionItemHelpers', () => {
             )
 
             // Second adjustment to subscription 1 - should be deduplicated
-            const sub1Result2 =
+            const sub1Result2 = (
               await handleSubscriptionItemAdjustment(
                 {
                   subscriptionId: subscription.id,
@@ -3205,10 +3275,11 @@ describe('subscriptionItemHelpers', () => {
                 },
                 ctx
               )
+            ).unwrap()
             expect(sub1Result2.usageCredits.length).toBe(0) // Deduplicated
 
             // First adjustment to subscription 2 - should grant credits
-            const sub2Result1 =
+            const sub2Result1 = (
               await handleSubscriptionItemAdjustment(
                 {
                   subscriptionId: subscription2.id,
@@ -3228,10 +3299,11 @@ describe('subscriptionItemHelpers', () => {
                 },
                 ctx
               )
+            ).unwrap()
             expect(sub2Result1.usageCredits.length).toBe(1) // Granted
 
             // Second adjustment to subscription 2 - should be deduplicated
-            const sub2Result2 =
+            const sub2Result2 = (
               await handleSubscriptionItemAdjustment(
                 {
                   subscriptionId: subscription2.id,
@@ -3251,6 +3323,7 @@ describe('subscriptionItemHelpers', () => {
                 },
                 ctx
               )
+            ).unwrap()
             expect(sub2Result2.usageCredits.length).toBe(0) // Deduplicated
             return Result.ok(null)
           })
@@ -3264,25 +3337,27 @@ describe('subscriptionItemHelpers', () => {
             // Day 10 of 30-day period = 20/30 = 66.67% remaining
             const day10 = billingPeriodStartDate + 10 * oneDayInMs
 
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Day 10 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: day10,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: day10,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Day 10 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: day10,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: day10,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (20/30) = 66.67, rounded = 67
@@ -3297,25 +3372,27 @@ describe('subscriptionItemHelpers', () => {
             // Day 20 of 30-day period = 10/30 = 33.33% remaining
             const day20 = billingPeriodStartDate + 20 * oneDayInMs
 
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Day 20 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: day20,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: day20,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Day 20 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: day20,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: day20,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (10/30) = 33.33, rounded = 33
@@ -3330,25 +3407,27 @@ describe('subscriptionItemHelpers', () => {
             // Day 25 of 30-day period = 5/30 = 16.67% remaining
             const day25 = billingPeriodStartDate + 25 * oneDayInMs
 
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Day 25 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: day25,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: day25,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Day 25 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: day25,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: day25,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (5/30) = 16.67, rounded = 17
@@ -3363,25 +3442,27 @@ describe('subscriptionItemHelpers', () => {
             // Day 1 of 30-day period = 29/30 = 96.67% remaining
             const day1 = billingPeriodStartDate + 1 * oneDayInMs
 
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Day 1 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: day1,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: day1,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Day 1 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: day1,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: day1,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (29/30) = 96.67, rounded = 97
@@ -3396,25 +3477,27 @@ describe('subscriptionItemHelpers', () => {
             // Day 29 of 30-day period = 1/30 = 3.33% remaining
             const day29 = billingPeriodStartDate + 29 * oneDayInMs
 
-            const result = await handleSubscriptionItemAdjustment(
-              {
-                subscriptionId: subscription.id,
-                newSubscriptionItems: [
-                  {
-                    subscriptionId: subscription.id,
-                    name: 'Day 29 Adjustment',
-                    quantity: 1,
-                    unitPrice: price.unitPrice,
-                    priceId: price.id,
-                    livemode: true,
-                    addedDate: day29,
-                    type: SubscriptionItemType.Static,
-                  },
-                ],
-                adjustmentDate: day29,
-              },
-              ctx
-            )
+            const result = (
+              await handleSubscriptionItemAdjustment(
+                {
+                  subscriptionId: subscription.id,
+                  newSubscriptionItems: [
+                    {
+                      subscriptionId: subscription.id,
+                      name: 'Day 29 Adjustment',
+                      quantity: 1,
+                      unitPrice: price.unitPrice,
+                      priceId: price.id,
+                      livemode: true,
+                      addedDate: day29,
+                      type: SubscriptionItemType.Static,
+                    },
+                  ],
+                  adjustmentDate: day29,
+                },
+                ctx
+              )
+            ).unwrap()
 
             expect(result.usageCredits.length).toBe(1)
             // 100 credits * (1/30) = 3.33, rounded = 3

@@ -4,8 +4,9 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -167,16 +168,18 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   })
 
   it('should do nothing and return empty entries if there are no ledger accounts for the subscription', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return expireCreditsAtEndOfBillingPeriod(
-        {
-          ledgerAccountsForSubscription: [],
-          ledgerTransaction: baseLedgerTransaction,
-          command: testCommand,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -184,16 +187,18 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
   })
 
   it('should do nothing and return empty entries if aggregateAvailableBalanceForUsageCredit returns no balances', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
-      return expireCreditsAtEndOfBillingPeriod(
-        {
-          ledgerAccountsForSubscription: [ledgerAccount1],
-          ledgerTransaction: baseLedgerTransaction,
-          command: testCommand,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -248,16 +253,18 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return expireCreditsAtEndOfBillingPeriod(
-        {
-          ledgerAccountsForSubscription: [ledgerAccount1],
-          ledgerTransaction: baseLedgerTransaction,
-          command: testCommand,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -292,16 +299,18 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return expireCreditsAtEndOfBillingPeriod(
-        {
-          ledgerAccountsForSubscription: [ledgerAccount1],
-          ledgerTransaction: baseLedgerTransaction,
-          command: testCommand,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -406,16 +415,18 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       ],
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return expireCreditsAtEndOfBillingPeriod(
-        {
-          ledgerAccountsForSubscription: [ledgerAccount1],
-          ledgerTransaction: baseLedgerTransaction,
-          command: testCommand,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.ledgerEntries).toHaveLength(1)
     const expiredEntry = result.ledgerEntries[0]
@@ -455,16 +466,18 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return expireCreditsAtEndOfBillingPeriod(
-        {
-          ledgerAccountsForSubscription: [ledgerAccount1],
-          ledgerTransaction: baseLedgerTransaction,
-          command: testCommand,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.ledgerTransaction).toEqual(baseLedgerTransaction)
     expect(result.ledgerEntries).toBeInstanceOf(Array)
@@ -583,16 +596,18 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       usageMeterId: ledgerAccount1.usageMeterId!,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return expireCreditsAtEndOfBillingPeriod(
-        {
-          ledgerAccountsForSubscription: [ledgerAccount1],
-          ledgerTransaction: baseLedgerTransaction,
-          command: testCommand,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: testCommand,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.ledgerEntries).toBeInstanceOf(Array)
     expect(result.ledgerEntries).toHaveLength(2)
@@ -651,16 +666,18 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
       livemode: true,
     })
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      return expireCreditsAtEndOfBillingPeriod(
-        {
-          ledgerAccountsForSubscription: [ledgerAccount1],
-          ledgerTransaction: baseLedgerTransaction,
-          command: livemodeFalseCommand,
-        },
-        transaction
-      )
-    })
+    const result = (
+      await adminTransaction(async ({ transaction }) => {
+        return expireCreditsAtEndOfBillingPeriod(
+          {
+            ledgerAccountsForSubscription: [ledgerAccount1],
+            ledgerTransaction: baseLedgerTransaction,
+            command: livemodeFalseCommand,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(result.ledgerEntries).toBeInstanceOf(Array)
     expect(result.ledgerEntries).toHaveLength(1)

@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -176,22 +176,26 @@ describe('getPricingModelSetupData', () => {
 
     // Create the pricing model using setupPricingModelTransaction
     const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input: originalInput,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+      (
+        await setupPricingModelTransaction(
+          {
+            input: originalInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          ctx
+        )
+      ).unwrap()
     )
 
     // Now fetch it back using getPricingModelSetupData
     const fetchedData = await adminTransaction(async (ctx) =>
-      getPricingModelSetupData(
-        setupResult.pricingModel.id,
-        ctx.transaction
-      )
+      (
+        await getPricingModelSetupData(
+          setupResult.pricingModel.id,
+          ctx.transaction
+        )
+      ).unwrap()
     )
 
     // Validate the output using the schema
@@ -303,7 +307,12 @@ describe('getPricingModelSetupData', () => {
   it('should throw an error if pricing model is not found', async () => {
     await expect(
       adminTransaction(async (ctx) =>
-        getPricingModelSetupData('non-existent-id', ctx.transaction)
+        (
+          await getPricingModelSetupData(
+            'non-existent-id',
+            ctx.transaction
+          )
+        ).unwrap()
       )
     ).rejects.toThrow()
   })
@@ -335,21 +344,25 @@ describe('getPricingModelSetupData', () => {
     }
 
     const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input: minimalInput,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+      (
+        await setupPricingModelTransaction(
+          {
+            input: minimalInput,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          ctx
+        )
+      ).unwrap()
     )
 
     const fetchedData = await adminTransaction(async (ctx) =>
-      getPricingModelSetupData(
-        setupResult.pricingModel.id,
-        ctx.transaction
-      )
+      (
+        await getPricingModelSetupData(
+          setupResult.pricingModel.id,
+          ctx.transaction
+        )
+      ).unwrap()
     )
 
     // Validate with schema
@@ -393,21 +406,25 @@ describe('getPricingModelSetupData', () => {
     }
 
     const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+      (
+        await setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          ctx
+        )
+      ).unwrap()
     )
 
     const fetchedData = await adminTransaction(async (ctx) =>
-      getPricingModelSetupData(
-        setupResult.pricingModel.id,
-        ctx.transaction
-      )
+      (
+        await getPricingModelSetupData(
+          setupResult.pricingModel.id,
+          ctx.transaction
+        )
+      ).unwrap()
     )
 
     // Validate with schema
@@ -516,21 +533,25 @@ describe('getPricingModelSetupData', () => {
     }
 
     const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+      (
+        await setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          ctx
+        )
+      ).unwrap()
     )
 
     const fetchedData = await adminTransaction(async (ctx) =>
-      getPricingModelSetupData(
-        setupResult.pricingModel.id,
-        ctx.transaction
-      )
+      (
+        await getPricingModelSetupData(
+          setupResult.pricingModel.id,
+          ctx.transaction
+        )
+      ).unwrap()
     )
 
     // Validate with schema
@@ -607,14 +628,16 @@ describe('getPricingModelSetupData', () => {
     }
 
     const setupResult = await adminTransaction(async (ctx) =>
-      setupPricingModelTransaction(
-        {
-          input,
-          organizationId: organization.id,
-          livemode: false,
-        },
-        ctx
-      )
+      (
+        await setupPricingModelTransaction(
+          {
+            input,
+            organizationId: organization.id,
+            livemode: false,
+          },
+          ctx
+        )
+      ).unwrap()
     )
 
     // Now manually expire one of the product-feature associations
@@ -651,10 +674,12 @@ describe('getPricingModelSetupData', () => {
 
     // Fetch the pricing model data
     const fetchedData = await adminTransaction(async (ctx) =>
-      getPricingModelSetupData(
-        setupResult.pricingModel.id,
-        ctx.transaction
-      )
+      (
+        await getPricingModelSetupData(
+          setupResult.pricingModel.id,
+          ctx.transaction
+        )
+      ).unwrap()
     )
 
     // Validate with schema

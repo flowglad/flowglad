@@ -1,11 +1,18 @@
 import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
+import {
   addDays,
   addYears,
   differenceInDays,
   endOfMonth,
   startOfMonth,
 } from 'date-fns'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,

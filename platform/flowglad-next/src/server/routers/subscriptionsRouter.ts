@@ -314,12 +314,10 @@ const adjustSubscriptionProcedure = protectedProcedure
     const adjustmentResult =
       await comprehensiveAuthenticatedTransaction(
         async (transactionCtx) => {
-          return Result.ok(
-            await adjustSubscription(
-              input,
-              ctx.organization!,
-              transactionCtx
-            )
+          return adjustSubscription(
+            input,
+            ctx.organization!,
+            transactionCtx
           )
         },
         {
@@ -908,7 +906,7 @@ const retryBillingRunProcedure = protectedProcedure
           })
         }
 
-        return createBillingRun(
+        const billingRunResult = await createBillingRun(
           {
             billingPeriod,
             scheduledFor: new Date(),
@@ -916,6 +914,7 @@ const retryBillingRunProcedure = protectedProcedure
           },
           transaction
         )
+        return billingRunResult.unwrap()
       },
       { apiKey: ctx.apiKey }
     )

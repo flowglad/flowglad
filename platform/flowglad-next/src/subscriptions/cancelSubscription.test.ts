@@ -1,5 +1,13 @@
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -801,7 +809,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           BillingPeriodStatus.Completed
         )
         expect(updatedActiveBP.endDate).toBe(
-          updatedSubscription.canceledAt
+          updatedSubscription.canceledAt!
         )
         expect(updatedFutureBP.status).toBe(
           BillingPeriodStatus.Canceled
@@ -911,7 +919,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         // Verify subscription was canceled immediately
         expect(result.status).toBe(SubscriptionStatus.Canceled)
-        expect(result.canceledAt).toMatchObject({})
+        expect(typeof result.canceledAt).toBe('number')
         expect(effects.events).toHaveLength(1)
         expect(effects.events[0]).toMatchObject({
           type: FlowgladEventType.SubscriptionCanceled,
@@ -969,7 +977,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
           // Verify subscription was canceled regardless of initial status
           expect(result.status).toBe(SubscriptionStatus.Canceled)
-          expect(result.canceledAt).toMatchObject({})
+          expect(typeof result.canceledAt).toBe('number')
           expect(effects.events).toHaveLength(1)
           expect(effects.events[0]).toMatchObject({
             type: FlowgladEventType.SubscriptionCanceled,
@@ -1741,13 +1749,10 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
-      // biome-ignore lint/plugin: mocking Trigger.dev task that makes network calls to external services
-      const notificationSpy = vi
-        .spyOn(
-          subscriptionCancellationNotifications,
-          'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
-        )
-        .mockResolvedValue(undefined)
+      const notificationSpy = spyOn(
+        subscriptionCancellationNotifications,
+        'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
+      ).mockResolvedValue(undefined)
       try {
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -2829,7 +2834,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('should throw error for paid subscription without payment method (security)', async () => {
+    it('returns ValidationError when paid subscription has no payment method (security)', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
@@ -3801,7 +3806,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('should handle authentication correctly and return proper error for paid subscription without payment method', async () => {
+    it('returns ValidationError when paid subscription has no payment method via procedure transaction', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()

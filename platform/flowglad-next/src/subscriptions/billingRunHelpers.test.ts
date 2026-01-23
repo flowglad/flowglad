@@ -1,11 +1,12 @@
+import type { Mock } from 'bun:test'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -89,6 +90,7 @@ import {
   selectSubscriptionById,
 } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
+import { ValidationError } from '@/errors'
 import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
   createMockConfirmationResult,
@@ -97,6 +99,7 @@ import {
 import {
   BillingPeriodStatus,
   BillingRunStatus,
+  CountryCode,
   CurrencyCode,
   FeatureUsageGrantFrequency,
   IntervalUnit,
@@ -115,6 +118,25 @@ import {
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
+
+// Import actual stripe module before mocking
+import * as actualStripe from '@/utils/stripe'
+
+// Create mock functions
+const mockCreatePaymentIntentForBillingRun =
+  mock<typeof actualStripe.createPaymentIntentForBillingRun>()
+const mockConfirmPaymentIntentForBillingRun =
+  mock<typeof actualStripe.confirmPaymentIntentForBillingRun>()
+
+// Mock Stripe functions
+mock.module('@/utils/stripe', () => ({
+  ...actualStripe,
+  createPaymentIntentForBillingRun:
+    mockCreatePaymentIntentForBillingRun,
+  confirmPaymentIntentForBillingRun:
+    mockConfirmPaymentIntentForBillingRun,
+}))
+
 import {
   confirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
@@ -133,17 +155,6 @@ import {
   scheduleBillingRunRetry,
   tabulateOutstandingUsageCosts,
 } from './billingRunHelpers'
-
-// Mock Stripe functions
-vi.mock('@/utils/stripe', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/utils/stripe')>()
-  return {
-    ...actual,
-    createPaymentIntentForBillingRun: vi.fn(),
-    confirmPaymentIntentForBillingRun: vi.fn(),
-  }
-})
 
 describe('billingRunHelpers', async () => {
   let organization: Organization.Record
@@ -890,10 +901,11 @@ describe('billingRunHelpers', async () => {
     })
 
     it('should schedule a billing run retry 3 days after the initial attempt', async () => {
-      const retryBillingRun = await adminTransaction(
+      const retryBillingRunResult = await adminTransaction(
         ({ transaction }) =>
           scheduleBillingRunRetry(billingRun, transaction)
       )
+      const retryBillingRun = retryBillingRunResult?.unwrap()
       expect(typeof retryBillingRun).toBe('object')
       expect(retryBillingRun?.scheduledFor).toBeGreaterThan(
         Date.now() + 3 * 24 * 60 * 60 * 1000 - 60 * 1000
@@ -932,7 +944,7 @@ describe('billingRunHelpers', async () => {
       )
     })
 
-    it('should throw an error when trying to create a retry billing run for a canceled subscription', async () => {
+    it('returns ValidationError when trying to create a retry billing run for a canceled subscription', async () => {
       // Update the subscription status to canceled
       const canceledSubscription = await adminTransaction(
         async ({ transaction }) => {
@@ -944,14 +956,20 @@ describe('billingRunHelpers', async () => {
         }
       )
 
-      // The database-level protection should throw an error
-      await expect(
-        adminTransaction(({ transaction }) =>
-          scheduleBillingRunRetry(billingRun, transaction)
-        )
-      ).rejects.toThrow(
-        'Cannot create billing run for canceled subscription'
+      // The database-level protection should return a ValidationError
+      const result = await adminTransaction(({ transaction }) =>
+        scheduleBillingRunRetry(billingRun, transaction)
       )
+      if (!result) {
+        throw new Error('Expected result to be defined')
+      }
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for canceled subscription'
+        )
+      }
     })
 
     it('should schedule a retry billing run if the subscription is not canceled', async () => {
@@ -966,10 +984,11 @@ describe('billingRunHelpers', async () => {
         }
       )
 
-      const retryBillingRun = await adminTransaction(
+      const retryBillingRunResult = await adminTransaction(
         ({ transaction }) =>
           scheduleBillingRunRetry(billingRun, transaction)
       )
+      const retryBillingRun = retryBillingRunResult?.unwrap()
 
       expect(retryBillingRun).toMatchObject({
         status: BillingRunStatus.Scheduled,
@@ -1094,13 +1113,13 @@ describe('billingRunHelpers', async () => {
         await setupOverpaymentScenario()
 
         // Mock Stripe to ensure no API calls are made
-        vi.mocked(createPaymentIntentForBillingRun).mockClear()
+        mockCreatePaymentIntentForBillingRun.mockClear()
 
         await executeBillingRun(billingRun.id)
 
         // Verify no Stripe calls were made
         expect(
-          vi.mocked(createPaymentIntentForBillingRun)
+          mockCreatePaymentIntentForBillingRun
         ).not.toHaveBeenCalled()
 
         // Verify database state is correct
@@ -1131,9 +1150,9 @@ describe('billingRunHelpers', async () => {
     describe('Stripe API Failures', () => {
       it('should rollback when payment intent creation fails', async () => {
         // Mock Stripe function to fail
-        vi.mocked(
-          createPaymentIntentForBillingRun
-        ).mockRejectedValueOnce(new Error('Stripe API failure'))
+        mockCreatePaymentIntentForBillingRun.mockRejectedValueOnce(
+          new Error('Stripe API failure')
+        )
 
         await executeBillingRun(billingRun.id)
 
@@ -1169,14 +1188,14 @@ describe('billingRunHelpers', async () => {
           },
         })
 
-        vi.mocked(
-          createPaymentIntentForBillingRun
-        ).mockResolvedValueOnce(mockPaymentIntent)
+        mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+          mockPaymentIntent
+        )
 
         // Mock confirmation to fail (card declined scenario)
-        vi.mocked(
-          confirmPaymentIntentForBillingRun
-        ).mockRejectedValueOnce(new Error('Your card was declined.'))
+        mockConfirmPaymentIntentForBillingRun.mockRejectedValueOnce(
+          new Error('Your card was declined.')
+        )
 
         await executeBillingRun(billingRun.id)
 
@@ -1227,14 +1246,12 @@ describe('billingRunHelpers', async () => {
           },
         })
 
-        vi.mocked(
-          createPaymentIntentForBillingRun
-        ).mockResolvedValueOnce(mockPaymentIntent)
+        mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+          mockPaymentIntent
+        )
 
         // Mock confirmation API to fail (network error, Stripe API down, etc.)
-        vi.mocked(
-          confirmPaymentIntentForBillingRun
-        ).mockRejectedValueOnce(
+        mockConfirmPaymentIntentForBillingRun.mockRejectedValueOnce(
           new Error('Stripe API temporarily unavailable')
         )
 
@@ -1274,6 +1291,7 @@ describe('billingRunHelpers', async () => {
       })
 
       it('should rollback when customer ID validation fails', async () => {
+        mockCreatePaymentIntentForBillingRun.mockClear()
         // Setup customer without stripe ID
         await adminTransaction(async ({ transaction }) => {
           await updateCustomer(
@@ -1306,11 +1324,12 @@ describe('billingRunHelpers', async () => {
 
         // Verify no Stripe calls were made
         expect(
-          vi.mocked(createPaymentIntentForBillingRun)
+          mockCreatePaymentIntentForBillingRun
         ).not.toHaveBeenCalled()
       })
 
       it('should rollback when payment method ID validation fails', async () => {
+        mockCreatePaymentIntentForBillingRun.mockClear()
         // Setup payment method without stripe ID
         await adminTransaction(
           async ({
@@ -1357,7 +1376,7 @@ describe('billingRunHelpers', async () => {
 
         // Verify no Stripe calls were made
         expect(
-          vi.mocked(createPaymentIntentForBillingRun)
+          mockCreatePaymentIntentForBillingRun
         ).not.toHaveBeenCalled()
       })
     })
@@ -1379,12 +1398,12 @@ describe('billingRunHelpers', async () => {
           { metadata: mockPaymentIntent.metadata }
         )
 
-        vi.mocked(
-          createPaymentIntentForBillingRun
-        ).mockResolvedValueOnce(mockPaymentIntent)
-        vi.mocked(
-          confirmPaymentIntentForBillingRun
-        ).mockResolvedValueOnce(mockConfirmationResult)
+        mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+          mockPaymentIntent
+        )
+        mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+          mockConfirmationResult
+        )
 
         await executeBillingRun(billingRun.id)
 
@@ -1439,7 +1458,7 @@ describe('billingRunHelpers', async () => {
 
         // Verify Stripe was called with correct parameters
         expect(
-          vi.mocked(createPaymentIntentForBillingRun)
+          mockCreatePaymentIntentForBillingRun
         ).toHaveBeenCalledWith(
           expect.objectContaining({
             amount: staticBillingPeriodItem.unitPrice,
@@ -1457,7 +1476,7 @@ describe('billingRunHelpers', async () => {
         )
 
         expect(
-          vi.mocked(confirmPaymentIntentForBillingRun)
+          mockConfirmPaymentIntentForBillingRun
         ).toHaveBeenCalledWith(
           mockPaymentIntent.id,
           billingRun.livemode
@@ -1554,12 +1573,12 @@ describe('billingRunHelpers', async () => {
           }
         )
 
-        vi.mocked(
-          createPaymentIntentForBillingRun
-        ).mockResolvedValueOnce(mockPaymentIntent)
-        vi.mocked(
-          confirmPaymentIntentForBillingRun
-        ).mockResolvedValueOnce(mockConfirmationResult)
+        mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+          mockPaymentIntent
+        )
+        mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+          mockConfirmationResult
+        )
 
         // Execute billing run
         await executeBillingRun(billingRun.id)
@@ -1621,11 +1640,11 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.invoice).toMatchObject({})
+      expect(result.invoice.id).toMatch(/^inv_/)
       expect(result.invoice.billingPeriodId).toBe(billingPeriod.id)
       expect(result.invoice.customerId).toBe(customer.id)
       expect(result.invoice.organizationId).toBe(organization.id)
-      expect(result.invoice.currency).toMatchObject({})
+      expect(typeof result.invoice.currency).toBe('string')
     })
 
     it('should use existing invoice when one exists for the billing period', async () => {
@@ -1788,7 +1807,7 @@ describe('billingRunHelpers', async () => {
         expect(result.payment.organizationId).toBe(organization.id)
         expect(result.payment.customerId).toBe(customer.id)
         expect(result.payment.invoiceId).toBe(result.invoice.id)
-        expect(result.payment.taxCountry).toMatchObject({})
+        expect(typeof result.payment.taxCountry).toBe('string')
         expect(result.payment.paymentMethod).toBe(paymentMethod.type)
         expect(result.payment.stripePaymentIntentId).toContain(
           'placeholder____'
@@ -1919,8 +1938,8 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.feeCalculation).toMatchObject({})
-      expect(result.feeCalculation.currency).toMatchObject({})
+      expect(result.feeCalculation.id).toMatch(/^feec_/)
+      expect(typeof result.feeCalculation.currency).toBe('string')
     })
 
     it('should return all expected properties in the result object', async () => {
@@ -1931,17 +1950,17 @@ describe('billingRunHelpers', async () => {
         )
       )
 
-      expect(result.invoice).toMatchObject({})
-      expect(result.payment).toMatchObject({})
-      expect(result.feeCalculation).toMatchObject({})
-      expect(result.customer).toMatchObject({})
-      expect(result.organization).toMatchObject({})
-      expect(result.billingPeriod).toMatchObject({})
-      expect(result.subscription).toMatchObject({})
-      expect(result.paymentMethod).toMatchObject({})
-      expect(result.totalDueAmount).toMatchObject({})
-      expect(result.totalAmountPaid).toMatchObject({})
-      expect(result.payments).toMatchObject({})
+      expect(result.invoice.id).toMatch(/^inv_/)
+      expect(result.payment!.id).toMatch(/^pym_/)
+      expect(result.feeCalculation.id).toMatch(/^feec_/)
+      expect(result.customer.id).toMatch(/^cust_/)
+      expect(result.organization.id).toMatch(/^org_/)
+      expect(result.billingPeriod.id).toMatch(/^billing_period_/)
+      expect(result.subscription.id).toMatch(/^sub_/)
+      expect(result.paymentMethod.id).toMatch(/^pm_/)
+      expect(typeof result.totalDueAmount).toBe('number')
+      expect(typeof result.totalAmountPaid).toBe('number')
+      expect(Array.isArray(result.payments)).toBe(true)
     })
 
     it('should handle nested billing details address for tax country', async () => {
@@ -1976,7 +1995,7 @@ describe('billingRunHelpers', async () => {
       )
 
       if (result.payment) {
-        expect(result.payment.taxCountry).toBe('US')
+        expect(result.payment.taxCountry).toBe(CountryCode.US)
       }
     })
 
@@ -2011,7 +2030,7 @@ describe('billingRunHelpers', async () => {
       )
 
       if (result.payment) {
-        expect(result.payment.taxCountry).toBe('CA')
+        expect(result.payment.taxCountry).toBe(CountryCode.CA)
       }
     })
 
@@ -2114,6 +2133,152 @@ describe('billingRunHelpers', async () => {
       expect(result.payment!.amount).not.toBe(result.totalDueAmount)
       expect(result.payment!.amount).toBeLessThan(
         result.totalDueAmount
+      )
+    })
+
+    it('does not create a payment record when amountToCharge is 0 due to existing payments fully covering totalDueAmount', async () => {
+      // Setup: Create a billing period item with a known price
+      const knownPrice = 10000 // $100 in cents
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriodItem(
+          {
+            id: staticBillingPeriodItem.id,
+            unitPrice: knownPrice,
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+      })
+
+      // Create an invoice for this billing period
+      const testInvoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+
+      // Create an existing payment that FULLY covers the totalDueAmount
+      // This simulates the scenario from issue #1317 where prior payments
+      // have already covered the full amount
+      await setupPayment({
+        stripeChargeId: 'ch_fullcover_' + core.nanoid(),
+        status: PaymentStatus.Succeeded,
+        amount: knownPrice, // Full amount - should result in amountToCharge = 0
+        livemode: billingPeriod.livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId: 'pi_fullcover_' + core.nanoid(),
+        invoiceId: testInvoice.id,
+        paymentMethod: paymentMethod.type,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: billingPeriod.subscriptionId,
+        paymentMethodId: paymentMethod.id,
+      })
+
+      // Execute the billing run
+      const result = await adminTransaction(({ transaction }) =>
+        executeBillingRunCalculationAndBookkeepingSteps(
+          billingRun,
+          transaction
+        )
+      )
+
+      // Verify the scenario: totalDueAmount > 0 but amountToCharge = 0
+      expect(result.totalDueAmount).toBeGreaterThan(0)
+      expect(result.totalAmountPaid).toBe(knownPrice)
+      expect(result.amountToCharge).toBe(0)
+
+      // The fix: no payment record should be created when amountToCharge is 0
+      // Previously this would create an orphaned $0 payment with status: Processing
+      expect(result.payment).toBeUndefined()
+
+      // Verify the invoice is marked as paid
+      expect(result.invoice.status).toBe(InvoiceStatus.Paid)
+
+      // Verify the billing run is marked as succeeded
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(billingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(
+        BillingRunStatus.Succeeded
+      )
+    })
+
+    it('succeeds without Stripe IDs when amountToCharge is 0 (prior payments fully cover amount)', async () => {
+      // Setup: Create a billing period item with a known price
+      const knownPrice = 10000 // $100 in cents
+      await adminTransaction(async ({ transaction }) => {
+        await updateBillingPeriodItem(
+          {
+            id: staticBillingPeriodItem.id,
+            unitPrice: knownPrice,
+            type: SubscriptionItemType.Static,
+          },
+          transaction
+        )
+      })
+
+      // Create an invoice for this billing period
+      const testInvoice = await setupInvoice({
+        billingPeriodId: billingPeriod.id,
+        customerId: customer.id,
+        organizationId: organization.id,
+        priceId: staticPrice.id,
+      })
+
+      // Create an existing payment that FULLY covers the totalDueAmount
+      await setupPayment({
+        stripeChargeId: 'ch_fullcover_nostripe_' + core.nanoid(),
+        status: PaymentStatus.Succeeded,
+        amount: knownPrice, // Full amount - should result in amountToCharge = 0
+        livemode: billingPeriod.livemode,
+        customerId: customer.id,
+        organizationId: organization.id,
+        stripePaymentIntentId:
+          'pi_fullcover_nostripe_' + core.nanoid(),
+        invoiceId: testInvoice.id,
+        paymentMethod: paymentMethod.type,
+        billingPeriodId: billingPeriod.id,
+        subscriptionId: billingPeriod.subscriptionId,
+        paymentMethodId: paymentMethod.id,
+      })
+
+      // Remove Stripe IDs - this should NOT cause failure when amountToCharge is 0
+      // This is the key difference from the previous test: we're verifying that
+      // the amountToCharge <= 0 guard comes BEFORE Stripe ID validation
+      await adminTransaction(async ({ transaction }) => {
+        await updatePaymentMethod(
+          {
+            id: paymentMethod.id,
+            stripePaymentMethodId: null,
+          },
+          transaction
+        )
+      })
+
+      // Execute the billing run - should succeed, not throw
+      const result = await adminTransaction(({ transaction }) =>
+        executeBillingRunCalculationAndBookkeepingSteps(
+          billingRun,
+          transaction
+        )
+      )
+
+      // Verify the scenario worked correctly
+      expect(result.totalDueAmount).toBeGreaterThan(0)
+      expect(result.amountToCharge).toBe(0)
+      expect(result.payment).toBeUndefined()
+      expect(result.invoice.status).toBe(InvoiceStatus.Paid)
+
+      // Verify the billing run is marked as succeeded
+      const updatedBillingRun = await adminTransaction(
+        ({ transaction }) =>
+          selectBillingRunById(billingRun.id, transaction)
+      )
+      expect(updatedBillingRun.status).toBe(
+        BillingRunStatus.Succeeded
       )
     })
 
@@ -3104,7 +3269,7 @@ describe('billingRunHelpers', async () => {
   })
 
   describe('safelyInsertBillingRun Protection', () => {
-    it('should prevent ALL billing run creation for canceled subscriptions', async () => {
+    it('returns ValidationError when attempting ALL billing run creation methods for canceled subscriptions', async () => {
       // Cancel the subscription
       await adminTransaction(async ({ transaction }) => {
         await safelyUpdateSubscriptionStatus(
@@ -3114,9 +3279,9 @@ describe('billingRunHelpers', async () => {
         )
       })
 
-      // Test 1: Direct safelyInsertBillingRun call should fail
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // Test 1: Direct safelyInsertBillingRun call should return ValidationError
+      const result1 = await adminTransaction(
+        async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: billingPeriod.id,
@@ -3128,14 +3293,19 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for canceled subscription'
+        }
       )
+      expect(result1.status).toBe('error')
+      if (result1.status === 'error') {
+        expect(result1.error).toBeInstanceOf(ValidationError)
+        expect(result1.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for canceled subscription'
+        )
+      }
 
-      // Test 2: createBillingRun should fail
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // Test 2: createBillingRun should return ValidationError
+      const result2 = await adminTransaction(
+        async ({ transaction }) => {
           return createBillingRun(
             {
               billingPeriod,
@@ -3144,19 +3314,32 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for canceled subscription'
+        }
       )
+      expect(result2.status).toBe('error')
+      if (result2.status === 'error') {
+        expect(result2.error).toBeInstanceOf(ValidationError)
+        expect(result2.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for canceled subscription'
+        )
+      }
 
-      // Test 3: scheduleBillingRunRetry should fail
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // Test 3: scheduleBillingRunRetry should return ValidationError
+      const result3 = await adminTransaction(
+        async ({ transaction }) => {
           return scheduleBillingRunRetry(billingRun, transaction)
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for canceled subscription'
+        }
       )
+      if (!result3) {
+        throw new Error('Expected result3 to be defined')
+      }
+      expect(result3.status).toBe('error')
+      if (result3.status === 'error') {
+        expect(result3.error).toBeInstanceOf(ValidationError)
+        expect(result3.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for canceled subscription'
+        )
+      }
     })
 
     it('should allow billing run creation for active subscriptions', async () => {
@@ -3256,9 +3439,9 @@ describe('billingRunHelpers', async () => {
       }
     })
 
-    it('should throw error for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+    it('returns ValidationError for doNotCharge subscriptions via safelyInsertBillingRun', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return safelyInsertBillingRun(
             {
               billingPeriodId: doNotChargeBillingPeriod.id,
@@ -3270,15 +3453,20 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for doNotCharge subscription'
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for doNotCharge subscription'
+        )
+      }
     })
 
-    it('should throw error for doNotCharge subscriptions via createBillingRun', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+    it('returns ValidationError for doNotCharge subscriptions via createBillingRun', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return createBillingRun(
             {
               billingPeriod: doNotChargeBillingPeriod,
@@ -3287,16 +3475,21 @@ describe('billingRunHelpers', async () => {
             },
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for doNotCharge subscription'
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for doNotCharge subscription'
+        )
+      }
     })
 
-    it('should throw error for doNotCharge subscriptions via scheduleBillingRunRetry', async () => {
+    it('returns ValidationError for doNotCharge subscriptions via scheduleBillingRunRetry', async () => {
       // Create a mock billing run to retry (normally this wouldn't exist due to prevention,
       // but we test the retry path defensively). We use a type assertion because setupBillingRun
-      // would throw for doNotCharge subscriptions (it calls safelyInsertBillingRun which throws an error).
+      // would return a ValidationError for doNotCharge subscriptions (it calls safelyInsertBillingRun which returns a ValidationError).
       const mockBillingRunForRetry = {
         id: 'mock_billing_run_id',
         billingPeriodId: doNotChargeBillingPeriod.id,
@@ -3318,16 +3511,24 @@ describe('billingRunHelpers', async () => {
         isAdjustment: false,
       } as BillingRun.Record
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return scheduleBillingRunRetry(
             mockBillingRunForRetry,
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Cannot create billing run for doNotCharge subscription'
+        }
       )
+      if (!result) {
+        throw new Error('Expected result to be defined')
+      }
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.message).toBe(
+          'Invalid subscription: Cannot create billing run for doNotCharge subscription'
+        )
+      }
     })
   })
 

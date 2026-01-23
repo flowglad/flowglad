@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { and, eq, exists, ilike, inArray, or, sql } from 'drizzle-orm'
 import { z } from 'zod'
 import {
@@ -24,6 +25,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import {
   CheckoutFlowType,
   CurrencyCode,
@@ -66,6 +68,7 @@ import {
   derivePricingModelIdFromPrice,
   pricingModelIdsForPrices,
 } from './priceMethods'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 
 const config: ORMMethodCreatorConfig<
   typeof purchases,
@@ -356,32 +359,43 @@ export type CreateCustomerInputSchema = z.infer<
 export const bulkInsertPurchases = async (
   purchaseInserts: Purchase.Insert[],
   transaction: DbTransaction
-) => {
+): Promise<Result<Purchase.Record[], NotFoundError>> => {
   const pricingModelIdMap = await pricingModelIdsForPrices(
     purchaseInserts.map((insert) => insert.priceId),
     transaction
   )
-  const purchasesWithPricingModelId = purchaseInserts.map(
-    (purchaseInsert) => {
-      const pricingModelId =
-        purchaseInsert.pricingModelId ??
-        pricingModelIdMap.get(purchaseInsert.priceId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Pricing model id not found for price ${purchaseInsert.priceId}`
-        )
+
+  // Build the array with derived pricingModelIds, returning early on any error
+  const purchasesWithPricingModelId: (Purchase.Insert & {
+    pricingModelId: string
+  })[] = []
+  for (const purchaseInsert of purchaseInserts) {
+    if (purchaseInsert.pricingModelId) {
+      purchasesWithPricingModelId.push(
+        purchaseInsert as Purchase.Insert & { pricingModelId: string }
+      )
+    } else {
+      const pricingModelIdResult = derivePricingModelIdFromMap({
+        entityId: purchaseInsert.priceId,
+        entityType: 'price',
+        pricingModelIdMap,
+      })
+      if (Result.isError(pricingModelIdResult)) {
+        return Result.err(pricingModelIdResult.error)
       }
-      return {
+      purchasesWithPricingModelId.push({
         ...purchaseInsert,
-        pricingModelId,
-      }
+        pricingModelId: pricingModelIdResult.value,
+      })
     }
-  )
+  }
   const result = await transaction
     .insert(purchases)
     .values(purchasesWithPricingModelId)
     .returning()
-  return result.map((item) => purchasesSelectSchema.parse(item))
+  return Result.ok(
+    result.map((item) => purchasesSelectSchema.parse(item))
+  )
 }
 
 export const selectPurchaseRowDataForOrganization = async (

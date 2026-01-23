@@ -680,14 +680,14 @@ export const cancelSubscriptionProcedureTransaction = async ({
     SubscriptionCancellationArrangement.Immediately
   ) {
     // Note: subscription is already fetched above, can reuse it
-    const immediateResult = await cancelSubscriptionImmediately(
+    const cancelResult = await cancelSubscriptionImmediately(
       { subscription },
       ctx
     )
-    if (immediateResult.status === 'error') {
-      return Result.err(immediateResult.error)
+    if (cancelResult.status === 'error') {
+      return Result.err(cancelResult.error)
     }
-    const updatedSubscription = immediateResult.value
+    const updatedSubscription = cancelResult.value
     return Result.ok({
       subscription: {
         ...updatedSubscription,
@@ -830,7 +830,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
       : billingPeriod.endDate
 
     if (scheduledFor > Date.now()) {
-      await createBillingRun(
+      const billingRunResult = await createBillingRun(
         {
           billingPeriod,
           paymentMethod,
@@ -838,6 +838,9 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
         },
         transaction
       )
+      if (billingRunResult.status === 'error') {
+        return Result.err(billingRunResult.error)
+      }
     }
   }
   return Result.ok(undefined)
@@ -902,14 +905,14 @@ export const uncancelSubscription = async (
   }
 
   // Security check for paid subscriptions (moved before state changes)
-  const rescheduleBillingRunsResult =
+  const rescheduleResult =
     await rescheduleBillingRunsForUncanceledPeriods(
       subscription,
       billingPeriods,
       transaction
     )
-  if (rescheduleBillingRunsResult.status === 'error') {
-    return Result.err(rescheduleBillingRunsResult.error)
+  if (rescheduleResult.status === 'error') {
+    return Result.err(rescheduleResult.error)
   }
 
   // Determine previous status

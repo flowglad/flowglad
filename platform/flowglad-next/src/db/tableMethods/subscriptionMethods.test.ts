@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { inArray } from 'drizzle-orm'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,

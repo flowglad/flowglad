@@ -4,8 +4,9 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
 import {
   setupOrg,
   setupUserAndApiKey,
@@ -20,11 +21,13 @@ import {
 import { type User, users } from '@/db/schema/users'
 import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
+import * as actualEmail from '@/utils/email'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
 import { innerInviteUserToOrganizationHandler } from './inviteUserToOrganization'
 
-vi.mock('@/utils/email', () => ({
-  sendOrganizationInvitationEmail: vi.fn(),
+mock.module('@/utils/email', () => ({
+  ...actualEmail,
+  sendOrganizationInvitationEmail: mock(),
 }))
 
 describe('innerInviteUserToOrganizationHandler', () => {
@@ -36,7 +39,10 @@ describe('innerInviteUserToOrganizationHandler', () => {
   }
 
   beforeEach(async () => {
-    vi.resetAllMocks()
+    // Clear mock call history between tests
+    ;(
+      sendOrganizationInvitationEmail as ReturnType<typeof mock>
+    ).mockClear()
     const { organization: org } = await setupOrg()
     organization = org
 

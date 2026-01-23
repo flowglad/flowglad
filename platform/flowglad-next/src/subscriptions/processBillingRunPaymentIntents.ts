@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import type {
   BillingPeriodTransitionLedgerCommand,
@@ -39,6 +40,11 @@ import { selectSubscriptionItemFeatures } from '@/db/tableMethods/subscriptionIt
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionEffectsContext } from '@/db/types'
+import {
+  NotFoundError,
+  type TerminalStateError,
+  type ValidationError,
+} from '@/errors'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationPaymentFailedNotification } from '@/trigger/notifications/send-organization-payment-failed-notification'
@@ -213,13 +219,18 @@ const processAwaitingPaymentConfirmationNotifications = async (
 export const processOutcomeForBillingRun = async (
   params: ProcessOutcomeForBillingRunParams,
   ctx: TransactionEffectsContext
-): Promise<{
-  invoice: Invoice.Record
-  invoiceLineItems: InvoiceLineItem.Record[]
-  billingRun: BillingRun.Record
-  payment: Payment.Record
-  processingSkipped?: boolean
-}> => {
+): Promise<
+  Result<
+    {
+      invoice: Invoice.Record
+      invoiceLineItems: InvoiceLineItem.Record[]
+      billingRun: BillingRun.Record
+      payment: Payment.Record
+      processingSkipped?: boolean
+    },
+    NotFoundError | ValidationError | TerminalStateError
+  >
+> => {
   const {
     transaction,
     invalidateCache,
@@ -265,13 +276,13 @@ export const processOutcomeForBillingRun = async (
       },
       transaction
     )
-    return {
+    return Result.ok({
       invoice: result.invoice,
       invoiceLineItems: result.invoiceLineItems,
       billingRun,
       payment,
       processingSkipped: true,
-    }
+    })
   }
 
   const paymentMethod = await selectPaymentMethodById(
@@ -308,14 +319,18 @@ export const processOutcomeForBillingRun = async (
     transaction
   )
   if (!invoice) {
-    throw Error(
-      `Invoice for billing period ${billingRun.billingPeriodId} not found.`
+    return Result.err(
+      new NotFoundError('Invoice', billingRun.billingPeriodId)
     )
   }
-  const { payment } = await processPaymentIntentStatusUpdated(
+  const paymentIntentResult = await processPaymentIntentStatusUpdated(
     event,
     ctx
   )
+  if (paymentIntentResult.status === 'error') {
+    return Result.err(paymentIntentResult.error)
+  }
+  const { payment } = paymentIntentResult.value
 
   if (billingRunStatus === BillingRunStatus.Succeeded) {
     await createStripeTaxTransactionIfNeededForPayment(
@@ -348,12 +363,12 @@ export const processOutcomeForBillingRun = async (
       )
     }
 
-    return {
+    return Result.ok({
       invoice,
       invoiceLineItems: [],
       billingRun,
       payment,
-    }
+    })
   }
 
   const invoiceLineItems = await selectInvoiceLineItems(
@@ -418,11 +433,6 @@ export const processOutcomeForBillingRun = async (
   // Re-Select Invoice after changes have been made
   invoice = await selectInvoiceById(invoice.id, transaction)
 
-  // Track subscription item adjustment result for cache invalidation
-  let subscriptionItemAdjustmentResult:
-    | Awaited<ReturnType<typeof handleSubscriptionItemAdjustment>>
-    | undefined
-
   // Handle subscription item adjustments after successful payment
   if (
     billingRun.isAdjustment &&
@@ -437,7 +447,7 @@ export const processOutcomeForBillingRun = async (
         transaction
       )
 
-    subscriptionItemAdjustmentResult =
+    const subscriptionItemAdjustmentResult =
       await handleSubscriptionItemAdjustment(
         {
           subscriptionId: subscription.id,
@@ -446,6 +456,11 @@ export const processOutcomeForBillingRun = async (
         },
         ctx
       )
+    // Note: Result is checked for errors but the value is not used.
+    // handleSubscriptionItemAdjustment handles cache invalidation internally.
+    if (Result.isError(subscriptionItemAdjustmentResult)) {
+      throw subscriptionItemAdjustmentResult.error
+    }
 
     // Sync subscription record with updated items
     await syncSubscriptionWithActiveItems(
@@ -463,8 +478,8 @@ export const processOutcomeForBillingRun = async (
     )
 
     if (!price) {
-      throw new Error(
-        `Price ${subscription.priceId} not found for subscription ${subscription.id}`
+      return Result.err(
+        new NotFoundError('Price', subscription.priceId)
       )
     }
 
@@ -563,10 +578,17 @@ export const processOutcomeForBillingRun = async (
       await cancelSubscriptionImmediately({ subscription }, ctx)
     } else {
       // nth payment failures logic
-      const maybeRetry = await scheduleBillingRunRetry(
+      const maybeRetryResult = await scheduleBillingRunRetry(
         billingRun,
         transaction
       )
+      let maybeRetry: BillingRun.Record | undefined
+      if (maybeRetryResult) {
+        if (maybeRetryResult.status === 'error') {
+          return Result.err(maybeRetryResult.error)
+        }
+        maybeRetry = maybeRetryResult.value
+      }
       await processFailedNotifications({
         ...notificationParams,
         retryDate: maybeRetry?.scheduledFor,
@@ -672,12 +694,12 @@ export const processOutcomeForBillingRun = async (
     } satisfies SettleInvoiceUsageCostsLedgerCommand)
   }
 
-  return {
+  return Result.ok({
     invoice,
     invoiceLineItems,
     billingRun,
     payment,
-  }
+  })
 }
 
 /**

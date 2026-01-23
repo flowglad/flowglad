@@ -201,7 +201,7 @@ export async function checkoutInfoForPriceWhere(
      * If not found, or the price id does not match, create a new purchase session
      * and save it to cookies.
      */
-    const checkoutSession = await findOrCreateCheckoutSession(
+    const checkoutSessionResult = await findOrCreateCheckoutSession(
       {
         productId: product.id,
         organizationId: organization.id,
@@ -210,6 +210,20 @@ export async function checkoutInfoForPriceWhere(
       },
       transaction
     )
+    if (checkoutSessionResult.status === 'error') {
+      return {
+        product,
+        price,
+        organization,
+        features: [],
+        checkoutSession: null,
+        discount: null,
+        feeCalculation: null,
+        maybeCustomer: null,
+        isEligibleForTrial: undefined,
+      }
+    }
+    const checkoutSession = checkoutSessionResult.value
     const discount = checkoutSession.discountId
       ? await selectDiscountById(
           checkoutSession.discountId,
