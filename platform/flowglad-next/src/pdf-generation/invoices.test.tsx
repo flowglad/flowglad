@@ -10,12 +10,7 @@ import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
-import {
-  CurrencyCode,
-  InvoiceStatus,
-  InvoiceType,
-  PaymentStatus,
-} from '@/types'
+import { CurrencyCode, InvoiceStatus, PaymentStatus } from '@/types'
 import { formatDate } from '@/utils/core'
 import {
   BillingInfo,
@@ -26,144 +21,14 @@ import {
   PaymentInfo,
   SellerContactInfo,
 } from './invoices'
-
-// ============================================================================
-// Mock Data Factories
-// ============================================================================
-
-let idCounter = 1
-
-function createMockOrganization(
-  overrides: Partial<Organization.Record> = {}
-): Organization.Record {
-  const id = `org_${idCounter++}`
-  return {
-    id,
-    name: 'Test Organization',
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    domain: 'test.com',
-    livemode: false,
-    logoURL: null,
-    slug: 'test-org',
-    stripeConnectAccountId: null,
-    stripeCustomerId: `cus_${idCounter++}`,
-    subdomain: null,
-    faviconURL: null,
-    primaryColor: null,
-    accentColor: null,
-    currency: CurrencyCode.USD,
-    ...overrides,
-  }
-}
-
-function createMockCustomer(
-  overrides: Partial<Customer.Record> = {}
-): Customer.Record {
-  const id = `cust_${idCounter++}`
-  return {
-    id,
-    name: 'Test Customer',
-    email: 'customer@test.com',
-    organizationId: `org_${idCounter}`,
-    livemode: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    externalId: null,
-    stripeCustomerId: `cus_${idCounter++}`,
-    invoiceNumberBase: null,
-    billingAddress: {
-      name: 'Test Customer',
-      address: {
-        line1: '123 Test St',
-        line2: null,
-        city: 'Test City',
-        state: 'CA',
-        postal_code: '94105',
-        country: 'US',
-      },
-    },
-    ...overrides,
-  }
-}
-
-function createMockInvoice(
-  overrides: Partial<Invoice.Record> = {}
-): Invoice.Record {
-  const id = `inv_${idCounter++}`
-  const now = Date.now()
-  return {
-    id,
-    customerId: `cust_${idCounter}`,
-    organizationId: `org_${idCounter}`,
-    livemode: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    invoiceNumber: `INV-${idCounter}`,
-    invoiceDate: now, // Required field - current timestamp
-    status: InvoiceStatus.Draft,
-    type: InvoiceType.Purchase,
-    subtotal: 6000,
-    taxAmount: 0,
-    billingPeriodId: null,
-    purchaseId: null,
-    subscriptionId: null,
-    dueDate: now + 30 * 24 * 60 * 60 * 1000, // 30 days from now
-    currency: CurrencyCode.USD,
-    stripeInvoiceId: null,
-    stripeTaxTransactionId: null,
-    taxCountry: null,
-    taxState: null,
-    ...overrides,
-  }
-}
-
-function createMockInvoiceLineItem(
-  overrides: Partial<InvoiceLineItem.Record> = {}
-): InvoiceLineItem.Record {
-  const id = `ili_${idCounter++}`
-  return {
-    id,
-    invoiceId: `inv_${idCounter}`,
-    livemode: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    description: 'Test Description',
-    quantity: 1,
-    price: 2500,
-    priceId: `price_${idCounter}`,
-    ...overrides,
-  }
-}
-
-function createMockPayment(
-  overrides: Partial<Payment.Record> = {}
-): Payment.Record {
-  const id = `pay_${idCounter++}`
-  return {
-    id,
-    invoiceId: `inv_${idCounter}`,
-    customerId: `cust_${idCounter}`,
-    organizationId: `org_${idCounter}`,
-    livemode: false,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    amount: 6000,
-    status: PaymentStatus.Succeeded,
-    currency: CurrencyCode.USD,
-    stripePaymentIntentId: `pi_${idCounter++}`,
-    stripeChargeId: `ch_${idCounter++}`,
-    chargeDate: Date.now(),
-    refunded: false,
-    refundedAmount: null,
-    refundedAt: null,
-    billingRunId: null,
-    checkoutSessionId: null,
-    paymentMethodId: null,
-    type: 'charge',
-    ...overrides,
-  }
-}
+import {
+  createMockCustomer,
+  createMockInvoice,
+  createMockInvoiceLineItem,
+  createMockOrganization,
+  createMockPayment,
+  resetMockIdCounter,
+} from './test/pdfMocks'
 
 // ============================================================================
 // Tests
@@ -178,7 +43,7 @@ describe('Invoice Components', () => {
 
   beforeEach(() => {
     // Reset counter for each test to ensure consistent IDs
-    idCounter = 1
+    resetMockIdCounter()
 
     // Setup test data with mock factories
     organization = createMockOrganization()
