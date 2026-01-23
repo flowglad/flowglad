@@ -6,11 +6,11 @@
  * .env.development to exist. This is an interim solution - future iterations
  * will add support for full local development without Vercel credentials.
  *
- * Environment Loading (handled by Bun automatically):
- * - NODE_ENV unset     → uses .env.development (DEFAULT - Vercel dev)
- * - NODE_ENV=development → uses .env.development (Vercel dev)
- * - NODE_ENV=production  → uses .env.production (Vercel prod)
- * - NODE_ENV=test        → uses .env.test (test database)
+ * Environment Detection:
+ * - Scripts starting with "test" → uses .env.test (automatic detection)
+ * - NODE_ENV=production          → uses .env.production (Vercel prod)
+ * - NODE_ENV=test                → uses .env.test (explicit)
+ * - Otherwise                    → uses .env.development (DEFAULT)
  *
  * This script validates that required env files exist before Bun loads them.
  *
@@ -36,10 +36,28 @@ import { resolve } from 'path'
 export type NodeEnvType = 'development' | 'production' | 'test'
 
 /**
- * Get the effective NODE_ENV, defaulting to 'development' if unset.
- * This ensures development is always the default environment.
+ * Check if the current npm script name starts with "test".
+ * Uses npm_lifecycle_event which is set by bun/npm when running scripts.
+ */
+export function isTestScript(): boolean {
+  const scriptName =
+    process.env.npm_lifecycle_event?.toLowerCase() ?? ''
+  return scriptName.startsWith('test')
+}
+
+/**
+ * Get the effective NODE_ENV.
+ *
+ * Detection order:
+ * 1. If script name starts with "test" → 'test'
+ * 2. If NODE_ENV is 'production' → 'production'
+ * 3. If NODE_ENV is 'test' → 'test'
+ * 4. Otherwise → 'development' (default)
  */
 export function getEffectiveNodeEnv(): NodeEnvType {
+  // Auto-detect test environment from script name
+  if (isTestScript()) return 'test'
+
   const nodeEnv = process.env.NODE_ENV?.toLowerCase()
   if (nodeEnv === 'production') return 'production'
   if (nodeEnv === 'test') return 'test'
