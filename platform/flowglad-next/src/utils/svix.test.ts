@@ -109,11 +109,11 @@ describe('getSvixApplicationId', () => {
   })
 
   it('throws an error when organization has no securitySalt', () => {
-    // Use type assertion to bypass TypeScript for testing runtime safety check
+    // Use empty string to trigger the runtime check if (!organization.securitySalt)
     const orgWithoutSalt = {
       ...dummyOrganization,
       id: 'org_nosalt',
-      securitySalt: null as unknown as string,
+      securitySalt: '',
     }
 
     expect(() => {
