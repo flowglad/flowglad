@@ -1,6 +1,6 @@
+import { describe, expect, it } from 'bun:test'
 import { existsSync } from 'fs'
 import path from 'path'
-import { describe, expect, it } from 'vitest'
 import type { EmailType } from './registry'
 import { EMAIL_TRIGGER_MAP, getTriggerInfo } from './trigger-map'
 
@@ -136,7 +136,7 @@ describe('getTriggerInfo', () => {
 
     for (const emailType of mappedTypes) {
       const info = getTriggerInfo(emailType)
-      const expected = EMAIL_TRIGGER_MAP[emailType]
+      const expected = EMAIL_TRIGGER_MAP[emailType] ?? null
       expect(info).toEqual(expected)
     }
   })
