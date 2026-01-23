@@ -95,8 +95,11 @@ const getNewPaidSubscriptionId = async (
     )
     .sort(
       (a, b) =>
+        // Sort by createdAt descending, with position as tiebreaker
+        // (position is a bigserial that preserves insertion order even within a transaction)
         new Date(b.createdAt).getTime() -
-        new Date(a.createdAt).getTime()
+          new Date(a.createdAt).getTime() ||
+        (b.position ?? 0) - (a.position ?? 0)
     )
   return activePaidSubscriptions[0]?.id
 }

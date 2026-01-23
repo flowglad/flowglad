@@ -22,6 +22,27 @@
 
 /// <reference types="@testing-library/jest-dom" />
 
+// Set environment variables FIRST, before any imports that might use them
+process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
+process.env.UNKEY_ROOT_KEY =
+  process.env.UNKEY_ROOT_KEY || 'unkey_test_mock'
+process.env.BETTER_AUTH_URL =
+  process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+
+/**
+ * Global mutable auth state for testing.
+ * Tests can set `globalThis.__mockedAuthSession` to control what getSession() returns.
+ * This ensures consistent mocking across all test files.
+ */
+declare global {
+  // eslint-disable-next-line no-var
+  var __mockedAuthSession:
+    | null
+    | { user: { id: string; email: string } }
+    | undefined
+}
+globalThis.__mockedAuthSession = null
+
 // IMPORTANT: Import mocks first, before any other imports
 import './bun.mocks'
 
