@@ -199,7 +199,8 @@ export function shouldSkipSafetyCheck(): boolean {
   return (
     process.env.VERCEL !== undefined ||
     process.env.CI !== undefined ||
-    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined
+    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined ||
+    isBootstrapScript()
   )
 }
 
