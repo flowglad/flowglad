@@ -1,17 +1,71 @@
 /**
- * Bun preload script for database safety.
+ * Bun preload script for database safety and environment validation.
  *
- * This script runs before any other code when using `bun` and blocks
- * execution if DATABASE_URL points to a non-local database in development.
+ * Environment Loading (handled by Bun automatically):
+ * - NODE_ENV unset → loads .env only (local development, safe default)
+ * - NODE_ENV=development → loads .env + .env.development (Vercel dev)
+ * - NODE_ENV=production → loads .env + .env.production (Vercel prod)
+ *
+ * This script validates that required env files exist before Bun loads them.
+ *
+ * Safety Check:
+ * This script blocks execution if DATABASE_URL points to a non-local database.
  *
  * Skips the check when:
  * - VERCEL is set (Vercel deployments)
  * - CI is set (CI/CD pipelines)
  * - DANGEROUSLY_ALLOW_REMOTE_DB is set (explicit opt-out)
  *
- * Note: NODE_ENV=production intentionally does NOT bypass. It's too easy
- * for an AI agent to accidentally use it. Use DANGEROUSLY_ALLOW_REMOTE_DB instead.
+ * Note: NODE_ENV=production intentionally does NOT bypass the safety check.
+ * It's too easy for an AI agent to accidentally use it. Use DANGEROUSLY_ALLOW_REMOTE_DB instead.
  */
+
+import { existsSync } from 'fs'
+import { resolve } from 'path'
+
+// ============================================================================
+// Environment Validation
+// ============================================================================
+
+type NodeEnvType = 'development' | 'production' | 'test' | undefined
+
+function validateEnvironmentFiles(): void {
+  // Skip in Vercel/CI - they manage their own env
+  if (process.env.VERCEL || process.env.CI) return
+
+  const nodeEnv = process.env.NODE_ENV as NodeEnvType
+
+  // Map NODE_ENV to the expected env file
+  const envFileMap: Record<string, string> = {
+    development: '.env.development',
+    production: '.env.production',
+    test: '.env.test',
+  }
+
+  // If NODE_ENV is set to development or production, verify the file exists
+  if (nodeEnv && nodeEnv in envFileMap) {
+    const envFile = envFileMap[nodeEnv]
+    const envPath = resolve(process.cwd(), envFile)
+
+    if (!existsSync(envPath)) {
+      console.error(
+        `ERROR: NODE_ENV=${nodeEnv} but ${envFile} does not exist.`
+      )
+      if (nodeEnv === 'development') {
+        console.error('Run: bun run vercel:env-pull:dev')
+      } else if (nodeEnv === 'production') {
+        console.error('Run: bun run vercel:env-pull:prod')
+      }
+      process.exit(1)
+    }
+    console.log(`Environment: ${nodeEnv} (using ${envFile})`)
+  } else {
+    console.log('Environment: local (using .env)')
+  }
+}
+
+// Validate environment files exist
+validateEnvironmentFiles()
 
 // ============================================================================
 // Configuration
