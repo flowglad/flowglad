@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import {
   type AdminCreditAdjustedLedgerCommand,
   type CreditGrantExpiredLedgerCommand,
@@ -20,6 +21,7 @@ import {
   selectLedgerTransactions,
 } from '@/db/tableMethods/ledgerTransactionMethods'
 import type { DbTransaction } from '@/db/types'
+import type { NotFoundError } from '@/errors'
 import {
   LedgerEntryDirection,
   LedgerEntryStatus,
@@ -36,7 +38,7 @@ import { processUsageEventProcessedLedgerCommand } from './usageEventProcessedLe
 const processAdminCreditAdjustedLedgerCommand = async (
   command: AdminCreditAdjustedLedgerCommand,
   transaction: DbTransaction
-): Promise<LedgerCommandResult> => {
+): Promise<Result<LedgerCommandResult, NotFoundError>> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -109,20 +111,23 @@ const processAdminCreditAdjustedLedgerCommand = async (
     metadata: { ledgerCommandType: command.type },
   }
 
-  const [insertedLedgerEntry] = await bulkInsertLedgerEntries(
+  const ledgerEntriesResult = await bulkInsertLedgerEntries(
     [ledgerEntryInput],
     transaction
   )
-  return {
-    ledgerTransaction: insertedLedgerTransaction,
-    ledgerEntries: [insertedLedgerEntry],
+  if (Result.isError(ledgerEntriesResult)) {
+    return Result.err(ledgerEntriesResult.error)
   }
+  return Result.ok({
+    ledgerTransaction: insertedLedgerTransaction,
+    ledgerEntries: ledgerEntriesResult.value,
+  })
 }
 
 const processCreditGrantExpiredLedgerCommand = async (
   command: CreditGrantExpiredLedgerCommand,
   transaction: DbTransaction
-): Promise<LedgerCommandResult> => {
+): Promise<Result<LedgerCommandResult, NotFoundError>> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -138,16 +143,16 @@ const processCreditGrantExpiredLedgerCommand = async (
     ledgerTransactionInput,
     transaction
   )
-  return {
+  return Result.ok({
     ledgerTransaction: insertedLedgerTransaction,
     ledgerEntries: [],
-  }
+  })
 }
 
 const processPaymentRefundedLedgerCommand = async (
   command: PaymentRefundedLedgerCommand,
   transaction: DbTransaction
-): Promise<LedgerCommandResult> => {
+): Promise<Result<LedgerCommandResult, NotFoundError>> => {
   const ledgerTransactionInput: LedgerTransaction.Insert = {
     organizationId: command.organizationId,
     livemode: command.livemode,
@@ -168,10 +173,10 @@ const processPaymentRefundedLedgerCommand = async (
       'Failed to insert ledger transaction for PaymentRefunded command or retrieve its ID'
     )
   }
-  return {
+  return Result.ok({
     ledgerTransaction: insertedLedgerTransaction,
     ledgerEntries: [],
-  }
+  })
 }
 
 export const extractLedgerManagerIdempotencyKey = (
@@ -231,7 +236,7 @@ export const extractLedgerManagerIdempotencyKey = (
 export const processLedgerCommand = async (
   rawCommand: LedgerCommand,
   transaction: DbTransaction
-): Promise<LedgerCommandResult> => {
+): Promise<Result<LedgerCommandResult, NotFoundError>> => {
   const command = ledgerCommandSchema.parse(rawCommand)
 
   const idempotencyKey = extractLedgerManagerIdempotencyKey(command)
@@ -252,10 +257,10 @@ export const processLedgerCommand = async (
         { ledgerTransactionId: existingTransaction.id },
         transaction
       )
-      return {
+      return Result.ok({
         ledgerTransaction: existingTransaction,
         ledgerEntries: existingEntries,
-      }
+      })
     }
   }
 

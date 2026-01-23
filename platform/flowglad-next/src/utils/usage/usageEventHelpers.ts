@@ -148,10 +148,10 @@ export type CreateUsageEventWithSlugInput = z.infer<
 /**
  * Resolves priceSlug to priceId if provided, usageMeterSlug to usageMeterId if provided,
  * or uses usageMeterId directly if provided.
- * When usage meter identifiers are provided, priceId will be null.
+ * When usage meter identifiers are provided without an explicit priceId, the meter's default price is used.
  * @param input - The usage event input with one of: priceId, priceSlug, usageMeterId, or usageMeterSlug
  * @param transaction - The database transaction
- * @returns The usage event input with resolved priceId (or null if usage meter identifiers were used)
+ * @returns The usage event input with resolved priceId
  */
 export const resolveUsageEventInput = async (
   input: CreateUsageEventWithSlugInput,

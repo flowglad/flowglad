@@ -17,6 +17,7 @@
  * This final step zeroes out the usage debt for the period, completing the settlement.
  */
 
+import { Result } from 'better-result'
 import type {
   LedgerCommandResult,
   SettleInvoiceUsageCostsLedgerCommand,
@@ -40,6 +41,7 @@ import { insertLedgerTransaction } from '@/db/tableMethods/ledgerTransactionMeth
 import { bulkInsertUsageCreditApplications } from '@/db/tableMethods/usageCreditApplicationMethods'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import {
   LedgerEntryDirection,
   LedgerEntryStatus,
@@ -352,24 +354,27 @@ const createUsageCreditsForInvoiceLineItems = async (
   invoiceLineItems: InvoiceLineItem.Record[],
   ledgerAccountsById: Map<string, LedgerAccount.Record>,
   transaction: DbTransaction
-): Promise<UsageCredit.Record[]> => {
+): Promise<Result<UsageCredit.Record[], NotFoundError>> => {
   const usageCreditInserts: UsageCredit.Insert[] = []
   const usageCostLineItems = invoiceLineItems.filter(
     (lineItem) => lineItem.type === SubscriptionItemType.Usage
   )
-  usageCostLineItems.forEach((lineItem) => {
+  for (const lineItem of usageCostLineItems) {
     const ledgerAccount = ledgerAccountsById.get(
       lineItem.ledgerAccountId!
     )
     if (!ledgerAccount) {
-      throw new Error(
-        `Ledger account not found for line item ${lineItem.id}.`
+      return Result.err(
+        new NotFoundError(
+          'ledgerAccount',
+          `not found for line item ${lineItem.id}`
+        )
       )
     }
     usageCreditInserts.push(
       usageCreditInsertFromInvoiceLineItem(lineItem, ledgerAccount)
     )
-  })
+  }
   return await bulkInsertUsageCredits(usageCreditInserts, transaction)
 }
 
@@ -385,7 +390,7 @@ const createUsageCreditsForInvoiceLineItems = async (
 export const processSettleInvoiceUsageCostsLedgerCommand = async (
   command: SettleInvoiceUsageCostsLedgerCommand,
   transaction: DbTransaction
-): Promise<LedgerCommandResult> => {
+): Promise<Result<LedgerCommandResult, NotFoundError>> => {
   // 1. Create the parent LedgerTransaction. All subsequent ledger entries created
   // in this command will be linked to this single transaction, providing a clear
   // audit trail for the entire settlement operation.
@@ -422,14 +427,11 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
     (ili) => ili.type === SubscriptionItemType.Usage
   )
   if (ledgerAccounts.length !== usageLineItems.length) {
-    throw new Error(
-      `Expected ${
-        command.payload.invoiceLineItems.filter(
-          (ili) => ili.type === SubscriptionItemType.Usage
-        ).length
-      } ledger accounts for usage line items, but got ${
-        ledgerAccounts.length
-      }. One of the invoice line items is attempting to settle usage costs for a ledger account that is not within its organization + subscription + livemode scope.`
+    return Result.err(
+      new NotFoundError(
+        'ledgerAccounts',
+        `Expected ${usageLineItems.length} ledger accounts for usage line items, but got ${ledgerAccounts.length}. One of the invoice line items is attempting to settle usage costs for a ledger account that is not within its organization + subscription + livemode scope.`
+      )
     )
   }
   // 3. Create maps for efficient lookups. This avoids nested loops and improves performance.
@@ -451,11 +453,16 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
       ])
   )
   // 4. Create the `UsageCredit` grant records from the paid invoice line items.
-  const usageCredits = await createUsageCreditsForInvoiceLineItems(
-    command.payload.invoiceLineItems,
-    ledgerAccountsById,
-    transaction
-  )
+  const usageCreditsResult =
+    await createUsageCreditsForInvoiceLineItems(
+      command.payload.invoiceLineItems,
+      ledgerAccountsById,
+      transaction
+    )
+  if (Result.isError(usageCreditsResult)) {
+    return Result.err(usageCreditsResult.error)
+  }
+  const usageCredits = usageCreditsResult.value
   const usageCreditsById = new Map<string, UsageCredit.Record>(
     usageCredits.map((uc) => [uc.id, uc])
   )
@@ -492,12 +499,15 @@ export const processSettleInvoiceUsageCostsLedgerCommand = async (
   ]
   // 7. Bulk insert all created ledger entries into the database. This is the final
   // step that atomically records the entire settlement in the ledger.
-  const ledgerEntries = await bulkInsertLedgerEntries(
+  const ledgerEntriesResult = await bulkInsertLedgerEntries(
     allLedgerEntryInserts,
     transaction
   )
-  return {
-    ledgerTransaction,
-    ledgerEntries,
+  if (Result.isError(ledgerEntriesResult)) {
+    return Result.err(ledgerEntriesResult.error)
   }
+  return Result.ok({
+    ledgerTransaction,
+    ledgerEntries: ledgerEntriesResult.value,
+  })
 }

@@ -5,7 +5,7 @@ import {
   describe,
   expect,
   it,
-} from 'vitest'
+} from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -463,8 +463,8 @@ describe('createCheckoutSessionTransaction', () => {
       priceId: singlePaymentPrice.id,
     }
 
-    const { checkoutSession, url } = await adminTransaction(
-      async ({ transaction }) =>
+    const { checkoutSession, url } = (
+      await adminTransaction(async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
@@ -473,7 +473,8 @@ describe('createCheckoutSessionTransaction', () => {
           },
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     expect(typeof checkoutSession.stripePaymentIntentId).toBe(
       'string'
@@ -493,8 +494,8 @@ describe('createCheckoutSessionTransaction', () => {
       priceId: subscriptionPrice.id,
     }
 
-    const { checkoutSession, url } = await adminTransaction(
-      async ({ transaction }) =>
+    const { checkoutSession, url } = (
+      await adminTransaction(async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
@@ -503,7 +504,8 @@ describe('createCheckoutSessionTransaction', () => {
           },
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
     expect(typeof checkoutSession.stripeSetupIntentId).toBe('string')
@@ -545,8 +547,8 @@ describe('createCheckoutSessionTransaction', () => {
       cancelUrl: 'http://cancel.url',
     }
 
-    const { checkoutSession, url } = await adminTransaction(
-      async ({ transaction }) =>
+    const { checkoutSession, url } = (
+      await adminTransaction(async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
@@ -555,7 +557,8 @@ describe('createCheckoutSessionTransaction', () => {
           },
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     expect(typeof checkoutSession.stripeSetupIntentId).toBe('string')
     expect(url).toBe(
@@ -572,8 +575,8 @@ describe('createCheckoutSessionTransaction', () => {
       targetSubscriptionId: targetSubscription.id,
     }
 
-    const { checkoutSession, url } = await adminTransaction(
-      async ({ transaction }) =>
+    const { checkoutSession, url } = (
+      await adminTransaction(async ({ transaction }) =>
         createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
@@ -582,7 +585,8 @@ describe('createCheckoutSessionTransaction', () => {
           },
           transaction
         )
-    )
+      )
+    ).unwrap()
 
     expect(typeof checkoutSession.stripeSetupIntentId).toBe('string')
     expect(checkoutSession.stripePaymentIntentId).toBeNull()
@@ -673,8 +677,8 @@ describe('createCheckoutSessionTransaction', () => {
         priceId: singlePaymentPrice.id,
       }
 
-      const { checkoutSession } = await adminTransaction(
-        async ({ transaction }) =>
+      const { checkoutSession } = (
+        await adminTransaction(async ({ transaction }) =>
           createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
@@ -683,7 +687,8 @@ describe('createCheckoutSessionTransaction', () => {
             },
             transaction
           )
-      )
+        )
+      ).unwrap()
 
       expect(typeof checkoutSession.stripePaymentIntentId).toBe(
         'string'
@@ -703,8 +708,8 @@ describe('createCheckoutSessionTransaction', () => {
         priceId: singlePaymentPrice.id,
       }
 
-      const { checkoutSession, url } = await adminTransaction(
-        async ({ transaction }) =>
+      const { checkoutSession, url } = (
+        await adminTransaction(async ({ transaction }) =>
           createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
@@ -713,7 +718,8 @@ describe('createCheckoutSessionTransaction', () => {
             },
             transaction
           )
-      )
+        )
+      ).unwrap()
 
       expect(checkoutSession.customerId).toBeNull()
       expect(checkoutSession.customerEmail).toBeNull()
@@ -761,8 +767,8 @@ describe('createCheckoutSessionTransaction', () => {
         priceId: singlePaymentPrice.id,
       }
 
-      const { checkoutSession } = await adminTransaction(
-        async ({ transaction }) =>
+      const { checkoutSession } = (
+        await adminTransaction(async ({ transaction }) =>
           createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
@@ -771,7 +777,8 @@ describe('createCheckoutSessionTransaction', () => {
             },
             transaction
           )
-      )
+        )
+      ).unwrap()
 
       expect(checkoutSession.customerId).toBe(customer.id)
       expect(checkoutSession.customerEmail).toBe(customer.email)
@@ -988,8 +995,8 @@ describe('createCheckoutSessionTransaction', () => {
           priceSlug: subscriptionPrice.slug!,
         }
 
-        const result = await adminTransaction(
-          async ({ transaction }) =>
+        const result = (
+          await adminTransaction(async ({ transaction }) =>
             createCheckoutSessionTransaction(
               {
                 checkoutSessionInput,
@@ -998,7 +1005,8 @@ describe('createCheckoutSessionTransaction', () => {
               },
               transaction
             )
-        )
+          )
+        ).unwrap()
 
         expect(result.checkoutSession).toMatchObject({})
         expect(result.checkoutSession.type).toBe(
@@ -1046,8 +1054,8 @@ describe('createCheckoutSessionTransaction', () => {
           anonymous: true,
         }
 
-        const result = await adminTransaction(
-          async ({ transaction }) =>
+        const result = (
+          await adminTransaction(async ({ transaction }) =>
             createCheckoutSessionTransaction(
               {
                 checkoutSessionInput,
@@ -1056,7 +1064,8 @@ describe('createCheckoutSessionTransaction', () => {
               },
               transaction
             )
-        )
+          )
+        ).unwrap()
 
         expect(result.checkoutSession).toMatchObject({})
         expect(result.checkoutSession.type).toBe(

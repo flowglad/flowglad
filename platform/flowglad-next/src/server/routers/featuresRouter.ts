@@ -52,7 +52,6 @@ export const createFeature = protectedProcedure
   .mutation(
     authenticatedProcedureTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction } = transactionCtx
         const { livemode, organizationId } = ctx
         if (!organizationId) {
           throw new Error('organizationId is required')
@@ -63,7 +62,7 @@ export const createFeature = protectedProcedure
             organizationId,
             livemode,
           },
-          transaction
+          transactionCtx
         )
         return { feature }
       }

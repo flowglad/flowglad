@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type {
   CheckoutSession,
   CreateCheckoutSessionInput,
@@ -22,6 +23,7 @@ import {
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { NotFoundError } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import type { ValidationError } from '@/errors'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -158,7 +160,15 @@ export const createCheckoutSessionTransaction = async (
     livemode: boolean
   },
   transaction: DbTransaction
-) => {
+): Promise<
+  Result<
+    {
+      checkoutSession: CheckoutSession.Record
+      url: string
+    },
+    ValidationError
+  >
+> => {
   // Only query for customer if customerExternalId is provided
   let customer: Customer.Record | null = null
   if (checkoutSessionInput.customerExternalId) {
@@ -314,7 +324,7 @@ export const createCheckoutSessionTransaction = async (
     }
   }
 
-  const checkoutSession = await insertCheckoutSession(
+  const checkoutSessionResult = await insertCheckoutSession(
     checkoutSessionInsertFromInput({
       checkoutSessionInput,
       customer,
@@ -325,6 +335,10 @@ export const createCheckoutSessionTransaction = async (
     }),
     transaction
   )
+  if (checkoutSessionResult.status === 'error') {
+    return Result.err(checkoutSessionResult.error)
+  }
+  const checkoutSession = checkoutSessionResult.value
 
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null
@@ -366,8 +380,8 @@ export const createCheckoutSessionTransaction = async (
     CheckoutSessionType.AddPaymentMethod
       ? `${core.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
       : `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
-  return {
+  return Result.ok({
     checkoutSession: updatedCheckoutSession,
     url,
-  }
+  })
 }

@@ -1,11 +1,12 @@
+import type { Mock } from 'bun:test'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -57,22 +58,30 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
+
+// Import actual stripe module before mocking
+import * as actualStripe from '@/utils/stripe'
+
+// Create mock functions
+const mockCreatePaymentIntentForBillingRun =
+  mock<typeof actualStripe.createPaymentIntentForBillingRun>()
+const mockConfirmPaymentIntentForBillingRun =
+  mock<typeof actualStripe.confirmPaymentIntentForBillingRun>()
+
+// Mock Stripe functions
+mock.module('@/utils/stripe', () => ({
+  ...actualStripe,
+  createPaymentIntentForBillingRun:
+    mockCreatePaymentIntentForBillingRun,
+  confirmPaymentIntentForBillingRun:
+    mockConfirmPaymentIntentForBillingRun,
+}))
+
 import {
   confirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
 } from '@/utils/stripe'
 import { executeBillingRun } from './billingRunHelpers'
-
-// Mock Stripe functions
-vi.mock('@/utils/stripe', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/utils/stripe')>()
-  return {
-    ...actual,
-    createPaymentIntentForBillingRun: vi.fn(),
-    confirmPaymentIntentForBillingRun: vi.fn(),
-  }
-})
 
 describe('executeBillingRun with adjustment and resource claims', () => {
   let organization: Organization.Record
@@ -91,9 +100,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
   let subscriptionItemFeature: SubscriptionItemFeature.ResourceRecord
 
   const mockCreatePaymentIntent =
-    createPaymentIntentForBillingRun as ReturnType<typeof vi.fn>
+    createPaymentIntentForBillingRun as Mock<any>
   const mockConfirmPaymentIntent =
-    confirmPaymentIntentForBillingRun as ReturnType<typeof vi.fn>
+    confirmPaymentIntentForBillingRun as Mock<any>
 
   beforeEach(async () => {
     // Reset mocks

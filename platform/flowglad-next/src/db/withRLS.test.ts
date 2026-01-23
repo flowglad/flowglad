@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'bun:test'
 import { sql } from 'drizzle-orm'
-import { describe, expect, it } from 'vitest'
 import { adminTransaction } from './adminTransaction'
 import { withRLS } from './withRLS'
 

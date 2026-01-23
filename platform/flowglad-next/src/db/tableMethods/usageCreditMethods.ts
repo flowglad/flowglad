@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { inArray } from 'drizzle-orm'
 import {
   type UsageCredit,
@@ -17,10 +18,12 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
+import { NotFoundError } from '@/errors'
 import { UsageCreditStatus } from '@/types'
 import type { Payment } from '../schema/payments'
 import type { UsageMeter } from '../schema/usageMeters'
 import type { DbTransaction } from '../types'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromUsageMeter,
   pricingModelIdsForUsageMeters,
@@ -99,31 +102,37 @@ const baseBulkInsertUsageCredits = createBulkInsertFunction(
 export const bulkInsertUsageCredits = async (
   usageCreditInserts: UsageCredit.Insert[],
   transaction: DbTransaction
-): Promise<UsageCredit.Record[]> => {
+): Promise<Result<UsageCredit.Record[], NotFoundError>> => {
   const pricingModelIdMap = await pricingModelIdsForUsageMeters(
     usageCreditInserts.map((insert) => insert.usageMeterId),
     transaction
   )
-  const usageCreditsWithPricingModelId = usageCreditInserts.map(
-    (usageCreditInsert): UsageCredit.Insert => {
-      const pricingModelId =
-        usageCreditInsert.pricingModelId ??
-        pricingModelIdMap.get(usageCreditInsert.usageMeterId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Pricing model id not found for usage meter ${usageCreditInsert.usageMeterId}`
-        )
+
+  const usageCreditsWithPricingModelId: UsageCredit.Insert[] = []
+  for (const usageCreditInsert of usageCreditInserts) {
+    if (usageCreditInsert.pricingModelId) {
+      usageCreditsWithPricingModelId.push(usageCreditInsert)
+    } else {
+      const pricingModelIdResult = derivePricingModelIdFromMap({
+        entityId: usageCreditInsert.usageMeterId,
+        entityType: 'usageMeter',
+        pricingModelIdMap,
+      })
+      if (Result.isError(pricingModelIdResult)) {
+        return Result.err(pricingModelIdResult.error)
       }
-      return {
+      usageCreditsWithPricingModelId.push({
         ...usageCreditInsert,
-        pricingModelId,
-      }
+        pricingModelId: pricingModelIdResult.value,
+      })
     }
-  )
-  return baseBulkInsertUsageCredits(
+  }
+
+  const result = await baseBulkInsertUsageCredits(
     usageCreditsWithPricingModelId,
     transaction
   )
+  return Result.ok(result)
 }
 
 const baseBulkInsertOrDoNothingUsageCredits =
@@ -133,28 +142,33 @@ export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter
   async (
     usageCreditInserts: UsageCredit.Insert[],
     transaction: DbTransaction
-  ) => {
+  ): Promise<Result<UsageCredit.Record[], NotFoundError>> => {
     const pricingModelIdMap = await pricingModelIdsForUsageMeters(
       usageCreditInserts.map((insert) => insert.usageMeterId),
       transaction
     )
-    const usageCreditsWithPricingModelId = usageCreditInserts.map(
-      (usageCreditInsert): UsageCredit.Insert => {
-        const pricingModelId =
-          usageCreditInsert.pricingModelId ??
-          pricingModelIdMap.get(usageCreditInsert.usageMeterId)
-        if (!pricingModelId) {
-          throw new Error(
-            `Pricing model id not found for usage meter ${usageCreditInsert.usageMeterId}`
-          )
+
+    const usageCreditsWithPricingModelId: UsageCredit.Insert[] = []
+    for (const usageCreditInsert of usageCreditInserts) {
+      if (usageCreditInsert.pricingModelId) {
+        usageCreditsWithPricingModelId.push(usageCreditInsert)
+      } else {
+        const pricingModelIdResult = derivePricingModelIdFromMap({
+          entityId: usageCreditInsert.usageMeterId,
+          entityType: 'usageMeter',
+          pricingModelIdMap,
+        })
+        if (Result.isError(pricingModelIdResult)) {
+          return Result.err(pricingModelIdResult.error)
         }
-        return {
+        usageCreditsWithPricingModelId.push({
           ...usageCreditInsert,
-          pricingModelId,
-        }
+          pricingModelId: pricingModelIdResult.value,
+        })
       }
-    )
-    return baseBulkInsertOrDoNothingUsageCredits(
+    }
+
+    const result = await baseBulkInsertOrDoNothingUsageCredits(
       usageCreditsWithPricingModelId,
       [
         usageCredits.paymentId,
@@ -163,6 +177,7 @@ export const bulkInsertOrDoNothingUsageCreditsByPaymentSubscriptionAndUsageMeter
       ],
       transaction
     )
+    return Result.ok(result)
   }
 
 /**

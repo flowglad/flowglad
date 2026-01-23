@@ -106,7 +106,7 @@ function InnerPricingModelDetailsPage({
   const getProductFilterForTab = (tab: string) => {
     const baseFilter = {
       pricingModelId: pricingModel.id,
-      excludeUsageProducts: true,
+      excludeProductsWithNoPrices: true,
     }
 
     if (tab === 'all') {

@@ -1,5 +1,5 @@
+import { describe, it } from 'bun:test'
 import Stripe from 'stripe'
-import { describe, it } from 'vitest'
 import core from '@/utils/core'
 
 /**

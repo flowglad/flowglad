@@ -36,6 +36,7 @@ import {
   bulkInsertOrDoNothingSubscriptionsByExternalId,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
+import { createTransactionEffectsContext } from '@/db/types'
 import {
   stripeCustomerToCustomerInsert,
   stripePaymentMethodToPaymentMethodInsert,
@@ -473,6 +474,12 @@ const migrateStripeCatalogDataToFlowglad = async (
   )
 
   await db.transaction(async (transaction) => {
+    // Create transaction context with noop callbacks for scripts
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: true,
+    })
+
     const defaultCatalog = await selectDefaultPricingModel(
       {
         organizationId: migrationParams.flowgladOrganizationId,
@@ -493,7 +500,7 @@ const migrateStripeCatalogDataToFlowglad = async (
     )
     await bulkInsertOrDoNothingProductsByExternalId(
       productInserts,
-      transaction
+      ctx
     )
     const productRecords = await selectProducts(
       {
@@ -520,10 +527,7 @@ const migrateStripeCatalogDataToFlowglad = async (
         }
       )
     )
-    await bulkInsertOrDoNothingPricesByExternalId(
-      priceInserts,
-      transaction
-    )
+    await bulkInsertOrDoNothingPricesByExternalId(priceInserts, ctx)
   })
 }
 

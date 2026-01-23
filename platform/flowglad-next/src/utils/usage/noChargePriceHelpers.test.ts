@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { RESERVED_USAGE_PRICE_SLUG_SUFFIX } from '@/db/schema/prices'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import {

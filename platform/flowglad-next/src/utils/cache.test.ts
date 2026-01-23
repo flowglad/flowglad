@@ -4,8 +4,9 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
 import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
 import {
@@ -15,13 +16,15 @@ import {
   cached,
   getRecomputeHandler,
   getTtlForNamespace,
-  invalidateDependencies,
   type RecomputeHandler,
-  recomputeCacheEntry,
-  recomputeDependencies,
   registerRecomputeHandler,
   type SerializableParams,
 } from './cache'
+import {
+  invalidateDependencies,
+  recomputeCacheEntry,
+  recomputeDependencies,
+} from './cache.internal'
 import { cachedRecomputable } from './cache-recomputable'
 import {
   _setTestRedisClient,
@@ -36,14 +39,16 @@ function createMockRedisClient() {
   const zsets: Record<string, Map<string, number>> = {}
 
   // Helper for LRU eviction script simulation (used by both eval and evalsha)
+  // Returns JSON string matching the real Lua script: [evictedCount, orphansRemoved]
   const executeLruScript = (
     keys: string[],
     args: (string | number)[]
-  ): number => {
+  ): string => {
     const zsetKey = keys[0]
     const cacheKey = keys[1]
     const timestamp = Number(args[0])
     const maxSize = Number(args[1])
+    // args[2] is metadataPrefix, used in real script for cleanup
 
     // ZADD
     if (!zsets[zsetKey]) {
@@ -51,7 +56,9 @@ function createMockRedisClient() {
     }
     zsets[zsetKey].set(cacheKey, timestamp)
 
-    // Check size and evict
+    // Check size and evict (simplified - doesn't simulate orphan detection)
+    let evictedCount = 0
+    const orphansRemoved = 0 // Mock doesn't simulate TTL expiration
     const size = zsets[zsetKey].size
     if (size > maxSize) {
       const toEvictCount = size - maxSize
@@ -62,10 +69,10 @@ function createMockRedisClient() {
       for (const m of toEvict) {
         delete store[m]
         zsets[zsetKey].delete(m)
+        evictedCount++
       }
-      return toEvict.length
     }
-    return 0
+    return JSON.stringify([evictedCount, orphansRemoved])
   }
 
   return {
@@ -221,9 +228,10 @@ describe('cached combinator', () => {
   })
 
   it('calls wrapped function on cache miss and returns result', async () => {
-    const wrappedFn = vi
-      .fn()
-      .mockResolvedValue({ id: 'test-123', name: 'Test' })
+    const wrappedFn = mock().mockResolvedValue({
+      id: 'test-123',
+      name: 'Test',
+    })
     const testSchema = z.object({ id: z.string(), name: z.string() })
 
     const cachedFn = cached(
@@ -245,7 +253,7 @@ describe('cached combinator', () => {
   })
 
   it('constructs cache key from namespace and keyFn', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ value: 42 })
+    const wrappedFn = mock().mockResolvedValue({ value: 42 })
     const testSchema = z.object({ value: z.number() })
 
     const cachedFn = cached(
@@ -268,7 +276,7 @@ describe('cached combinator', () => {
   })
 
   it('fails open when Redis set throws error', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ result: 'success' })
+    const wrappedFn = mock().mockResolvedValue({ result: 'success' })
     const testSchema = z.object({ result: z.string() })
 
     const cachedFn = cached(
@@ -288,9 +296,10 @@ describe('cached combinator', () => {
   })
 
   it('treats schema validation failure as cache miss', async () => {
-    const wrappedFn = vi
-      .fn()
-      .mockResolvedValue({ validField: 'correct', count: 10 })
+    const wrappedFn = mock().mockResolvedValue({
+      validField: 'correct',
+      count: 10,
+    })
     const testSchema = z.object({
       validField: z.string(),
       count: z.number(),
@@ -324,7 +333,6 @@ describe('getTtlForNamespace', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
-    vi.resetModules()
     process.env = { ...originalEnv }
   })
 
@@ -349,7 +357,7 @@ describe('getTtlForNamespace', () => {
     const ttl = getTtlForNamespace(
       RedisKeyNamespace.SubscriptionsByCustomer
     )
-    expect(ttl).toBe(300) // default TTL
+    expect(ttl).toBe(600) // default TTL
   })
 
   it('returns default TTL when namespace not in CACHE_TTLS', () => {
@@ -360,7 +368,7 @@ describe('getTtlForNamespace', () => {
     const ttl = getTtlForNamespace(
       RedisKeyNamespace.SubscriptionsByCustomer
     )
-    expect(ttl).toBe(300) // default TTL
+    expect(ttl).toBe(600) // default TTL
   })
 
   it('returns default TTL when CACHE_TTLS is invalid JSON', () => {
@@ -369,7 +377,7 @@ describe('getTtlForNamespace', () => {
     const ttl = getTtlForNamespace(
       RedisKeyNamespace.SubscriptionsByCustomer
     )
-    expect(ttl).toBe(300) // default TTL
+    expect(ttl).toBe(600) // default TTL
   })
 })
 
@@ -386,7 +394,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 
   it('registers dependencies in Redis Sets when cache is populated', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ id: 1 })
+    const wrappedFn = mock().mockResolvedValue({ id: 1 })
     const testSchema = z.object({ id: z.number() })
 
     const cachedFn = cached(
@@ -414,9 +422,9 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 
   it('invalidates correct cache keys when dependency is invalidated', async () => {
-    const wrappedFn1 = vi.fn().mockResolvedValue({ entry: 1 })
-    const wrappedFn2 = vi.fn().mockResolvedValue({ entry: 2 })
-    const wrappedFn3 = vi.fn().mockResolvedValue({ entry: 3 })
+    const wrappedFn1 = mock().mockResolvedValue({ entry: 1 })
+    const wrappedFn2 = mock().mockResolvedValue({ entry: 2 })
+    const wrappedFn3 = mock().mockResolvedValue({ entry: 3 })
     const testSchema = z.object({ entry: z.number() })
 
     // Create cached functions that share dep:A
@@ -728,9 +736,7 @@ describe('CacheDependency helpers', () => {
 
 describe('recompute registry', () => {
   it('registerRecomputeHandler stores handler and getRecomputeHandler retrieves it', () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
 
     registerRecomputeHandler(
       RedisKeyNamespace.SubscriptionsByCustomer,
@@ -766,9 +772,7 @@ describe('recomputeCacheEntry', () => {
   })
 
   it('calls handler with params and cacheRecomputationContext from metadata', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
     registerRecomputeHandler(
       RedisKeyNamespace.ItemsBySubscription,
       mockHandler
@@ -803,9 +807,7 @@ describe('recomputeCacheEntry', () => {
   })
 
   it('does nothing when metadata key does not exist', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
     registerRecomputeHandler(
       RedisKeyNamespace.FeaturesBySubscriptionItem,
       mockHandler
@@ -846,9 +848,8 @@ describe('recomputeCacheEntry', () => {
   })
 
   it('logs warning when handler throws error and does not propagate', async () => {
-    const throwingHandler: RecomputeHandler = vi
-      .fn()
-      .mockRejectedValue(new Error('Handler error'))
+    const throwingHandler: RecomputeHandler =
+      mock().mockRejectedValue(new Error('Handler error'))
     registerRecomputeHandler(
       RedisKeyNamespace.StripeOAuthCsrfToken,
       throwingHandler
@@ -886,9 +887,7 @@ describe('recomputeDependencies', () => {
   })
 
   it('recomputes all cache entries associated with dependencies', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
     registerRecomputeHandler(
       RedisKeyNamespace.CacheDependencyRegistry,
       mockHandler
@@ -936,9 +935,7 @@ describe('recomputeDependencies', () => {
   })
 
   it('deduplicates cache keys across dependencies', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
     registerRecomputeHandler(RedisKeyNamespace.Telemetry, mockHandler)
 
     // Same cache key appears under two different dependencies

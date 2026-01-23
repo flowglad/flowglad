@@ -18,7 +18,6 @@ import {
   ensureUsageMeterHasDefaultPrice,
   safelyUpdatePrice,
   selectPriceById,
-  selectPrices,
   selectPricesPaginated,
   selectPricesTableRowData,
 } from '@/db/tableMethods/priceMethods'
@@ -69,26 +68,14 @@ export const createPrice = protectedProcedure
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({
-        transaction,
-        livemode,
-        organizationId,
-        userId,
-        cacheRecomputationContext,
-      }) => {
+      async (transactionCtx) => {
         const { price } = input
 
         validateUsagePriceSlug(price)
 
         const newPrice = await createPriceTransaction(
           { price },
-          {
-            transaction,
-            livemode,
-            organizationId,
-            userId,
-            cacheRecomputationContext,
-          }
+          transactionCtx
         )
         return {
           price: newPrice,
@@ -106,7 +93,8 @@ export const updatePrice = protectedProcedure
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({ transaction }) => {
+      async (transactionCtx) => {
+        const { transaction } = transactionCtx
         const { price } = input
 
         // Fetch the existing price and its product to check if it's a default price on a default product
@@ -197,9 +185,12 @@ export const updatePrice = protectedProcedure
         }
 
         // Validate reserved slug for usage prices being updated
+        // Only validate if the slug is actually changing - existing _no_charge prices
+        // should be editable for other fields without triggering slug validation
         if (
           existingPrice.type === PriceType.Usage &&
-          price.slug !== undefined
+          price.slug !== undefined &&
+          price.slug !== existingPrice.slug
         ) {
           validateUsagePriceSlug({
             type: existingPrice.type,
@@ -218,7 +209,7 @@ export const updatePrice = protectedProcedure
             ...price,
             type: existingPrice.type,
           },
-          transaction
+          transactionCtx
         )
 
         // Default cascade logic for usage prices:
@@ -234,7 +225,7 @@ export const updatePrice = protectedProcedure
           if (wasDefault && isNoLongerDefault) {
             await ensureUsageMeterHasDefaultPrice(
               existingPrice.usageMeterId,
-              transaction
+              transactionCtx
             )
           }
         }
@@ -322,7 +313,7 @@ export const setPriceAsDefault = protectedProcedure
         const oldPrice = await selectPriceById(input.id, transaction)
         const price = await safelyUpdatePrice(
           { id: input.id, isDefault: true, type: oldPrice.type },
-          transaction
+          transactionCtx
         )
         return { price }
       }
@@ -354,7 +345,7 @@ export const archivePrice = protectedProcedure
 
         const price = await safelyUpdatePrice(
           { id: input.id, active: false, type: oldPrice.type },
-          transaction
+          transactionCtx
         )
 
         // Default cascade logic for usage prices:
@@ -366,7 +357,7 @@ export const archivePrice = protectedProcedure
         ) {
           await ensureUsageMeterHasDefaultPrice(
             oldPrice.usageMeterId,
-            transaction
+            transactionCtx
           )
         }
 
@@ -398,13 +389,8 @@ export const replaceUsagePrice = protectedProcedure
   )
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({
-        transaction,
-        livemode,
-        organizationId,
-        userId,
-        cacheRecomputationContext,
-      }) => {
+      async (transactionCtx) => {
+        const { transaction } = transactionCtx
         // Verify the old price exists and is a usage price
         let oldPrice
         try {
@@ -443,13 +429,7 @@ export const replaceUsagePrice = protectedProcedure
         // Create the new price
         const newPrice = await createPriceTransaction(
           { price: input.newPrice },
-          {
-            transaction,
-            livemode,
-            organizationId,
-            userId,
-            cacheRecomputationContext,
-          }
+          transactionCtx
         )
 
         // Archive the old price
@@ -459,7 +439,7 @@ export const replaceUsagePrice = protectedProcedure
             active: false,
             type: oldPrice.type,
           },
-          transaction
+          transactionCtx
         )
 
         return { newPrice, archivedPrice }

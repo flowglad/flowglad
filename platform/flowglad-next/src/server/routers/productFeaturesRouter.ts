@@ -97,7 +97,7 @@ export const createOrRestoreProductFeature = protectedProcedure
               livemode: product.livemode,
               organizationId: product.organizationId,
             },
-            transaction
+            transactionCtx
           )
         return { productFeature }
       }

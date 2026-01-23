@@ -1,5 +1,13 @@
+import type { Mock } from 'bun:test'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 // Test database setup functions
 import {
   setupBillingPeriod,
@@ -43,10 +51,10 @@ import { adjustSubscription } from './adjustSubscription'
 // Mock the trigger task - we test that it's called with correct parameters
 // The actual billing run execution is tested in billingRunHelpers.test.ts
 // Create the mock function inside the factory to avoid hoisting issues
-vi.mock('@/trigger/attempt-billing-run', () => {
-  const mockTriggerFn = vi
-    .fn()
-    .mockResolvedValue({ id: 'mock-billing-run-handle-id' })
+mock.module('@/trigger/attempt-billing-run', () => {
+  const mockTriggerFn = mock().mockResolvedValue({
+    id: 'mock-billing-run-handle-id',
+  })
   // Store reference so we can access it in tests
   ;(globalThis as any).__mockAttemptBillingRunTrigger = mockTriggerFn
   return {
@@ -59,7 +67,7 @@ vi.mock('@/trigger/attempt-billing-run', () => {
 // Get the mock function for use in tests
 const getMockTrigger = () => {
   return (globalThis as any)
-    .__mockAttemptBillingRunTrigger as ReturnType<typeof vi.fn>
+    .__mockAttemptBillingRunTrigger as Mock<any>
 }
 
 describe('Proration Logic - Payment Status Scenarios', () => {
@@ -195,18 +203,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: upgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: upgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items to examine proration breakdown
       const bpItems = await selectBillingPeriodItems(
@@ -287,18 +297,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: upgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: upgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -370,18 +382,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: upgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: upgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -478,18 +492,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: addOnlyItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: addOnlyItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify if billing run was triggered
       const mockTrigger = getMockTrigger()
@@ -561,18 +577,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: removeOnlyItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: removeOnlyItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Should have 0 subscription items (all removed)
       expect(result.subscriptionItems).toHaveLength(0)
@@ -654,18 +672,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: downgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: downgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -743,18 +763,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: replaceItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: replaceItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify if billing run was triggered
       const mockTrigger = getMockTrigger()
@@ -859,18 +881,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: freePlanItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: freePlanItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -955,18 +979,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: singleItem,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: singleItem,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify if billing run was triggered
       const mockTrigger = getMockTrigger()
@@ -1072,18 +1098,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: upgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: upgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -1182,18 +1210,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: freePlanItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: freePlanItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        ctx
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(

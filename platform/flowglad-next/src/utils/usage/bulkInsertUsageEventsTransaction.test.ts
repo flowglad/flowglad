@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -552,6 +552,99 @@ describe('bulkInsertUsageEventsTransaction', () => {
           )
         )
       ).rejects.toThrow("not found for this customer's pricing model")
+    })
+
+    it('should throw error when usageMeterId is used without explicit priceId and meter has no default price', async () => {
+      // Create a usage meter WITHOUT a default price
+      const meterWithNoDefaultPrice = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Meter Without Default Price',
+        livemode: true,
+        pricingModelId,
+      })
+
+      // Create a non-default price for this meter (so it's valid but not default)
+      const nonDefaultPrice = await setupPrice({
+        name: 'Non-Default Price for Meter',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false, // NOT a default price
+        currency: CurrencyCode.USD,
+        usageMeterId: meterWithNoDefaultPrice.id,
+      })
+
+      // Try to create a usage event using just usageMeterId (no explicit priceId)
+      // This should fail because there's no default price to resolve to
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) =>
+          bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: [
+                  {
+                    subscriptionId: subscription.id,
+                    usageMeterId: meterWithNoDefaultPrice.id,
+                    amount: 100,
+                    transactionId: `txn_no_default_price_${Date.now()}`,
+                  },
+                ],
+              },
+              livemode: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        )
+      ).rejects.toThrow('has no default price')
+    })
+
+    it('should throw error when usageMeterSlug is used without explicit priceId and meter has no default price', async () => {
+      // Create a usage meter WITHOUT a default price
+      const meterWithNoDefaultPriceSlug = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Meter Without Default Price For Slug Test',
+        livemode: true,
+        pricingModelId,
+        slug: 'meter-no-default-slug',
+      })
+
+      // Create a non-default price for this meter (so it's valid but not default)
+      await setupPrice({
+        name: 'Non-Default Price for Slug Test',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false, // NOT a default price
+        currency: CurrencyCode.USD,
+        usageMeterId: meterWithNoDefaultPriceSlug.id,
+      })
+
+      // Try to create a usage event using just usageMeterSlug (no explicit priceId)
+      // This should fail because there's no default price to resolve to
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) =>
+          bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: [
+                  {
+                    subscriptionId: subscription.id,
+                    usageMeterSlug: 'meter-no-default-slug',
+                    amount: 100,
+                    transactionId: `txn_no_default_price_slug_${Date.now()}`,
+                  },
+                ],
+              },
+              livemode: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        )
+      ).rejects.toThrow('has no default price')
     })
 
     it('should throw error when priceId not in customer pricing model', async () => {

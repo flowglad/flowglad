@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -133,7 +134,8 @@ describe('subscriptionItemFeatureMethods', () => {
 
   describe('selectSubscriptionItemFeatureById', () => {
     it('returns a record by ID', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserted = await insertSubscriptionItemFeature(
           {
             type: FeatureType.Toggle,
@@ -158,7 +160,8 @@ describe('subscriptionItemFeatureMethods', () => {
 
     it('throws when ID not found', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return selectSubscriptionItemFeatureById(
             'bad-id',
             transaction
@@ -170,7 +173,8 @@ describe('subscriptionItemFeatureMethods', () => {
 
   describe('selectClientSubscriptionItemFeatureAndFeatureById', () => {
     it('returns combined record with feature name & slug', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserted = await insertSubscriptionItemFeature(
           {
             type: FeatureType.Toggle,
@@ -198,7 +202,8 @@ describe('subscriptionItemFeatureMethods', () => {
     })
 
     it('returns empty array if not found', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const rows =
           await selectClientSubscriptionItemFeatureAndFeatureById(
             'bad-id',
@@ -211,7 +216,8 @@ describe('subscriptionItemFeatureMethods', () => {
 
   describe('insertSubscriptionItemFeature', () => {
     it('inserts a Toggle feature record', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserted = await insertSubscriptionItemFeature(
           {
             type: FeatureType.Toggle,
@@ -235,7 +241,8 @@ describe('subscriptionItemFeatureMethods', () => {
     })
 
     it('inserts a UsageCreditGrant feature record', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserted = await insertSubscriptionItemFeature(
           {
             type: FeatureType.UsageCreditGrant,
@@ -259,7 +266,8 @@ describe('subscriptionItemFeatureMethods', () => {
 
   describe('updateSubscriptionItemFeature & expire', () => {
     it('updates expiredAt through updateSubscriptionItemFeature', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserted = await insertSubscriptionItemFeature(
           {
             type: FeatureType.Toggle,
@@ -283,7 +291,8 @@ describe('subscriptionItemFeatureMethods', () => {
     })
 
     it('expires multiple records by subscriptionItemId', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await insertSubscriptionItemFeature(
           {
             type: FeatureType.Toggle,
@@ -328,7 +337,8 @@ describe('subscriptionItemFeatureMethods', () => {
 
   describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
     it('joins slug and name correctly', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserted = await insertSubscriptionItemFeature(
           {
             type: FeatureType.Toggle,
@@ -356,8 +366,9 @@ describe('subscriptionItemFeatureMethods', () => {
 
   describe('upsert and bulkUpsert', () => {
     it('upserts single record', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const [up] =
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const [up] = (
           await upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
             {
               type: FeatureType.Toggle,
@@ -371,12 +382,14 @@ describe('subscriptionItemFeatureMethods', () => {
             },
             transaction
           )
+        ).unwrap()
         expect(typeof up.id).toBe('string')
       })
     })
 
     it('bulk upserts multiple records', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserts: SubscriptionItemFeature.Insert[] = [
           {
             type: FeatureType.Toggle,
@@ -400,11 +413,12 @@ describe('subscriptionItemFeatureMethods', () => {
             livemode: true,
           },
         ]
-        const results =
+        const results = (
           await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
             inserts,
             transaction
           )
+        ).unwrap()
         expect(results.length).toBe(2)
       })
     })
@@ -412,7 +426,8 @@ describe('subscriptionItemFeatureMethods', () => {
 
   describe('expire and detach helpers', () => {
     it('expires a single record via expireSubscriptionItemFeature', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserted = await insertSubscriptionItemFeature(
           {
             type: FeatureType.Toggle,
@@ -438,7 +453,8 @@ describe('subscriptionItemFeatureMethods', () => {
     })
 
     it('detaches matching productFeatureIds', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const rec1 = await insertSubscriptionItemFeature(
           {
             type: FeatureType.Toggle,
@@ -543,7 +559,8 @@ describe('pricingModelId derivation', () => {
 
   describe('insertSubscriptionItemFeature', () => {
     it('should derive pricingModelId from subscription item', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const subscriptionItemFeature =
           await insertSubscriptionItemFeature(
             {
@@ -566,7 +583,8 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should use provided pricingModelId without derivation', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const subscriptionItemFeature =
           await insertSubscriptionItemFeature(
             {
@@ -587,7 +605,8 @@ describe('pricingModelId derivation', () => {
     })
 
     it('should throw error when subscription item does not exist', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
 
         await expect(
@@ -608,8 +627,9 @@ describe('pricingModelId derivation', () => {
 
   describe('bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId', () => {
     it('should derive pricingModelId for each feature in bulk upsert', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const subscriptionItemFeatures =
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const subscriptionItemFeatures = (
           await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
             [
               {
@@ -622,6 +642,7 @@ describe('pricingModelId derivation', () => {
             ],
             transaction
           )
+        ).unwrap()
 
         expect(subscriptionItemFeatures).toHaveLength(1)
         expect(subscriptionItemFeatures[0].pricingModelId).toBe(
@@ -633,12 +654,13 @@ describe('pricingModelId derivation', () => {
       })
     })
 
-    it('should throw error when one subscription item does not exist in bulk upsert', async () => {
-      await adminTransaction(async ({ transaction }) => {
+    it('should return Result.err when one subscription item does not exist in bulk upsert', async () => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const nonExistentSubscriptionItemId = `si_${core.nanoid()}`
 
-        await expect(
-          bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
+        const result =
+          await bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscriptionId(
             [
               {
                 subscriptionItemId: subscriptionItem.id,
@@ -657,7 +679,7 @@ describe('pricingModelId derivation', () => {
             ],
             transaction
           )
-        ).rejects.toThrow()
+        expect(Result.isError(result)).toBe(true)
       })
     })
   })
@@ -719,32 +741,32 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
     })
 
     // Create a resource feature
-    resourceFeature = await adminTransaction(
-      async ({ transaction }) => {
-        return insertFeature(
-          {
-            organizationId: organization.id,
-            pricingModelId: pricingModel.id,
-            type: FeatureType.Resource,
-            name: 'Team Seats Feature',
-            slug: 'team-seats-feature',
-            description: 'Resource feature for team seats',
-            amount: 5,
-            usageMeterId: null,
-            renewalFrequency: null,
-            resourceId: resource.id,
-            livemode: true,
-            active: true,
-          },
-          transaction
-        )
-      }
-    )
+    resourceFeature = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return insertFeature(
+        {
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+          type: FeatureType.Resource,
+          name: 'Team Seats Feature',
+          slug: 'team-seats-feature',
+          description: 'Resource feature for team seats',
+          amount: 5,
+          usageMeterId: null,
+          renewalFrequency: null,
+          resourceId: resource.id,
+          livemode: true,
+          active: true,
+        },
+        ctx
+      )
+    })
   })
 
   describe('insertSubscriptionItemFeature for Resource type', () => {
     it('should insert a resource subscription item feature with type=Resource, resourceId, and amount', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserted = await insertSubscriptionItemFeature(
           {
             type: FeatureType.Resource,
@@ -773,27 +795,27 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
     })
 
     it('should select a resource subscription item feature by id', async () => {
-      const inserted = await adminTransaction(
-        async ({ transaction }) => {
-          return insertSubscriptionItemFeature(
-            {
-              type: FeatureType.Resource,
-              subscriptionItemId: subscriptionItem.id,
-              featureId: resourceFeature.id,
-              productFeatureId: null,
-              resourceId: resource.id,
-              amount: 5,
-              usageMeterId: null,
-              renewalFrequency: null,
-              livemode: true,
-              pricingModelId: pricingModel.id,
-            },
-            transaction
-          )
-        }
-      )
+      const inserted = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Resource,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            productFeatureId: null,
+            resourceId: resource.id,
+            amount: 5,
+            usageMeterId: null,
+            renewalFrequency: null,
+            livemode: true,
+            pricingModelId: pricingModel.id,
+          },
+          transaction
+        )
+      })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const selected = await selectSubscriptionItemFeatureById(
           inserted.id,
           transaction
@@ -896,25 +918,24 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
 
   describe('resourceSubscriptionItemFeatureSelectSchema validation', () => {
     it('should validate a selected resource subscription item feature with resourceId in the record', async () => {
-      const inserted = await adminTransaction(
-        async ({ transaction }) => {
-          return insertSubscriptionItemFeature(
-            {
-              type: FeatureType.Resource,
-              subscriptionItemId: subscriptionItem.id,
-              featureId: resourceFeature.id,
-              productFeatureId: null,
-              resourceId: resource.id,
-              amount: 5,
-              usageMeterId: null,
-              renewalFrequency: null,
-              livemode: true,
-              pricingModelId: pricingModel.id,
-            },
-            transaction
-          )
-        }
-      )
+      const inserted = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Resource,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            productFeatureId: null,
+            resourceId: resource.id,
+            amount: 5,
+            usageMeterId: null,
+            renewalFrequency: null,
+            livemode: true,
+            pricingModelId: pricingModel.id,
+          },
+          transaction
+        )
+      })
 
       const result =
         resourceSubscriptionItemFeatureSelectSchema.safeParse(
@@ -931,25 +952,24 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
 
   describe('resourceSubscriptionItemFeatureClientSelectSchema validation', () => {
     it('should include resourceId in client select schema', async () => {
-      const inserted = await adminTransaction(
-        async ({ transaction }) => {
-          return insertSubscriptionItemFeature(
-            {
-              type: FeatureType.Resource,
-              subscriptionItemId: subscriptionItem.id,
-              featureId: resourceFeature.id,
-              productFeatureId: null,
-              resourceId: resource.id,
-              amount: 5,
-              usageMeterId: null,
-              renewalFrequency: null,
-              livemode: true,
-              pricingModelId: pricingModel.id,
-            },
-            transaction
-          )
-        }
-      )
+      const inserted = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return insertSubscriptionItemFeature(
+          {
+            type: FeatureType.Resource,
+            subscriptionItemId: subscriptionItem.id,
+            featureId: resourceFeature.id,
+            productFeatureId: null,
+            resourceId: resource.id,
+            amount: 5,
+            usageMeterId: null,
+            renewalFrequency: null,
+            livemode: true,
+            pricingModelId: pricingModel.id,
+          },
+          transaction
+        )
+      })
 
       // The client select schema expects name and slug from the joined feature
       const clientRecord = {
@@ -976,7 +996,8 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
 
   describe('selectSubscriptionItemFeatures filtering by type', () => {
     it('should filter subscription item features by type=Resource', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Insert a Resource subscription item feature
         await insertSubscriptionItemFeature(
           {
@@ -1081,7 +1102,8 @@ describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
   })
 
   it('returns features with name and slug for a subscription item', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Insert a subscription item feature
       await insertSubscriptionItemFeature(
         {
@@ -1114,7 +1136,8 @@ describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
   })
 
   it('returns empty array for subscription item with no features', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const features =
         await selectSubscriptionItemFeaturesWithFeatureSlug(
           subscriptionItem.id,
