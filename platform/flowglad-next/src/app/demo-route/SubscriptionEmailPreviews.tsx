@@ -249,7 +249,7 @@ export const PaymentFailedPreview = ({
     <EmailPreviewWrapper
       templateName="customer-payment-failed"
       scenario={scenario}
-      subject="Payment Unsuccessful"
+      subject="Your Payment Failed"
       previewText="Payment Failed for Your Order"
       livemode={livemode}
       emailType="payment-failed"
