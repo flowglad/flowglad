@@ -144,10 +144,7 @@ export const runSendCustomerTrialExpiredNotification =
         organizationId: organization.id,
         customerId: customer.id,
         productName:
-          subscription.name ||
-          product?.name ||
-          price?.name ||
-          'your subscription',
+          subscription.name || product?.name || 'your subscription',
         livemode: subscription.livemode,
       }),
     })

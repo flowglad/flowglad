@@ -210,10 +210,7 @@ export const runSendCustomerSubscriptionCreatedNotification =
         organizationId: organization.id,
         customerExternalId: customer.externalId,
         planName:
-          subscription.name ||
-          product?.name ||
-          price.name ||
-          'Subscription',
+          subscription.name || product?.name || 'Subscription',
         price: price.unitPrice,
         currency: price.currency,
         interval: price.intervalUnit || undefined,

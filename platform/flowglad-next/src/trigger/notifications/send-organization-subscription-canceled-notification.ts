@@ -134,7 +134,7 @@ export const runSendOrganizationSubscriptionCanceledNotification =
       bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
-        `Subscription Cancelled: ${customer.name} canceled ${subscriptionName}`,
+        `Subscription Canceled: ${customer.name} canceled ${subscriptionName}`,
         subscription.livemode
       ),
       /**

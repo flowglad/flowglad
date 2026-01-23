@@ -30,10 +30,10 @@ export const CustomerBillingPortalMagicLinkEmail = ({
       <TestModeBanner livemode={livemode} />
       <Img
         src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
-        width="540"
-        height="199"
+        width="40"
+        height="40"
         alt="Flowglad Logo"
-        style={{ margin: '0 auto', marginBottom: '32px' }}
+        style={{ marginBottom: '32px' }}
       />
       <Header title="Sign In to Billing Portal" variant="customer" />
       <Paragraph variant="customer">Hi {displayName},</Paragraph>

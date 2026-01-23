@@ -5,7 +5,7 @@ import type { Customer } from '@/db/schema/customers'
 import type { Membership } from '@/db/schema/memberships'
 import type { Organization } from '@/db/schema/organizations'
 import { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
+import { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { User } from '@/db/schema/users'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
@@ -68,13 +68,50 @@ export const runSendOrganizationSubscriptionCancellationScheduledNotification =
         )
 
         // Fetch the product associated with the subscription for user-friendly naming
-        const price = subscription.priceId
-          ? await selectPriceById(subscription.priceId, transaction)
-          : null
-        const product =
-          price && Price.hasProductId(price)
-            ? await selectProductById(price.productId, transaction)
-            : null
+        // NotFoundError is caught and treated as non-fatal - we use fallbacks instead
+        let price: Price.Record | null = null
+        if (subscription.priceId) {
+          try {
+            price = await selectPriceById(
+              subscription.priceId,
+              transaction
+            )
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              logger.warn(
+                'Price not found for subscription, using fallbacks',
+                {
+                  priceId: subscription.priceId,
+                  subscriptionId: subscription.id,
+                }
+              )
+            } else {
+              throw error
+            }
+          }
+        }
+
+        let product: Product.Record | null = null
+        if (price && Price.hasProductId(price)) {
+          try {
+            product = await selectProductById(
+              price.productId,
+              transaction
+            )
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              logger.warn(
+                'Product not found for subscription, using fallbacks',
+                {
+                  productId: price.productId,
+                  subscriptionId: subscription.id,
+                }
+              )
+            } else {
+              throw error
+            }
+          }
+        }
 
         return {
           ...context,
