@@ -6,7 +6,6 @@ import { trpc } from '@/app/_trpc/client'
 import { AutoSlugInput } from '@/components/fields/AutoSlugInput'
 import FormModal from '@/components/forms/FormModal'
 import UsageMetersSelect from '@/components/forms/UsageMetersSelect'
-import StatusBadge from '@/components/StatusBadge'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   FormControl,
@@ -25,6 +24,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
@@ -168,8 +171,10 @@ const UsagePriceFormFields = ({
                           htmlFor="price-active"
                           className="cursor-pointer w-full"
                         >
-                          <StatusBadge
-                            active={field.value ?? false}
+                          <ActiveStatusTag
+                            status={booleanToActiveStatus(
+                              field.value ?? false
+                            )}
                           />
                         </Label>
                       </div>

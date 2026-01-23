@@ -550,7 +550,7 @@ describe('usageEventsRouter', () => {
           },
         })
       ).rejects.toThrow(
-        "Price with slug invalid-slug-does-not-exist not found for this customer's pricing model"
+        "Price not found: with slug invalid-slug-does-not-exist (not in customer's pricing model)"
       )
 
       // Test bulkInsert procedure
@@ -571,9 +571,7 @@ describe('usageEventsRouter', () => {
             },
           ],
         })
-      ).rejects.toThrow(
-        "Price with slug invalid-slug-bulk not found for this customer's pricing model at index 1"
-      )
+      ).rejects.toThrow('Price not found: slug "invalid-slug-bulk"')
     })
 
     it('should throw error when both priceId and priceSlug are provided', async () => {
@@ -789,7 +787,7 @@ describe('usageEventsRouter', () => {
           },
         })
       ).rejects.toThrow(
-        "Usage meter with slug invalid-usage-meter-slug not found for this customer's pricing model"
+        "UsageMeter not found: with slug invalid-usage-meter-slug (not in customer's pricing model)"
       )
 
       // Test bulkInsert procedure
@@ -811,7 +809,7 @@ describe('usageEventsRouter', () => {
           ],
         })
       ).rejects.toThrow(
-        "Usage meter with slug invalid-usage-meter-slug not found for this customer's pricing model at index 1"
+        'UsageMeter not found: slug "invalid-usage-meter-slug"'
       )
     })
 
@@ -987,7 +985,7 @@ describe('usageEventsRouter', () => {
           },
         })
       ).rejects.toThrow(
-        `Usage meter ${usageMeter2.id} not found for this customer's pricing model`
+        `UsageMeter not found: ${usageMeter2.id} (not in customer's pricing model)`
       )
 
       // Test bulkInsert procedure - try to use org2's usage meter with org1's subscription
@@ -1002,9 +1000,7 @@ describe('usageEventsRouter', () => {
             },
           ],
         })
-      ).rejects.toThrow(
-        `Usage meter ${usageMeter2.id} not found for this customer's pricing model at index 0`
-      )
+      ).rejects.toThrow(`UsageMeter not found: ${usageMeter2.id}`)
     })
   })
 

@@ -29,6 +29,7 @@ describe('validateEventInsertPayload', () => {
         position: 1,
         object_entity: null,
         object_id: null,
+        pricing_model_id: 'pm_123',
       },
     }
 

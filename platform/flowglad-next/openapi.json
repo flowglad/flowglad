@@ -6069,6 +6069,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6080,7 +6083,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6269,6 +6273,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6280,7 +6287,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6459,6 +6467,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6470,7 +6481,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     },
@@ -10887,9 +10899,6 @@
             "type": "null",
             "const": null
           },
-          "pricingModelId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "null",
             "const": null
@@ -10933,9 +10942,6 @@
           "renewalFrequency": {
             "type": "string",
             "enum": ["once", "every_billing_period"]
-          },
-          "pricingModelId": {
-            "type": "string"
           },
           "resourceId": {
             "type": "null",
@@ -10987,9 +10993,6 @@
           "renewalFrequency": {
             "type": "null",
             "const": null
-          },
-          "pricingModelId": {
-            "type": "string"
           },
           "resourceId": {
             "type": "string"

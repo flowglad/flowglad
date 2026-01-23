@@ -1,5 +1,16 @@
 import SidebarLayout from '@/components/SidebarLayout'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
-const CustomersLayout = SidebarLayout
-
-export default CustomersLayout
+export default function CustomersLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <SidebarLayout>
+      <TooltipProvider delayDuration={300}>
+        {children}
+      </TooltipProvider>
+    </SidebarLayout>
+  )
+}
