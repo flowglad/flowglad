@@ -16,3 +16,21 @@ updates:
       # The trailing space instructs dependabot not to insert a colon between
       # the prefix and the rest of the message.
       prefix: "[CI] "
+
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: daily
+    commit-message:
+      prefix: "[deps] "
+    groups:
+      production-dependencies:
+        patterns:
+          - "*"
+        exclude-patterns:
+          - "@types/*"
+          - "typescript"
+          - "@biomejs/*"
+          - "vitest"
+          - "eslint*"
+          - "prettier"

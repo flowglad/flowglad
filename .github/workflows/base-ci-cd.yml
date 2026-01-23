@@ -124,7 +124,7 @@ jobs:
         with:
           bun-version: '1.3.1'
       - name: Install dependencies
-        run: bun install --no-progress
+        run: bun install --frozen-lockfile --no-progress
       - name: Run linting and typechecking (all packages)
         run: bun run check
       - name: Run build (all packages)
@@ -147,7 +147,7 @@ jobs:
         with:
           bun-version: '1.3.1'
       - name: Install dependencies
-        run: bun install --no-progress
+        run: bun install --frozen-lockfile --no-progress
       - name: Build packages
         run: bun run build
       - name: Run shared tests
@@ -209,7 +209,18 @@ jobs:
           base: 'platform/flowglad-next/temp-openapi__diffable.json'
           revision: 'platform/flowglad-next/temp-openapi-head__diffable.json'
           fail-on-diff: true
-        
+
+  check-package-json-versions:
+    # Only run in the merge queue as a final pre-merge check
+    if: github.event_name == 'merge_group'
+    runs-on: ubuntu-latest
+    name: Check package.json uses explicit versions
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - name: Run package.json version check
+        run: ./ci/check_package_json_versions.sh
+
   all-jobs-succeed:
       name: All checks succeeded
       # On failure, we run and unconditionally exit with a failing status code.
@@ -219,7 +230,7 @@ jobs:
       # https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks#handling-skipped-but-required-checks
       if: failure()
       runs-on: ubuntu-latest
-      needs: [flowglad-next-lint, flowglad-next-unit-tests, flowglad-next-docker-build, flowglad-next-integration-tests, packages-build-and-lint, packages-test, check-todo, check-job-dependencies, check-openapi-diff]
+      needs: [flowglad-next-lint, flowglad-next-unit-tests, flowglad-next-docker-build, flowglad-next-integration-tests, packages-build-and-lint, packages-test, check-todo, check-job-dependencies, check-openapi-diff, check-package-json-versions]
       steps:
         - name: Mark the job as failed
           run: exit 1
