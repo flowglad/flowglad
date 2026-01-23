@@ -29,11 +29,17 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError as DbNotFoundError } from '@/db/tableUtils'
 import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { NotFoundError, ValidationError } from '@/errors'
+import {
+  ConflictError,
+  NotFoundError,
+  TerminalStateError,
+  ValidationError,
+} from '@/errors'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -359,12 +365,18 @@ export interface AdjustSubscriptionResult {
  * @param ctx - Transaction context with database transaction and effect callbacks
  * @returns The updated subscription, subscription items, and metadata about the adjustment
  */
+export type AdjustSubscriptionError =
+  | TerminalStateError
+  | ValidationError
+  | NotFoundError
+  | ConflictError
+
 export const adjustSubscription = async (
   input: AdjustSubscriptionParams,
   organization: Organization.Record,
   ctx: TransactionEffectsContext
 ): Promise<
-  Result<AdjustSubscriptionResult, ValidationError | NotFoundError>
+  Result<AdjustSubscriptionResult, AdjustSubscriptionError>
 > => {
   const { transaction } = ctx
   const { adjustment, id } = input
@@ -375,19 +387,25 @@ export const adjustSubscription = async (
     'prorateCurrentBillingPeriod' in adjustment
       ? adjustment.prorateCurrentBillingPeriod
       : true
-  const subscription = await selectSubscriptionById(id, transaction)
+  // TODO: Remove try/catch when selectSubscriptionById is migrated to return Result
+  let subscription: Subscription.Record
+  try {
+    subscription = await selectSubscriptionById(id, transaction)
+  } catch (error) {
+    if (error instanceof DbNotFoundError) {
+      return Result.err(new NotFoundError('Subscription', id))
+    }
+    throw error
+  }
   if (isSubscriptionInTerminalState(subscription.status)) {
     return Result.err(
-      new ValidationError(
-        'status',
-        'Subscription is in terminal state'
-      )
+      new TerminalStateError('Subscription', id, subscription.status)
     )
   }
   if (subscription.status === SubscriptionStatus.CreditTrial) {
     return Result.err(
       new ValidationError(
-        'status',
+        'subscription',
         'Credit trial subscriptions cannot be adjusted.'
       )
     )
@@ -395,7 +413,7 @@ export const adjustSubscription = async (
   if (!subscription.renews) {
     return Result.err(
       new ValidationError(
-        'renews',
+        'subscription',
         `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`
       )
     )
@@ -403,7 +421,7 @@ export const adjustSubscription = async (
   if (subscription.doNotCharge) {
     return Result.err(
       new ValidationError(
-        'doNotCharge',
+        'subscription',
         'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
       )
     )
@@ -411,7 +429,7 @@ export const adjustSubscription = async (
   if (subscription.isFreePlan) {
     return Result.err(
       new ValidationError(
-        'isFreePlan',
+        'subscription',
         'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.'
       )
     )
@@ -424,7 +442,10 @@ export const adjustSubscription = async (
     )
   if (!currentBillingPeriodForSubscription) {
     return Result.err(
-      new NotFoundError('BillingPeriod', subscription.id)
+      new NotFoundError(
+        'BillingPeriod',
+        `subscription:${subscription.id}`
+      )
     )
   }
 
@@ -576,7 +597,7 @@ export const adjustSubscription = async (
     if (price.type !== PriceType.Subscription) {
       return Result.err(
         new ValidationError(
-          'priceType',
+          'price',
           `Only recurring prices can be used in subscriptions. Price ${price.id} is of type ${price.type}`
         )
       )
@@ -667,9 +688,9 @@ export const adjustSubscription = async (
 
       if (activeClaims > totalCapacity) {
         return Result.err(
-          new ValidationError(
-            'resourceCapacity',
-            `Cannot reduce ${featureSlug} capacity to ${totalCapacity}. ` +
+          new ConflictError(
+            featureSlug,
+            `Cannot reduce capacity to ${totalCapacity}. ` +
               `${activeClaims} resources are currently claimed. ` +
               `Release ${activeClaims - totalCapacity} claims before downgrading.`
           )
@@ -802,7 +823,7 @@ export const adjustSubscription = async (
       },
       transaction
     )
-    if (billingRunResult.status === 'error') {
+    if (Result.isError(billingRunResult)) {
       return Result.err(billingRunResult.error)
     }
     const billingRun = billingRunResult.value
@@ -837,17 +858,16 @@ export const adjustSubscription = async (
       livemode: subscription.livemode,
     }))
 
-    const itemAdjustmentResult =
-      await handleSubscriptionItemAdjustment(
-        {
-          subscriptionId: id,
-          newSubscriptionItems: preparedItems,
-          adjustmentDate: adjustmentDate,
-        },
-        ctx
-      )
-    if (Result.isError(itemAdjustmentResult)) {
-      return Result.err(itemAdjustmentResult.error)
+    const adjustmentResult = await handleSubscriptionItemAdjustment(
+      {
+        subscriptionId: id,
+        newSubscriptionItems: preparedItems,
+        adjustmentDate: adjustmentDate,
+      },
+      ctx
+    )
+    if (Result.isError(adjustmentResult)) {
+      return Result.err(adjustmentResult.error)
     }
 
     // For AtEndOfCurrentBillingPeriod, don't sync with future-dated items
@@ -868,15 +888,17 @@ export const adjustSubscription = async (
     )
 
     // Send adjustment notifications (no proration - either downgrade or upgrade with proration disabled)
-    const price = await selectPriceById(
-      subscription.priceId,
-      transaction
-    )
-
-    if (!price) {
-      return Result.err(
-        new NotFoundError('Price', subscription.priceId)
-      )
+    // TODO: Remove try/catch when selectPriceById is migrated to return Result
+    let price: Price.Record
+    try {
+      price = await selectPriceById(subscription.priceId, transaction)
+    } catch (error) {
+      if (error instanceof DbNotFoundError) {
+        return Result.err(
+          new NotFoundError('Price', subscription.priceId)
+        )
+      }
+      throw error
     }
 
     await idempotentSendCustomerSubscriptionAdjustedNotification({

@@ -1,3 +1,26 @@
+---
+name: flowglad-setup
+description: Install and configure the Flowglad SDK for Next.js, Express, and React applications. Use this skill when adding billing to an app, setting up Flowglad for the first time, or configuring SDK providers and route handlers.
+license: MIT
+metadata:
+  author: flowglad
+  version: "1.0.0"
+---
+
+<!--
+@flowglad/skill
+sources_reviewed: 2026-01-21T12:00:00Z
+source_files:
+  - platform/docs/quickstart.mdx
+  - platform/docs/sdks/setup.mdx
+  - platform/docs/sdks/introduction.mdx
+  - platform/docs/sdks/nextjs.mdx
+  - platform/docs/sdks/server.mdx
+  - platform/docs/snippets/setup-nextjs.mdx
+  - platform/docs/snippets/setup-react.mdx
+  - platform/docs/snippets/setup-server.mdx
+-->
+
 # Flowglad Setup
 
 ## Abstract

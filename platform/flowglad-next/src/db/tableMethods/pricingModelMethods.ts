@@ -7,7 +7,6 @@ import {
   sql,
 } from 'drizzle-orm'
 import { z } from 'zod'
-import type { Customer } from '@/db/schema/customers'
 import {
   features,
   featuresClientSelectSchema,
@@ -20,6 +19,7 @@ import {
   pricingModelsSelectSchema,
   pricingModelsUpdateSchema,
 } from '@/db/schema/pricingModels'
+import type { CustomerPricingInfo } from '@/db/tableMethods/customerMethods'
 import {
   createCursorPaginatedSelectFunction,
   createDateNotPassedFilter,
@@ -43,6 +43,7 @@ import { RedisKeyNamespace } from '@/utils/redis'
 import {
   type Price,
   type PricingModelWithProductsAndUsageMeters,
+  type ProductWithPrices,
   prices,
   pricesClientSelectSchema,
   usagePriceClientSelectSchema,
@@ -762,7 +763,7 @@ export const selectPricingModelWithProductsAndUsageMetersById =
  * @returns
  */
 export const selectPricingModelForCustomer = async (
-  customer: Customer.Record,
+  customer: CustomerPricingInfo,
   transaction: DbTransaction
 ): Promise<PricingModelWithProductsAndUsageMeters> => {
   if (customer.pricingModelId) {

@@ -10,7 +10,10 @@ import {
 } from '@/db/schema/usageEvents'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectBillingPeriodsForSubscriptions } from '@/db/tableMethods/billingPeriodMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import {
+  selectCustomerById,
+  selectCustomerPricingInfoBatch,
+} from '@/db/tableMethods/customerMethods'
 import {
   selectDefaultPricesForUsageMeters,
   selectPrices,
@@ -157,9 +160,9 @@ async function validateAndMapSubscriptions(
 }
 
 // Step 2: Collect events that need slug resolution
-function collectSlugResolutionEvents(
+async function collectSlugResolutionEvents(
   context: WithSubscriptionsContext
-): Result<WithSlugEventsContext, TRPCError> {
+): Promise<Result<WithSlugEventsContext, TRPCError>> {
   const {
     usageInsertsWithoutBillingPeriodId,
     subscriptionsMap,
@@ -205,6 +208,17 @@ function collectSlugResolutionEvents(
     }
   }
 
+  // Batch fetch customer pricing info upfront for all unique customers
+  const uniqueCustomerIds = [
+    ...new Set(
+      Array.from(subscriptionsMap.values()).map((s) => s.customerId)
+    ),
+  ]
+  const customersInfo = await selectCustomerPricingInfoBatch(
+    uniqueCustomerIds,
+    transaction
+  )
+
   // Cache for pricing models
   const pricingModelCache = new Map<
     string,
@@ -215,9 +229,20 @@ function collectSlugResolutionEvents(
     if (pricingModelCache.has(customerId)) {
       return pricingModelCache.get(customerId)!
     }
-    const customer = await selectCustomerById(customerId, transaction)
+
+    // Use pre-fetched customer info instead of individual selectCustomerById call
+    const customerInfo = customersInfo.get(customerId)
+    if (!customerInfo) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Customer ${customerId} not found`,
+      })
+    }
+
+    // customerInfo from selectCustomerPricingInfoBatch has exactly the fields needed
+    // for selectPricingModelForCustomer (id, pricingModelId, organizationId, livemode)
     const pricingModel = await selectPricingModelForCustomer(
-      customer,
+      customerInfo,
       transaction
     )
     pricingModelCache.set(customerId, pricingModel)
@@ -845,8 +870,9 @@ export const bulkInsertUsageEventsTransaction = async (
     const withSubscriptions = yield* Result.await(
       validateAndMapSubscriptions({ input, livemode, ctx })
     )
-    const withSlugEvents =
-      yield* collectSlugResolutionEvents(withSubscriptions)
+    const withSlugEvents = yield* Result.await(
+      collectSlugResolutionEvents(withSubscriptions)
+    )
     const withPriceSlugsResolved = yield* Result.await(
       resolvePriceSlugs(withSlugEvents)
     )
