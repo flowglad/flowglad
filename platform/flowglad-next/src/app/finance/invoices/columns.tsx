@@ -1,23 +1,21 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { sentenceCase } from 'change-case'
 // Icons come next
 import { Link } from 'lucide-react'
 import * as React from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 // UI components last
-import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import { InvoiceStatusTag } from '@/components/ui/status-tag'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 // Other imports
 import type { Invoice } from '@/db/schema/invoices'
-import { invoiceIsInTerminalState } from '@/db/tableMethods/invoiceMethods'
 import { InvoiceStatus } from '@/types'
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
@@ -26,43 +24,6 @@ export type InvoiceTableRowData = {
   invoice: Invoice.ClientRecord
   customer: { id: string; name: string }
   invoiceLineItems: InvoiceLineItem.ClientRecord[]
-}
-
-const InvoiceStatusBadge = ({
-  invoice,
-}: {
-  invoice: Invoice.ClientRecord
-}) => {
-  let className: string
-  switch (invoice.status) {
-    case 'draft':
-      className = 'bg-gray-100 text-gray-800'
-      break
-    case 'paid':
-      className = 'bg-jade-background text-jade-foreground'
-      break
-    case 'void':
-      className = 'bg-red-100 text-red-800'
-      break
-    case 'uncollectible':
-      className = 'bg-red-100 text-red-800'
-      break
-    case 'partially_refunded':
-      className = 'bg-yellow-100 text-yellow-800'
-      break
-    case 'refunded':
-      className = 'bg-yellow-100 text-yellow-800'
-      break
-    default:
-      className = 'bg-gray-100 text-gray-800'
-      break
-  }
-
-  return (
-    <Badge variant="secondary" className={className}>
-      {sentenceCase(invoice.status)}
-    </Badge>
-  )
 }
 
 function InvoiceActionsMenu({
@@ -130,7 +91,13 @@ export const columns: ColumnDef<InvoiceTableRowData>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const invoice = row.original.invoice
-      return <InvoiceStatusBadge invoice={invoice} />
+      return (
+        <InvoiceStatusTag
+          status={invoice.status}
+          showTooltip
+          tooltipVariant="muted"
+        />
+      )
     },
     size: 115,
     minSize: 115,

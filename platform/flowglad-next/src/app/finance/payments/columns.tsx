@@ -1,59 +1,22 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { sentenceCase } from 'change-case'
-import {
-  Check,
-  Copy,
-  ExternalLink,
-  Hourglass,
-  Rewind,
-  RotateCcw,
-  X,
-} from 'lucide-react'
+import { Copy, ExternalLink, Rewind, RotateCcw } from 'lucide-react'
 import * as React from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
-import { Badge } from '@/components/ui/badge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import { PaymentStatusTag } from '@/components/ui/status-tag'
 import type { Payment } from '@/db/schema/payments'
 import { PaymentStatus } from '@/types'
 import core, { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import RefundPaymentModal from './RefundPaymentModal'
 import RetryPaymentModal from './RetryPaymentModal'
-
-const PaymentStatusBadge = ({
-  status,
-}: {
-  status: PaymentStatus
-}) => {
-  let className: string = 'bg-gray-100 text-gray-800'
-  let icon: React.ReactNode = null
-  if (status === PaymentStatus.Succeeded) {
-    className = 'bg-jade-background text-jade-foreground'
-    icon = <Check className="w-3 h-3 mr-1 text-jade-foreground" />
-  } else if (status === PaymentStatus.Processing) {
-    className = 'bg-yellow-100 text-yellow-800'
-    icon = <Hourglass className="w-3 h-3 mr-1" />
-  } else if (status === PaymentStatus.Canceled) {
-    className = 'bg-red-100 text-red-800'
-    icon = <X className="w-3 h-3 mr-1" />
-  } else if (status === PaymentStatus.Refunded) {
-    className = 'bg-gray-100 text-gray-800'
-    icon = <RotateCcw className="w-3 h-3 mr-1" />
-  }
-  return (
-    <Badge variant="secondary" className={className}>
-      {icon}
-      {sentenceCase(status)}
-    </Badge>
-  )
-}
 
 function PaymentActionsMenu({
   payment,
@@ -140,7 +103,13 @@ export const columns: ColumnDef<Payment.TableRowData>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const status = row.getValue('status') as PaymentStatus
-      return <PaymentStatusBadge status={status} />
+      return (
+        <PaymentStatusTag
+          status={status}
+          showTooltip
+          tooltipVariant="muted"
+        />
+      )
     },
     size: 115,
     minSize: 115,
