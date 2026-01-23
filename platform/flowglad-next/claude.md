@@ -27,6 +27,11 @@ This project uses a NODE_ENV-based environment system that automatically selects
 - `VERCEL=1` - Automatically set on Vercel deployments
 - `DANGEROUSLY_ALLOW_REMOTE_DB=1` - Explicit opt-out for remote database access
 
+**Bootstrap scripts** (skip env validation entirely):
+- `user` - Creates `.env_user` file
+- `vercel:env-pull:*` - Pulls env files from Vercel
+- `install-packages` - Installs dependencies
+
 **Note:** `NODE_ENV=production` does NOT bypass the safety check (too easy for AI agents to accidentally use). Use `DANGEROUSLY_ALLOW_REMOTE_DB=1` for intentional remote database access.
 
 ### The `fbr` Command (Flowglad Bun Run)
