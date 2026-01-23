@@ -70,11 +70,19 @@ export const confirmCheckoutSessionTransaction = async (
     !finalFeeCalculation &&
     checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
   ) {
-    const feeReadySession =
-      feeReadyCheckoutSessionSelectSchema.parse(checkoutSession)
+    const feeReadySessionResult =
+      feeReadyCheckoutSessionSelectSchema.safeParse(checkoutSession)
+    if (!feeReadySessionResult.success) {
+      return Result.err(
+        new ValidationError(
+          'checkoutSession',
+          `Checkout session is not fee-ready: ${feeReadySessionResult.error.message}`
+        )
+      )
+    }
     finalFeeCalculation =
       await createFeeCalculationForCheckoutSession(
-        feeReadySession,
+        feeReadySessionResult.data,
         transaction
       )
   }
@@ -95,6 +103,11 @@ export const confirmCheckoutSessionTransaction = async (
         },
         transaction
       )
+    if (purchaseAndCustomer.length === 0) {
+      return Result.err(
+        new NotFoundError('Purchase', checkoutSession.purchaseId!)
+      )
+    }
     customer = purchaseAndCustomer[0].customer
   }
 

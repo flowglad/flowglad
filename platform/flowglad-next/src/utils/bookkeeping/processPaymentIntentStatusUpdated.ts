@@ -339,7 +339,9 @@ export const updatePaymentToReflectLatestChargeStatus = async (
     'status' | 'failure_code' | 'failure_message'
   >,
   ctx: TransactionEffectsContext
-): Promise<Result<Payment.Record, TerminalStateError | ValidationError>> => {
+): Promise<
+  Result<Payment.Record, TerminalStateError | ValidationError>
+> => {
   const { transaction } = ctx
   const newPaymentStatus = chargeStatusToPaymentStatus(charge.status)
   let updatedPayment: Payment.Record = payment
@@ -549,9 +551,18 @@ export const processPaymentIntentStatusUpdated = async (
   >
 > => {
   const { transaction, emitEvent, enqueueLedgerCommand } = ctx
-  const metadata = stripeIntentMetadataSchema.parse(
+  const metadataResult = stripeIntentMetadataSchema.safeParse(
     paymentIntent.metadata
   )
+  if (!metadataResult.success) {
+    return Result.err(
+      new ValidationError(
+        'paymentIntent.metadata',
+        `Invalid metadata for payment intent ${paymentIntent.id}: ${metadataResult.error.message}`
+      )
+    )
+  }
+  const metadata = metadataResult.data
   if (!metadata) {
     return Result.err(
       new NotFoundError('PaymentIntentMetadata', paymentIntent.id)
@@ -572,9 +583,7 @@ export const processPaymentIntentStatusUpdated = async (
   const paymentResult = await upsertPaymentForStripeCharge(
     {
       charge: latestCharge,
-      paymentIntentMetadata: stripeIntentMetadataSchema.parse(
-        paymentIntent.metadata
-      ),
+      paymentIntentMetadata: metadata,
     },
     ctx
   )
