@@ -5765,23 +5765,26 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "items": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/UsageEventClientSelectSchema"
                       }
                     },
-                    "total": {
-                      "type": "number"
+                    "currentCursor": {
+                      "type": "string"
+                    },
+                    "nextCursor": {
+                      "type": "string"
                     },
                     "hasMore": {
                       "type": "boolean"
                     },
-                    "nextCursor": {
-                      "type": "string"
+                    "total": {
+                      "type": "number"
                     }
                   },
-                  "required": ["items", "total", "hasMore"],
+                  "required": ["data", "hasMore", "total"],
                   "additionalProperties": false
                 }
               }

@@ -8,6 +8,7 @@ import { usageMeters } from '@/db/schema/usageMeters'
 import {
   constructIndex,
   constructUniqueIndex,
+  createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
@@ -325,12 +326,8 @@ export const usageEventPaginatedSelectSchema =
     })
   )
 
-export const usageEventPaginatedListSchema = z.object({
-  items: z.array(usageEventsClientSelectSchema),
-  total: z.number(),
-  hasMore: z.boolean(),
-  nextCursor: z.string().optional(),
-})
+export const usageEventPaginatedListSchema =
+  createPaginatedListQuerySchema(usageEventsClientSelectSchema)
 
 // Table row data schema for enriched usage events with joins
 export const usageEventsTableRowDataSchema = z.object({
