@@ -46,6 +46,10 @@ RUN /root/.bun/bin/bun install --frozen-lockfile
 # Copy the rest of the source
 COPY platform/flowglad-next/ .
 
+# Set VERCEL_ENV=production so removeDevRoutes.ts removes dev routes during prebuild
+ARG VERCEL_ENV=production
+ENV VERCEL_ENV=${VERCEL_ENV}
+
 # Run prebuild (removeDevRoutes + build:preview-css) then build:docker (next build --no-lint)
 # We skip `bun run check` in Docker since CI already runs lint/typecheck separately.
 # We use --no-lint to also skip Next.js's built-in linting phase, saving ~2-3 minutes.
