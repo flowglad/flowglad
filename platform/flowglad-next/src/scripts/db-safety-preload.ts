@@ -66,7 +66,11 @@ export function getEffectiveNodeEnv(): NodeEnvType {
 
 function validateEnvironmentFiles(): void {
   // Skip in Vercel/CI - they manage their own env
-  if (process.env.VERCEL || process.env.CI) return
+  if (
+    process.env.VERCEL !== undefined ||
+    process.env.CI !== undefined
+  )
+    return
 
   const nodeEnv = getEffectiveNodeEnv()
 
