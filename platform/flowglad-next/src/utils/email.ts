@@ -30,7 +30,6 @@ import type { CurrencyCode } from '@/types'
 import { resendTraced } from '@/utils/tracing'
 import core from './core'
 import { getFromAddress } from './email/fromAddress'
-import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from './stripe'
 
 const resend = () => new Resend(core.envVariable('RESEND_API_KEY'))
 
@@ -209,10 +208,7 @@ export const sendOrganizationPaymentNotificationEmail = async (
       to: params.to.map(safeTo),
       bcc: getBccForLivemode(params.livemode),
       subject: formatEmailSubject(
-        `You just made ${stripeCurrencyAmountToHumanReadableCurrencyAmount(
-          params.currency,
-          params.amount
-        )} from ${params.organizationName}!`,
+        `Successful payment from ${params.customerName}!`,
         params.livemode
       ),
       /**
@@ -296,7 +292,7 @@ export const sendPaymentFailedEmail = async (params: {
       bcc: getBccForLivemode(params.livemode),
       replyTo: params.replyTo ?? undefined,
       subject: formatEmailSubject(
-        'Payment Unsuccessful',
+        'Your Payment Failed',
         params.livemode
       ),
       react: await PaymentFailedEmail({
@@ -401,7 +397,7 @@ export const sendOrganizationPaymentFailedNotificationEmail = async (
       to: params.to.map(safeTo),
       bcc: getBccForLivemode(params.livemode),
       subject: formatEmailSubject(
-        `${params.organizationName} payment failed from ${params.customerName}`,
+        `Payment Failed from ${params.customerName}`,
         params.livemode
       ),
       /**

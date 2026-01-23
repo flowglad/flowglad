@@ -190,7 +190,7 @@ export const CustomerTrialExpiredNoPaymentSchema = z.object({
   organizationLogoUrl: z.string().url().optional(),
   organizationId: z.string().min(1, 'Organization ID is required'),
   customerId: z.string().min(1, 'Customer ID is required'),
-  planName: z.string().min(1, 'Plan name is required'),
+  productName: z.string().min(1, 'Product name is required'),
   livemode: z.boolean(),
 })
 

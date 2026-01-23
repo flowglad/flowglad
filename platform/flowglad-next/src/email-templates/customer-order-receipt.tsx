@@ -80,7 +80,7 @@ export const OrderReceiptEmail = ({
     <EmailLayout previewText={previewText}>
       <TestModeBanner livemode={livemode} />
       <Header
-        title="Thanks for your order!"
+        title="Your Order is Confirmed"
         organizationLogoUrl={sellerLogo}
       />
 

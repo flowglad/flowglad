@@ -25,8 +25,8 @@ export const Paragraph = ({
   style?: React.CSSProperties
   variant?: 'customer' | 'organization'
 }) => {
-  // Variant prop kept for potential future use, but styling is now unified
-  const variantStyle: React.CSSProperties = {}
+  const variantStyle: React.CSSProperties =
+    variant === 'organization' ? { textAlign: 'left' } : {}
   return (
     <Text style={{ ...paragraph, ...variantStyle, ...style }}>
       {children}

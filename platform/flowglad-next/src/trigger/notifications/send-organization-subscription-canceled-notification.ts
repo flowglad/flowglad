@@ -4,8 +4,12 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Membership } from '@/db/schema/memberships'
 import type { Organization } from '@/db/schema/organizations'
+import { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { User } from '@/db/schema/users'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
 import { NotFoundError } from '@/db/tableUtils'
 import { OrganizationSubscriptionCanceledNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import { ValidationError } from '@/errors'
@@ -44,12 +48,13 @@ export const runSendOrganizationSubscriptionCanceledNotification =
           user: User.Record
           membership: Membership.Record
         }>
+        product: Product.Record | null
       },
       NotFoundError | ValidationError
     >
     try {
       const data = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
+        const context = await buildNotificationContext(
           {
             organizationId: subscription.organizationId,
             customerId: subscription.customerId,
@@ -57,6 +62,71 @@ export const runSendOrganizationSubscriptionCanceledNotification =
           },
           transaction
         )
+
+        // Fetch the product associated with the subscription for user-friendly naming.
+        //
+        // IMPORTANT: Price/Product lookups are treated as non-fatal because:
+        // 1. The email only needs a friendly subscription name, which has fallbacks
+        //    (subscription.name || product?.name || 'their subscription')
+        // 2. A missing price/product record (e.g., deleted, orphaned data) should
+        //    not prevent the cancellation notification from being sent
+        // 3. We still want to log warnings for observability so orphaned data
+        //    can be investigated if it becomes a pattern
+        //
+        // Only NotFoundError is caught; other errors (DB failures, etc.) are
+        // re-thrown to allow Trigger.dev to retry the task.
+        let price: Price.Record | null = null
+        if (subscription.priceId) {
+          try {
+            price = await selectPriceById(
+              subscription.priceId,
+              transaction
+            )
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              // Price was deleted or never existed - proceed with fallback name
+              logger.warn(
+                'Price not found for subscription, using fallbacks',
+                {
+                  priceId: subscription.priceId,
+                  subscriptionId: subscription.id,
+                }
+              )
+            } else {
+              // Unexpected error (connection issue, etc.) - let Trigger.dev retry
+              throw error
+            }
+          }
+        }
+
+        let product: Product.Record | null = null
+        if (price && Price.hasProductId(price)) {
+          try {
+            product = await selectProductById(
+              price.productId,
+              transaction
+            )
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              // Product was deleted or never existed - proceed with fallback name
+              logger.warn(
+                'Product not found for subscription, using fallbacks',
+                {
+                  productId: price.productId,
+                  subscriptionId: subscription.id,
+                }
+              )
+            } else {
+              // Unexpected error (connection issue, etc.) - let Trigger.dev retry
+              throw error
+            }
+          }
+        }
+
+        return {
+          ...context,
+          product,
+        }
       })
       dataResult = Result.ok(data)
     } catch (error) {
@@ -80,7 +150,7 @@ export const runSendOrganizationSubscriptionCanceledNotification =
     if (Result.isError(dataResult)) {
       return dataResult
     }
-    const { organization, customer, usersAndMemberships } =
+    const { organization, customer, usersAndMemberships, product } =
       dataResult.value
 
     const eligibleRecipients = filterEligibleRecipients(
@@ -107,12 +177,15 @@ export const runSendOrganizationSubscriptionCanceledNotification =
       })
     }
 
+    const subscriptionName =
+      subscription.name || product?.name || 'their subscription'
+
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
-        `Subscription Cancelled: ${customer.name} canceled ${subscription.name ?? 'their subscription'}`,
+        `Subscription Canceled: ${customer.name} canceled ${subscriptionName}`,
         subscription.livemode
       ),
       /**
@@ -120,7 +193,7 @@ export const runSendOrganizationSubscriptionCanceledNotification =
        */
       react: await OrganizationSubscriptionCanceledNotificationEmail({
         organizationName: organization.name,
-        subscriptionName: subscription.name ?? 'Unnamed subscription',
+        subscriptionName,
         customerId: customer.id,
         customerName: customer.name,
         customerEmail: customer.email,
