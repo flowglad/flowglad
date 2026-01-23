@@ -10,7 +10,10 @@ const createPricingModelResource = (
   return client.pricingModels.create(params)
 }
 
-const getPricingModelResource = (id: string, client: FlowgladNode) => {
+const getPricingModelResource = (
+  id: string,
+  client: FlowgladNode
+) => {
   return client.pricingModels.retrieve(id)
 }
 
@@ -74,7 +77,8 @@ export const verifyPricingModelContract = async (
     `Updated pricing model: ${updatedPricingModel.pricingModel.id}`
   )
 
-  const pricingModelListResult = await getPricingModelListResource(client)
+  const pricingModelListResult =
+    await getPricingModelListResource(client)
   logger.info(
     `Got pricing model list: ${pricingModelListResult.data.length}`
   )
