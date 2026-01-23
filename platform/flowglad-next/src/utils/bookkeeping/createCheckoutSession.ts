@@ -365,15 +365,26 @@ export const createCheckoutSessionTransaction = async (
     }
   }
 
-  const checkoutSessionResult = await insertCheckoutSession(
-    checkoutSessionInsertFromInput({
+  let checkoutSessionInsert: CheckoutSession.Insert
+  try {
+    checkoutSessionInsert = checkoutSessionInsertFromInput({
       checkoutSessionInput,
       customer,
       organizationId,
       livemode,
       activateSubscriptionPriceId,
       resolvedPriceId,
-    }),
+    })
+  } catch (error) {
+    return Result.err(
+      new ValidationError(
+        'checkoutSession',
+        error instanceof Error ? error.message : String(error)
+      )
+    )
+  }
+  const checkoutSessionResult = await insertCheckoutSession(
+    checkoutSessionInsert,
     transaction
   )
   if (checkoutSessionResult.status === 'error') {

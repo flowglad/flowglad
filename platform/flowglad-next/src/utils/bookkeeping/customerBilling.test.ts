@@ -7,7 +7,6 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
-import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -1177,19 +1176,12 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         cancelUrl: 'http://cancel.url',
       }
 
-    const result = await customerBillingCreatePricedCheckoutSession({
-      checkoutSessionInput,
-      customer,
-    })
+    const checkoutSessionResult =
+      await customerBillingCreatePricedCheckoutSession({
+        checkoutSessionInput,
+        customer,
+      })
 
-    if (Result.isError(result)) {
-      throw new Error(
-        `Expected successful checkout session but got error: ${result.error.message}`
-      )
-    }
-    const checkoutSessionResult = result.value
-
-    expect(checkoutSessionResult).toMatchObject({})
     expect(checkoutSessionResult.checkoutSession).toMatchObject({})
     expect(checkoutSessionResult.checkoutSession.priceId).toBe(
       created.nonDefaultPrice.id
@@ -1265,19 +1257,12 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         cancelUrl: 'http://cancel.url',
       }
 
-    const result = await customerBillingCreatePricedCheckoutSession({
-      checkoutSessionInput,
-      customer,
-    })
+    const checkoutSessionResult =
+      await customerBillingCreatePricedCheckoutSession({
+        checkoutSessionInput,
+        customer,
+      })
 
-    if (Result.isError(result)) {
-      throw new Error(
-        `Expected successful checkout session but got error: ${result.error.message}`
-      )
-    }
-    const checkoutSessionResult = result.value
-
-    expect(checkoutSessionResult).toMatchObject({})
     expect(checkoutSessionResult.checkoutSession).toMatchObject({})
     expect(checkoutSessionResult.checkoutSession.type).toBe(
       CheckoutSessionType.ActivateSubscription

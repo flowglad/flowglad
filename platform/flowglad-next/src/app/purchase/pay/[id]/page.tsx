@@ -40,11 +40,6 @@ const PayPurchasePage = async ({
       )
       const checkoutSession = checkoutSessionResult.unwrap()
 
-      if (Result.isError(checkoutSessionResult)) {
-        throw checkoutSessionResult.error
-      }
-      const checkoutSession = checkoutSessionResult.value
-
       const discount = checkoutSession.discountId
         ? await selectDiscountById(
             checkoutSession.discountId,
