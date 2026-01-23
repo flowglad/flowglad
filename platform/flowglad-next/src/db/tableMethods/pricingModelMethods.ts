@@ -162,6 +162,33 @@ export const selectDefaultPricingModel = async (
   return pricingModel
 }
 
+/**
+ * Checks if an organization already has a livemode pricing model.
+ * Used to enforce the constraint that each organization can have at most
+ * one livemode pricing model.
+ *
+ * Uses EXISTS for efficiency since we only need to check existence, not count.
+ *
+ * @param organizationId - The organization to check
+ * @param transaction - Database transaction
+ * @returns true if a livemode pricing model exists, false otherwise
+ */
+export const hasLivemodePricingModel = async (
+  organizationId: string,
+  transaction: DbTransaction
+): Promise<boolean> => {
+  const result = await transaction
+    .select({
+      exists: sql<boolean>`EXISTS (
+        SELECT 1 FROM ${pricingModels}
+        WHERE ${pricingModels.organizationId} = ${organizationId}
+        AND ${pricingModels.livemode} = true
+      )`.mapWith(Boolean),
+    })
+    .from(sql`(SELECT 1) AS dummy`)
+  return result[0]?.exists ?? false
+}
+
 export const makePricingModelDefault = async (
   newDefaultPricingModelOrId: PricingModel.Record | string,
   ctx: TransactionEffectsContext
@@ -249,6 +276,19 @@ export const safelyInsertPricingModel = async (
   pricingModel: PricingModel.Insert,
   ctx: TransactionEffectsContext
 ) => {
+  // Check if org already has a livemode pricing model
+  if (pricingModel.livemode) {
+    const exists = await hasLivemodePricingModel(
+      pricingModel.organizationId,
+      ctx.transaction
+    )
+    if (exists) {
+      throw new Error(
+        'Organization already has a livemode pricing model. Only one livemode pricing model is allowed per organization.'
+      )
+    }
+  }
+
   if (pricingModel.isDefault) {
     await setPricingModelsForOrganizationToNonDefault(
       {
