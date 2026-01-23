@@ -49,7 +49,7 @@ describe('PaymentFailedEmail', () => {
 
     // Check header content
     expect(getByTestId('email-title')).toHaveTextContent(
-      'Your Payment Failed'
+      'Payment Unsuccessful'
     )
     expect(getByAltText('Logo')).toHaveAttribute(
       'src',
