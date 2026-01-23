@@ -1,11 +1,4 @@
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  it,
-} from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { HttpResponse, http } from 'msw'
 import { server } from '@/../mocks/server'
 import { dummyOrganization } from '@/stubs/organizationStubs'
@@ -113,11 +106,11 @@ describe('getSvixApplicationId', () => {
   })
 
   it('throws an error when organization has no securitySalt', () => {
-    // Use type assertion to bypass TypeScript for testing runtime safety check
+    // Use empty string to trigger the runtime check if (!organization.securitySalt)
     const orgWithoutSalt = {
       ...dummyOrganization,
       id: 'org_nosalt',
-      securitySalt: null as unknown as string,
+      securitySalt: '',
     }
 
     expect(() => {
@@ -130,17 +123,8 @@ describe('getSvixApplicationId', () => {
 })
 
 describe('checkSvixApplicationExists', () => {
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
-  })
+  // Note: MSW server lifecycle (listen/resetHandlers/close) is managed globally in bun.setup.ts
+  // We only need to use server.use() for test-specific handler overrides
 
   it('returns true when Svix application exists (200 response)', async () => {
     // The default svixHandlers in mocks/svixServer.ts return 200 for GET /app/:appId
