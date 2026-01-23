@@ -4,24 +4,18 @@
 
 import { render } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import {
-  setupCustomer,
-  setupInvoice,
-  setupInvoiceLineItem,
-  setupOrg,
-  setupPayment,
-} from '@/../seedDatabase'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
-import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
-import type { Price } from '@/db/schema/prices'
-import { updateCustomer } from '@/db/tableMethods/customerMethods'
-import { updateInvoice } from '@/db/tableMethods/invoiceMethods'
-import { CurrencyCode, InvoiceStatus, PaymentStatus } from '@/types'
+import {
+  CurrencyCode,
+  InvoiceStatus,
+  InvoiceType,
+  PaymentStatus,
+} from '@/types'
 import { formatDate } from '@/utils/core'
 import {
   BillingInfo,
@@ -33,54 +27,185 @@ import {
   SellerContactInfo,
 } from './invoices'
 
+// ============================================================================
+// Mock Data Factories
+// ============================================================================
+
+let idCounter = 1
+
+function createMockOrganization(
+  overrides: Partial<Organization.Record> = {}
+): Organization.Record {
+  const id = `org_${idCounter++}`
+  return {
+    id,
+    name: 'Test Organization',
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    domain: 'test.com',
+    livemode: false,
+    logoURL: null,
+    slug: 'test-org',
+    stripeConnectAccountId: null,
+    stripeCustomerId: `cus_${idCounter++}`,
+    subdomain: null,
+    faviconURL: null,
+    primaryColor: null,
+    accentColor: null,
+    currency: CurrencyCode.USD,
+    ...overrides,
+  }
+}
+
+function createMockCustomer(
+  overrides: Partial<Customer.Record> = {}
+): Customer.Record {
+  const id = `cust_${idCounter++}`
+  return {
+    id,
+    name: 'Test Customer',
+    email: 'customer@test.com',
+    organizationId: `org_${idCounter}`,
+    livemode: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    externalId: null,
+    stripeCustomerId: `cus_${idCounter++}`,
+    invoiceNumberBase: null,
+    billingAddress: {
+      name: 'Test Customer',
+      address: {
+        line1: '123 Test St',
+        line2: null,
+        city: 'Test City',
+        state: 'CA',
+        postal_code: '94105',
+        country: 'US',
+      },
+    },
+    ...overrides,
+  }
+}
+
+function createMockInvoice(
+  overrides: Partial<Invoice.Record> = {}
+): Invoice.Record {
+  const id = `inv_${idCounter++}`
+  const now = Date.now()
+  return {
+    id,
+    customerId: `cust_${idCounter}`,
+    organizationId: `org_${idCounter}`,
+    livemode: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    invoiceNumber: `INV-${idCounter}`,
+    status: InvoiceStatus.Draft,
+    type: InvoiceType.Purchase,
+    subtotal: 6000,
+    taxAmount: 0,
+    billingPeriodId: null,
+    purchaseId: null,
+    subscriptionId: null,
+    dueDate: now + 30 * 24 * 60 * 60 * 1000, // 30 days from now
+    currency: CurrencyCode.USD,
+    stripeInvoiceId: null,
+    stripeTaxTransactionId: null,
+    taxCountry: null,
+    taxState: null,
+    ...overrides,
+  }
+}
+
+function createMockInvoiceLineItem(
+  overrides: Partial<InvoiceLineItem.Record> = {}
+): InvoiceLineItem.Record {
+  const id = `ili_${idCounter++}`
+  return {
+    id,
+    invoiceId: `inv_${idCounter}`,
+    livemode: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    description: 'Test Description',
+    quantity: 1,
+    price: 2500,
+    priceId: `price_${idCounter}`,
+    ...overrides,
+  }
+}
+
+function createMockPayment(
+  overrides: Partial<Payment.Record> = {}
+): Payment.Record {
+  const id = `pay_${idCounter++}`
+  return {
+    id,
+    invoiceId: `inv_${idCounter}`,
+    customerId: `cust_${idCounter}`,
+    organizationId: `org_${idCounter}`,
+    livemode: false,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    amount: 6000,
+    status: PaymentStatus.Succeeded,
+    currency: CurrencyCode.USD,
+    stripePaymentIntentId: `pi_${idCounter++}`,
+    stripeChargeId: `ch_${idCounter++}`,
+    chargeDate: Date.now(),
+    refunded: false,
+    refundedAmount: null,
+    refundedAt: null,
+    billingRunId: null,
+    checkoutSessionId: null,
+    paymentMethodId: null,
+    type: 'charge',
+    ...overrides,
+  }
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
 describe('Invoice Components', () => {
   let organization: Organization.Record
   let customer: Customer.Record
   let invoice: Invoice.Record
   let invoiceLineItems: InvoiceLineItem.Record[]
   let payment: Payment.Record
-  let price: Price.Record
 
-  beforeEach(async () => {
-    // Setup test data
-    const orgSetup = await setupOrg()
-    organization = orgSetup.organization
-    price = orgSetup.price
+  beforeEach(() => {
+    // Reset counter for each test to ensure consistent IDs
+    idCounter = 1
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${Date.now()}`,
-    })
-
-    invoice = await setupInvoice({
+    // Setup test data with mock factories
+    organization = createMockOrganization()
+    customer = createMockCustomer({ organizationId: organization.id })
+    invoice = createMockInvoice({
       customerId: customer.id,
       organizationId: organization.id,
       status: InvoiceStatus.Draft,
-      priceId: orgSetup.price.id,
+      subtotal: 6000,
     })
-
     invoiceLineItems = [
-      await setupInvoiceLineItem({
+      createMockInvoiceLineItem({
         invoiceId: invoice.id,
-        priceId: orgSetup.price.id,
         quantity: 2,
         price: 2500, // $25.00
       }),
-      await setupInvoiceLineItem({
+      createMockInvoiceLineItem({
         invoiceId: invoice.id,
-        priceId: orgSetup.price.id,
         quantity: 1,
         price: 1000, // $10.00
       }),
     ]
-
-    payment = await setupPayment({
+    payment = createMockPayment({
       invoiceId: invoice.id,
       amount: 6000, // $60.00
       status: PaymentStatus.Succeeded,
       customerId: customer.id,
       organizationId: organization.id,
-      stripeChargeId: `ch_${Date.now()}`,
     })
   })
 
@@ -119,14 +244,13 @@ describe('Invoice Components', () => {
       expect(getByTestId('amount-paid')).toHaveTextContent('$60.00')
     })
 
-    it('should display refund information when payment is refunded', async () => {
-      const refundedPayment = await setupPayment({
+    it('should display refund information when payment is refunded', () => {
+      const refundedPayment = createMockPayment({
         invoiceId: invoice.id,
         amount: 6000,
         status: PaymentStatus.Refunded,
         customerId: customer.id,
         organizationId: organization.id,
-        stripeChargeId: `ch_${Date.now()}`,
         refunded: true,
         refundedAmount: 6000,
         refundedAt: Date.now(),
@@ -244,12 +368,12 @@ describe('Invoice Components', () => {
   })
 
   describe('InvoiceTemplate with discounts', () => {
-    it('should handle fixed discount correctly', async () => {
-      const invoiceWithDiscount = await setupInvoice({
+    it('should handle fixed discount correctly', () => {
+      const invoiceWithDiscount = createMockInvoice({
         customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Draft,
-        priceId: price.id,
+        subtotal: 5000, // $50.00 after $10.00 discount
       })
 
       const { getByTestId } = render(
@@ -284,27 +408,12 @@ describe('Invoice Components', () => {
       expect(getByTestId('total-amount')).toHaveTextContent('$50.00')
     })
 
-    it('should handle percentage discount correctly', async () => {
-      const invoiceWithDiscount = await setupInvoice({
+    it('should handle percentage discount correctly', () => {
+      const invoiceWithDiscount = createMockInvoice({
         customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Draft,
-        priceId: price.id,
-      })
-
-      // Update the invoice with the correct subtotal
-      await adminTransaction(async ({ transaction }) => {
-        return await updateInvoice(
-          {
-            id: invoiceWithDiscount.id,
-            type: invoiceWithDiscount.type,
-            purchaseId: invoiceWithDiscount.purchaseId,
-            billingPeriodId: invoiceWithDiscount.billingPeriodId,
-            subscriptionId: invoiceWithDiscount.subscriptionId,
-            subtotal: 5400, // $54.00 after 10% discount
-          } as any,
-          transaction
-        )
+        subtotal: 5400, // $54.00 after 10% discount
       })
 
       const { getByTestId } = render(
@@ -339,37 +448,18 @@ describe('Invoice Components', () => {
       expect(getByTestId('total-amount')).toHaveTextContent('$54.00')
     })
 
-    it('should handle percentage discount with tax correctly', async () => {
-      const invoiceWithDiscountAndTax = await setupInvoice({
+    it('should handle percentage discount with tax correctly', () => {
+      const invoiceWithDiscountAndTax = createMockInvoice({
         customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Draft,
-        priceId: price.id,
+        subtotal: 5400, // $54.00 after 10% discount
+        taxAmount: 540, // $5.40 tax
       })
-
-      // Update the invoice with the correct subtotal and tax
-      const updatedInvoiceWithTax = await adminTransaction(
-        async ({ transaction }) => {
-          return await updateInvoice(
-            {
-              id: invoiceWithDiscountAndTax.id,
-              type: invoiceWithDiscountAndTax.type,
-              purchaseId: invoiceWithDiscountAndTax.purchaseId,
-              billingPeriodId:
-                invoiceWithDiscountAndTax.billingPeriodId,
-              subscriptionId:
-                invoiceWithDiscountAndTax.subscriptionId,
-              subtotal: 5400, // $54.00 after 10% discount
-              taxAmount: 540, // $5.40 tax
-            } as any,
-            transaction
-          )
-        }
-      )
 
       const { getByTestId } = render(
         <InvoiceTemplate
-          invoice={updatedInvoiceWithTax}
+          invoice={invoiceWithDiscountAndTax}
           invoiceLineItems={invoiceLineItems}
           customer={customer}
           organization={organization}
@@ -401,27 +491,12 @@ describe('Invoice Components', () => {
       expect(getByTestId('total-amount')).toHaveTextContent('$59.40')
     })
 
-    it('should cap percentage discount at 100%', async () => {
-      const invoiceWithLargeDiscount = await setupInvoice({
+    it('should cap percentage discount at 100%', () => {
+      const invoiceWithLargeDiscount = createMockInvoice({
         customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Draft,
-        priceId: price.id,
-      })
-
-      // Update the invoice with the correct subtotal
-      await adminTransaction(async ({ transaction }) => {
-        return await updateInvoice(
-          {
-            id: invoiceWithLargeDiscount.id,
-            type: invoiceWithLargeDiscount.type,
-            purchaseId: invoiceWithLargeDiscount.purchaseId,
-            billingPeriodId: invoiceWithLargeDiscount.billingPeriodId,
-            subscriptionId: invoiceWithLargeDiscount.subscriptionId,
-            subtotal: 0, // $0.00 after 100% discount
-          } as any,
-          transaction
-        )
+        subtotal: 0, // $0.00 after 100% discount
       })
 
       const { getByTestId } = render(
@@ -458,28 +533,23 @@ describe('Invoice Components', () => {
   })
 
   describe('InvoiceTemplate', () => {
-    it('should render complete invoice with all components and correct totals', async () => {
-      // Update customer with billing address
-      const updatedCustomer = await adminTransaction(
-        async ({ transaction }) => {
-          return await updateCustomer(
-            {
-              id: customer.id,
-              billingAddress: {
-                address: {
-                  line1: '123 Main St',
-                  line2: 'Apt 1',
-                  city: 'San Francisco',
-                  state: 'CA',
-                  postal_code: '94105',
-                  country: 'US',
-                },
-              },
-            },
-            transaction
-          )
-        }
-      )
+    it('should render complete invoice with all components and correct totals', () => {
+      // Create customer with billing address
+      const updatedCustomer = createMockCustomer({
+        id: customer.id,
+        organizationId: organization.id,
+        billingAddress: {
+          name: 'Test Customer',
+          address: {
+            line1: '123 Main St',
+            line2: 'Apt 1',
+            city: 'San Francisco',
+            state: 'CA',
+            postal_code: '94105',
+            country: 'US',
+          },
+        },
+      })
 
       const { getByTestId, getAllByTestId } = render(
         <InvoiceTemplate
@@ -509,7 +579,7 @@ describe('Invoice Components', () => {
         'Bill to'
       )
       expect(getByTestId('customer-name')).toHaveTextContent(
-        customer.name
+        updatedCustomer.name
       )
 
       // Verify payment info
@@ -544,12 +614,12 @@ describe('Invoice Components', () => {
       expect(getByTestId('amount-due')).toHaveTextContent('$60.00')
     })
 
-    it('should handle different invoice statuses correctly', async () => {
-      const paidInvoice = await setupInvoice({
+    it('should handle different invoice statuses correctly', () => {
+      const paidInvoice = createMockInvoice({
         customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Paid,
-        priceId: price.id,
+        subtotal: 6000,
       })
 
       const { getByTestId } = render(
@@ -570,11 +640,17 @@ describe('Invoice Components', () => {
     })
 
     it('should not render BillingInfo when customer.billingAddress is undefined', () => {
+      const customerWithoutBilling = createMockCustomer({
+        id: customer.id,
+        organizationId: organization.id,
+        billingAddress: null,
+      })
+
       const { queryByTestId } = render(
         <InvoiceTemplate
           invoice={invoice}
           invoiceLineItems={invoiceLineItems}
-          customer={customer}
+          customer={customerWithoutBilling}
           organization={organization}
           paymentLink="/pay"
         />
@@ -585,28 +661,23 @@ describe('Invoice Components', () => {
       expect(queryByTestId('customer-email')).toBeNull()
     })
 
-    it('should render BillingInfo when customer.billingAddress is defined', async () => {
-      // Update customer with billing address
-      const updatedCustomer = await adminTransaction(
-        async ({ transaction }) => {
-          return await updateCustomer(
-            {
-              id: customer.id,
-              billingAddress: {
-                address: {
-                  line1: '123 Main St',
-                  line2: 'Apt 1',
-                  city: 'San Francisco',
-                  state: 'CA',
-                  postal_code: '94105',
-                  country: 'US',
-                },
-              },
-            },
-            transaction
-          )
-        }
-      )
+    it('should render BillingInfo when customer.billingAddress is defined', () => {
+      // Create customer with billing address
+      const updatedCustomer = createMockCustomer({
+        id: customer.id,
+        organizationId: organization.id,
+        billingAddress: {
+          name: 'Test Customer',
+          address: {
+            line1: '123 Main St',
+            line2: 'Apt 1',
+            city: 'San Francisco',
+            state: 'CA',
+            postal_code: '94105',
+            country: 'US',
+          },
+        },
+      })
 
       const { getByTestId } = render(
         <InvoiceTemplate
@@ -633,26 +704,21 @@ describe('Invoice Components', () => {
 
   describe('InvoiceTemplate MoR Support', () => {
     describe('when isMoR is false (default)', () => {
-      it('should display organization name as seller', async () => {
-        const updatedCustomer = await adminTransaction(
-          async ({ transaction }) => {
-            return await updateCustomer(
-              {
-                id: customer.id,
-                billingAddress: {
-                  address: {
-                    line1: '123 Main St',
-                    city: 'San Francisco',
-                    state: 'CA',
-                    postal_code: '94105',
-                    country: 'US',
-                  },
-                },
-              },
-              transaction
-            )
-          }
-        )
+      it('should display organization name as seller', () => {
+        const updatedCustomer = createMockCustomer({
+          id: customer.id,
+          organizationId: organization.id,
+          billingAddress: {
+            name: 'Test Customer',
+            address: {
+              line1: '123 Main St',
+              city: 'San Francisco',
+              state: 'CA',
+              postal_code: '94105',
+              country: 'US',
+            },
+          },
+        })
 
         const { getByTestId } = render(
           <InvoiceTemplate
@@ -675,26 +741,21 @@ describe('Invoice Components', () => {
     })
 
     describe('when isMoR is true', () => {
-      it('should display Flowglad LLC as seller with merchant info and customer billing', async () => {
-        const updatedCustomer = await adminTransaction(
-          async ({ transaction }) => {
-            return await updateCustomer(
-              {
-                id: customer.id,
-                billingAddress: {
-                  address: {
-                    line1: '123 Main St',
-                    city: 'San Francisco',
-                    state: 'CA',
-                    postal_code: '94105',
-                    country: 'US',
-                  },
-                },
-              },
-              transaction
-            )
-          }
-        )
+      it('should display Flowglad LLC as seller with merchant info and customer billing', () => {
+        const updatedCustomer = createMockCustomer({
+          id: customer.id,
+          organizationId: organization.id,
+          billingAddress: {
+            name: 'Test Customer',
+            address: {
+              line1: '123 Main St',
+              city: 'San Francisco',
+              state: 'CA',
+              postal_code: '94105',
+              country: 'US',
+            },
+          },
+        })
 
         const { getByTestId } = render(
           <InvoiceTemplate
