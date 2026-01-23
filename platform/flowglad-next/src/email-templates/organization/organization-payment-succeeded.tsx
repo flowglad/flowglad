@@ -43,7 +43,7 @@ export const OrganizationPaymentNotificationEmail = ({
     )
   return (
     <EmailLayout
-      previewText={`Congratulations, ${organizationName}!`}
+      previewText={`Payment Received - ${humanReadableAmount} from ${customerName}`}
       variant="organization"
     >
       <TestModeBanner livemode={livemode} />
@@ -54,7 +54,7 @@ export const OrganizationPaymentNotificationEmail = ({
         alt="Flowglad Logo"
         style={{ marginBottom: '32px' }}
       />
-      <Header title="Congratulations!" variant="organization" />
+      <Header title="Payment Received" variant="organization" />
       <Paragraph variant="organization">
         You just received a payment of {humanReadableAmount} from{' '}
         {customerName}!

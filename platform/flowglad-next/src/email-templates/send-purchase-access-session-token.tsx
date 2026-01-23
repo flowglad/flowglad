@@ -36,7 +36,7 @@ export const SendPurchaseAccessSessionTokenEmail = ({
           height={48}
           alt="Flowglad"
         />
-        <Heading style={heading}>🪄 Your Order Link</Heading>
+        <Heading style={heading}>Access your Order</Heading>
         <Section style={body}>
           <Text style={paragraph}>
             <Link style={link} href={magicLink}>

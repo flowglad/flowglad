@@ -139,7 +139,7 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
 }: OrganizationSubscriptionCanceledNotificationEmailProps) => {
   return (
     <EmailLayout
-      previewText={`Subscription Cancelled: ${customerName} canceled ${subscriptionName}`}
+      previewText={`A Subscription was Canceled: ${customerName} canceled ${subscriptionName}`}
       variant="organization"
     >
       <TestModeBanner livemode={livemode} />
@@ -151,7 +151,7 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
         style={{ marginBottom: '32px' }}
       />
       <Header
-        title="Subscription Cancellation Alert"
+        title="A Subscription was Canceled"
         variant="organization"
         style={{ fontWeight: 'normal' }}
       />

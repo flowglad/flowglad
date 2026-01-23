@@ -31,7 +31,7 @@ export const OrganizationOnboardingCompletedNotificationEmail = ({
         style={{ marginBottom: '32px' }}
       />
       <Header
-        title={`Congratulations! ${organizationName} is fully onboarded`}
+        title={`${organizationName} has Completed Onboarding`}
         variant="organization"
       />
       <Paragraph variant="organization">
