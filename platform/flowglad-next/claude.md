@@ -140,6 +140,116 @@ beforeEach(() => {
 // No afterEach cleanup needed!
 ```
 
+### Parallel-Safe Test Patterns
+
+Tests run in parallel by default. Follow these patterns to ensure tests don't interfere with each other:
+
+#### 1. Mock Module Registration Order
+
+Mock module registration order is critical in bun:test. All `mock.module()` calls are centralized in `bun.mocks.ts` and must be imported **before** any other imports that might load the mocked modules:
+
+```typescript
+// bun.setup.ts (correct order)
+import './bun.mocks'  // MUST be first - registers mock.module() calls
+import { afterAll, afterEach, beforeAll } from 'bun:test'
+// ... other imports
+```
+
+The setup files (`bun.unit.setup.ts`, `bun.dbtest.setup.ts`, `bun.setup.ts`) already handle this correctly.
+
+#### 2. Spy Restoration with trackSpy
+
+**Never use global `mock.restore()`** when using `spyOn()` alongside `mock.module()`. The global restore can undo module-level mocks, breaking subsequent tests. Instead, use `trackSpy()`:
+
+```typescript
+import { trackSpy } from '@/test/isolation'
+import { spyOn } from 'bun:test'
+
+beforeEach(() => {
+  // Spies registered with trackSpy are auto-restored in afterEach
+  trackSpy(spyOn(someModule, 'someFunction').mockResolvedValue(mockValue))
+  trackSpy(spyOn(otherModule, 'otherFunction').mockReturnValue(otherValue))
+})
+// No manual cleanup needed - setup files handle restoration
+```
+
+#### 3. Environment Variable Isolation
+
+Tests that modify `process.env` are automatically isolated. The setup files snapshot `process.env` before each test and restore it afterward:
+
+- **Automatic**: Just modify `process.env` in your test - it's restored automatically
+- **Manual** (if needed): Use helpers from `@/test/helpers/testIsolation`:
+
+```typescript
+import { preserveEnv, createScopedEnv } from '@/test/helpers/testIsolation'
+
+// Option 1: Preserve specific keys
+const restore = preserveEnv(['API_KEY', 'DEBUG'])
+process.env.API_KEY = 'test-key'
+// ... test ...
+restore()
+
+// Option 2: Scoped environment
+const env = createScopedEnv()
+env.set('FEATURE_FLAG', 'enabled')
+// ... test ...
+env.restore()
+```
+
+#### 4. MSW Strict Mode
+
+In `*.unit.test.ts` and `*.dbtest.ts` files, MSW runs in **strict mode**: any unhandled HTTP request will **fail the test**. This ensures:
+
+- Tests don't accidentally make real network requests
+- All external dependencies are explicitly mocked
+- Tests are deterministic and fast
+
+If a test legitimately needs real API calls, use `*.integration.test.ts` instead.
+
+#### 5. Database Savepoint Isolation (dbtest only)
+
+For `*.dbtest.ts` files, each test runs inside a database savepoint that automatically rolls back:
+
+```typescript
+// In *.dbtest.ts files:
+// - A persistent outer transaction wraps all tests
+// - Each test creates a savepoint before running
+// - The savepoint rolls back after each test
+// - No manual cleanup or data deletion needed
+
+it('creates a customer', async () => {
+  // This insert is automatically rolled back after the test
+  await insertCustomer({ name: 'Test', email: 'test@example.com' }, transaction)
+  // ... assertions ...
+})
+```
+
+This provides true isolation without the overhead of recreating the database for each test.
+
+#### 6. Global Mock State
+
+Global mocks (e.g., `globalThis.__mockedAuthSession`) are automatically reset after each test. The setup files call `resetAllGlobalMocks()` which:
+
+- Clears (not deletes) mocks registered by `mock.module()` in `bun.mocks.ts`
+- Deletes any `__mock*` globals added by individual tests
+
+For custom global state, use `createTestContext()`:
+
+```typescript
+import { createTestContext } from '@/test/helpers/testIsolation'
+
+const ctx = createTestContext()
+
+beforeEach(() => {
+  ctx.setAuth({ id: 'user_123', email: 'test@example.com' })
+  ctx.onCleanup(() => { /* custom cleanup */ })
+})
+
+afterEach(() => {
+  ctx.cleanup()  // Restores env, auth, and runs custom cleanups
+})
+```
+
 ### Test Environments
 The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
 
