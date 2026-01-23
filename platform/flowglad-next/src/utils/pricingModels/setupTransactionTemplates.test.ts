@@ -89,18 +89,18 @@ describe('Template Integration Tests', () => {
             {
               input: UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE.input,
               organizationId: organization.id,
-              livemode: true,
+              livemode: false,
             },
             ctx
           )
         ).unwrap()
       )
 
-      expect(result.pricingModel.livemode).toBe(true)
-      expect(result.products.every((p) => p.livemode === true)).toBe(
+      expect(result.pricingModel.livemode).toBe(false)
+      expect(result.products.every((p) => p.livemode === false)).toBe(
         true
       )
-      expect(result.prices.every((pr) => pr.livemode === true)).toBe(
+      expect(result.prices.every((pr) => pr.livemode === false)).toBe(
         true
       )
     })
