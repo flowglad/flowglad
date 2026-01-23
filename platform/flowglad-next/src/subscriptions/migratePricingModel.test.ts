@@ -67,7 +67,12 @@ import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { CacheDependency } from '@/utils/cache'
 
 describe('Pricing Model Migration Test Suite', async () => {
-  const { organization, price: orgDefaultPrice } = await setupOrg()
+  const {
+    organization,
+    price: orgDefaultPrice,
+    pricingModel: orgLivePricingModel,
+    product: orgDefaultProduct,
+  } = await setupOrg()
   let customer: Customer.Record
   let pricingModel1: PricingModel.Record
   let pricingModel2: PricingModel.Record
@@ -129,6 +134,7 @@ describe('Pricing Model Migration Test Suite', async () => {
     customer = await setupCustomer({
       organizationId: organization.id,
       pricingModelId: pricingModel1.id,
+      livemode: false, // Must match pricing model livemode
     })
   })
 
@@ -525,6 +531,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         customerId: customer.id,
         priceId: price1.id,
         status: SubscriptionStatus.Active,
+        livemode: false, // Must match test data livemode
       })
 
       // Setup: Add a paid subscription on pricing model 1
@@ -551,6 +558,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         customerId: customer.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
+        livemode: false, // Must match test data livemode
       })
 
       // Execute migration (automatically updates customer's pricingModelId)
@@ -583,7 +591,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             transaction,
             { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false } // Must match test data livemode
       )
 
       // Verify the new pricing model is returned
@@ -685,7 +694,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             transaction,
             { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false } // Must match test data livemode
       )
 
       // Verify the pricing model is pricingModel2
@@ -815,7 +825,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             transaction,
             { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false } // Must match test data livemode
       )
 
       // Verify the pricing model is pricingModel2
@@ -893,6 +904,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         customerId: customer.id,
         priceId: price1.id,
         status: SubscriptionStatus.Active,
+        livemode: false, // Must match test data livemode
       })
 
       const oldSubscriptionItem = await setupSubscriptionItem({
@@ -942,7 +954,8 @@ describe('Pricing Model Migration Test Suite', async () => {
             transaction,
             { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false } // Must match test data livemode
       )
 
       // Verify currentSubscriptions has only the new subscription
@@ -1466,58 +1479,14 @@ describe('Pricing Model Migration Test Suite', async () => {
     })
 
     it('should throw BAD_REQUEST when customer livemode does not match pricing model livemode', async () => {
-      // Setup: Ensure customer has livemode=false
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            livemode: false,
-          },
-          transaction
-        )
-      })
-
-      // Setup: Create a live pricing model with a default product
-      const livePricingModel = await setupPricingModel({
-        organizationId: organization.id,
-        name: 'Live Pricing Model',
-      })
-
-      // Update pricing model to livemode=true
-      await adminTransaction(async ({ transaction }) => {
-        await transaction
-          .update(pricingModels)
-          .set({ livemode: true })
-          .where(eq(pricingModels.id, livePricingModel.id))
-      })
-
-      // Create a default product with default price for the live pricing model
-      const liveProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: livePricingModel.id,
-        name: 'Live Product',
-        default: true,
-      })
-
-      await setupPrice({
-        name: 'Live Free Plan',
-        livemode: true,
-        productId: liveProduct.id,
-        type: PriceType.Subscription,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        unitPrice: 0,
-        isDefault: true,
-      })
-
-      // customer.livemode is false, livePricingModel.livemode is true
+      // customer.livemode is false, orgLivePricingModel.livemode is true
       await expect(
         adminTransaction(async ({ transaction }) => {
           return await migrateCustomerPricingModelProcedureTransaction(
             {
               input: {
                 externalId: customer.externalId,
-                newPricingModelId: livePricingModel.id,
+                newPricingModelId: orgLivePricingModel.id,
               },
               ctx: {
                 apiKey: undefined,
@@ -1587,6 +1556,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const otherCustomer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel1.id,
+        livemode: false, // Must match pricing model livemode
       })
 
       const otherSubscription = await setupSubscription({
@@ -1697,6 +1667,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const otherCustomer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel1.id,
+        livemode: false, // Must match pricing model livemode
       })
 
       await setupSubscription({
