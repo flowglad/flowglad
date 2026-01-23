@@ -1,4 +1,11 @@
-import { describe, expect, it } from 'bun:test'
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  describe,
+  expect,
+  it,
+} from 'bun:test'
 import { HttpResponse, http } from 'msw'
 import { server } from '@/../mocks/server'
 import { dummyOrganization } from '@/stubs/organizationStubs'
@@ -8,6 +15,7 @@ import {
   findOrCreateSvixApplication,
   getSvixApplicationId,
   getSvixSigningSecret,
+  sendSvixEvent,
   updateSvixEndpoint,
 } from './svix'
 
@@ -198,12 +206,23 @@ describe('checkSvixApplicationExists', () => {
 })
 
 describe('findOrCreateSvixApplication with pricingModelId', () => {
-  // Note: MSW server lifecycle is managed globally in bun.setup.ts
   const organization = {
     ...dummyOrganization,
     id: 'org_findorcreate_test',
     securitySalt: 'test-salt-findorcreate',
   }
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' })
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
+  })
+
+  afterAll(() => {
+    server.close()
+  })
 
   it('creates PM-scoped app when pricingModelId is provided', async () => {
     const pricingModelId = 'pm_test_findorcreate'
@@ -295,12 +314,23 @@ describe('findOrCreateSvixApplication with pricingModelId', () => {
 })
 
 describe('createSvixEndpoint with PM-scoped app', () => {
-  // Note: MSW server lifecycle is managed globally in bun.setup.ts
   const organization = {
     ...dummyOrganization,
     id: 'org_endpoint_test',
     securitySalt: 'test-salt-endpoint',
   }
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' })
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
+  })
+
+  afterAll(() => {
+    server.close()
+  })
 
   it('creates endpoint in PM-scoped Svix app when webhook has pricingModelId', async () => {
     const pricingModelId = 'pm_endpoint_test'
@@ -397,12 +427,23 @@ describe('createSvixEndpoint with PM-scoped app', () => {
 })
 
 describe('getSvixSigningSecret with PM-scoped app', () => {
-  // Note: MSW server lifecycle is managed globally in bun.setup.ts
   const organization = {
     ...dummyOrganization,
     id: 'org_secret_test',
     securitySalt: 'test-salt-secret',
   }
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' })
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
+  })
+
+  afterAll(() => {
+    server.close()
+  })
 
   it('gets signing secret from PM-scoped Svix app when webhook has pricingModelId', async () => {
     const pricingModelId = 'pm_secret_test'
@@ -449,12 +490,23 @@ describe('getSvixSigningSecret with PM-scoped app', () => {
 })
 
 describe('updateSvixEndpoint with PM-scoped app', () => {
-  // Note: MSW server lifecycle is managed globally in bun.setup.ts
   const organization = {
     ...dummyOrganization,
     id: 'org_update_test',
     securitySalt: 'test-salt-update',
   }
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' })
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
+  })
+
+  afterAll(() => {
+    server.close()
+  })
 
   it('updates endpoint in PM-scoped Svix app when webhook has pricingModelId', async () => {
     const pricingModelId = 'pm_update_test'
@@ -502,5 +554,243 @@ describe('updateSvixEndpoint with PM-scoped app', () => {
     expect(findOrCreateAppRequestedId).toStartWith(
       expectedAppIdPrefix
     )
+  })
+})
+
+describe('sendSvixEvent legacy-first routing', () => {
+  const organization = {
+    ...dummyOrganization,
+    id: 'org_send_event_test',
+    securitySalt: 'test-salt-send-event',
+  }
+
+  const createTestEvent = (
+    overrides: { pricingModelId?: string; livemode?: boolean } = {}
+  ) => ({
+    id: 'event_test_123',
+    type: 'customer.created',
+    payload: {
+      id: 'cust_123',
+      object: 'customer',
+    },
+    hash: 'hash_unique_123',
+    livemode: overrides.livemode ?? true,
+    organizationId: organization.id,
+    occurredAt: new Date(),
+    submittedAt: new Date(),
+    processedAt: null,
+    metadata: {},
+    objectEntity: null,
+    objectId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    pricingModelId: overrides.pricingModelId,
+  })
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' })
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
+  })
+
+  afterAll(() => {
+    server.close()
+  })
+
+  it('sends to legacy app when it exists, even when event has pricingModelId', async () => {
+    const pricingModelId = 'pm_legacy_test'
+    const event = createTestEvent({ pricingModelId })
+
+    // Track which app received the message
+    let messageCreatedInAppId: string | undefined
+    const legacyAppIdPrefix = `app_${organization.id}_live_`
+
+    server.use(
+      // Legacy app exists
+      http.get(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/?$/,
+        ({ params }) => {
+          const appId = params[1] as string
+          // Return 200 for legacy app, 404 for PM-scoped app
+          if (appId.startsWith(legacyAppIdPrefix)) {
+            return HttpResponse.json({
+              id: appId,
+              name: 'Legacy App',
+              uid: appId,
+              createdAt: new Date().toISOString(),
+            })
+          }
+          return HttpResponse.json(
+            { code: 'not_found', detail: 'Application not found' },
+            { status: 404 }
+          )
+        }
+      ),
+      // Track message creation
+      http.post(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/msg\/?$/,
+        ({ params }) => {
+          messageCreatedInAppId = params[1] as string
+          return HttpResponse.json({
+            id: 'msg_created',
+            eventType: event.type,
+            payload: event.payload,
+          })
+        }
+      )
+    )
+
+    await sendSvixEvent({
+      event: event as unknown as Parameters<
+        typeof sendSvixEvent
+      >[0]['event'],
+      organization,
+    })
+
+    // Verify message was sent to legacy app (not PM-scoped)
+    expect(messageCreatedInAppId).toStartWith(legacyAppIdPrefix)
+    expect(messageCreatedInAppId).not.toContain(pricingModelId)
+  })
+
+  it('sends to PM-scoped app when legacy app does not exist but PM app does', async () => {
+    const pricingModelId = 'pm_fallback_test'
+    const event = createTestEvent({ pricingModelId })
+
+    // Track which app received the message
+    let messageCreatedInAppId: string | undefined
+    const pmAppIdPrefix = `app_${organization.id}_${pricingModelId}_live_`
+
+    server.use(
+      // Legacy app does NOT exist, PM app exists
+      http.get(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/?$/,
+        ({ params }) => {
+          const appId = params[1] as string
+          // Return 404 for legacy app, 200 for PM-scoped app
+          if (appId.startsWith(pmAppIdPrefix)) {
+            return HttpResponse.json({
+              id: appId,
+              name: 'PM App',
+              uid: appId,
+              createdAt: new Date().toISOString(),
+            })
+          }
+          // Legacy app not found
+          return HttpResponse.json(
+            { code: 'not_found', detail: 'Application not found' },
+            { status: 404 }
+          )
+        }
+      ),
+      // Track message creation
+      http.post(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/msg\/?$/,
+        ({ params }) => {
+          messageCreatedInAppId = params[1] as string
+          return HttpResponse.json({
+            id: 'msg_created',
+            eventType: event.type,
+            payload: event.payload,
+          })
+        }
+      )
+    )
+
+    await sendSvixEvent({
+      event: event as unknown as Parameters<
+        typeof sendSvixEvent
+      >[0]['event'],
+      organization,
+    })
+
+    // Verify message was sent to PM-scoped app
+    expect(messageCreatedInAppId).toStartWith(pmAppIdPrefix)
+    expect(messageCreatedInAppId).toContain(pricingModelId)
+  })
+
+  it('silently no-ops when neither legacy nor PM-scoped app exists and event has pricingModelId', async () => {
+    const pricingModelId = 'pm_noop_test'
+    const event = createTestEvent({ pricingModelId })
+
+    // Track if any message was created
+    let messageCreated = false
+
+    server.use(
+      // Neither app exists
+      http.get(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/?$/,
+        () => {
+          return HttpResponse.json(
+            { code: 'not_found', detail: 'Application not found' },
+            { status: 404 }
+          )
+        }
+      ),
+      // Track if message creation is attempted
+      http.post(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/msg\/?$/,
+        () => {
+          messageCreated = true
+          return HttpResponse.json({
+            id: 'msg_should_not_be_created',
+          })
+        }
+      )
+    )
+
+    // Should not throw an error
+    await sendSvixEvent({
+      event: event as unknown as Parameters<
+        typeof sendSvixEvent
+      >[0]['event'],
+      organization,
+    })
+
+    // Verify no message was created
+    expect(messageCreated).toBe(false)
+  })
+
+  it('silently no-ops when legacy app does not exist and event has no pricingModelId', async () => {
+    // Event without pricingModelId (legacy event)
+    const event = createTestEvent({ pricingModelId: undefined })
+
+    // Track if any message was created
+    let messageCreated = false
+
+    server.use(
+      // Legacy app does not exist
+      http.get(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/?$/,
+        () => {
+          return HttpResponse.json(
+            { code: 'not_found', detail: 'Application not found' },
+            { status: 404 }
+          )
+        }
+      ),
+      // Track if message creation is attempted
+      http.post(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/msg\/?$/,
+        () => {
+          messageCreated = true
+          return HttpResponse.json({
+            id: 'msg_should_not_be_created',
+          })
+        }
+      )
+    )
+
+    // Should not throw an error
+    await sendSvixEvent({
+      event: event as unknown as Parameters<
+        typeof sendSvixEvent
+      >[0]['event'],
+      organization,
+    })
+
+    // Verify no message was created (no PM app to check since no pricingModelId)
+    expect(messageCreated).toBe(false)
   })
 })
