@@ -19,13 +19,16 @@ import CreatePriceModal from '@/components/forms/CreatePriceModal'
 import DeleteProductModal from '@/components/forms/DeleteProductModal'
 import EditProductModal from '@/components/forms/EditProductModal'
 import PricingCellView from '@/components/PricingCellView'
-import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
@@ -188,7 +191,9 @@ export const columns: ColumnDef<ProductRow>[] = [
     header: 'Status',
     cell: ({ row }) => (
       <div className="min-w-0">
-        <StatusBadge active={row.getValue('status')} />
+        <ActiveStatusTag
+          status={booleanToActiveStatus(row.getValue('status'))}
+        />
       </div>
     ),
     size: 110,

@@ -7,6 +7,7 @@ import {
   webhooksTableRowDataSchema,
 } from '@/db/schema/webhooks'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import {
   insertWebhook,
   selectWebhookAndOrganizationByWebhookId,
@@ -53,11 +54,21 @@ export const createWebhook = protectedProcedure
         if (!organization) {
           throw new Error('Organization not found')
         }
+        const defaultPricingModel = await selectDefaultPricingModel(
+          { organizationId: organization.id, livemode },
+          transaction
+        )
+        if (!defaultPricingModel) {
+          throw new Error(
+            'No default pricing model found for organization'
+          )
+        }
         const webhook = await insertWebhook(
           {
             ...input.webhook,
             organizationId: organization.id,
             livemode,
+            pricingModelId: defaultPricingModel.id,
           },
           transaction
         )

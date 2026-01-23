@@ -221,15 +221,11 @@ export const runSendCustomerSubscriptionUpgradedNotification =
         organizationLogoUrl: organization.logoURL || undefined,
         organizationId: organization.id,
         customerExternalId: customer.externalId,
-        previousPlanName:
-          previousSubscription.name ||
-          previousPrice.name ||
-          'Free Plan',
+        previousPlanName: previousSubscription.name || 'Free Plan',
         previousPlanPrice: previousPrice.unitPrice,
         previousPlanCurrency: previousPrice.currency,
         previousPlanInterval: previousPrice.intervalUnit || undefined,
-        newPlanName:
-          newSubscription.name || newPrice.name || 'Subscription',
+        newPlanName: newSubscription.name || 'Subscription',
         price: newPrice.unitPrice,
         currency: newPrice.currency,
         interval: newPrice.intervalUnit || undefined,

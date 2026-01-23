@@ -3,7 +3,11 @@ import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
+import { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { NotFoundError } from '@/db/tableUtils'
 import { CustomerSubscriptionCancellationScheduledEmail } from '@/email-templates/customer-subscription-cancellation-scheduled'
@@ -44,6 +48,7 @@ export const runSendCustomerSubscriptionCancellationScheduledNotification =
         subscription: Subscription.Record
         organization: Organization.Record
         customer: Customer.Record
+        product: Product.Record | null
       },
       NotFoundError | ValidationError
     >
@@ -68,10 +73,20 @@ export const runSendCustomerSubscriptionCancellationScheduledNotification =
             transaction
           )
 
+        // Fetch the product associated with the subscription for user-friendly naming
+        const price = subscription.priceId
+          ? await selectPriceById(subscription.priceId, transaction)
+          : null
+        const product =
+          price && Price.hasProductId(price)
+            ? await selectProductById(price.productId, transaction)
+            : null
+
         return {
           subscription,
           organization,
           customer,
+          product,
         }
       })
       dataResult = Result.ok(data)
@@ -96,7 +111,8 @@ export const runSendCustomerSubscriptionCancellationScheduledNotification =
     if (Result.isError(dataResult)) {
       return dataResult
     }
-    const { subscription, organization, customer } = dataResult.value
+    const { subscription, organization, customer, product } =
+      dataResult.value
 
     // Validate customer email - return ValidationError per PR spec
     if (!customer.email || customer.email.trim() === '') {
@@ -118,7 +134,8 @@ export const runSendCustomerSubscriptionCancellationScheduledNotification =
     const cancellationDate = new Date(scheduledCancellationDate)
 
     // Use safe fallback for subscription name
-    const subscriptionName = subscription.name || 'your subscription'
+    const subscriptionName =
+      subscription.name || product?.name || 'your subscription'
 
     await safeSend({
       from: getFromAddress({

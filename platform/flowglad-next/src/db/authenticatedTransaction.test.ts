@@ -23,6 +23,7 @@ import type { ApiKey } from './schema/apiKeys'
 import type { Event } from './schema/events'
 import type { Membership } from './schema/memberships'
 import type { Organization } from './schema/organizations'
+import type { PricingModel } from './schema/pricingModels'
 import type { User } from './schema/users'
 import { users } from './schema/users'
 import {
@@ -295,11 +296,13 @@ describe('comprehensiveAuthenticatedTransaction', () => {
   let testOrg2: Organization.Record
   let userA: User.Record
   let apiKeyA: ApiKey.Record
+  let pricingModel1: PricingModel.Record
 
   beforeEach(async () => {
     // Setup test organizations and users
     const org1Setup = await setupOrg()
     testOrg1 = org1Setup.organization
+    pricingModel1 = org1Setup.pricingModel
 
     const org2Setup = await setupOrg()
     testOrg2 = org2Setup.organization
@@ -376,6 +379,7 @@ describe('comprehensiveAuthenticatedTransaction', () => {
         occurredAt: Date.now(),
         submittedAt: Date.now(),
         processedAt: null,
+        pricingModelId: pricingModel1.id,
       }
 
       const result = await comprehensiveAuthenticatedTransaction(

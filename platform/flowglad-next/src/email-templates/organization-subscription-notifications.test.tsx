@@ -205,7 +205,7 @@ describe('OrganizationSubscriptionCanceledNotificationEmail', () => {
     )
 
     expect(
-      getByText('Subscription Cancellation Alert')
+      getByText('A Subscription was Canceled')
     ).toBeInTheDocument()
   })
 
