@@ -1082,9 +1082,15 @@ export const dangerouslyInsertPrice = async (
  * Inserts a new price, archiving any existing prices for the same product.
  * Usage meters can have multiple active prices, so those are not archived here.
  * When editing a usage price creates a new one, the caller archives the old price.
+ *
+ * For product prices: always sets isDefault=true (archives existing prices first).
+ * For usage prices: respects the isDefault value from input, and if true,
+ * sets other prices for the same meter to non-default.
  */
 export const safelyInsertPrice = async (
-  price: Omit<Price.Insert, 'isDefault' | 'active'>,
+  price: Omit<Price.Insert, 'isDefault' | 'active'> & {
+    isDefault?: boolean
+  },
   ctx: TransactionEffectsContext
 ) => {
   if (price.productId) {
@@ -1093,11 +1099,28 @@ export const safelyInsertPrice = async (
       ctx.transaction
     )
   }
+
+  // Determine isDefault value:
+  // - Product prices: always default (other prices are archived above)
+  // - Usage prices: use the provided value, defaulting to false if not specified
+  const isDefault =
+    price.type === PriceType.Usage ? (price.isDefault ?? false) : true
+
+  // For usage prices being set as default, reset other prices for the same meter
+  if (
+    price.type === PriceType.Usage &&
+    isDefault &&
+    price.usageMeterId
+  ) {
+    await setPricesForUsageMeterToNonDefault(
+      price.usageMeterId,
+      ctx.transaction
+    )
+  }
+
   const priceInsert: Price.Insert = pricesInsertSchema.parse({
     ...price,
-    // Usage prices don't use isDefault (set to false to avoid unique constraint issues)
-    // Product prices always become the default when created via safelyInsertPrice
-    isDefault: price.type !== PriceType.Usage,
+    isDefault,
     active: true,
   })
   return dangerouslyInsertPrice(priceInsert, ctx)
