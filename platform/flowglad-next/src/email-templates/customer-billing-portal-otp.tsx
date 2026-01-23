@@ -1,5 +1,6 @@
 import { Img, Section } from '@react-email/components'
 import * as React from 'react'
+import { emailBaseUrl } from '@/utils/core'
 import TestModeBanner from './components/TestBanner'
 import { EmailLayout, Header, Paragraph } from './components/themed'
 
@@ -27,7 +28,7 @@ export const CustomerBillingPortalOTPEmail = ({
     >
       <TestModeBanner livemode={livemode} />
       <Img
-        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
+        src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
         width="540"
         height="199"
         alt="Flowglad Logo"

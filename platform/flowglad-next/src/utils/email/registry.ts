@@ -200,7 +200,7 @@ export interface CustomerTrialExpiredNoPaymentProps {
   organizationLogoUrl?: string
   organizationId: string
   customerId: string
-  planName: string
+  productName: string
   livemode: boolean
 }
 

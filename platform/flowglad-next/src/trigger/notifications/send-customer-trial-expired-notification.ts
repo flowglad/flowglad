@@ -3,9 +3,11 @@ import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
-import type { Price } from '@/db/schema/prices'
+import { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { NotFoundError } from '@/db/tableUtils'
 import { CustomerTrialExpiredNoPaymentEmail } from '@/email-templates/customer-trial-expired-no-payment'
@@ -38,6 +40,7 @@ export const runSendCustomerTrialExpiredNotification =
         customer: Customer.Record
         subscription: Subscription.Record
         price: Price.Record | null
+        product: Product.Record | null
       },
       NotFoundError | ValidationError
     >
@@ -67,11 +70,18 @@ export const runSendCustomerTrialExpiredNotification =
           ? await selectPriceById(subscription.priceId, transaction)
           : null
 
+        // Fetch the product associated with the price for user-friendly naming
+        const product =
+          price && Price.hasProductId(price)
+            ? await selectProductById(price.productId, transaction)
+            : null
+
         return {
           organization,
           customer,
           subscription,
           price,
+          product,
         }
       })
       dataResult = Result.ok(data)
@@ -96,7 +106,7 @@ export const runSendCustomerTrialExpiredNotification =
     if (Result.isError(dataResult)) {
       return dataResult
     }
-    const { organization, customer, subscription, price } =
+    const { organization, customer, subscription, price, product } =
       dataResult.value
 
     // Validate customer email - return ValidationError per PR spec
@@ -133,8 +143,11 @@ export const runSendCustomerTrialExpiredNotification =
         organizationLogoUrl: organization.logoURL || undefined,
         organizationId: organization.id,
         customerId: customer.id,
-        planName:
-          subscription.name || price?.name || 'your subscription',
+        productName:
+          subscription.name ||
+          product?.name ||
+          price?.name ||
+          'your subscription',
         livemode: subscription.livemode,
       }),
     })

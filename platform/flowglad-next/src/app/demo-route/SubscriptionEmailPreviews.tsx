@@ -516,7 +516,7 @@ export const TrialExpiredNoPaymentPreview = ({
         customerName={commonCustomerProps.customerName}
         {...commonOrganizationProps}
         customerId={commonCustomerProps.customerId}
-        planName="Pro Plan"
+        productName="Pro Plan"
         livemode={livemode}
       />
     </EmailPreviewWrapper>

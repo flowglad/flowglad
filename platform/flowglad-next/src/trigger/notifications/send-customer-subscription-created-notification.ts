@@ -4,8 +4,10 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
-import type { Price } from '@/db/schema/prices'
+import { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
+import { selectProductById } from '@/db/tableMethods/productMethods'
 import { NotFoundError } from '@/db/tableUtils'
 import {
   CustomerSubscriptionCreatedEmail,
@@ -46,12 +48,13 @@ export const runSendCustomerSubscriptionCreatedNotification =
         subscription: Subscription.Record
         price: Price.Record | null
         paymentMethod: PaymentMethod.Record | null
+        product: Product.Record | null
       },
       NotFoundError | ValidationError
     >
     try {
       const data = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
+        const context = await buildNotificationContext(
           {
             organizationId: params.organizationId,
             customerId: params.customerId,
@@ -60,6 +63,20 @@ export const runSendCustomerSubscriptionCreatedNotification =
           },
           transaction
         )
+
+        // Fetch the product associated with the price for user-friendly naming
+        const product =
+          context.price && Price.hasProductId(context.price)
+            ? await selectProductById(
+                context.price.productId,
+                transaction
+              )
+            : null
+
+        return {
+          ...context,
+          product,
+        }
       })
       dataResult = Result.ok(data)
     } catch (error) {
@@ -89,6 +106,7 @@ export const runSendCustomerSubscriptionCreatedNotification =
       subscription,
       price,
       paymentMethod,
+      product,
     } = dataResult.value
 
     if (!price) {
@@ -191,7 +209,11 @@ export const runSendCustomerSubscriptionCreatedNotification =
         organizationLogoUrl: organization.logoURL || undefined,
         organizationId: organization.id,
         customerExternalId: customer.externalId,
-        planName: subscription.name || price.name || 'Subscription',
+        planName:
+          subscription.name ||
+          product?.name ||
+          price.name ||
+          'Subscription',
         price: price.unitPrice,
         currency: price.currency,
         interval: price.intervalUnit || undefined,

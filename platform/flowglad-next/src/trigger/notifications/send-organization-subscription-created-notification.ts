@@ -4,8 +4,12 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { Membership } from '@/db/schema/memberships'
 import type { Organization } from '@/db/schema/organizations'
+import { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { User } from '@/db/schema/users'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
 import { NotFoundError } from '@/db/tableUtils'
 import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
 import { ValidationError } from '@/errors'
@@ -44,12 +48,13 @@ export const runSendOrganizationSubscriptionCreatedNotification =
           user: User.Record
           membership: Membership.Record
         }>
+        product: Product.Record | null
       },
       NotFoundError | ValidationError
     >
     try {
       const data = await adminTransaction(async ({ transaction }) => {
-        return buildNotificationContext(
+        const context = await buildNotificationContext(
           {
             organizationId: subscription.organizationId,
             customerId: subscription.customerId,
@@ -57,6 +62,20 @@ export const runSendOrganizationSubscriptionCreatedNotification =
           },
           transaction
         )
+
+        // Fetch the product associated with the subscription for user-friendly naming
+        const price = subscription.priceId
+          ? await selectPriceById(subscription.priceId, transaction)
+          : null
+        const product =
+          price && Price.hasProductId(price)
+            ? await selectProductById(price.productId, transaction)
+            : null
+
+        return {
+          ...context,
+          product,
+        }
       })
       dataResult = Result.ok(data)
     } catch (error) {
@@ -80,7 +99,7 @@ export const runSendOrganizationSubscriptionCreatedNotification =
     if (Result.isError(dataResult)) {
       return dataResult
     }
-    const { organization, customer, usersAndMemberships } =
+    const { organization, customer, usersAndMemberships, product } =
       dataResult.value
 
     const eligibleRecipients = filterEligibleRecipients(
@@ -107,12 +126,15 @@ export const runSendOrganizationSubscriptionCreatedNotification =
       })
     }
 
+    const subscriptionName =
+      subscription.name || product?.name || 'a plan'
+
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
-        `New Subscription: ${customer.name} subscribed to ${subscription.name ?? 'a plan'}`,
+        `New Subscription: ${customer.name} subscribed to ${subscriptionName}`,
         subscription.livemode
       ),
       /**
@@ -120,7 +142,7 @@ export const runSendOrganizationSubscriptionCreatedNotification =
        */
       react: await OrganizationSubscriptionCreatedNotificationEmail({
         organizationName: organization.name,
-        subscriptionName: subscription.name ?? 'Unnamed subscription',
+        subscriptionName,
         customerId: customer.id,
         customerName: customer.name,
         customerEmail: customer.email,

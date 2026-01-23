@@ -121,13 +121,7 @@ export const OrganizationSubscriptionAdjustedEmail = ({
         variant="organization"
         style={{ fontWeight: 'normal' }}
       />
-      <Paragraph
-        variant="organization"
-        style={{
-          color: '#797063',
-          margin: 0,
-        }}
-      >
+      <Paragraph variant="organization" style={{ margin: 0 }}>
         {`${customerName} has updated their subscription.`}
       </Paragraph>
       <DetailSection>
@@ -202,7 +196,6 @@ export const OrganizationSubscriptionAdjustedEmail = ({
       <Paragraph
         variant="organization"
         style={{
-          color: '#797063',
           lineHeight: '20px',
           marginTop: '24px',
         }}

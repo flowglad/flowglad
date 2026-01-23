@@ -74,13 +74,7 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
         variant="organization"
         style={{ fontWeight: 'normal' }}
       />
-      <Paragraph
-        variant="organization"
-        style={{
-          color: '#797063',
-          margin: 0,
-        }}
-      >
+      <Paragraph variant="organization" style={{ margin: 0 }}>
         A new customer has subscribed to your {subscriptionName} plan.
       </Paragraph>
       <DetailSection>
@@ -113,7 +107,6 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
       <Paragraph
         variant="organization"
         style={{
-          color: '#797063',
           lineHeight: '20px',
           marginTop: '24px',
         }}
@@ -155,13 +148,7 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
         variant="organization"
         style={{ fontWeight: 'normal' }}
       />
-      <Paragraph
-        variant="organization"
-        style={{
-          color: '#797063',
-          margin: 0,
-        }}
-      >
+      <Paragraph variant="organization" style={{ margin: 0 }}>
         A customer has canceled their subscription to your{' '}
         {subscriptionName} plan.
       </Paragraph>
@@ -197,7 +184,6 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
       <Paragraph
         variant="organization"
         style={{
-          color: '#797063',
           lineHeight: '20px',
           marginTop: '24px',
         }}
@@ -240,13 +226,7 @@ export const OrganizationSubscriptionCancellationScheduledNotificationEmail =
           variant="organization"
           style={{ fontWeight: 'normal' }}
         />
-        <Paragraph
-          variant="organization"
-          style={{
-            color: '#797063',
-            margin: 0,
-          }}
-        >
+        <Paragraph variant="organization" style={{ margin: 0 }}>
           A customer has scheduled a cancellation for their
           subscription to your {subscriptionName} plan.
         </Paragraph>
@@ -298,7 +278,6 @@ export const OrganizationSubscriptionCancellationScheduledNotificationEmail =
         <Paragraph
           variant="organization"
           style={{
-            color: '#797063',
             lineHeight: '20px',
             marginTop: '24px',
           }}
