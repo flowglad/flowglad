@@ -4,15 +4,19 @@
  * Thin wrapper around pgcp that provides convenient --staging/--prod flags,
  * optional migration running, and automatic dev server startup.
  *
+ * Also supports restoring from a backup file with --file.
+ *
  * Usage:
  *   bun run dev:dbCopy:staging              # Copy staging, start dev
  *   bun run dev:dbCopy:staging:schema       # Copy staging schema only
  *   bun run dev:dbCopy:prod                 # Copy prod, start dev
  *   bun run dev:dbCopy:staging:migrate      # Copy staging + migrations
+ *   bun run dev:dbCopy:file <path>          # Restore from backup file
  *
  * Flags:
  *   --staging         Copy from STAGING_DATABASE_URL
  *   --prod            Copy from PROD_DATABASE_URL
+ *   --file <path>     Restore from a pg_dumpall backup file
  *   --port <number>   Local Supabase port (default: 54322)
  *   --schema-only     Skip data, only copy schema (faster)
  *   --run-migrations  Run pending migrations after copy
@@ -81,7 +85,9 @@ function logDim(message: string): void {
 // ============================================================================
 
 interface CloneOptions {
-  source: 'staging' | 'prod'
+  mode: 'remote' | 'file'
+  source: 'staging' | 'prod' | null
+  filePath: string | null
   port: number
   schemaOnly: boolean
   runMigrations: boolean
@@ -111,18 +117,54 @@ function parseArgs(): CloneOptions {
     port = parsed
   }
 
+  // Parse --file flag
+  let filePath: string | null = null
+  const fileIndex = args.indexOf('--file')
+  if (fileIndex !== -1) {
+    const fileValue = args[fileIndex + 1]
+    if (!fileValue || fileValue.startsWith('-')) {
+      logError('--file requires a path argument')
+      process.exit(1)
+    }
+    filePath = fileValue
+  }
+
+  // Validate options
+  const hasRemote = hasStaging || hasProd
+  const hasFile = filePath !== null
+
+  if (hasRemote && hasFile) {
+    logError('Cannot specify both --file and --staging/--prod')
+    process.exit(1)
+  }
+
   if (hasStaging && hasProd) {
     logError('Cannot specify both --staging and --prod')
     process.exit(1)
   }
 
-  if (!hasStaging && !hasProd) {
-    logError('Must specify either --staging or --prod')
+  if (!hasRemote && !hasFile) {
+    logError('Must specify --staging, --prod, or --file <path>')
     process.exit(1)
   }
 
+  if (hasFile) {
+    return {
+      mode: 'file',
+      source: null,
+      filePath,
+      port,
+      schemaOnly: false, // Not applicable for file restore
+      runMigrations,
+      inspect: false, // Not applicable for file restore
+      noDev,
+    }
+  }
+
   return {
+    mode: 'remote',
     source: hasStaging ? 'staging' : 'prod',
+    filePath: null,
     port,
     schemaOnly,
     runMigrations,
@@ -211,20 +253,25 @@ async function main(): Promise<void> {
   // Build pgcp arguments
   const pgcpArgs: string[] = []
 
-  // Add flags
-  if (options.schemaOnly) {
-    pgcpArgs.push('--schema-only')
-  }
-  if (options.inspect) {
-    pgcpArgs.push('--keep-dumps')
-  }
+  if (options.mode === 'file') {
+    // File restore mode - pass --file to pgcp
+    pgcpArgs.push('--file', options.filePath!)
+  } else {
+    // Remote copy mode
+    if (options.schemaOnly) {
+      pgcpArgs.push('--schema-only')
+    }
+    if (options.inspect) {
+      pgcpArgs.push('--keep-dumps')
+    }
 
-  // Add source and port (positional args for pgcp)
-  const sourceEnvVar =
-    options.source === 'staging'
-      ? 'STAGING_DATABASE_URL'
-      : 'PROD_DATABASE_URL'
-  pgcpArgs.push(`env:${sourceEnvVar}`)
+    // Add source env var
+    const sourceEnvVar =
+      options.source === 'staging'
+        ? 'STAGING_DATABASE_URL'
+        : 'PROD_DATABASE_URL'
+    pgcpArgs.push(`env:${sourceEnvVar}`)
+  }
 
   // Add port if non-default
   if (options.port !== DEFAULT_DB_PORT) {

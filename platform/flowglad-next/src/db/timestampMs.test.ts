@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { and, eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import {
   setupOrg,
@@ -105,33 +105,31 @@ describe('timestampWithTimezoneColumn with null values', () => {
     })
 
     // Query the record back
-    const queriedRecords = await adminTransaction(
-      async ({ transaction }) => {
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(eq(productFeatures.id, insertedFeature.id))
-      }
-    )
+    const queriedRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(eq(productFeatures.id, insertedFeature.id))
+    })
 
     expect(queriedRecords).toHaveLength(1)
     const queriedRecord = queriedRecords[0]
     expect(queriedRecord.expiredAt).toBeNull()
 
     // Apply createDateNotPassedFilter and verify record is included
-    const filteredRecords = await adminTransaction(
-      async ({ transaction }) => {
-        const filter = createDateNotPassedFilter(
-          productFeatures.expiredAt
+    const filteredRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const filter = createDateNotPassedFilter(
+        productFeatures.expiredAt
+      )
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(
+          and(eq(productFeatures.id, insertedFeature.id), filter)
         )
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(
-            and(eq(productFeatures.id, insertedFeature.id), filter)
-          )
-      }
-    )
+    })
 
     expect(filteredRecords).toHaveLength(1)
     expect(filteredRecords[0].id).toBe(insertedFeature.id)
@@ -147,33 +145,31 @@ describe('timestampWithTimezoneColumn with null values', () => {
     })
 
     // Query the record back
-    const queriedRecords = await adminTransaction(
-      async ({ transaction }) => {
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(eq(productFeatures.id, insertedFeature.id))
-      }
-    )
+    const queriedRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(eq(productFeatures.id, insertedFeature.id))
+    })
 
     expect(queriedRecords).toHaveLength(1)
     const queriedRecord = queriedRecords[0]
     expect(queriedRecord.expiredAt).toBeNull()
 
     // Apply createDateNotPassedFilter and verify record is included
-    const filteredRecords = await adminTransaction(
-      async ({ transaction }) => {
-        const filter = createDateNotPassedFilter(
-          productFeatures.expiredAt
+    const filteredRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const filter = createDateNotPassedFilter(
+        productFeatures.expiredAt
+      )
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(
+          and(eq(productFeatures.id, insertedFeature.id), filter)
         )
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(
-            and(eq(productFeatures.id, insertedFeature.id), filter)
-          )
-      }
-    )
+    })
 
     expect(filteredRecords).toHaveLength(1)
     expect(filteredRecords[0].id).toBe(insertedFeature.id)
@@ -224,17 +220,16 @@ describe('timestampWithTimezoneColumn with null values', () => {
     // - null expiredAt record IS included
     // - past expiredAt record is NOT included
     // - future expiredAt record IS included
-    const filteredRecords = await adminTransaction(
-      async ({ transaction }) => {
-        const filter = createDateNotPassedFilter(
-          productFeatures.expiredAt
-        )
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(filter)
-      }
-    )
+    const filteredRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const filter = createDateNotPassedFilter(
+        productFeatures.expiredAt
+      )
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(filter)
+    })
 
     const filteredIds = filteredRecords.map((r) => r.id)
 
@@ -258,98 +253,95 @@ describe('timestampWithTimezoneColumn with null values', () => {
     })
 
     // Verify initial null state
-    const initialRecords = await adminTransaction(
-      async ({ transaction }) => {
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(eq(productFeatures.id, insertedFeature.id))
-      }
-    )
+    const initialRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(eq(productFeatures.id, insertedFeature.id))
+    })
 
     expect(initialRecords).toHaveLength(1)
     expect(initialRecords[0].expiredAt).toBeNull()
 
     // Update to a past date value
     const pastDate = new Date('2020-01-01T00:00:00.000Z').getTime()
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await updateProductFeature(
         {
           id: insertedFeature.id,
           expiredAt: pastDate,
         },
-        transaction
+        ctx
       )
     })
 
     // Verify it was updated to the past date
-    const updatedRecords = await adminTransaction(
-      async ({ transaction }) => {
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(eq(productFeatures.id, insertedFeature.id))
-      }
-    )
+    const updatedRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(eq(productFeatures.id, insertedFeature.id))
+    })
 
     expect(updatedRecords).toHaveLength(1)
     expect(updatedRecords[0].expiredAt).toBe(pastDate)
 
     // Verify it would be filtered out (expired)
-    const filteredOutRecords = await adminTransaction(
-      async ({ transaction }) => {
-        const filter = createDateNotPassedFilter(
-          productFeatures.expiredAt
+    const filteredOutRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const filter = createDateNotPassedFilter(
+        productFeatures.expiredAt
+      )
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(
+          and(eq(productFeatures.id, insertedFeature.id), filter)
         )
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(
-            and(eq(productFeatures.id, insertedFeature.id), filter)
-          )
-      }
-    )
+    })
 
     expect(filteredOutRecords).toHaveLength(0)
 
     // Update back to null using the helper function
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await updateProductFeature(
         {
           id: insertedFeature.id,
           expiredAt: null,
         },
-        transaction
+        ctx
       )
     })
 
     // Verify it's back to null
-    const nullAgainRecords = await adminTransaction(
-      async ({ transaction }) => {
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(eq(productFeatures.id, insertedFeature.id))
-      }
-    )
+    const nullAgainRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(eq(productFeatures.id, insertedFeature.id))
+    })
 
     expect(nullAgainRecords).toHaveLength(1)
     expect(nullAgainRecords[0].expiredAt).toBeNull()
 
     // Verify it passes the filter again (not expired)
-    const filteredInRecords = await adminTransaction(
-      async ({ transaction }) => {
-        const filter = createDateNotPassedFilter(
-          productFeatures.expiredAt
+    const filteredInRecords = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const filter = createDateNotPassedFilter(
+        productFeatures.expiredAt
+      )
+      return await transaction
+        .select()
+        .from(productFeatures)
+        .where(
+          and(eq(productFeatures.id, insertedFeature.id), filter)
         )
-        return await transaction
-          .select()
-          .from(productFeatures)
-          .where(
-            and(eq(productFeatures.id, insertedFeature.id), filter)
-          )
-      }
-    )
+    })
 
     expect(filteredInRecords).toHaveLength(1)
     expect(filteredInRecords[0].id).toBe(insertedFeature.id)

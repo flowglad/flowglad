@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import Stripe from 'stripe'
 import type { Payment } from '@/db/schema/payments'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -7,7 +8,9 @@ import {
   selectPaymentById,
   selectPayments,
 } from '@/db/tableMethods/paymentMethods'
+import { NotFoundError as TableUtilsNotFoundError } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError, ValidationError } from '@/errors'
 import { PaymentStatus, StripeConnectContractType } from '@/types'
 import { logger } from '@/utils/logger'
 import {
@@ -27,33 +30,55 @@ import {
 export const refundPaymentTransaction = async (
   { id, partialAmount }: { id: string; partialAmount: number | null },
   transaction: DbTransaction
-): Promise<Payment.Record> => {
+): Promise<
+  Result<Payment.Record, NotFoundError | ValidationError>
+> => {
   // =========================================================================
   // STEP 1: Validate the payment can be refunded
   // =========================================================================
-  const payment = await selectPaymentById(id, transaction)
-
-  if (!payment) {
-    throw new Error('Payment not found')
+  let payment: Payment.Record
+  try {
+    payment = await selectPaymentById(id, transaction)
+  } catch (error) {
+    if (error instanceof TableUtilsNotFoundError) {
+      return Result.err(new NotFoundError('Payment', id))
+    }
+    throw error
   }
 
   // Additional refunds are only supported until the payment is fully refunded.
   if (payment.status === PaymentStatus.Refunded) {
-    throw new Error('Payment has already been refunded')
+    return Result.err(
+      new ValidationError(
+        'status',
+        'Payment has already been refunded'
+      )
+    )
   }
 
   if (payment.status === PaymentStatus.Processing) {
-    throw new Error(
-      'Cannot refund a payment that is still processing'
+    return Result.err(
+      new ValidationError(
+        'status',
+        'Cannot refund a payment that is still processing'
+      )
     )
   }
   if (partialAmount !== null) {
     if (partialAmount <= 0) {
-      throw new Error('Partial amount must be greater than 0')
+      return Result.err(
+        new ValidationError(
+          'partialAmount',
+          'Partial amount must be greater than 0'
+        )
+      )
     }
     if (partialAmount > payment.amount) {
-      throw new Error(
-        'Partial amount cannot be greater than the payment amount'
+      return Result.err(
+        new ValidationError(
+          'partialAmount',
+          'Partial amount cannot be greater than the payment amount'
+        )
       )
     }
   }
@@ -96,17 +121,18 @@ export const refundPaymentTransaction = async (
       payment.stripePaymentIntentId
     )
     if (!paymentIntent.latest_charge) {
-      throw new Error(
-        `Payment ${payment.id} has no associated Stripe charge`
-      )
+      return Result.err(new NotFoundError('StripeCharge', payment.id))
     }
 
     const charge = await getStripeCharge(
       stripeIdFromObjectOrId(paymentIntent.latest_charge!)
     )
     if (!charge.refunded) {
-      throw new Error(
-        `Payment ${payment.id} has a charge ${charge.id} that has not been refunded`
+      return Result.err(
+        new ValidationError(
+          'charge',
+          `Payment ${payment.id} has a charge ${charge.id} that has not been refunded`
+        )
       )
     }
     const refunds = await listRefundsForCharge(
@@ -114,9 +140,7 @@ export const refundPaymentTransaction = async (
       payment.livemode
     )
     if (refunds.data.length === 0) {
-      throw new Error(
-        `Payment ${payment.id} has a charge ${charge.id} marked refunded, but no refunds were returned by Stripe`
-      )
+      return Result.err(new NotFoundError('StripeRefund', charge.id))
     }
 
     // Use the most recent refund timestamp
@@ -183,7 +207,7 @@ export const refundPaymentTransaction = async (
   // =========================================================================
   // STEP 4: Update payment record in database
   // =========================================================================
-  const updatedPayment = await safelyUpdatePaymentForRefund(
+  return safelyUpdatePaymentForRefund(
     {
       id: payment.id,
       status:
@@ -198,8 +222,6 @@ export const refundPaymentTransaction = async (
     },
     transaction
   )
-
-  return updatedPayment
 }
 
 /**

@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupInvoice,
@@ -36,7 +36,10 @@ import {
 } from '@/db/tableMethods/pricingModelMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
-import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
+import {
+  withAdminCacheContext,
+  withDiscardingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
@@ -57,6 +60,7 @@ import {
   updatePurchaseStatusToReflectLatestPayment,
 } from './bookkeeping'
 
+// This test uses setupOrg() which creates livemode entities, so we keep livemode=true
 const livemode = true
 describe('createCustomerBookkeeping', () => {
   let organization: Organization.Record
@@ -188,6 +192,7 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Custom Pricing Model',
         isDefault: false,
+        livemode: false, // Use testmode to avoid livemode uniqueness constraint
       })
 
       // Create a default product for the custom pricing model
@@ -197,6 +202,7 @@ describe('createCustomerBookkeeping', () => {
         pricingModelId: customPricingModel.id,
         default: true,
         active: true,
+        livemode: false,
       })
 
       // Create a default price for the custom product
@@ -284,6 +290,7 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Empty Pricing Model',
         isDefault: false,
+        livemode: false,
       })
 
       // Create a non-default product (so there's no default product)
@@ -293,6 +300,7 @@ describe('createCustomerBookkeeping', () => {
         pricingModelId: emptyPricingModel.id,
         default: false, // Not default
         active: true,
+        livemode: false,
       })
 
       // Capture emitted events
@@ -379,6 +387,7 @@ describe('createCustomerBookkeeping', () => {
         organizationId: organization.id,
         name: 'Pricing Model No Default Price',
         isDefault: false,
+        livemode: false,
       })
 
       // Create a default product
@@ -388,6 +397,7 @@ describe('createCustomerBookkeeping', () => {
         pricingModelId: pricingModelNoDefaultPrice.id,
         default: true,
         active: true,
+        livemode: false,
       })
 
       // Create a non-default price
@@ -722,6 +732,10 @@ describe('createCustomerBookkeeping', () => {
   })
 
   describe('subscription behavior based on pricing model price type', () => {
+    // Use testmode for these tests to avoid livemode uniqueness constraint
+    // (setupOrg creates one livemode PM which we leave untouched)
+    const testLivemode = false
+
     it('should create a non-renewing subscription when default pricing model has SinglePayment price', async () => {
       // Create a pricing model with SinglePayment default price
       const singlePaymentPricingModel = await adminTransaction(
@@ -734,10 +748,10 @@ describe('createCustomerBookkeeping', () => {
               },
               // No defaultPlanIntervalUnit - creates SinglePayment price
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
             })
           )
           return output
@@ -771,7 +785,7 @@ describe('createCustomerBookkeeping', () => {
             withAdminCacheContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -815,10 +829,10 @@ describe('createCustomerBookkeeping', () => {
               },
               defaultPlanIntervalUnit: IntervalUnit.Month, // Creates Subscription price
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
             })
           )
           return output
@@ -852,7 +866,7 @@ describe('createCustomerBookkeeping', () => {
             withAdminCacheContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -885,10 +899,10 @@ describe('createCustomerBookkeeping', () => {
       )
       expect(billingPeriods).toHaveLength(1)
       expect(billingPeriods[0].startDate).toEqual(
-        subscription.currentBillingPeriodStart
+        subscription.currentBillingPeriodStart!
       )
       expect(billingPeriods[0].endDate).toEqual(
-        subscription.currentBillingPeriodEnd
+        subscription.currentBillingPeriodEnd!
       )
     })
 
@@ -904,10 +918,10 @@ describe('createCustomerBookkeeping', () => {
               },
               // No interval - SinglePayment
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
             })
           )
           return output
@@ -924,10 +938,10 @@ describe('createCustomerBookkeeping', () => {
               },
               defaultPlanIntervalUnit: IntervalUnit.Year, // Subscription with Year
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: organization.id,
-              livemode,
+              livemode: testLivemode,
             })
           )
           return output
@@ -959,7 +973,7 @@ describe('createCustomerBookkeeping', () => {
               withAdminCacheContext({
                 transaction,
                 organizationId: organization.id,
-                livemode,
+                livemode: testLivemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
@@ -1000,7 +1014,7 @@ describe('createCustomerBookkeeping', () => {
               withAdminCacheContext({
                 transaction,
                 organizationId: organization.id,
-                livemode,
+                livemode: testLivemode,
                 invalidateCache,
                 emitEvent,
                 enqueueLedgerCommand,
@@ -1052,7 +1066,7 @@ describe('createCustomerBookkeeping', () => {
 
 describe('createPricingModelBookkeeping', () => {
   let organizationId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     // Set up a basic organization
@@ -1071,7 +1085,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1133,7 +1147,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false, // Can't create another default, setupOrg already created one
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1163,7 +1177,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1208,7 +1222,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1259,6 +1273,17 @@ describe('createPricingModelBookkeeping', () => {
     })
 
     it('should not affect default pricing models across livemode boundaries', async () => {
+      // Get the existing live mode default (from setupOrg)
+      const liveModeDefaultPricingModel = await adminTransaction(
+        async ({ transaction }) => {
+          const defaultPM = await selectDefaultPricingModel(
+            { organizationId, livemode: true },
+            transaction
+          )
+          return defaultPM
+        }
+      )
+
       // First, create a test mode (livemode: false) default pricing model
       const testModeDefaultPricingModel = await adminTransaction(
         async ({ transaction }) => {
@@ -1269,24 +1294,13 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode: false,
             })
           )
           return output.unwrap().pricingModel
-        }
-      )
-
-      // Get the existing live mode default (from setupOrg)
-      const liveModeDefaultPricingModel = await adminTransaction(
-        async ({ transaction }) => {
-          const defaultPM = await selectDefaultPricingModel(
-            { organizationId, livemode: true },
-            transaction
-          )
-          return defaultPM
         }
       )
 
@@ -1299,45 +1313,33 @@ describe('createPricingModelBookkeeping', () => {
       expect(liveModeDefaultPricingModel?.isDefault).toBe(true)
       expect(liveModeDefaultPricingModel?.livemode).toBe(true)
 
-      // Create a new live mode default pricing model
-      const newLiveModeDefault = await adminTransaction(
+      // Create a new test mode default pricing model - this should change the testmode default
+      // but NOT affect the livemode default
+      const newTestModeDefault = await adminTransaction(
         async ({ transaction }) => {
           const output = await createPricingModelBookkeeping(
             {
               pricingModel: {
-                name: 'New Live Mode Default Pricing Model',
+                name: 'New Test Mode Default Pricing Model',
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
-              livemode: true,
+              livemode: false,
             })
           )
           return output.unwrap().pricingModel
         }
       )
 
-      // Verify the new live mode pricing model is default
-      expect(newLiveModeDefault.isDefault).toBe(true)
-      expect(newLiveModeDefault.livemode).toBe(true)
+      // Verify the new test mode pricing model is default
+      expect(newTestModeDefault.isDefault).toBe(true)
+      expect(newTestModeDefault.livemode).toBe(false)
 
-      // Check that the test mode default is still the default for test mode
-      const refreshedTestModeDefault = await adminTransaction(
-        async ({ transaction }) => {
-          const pm = await selectPricingModelById(
-            testModeDefaultPricingModel.id,
-            transaction
-          )
-          return pm
-        }
-      )
-      expect(refreshedTestModeDefault.isDefault).toBe(true)
-      expect(refreshedTestModeDefault.livemode).toBe(false)
-
-      // Check that the old live mode default is no longer default
-      const refreshedOldLiveModeDefault = await adminTransaction(
+      // Check that the livemode default is STILL the default (unaffected by testmode changes)
+      const refreshedLiveModeDefault = await adminTransaction(
         async ({ transaction }) => {
           const pm = await selectPricingModelById(
             liveModeDefaultPricingModel!.id,
@@ -1346,8 +1348,21 @@ describe('createPricingModelBookkeeping', () => {
           return pm
         }
       )
-      expect(refreshedOldLiveModeDefault.isDefault).toBe(false)
-      expect(refreshedOldLiveModeDefault.livemode).toBe(true)
+      expect(refreshedLiveModeDefault.isDefault).toBe(true)
+      expect(refreshedLiveModeDefault.livemode).toBe(true)
+
+      // Check that the old test mode default is no longer default
+      const refreshedOldTestModeDefault = await adminTransaction(
+        async ({ transaction }) => {
+          const pm = await selectPricingModelById(
+            testModeDefaultPricingModel.id,
+            transaction
+          )
+          return pm
+        }
+      )
+      expect(refreshedOldTestModeDefault.isDefault).toBe(false)
+      expect(refreshedOldTestModeDefault.livemode).toBe(false)
 
       // Verify we still have exactly one default per livemode
       const allPricingModels = await adminTransaction(
@@ -1368,9 +1383,9 @@ describe('createPricingModelBookkeeping', () => {
       )
 
       expect(liveDefaults).toHaveLength(1)
-      expect(liveDefaults[0].id).toBe(newLiveModeDefault.id)
+      expect(liveDefaults[0].id).toBe(liveModeDefaultPricingModel!.id)
       expect(testDefaults).toHaveLength(1)
-      expect(testDefaults[0].id).toBe(testModeDefaultPricingModel.id)
+      expect(testDefaults[0].id).toBe(newTestModeDefault.id)
     })
   })
 
@@ -1410,7 +1425,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: eurOrganization.id,
               livemode,
@@ -1464,7 +1479,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: gbpOrganization.id,
               livemode,
@@ -1495,7 +1510,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1535,7 +1550,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: false,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId,
               livemode,
@@ -1605,7 +1620,7 @@ describe('createPricingModelBookkeeping', () => {
                 isDefault: true,
               },
             },
-            withAdminCacheContext({
+            withDiscardingEffectsContext({
               transaction,
               organizationId: testOrganization.id,
               livemode: testLivemode,
@@ -1637,7 +1652,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Month,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1675,7 +1690,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Year,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1709,7 +1724,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Week,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1741,7 +1756,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: IntervalUnit.Day,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1782,7 +1797,11 @@ describe('createPricingModelBookkeeping', () => {
                   },
                   defaultPlanIntervalUnit: intervalUnit,
                 },
-                { transaction, organizationId, livemode }
+                withDiscardingEffectsContext({
+                  transaction,
+                  organizationId,
+                  livemode,
+                })
               )
               return output
             }
@@ -1815,7 +1834,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 // No defaultPlanIntervalUnit provided
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -1854,7 +1873,7 @@ describe('createPricingModelBookkeeping', () => {
                 },
                 defaultPlanIntervalUnit: intervalUnit,
               },
-              withAdminCacheContext({
+              withDiscardingEffectsContext({
                 transaction,
                 organizationId,
                 livemode,
@@ -2179,16 +2198,16 @@ describe('createFreePlanPriceInsert', () => {
         defaultCurrency
       )
 
-      // Check that all required fields are present
-      expect(result.productId).toMatchObject({})
-      expect(result.unitPrice).toMatchObject({})
-      expect(result.isDefault).toMatchObject({})
-      expect(result.type).toMatchObject({})
-      expect(result.currency).toMatchObject({})
-      expect(result.livemode).toMatchObject({})
-      expect(result.active).toMatchObject({})
-      expect(result.name).toMatchObject({})
-      expect(result.slug).toMatchObject({})
+      // Check that all required fields have expected values
+      expect(result.productId).toBe(defaultProduct.id)
+      expect(result.unitPrice).toBe(0)
+      expect(result.isDefault).toBe(true)
+      expect(result.type).toBe(PriceType.SinglePayment)
+      expect(result.currency).toBe(defaultCurrency)
+      expect(result.livemode).toBe(defaultProduct.livemode)
+      expect(result.active).toBe(true)
+      expect(result.name).toBe('Free Plan')
+      expect(result.slug).toBe('free')
     })
 
     it('should return a valid Price.Insert object for subscription', () => {
@@ -2198,18 +2217,18 @@ describe('createFreePlanPriceInsert', () => {
         IntervalUnit.Month
       )
 
-      // Check that all required fields are present
-      expect(result.productId).toMatchObject({})
-      expect(result.unitPrice).toMatchObject({})
-      expect(result.isDefault).toMatchObject({})
-      expect(result.type).toMatchObject({})
-      expect(result.currency).toMatchObject({})
-      expect(result.livemode).toMatchObject({})
-      expect(result.active).toMatchObject({})
-      expect(result.name).toMatchObject({})
-      expect(result.slug).toMatchObject({})
-      expect(result.intervalUnit).toMatchObject({})
-      expect(result.intervalCount).toMatchObject({})
+      // Check that all required fields have expected values
+      expect(result.productId).toBe(defaultProduct.id)
+      expect(result.unitPrice).toBe(0)
+      expect(result.isDefault).toBe(true)
+      expect(result.type).toBe(PriceType.Subscription)
+      expect(result.currency).toBe(defaultCurrency)
+      expect(result.livemode).toBe(defaultProduct.livemode)
+      expect(result.active).toBe(true)
+      expect(result.name).toBe('Free Plan')
+      expect(result.slug).toBe('free')
+      expect(result.intervalUnit).toBe(IntervalUnit.Month)
+      expect(result.intervalCount).toBe(1)
     })
   })
 })

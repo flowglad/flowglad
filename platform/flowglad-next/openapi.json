@@ -19279,14 +19279,7 @@
             "type": "string"
           },
           "priceId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string"
           },
           "properties": {
             "description": "Properties for the usage event. Only required when using the \"count_distinct_properties\" aggregation type.",

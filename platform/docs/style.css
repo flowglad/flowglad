@@ -584,19 +584,6 @@ html.dark .card svg[class*="bg-primary"][style*="background-color"] {
   background-color: var(--text-primary) !important;
 }
 
-/* Next.js icon - light/dark mode support */
-img[src="/images/nextjs.svg"],
-img[src*="nextjs.svg"] {
-  filter: brightness(0);
-}
-
-.dark img[src="/images/nextjs.svg"],
-.dark img[src*="nextjs.svg"],
-html.dark img[src="/images/nextjs.svg"],
-html.dark img[src*="nextjs.svg"] {
-  filter: brightness(0) invert(1);
-}
-
 /* ========================================
    5. CODE BLOCK COLORS
    ======================================== */

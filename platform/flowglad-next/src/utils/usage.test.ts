@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupOrg,
   setupPrice,
@@ -59,7 +59,6 @@ describe('createUsageMeterTransaction', () => {
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -115,7 +114,6 @@ describe('createUsageMeterTransaction', () => {
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -166,7 +164,6 @@ describe('createUsageMeterTransaction', () => {
                 {
                   transaction,
                   cacheRecomputationContext,
-                  userId,
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
@@ -236,7 +233,6 @@ describe('createUsageMeterTransaction', () => {
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -309,7 +305,6 @@ describe('createUsageMeterTransaction', () => {
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -378,7 +373,6 @@ describe('createUsageMeterTransaction', () => {
                 {
                   transaction,
                   cacheRecomputationContext,
-                  userId,
                   livemode: false,
                   organizationId: organization.id,
                   invalidateCache,
@@ -436,7 +430,6 @@ describe('createUsageMeterTransaction', () => {
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -483,7 +476,6 @@ describe('createUsageMeterTransaction', () => {
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -528,7 +520,6 @@ describe('createUsageMeterTransaction', () => {
             {
               transaction,
               cacheRecomputationContext,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -573,7 +564,6 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -617,7 +607,6 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -648,7 +637,6 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -684,7 +672,6 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,
@@ -717,7 +704,6 @@ describe('createUsageMeterTransaction', () => {
             },
             {
               transaction,
-              userId,
               livemode: false,
               organizationId: organization.id,
               invalidateCache,

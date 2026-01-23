@@ -14,16 +14,14 @@ const tableStyle: React.CSSProperties = {
 }
 
 const labelCellStyle: React.CSSProperties = {
-  textAlign: 'right',
-  paddingRight: '16px',
+  textAlign: 'left',
   paddingTop: '6px',
   paddingBottom: '6px',
   verticalAlign: 'top',
-  width: '40%',
 }
 
 const valueCellStyle: React.CSSProperties = {
-  textAlign: 'left',
+  textAlign: 'right',
   paddingTop: '6px',
   paddingBottom: '6px',
   verticalAlign: 'top',
@@ -55,7 +53,7 @@ export interface DetailRowData {
 }
 
 /**
- * Apple-style two-column detail row with right-aligned labels
+ * Two-column detail row with left-aligned labels and right-aligned values
  */
 export const DetailRow = ({
   label,

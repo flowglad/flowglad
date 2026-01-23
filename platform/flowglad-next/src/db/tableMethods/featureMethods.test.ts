@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -78,7 +78,8 @@ describe('insertFeature uniqueness constraints', () => {
   })
 
   it('should not allow two features with the same slug, organizationId, and pricingModelId', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await insertFeature(
         createToggleFeatureInsert(
           organization1.id,
@@ -86,12 +87,13 @@ describe('insertFeature uniqueness constraints', () => {
           'unique-slug',
           'Test Feature 1'
         ),
-        transaction
+        ctx
       )
     })
 
     await expect(
-      adminTransaction(async ({ transaction }) => {
+      adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await insertFeature(
           createToggleFeatureInsert(
             organization1.id,
@@ -99,7 +101,7 @@ describe('insertFeature uniqueness constraints', () => {
             'unique-slug',
             'Test Feature 2'
           ),
-          transaction
+          ctx
         )
       })
     ).rejects.toThrow()
@@ -111,7 +113,8 @@ describe('insertFeature uniqueness constraints', () => {
       name: 'Second PricingModel for Org 1',
     })
 
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await insertFeature(
         createToggleFeatureInsert(
           organization1.id,
@@ -119,7 +122,7 @@ describe('insertFeature uniqueness constraints', () => {
           'same-slug',
           'Test Feature 1'
         ),
-        transaction
+        ctx
       )
       await insertFeature(
         createToggleFeatureInsert(
@@ -128,26 +131,26 @@ describe('insertFeature uniqueness constraints', () => {
           'same-slug',
           'Test Feature 2'
         ),
-        transaction
+        ctx
       )
     })
 
-    const features = await adminTransaction(
-      async ({ transaction }) => {
-        return selectFeatures(
-          {
-            organizationId: organization1.id,
-            slug: 'same-slug',
-          },
-          transaction
-        )
-      }
-    )
+    const features = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectFeatures(
+        {
+          organizationId: organization1.id,
+          slug: 'same-slug',
+        },
+        transaction
+      )
+    })
     expect(features.length).toBe(2)
   })
 
   it('should allow two features with the same slug but different organizationId', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await insertFeature(
         createToggleFeatureInsert(
           organization1.id,
@@ -155,7 +158,7 @@ describe('insertFeature uniqueness constraints', () => {
           'same-slug',
           'Feature for Org 1'
         ),
-        transaction
+        ctx
       )
       await insertFeature(
         createToggleFeatureInsert(
@@ -164,38 +167,37 @@ describe('insertFeature uniqueness constraints', () => {
           'same-slug',
           'Feature for Org 2'
         ),
-        transaction
+        ctx
       )
     })
 
-    const featuresOrg1 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectFeatures(
-          {
-            organizationId: organization1.id,
-            slug: 'same-slug',
-          },
-          transaction
-        )
-      }
-    )
-    const featuresOrg2 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectFeatures(
-          {
-            organizationId: organization2.id,
-            slug: 'same-slug',
-          },
-          transaction
-        )
-      }
-    )
+    const featuresOrg1 = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectFeatures(
+        {
+          organizationId: organization1.id,
+          slug: 'same-slug',
+        },
+        transaction
+      )
+    })
+    const featuresOrg2 = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectFeatures(
+        {
+          organizationId: organization2.id,
+          slug: 'same-slug',
+        },
+        transaction
+      )
+    })
     expect(featuresOrg1.length).toBe(1)
     expect(featuresOrg2.length).toBe(1)
   })
 
   it('should allow two features with different slugs for the same organization and pricingModel', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await insertFeature(
         createToggleFeatureInsert(
           organization1.id,
@@ -203,7 +205,7 @@ describe('insertFeature uniqueness constraints', () => {
           'slug-1',
           'Test Feature 1'
         ),
-        transaction
+        ctx
       )
       await insertFeature(
         createToggleFeatureInsert(
@@ -212,21 +214,20 @@ describe('insertFeature uniqueness constraints', () => {
           'slug-2',
           'Test Feature 2'
         ),
-        transaction
+        ctx
       )
     })
 
-    const features = await adminTransaction(
-      async ({ transaction }) => {
-        return selectFeatures(
-          {
-            organizationId: organization1.id,
-            pricingModelId: pricingModel1.id,
-          },
-          transaction
-        )
-      }
-    )
+    const features = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectFeatures(
+        {
+          organizationId: organization1.id,
+          pricingModelId: pricingModel1.id,
+        },
+        transaction
+      )
+    })
     expect(features.length).toBe(2)
   })
 })
@@ -398,11 +399,12 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: SubscriptionItemType.Static,
           })
 
-          const createdFeatures =
+          const createdFeatures = (
             await createSubscriptionFeatureItems(
               [newSubscriptionItem],
               transaction
             )
+          ).unwrap()
 
           // Should not create any features because the productFeature is expired
           expect(createdFeatures.length).toBe(0)
@@ -489,11 +491,12 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: SubscriptionItemType.Static,
           })
 
-          const createdFeatures =
+          const createdFeatures = (
             await createSubscriptionFeatureItems(
               [newSubscriptionItem],
               transaction
             )
+          ).unwrap()
 
           // Should create the feature because productFeature is unexpired
           expect(createdFeatures.length).toBeGreaterThan(0)
@@ -517,11 +520,12 @@ describe('updateFeatureTransaction - active state synchronization', () => {
             type: SubscriptionItemType.Static,
           })
 
-          const featuresWhileInactive =
+          const featuresWhileInactive = (
             await createSubscriptionFeatureItems(
               [itemWhileInactive],
               transaction
             )
+          ).unwrap()
 
           // Should not have the feature
           expect(featuresWhileInactive.length).toBe(0)
@@ -601,7 +605,8 @@ describe('selectFeaturesTableRowData search', () => {
       livemode: true,
     })
 
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Search by name (case-insensitive)
       const byName = await selectFeaturesTableRowData({
         input: {
@@ -652,7 +657,8 @@ describe('selectFeaturesTableRowData search', () => {
       livemode: true,
     })
 
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const resultEmpty = await selectFeaturesTableRowData({
         input: {
           pageSize: 10,
@@ -716,13 +722,14 @@ describe('Resource Feature schema and methods', () => {
 
   describe('insertFeature for Resource type', () => {
     it('should insert a resource feature with required fields: type=Resource, resourceId, and positive amount', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const inserted = await insertFeature(
           createResourceFeatureInsert({
             resourceId: resource.id,
             amount: 10,
           }),
-          transaction
+          ctx
         )
 
         expect(inserted.id).toMatch(/^feature_/)
@@ -737,16 +744,13 @@ describe('Resource Feature schema and methods', () => {
     })
 
     it('should select a resource feature by id and return the complete record', async () => {
-      const inserted = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            createResourceFeatureInsert(),
-            transaction
-          )
-        }
-      )
+      const inserted = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return insertFeature(createResourceFeatureInsert(), ctx)
+      })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const selected = await selectFeatureById(
           inserted.id,
           transaction
@@ -870,14 +874,10 @@ describe('Resource Feature schema and methods', () => {
 
   describe('resourceFeatureSelectSchema validation', () => {
     it('should validate a selected resource feature record with type=Resource', async () => {
-      const inserted = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeature(
-            createResourceFeatureInsert(),
-            transaction
-          )
-        }
-      )
+      const inserted = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return insertFeature(createResourceFeatureInsert(), ctx)
+      })
 
       const result = resourceFeatureSelectSchema.safeParse(inserted)
       expect(result.success).toBe(true)

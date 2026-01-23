@@ -35,6 +35,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
@@ -571,7 +572,12 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
   async (
     setupIntent: CoreSripeSetupIntent,
     ctx: TransactionEffectsContext
-  ): Promise<ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult> => {
+  ): Promise<
+    Result<
+      ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult,
+      NotFoundError
+    >
+  > => {
     const { transaction } = ctx
     const initialCheckoutSession =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
@@ -591,8 +597,11 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       transaction
     )
     if (!result) {
-      throw new Error(
-        `processActivateSubscriptionCheckoutSessionSetupIntentSucceeded: Subscription not found for checkout session ${checkoutSession.id}`
+      return Result.err(
+        new NotFoundError(
+          'Subscription',
+          checkoutSession.targetSubscriptionId!
+        )
       )
     }
 
@@ -611,7 +620,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
     // Defense-in-depth: Check if this exact setup intent was already processed
     // (outer idempotency check should catch this, but this provides additional safety)
     if (result.subscription.stripeSetupIntentId === setupIntent.id) {
-      return {
+      return Result.ok({
         type: CheckoutSessionType.ActivateSubscription as const,
         checkoutSession,
         organization: await selectOrganizationById(
@@ -623,7 +632,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
         billingRun: null,
         subscription: result.subscription,
         purchase: null,
-      }
+      })
     }
 
     // Set stripeSetupIntentId BEFORE activateSubscription to prevent race conditions
@@ -637,7 +646,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       transaction
     )
 
-    const { billingRun } = await activateSubscription(
+    const activationResult = await activateSubscription(
       {
         subscription: updatedSubscription,
         subscriptionItems: result.subscriptionItems,
@@ -646,6 +655,10 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       },
       ctx
     )
+    if (activationResult.status === 'error') {
+      throw activationResult.error
+    }
+    const { billingRun } = activationResult.value
 
     // Fetch the subscription again to get the updated status after activation
     const activatedSubscription = await selectSubscriptionById(
@@ -653,7 +666,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       transaction
     )
 
-    return {
+    return Result.ok({
       type: CheckoutSessionType.ActivateSubscription as const,
       checkoutSession,
       organization: await selectOrganizationById(
@@ -677,7 +690,7 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       billingRun,
       subscription: activatedSubscription,
       purchase: null,
-    }
+    })
   }
 
 export const processSetupIntentSucceeded = async (
@@ -821,15 +834,20 @@ export const processSetupIntentSucceeded = async (
     initialCheckoutSession.type ===
     CheckoutSessionType.ActivateSubscription
   ) {
-    const result =
+    const activateResult =
       await processActivateSubscriptionCheckoutSessionSetupIntentSucceeded(
         setupIntent,
         ctx
       )
+    if (Result.isError(activateResult)) {
+      return Result.err(activateResult.error)
+    }
     invalidateCache(
-      CacheDependency.customerSubscriptions(result.customer.id)
+      CacheDependency.customerSubscriptions(
+        activateResult.value.customer.id
+      )
     )
-    return Result.ok(result)
+    return Result.ok(activateResult.value)
   }
 
   const successProcessedResult =

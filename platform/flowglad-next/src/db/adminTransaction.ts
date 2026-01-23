@@ -2,7 +2,6 @@ import { SpanKind } from '@opentelemetry/api'
 import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import type {
-  AdminTransactionParams,
   ComprehensiveAdminTransactionParams,
   TransactionEffectsContext,
 } from '@/db/types'
@@ -29,7 +28,7 @@ interface AdminTransactionOptions {
  * Delegates to comprehensiveAdminTransaction by wrapping the result.
  */
 export async function adminTransaction<T>(
-  fn: (params: AdminTransactionParams) => Promise<T>,
+  fn: (params: ComprehensiveAdminTransactionParams) => Promise<T>,
   options: AdminTransactionOptions = {}
 ): Promise<T> {
   return comprehensiveAdminTransaction(async (params) => {

@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   CurrencyCode,
   FeatureType,
@@ -49,7 +50,9 @@ describe('diffSluggedResources', () => {
     const result = diffSluggedResources(existing, proposed)
 
     // Expectation: 'foo' should be in toRemove
-    expect(result.toRemove).toEqual([{ slug: 'foo', name: 'Foo' }])
+    expect(result.toRemove).toEqual([
+      { slug: 'foo', name: 'Foo' },
+    ] as any)
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toHaveLength(1)
     expect(result.toUpdate[0].existing.slug).toBe('bar')
@@ -67,7 +70,9 @@ describe('diffSluggedResources', () => {
 
     // Expectation: 'bar' should be in toCreate
     expect(result.toRemove).toEqual([])
-    expect(result.toCreate).toEqual([{ slug: 'bar', name: 'Bar' }])
+    expect(result.toCreate).toEqual([
+      { slug: 'bar', name: 'Bar' },
+    ] as any)
     expect(result.toUpdate).toHaveLength(1)
     expect(result.toUpdate[0].existing.slug).toBe('foo')
   })
@@ -86,7 +91,7 @@ describe('diffSluggedResources', () => {
     expect(result.toUpdate[0]).toEqual({
       existing: { slug: 'foo', name: 'Old' },
       proposed: { slug: 'foo', name: 'New' },
-    })
+    } as any)
   })
 
   it('should handle empty existing array', () => {
@@ -98,7 +103,9 @@ describe('diffSluggedResources', () => {
 
     // Expectation: 'foo' should be in toCreate
     expect(result.toRemove).toEqual([])
-    expect(result.toCreate).toEqual([{ slug: 'foo', name: 'Foo' }])
+    expect(result.toCreate).toEqual([
+      { slug: 'foo', name: 'Foo' },
+    ] as any)
     expect(result.toUpdate).toEqual([])
   })
 
@@ -110,7 +117,9 @@ describe('diffSluggedResources', () => {
     const result = diffSluggedResources(existing, proposed)
 
     // Expectation: 'foo' should be in toRemove
-    expect(result.toRemove).toEqual([{ slug: 'foo', name: 'Foo' }])
+    expect(result.toRemove).toEqual([
+      { slug: 'foo', name: 'Foo' },
+    ] as any)
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toEqual([])
   })
@@ -123,8 +132,12 @@ describe('diffSluggedResources', () => {
     const result = diffSluggedResources(existing, proposed)
 
     // Expectation: 'foo' in toRemove, 'bar' in toCreate
-    expect(result.toRemove).toEqual([{ slug: 'foo', name: 'Foo' }])
-    expect(result.toCreate).toEqual([{ slug: 'bar', name: 'Bar' }])
+    expect(result.toRemove).toEqual([
+      { slug: 'foo', name: 'Foo' },
+    ] as any)
+    expect(result.toCreate).toEqual([
+      { slug: 'bar', name: 'Bar' },
+    ] as any)
     expect(result.toUpdate).toEqual([])
   })
 
@@ -928,9 +941,15 @@ describe('validateUsageMeterDiff', () => {
       toUpdate: [],
     }
 
-    expect(() => validateUsageMeterDiff(diff)).toThrow(
-      'Usage meters cannot be removed. Attempted to remove: api-calls'
-    )
+    {
+      const result = validateUsageMeterDiff(diff)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Usage meters cannot be removed. Attempted to remove: api-calls'
+        )
+      }
+    }
   })
 
   it('should throw error when multiple usage meters are removed', () => {
@@ -955,9 +974,15 @@ describe('validateUsageMeterDiff', () => {
       toUpdate: [],
     }
 
-    expect(() => validateUsageMeterDiff(diff)).toThrow(
-      'Usage meters cannot be removed. Attempted to remove: api-calls, storage'
-    )
+    {
+      const result = validateUsageMeterDiff(diff)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Usage meters cannot be removed. Attempted to remove: api-calls, storage'
+        )
+      }
+    }
   })
 
   it('should allow updates to name and aggregationType', () => {
@@ -987,7 +1012,7 @@ describe('validateUsageMeterDiff', () => {
     }
 
     // Should not throw
-    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateUsageMeterDiff(diff))).toBe(true)
   })
 
   it('should pass when nothing is being updated', () => {
@@ -1015,7 +1040,7 @@ describe('validateUsageMeterDiff', () => {
       ],
     }
 
-    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateUsageMeterDiff(diff))).toBe(true)
   })
 
   it('should allow creating new usage meters', () => {
@@ -1033,7 +1058,7 @@ describe('validateUsageMeterDiff', () => {
       toUpdate: [],
     }
 
-    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateUsageMeterDiff(diff))).toBe(true)
   })
 })
 
@@ -1092,7 +1117,8 @@ describe('diffUsageMeterPrices', () => {
 
     const result = diffUsageMeterPrices(
       existingPrices,
-      proposedPrices
+      proposedPrices,
+      'test-meter'
     )
 
     expect(result.toRemove).toHaveLength(1)
@@ -1106,23 +1132,29 @@ describe('diffUsageMeterPrices', () => {
   })
 
   it('returns empty diff arrays when both inputs are undefined', () => {
-    const result = diffUsageMeterPrices(undefined, undefined)
+    const result = diffUsageMeterPrices(
+      undefined,
+      undefined,
+      'test-meter'
+    )
     expect(result.toRemove).toEqual([])
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toEqual([])
   })
 
   it('returns empty diff arrays when both inputs are empty arrays', () => {
-    const result = diffUsageMeterPrices([], [])
+    const result = diffUsageMeterPrices([], [], 'test-meter')
     expect(result.toRemove).toEqual([])
     expect(result.toCreate).toEqual([])
     expect(result.toUpdate).toEqual([])
   })
 
   it('identifies prices to create when existing is undefined', () => {
-    const result = diffUsageMeterPrices(undefined, [
-      createUsagePrice({ slug: 'new-price' }),
-    ])
+    const result = diffUsageMeterPrices(
+      undefined,
+      [createUsagePrice({ slug: 'new-price' })],
+      'test-meter'
+    )
     expect(result.toCreate).toHaveLength(1)
     expect(result.toCreate[0].slug).toBe('new-price')
     expect(result.toRemove).toEqual([])
@@ -1132,7 +1164,8 @@ describe('diffUsageMeterPrices', () => {
   it('identifies prices to remove when proposed is undefined', () => {
     const result = diffUsageMeterPrices(
       [createUsagePrice({ slug: 'old-price' })],
-      undefined
+      undefined,
+      'test-meter'
     )
     expect(result.toRemove).toHaveLength(1)
     expect(result.toRemove[0].slug).toBe('old-price')
@@ -1299,39 +1332,47 @@ describe('validateUsagePriceChange', () => {
   })
 
   it('returns without error when both prices are undefined', () => {
-    expect(() =>
-      validateUsagePriceChange(undefined, undefined, 'meter-slug')
-    ).not.toThrow()
+    expect(
+      Result.isOk(
+        validateUsagePriceChange(undefined, undefined, 'meter-slug')
+      )
+    ).toBe(true)
   })
 
   it('returns without error when creating a new price (existing undefined)', () => {
-    expect(() =>
-      validateUsagePriceChange(
-        undefined,
-        baseUsagePrice,
-        'meter-slug'
+    expect(
+      Result.isOk(
+        validateUsagePriceChange(
+          undefined,
+          baseUsagePrice,
+          'meter-slug'
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
   })
 
   it('returns without error when removing a price (proposed undefined)', () => {
-    expect(() =>
-      validateUsagePriceChange(
-        baseUsagePrice,
-        undefined,
-        'meter-slug'
+    expect(
+      Result.isOk(
+        validateUsagePriceChange(
+          baseUsagePrice,
+          undefined,
+          'meter-slug'
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
   })
 
   it('returns without error when prices are identical', () => {
-    expect(() =>
-      validateUsagePriceChange(
-        baseUsagePrice,
-        baseUsagePrice,
-        'meter-slug'
+    expect(
+      Result.isOk(
+        validateUsagePriceChange(
+          baseUsagePrice,
+          baseUsagePrice,
+          'meter-slug'
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
   })
 
   it('allows mutable field changes (name, active, isDefault) without triggering price replacement validation', () => {
@@ -1341,13 +1382,15 @@ describe('validateUsagePriceChange', () => {
       usageEventsPerUnit: 1,
       name: 'New Price Name',
     })
-    expect(() =>
-      validateUsagePriceChange(
-        baseUsagePrice,
-        priceWithNewName,
-        'meter-slug'
+    expect(
+      Result.isOk(
+        validateUsagePriceChange(
+          baseUsagePrice,
+          priceWithNewName,
+          'meter-slug'
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
 
     const priceWithNewActiveStatus = createUsagePrice({
       slug: 'test-price',
@@ -1355,13 +1398,15 @@ describe('validateUsagePriceChange', () => {
       usageEventsPerUnit: 1,
       active: false,
     })
-    expect(() =>
-      validateUsagePriceChange(
-        baseUsagePrice,
-        priceWithNewActiveStatus,
-        'meter-slug'
+    expect(
+      Result.isOk(
+        validateUsagePriceChange(
+          baseUsagePrice,
+          priceWithNewActiveStatus,
+          'meter-slug'
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
   })
 
   it('allows create-only field changes (unitPrice, usageEventsPerUnit) for usage price when proposed price is well-formed, treating them as price replacements', () => {
@@ -1371,13 +1416,15 @@ describe('validateUsagePriceChange', () => {
       unitPrice: 200,
       usageEventsPerUnit: 1,
     })
-    expect(() =>
-      validateUsagePriceChange(
-        baseUsagePrice,
-        priceWithNewUnitPrice,
-        'meter-slug'
+    expect(
+      Result.isOk(
+        validateUsagePriceChange(
+          baseUsagePrice,
+          priceWithNewUnitPrice,
+          'meter-slug'
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
 
     // Changing usageEventsPerUnit
     const priceWithNewUsageEventsPerUnit = createUsagePrice({
@@ -1385,13 +1432,15 @@ describe('validateUsagePriceChange', () => {
       unitPrice: 100,
       usageEventsPerUnit: 10,
     })
-    expect(() =>
-      validateUsagePriceChange(
-        baseUsagePrice,
-        priceWithNewUsageEventsPerUnit,
-        'meter-slug'
+    expect(
+      Result.isOk(
+        validateUsagePriceChange(
+          baseUsagePrice,
+          priceWithNewUsageEventsPerUnit,
+          'meter-slug'
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
 
     // Changing multiple create-only fields at once
     const priceWithMultipleChanges = createUsagePrice({
@@ -1399,13 +1448,15 @@ describe('validateUsagePriceChange', () => {
       unitPrice: 500,
       usageEventsPerUnit: 5,
     })
-    expect(() =>
-      validateUsagePriceChange(
-        baseUsagePrice,
-        priceWithMultipleChanges,
-        'meter-slug'
+    expect(
+      Result.isOk(
+        validateUsagePriceChange(
+          baseUsagePrice,
+          priceWithMultipleChanges,
+          'meter-slug'
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
   })
 
   it('throws error when create-only fields change but proposed price is malformed (missing required fields)', () => {
@@ -1418,13 +1469,19 @@ describe('validateUsagePriceChange', () => {
       slug: 'test-price',
     } as SetupUsageMeterPriceInput
 
-    expect(() =>
-      validateUsagePriceChange(
+    {
+      const result = validateUsagePriceChange(
         baseUsagePrice,
         malformedPrice,
         'meter-slug'
       )
-    ).toThrow('Invalid usage price for replacement')
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid usage price for replacement'
+        )
+      }
+    }
   })
 })
 
@@ -1480,7 +1537,7 @@ describe('validateUsageMeterDiff with price changes', () => {
       ],
     }
 
-    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateUsageMeterDiff(diff))).toBe(true)
   })
 
   it('validates usage price updates and allows create-only field changes (unitPrice) treating them as price replacements', () => {
@@ -1529,7 +1586,7 @@ describe('validateUsageMeterDiff with price changes', () => {
       ],
     }
 
-    expect(() => validateUsageMeterDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateUsageMeterDiff(diff))).toBe(true)
   })
 
   it('throws error when usage price replacement has malformed proposed price', () => {
@@ -1582,9 +1639,15 @@ describe('validateUsageMeterDiff with price changes', () => {
       ],
     }
 
-    expect(() => validateUsageMeterDiff(diff)).toThrow(
-      'Invalid usage price for replacement'
-    )
+    {
+      const result = validateUsageMeterDiff(diff)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid usage price for replacement'
+        )
+      }
+    }
   })
 })
 
@@ -1617,9 +1680,15 @@ describe('validateFeatureDiff', () => {
       ],
     }
 
-    expect(() => validateFeatureDiff(diff)).toThrow(
-      "Feature type cannot be changed. Feature 'feature-a' has type 'toggle' but proposed type is 'usage_credit_grant'. To change type, remove the feature and create a new one."
-    )
+    {
+      const result = validateFeatureDiff(diff)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Feature type cannot be changed'
+        )
+      }
+    }
   })
 
   it('should allow updates to mutable fields for Toggle features', () => {
@@ -1646,7 +1715,7 @@ describe('validateFeatureDiff', () => {
       ],
     }
 
-    expect(() => validateFeatureDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateFeatureDiff(diff))).toBe(true)
   })
 
   it('should allow updates to mutable fields for UsageCreditGrant features', () => {
@@ -1681,7 +1750,7 @@ describe('validateFeatureDiff', () => {
       ],
     }
 
-    expect(() => validateFeatureDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateFeatureDiff(diff))).toBe(true)
   })
 
   it('should allow updates to usageMeterSlug (maps to usageMeterId which is updatable)', () => {
@@ -1717,7 +1786,7 @@ describe('validateFeatureDiff', () => {
     }
 
     // usageMeterSlug maps to usageMeterId which IS in the update schema (updatable)
-    expect(() => validateFeatureDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateFeatureDiff(diff))).toBe(true)
   })
 
   it('should pass when nothing is being updated', () => {
@@ -1744,7 +1813,7 @@ describe('validateFeatureDiff', () => {
       ],
     }
 
-    expect(() => validateFeatureDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateFeatureDiff(diff))).toBe(true)
   })
 
   it('should allow feature removal', () => {
@@ -1762,7 +1831,7 @@ describe('validateFeatureDiff', () => {
       toUpdate: [],
     }
 
-    expect(() => validateFeatureDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateFeatureDiff(diff))).toBe(true)
   })
 
   it('should allow feature creation', () => {
@@ -1780,7 +1849,7 @@ describe('validateFeatureDiff', () => {
       toUpdate: [],
     }
 
-    expect(() => validateFeatureDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateFeatureDiff(diff))).toBe(true)
   })
 })
 
@@ -1857,41 +1926,51 @@ describe('validatePriceChange', () => {
   })
 
   it('returns without error when both prices are undefined', () => {
-    expect(() =>
-      validatePriceChange(undefined, undefined)
-    ).not.toThrow()
+    expect(
+      Result.isOk(validatePriceChange(undefined, undefined))
+    ).toBe(true)
   })
 
   it('returns without error when creating a new price (existing undefined)', () => {
-    expect(() =>
-      validatePriceChange(undefined, baseSubscriptionPrice)
-    ).not.toThrow()
+    expect(
+      Result.isOk(
+        validatePriceChange(undefined, baseSubscriptionPrice)
+      )
+    ).toBe(true)
   })
 
   it('returns without error when removing a price (proposed undefined)', () => {
-    expect(() =>
-      validatePriceChange(baseSubscriptionPrice, undefined)
-    ).not.toThrow()
+    expect(
+      Result.isOk(
+        validatePriceChange(baseSubscriptionPrice, undefined)
+      )
+    ).toBe(true)
   })
 
   it('returns without error when prices are identical', () => {
-    expect(() =>
-      validatePriceChange(
-        baseSubscriptionPrice,
-        baseSubscriptionPrice
+    expect(
+      Result.isOk(
+        validatePriceChange(
+          baseSubscriptionPrice,
+          baseSubscriptionPrice
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
   })
 
   it('throws error when price type changes from subscription to single_payment', () => {
-    expect(() =>
-      validatePriceChange(
+    {
+      const result = validatePriceChange(
         baseSubscriptionPrice,
         baseSinglePaymentPrice
       )
-    ).toThrow(
-      "Price type cannot be changed. Existing type is 'subscription' but proposed type is 'single_payment'. To change price type, remove the price and create a new one."
-    )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Price type cannot be changed'
+        )
+      }
+    }
   })
 
   it('allows create-only field changes (unitPrice, intervalCount, intervalUnit) for subscription price when proposed price is well-formed, treating them as price replacements', () => {
@@ -1904,12 +1983,14 @@ describe('validatePriceChange', () => {
       intervalCount: 1,
       slug: 'monthly-price',
     })
-    expect(() =>
-      validatePriceChange(
-        baseSubscriptionPrice,
-        priceWithNewUnitPrice
+    expect(
+      Result.isOk(
+        validatePriceChange(
+          baseSubscriptionPrice,
+          priceWithNewUnitPrice
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
 
     // Changing intervalCount
     const priceWithNewIntervalCount = createTestPrice({
@@ -1920,12 +2001,14 @@ describe('validatePriceChange', () => {
       intervalCount: 2,
       slug: 'monthly-price',
     })
-    expect(() =>
-      validatePriceChange(
-        baseSubscriptionPrice,
-        priceWithNewIntervalCount
+    expect(
+      Result.isOk(
+        validatePriceChange(
+          baseSubscriptionPrice,
+          priceWithNewIntervalCount
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
 
     // Changing intervalUnit
     const priceWithNewIntervalUnit = createTestPrice({
@@ -1936,12 +2019,14 @@ describe('validatePriceChange', () => {
       intervalCount: 1,
       slug: 'monthly-price',
     })
-    expect(() =>
-      validatePriceChange(
-        baseSubscriptionPrice,
-        priceWithNewIntervalUnit
+    expect(
+      Result.isOk(
+        validatePriceChange(
+          baseSubscriptionPrice,
+          priceWithNewIntervalUnit
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
 
     // Changing multiple create-only fields at once
     const priceWithMultipleChanges = createTestPrice({
@@ -1952,12 +2037,14 @@ describe('validatePriceChange', () => {
       intervalCount: 1,
       slug: 'monthly-price',
     })
-    expect(() =>
-      validatePriceChange(
-        baseSubscriptionPrice,
-        priceWithMultipleChanges
+    expect(
+      Result.isOk(
+        validatePriceChange(
+          baseSubscriptionPrice,
+          priceWithMultipleChanges
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
   })
 
   it('allows updates to mutable fields (name, active, isDefault) without triggering price replacement validation', () => {
@@ -1971,9 +2058,11 @@ describe('validatePriceChange', () => {
       slug: 'monthly-price',
       name: 'New Price Name',
     })
-    expect(() =>
-      validatePriceChange(baseSubscriptionPrice, priceWithNewName)
-    ).not.toThrow()
+    expect(
+      Result.isOk(
+        validatePriceChange(baseSubscriptionPrice, priceWithNewName)
+      )
+    ).toBe(true)
 
     // Changing active status
     const priceWithNewActiveStatus = createTestPrice({
@@ -1985,12 +2074,14 @@ describe('validatePriceChange', () => {
       slug: 'monthly-price',
       active: false,
     })
-    expect(() =>
-      validatePriceChange(
-        baseSubscriptionPrice,
-        priceWithNewActiveStatus
+    expect(
+      Result.isOk(
+        validatePriceChange(
+          baseSubscriptionPrice,
+          priceWithNewActiveStatus
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
   })
 
   // Note: Usage price tests removed - Usage prices belong to usage meters, not products
@@ -2007,9 +2098,18 @@ describe('validatePriceChange', () => {
       slug: 'monthly-price',
     } as SetupPricingModelProductPriceInput
 
-    expect(() =>
-      validatePriceChange(baseSubscriptionPrice, malformedPrice)
-    ).toThrow('Invalid price for replacement')
+    {
+      const result = validatePriceChange(
+        baseSubscriptionPrice,
+        malformedPrice
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid price for replacement'
+        )
+      }
+    }
   })
 
   it('allows single payment price create-only field changes when proposed price is well-formed', () => {
@@ -2027,12 +2127,14 @@ describe('validatePriceChange', () => {
       slug: 'one-time-price',
     })
 
-    expect(() =>
-      validatePriceChange(
-        existingSinglePayment,
-        proposedSinglePayment
+    expect(
+      Result.isOk(
+        validatePriceChange(
+          existingSinglePayment,
+          proposedSinglePayment
+        )
       )
-    ).not.toThrow()
+    ).toBe(true)
   })
 })
 
@@ -2055,7 +2157,9 @@ describe('validateProductDiff', () => {
         },
       ],
     }
-    expect(() => validateProductDiff(singleFieldDiff)).not.toThrow()
+    expect(Result.isOk(validateProductDiff(singleFieldDiff))).toBe(
+      true
+    )
 
     // Multiple mutable field changes
     const existingMultiple = createProductInput({
@@ -2081,9 +2185,9 @@ describe('validateProductDiff', () => {
         { existing: existingMultiple, proposed: proposedMultiple },
       ],
     }
-    expect(() =>
-      validateProductDiff(multipleFieldsDiff)
-    ).not.toThrow()
+    expect(Result.isOk(validateProductDiff(multipleFieldsDiff))).toBe(
+      true
+    )
 
     // No changes
     const product = createProductInput({
@@ -2095,7 +2199,7 @@ describe('validateProductDiff', () => {
       toCreate: [],
       toUpdate: [{ existing: product, proposed: product }],
     }
-    expect(() => validateProductDiff(noChangesDiff)).not.toThrow()
+    expect(Result.isOk(validateProductDiff(noChangesDiff))).toBe(true)
   })
 
   it('allows price create-only field changes (unitPrice) when proposed price is well-formed, treating them as price replacements', () => {
@@ -2132,7 +2236,7 @@ describe('validateProductDiff', () => {
 
     // Should not throw because unitPrice change triggers price replacement validation,
     // and the proposed price is well-formed
-    expect(() => validateProductDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateProductDiff(diff))).toBe(true)
   })
 
   it('throws error when price type changes in priceDiff', () => {
@@ -2167,9 +2271,15 @@ describe('validateProductDiff', () => {
       ],
     }
 
-    expect(() => validateProductDiff(diff)).toThrow(
-      'Price type cannot be changed'
-    )
+    {
+      const result = validateProductDiff(diff)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Price type cannot be changed'
+        )
+      }
+    }
   })
 
   it('allows product removal and product creation', () => {
@@ -2184,7 +2294,7 @@ describe('validateProductDiff', () => {
       toCreate: [],
       toUpdate: [],
     }
-    expect(() => validateProductDiff(removalDiff)).not.toThrow()
+    expect(Result.isOk(validateProductDiff(removalDiff))).toBe(true)
 
     // Product creation
     const creationDiff: ProductDiffResult = {
@@ -2197,7 +2307,7 @@ describe('validateProductDiff', () => {
       ],
       toUpdate: [],
     }
-    expect(() => validateProductDiff(creationDiff)).not.toThrow()
+    expect(Result.isOk(validateProductDiff(creationDiff))).toBe(true)
   })
 
   it('allows price mutable field changes (name) without triggering price replacement', () => {
@@ -2232,7 +2342,7 @@ describe('validateProductDiff', () => {
       ],
     }
 
-    expect(() => validateProductDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateProductDiff(diff))).toBe(true)
   })
 
   it('throws error when price replacement is attempted with malformed proposed price', () => {
@@ -2272,9 +2382,15 @@ describe('validateProductDiff', () => {
       ],
     }
 
-    expect(() => validateProductDiff(diff)).toThrow(
-      'Invalid price for replacement'
-    )
+    {
+      const result = validateProductDiff(diff)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Invalid price for replacement'
+        )
+      }
+    }
   })
 
   it('allows multiple valid updates including price replacements and mutable field changes', () => {
@@ -2322,7 +2438,7 @@ describe('validateProductDiff', () => {
     }
 
     // Should not throw - both updates are valid (one is product name change, one is price replacement)
-    expect(() => validateProductDiff(diff)).not.toThrow()
+    expect(Result.isOk(validateProductDiff(diff))).toBe(true)
   })
 })
 
@@ -2401,7 +2517,7 @@ describe('diffPricingModel', () => {
       ],
     })
 
-    const result = diffPricingModel(existing, proposed)
+    const result = diffPricingModel(existing, proposed).unwrap()
 
     // Expectation: returns PricingModelDiffResult with features, products, and usageMeters diffs
     expect(result).toHaveProperty('features')
@@ -2493,7 +2609,9 @@ describe('diffPricingModel', () => {
     })
 
     // Expectation: should not throw (all validations pass)
-    expect(() => diffPricingModel(existing, proposed)).not.toThrow()
+    expect(Result.isOk(diffPricingModel(existing, proposed))).toBe(
+      true
+    )
   })
 
   it('should throw error if validation fails - usage meter removal', () => {
@@ -2519,9 +2637,15 @@ describe('diffPricingModel', () => {
     })
 
     // Expectation: should throw error from validateUsageMeterDiff
-    expect(() => diffPricingModel(existing, proposed)).toThrow(
-      'Usage meters cannot be removed'
-    )
+    {
+      const result = diffPricingModel(existing, proposed)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Usage meters cannot be removed'
+        )
+      }
+    }
   })
 
   it('should throw error if validation fails - feature type change', () => {
@@ -2559,9 +2683,15 @@ describe('diffPricingModel', () => {
     })
 
     // Expectation: should throw error from validateFeatureDiff
-    expect(() => diffPricingModel(existing, proposed)).toThrow(
-      'Feature type cannot be changed'
-    )
+    {
+      const result = diffPricingModel(existing, proposed)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Feature type cannot be changed'
+        )
+      }
+    }
   })
 
   it('should throw error if validation fails - price type change', () => {
@@ -2593,9 +2723,15 @@ describe('diffPricingModel', () => {
     })
 
     // Expectation: should throw error from validatePriceChange (via validateProductDiff)
-    expect(() => diffPricingModel(existing, proposed)).toThrow(
-      'Price type cannot be changed'
-    )
+    {
+      const result = diffPricingModel(existing, proposed)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Price type cannot be changed'
+        )
+      }
+    }
   })
 
   it('should add all proposed resources to toCreate when existing pricing model is empty', () => {
@@ -2633,7 +2769,7 @@ describe('diffPricingModel', () => {
       ],
     })
 
-    const result = diffPricingModel(existing, proposed)
+    const result = diffPricingModel(existing, proposed).unwrap()
 
     // Expectation: all resources in toCreate, nothing in toRemove or toUpdate
     expect(result.features.toCreate).toHaveLength(1)
@@ -2692,9 +2828,15 @@ describe('diffPricingModel', () => {
     })
 
     // Expectation: throws because usage meters cannot be removed
-    expect(() => diffPricingModel(existing, proposed)).toThrow(
-      'Usage meters cannot be removed'
-    )
+    {
+      const result = diffPricingModel(existing, proposed)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Usage meters cannot be removed'
+        )
+      }
+    }
   })
 
   it('should add features and products to toRemove when proposed pricing model is empty', () => {
@@ -2724,7 +2866,7 @@ describe('diffPricingModel', () => {
       usageMeters: [],
     })
 
-    const result = diffPricingModel(existing, proposed)
+    const result = diffPricingModel(existing, proposed).unwrap()
 
     // Expectation: features and products in toRemove, nothing in toCreate or toUpdate
     expect(result.features.toRemove).toHaveLength(1)
@@ -2878,7 +3020,7 @@ describe('diffPricingModel', () => {
     const proposedCopy = JSON.parse(JSON.stringify(proposed))
 
     // Call the function (which will do actual diffing work)
-    const result = diffPricingModel(existing, proposed)
+    const result = diffPricingModel(existing, proposed).unwrap()
 
     // Expectation: original objects are not modified even when diffing logic runs
     expect(existing).toEqual(existingCopy)
@@ -2978,7 +3120,7 @@ describe('diffPricingModel', () => {
       ],
     })
 
-    const result = diffPricingModel(existing, proposed)
+    const result = diffPricingModel(existing, proposed).unwrap()
 
     // Verify features
     expect(result.features.toRemove).toHaveLength(1)
@@ -3050,7 +3192,10 @@ describe('diffPricingModel', () => {
       ],
     })
 
-    const result = diffPricingModel(pricingModel, pricingModel)
+    const result = diffPricingModel(
+      pricingModel,
+      pricingModel
+    ).unwrap()
 
     // Expectation: everything in toUpdate, nothing in toRemove or toCreate
     expect(result.features.toRemove).toEqual([])

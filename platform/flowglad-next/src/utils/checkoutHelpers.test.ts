@@ -1,13 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 
 // Only mock Next headers to satisfy runtime; avoid higher-level mocks
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(),
+    get: mock(),
+    delete: mock(),
   })),
 }))
 
@@ -252,7 +259,7 @@ describe('checkoutHelpers', () => {
     it('valid session without customer → includes product/price/org and no customer', async () => {
       const { organization, product, price } = await makeSession()
       await adminTransaction(async ({ transaction }) => {
-        const noCustomerSession = await insertCheckoutSession(
+        const noCustomerSessionResult = await insertCheckoutSession(
           {
             status: CheckoutSessionStatus.Open,
             type: CheckoutSessionType.Product,
@@ -273,6 +280,7 @@ describe('checkoutHelpers', () => {
           },
           transaction
         )
+        const noCustomerSession = noCustomerSessionResult.unwrap()
         const result = await checkoutInfoForCheckoutSession(
           noCustomerSession.id,
           transaction

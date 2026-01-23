@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { CheckoutSessionStatus, CheckoutSessionType } from '@/types'
 import type { CheckoutSession } from '../schema/checkoutSessions'
 import {

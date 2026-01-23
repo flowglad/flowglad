@@ -130,15 +130,29 @@ export const savePricingModelIntegrationMarkdown = async ({
   })
 
   // Store hash in database after successful R2 upload
-  await adminTransaction(async ({ transaction }) => {
-    await updatePricingModel(
-      {
-        id: pricingModelId,
-        integrationGuideHash: contentHash,
-      },
-      transaction
-    )
-  })
+  await adminTransaction(
+    async ({
+      transaction,
+      cacheRecomputationContext,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+    }) => {
+      await updatePricingModel(
+        {
+          id: pricingModelId,
+          integrationGuideHash: contentHash,
+        },
+        {
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
+      )
+    }
+  )
 }
 
 /**

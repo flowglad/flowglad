@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'bun:test'
 import { pgTable, text } from 'drizzle-orm/pg-core'
-import { describe, expect, it } from 'vitest'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { pgEnumColumn, tableBase } from '@/db/tableUtils'

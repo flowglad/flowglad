@@ -1,4 +1,18 @@
+# Global preload for database safety - blocks non-local DATABASE_URL in development
+preload = ["./src/scripts/db-safety-preload.ts"]
+
 [install]
 autoInstall = false
+
 [test]
-preload = ["./vitest.setup.ts"]
+# NOTE: No default preload here - each test script specifies its own preload
+# to avoid conflicts between unit tests (MSW mocking) and integration tests (real APIs)
+# - Unit tests: --preload ./bun.setup.ts (MSW + happy-dom)
+# - Integration tests: --preload ./bun.integration.setup.ts (real Stripe/Redis)
+# - RLS tests: --preload ./bun.rls.setup.ts (real DB, stub Redis)
+
+# Include only .test.ts files in src/ (not .test.tsx - those run via vitest)
+# Integration, flow, and RLS tests live in integration-tests/ and are run separately
+include = ["src/**/*.test.ts"]
+# Exclude .test.tsx files (run via vitest for frontend tests)
+exclude = ["**/*.test.tsx"]

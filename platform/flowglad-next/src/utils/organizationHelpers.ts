@@ -14,7 +14,10 @@ import {
   selectOrganizations,
 } from '@/db/tableMethods/organizationMethods'
 import { upsertUserById } from '@/db/tableMethods/userMethods'
-import type { DbTransaction } from '@/db/types'
+import {
+  createTransactionEffectsContext,
+  type DbTransaction,
+} from '@/db/types'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
@@ -189,6 +192,13 @@ export const createOrganizationTransaction = async (
     transaction
   )
 
+  // Create TransactionEffectsContext with noop callbacks for organization setup.
+  // This is valid because new entities don't have anything to invalidate in the cache.
+  const ctx = createTransactionEffectsContext(
+    transaction,
+    cacheRecomputationContext
+  )
+
   const { pricingModel: defaultLivePricingModel } = (
     await createPricingModelBookkeeping(
       {
@@ -197,7 +207,7 @@ export const createOrganizationTransaction = async (
           isDefault: true,
         },
       },
-      { transaction, organizationId, livemode: true }
+      { ...ctx, organizationId, livemode: true }
     )
   ).unwrap()
 
@@ -209,7 +219,7 @@ export const createOrganizationTransaction = async (
           isDefault: true,
         },
       },
-      { transaction, organizationId, livemode: false }
+      { ...ctx, organizationId, livemode: false }
     )
   ).unwrap()
 

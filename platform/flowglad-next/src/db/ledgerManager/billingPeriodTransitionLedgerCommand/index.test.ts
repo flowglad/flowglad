@@ -1,12 +1,13 @@
-import { and, eq } from 'drizzle-orm'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
+import { and, eq } from 'drizzle-orm'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -233,10 +234,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           const {
             ledgerTransaction,
             ledgerEntries: createdLedgerEntries,
-          } = await processBillingPeriodTransitionLedgerCommand(
-            command,
-            transaction
-          )
+          } = (
+            await processBillingPeriodTransitionLedgerCommand(
+              command,
+              transaction
+            )
+          ).unwrap()
 
           // Assert
           // 1. Verify the main transaction record
@@ -254,7 +257,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           expect(creditEntry.entryType).toBe(
             LedgerEntryType.CreditGrantRecognized
           )
-          expect(creditEntry.amount).toBe(feature.amount)
+          expect(creditEntry.amount).toBe(feature.amount!)
           expect(creditEntry.ledgerAccountId).toBe(ledgerAccount.id)
           expect(typeof creditEntry.sourceUsageCreditId).toBe(
             'string'
@@ -273,7 +276,7 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           if (!usageCredit) {
             throw new Error('Usage credit not found')
           }
-          expect(usageCredit.issuedAmount).toBe(feature.amount)
+          expect(usageCredit.issuedAmount).toBe(feature.amount!)
           expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
         })
       })
@@ -325,11 +328,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           ]
 
           // Act
-          const { ledgerEntries } =
+          const { ledgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               command,
               transaction
             )
+          ).unwrap()
 
           // Assert
           // 1. A credit grant entry was created
@@ -411,10 +415,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           const {
             ledgerTransaction,
             ledgerEntries: createdLedgerEntries,
-          } = await processBillingPeriodTransitionLedgerCommand(
-            command,
-            transaction
-          )
+          } = (
+            await processBillingPeriodTransitionLedgerCommand(
+              command,
+              transaction
+            )
+          ).unwrap()
 
           // Assert
           // 1. Verify transaction.
@@ -522,11 +528,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           command.payload.subscriptionFeatureItems = []
 
           // Act
-          const { ledgerEntries: createdLedgerEntries } =
+          const { ledgerEntries: createdLedgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               command,
               transaction
             )
+          ).unwrap()
 
           // Assert
           expect(createdLedgerEntries).toHaveLength(1)
@@ -558,11 +565,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           command.payload.subscriptionFeatureItems = []
 
           // Act
-          const { ledgerEntries: createdLedgerEntries } =
+          const { ledgerEntries: createdLedgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               command,
               transaction
             )
+          ).unwrap()
 
           // Assert
           // Expect no expiration entries to be created for non-expiring credits.
@@ -589,11 +597,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           command.payload.subscriptionFeatureItems = []
 
           // Act
-          const { ledgerEntries: createdLedgerEntries } =
+          const { ledgerEntries: createdLedgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               command,
               transaction
             )
+          ).unwrap()
 
           // Assert
           // Expect no expiration entries to be created for credits that expire in the future.
@@ -836,11 +845,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - process the non-renewing billing period transition
-          const { ledgerTransaction, ledgerEntries } =
+          const { ledgerTransaction, ledgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               testCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert - verify transaction created with correct fields
           expect(ledgerTransaction.type).toBe(
@@ -960,11 +970,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - first call should grant the credit
-          const firstResult =
+          const firstResult = (
             await processBillingPeriodTransitionLedgerCommand(
               testCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert first call
           expect(firstResult.ledgerEntries).toHaveLength(1)
@@ -1094,11 +1105,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - process command, should create missing ledger accounts
-          const { ledgerEntries } =
+          const { ledgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               testCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert - verify ledger accounts were created
           const createdAccounts = await selectLedgerAccounts(
@@ -1141,11 +1153,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           nonRenewingCommand.payload.subscriptionFeatureItems = []
 
           // Act - process command with no credits to grant
-          const { ledgerTransaction, ledgerEntries } =
+          const { ledgerTransaction, ledgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               nonRenewingCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert - transaction created but no entries
           expect(ledgerTransaction.type).toBe(
@@ -1210,11 +1223,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           nonRenewingCommand.payload.subscriptionFeatureItems = []
 
           // Act - process non-renewing command
-          const { ledgerTransaction, ledgerEntries } =
+          const { ledgerTransaction, ledgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               nonRenewingCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert - no expiration entries created
           const expirationEntries = ledgerEntries.filter(
@@ -1310,11 +1324,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - process the non-renewing command
-          const { ledgerEntries } =
+          const { ledgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               testCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert - no expiration entries created despite expired credit
           const expirationEntries = ledgerEntries.filter(
@@ -1366,11 +1381,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           ]
 
           // Act - process the command
-          const { ledgerTransaction, ledgerEntries } =
+          const { ledgerTransaction, ledgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               nonRenewingCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert - verify correct processing
           expect(ledgerTransaction.initiatingSourceId).toBe(
@@ -1548,11 +1564,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - process initial command
-          const { ledgerEntries } =
+          const { ledgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               testCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert - all 4 credits granted
           expect(ledgerEntries).toHaveLength(4)
@@ -1577,11 +1594,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           }
 
           // Act - process command again
-          const secondResult =
+          const secondResult = (
             await processBillingPeriodTransitionLedgerCommand(
               nonRenewingCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert - no new credits on second call (all treated as Once for non-renewing)
           expect(secondResult.ledgerEntries).toHaveLength(0)
@@ -1598,11 +1616,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             subscriptionItemFeatureRecurring,
           ]
 
-          const initialResult =
+          const initialResult = (
             await processBillingPeriodTransitionLedgerCommand(
               nonRenewingCommand,
               transaction
             )
+          ).unwrap()
 
           // Verify initial credits granted
           expect(initialResult.ledgerEntries).toHaveLength(2)
@@ -1656,11 +1675,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             }
 
           // Act - process renewing command
-          const renewingResult =
+          const renewingResult = (
             await processBillingPeriodTransitionLedgerCommand(
               renewingCommand,
               transaction
             )
+          ).unwrap()
 
           // Assert - new credits created for recurring feature only
           expect(renewingResult.ledgerEntries).toHaveLength(1)
@@ -1697,11 +1717,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             subscriptionItemFeatureRecurring, // 1000 credits
           ]
 
-          const initialResult =
+          const initialResult = (
             await processBillingPeriodTransitionLedgerCommand(
               nonRenewingCommand,
               transaction
             )
+          ).unwrap()
 
           expect(initialResult.ledgerEntries).toHaveLength(1)
           const initialCreditId = (
@@ -1819,11 +1840,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
             },
           }
 
-          const { ledgerEntries } =
+          const { ledgerEntries } = (
             await processBillingPeriodTransitionLedgerCommand(
               testCommand,
               transaction
             )
+          ).unwrap()
 
           expect(ledgerEntries).toHaveLength(1)
           const creditEntry =

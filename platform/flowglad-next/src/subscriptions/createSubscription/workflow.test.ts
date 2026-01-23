@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -157,29 +158,31 @@ describe('createSubscriptionWorkflow', async () => {
     })
 
     const stripeSetupIntentIdNew = `setupintent_new_${core.nanoid()}`
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(
-          {
-            organization, // from beforeEach
-            product, // from beforeEach
-            price: defaultPrice, // from beforeEach
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod, // from beforeEach
-            customer, // IMPORTANT: Use the same customer from beforeEach
-            stripeSetupIntentId: stripeSetupIntentIdNew, // New intent ID
-            // autoStart behavior for the second subscription attempt can be default or true
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
-    ).rejects.toThrow(
-      `Customer ${customer.id} already has an active subscription`
-    )
+    const result = await adminTransaction(async ({ transaction }) => {
+      return createSubscriptionWorkflow(
+        {
+          organization, // from beforeEach
+          product, // from beforeEach
+          price: defaultPrice, // from beforeEach
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod, // from beforeEach
+          customer, // IMPORTANT: Use the same customer from beforeEach
+          stripeSetupIntentId: stripeSetupIntentIdNew, // New intent ID
+          // autoStart behavior for the second subscription attempt can be default or true
+        },
+        createDiscardingEffectsContext(transaction)
+      )
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        `Customer ${customer.id} already has an active subscription`
+      )
+    }
   })
 
   it('does not throw an error if creating a subscription for a customer with no active subscriptions, but past non-active subscriptions', async () => {
@@ -337,8 +340,8 @@ describe('createSubscriptionWorkflow', async () => {
         usageMeterId: usageMeter.id,
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           const stripeSetupIntentIdUsage = `setupintent_usage_price_${core.nanoid()}`
           return createSubscriptionWorkflow(
             {
@@ -357,10 +360,14 @@ describe('createSubscriptionWorkflow', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow(
-        `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for subscription creation.`
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for subscription creation.`
+        )
+      }
     })
 
     it('creates a subscription with usage price if the feature flag is enabled', async () => {
@@ -490,8 +497,8 @@ describe('createSubscriptionWorkflow', async () => {
         isDefault: false,
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           const stripeSetupIntentIdSingle = `setupintent_single_pay_${core.nanoid()}`
           return createSubscriptionWorkflow(
             {
@@ -510,8 +517,14 @@ describe('createSubscriptionWorkflow', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('Price is not a subscription')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Price is not a subscription'
+        )
+      }
     })
 
     it('creates a non-renewing subscription if provided a default product and non-subscribable price', async () => {
@@ -750,7 +763,7 @@ describe('createSubscriptionWorkflow', async () => {
     )
   })
 
-  it('throws an error if defaultPaymentMethod customerId does not match customer id', async () => {
+  it('returns an error if defaultPaymentMethod customerId does not match customer id', async () => {
     // Setup a different customer for the payment method
     const anotherCustomer = await setupCustomer({
       organizationId: organization.id, // Use org from beforeEach
@@ -758,29 +771,31 @@ describe('createSubscriptionWorkflow', async () => {
     })
     const stripeSetupIntentIdMismatch = `setupintent_mismatch_${core.nanoid()}`
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(
-          {
-            organization, // from beforeEach
-            product, // from beforeEach
-            price: defaultPrice, // from beforeEach
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod, // Belongs to anotherCustomer
-            customer: anotherCustomer, // The main customer for the subscription (from beforeEach)
-            stripeSetupIntentId: stripeSetupIntentIdMismatch,
-            autoStart: true,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-      })
-    ).rejects.toThrow(
-      `Customer ${anotherCustomer.id} does not match default payment method ${paymentMethod.customerId}`
-    )
+    const result = await adminTransaction(async ({ transaction }) => {
+      return createSubscriptionWorkflow(
+        {
+          organization, // from beforeEach
+          product, // from beforeEach
+          price: defaultPrice, // from beforeEach
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod, // Belongs to anotherCustomer
+          customer: anotherCustomer, // The main customer for the subscription (from beforeEach)
+          stripeSetupIntentId: stripeSetupIntentIdMismatch,
+          autoStart: true,
+        },
+        createDiscardingEffectsContext(transaction)
+      )
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        `Customer ${anotherCustomer.id} does not match default payment method ${paymentMethod.customerId}`
+      )
+    }
   })
 })
 
@@ -1053,12 +1068,14 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       expect(sif!.livemode).toBe(true) // explicit check for this test
 
       if (sif!.type === FeatureType.UsageCreditGrant) {
-        expect(sif!.amount).toBe(originalFeatureSetup!.feature.amount)
+        expect(sif!.amount).toBe(
+          originalFeatureSetup!.feature.amount!
+        )
         expect(sif!.renewalFrequency).toBe(
-          originalFeatureSetup!.feature.renewalFrequency
+          originalFeatureSetup!.feature.renewalFrequency!
         )
         expect(sif!.usageMeterId).toBe(
-          originalFeatureSetup!.feature.usageMeterId
+          originalFeatureSetup!.feature.usageMeterId!
         )
       } else if (sif!.type === FeatureType.Toggle) {
         expect(sif!.amount).toBeNull()

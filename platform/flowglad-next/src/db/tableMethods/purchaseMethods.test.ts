@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -181,43 +181,45 @@ describe('bulkInsertPurchases', () => {
 
   it('should bulk insert purchases and derive pricingModelId for each', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const purchases = await bulkInsertPurchases(
-        [
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            priceId: price1.id,
-            livemode: true,
-            name: 'Test Purchase 1',
-            priceType: PriceType.SinglePayment,
-            totalPurchaseValue: price1.unitPrice,
-            quantity: 1,
-            firstInvoiceValue: price1.unitPrice,
-            status: PurchaseStatus.Paid,
-            pricePerBillingCycle: null,
-            intervalUnit: null,
-            intervalCount: null,
-            trialPeriodDays: null,
-          },
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            priceId: price2.id,
-            livemode: true,
-            name: 'Test Purchase 2',
-            priceType: PriceType.SinglePayment,
-            totalPurchaseValue: price2.unitPrice,
-            quantity: 1,
-            firstInvoiceValue: price2.unitPrice,
-            status: PurchaseStatus.Paid,
-            pricePerBillingCycle: null,
-            intervalUnit: null,
-            intervalCount: null,
-            trialPeriodDays: null,
-          },
-        ],
-        transaction
-      )
+      const purchases = (
+        await bulkInsertPurchases(
+          [
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              priceId: price1.id,
+              livemode: true,
+              name: 'Test Purchase 1',
+              priceType: PriceType.SinglePayment,
+              totalPurchaseValue: price1.unitPrice,
+              quantity: 1,
+              firstInvoiceValue: price1.unitPrice,
+              status: PurchaseStatus.Paid,
+              pricePerBillingCycle: null,
+              intervalUnit: null,
+              intervalCount: null,
+              trialPeriodDays: null,
+            },
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              priceId: price2.id,
+              livemode: true,
+              name: 'Test Purchase 2',
+              priceType: PriceType.SinglePayment,
+              totalPurchaseValue: price2.unitPrice,
+              quantity: 1,
+              firstInvoiceValue: price2.unitPrice,
+              status: PurchaseStatus.Paid,
+              pricePerBillingCycle: null,
+              intervalUnit: null,
+              intervalCount: null,
+              trialPeriodDays: null,
+            },
+          ],
+          transaction
+        )
+      ).unwrap()
 
       expect(purchases).toHaveLength(2)
 

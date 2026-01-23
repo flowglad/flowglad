@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNull, notExists, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { payments } from '@/db/schema/payments'
@@ -35,9 +35,14 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { PaymentStatus, PriceType } from '@/types'
+import { PaymentStatus } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
 import { groupBy } from '@/utils/core'
-import type { DbTransaction } from '../types'
+import { RedisKeyNamespace } from '@/utils/redis'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
 import {
   selectPrices,
@@ -64,6 +69,37 @@ export const selectProductById = createSelectById(products, config)
 export const selectProducts = createSelectFunction(products, config)
 
 /**
+ * Select products by pricing model ID with caching.
+ * Cached by default; pass { ignoreCache: true } to bypass.
+ */
+export const selectProductsByPricingModelId = cached(
+  {
+    namespace: RedisKeyNamespace.ProductsByPricingModel,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
+    schema: productsClientSelectSchema.array(),
+    dependenciesFn: (products, pricingModelId: string) => [
+      // Set membership: invalidate when products are added/removed from pricing model
+      CacheDependency.productsByPricingModel(pricingModelId),
+      // Content: invalidate when any returned product's data changes
+      ...products.map((p) => CacheDependency.product(p.id)),
+    ],
+  },
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction
+  ): Promise<Product.ClientRecord[]> => {
+    const result = await selectProducts(
+      { pricingModelId },
+      transaction
+    )
+    return result.map((product) =>
+      productsClientSelectSchema.parse(product)
+    )
+  }
+)
+
+/**
  * Derives pricingModelId from a product.
  * Used for prices and productFeatures.
  */
@@ -80,9 +116,32 @@ export const pricingModelIdsForProducts = createDerivePricingModelIds(
   config
 )
 
-export const insertProduct = createInsertFunction(products, config)
+const baseInsertProduct = createInsertFunction(products, config)
 
-export const updateProduct = createUpdateFunction(products, config)
+export const insertProduct = async (
+  product: Product.Insert,
+  ctx: TransactionEffectsContext
+): Promise<Product.Record> => {
+  const result = await baseInsertProduct(product, ctx.transaction)
+  // Invalidate products cache for the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.productsByPricingModel(result.pricingModelId)
+  )
+  return result
+}
+
+const baseUpdateProduct = createUpdateFunction(products, config)
+
+export const updateProduct = async (
+  product: Product.Update,
+  ctx: TransactionEffectsContext
+): Promise<Product.Record> => {
+  const result = await baseUpdateProduct(product, ctx.transaction)
+  // Invalidate content cache (queued for after commit)
+  // Product data changed (name, description, active, etc.)
+  ctx.invalidateCache(CacheDependency.product(result.id))
+  return result
+}
 
 export const selectProductsPaginated = createPaginatedSelectFunction(
   products,
@@ -91,29 +150,69 @@ export const selectProductsPaginated = createPaginatedSelectFunction(
 
 export const bulkInsertProducts = async (
   productInserts: Product.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Product.Record[]> => {
   if (productInserts.length === 0) {
     return []
   }
-  const results = await transaction
+  const results = await ctx.transaction
     .insert(products)
     .values(productInserts)
     .returning()
-  return results.map((result) => productsSelectSchema.parse(result))
+  const parsedResults = results.map((result) =>
+    productsSelectSchema.parse(result)
+  )
+
+  // Invalidate products cache for all affected pricing models (queued for after commit)
+  const pricingModelIds = [
+    ...new Set(parsedResults.map((p) => p.pricingModelId)),
+  ]
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productsByPricingModel(pricingModelId)
+    )
+  }
+
+  return parsedResults
 }
 
-export const bulkInsertOrDoNothingProducts =
+const baseBulkInsertOrDoNothingProducts =
   createBulkInsertOrDoNothingFunction(products, config)
+
+export const bulkInsertOrDoNothingProducts = async (
+  productInserts: Product.Insert[],
+  conflictTarget: Parameters<
+    typeof baseBulkInsertOrDoNothingProducts
+  >[1],
+  ctx: TransactionEffectsContext
+): Promise<Product.Record[]> => {
+  const results = await baseBulkInsertOrDoNothingProducts(
+    productInserts,
+    conflictTarget,
+    ctx.transaction
+  )
+
+  // Invalidate products cache for all affected pricing models (queued for after commit)
+  const pricingModelIds = [
+    ...new Set(results.map((p) => p.pricingModelId)),
+  ]
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productsByPricingModel(pricingModelId)
+    )
+  }
+
+  return results
+}
 
 export const bulkInsertOrDoNothingProductsByExternalId = (
   productInserts: Product.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   return bulkInsertOrDoNothingProducts(
     productInserts,
     [products.externalId],
-    transaction
+    ctx
   )
 }
 
@@ -370,20 +469,21 @@ export const selectProductsCursorPaginated =
       return eq(products.id, trimmedQuery)
     },
     /**
-     * Additional filter clause for excludeUsageProducts.
-     * Excludes products that have any usage price.
+     * Additional filter clause for excludeProductsWithNoPrices.
+     * Excludes products that have no prices associated with them.
+     * This is useful for hiding orphaned products (e.g., hidden products
+     * that were previously created as a workaround for usage prices).
      */
     ({ filters }) => {
       const typedFilters = filters as
-        | { excludeUsageProducts?: boolean }
+        | { excludeProductsWithNoPrices?: boolean }
         | undefined
-      if (!typedFilters?.excludeUsageProducts) return undefined
+      if (!typedFilters?.excludeProductsWithNoPrices) return undefined
 
-      // Exclude products that have any usage price
-      // NOT EXISTS (SELECT 1 FROM prices WHERE prices.product_id = products.id AND prices.type = 'usage')
-      return notExists(
-        sql`(SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id} AND ${prices.type} = ${PriceType.Usage})`
-      )
+      // Exclude products that have no prices
+      // EXISTS (SELECT 1 FROM prices WHERE prices.product_id = products.id)
+      // This ensures only products with at least one price are included
+      return sql`EXISTS (SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id})`
     }
   )
 

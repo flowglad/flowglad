@@ -21,7 +21,7 @@ describe('Divider', () => {
         borderLeft: 'none',
         borderRight: 'none',
         borderBottomWidth: '1px',
-        borderBottomStyle: 'solid',
+        borderBottomStyle: 'dashed',
       })
     })
   })

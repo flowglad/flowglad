@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CreateOrganizationInput } from '@/db/schema/organizations'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
@@ -219,7 +219,7 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(liveDefaultPricingModel?.id).toMatchObject({})
+      expect(liveDefaultPricingModel?.id).toMatch(/^pricing_model_/)
 
       const [liveDefaultProduct] = await selectProducts(
         {
@@ -262,7 +262,7 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(testDefaultPricingModel?.id).toMatchObject({})
+      expect(testDefaultPricingModel?.id).toMatch(/^pricing_model_/)
 
       const [testDefaultProduct] = await selectProducts(
         {

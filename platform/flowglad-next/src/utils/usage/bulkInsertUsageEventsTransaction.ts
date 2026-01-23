@@ -780,6 +780,17 @@ function assembleFinalInserts(
       )
     }
 
+    // priceId must be present after default price resolution (either explicit or from meter's default)
+    // This should always be true after resolveDefaultPricesForMeterEvents, but we validate to be safe
+    if (!event.priceId) {
+      return Result.err(
+        new TRPCError({
+          code: 'INTERNAL_SERVER_ERROR',
+          message: `Usage event at index ${i} has no priceId after default price resolution. This should not happen.`,
+        })
+      )
+    }
+
     usageInsertsWithBillingPeriodId.push({
       subscriptionId: event.subscriptionId,
       customerId: subscription.customerId,

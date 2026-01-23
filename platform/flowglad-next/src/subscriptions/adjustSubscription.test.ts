@@ -1,6 +1,14 @@
+import type { Mock } from 'bun:test'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 // These seed methods (and the clearDatabase helper) come from our test support code.
 // They create real records in our test database.
 import {
@@ -85,10 +93,10 @@ import {
 // Mock the trigger task - we test that it's called with correct parameters
 // The actual billing run execution is tested in billingRunHelpers.test.ts
 // Create the mock function inside the factory to avoid hoisting issues
-vi.mock('@/trigger/attempt-billing-run', () => {
-  const mockTriggerFn = vi
-    .fn()
-    .mockResolvedValue({ id: 'mock-billing-run-handle-id' })
+mock.module('@/trigger/attempt-billing-run', () => {
+  const mockTriggerFn = mock().mockResolvedValue({
+    id: 'mock-billing-run-handle-id',
+  })
   // Store reference so we can access it in tests
   ;(globalThis as any).__mockAttemptBillingRunTrigger = mockTriggerFn
   return {
@@ -99,10 +107,10 @@ vi.mock('@/trigger/attempt-billing-run', () => {
 })
 
 // Mock customer subscription adjusted notification
-vi.mock(
+mock.module(
   '@/trigger/notifications/send-customer-subscription-adjusted-notification',
   () => {
-    const mockFn = vi.fn().mockResolvedValue(undefined)
+    const mockFn = mock().mockResolvedValue(undefined)
     ;(globalThis as any).__mockCustomerAdjustedNotification = mockFn
     return {
       idempotentSendCustomerSubscriptionAdjustedNotification: mockFn,
@@ -111,10 +119,10 @@ vi.mock(
 )
 
 // Mock organization subscription adjusted notification
-vi.mock(
+mock.module(
   '@/trigger/notifications/send-organization-subscription-adjusted-notification',
   () => {
-    const mockFn = vi.fn().mockResolvedValue(undefined)
+    const mockFn = mock().mockResolvedValue(undefined)
     ;(globalThis as any).__mockOrgAdjustedNotification = mockFn
     return {
       idempotentSendOrganizationSubscriptionAdjustedNotification:
@@ -126,17 +134,17 @@ vi.mock(
 // Get the mock function for use in tests
 const getMockTrigger = () => {
   return (globalThis as any)
-    .__mockAttemptBillingRunTrigger as ReturnType<typeof vi.fn>
+    .__mockAttemptBillingRunTrigger as Mock<any>
 }
 
 const getMockCustomerNotification = () => {
   return (globalThis as any)
-    .__mockCustomerAdjustedNotification as ReturnType<typeof vi.fn>
+    .__mockCustomerAdjustedNotification as Mock<any>
 }
 
 const getMockOrgNotification = () => {
   return (globalThis as any)
-    .__mockOrgAdjustedNotification as ReturnType<typeof vi.fn>
+    .__mockOrgAdjustedNotification as Mock<any>
 }
 
 // Helper to normalize Date | number into milliseconds since epoch
@@ -161,7 +169,7 @@ function expectSubscriptionItemsToMatch(
 
     if (matchingResultItem) {
       // Verify common fields match (excluding dates and system-generated fields)
-      expect(matchingResultItem.name).toBe(newItem.name)
+      expect(matchingResultItem.name).toBe(newItem.name!)
       expect(matchingResultItem.quantity).toBe(newItem.quantity)
       expect(matchingResultItem.unitPrice).toBe(newItem.unitPrice)
       expect(matchingResultItem.type).toBe(newItem.type)
@@ -175,10 +183,10 @@ function expectSubscriptionItemsToMatch(
           toMs(newItem.expiredAt)!
         )
       }
-      expect(matchingResultItem.externalId).toBe(newItem.externalId)
+      expect(matchingResultItem.externalId).toBe(newItem.externalId!)
       expect(matchingResultItem.metadata).toEqual(newItem.metadata)
       expect(matchingResultItem.subscriptionId).toBe(subscription.id)
-      expect(matchingResultItem.priceId).toBe(newItem.priceId)
+      expect(matchingResultItem.priceId).toBe(newItem.priceId!)
       expect(matchingResultItem.livemode).toBe(subscription.livemode)
     }
   })
@@ -304,35 +312,39 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        await expect(
-          adjustSubscription(
-            {
-              id: canceledSubscription.id,
-              adjustment: {
-                newSubscriptionItems: [],
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
+        const canceledResult = await adjustSubscription(
+          {
+            id: canceledSubscription.id,
+            adjustment: {
+              newSubscriptionItems: [],
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow('Subscription is in terminal state')
+          },
+          organization,
+          ctx
+        )
+        expect(canceledResult.status).toBe('error')
+        if (canceledResult.status === 'error') {
+          expect(canceledResult.error._tag).toBe('TerminalStateError')
+        }
 
-        await expect(
-          adjustSubscription(
-            {
-              id: incompleteExpiredSubscription.id,
-              adjustment: {
-                newSubscriptionItems: [],
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
+        const expiredResult = await adjustSubscription(
+          {
+            id: incompleteExpiredSubscription.id,
+            adjustment: {
+              newSubscriptionItems: [],
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow('Subscription is in terminal state')
+          },
+          organization,
+          ctx
+        )
+        expect(expiredResult.status).toBe('error')
+        if (expiredResult.status === 'error') {
+          expect(expiredResult.error._tag).toBe('TerminalStateError')
+        }
         return Result.ok(null)
       })
     })
@@ -365,22 +377,25 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        await expect(
-          adjustSubscription(
-            {
-              id: creditTrialSubscription.id,
-              adjustment: {
-                newSubscriptionItems: [],
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
+        const result = await adjustSubscription(
+          {
+            id: creditTrialSubscription.id,
+            adjustment: {
+              newSubscriptionItems: [],
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow(
-          'Non-renewing subscriptions cannot be adjusted'
+          },
+          organization,
+          ctx
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message).toContain(
+            'Non-renewing subscriptions cannot be adjusted'
+          )
+        }
         return Result.ok(null)
       })
     })
@@ -401,23 +416,25 @@ describe('adjustSubscription Integration Tests', async () => {
         unitPrice: 0,
       })
       await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await expect(
-          adjustSubscription(
-            {
-              id: doNotChargeSubscription.id,
-              adjustment: {
-                newSubscriptionItems: [],
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
+        const result = await adjustSubscription(
+          {
+            id: doNotChargeSubscription.id,
+            adjustment: {
+              newSubscriptionItems: [],
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow(
-          'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
+          },
+          organization,
+          ctx
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message).toContain(
+            'Cannot adjust doNotCharge subscriptions'
+          )
+        }
         return Result.ok(null)
       })
     })
@@ -475,43 +492,47 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
 
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow(
-          /Only recurring prices can be used in subscriptions\. Price .+ is of type usage/
+          },
+          organization,
+          ctx
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message).toMatch(
+            /Only recurring prices can be used in subscriptions/
+          )
+        }
         return Result.ok(null)
       })
     })
 
-    it('should throw when adjusting a non-existent subscription id', async () => {
+    it('should return NotFoundError when adjusting a non-existent subscription id', async () => {
       await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
-        await expect(
-          adjustSubscription(
-            {
-              id: 'sub_nonexistent123',
-              adjustment: {
-                newSubscriptionItems: [],
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: false,
-              },
+        const result = await adjustSubscription(
+          {
+            id: 'sub_nonexistent123',
+            adjustment: {
+              newSubscriptionItems: [],
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow()
+          },
+          organization,
+          ctx
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('NotFoundError')
+        }
         return Result.ok(null)
       })
     })
@@ -543,27 +564,30 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow(
-          'Subscription item quantity must be greater than zero'
+          },
+          organization,
+          ctx
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message).toContain(
+            'quantity must be greater than zero'
+          )
+        }
         return Result.ok(null)
       })
     })
 
-    it('should throw error when subscription items have negative quantity', async () => {
+    it('should return ValidationError when subscription items have negative quantity', async () => {
       await setupBillingPeriod({
         subscriptionId: subscription.id,
         startDate: Date.now() - 3600000,
@@ -572,7 +596,6 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
@@ -585,27 +608,30 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow(
-          'Subscription item quantity must be greater than zero'
+          },
+          organization,
+          ctx
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message).toContain(
+            'quantity must be greater than zero'
+          )
+        }
         return Result.ok(null)
       })
     })
 
-    it('should throw error when subscription items have negative unit price', async () => {
+    it('should return ValidationError when subscription items have negative unit price', async () => {
       await setupBillingPeriod({
         subscriptionId: subscription.id,
         startDate: Date.now() - 3600000,
@@ -614,7 +640,6 @@ describe('adjustSubscription Integration Tests', async () => {
       })
 
       await comprehensiveAdminTransaction(async (ctx) => {
-        const { transaction } = ctx
         const newItems: SubscriptionItem.Upsert[] = [
           {
             ...subscriptionItemCore,
@@ -627,22 +652,25 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow(
-          'Subscription item unit price cannot be negative'
+          },
+          organization,
+          ctx
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message).toContain(
+            'unit price cannot be negative'
+          )
+        }
         return Result.ok(null)
       })
     })
@@ -733,22 +761,25 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing:
-                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-              },
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing:
+                SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow(
-          'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
+          },
+          organization,
+          ctx
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message).toContain(
+            'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades'
+          )
+        }
         return Result.ok(null)
       })
     })
@@ -825,11 +856,16 @@ describe('adjustSubscription Integration Tests', async () => {
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).not.toHaveBeenCalled()
 
-        expect(result.subscription.name).toBe('Item 1 Updated')
-        expect(result.subscriptionItems.length).toBe(1)
-        expect(result.subscriptionItems[0].name).toBe(
-          'Item 1 Updated'
-        )
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.subscription.name).toBe(
+            'Item 1 Updated'
+          )
+          expect(result.value.subscriptionItems.length).toBe(1)
+          expect(result.value.subscriptionItems[0].name).toBe(
+            'Item 1 Updated'
+          )
+        }
         return Result.ok(null)
       })
     })
@@ -985,16 +1021,19 @@ describe('adjustSubscription Integration Tests', async () => {
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).not.toHaveBeenCalled()
 
-        expect(result.subscriptionItems.length).toBe(2)
-        const item1Result = result.subscriptionItems.find(
-          (item) => item.id === item1.id
-        )
-        expect(item1Result?.quantity).toBe(2)
-        expect(item1Result?.name).toBe('Item 1 Updated')
-        const item3Result = result.subscriptionItems.find(
-          (item) => item.name === 'Item 3'
-        )
-        expect(typeof item3Result).toBe('object')
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.subscriptionItems.length).toBe(2)
+          const item1Result = result.value.subscriptionItems.find(
+            (item: SubscriptionItem.Record) => item.id === item1.id
+          )
+          expect(item1Result?.quantity).toBe(2)
+          expect(item1Result?.name).toBe('Item 1 Updated')
+          const item3Result = result.value.subscriptionItems.find(
+            (item: SubscriptionItem.Record) => item.name === 'Item 3'
+          )
+          expect(typeof item3Result).toBe('object')
+        }
         return Result.ok(null)
       })
     })
@@ -1054,8 +1093,11 @@ describe('adjustSubscription Integration Tests', async () => {
           ctx
         )
 
-        expect(result.subscription.name).toBe(originalName)
-        expect(result.subscriptionItems.length).toBe(0)
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.subscription.name).toBe(originalName)
+          expect(result.value.subscriptionItems.length).toBe(0)
+        }
         return Result.ok(null)
       })
     })
@@ -1111,7 +1153,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
         expect(triggerCall).toMatchObject({
           billingRun: expect.objectContaining({
             id: expect.any(String),
@@ -1178,10 +1220,17 @@ describe('adjustSubscription Integration Tests', async () => {
           ctx
         )
 
-        expect(result.subscription.name).toBeNull()
-        expect(result.subscriptionItems.length).toBe(1)
-        expect(result.subscriptionItems[0].name).toBe('Item 1')
-        expect(result.subscriptionItems[0].unitPrice).toBe(100)
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.subscription.name).toBeNull()
+          expect(result.value.subscriptionItems.length).toBe(1)
+          expect(result.value.subscriptionItems[0].name).toBe(
+            'Item 1'
+          )
+          expect(result.value.subscriptionItems[0].unitPrice).toBe(
+            100
+          )
+        }
         return Result.ok(null)
       })
     })
@@ -1300,7 +1349,7 @@ describe('adjustSubscription Integration Tests', async () => {
 
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any as any
         expect(
           triggerCall.adjustmentParams.newSubscriptionItems
         ).toMatchObject(
@@ -1413,11 +1462,14 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(netDelta).toBeGreaterThanOrEqual(0)
 
         const mockTrigger = getMockTrigger()
-        if (netDelta === 0) {
-          expect(mockTrigger).not.toHaveBeenCalled()
-          expect(result.subscription.name).toBe('Basic Plan')
-        } else {
-          expect(mockTrigger).toHaveBeenCalled()
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          if (netDelta === 0) {
+            expect(mockTrigger).not.toHaveBeenCalled()
+            expect(result.value.subscription.name).toBe('Basic Plan')
+          } else {
+            expect(mockTrigger).toHaveBeenCalled()
+          }
         }
         return Result.ok(null)
       })
@@ -1734,8 +1786,11 @@ describe('adjustSubscription Integration Tests', async () => {
           ctx
         )
 
-        expect(result.subscription.name).toBe('Current Plan')
-        expect(result.subscription.priceId).toBe(price.id)
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.subscription.name).toBe('Current Plan')
+          expect(result.value.subscription.priceId).toBe(price.id)
+        }
         return Result.ok(null)
       })
     })
@@ -1960,18 +2015,21 @@ describe('adjustSubscription Integration Tests', async () => {
         const wasBillingRunTriggered =
           mockTrigger.mock.calls.length > 0
 
-        if (wasBillingRunTriggered) {
-          expect(result.subscriptionItems.length).toBe(1)
-          expect(result.subscription.name).toBeNull()
-        } else {
-          expect(result.subscriptionItems.length).toBe(0)
-          expect(result.subscription.name).toBe(originalName)
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          if (wasBillingRunTriggered) {
+            expect(result.value.subscriptionItems.length).toBe(1)
+            expect(result.value.subscription.name).toBeNull()
+          } else {
+            expect(result.value.subscriptionItems.length).toBe(0)
+            expect(result.value.subscription.name).toBe(originalName)
+          }
         }
         return Result.ok(null)
       })
     })
 
-    it('should throw error when attempting adjustment with zero-duration billing period', async () => {
+    it('should return ValidationError when attempting adjustment with zero-duration billing period', async () => {
       const zeroDurationBillingPeriod = await setupBillingPeriod({
         subscriptionId: subscription.id,
         startDate: Date.parse('2025-01-01T00:00:00Z'),
@@ -2005,25 +2063,27 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow()
+          },
+          organization,
+          ctx
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('NotFoundError')
+        }
         return Result.ok(null)
       })
     })
 
-    it('should throw error when attempting adjustment with billing periods in the past or future', async () => {
+    it('should return error when attempting adjustment with billing periods in the past or future', async () => {
       await comprehensiveAdminTransaction(async (ctx) => {
         const { transaction } = ctx
         const pastBP = await updateBillingPeriod(
@@ -2052,20 +2112,22 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newPastItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
+        const pastResult = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newPastItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow()
+          },
+          organization,
+          ctx
+        )
+        expect(pastResult.status).toBe('error')
+        if (pastResult.status === 'error') {
+          expect(pastResult.error._tag).toBe('NotFoundError')
+        }
 
         await updateBillingPeriod(
           {
@@ -2093,20 +2155,22 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newFutureItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
+        const futureResult = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newFutureItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow()
+          },
+          organization,
+          ctx
+        )
+        expect(futureResult.status).toBe('error')
+        if (futureResult.status === 'error') {
+          expect(futureResult.error._tag).toBe('NotFoundError')
+        }
         return Result.ok(null)
       })
     })
@@ -2155,7 +2219,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(synced.name).toBe('Current Plan')
-        expect(synced.priceId).toBe(currentItem.priceId)
+        expect(synced.priceId).toBe(currentItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2205,7 +2269,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('Premium Feature')
-        expect(synced.priceId).toBe(premiumItem.priceId)
+        expect(synced.priceId).toBe(premiumItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2244,7 +2308,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('Enterprise Plan')
-        expect(synced.priceId).toBe(expensiveItem.priceId)
+        expect(synced.priceId).toBe(expensiveItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2310,7 +2374,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(syncedAfter.name).toBe('Standard Plan')
-        expect(syncedAfter.priceId).toBe(secondaryItem.priceId)
+        expect(syncedAfter.priceId).toBe(secondaryItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2368,7 +2432,7 @@ describe('adjustSubscription Integration Tests', async () => {
           transaction
         )
         expect(synced.name).toBe('New Premium')
-        expect(synced.priceId).toBe(newPremiumItem.priceId)
+        expect(synced.priceId).toBe(newPremiumItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2456,7 +2520,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('High Quantity')
-        expect(synced.priceId).toBe(highQuantityItem.priceId)
+        expect(synced.priceId).toBe(highQuantityItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2495,7 +2559,7 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         expect(synced.name).toBe('Newer Item')
-        expect(synced.priceId).toBe(newerItem.priceId)
+        expect(synced.priceId).toBe(newerItem.priceId!)
         return Result.ok(null)
       })
     })
@@ -2559,7 +2623,7 @@ describe('adjustSubscription Integration Tests', async () => {
     Bulk Operations
   ========================================================================== */
   describe('Bulk Operations', () => {
-    it('should throw error and rollback transaction when invalid price ID is provided during bulk operations', async () => {
+    it('should return NotFoundError when invalid price ID is provided during bulk operations', async () => {
       const item = await setupSubscriptionItem({
         subscriptionId: subscription.id,
         name: 'Item',
@@ -2577,35 +2641,35 @@ describe('adjustSubscription Integration Tests', async () => {
           },
           transaction
         )
-        await expect(
-          adminTransaction(async ({ transaction }) => {
-            const invalidItems: SubscriptionItem.Upsert[] = [
-              {
-                ...subscriptionItemCore,
-                id: item.id,
-                name: 'Item',
-                quantity: 1,
-                unitPrice: 100,
-                priceId: 'invalid_price_id',
-                expiredAt: null,
-                type: SubscriptionItemType.Static,
-              },
-            ]
+        const invalidItems: SubscriptionItem.Upsert[] = [
+          {
+            ...subscriptionItemCore,
+            id: item.id,
+            name: 'Item',
+            quantity: 1,
+            unitPrice: 100,
+            priceId: 'invalid_price_id',
+            expiredAt: null,
+            type: SubscriptionItemType.Static,
+          },
+        ]
 
-            await adjustSubscription(
-              {
-                id: subscription.id,
-                adjustment: {
-                  newSubscriptionItems: invalidItems,
-                  timing: SubscriptionAdjustmentTiming.Immediately,
-                  prorateCurrentBillingPeriod: false,
-                },
-              },
-              organization,
-              ctx
-            )
-          })
-        ).rejects.toThrow()
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: invalidItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: false,
+            },
+          },
+          organization,
+          ctx
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('NotFoundError')
+        }
         return Result.ok(null)
       })
     })
@@ -2687,8 +2751,8 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(mockOrgNotification).toHaveBeenCalledTimes(1)
 
         // Verify customer notification payload
-        const customerPayload =
-          mockCustomerNotification.mock.calls[0][0]
+        const customerPayload = mockCustomerNotification.mock
+          .calls[0][0] as any
         expect(customerPayload.adjustmentType).toBe('downgrade')
         expect(customerPayload.subscriptionId).toBe(subscription.id)
         expect(customerPayload.customerId).toBe(customer.id)
@@ -2700,7 +2764,7 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(customerPayload.newItems[0].unitPrice).toBe(999)
 
         // Verify organization notification payload
-        const orgPayload = mockOrgNotification.mock.calls[0][0]
+        const orgPayload = mockOrgNotification.mock.calls[0][0] as any
         expect(orgPayload.adjustmentType).toBe('downgrade')
         expect(typeof orgPayload.currency).toBe('string')
         expect(orgPayload.currency.length).toBeGreaterThan(0)
@@ -2833,10 +2897,13 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Should resolve to Immediately for upgrades
-        expect(result.resolvedTiming).toBe(
-          SubscriptionAdjustmentTiming.Immediately
-        )
-        expect(result.isUpgrade).toBe(true)
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.resolvedTiming).toBe(
+            SubscriptionAdjustmentTiming.Immediately
+          )
+          expect(result.value.isUpgrade).toBe(true)
+        }
 
         // Billing run should be triggered for upgrades
         const mockTrigger = getMockTrigger()
@@ -2923,10 +2990,13 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Should resolve to AtEndOfCurrentBillingPeriod for downgrades
-        expect(result.resolvedTiming).toBe(
-          SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
-        )
-        expect(result.isUpgrade).toBe(false)
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.resolvedTiming).toBe(
+            SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+          )
+          expect(result.value.isUpgrade).toBe(false)
+        }
 
         // Billing run should NOT be triggered for downgrades
         const mockTrigger = getMockTrigger()
@@ -3000,11 +3070,14 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Same price = not an upgrade
-        expect(result.isUpgrade).toBe(false)
-        // Should resolve to Immediately for lateral moves
-        expect(result.resolvedTiming).toBe(
-          SubscriptionAdjustmentTiming.Immediately
-        )
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.isUpgrade).toBe(false)
+          // Should resolve to Immediately for lateral moves
+          expect(result.value.resolvedTiming).toBe(
+            SubscriptionAdjustmentTiming.Immediately
+          )
+        }
         return Result.ok(null)
       })
     })
@@ -3071,7 +3144,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Should trigger billing run for upgrade
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
 
         // The resolved item should have the correct priceId
         expect(
@@ -3115,20 +3188,25 @@ describe('adjustSubscription Integration Tests', async () => {
           },
         ]
 
-        await expect(
-          adjustSubscription(
-            {
-              id: subscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
+        const result = await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
             },
-            organization,
-            ctx
+          },
+          organization,
+          ctx
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('NotFoundError')
+          expect(result.error.message).toContain(
+            'Price not found: nonexistent-slug'
           )
-        ).rejects.toThrow(/Price "nonexistent-slug" not found/)
+        }
         return Result.ok(null)
       })
     })
@@ -3190,7 +3268,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Should trigger billing run for upgrade (3 * testPrice.unitPrice > 100)
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
 
         // The expanded item should have all the correct fields from the price
         expect(
@@ -3239,7 +3317,7 @@ describe('adjustSubscription Integration Tests', async () => {
             trialPeriodDays: 0,
             slug: uniqueSlug,
           },
-          transaction
+          ctx
         )
 
         const idPrice = await insertPrice(
@@ -3257,7 +3335,7 @@ describe('adjustSubscription Integration Tests', async () => {
             active: true,
             trialPeriodDays: 0,
           },
-          transaction
+          ctx
         )
 
         await updateBillingPeriod(
@@ -3298,7 +3376,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Should trigger billing run for upgrade
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
 
         // Should have both items resolved
         expect(
@@ -3387,7 +3465,7 @@ describe('adjustSubscription Integration Tests', async () => {
         // Should trigger billing run for upgrade
         const mockTrigger = getMockTrigger()
         expect(mockTrigger).toHaveBeenCalledTimes(1)
-        const triggerCall = mockTrigger.mock.calls[0][0]
+        const triggerCall = mockTrigger.mock.calls[0][0] as any
 
         // The item should be resolved correctly from the UUID
         expect(
@@ -3465,14 +3543,19 @@ describe('adjustSubscription Integration Tests', async () => {
         expect(mockTrigger).not.toHaveBeenCalled()
 
         // Should report as upgrade
-        expect(result.isUpgrade).toBe(true)
-        expect(result.resolvedTiming).toBe(
-          SubscriptionAdjustmentTiming.Immediately
-        )
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.isUpgrade).toBe(true)
+          expect(result.value.resolvedTiming).toBe(
+            SubscriptionAdjustmentTiming.Immediately
+          )
 
-        // Subscription items should be updated immediately
-        expect(result.subscriptionItems.length).toBe(1)
-        expect(result.subscriptionItems[0].unitPrice).toBe(500)
+          // Subscription items should be updated immediately
+          expect(result.value.subscriptionItems.length).toBe(1)
+          expect(result.value.subscriptionItems[0].unitPrice).toBe(
+            500
+          )
+        }
 
         // Should NOT create proration billing period items
         const bpItemsAfter = await selectBillingPeriodItems(
@@ -3531,13 +3614,16 @@ describe('adjustSubscription Integration Tests', async () => {
         )
 
         // Should report as upgrade
-        expect(result.isUpgrade).toBe(true)
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.isUpgrade).toBe(true)
 
-        // Note: The notification itself is tested elsewhere, but we verify
-        // that the code path for upgrades without proration is taken
-        expect(result.resolvedTiming).toBe(
-          SubscriptionAdjustmentTiming.Immediately
-        )
+          // Note: The notification itself is tested elsewhere, but we verify
+          // that the code path for upgrades without proration is taken
+          expect(result.value.resolvedTiming).toBe(
+            SubscriptionAdjustmentTiming.Immediately
+          )
+        }
         return Result.ok(null)
       })
     })
@@ -3589,20 +3675,23 @@ describe('adjustSubscription Integration Tests', async () => {
         // Free subscriptions should be upgraded via createSubscription flow,
         // which cancels the free subscription and creates a new paid one.
         // adjustSubscription rejects free plans to enforce this pattern.
-        await expect(
-          adjustSubscription(
-            {
-              id: freeSubscription.id,
-              adjustment: {
-                newSubscriptionItems: newItems,
-                timing: SubscriptionAdjustmentTiming.Immediately,
-                prorateCurrentBillingPeriod: true,
-              },
+        const result = await adjustSubscription(
+          {
+            id: freeSubscription.id,
+            adjustment: {
+              newSubscriptionItems: newItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
             },
-            organization,
-            ctx
-          )
-        ).rejects.toThrow(/free/i)
+          },
+          organization,
+          ctx
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error._tag).toBe('ValidationError')
+          expect(result.error.message.toLowerCase()).toContain('free')
+        }
         return Result.ok(null)
       })
     })
@@ -3822,7 +3911,10 @@ describe('adjustSubscription Integration Tests', async () => {
         // For immediate downgrades, no billing run is triggered (no refund)
         // The net charge would be negative, but we cap at 0
         // pendingBillingRunId is only present when a billing run is triggered
-        expect(result.pendingBillingRunId).toBeUndefined()
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.pendingBillingRunId).toBeUndefined()
+        }
 
         // Check that no proration billing period items were created for refund
         const bpItems = await selectBillingPeriodItems(
@@ -3921,7 +4013,10 @@ describe('adjustSubscription Integration Tests', async () => {
         // ============================================================
         // Since no billing run was triggered (downgrade protection),
         // the subscription should be synced immediately
-        expect(result.subscription.name).toBe('Basic Plan')
+        expect(result.status).toBe('ok')
+        if (result.status === 'ok') {
+          expect(result.value.subscription.name).toBe('Basic Plan')
+        }
         return Result.ok(null)
       })
     })
@@ -3984,7 +4079,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources before adjustment
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4072,7 +4168,12 @@ describe('adjustSubscription Integration Tests', async () => {
           )
 
           // Verify billing run was created (pendingBillingRunId is returned)
-          expect(typeof result.pendingBillingRunId).toBe('string')
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(typeof result.value.pendingBillingRunId).toBe(
+              'string'
+            )
+          }
 
           // Verify claims are still accessible during pending billing run state
           // (old subscription items haven't been expired yet)
@@ -4142,7 +4243,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 8 resources
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4216,22 +4318,25 @@ describe('adjustSubscription Integration Tests', async () => {
           ]
 
           // Should reject because new capacity (5) < active claims (8)
-          await expect(
-            adjustSubscription(
-              {
-                id: subscription.id,
-                adjustment: {
-                  newSubscriptionItems: newItems,
-                  timing: SubscriptionAdjustmentTiming.Immediately,
-                  prorateCurrentBillingPeriod: true,
-                },
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: true,
               },
-              organization,
-              ctx
-            )
-          ).rejects.toThrow(
-            /Cannot reduce.*capacity to 5.*8.*claimed/
+            },
+            organization,
+            ctx
           )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ConflictError')
+            expect(result.error.message).toMatch(
+              /Cannot reduce.*capacity to 5.*8.*claimed/
+            )
+          }
 
           // Verify claims unchanged
           const activeClaims = await selectActiveResourceClaims(
@@ -4298,7 +4403,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4464,7 +4570,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources (less than new capacity)
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4627,7 +4734,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 5 resources
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4700,23 +4808,26 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
-          // Attempt downgrade - should throw error
-          await expect(
-            adjustSubscription(
-              {
-                id: subscription.id,
-                adjustment: {
-                  newSubscriptionItems: newItems,
-                  timing: SubscriptionAdjustmentTiming.Immediately,
-                  prorateCurrentBillingPeriod: false,
-                },
+          // Attempt downgrade - should return error
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
               },
-              organization,
-              ctx
-            )
-          ).rejects.toThrow(
-            /Cannot reduce.*capacity to 3.*5.*claimed/
+            },
+            organization,
+            ctx
           )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ConflictError')
+            expect(result.error.message).toMatch(
+              /Cannot reduce.*capacity to 3.*5.*claimed/
+            )
+          }
 
           // Verify claims are unchanged
           const activeClaims = await selectActiveResourceClaims(
@@ -4791,7 +4902,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 5 resources
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -4871,24 +4983,27 @@ describe('adjustSubscription Integration Tests', async () => {
             },
           ]
 
-          // Schedule end-of-period downgrade - should throw immediately
+          // Schedule end-of-period downgrade - should return error immediately
           // because capacity validation happens at scheduling time
-          await expect(
-            adjustSubscription(
-              {
-                id: subscription.id,
-                adjustment: {
-                  newSubscriptionItems: newItems,
-                  timing:
-                    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-                },
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing:
+                  SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
               },
-              organization,
-              ctx
-            )
-          ).rejects.toThrow(
-            /Cannot reduce.*capacity to 3.*5.*claimed/
+            },
+            organization,
+            ctx
           )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ConflictError')
+            expect(result.error.message).toMatch(
+              /Cannot reduce.*capacity to 3.*5.*claimed/
+            )
+          }
 
           // Verify claims unchanged
           const activeClaims = await selectActiveResourceClaims(
@@ -4944,7 +5059,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources (less than new capacity)
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5039,7 +5155,10 @@ describe('adjustSubscription Integration Tests', async () => {
           )
 
           // No billing run for end-of-period adjustments
-          expect(result.pendingBillingRunId).toBeUndefined()
+          expect(result.status).toBe('ok')
+          if (result.status === 'ok') {
+            expect(result.value.pendingBillingRunId).toBeUndefined()
+          }
 
           // Verify claims still accessible (adjustment not applied yet)
           const activeClaims = await selectActiveResourceClaims(
@@ -5168,7 +5287,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 4 resources (uses capacity from both items)
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5217,22 +5337,25 @@ describe('adjustSubscription Integration Tests', async () => {
           ]
 
           // Should reject because removing addon leaves only 3 capacity but 4 claimed
-          await expect(
-            adjustSubscription(
-              {
-                id: subscription.id,
-                adjustment: {
-                  newSubscriptionItems: newItems,
-                  timing: SubscriptionAdjustmentTiming.Immediately,
-                  prorateCurrentBillingPeriod: false,
-                },
+          const result = await adjustSubscription(
+            {
+              id: subscription.id,
+              adjustment: {
+                newSubscriptionItems: newItems,
+                timing: SubscriptionAdjustmentTiming.Immediately,
+                prorateCurrentBillingPeriod: false,
               },
-              organization,
-              ctx
-            )
-          ).rejects.toThrow(
-            /Cannot reduce.*capacity to 3.*4.*claimed/
+            },
+            organization,
+            ctx
           )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error._tag).toBe('ConflictError')
+            expect(result.error.message).toMatch(
+              /Cannot reduce.*capacity to 3.*4.*claimed/
+            )
+          }
 
           // Verify all 4 claims unchanged
           const activeClaims = await selectActiveResourceClaims(
@@ -5340,7 +5463,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 2 resources (can be satisfied by base plan alone)
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5473,7 +5597,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 2 resources before adjustment
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5646,7 +5771,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Claim 3 resources before adjustment
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -5818,7 +5944,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Step 2: Claim 2 seats
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,
@@ -6002,7 +6129,8 @@ describe('adjustSubscription Integration Tests', async () => {
         })
 
         // Step 2: Claim 2 seats initially
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return claimResourceTransaction(
             {
               organizationId: organization.id,

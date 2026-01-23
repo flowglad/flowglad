@@ -1,8 +1,9 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import * as R from 'ramda'
-import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
+import { ValidationError } from '@/errors'
 import type { PriceType } from '@/types'
 
 /**
@@ -177,14 +178,26 @@ export const validateDefaultProductSchema = (product: {
     slug?: string
     trialDays?: number
   }
-}) => {
+}): Result<void, ValidationError> => {
   // Check price is zero
   if (product.price.amount !== 0) {
-    throw new Error('Default products must have zero price')
+    return Result.err(
+      new ValidationError(
+        'price',
+        'Default products must have zero price'
+      )
+    )
   }
 
   // Check no trials
   if (product.price.trialDays && product.price.trialDays > 0) {
-    throw new Error('Default products cannot have trials')
+    return Result.err(
+      new ValidationError(
+        'price',
+        'Default products cannot have trials'
+      )
+    )
   }
+
+  return Result.ok(undefined)
 }

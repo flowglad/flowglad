@@ -1,3 +1,4 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   addDays,
   endOfMonth,
@@ -6,7 +7,6 @@ import {
   subMonths,
 } from 'date-fns'
 import { and, eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,

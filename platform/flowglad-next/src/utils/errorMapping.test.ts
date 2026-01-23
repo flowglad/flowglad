@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
-import { describe, expect, it } from 'vitest'
 import {
   AuthorizationError,
   ConflictError,
@@ -56,7 +56,7 @@ describe('toTRPCError', () => {
     expect(trpcError.message).toBe('Card declined')
   })
 
-  it('maps TerminalStateError to INTERNAL_SERVER_ERROR TRPCError with original message', () => {
+  it('maps TerminalStateError to BAD_REQUEST TRPCError with original message', () => {
     const domainError = new TerminalStateError(
       'Invoice',
       'inv-456',
@@ -64,7 +64,7 @@ describe('toTRPCError', () => {
     )
     const trpcError = toTRPCError(domainError)
     expect(trpcError).toBeInstanceOf(TRPCError)
-    expect(trpcError.code).toBe('INTERNAL_SERVER_ERROR')
+    expect(trpcError.code).toBe('BAD_REQUEST')
     expect(trpcError.message).toBe(
       'Invoice inv-456 is in terminal state: paid'
     )

@@ -120,6 +120,12 @@
             "pages": [
               "guides/tanstack-start/generation-based-subscription"
             ]
+          },
+          {
+            "group": "React + Vite",
+            "pages": [
+              "guides/react-vite/generation-based-subscription"
+            ]
           }
         ]
       },

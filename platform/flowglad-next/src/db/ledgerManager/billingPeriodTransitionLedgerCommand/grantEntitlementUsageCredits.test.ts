@@ -1,13 +1,14 @@
-import { and, eq } from 'drizzle-orm'
+import type { Mock } from 'bun:test'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  Mock,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
+import { and, eq } from 'drizzle-orm'
 import {
   setupBillingPeriod,
   // setupProduct is included via setupOrg
@@ -238,8 +239,8 @@ describe('grantEntitlementUsageCredits', () => {
       baseSubscriptionItemFeature,
     ]
 
-    const { usageCredits, ledgerEntries } = await adminTransaction(
-      async ({ transaction }) => {
+    const { usageCredits, ledgerEntries } = (
+      await adminTransaction(async ({ transaction }) => {
         return await grantEntitlementUsageCredits(
           {
             ledgerAccountsByUsageMeterId,
@@ -248,8 +249,8 @@ describe('grantEntitlementUsageCredits', () => {
           },
           transaction
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(usageCredits.length).toBe(1)
     const usageCredit = usageCredits[0]
@@ -359,16 +360,18 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId,
-          ledgerTransaction: testLedgerTransaction,
-          command,
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(createdUsageCredits.length).toBe(2)
     // Sort by usageMeterId to ensure consistent order for assertions
@@ -519,16 +522,18 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId,
-          ledgerTransaction: testLedgerTransaction,
-          command,
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(createdUsageCredits.length).toBe(1)
     const usageCredit = createdUsageCredits[0]
@@ -597,16 +602,18 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId,
-          ledgerTransaction: testLedgerTransaction,
-          command,
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Expects:
     // - Query the `usageCredits` table:
@@ -641,16 +648,18 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId,
-          ledgerTransaction: testLedgerTransaction,
-          command, // command now has livemode: false
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId,
+            ledgerTransaction: testLedgerTransaction,
+            command, // command now has livemode: false
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     expect(createdUsageCredits.length).toBe(1)
     const usageCredit = createdUsageCredits[0]
@@ -755,17 +764,19 @@ describe('grantEntitlementUsageCredits', () => {
     const {
       usageCredits: createdUsageCredits,
       ledgerEntries: createdLedgerEntries,
-    } = await adminTransaction(async ({ transaction }) => {
-      // The ledgerAccountsByUsageMeterId passed here is the original one from beforeEach
-      return await grantEntitlementUsageCredits(
-        {
-          ledgerAccountsByUsageMeterId, // This map is intentionally missing usageMeter2's account
-          ledgerTransaction: testLedgerTransaction,
-          command,
-        },
-        transaction
-      )
-    })
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        // The ledgerAccountsByUsageMeterId passed here is the original one from beforeEach
+        return await grantEntitlementUsageCredits(
+          {
+            ledgerAccountsByUsageMeterId, // This map is intentionally missing usageMeter2's account
+            ledgerTransaction: testLedgerTransaction,
+            command,
+          },
+          transaction
+        )
+      })
+    ).unwrap()
 
     // Assertions:
     // 1. Ledger Accounts
@@ -932,8 +943,8 @@ describe('grantEntitlementUsageCredits', () => {
       // Ledger account for usageMeter2 will be auto-created
 
       // Action
-      const { usageCredits, ledgerEntries } = await adminTransaction(
-        async ({ transaction }) => {
+      const { usageCredits, ledgerEntries } = (
+        await adminTransaction(async ({ transaction }) => {
           return await grantEntitlementUsageCredits(
             {
               ledgerAccountsByUsageMeterId,
@@ -942,8 +953,8 @@ describe('grantEntitlementUsageCredits', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Assert
       expect(usageCredits.length).toBe(2)
@@ -1056,8 +1067,8 @@ describe('grantEntitlementUsageCredits', () => {
       command.payload.subscriptionFeatureItems = [sifOnce, sifEvery]
 
       // Action
-      const { usageCredits, ledgerEntries } = await adminTransaction(
-        async ({ transaction }) => {
+      const { usageCredits, ledgerEntries } = (
+        await adminTransaction(async ({ transaction }) => {
           return await grantEntitlementUsageCredits(
             {
               ledgerAccountsByUsageMeterId,
@@ -1066,8 +1077,8 @@ describe('grantEntitlementUsageCredits', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Assert
       expect(usageCredits.length).toBe(1)
@@ -1142,8 +1153,8 @@ describe('grantEntitlementUsageCredits', () => {
       command.payload.subscriptionFeatureItems = [sifOnce]
 
       // Action
-      const { usageCredits, ledgerEntries } = await adminTransaction(
-        async ({ transaction }) => {
+      const { usageCredits, ledgerEntries } = (
+        await adminTransaction(async ({ transaction }) => {
           return await grantEntitlementUsageCredits(
             {
               ledgerAccountsByUsageMeterId,
@@ -1152,8 +1163,8 @@ describe('grantEntitlementUsageCredits', () => {
             },
             transaction
           )
-        }
-      )
+        })
+      ).unwrap()
 
       // Assert
       expect(usageCredits.length).toBe(0)
