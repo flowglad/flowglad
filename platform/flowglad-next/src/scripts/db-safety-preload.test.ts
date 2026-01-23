@@ -13,28 +13,26 @@ describe('db-safety-preload', () => {
 
     beforeEach(() => {
       originalEnv = { ...process.env }
-      // Clear all safety-related env vars
-      ;(process.env as Record<string, string | undefined>).NODE_ENV =
-        undefined
-      ;(process.env as Record<string, string | undefined>).VERCEL =
-        undefined
-      ;(process.env as Record<string, string | undefined>).CI =
-        undefined
-      ;(
-        process.env as Record<string, string | undefined>
-      ).DANGEROUSLY_ALLOW_REMOTE_DB = undefined
+      // Clear all safety-related env vars using delete for proper removal
+      // Type assertion needed because TypeScript declares process.env as readonly
+      const env = process.env as Record<string, string | undefined>
+      delete env.NODE_ENV
+      delete env.VERCEL
+      delete env.CI
+      delete env.DANGEROUSLY_ALLOW_REMOTE_DB
     })
 
     afterEach(() => {
       // Restore original env
-      Object.keys(process.env).forEach((key) => {
-        delete (process.env as Record<string, string | undefined>)[
-          key
-        ]
+      // Type assertion needed because TypeScript declares process.env as readonly
+      const env = process.env as Record<string, string | undefined>
+      Object.keys(env).forEach((key) => {
+        delete env[key]
       })
       Object.entries(originalEnv).forEach(([key, value]) => {
-        ;(process.env as Record<string, string | undefined>)[key] =
-          value
+        if (value !== undefined) {
+          env[key] = value
+        }
       })
     })
 
@@ -43,37 +41,38 @@ describe('db-safety-preload', () => {
     })
 
     it('returns false when NODE_ENV is production (intentionally not a bypass to prevent AI agent misuse)', () => {
-      ;(process.env as Record<string, string | undefined>).NODE_ENV =
-        'production'
+      const env = process.env as Record<string, string | undefined>
+      env.NODE_ENV = 'production'
       expect(shouldSkipSafetyCheck()).toBe(false)
     })
 
     it('returns false when NODE_ENV is development', () => {
-      ;(process.env as Record<string, string | undefined>).NODE_ENV =
-        'development'
+      const env = process.env as Record<string, string | undefined>
+      env.NODE_ENV = 'development'
       expect(shouldSkipSafetyCheck()).toBe(false)
     })
 
     it('returns true when VERCEL is set (any value)', () => {
-      ;(process.env as Record<string, string | undefined>).VERCEL =
-        '1'
+      const env = process.env as Record<string, string | undefined>
+      env.VERCEL = '1'
       expect(shouldSkipSafetyCheck()).toBe(true)
     })
 
     it('returns true when VERCEL is set to empty string', () => {
-      ;(process.env as Record<string, string | undefined>).VERCEL = ''
+      const env = process.env as Record<string, string | undefined>
+      env.VERCEL = ''
       expect(shouldSkipSafetyCheck()).toBe(true)
     })
 
     it('returns true when CI is set', () => {
-      ;(process.env as Record<string, string | undefined>).CI = 'true'
+      const env = process.env as Record<string, string | undefined>
+      env.CI = 'true'
       expect(shouldSkipSafetyCheck()).toBe(true)
     })
 
     it('returns true when DANGEROUSLY_ALLOW_REMOTE_DB is set', () => {
-      ;(
-        process.env as Record<string, string | undefined>
-      ).DANGEROUSLY_ALLOW_REMOTE_DB = '1'
+      const env = process.env as Record<string, string | undefined>
+      env.DANGEROUSLY_ALLOW_REMOTE_DB = '1'
       expect(shouldSkipSafetyCheck()).toBe(true)
     })
   })
