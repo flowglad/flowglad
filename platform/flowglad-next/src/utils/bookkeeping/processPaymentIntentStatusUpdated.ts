@@ -277,6 +277,11 @@ export const upsertPaymentForStripeCharge = async (
       ?.country as CountryCode
   }
 
+  const paymentMethodResult = paymentMethodFromStripeCharge(charge)
+  if (Result.isError(paymentMethodResult)) {
+    throw paymentMethodResult.error
+  }
+
   const paymentInsert: Payment.Insert = {
     amount: charge.amount,
     status: chargeStatusToPaymentStatus(charge.status),
@@ -286,7 +291,7 @@ export const upsertPaymentForStripeCharge = async (
     organizationId,
     purchaseId,
     stripePaymentIntentId: paymentIntentId,
-    paymentMethod: paymentMethodFromStripeCharge(charge),
+    paymentMethod: paymentMethodResult.value,
     currency: currency ?? CurrencyCode.USD,
     refundedAt: null,
     taxCountry,

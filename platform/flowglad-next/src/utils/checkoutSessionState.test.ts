@@ -1,11 +1,5 @@
-import {
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from 'bun:test'
+import { Result } from 'better-result'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -108,8 +102,8 @@ describe('createNonInvoiceCheckoutSession', () => {
           isDefault: true,
         })
 
-        await expect(
-          adminTransaction(async ({ transaction }) =>
+        const result = await adminTransaction(
+          async ({ transaction }) =>
             createNonInvoiceCheckoutSession(
               {
                 price: defaultPrice,
@@ -117,10 +111,14 @@ describe('createNonInvoiceCheckoutSession', () => {
               },
               transaction
             )
-          )
-        ).rejects.toThrow(
-          'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
         )
+
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+          )
+        }
       } finally {
         await teardownOrg({ organizationId: defaultOrg.id })
       }
