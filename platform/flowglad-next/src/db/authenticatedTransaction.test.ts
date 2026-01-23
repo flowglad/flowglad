@@ -1540,7 +1540,7 @@ describe('RLS for selectPricingModels', () => {
             organizationId: catOrg1.id,
             name: 'New Org1 PricingModel',
             isDefault: false,
-            livemode: true,
+            livemode: false, // Use testmode to avoid livemode uniqueness constraint
           },
           transaction
         ),
