@@ -113,21 +113,29 @@ describe('getProductTableRows', () => {
     expect(result.total).toBe(3)
     expect(result.hasMore).toBe(false)
 
-    // Check first product
-    expect(result.data[1].product.id).toBe(secondProductId)
-    expect(result.data[1].product.name).toBe('Product 1')
-    expect(result.data[1].product.active).toBe(true)
-    expect(result.data[1].prices.length).toBe(1)
-    expect(result.data[1].prices[0].id).toBe(secondPriceId)
-    expect(result.data[1].pricingModel?.id).toBe(pricingModelId)
+    // Find products by ID rather than assuming specific order
+    const secondProductResult = result.data.find(
+      (p) => p.product.id === secondProductId
+    )
+    const thirdProductResult = result.data.find(
+      (p) => p.product.id === thirdProductId
+    )
 
-    // Check second product
-    expect(result.data[0].product.id).toBe(thirdProductId)
-    expect(result.data[0].product.name).toBe('Product 2')
-    expect(result.data[0].product.active).toBe(true)
-    expect(result.data[0].prices.length).toBe(1)
-    expect(result.data[0].prices[0].id).toBe(thirdPriceId)
-    expect(result.data[0].pricingModel?.id).toBe(pricingModelId)
+    // Check Product 1
+    expect(secondProductResult).toBeDefined()
+    expect(secondProductResult!.product.name).toBe('Product 1')
+    expect(secondProductResult!.product.active).toBe(true)
+    expect(secondProductResult!.prices.length).toBe(1)
+    expect(secondProductResult!.prices[0].id).toBe(secondPriceId)
+    expect(secondProductResult!.pricingModel?.id).toBe(pricingModelId)
+
+    // Check Product 2
+    expect(thirdProductResult).toBeDefined()
+    expect(thirdProductResult!.product.name).toBe('Product 2')
+    expect(thirdProductResult!.product.active).toBe(true)
+    expect(thirdProductResult!.prices.length).toBe(1)
+    expect(thirdProductResult!.prices[0].id).toBe(thirdPriceId)
+    expect(thirdProductResult!.pricingModel?.id).toBe(pricingModelId)
   })
 
   it('should filter products by active status', async () => {
@@ -366,8 +374,20 @@ describe('getProductTableRows', () => {
       )
     })
 
-    // The newest product should be first
-    expect(result.data[0].product.id).toBe(newProduct.id)
+    // Verify the new product is in the results
+    const newProductResult = result.data.find(
+      (p) => p.product.id === newProduct.id
+    )
+    expect(newProductResult).toBeDefined()
+
+    // Verify results are sorted by createdAt DESC
+    const createdAtTimestamps = result.data.map((p) =>
+      new Date(p.product.createdAt).getTime()
+    )
+    const sortedTimestamps = [...createdAtTimestamps].sort(
+      (a, b) => b - a
+    )
+    expect(createdAtTimestamps).toEqual(sortedTimestamps)
   })
 })
 
@@ -709,8 +729,11 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     expect(result.product.id).toBe(product.id)
     expect(result.product.name).toBe('Test Product')
     expect(result.prices).toHaveLength(2)
-    expect(result.prices[0].name).toBe('Price 1')
-    expect(result.prices[1].name).toBe('Price 2')
+    // Don't assume price ordering - find by name instead
+    const price1 = result.prices.find((p) => p.name === 'Price 1')
+    const price2 = result.prices.find((p) => p.name === 'Price 2')
+    expect(price1).toBeDefined()
+    expect(price2).toBeDefined()
     expect(Array.isArray(result.features)).toBe(true)
   })
 })

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test'
+import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
@@ -159,15 +159,29 @@ const mockFailedCharge = (
   status: 'failed',
 })
 
-describe('Checkout Sessions', async () => {
-  // Common variables for all tests
-  const { organization, price, pricingModel } = await setupOrg()
+describe('Checkout Sessions', () => {
+  // Common variables for all tests - organization/price/pricingModel set in beforeAll
+  let organization: Awaited<
+    ReturnType<typeof setupOrg>
+  >['organization']
+  let price: Awaited<ReturnType<typeof setupOrg>>['price']
+  let pricingModel: Awaited<
+    ReturnType<typeof setupOrg>
+  >['pricingModel']
   let customer: Customer.Record
   let checkoutSession: CheckoutSession.Record
   let purchase: Purchase.Record
   let feeCalculation: FeeCalculation.Record
   let discount: Discount.Record
   let succeededCharge: TestCharge
+
+  beforeAll(async () => {
+    // Setup organization once for all tests in this describe block
+    const orgSetup = await setupOrg()
+    organization = orgSetup.organization
+    price = orgSetup.price
+    pricingModel = orgSetup.pricingModel
+  })
 
   beforeEach(async () => {
     // Set up common test data
@@ -1403,15 +1417,20 @@ describe('editCheckoutSessionBillingAddress', async () => {
 
   describe('for Platform organizations', () => {
     // Setup Platform organization for tests in this describe block
-    const platformOrgSetup = setupOrg({
-      stripeConnectContractType: StripeConnectContractType.Platform,
+    let platformOrganization: Awaited<
+      ReturnType<typeof setupOrg>
+    >['organization']
+    let platformPrice: Awaited<ReturnType<typeof setupOrg>>['price']
+
+    beforeAll(async () => {
+      const platformOrgSetup = await setupOrg({
+        stripeConnectContractType: StripeConnectContractType.Platform,
+      })
+      platformOrganization = platformOrgSetup.organization
+      platformPrice = platformOrgSetup.price
     })
 
     it('returns null feeCalculation for Platform organizations (no tax calculation)', async () => {
-      const {
-        organization: platformOrganization,
-        price: platformPrice,
-      } = await platformOrgSetup
       const platformCustomer = await setupCustomer({
         organizationId: platformOrganization.id,
       })

@@ -1965,9 +1965,14 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
       direction: 'forward',
     })
     const seenNames: string[] = []
+    const seenItems: Array<{
+      id: string
+      createdAt: number
+      name: string
+    }> = []
 
     // Walk pages until exhaustion
-    // Collect names to assert full ordering and content
+    // Collect names to assert full content (not necessarily in creation order)
     while (true) {
       const page = await adminTransaction(async ({ transaction }) =>
         selectCustomersPaginated(
@@ -1976,22 +1981,45 @@ describe('createPaginatedSelectFunction (deterministic assertions)', () => {
         )
       )
       seenNames.push(...page.data.map((c) => c.name))
+      seenItems.push(
+        ...page.data.map((c) => ({
+          id: c.id,
+          createdAt: c.createdAt,
+          name: c.name,
+        }))
+      )
       if (!page.nextCursor) break
       currentCursor = page.nextCursor
     }
 
-    // Ensure exactly our 12 seeded customers were returned in order
-    expect(seenNames).toEqual(expectedNames)
+    // Ensure all 12 seeded customers were returned (no gaps, no dupes)
+    // Note: Order may differ from creation order when createdAt is identical,
+    // since the tiebreaker is ID (random nanoid), not creation sequence
+    expect(seenNames.sort()).toEqual(expectedNames.sort())
+    expect(seenNames.length).toBe(12)
+    expect(new Set(seenNames).size).toBe(12) // No duplicates
 
-    // Verify per-page boundaries explicitly
+    // Verify items are correctly sorted by (createdAt, id)
+    // Note: PostgreSQL sorts UUIDs/text columns lexicographically (strcmp-style)
+    for (let i = 0; i < seenItems.length - 1; i++) {
+      const a = seenItems[i]
+      const b = seenItems[i + 1]
+      const correctOrder =
+        a.createdAt < b.createdAt ||
+        (a.createdAt === b.createdAt && a.id.localeCompare(b.id) <= 0)
+      expect(correctOrder).toBe(true)
+    }
+
+    // Verify page sizes
     const chunk = (arr: string[], size: number) =>
       Array.from({ length: Math.ceil(arr.length / size) }, (_, i) =>
         arr.slice(i * size, i * size + size)
       )
     const pages = chunk(seenNames, pageSize)
-    expect(pages[0]).toEqual(expectedNames.slice(0, 5))
-    expect(pages[1]).toEqual(expectedNames.slice(5, 10))
-    expect(pages[2]).toEqual(expectedNames.slice(10, 12))
+    expect(pages.length).toBe(3)
+    expect(pages[0].length).toBe(5)
+    expect(pages[1].length).toBe(5)
+    expect(pages[2].length).toBe(2)
   })
 
   it('counts total records deterministically for organization', async () => {

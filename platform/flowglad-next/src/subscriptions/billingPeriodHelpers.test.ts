@@ -801,6 +801,7 @@ describe('Ledger Interactions', () => {
     pricingModel = result.pricingModel
     price = result.price
     product = result.product
+    customer = result.customer
     subscription = result.subscription as Subscription.StandardRecord
     usageMeter = result.usageMeter
     subscriptionItem = result.subscriptionItem
