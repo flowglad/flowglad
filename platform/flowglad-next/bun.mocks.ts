@@ -6,7 +6,25 @@
  * all mock.module() calls in this file and importing it first, we ensure the mocks
  * are registered before module resolution caches the real implementations.
  */
-import { mock } from 'bun:test'
+import { type Mock, mock } from 'bun:test'
+
+/**
+ * Type declarations for global mock state.
+ * These globals are set by mock.module() and persist across tests.
+ * Tests can clear them with mockClear() but should not delete them.
+ */
+declare global {
+  // eslint-disable-next-line no-var
+  var __mockAttemptBillingRunTrigger: Mock<
+    () => Promise<{ id: string }>
+  >
+  // eslint-disable-next-line no-var
+  var __mockCustomerAdjustedNotification: Mock<
+    () => Promise<undefined>
+  >
+  // eslint-disable-next-line no-var
+  var __mockOrgAdjustedNotification: Mock<() => Promise<undefined>>
+}
 
 // Mock server-only module (used by Next.js server components)
 mock.module('server-only', () => ({}))
@@ -33,10 +51,12 @@ mock.module('@trigger.dev/core', () => ({
 
 // Mock attempt-billing-run trigger task
 // This must be centralized because multiple test files use it
-const mockAttemptBillingRunTrigger = mock().mockResolvedValue({
+const mockAttemptBillingRunTrigger =
+  mock<() => Promise<{ id: string }>>()
+mockAttemptBillingRunTrigger.mockResolvedValue({
   id: 'mock-billing-run-handle-id',
 })
-;(globalThis as any).__mockAttemptBillingRunTrigger =
+globalThis.__mockAttemptBillingRunTrigger =
   mockAttemptBillingRunTrigger
 mock.module('@/trigger/attempt-billing-run', () => ({
   attemptBillingRunTask: {
@@ -46,8 +66,9 @@ mock.module('@/trigger/attempt-billing-run', () => ({
 
 // Mock customer subscription adjusted notification
 const mockCustomerAdjustedNotification =
-  mock().mockResolvedValue(undefined)
-;(globalThis as any).__mockCustomerAdjustedNotification =
+  mock<() => Promise<undefined>>()
+mockCustomerAdjustedNotification.mockResolvedValue(undefined)
+globalThis.__mockCustomerAdjustedNotification =
   mockCustomerAdjustedNotification
 mock.module(
   '@/trigger/notifications/send-customer-subscription-adjusted-notification',
@@ -58,10 +79,9 @@ mock.module(
 )
 
 // Mock organization subscription adjusted notification
-const mockOrgAdjustedNotification =
-  mock().mockResolvedValue(undefined)
-;(globalThis as any).__mockOrgAdjustedNotification =
-  mockOrgAdjustedNotification
+const mockOrgAdjustedNotification = mock<() => Promise<undefined>>()
+mockOrgAdjustedNotification.mockResolvedValue(undefined)
+globalThis.__mockOrgAdjustedNotification = mockOrgAdjustedNotification
 mock.module(
   '@/trigger/notifications/send-organization-subscription-adjusted-notification',
   () => ({

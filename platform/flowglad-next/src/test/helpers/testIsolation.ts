@@ -121,19 +121,18 @@ export function createScopedEnv() {
  * This resets:
  * - globalThis.__mockedAuthSession (auth mocking)
  * - Any globalThis.__mock* properties (common pattern for task mocks)
+ *
+ * Note: This delegates to resetAllGlobalMocks from globalStateGuard.ts which:
+ * - Clears (not deletes) mocks registered by mock.module() in bun.mocks.ts
+ * - Deletes __mock* globals added by individual tests
  */
 export function resetGlobalTestState(): void {
-  // Reset the auth session mock to null (default state)
-  globalThis.__mockedAuthSession = null
-
-  // Clean up any __mock* globals that tests may have set
-  // These are commonly used for mocking trigger tasks and notifications
-  const globalKeys = Object.keys(globalThis)
-  for (const key of globalKeys) {
-    if (key.startsWith('__mock') && key !== '__mockedAuthSession') {
-      delete (globalThis as Record<string, unknown>)[key]
-    }
-  }
+  // Import dynamically to avoid circular dependencies
+  // This ensures we use the same logic as the setup files
+  const {
+    resetAllGlobalMocks,
+  } = require('@/test/isolation/globalStateGuard')
+  resetAllGlobalMocks()
 }
 
 /**

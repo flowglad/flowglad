@@ -6,17 +6,12 @@
  * to ensure tests don't share state.
  *
  * Most tests don't need to import these directly - isolation is automatic.
- * However, tests can use trackSpy() for convenient spy tracking.
  *
- * @example
- * ```typescript
- * // For tracking spies in test files:
- * import { trackSpy } from '@/test/isolation'
- *
- * beforeEach(() => {
- *   trackSpy(spyOn(myModule, 'fn').mockReturnValue('mocked'))
- * })
- * ```
+ * Key utilities:
+ * - createAutoEnvTracker: Captures and restores process.env state
+ * - initializeGlobalMockState: Tracks which __mock* globals were set by mock.module()
+ * - resetAllGlobalMocks: Clears mock.module() mocks and deletes test-added globals
+ * - trackSpy: Tracks spies for automatic cleanup (used by setup files)
  */
 
 export { createAutoEnvTracker } from './envTracker'

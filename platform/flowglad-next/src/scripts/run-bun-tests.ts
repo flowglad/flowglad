@@ -14,7 +14,7 @@
  *   bun run src/scripts/run-bun-tests.ts ./bun.rls.setup.ts '*.rls.test.ts' integration-tests src --timeout 30000 --max-concurrency 1
  */
 
-import { execSync, spawn } from 'child_process'
+import { execFileSync, spawn } from 'child_process'
 
 const args = process.argv.slice(2)
 
@@ -54,11 +54,13 @@ if (searchDirs.length === 0) {
 }
 
 // Find test files across all directories
+// Use execFileSync with array args to avoid shell injection and handle spaces in paths
 let files: string[] = []
 for (const searchDir of searchDirs) {
   try {
-    const findOutput = execSync(
-      `find ${searchDir} -name '${pattern}' -type f`,
+    const findOutput = execFileSync(
+      'find',
+      [searchDir, '-name', pattern, '-type', 'f'],
       { encoding: 'utf-8' }
     )
     const dirFiles = findOutput
