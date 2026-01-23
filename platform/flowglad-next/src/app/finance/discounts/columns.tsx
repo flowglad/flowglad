@@ -6,7 +6,6 @@ import { sentenceCase } from 'change-case'
 import { Pencil } from 'lucide-react'
 import * as React from 'react'
 import EditDiscountModal from '@/components/forms/EditDiscountModal'
-import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
@@ -14,6 +13,10 @@ import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 // Other imports
 import type { Discount } from '@/db/schema/discounts'
 import {
@@ -173,7 +176,11 @@ export const columns: ColumnDef<DiscountTableRowData>[] = [
     accessorFn: (row) => row.discount.active,
     header: 'Status',
     cell: ({ row }) => (
-      <StatusBadge active={row.getValue('active')} />
+      <ActiveStatusTag
+        status={booleanToActiveStatus(row.getValue('active'))}
+        showTooltip
+        tooltipVariant="muted"
+      />
     ),
     size: 110,
     minSize: 105,
