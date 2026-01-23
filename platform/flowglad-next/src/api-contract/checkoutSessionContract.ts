@@ -24,9 +24,9 @@ const createCheckoutSessionResource = (
 //   return client.checkoutSessions.update(id, checkoutSession)
 // }
 
-// const getCheckoutSessionListResource = (client: FlowgladNode) => {
-//   return client.checkoutSessions.list()
-// }
+const getCheckoutSessionListResource = (client: FlowgladNode) => {
+  return client.checkoutSessions.list()
+}
 
 export const verifyCheckoutSessionContract = async (
   params: {
@@ -89,8 +89,13 @@ export const verifyCheckoutSessionContract = async (
   logger.info(
     `Got checkout session: ${getCheckoutSessionResult.checkoutSession.id}`
   )
+
+  const list = await getCheckoutSessionListResource(client)
+  logger.info(`Got checkout session list: ${list.data.length}`)
+
   return {
     checkoutSession: getCheckoutSessionResult,
     createdCheckoutSession,
+    list,
   }
 }
