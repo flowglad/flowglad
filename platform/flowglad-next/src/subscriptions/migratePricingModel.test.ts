@@ -1480,8 +1480,6 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should throw BAD_REQUEST when customer livemode does not match pricing model livemode', async () => {
       // customer.livemode is false, orgLivePricingModel.livemode is true
-      // Use the existing livemode=true pricing model from setupOrg (orgLivePricingModel)
-      // instead of creating a new one to avoid violating the unique constraint
       await expect(
         adminTransaction(async ({ transaction }) => {
           return await migrateCustomerPricingModelProcedureTransaction(

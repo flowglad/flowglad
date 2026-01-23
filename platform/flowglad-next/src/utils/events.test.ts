@@ -114,7 +114,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for payment (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
+    // Set up required dependencies for payment
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
@@ -198,7 +198,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for payment (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
+    // Set up required dependencies for payment
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
@@ -339,7 +339,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for subscription (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
+    // Set up required dependencies for subscription
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
@@ -402,7 +402,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for subscription (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
+    // Set up required dependencies for subscription
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,
@@ -465,7 +465,7 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    // Set up required dependencies for subscription (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
+    // Set up required dependencies for subscription
     const product = await setupProduct({
       organizationId: orgData.organization.id,
       name: `Test Product ${core.nanoid()}`,

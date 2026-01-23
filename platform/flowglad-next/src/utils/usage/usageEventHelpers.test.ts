@@ -1469,7 +1469,7 @@ describe('usageEventHelpers', () => {
 
       // Set up a second pricing model in the same organization with a price with a slug
       await adminTransaction(async ({ transaction }) => {
-        // Create a second pricing model in the same organization (livemode=false to avoid unique constraint violation)
+        // Create a second pricing model in the same organization
         const secondPricingModel = await setupPricingModel({
           organizationId: organization.id,
           name: 'Second Pricing Model',
