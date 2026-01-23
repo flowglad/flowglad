@@ -138,9 +138,10 @@ const listUsageEventsProcedure = protectedProcedure
           transaction
         )
         return {
-          items: result.data,
+          data: result.data,
           total: result.total,
           hasMore: result.hasMore,
+          currentCursor: result.currentCursor,
           nextCursor: result.nextCursor,
         }
       },
