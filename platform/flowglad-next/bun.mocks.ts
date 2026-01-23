@@ -30,3 +30,42 @@ mock.module('@trigger.dev/core', () => ({
     create: async (key: string) => `mock-${key}-${Math.random()}`,
   },
 }))
+
+// Mock attempt-billing-run trigger task
+// This must be centralized because multiple test files use it
+const mockAttemptBillingRunTrigger = mock().mockResolvedValue({
+  id: 'mock-billing-run-handle-id',
+})
+;(globalThis as any).__mockAttemptBillingRunTrigger =
+  mockAttemptBillingRunTrigger
+mock.module('@/trigger/attempt-billing-run', () => ({
+  attemptBillingRunTask: {
+    trigger: mockAttemptBillingRunTrigger,
+  },
+}))
+
+// Mock customer subscription adjusted notification
+const mockCustomerAdjustedNotification =
+  mock().mockResolvedValue(undefined)
+;(globalThis as any).__mockCustomerAdjustedNotification =
+  mockCustomerAdjustedNotification
+mock.module(
+  '@/trigger/notifications/send-customer-subscription-adjusted-notification',
+  () => ({
+    idempotentSendCustomerSubscriptionAdjustedNotification:
+      mockCustomerAdjustedNotification,
+  })
+)
+
+// Mock organization subscription adjusted notification
+const mockOrgAdjustedNotification =
+  mock().mockResolvedValue(undefined)
+;(globalThis as any).__mockOrgAdjustedNotification =
+  mockOrgAdjustedNotification
+mock.module(
+  '@/trigger/notifications/send-organization-subscription-adjusted-notification',
+  () => ({
+    idempotentSendOrganizationSubscriptionAdjustedNotification:
+      mockOrgAdjustedNotification,
+  })
+)

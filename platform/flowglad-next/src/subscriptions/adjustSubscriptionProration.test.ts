@@ -1,12 +1,5 @@
 import type { Mock } from 'bun:test'
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  spyOn,
-} from 'bun:test'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 // Test database setup functions
 import {
@@ -48,21 +41,9 @@ import {
 import core from '@/utils/core'
 import { adjustSubscription } from './adjustSubscription'
 
-// Mock the trigger task - we test that it's called with correct parameters
-// The actual billing run execution is tested in billingRunHelpers.test.ts
-// Create the mock function inside the factory to avoid hoisting issues
-mock.module('@/trigger/attempt-billing-run', () => {
-  const mockTriggerFn = mock().mockResolvedValue({
-    id: 'mock-billing-run-handle-id',
-  })
-  // Store reference so we can access it in tests
-  ;(globalThis as any).__mockAttemptBillingRunTrigger = mockTriggerFn
-  return {
-    attemptBillingRunTask: {
-      trigger: mockTriggerFn,
-    },
-  }
-})
+// Trigger mocks are centralized in bun.mocks.ts to avoid conflicts
+// when multiple test files mock the same modules.
+// The mock functions are accessed via globalThis.__mock* variables.
 
 // Get the mock function for use in tests
 const getMockTrigger = () => {
