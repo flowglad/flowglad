@@ -23,7 +23,7 @@ describe('productsRouter - Default Product Constraints', () => {
   let defaultPriceId: string
   let regularProductId: string
   let regularPriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     // Set up organization and pricing model with default product
