@@ -91,32 +91,28 @@ export const refundPaymentTransaction = async (
   // Track if we created a new refund - used to determine if we should reverse tax
   let newlyCreatedRefund: Stripe.Refund | null = null
 
-  try {
-    // SUCCESS PATH: Create a new refund via Stripe API
-    const refund = await refundPayment(
-      payment.stripePaymentIntentId,
-      partialAmount,
-      payment.livemode
-    )
-    refundCreatedSeconds = refund.created
-    nextRefundedAmount = (payment.refundedAmount ?? 0) + refund.amount
-    // Mark that we created a new refund (triggers tax reversal later)
-    newlyCreatedRefund = refund
-  } catch (error) {
-    // RECOVERY PATH: Handle case where charge was already refunded
+  const refundResult = await refundPayment(
+    payment.stripePaymentIntentId,
+    partialAmount,
+    payment.livemode
+  )
+  if (Result.isError(refundResult)) {
+    // Check for recovery case: charge was already refunded
     // This can happen if:
     //   - Refund was done manually in Stripe dashboard
     //   - Previous call succeeded in Stripe but failed before DB update
     //   - Network retry after Stripe already processed the refund
     const alreadyRefundedError =
-      error instanceof Stripe.errors.StripeError &&
-      (error.raw as { code: string }).code ===
+      refundResult.error instanceof Stripe.errors.StripeError &&
+      (refundResult.error.raw as { code: string }).code ===
         'charge_already_refunded'
     if (!alreadyRefundedError) {
-      throw error
+      return Result.err(
+        new ValidationError('refund', refundResult.error.message)
+      )
     }
 
-    // Fetch the existing refund state from Stripe to sync our DB
+    // RECOVERY PATH: Fetch the existing refund state from Stripe to sync our DB
     const paymentIntent = await getPaymentIntent(
       payment.stripePaymentIntentId
     )
@@ -159,6 +155,13 @@ export const refundPaymentTransaction = async (
           }, 0)
     nextRefundedAmount = amountRefundedFromStripe
     // Note: newlyCreatedRefund stays null - we didn't create a refund, just syncing state
+  } else {
+    // SUCCESS PATH: Use the newly created refund
+    const refund = refundResult.value
+    refundCreatedSeconds = refund.created
+    nextRefundedAmount = (payment.refundedAmount ?? 0) + refund.amount
+    // Mark that we created a new refund (triggers tax reversal later)
+    newlyCreatedRefund = refund
   }
 
   // =========================================================================

@@ -6,42 +6,37 @@
  */
 
 import { beforeEach, describe, expect, it } from 'bun:test'
-import { sql } from 'drizzle-orm'
 import {
   setupCustomer,
   setupOrg,
   setupProduct,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { FlowgladApiKeyType } from '@/types'
-import { deleteSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
-import { hashData } from '@/utils/backendCore'
-import core from '@/utils/core'
-import { adminTransaction } from './adminTransaction'
-import { authenticatedTransaction } from './authenticatedTransaction'
-import db from './client'
-import type { ApiKey } from './schema/apiKeys'
-import { apiKeys } from './schema/apiKeys'
-import type { Customer } from './schema/customers'
-import type { Membership } from './schema/memberships'
-import { memberships } from './schema/memberships'
-import type { Organization } from './schema/organizations'
-import type { Product } from './schema/products'
-import type { User } from './schema/users'
-import { users } from './schema/users'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import type { ApiKey } from '@/db/schema/apiKeys'
+import type { Customer } from '@/db/schema/customers'
+import type { Membership } from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
+import type { Product } from '@/db/schema/products'
+import type { User } from '@/db/schema/users'
 import {
   deleteApiKey,
   insertApiKey,
   selectApiKeys,
-} from './tableMethods/apiKeyMethods'
-import { selectCustomers } from './tableMethods/customerMethods'
+} from '@/db/tableMethods/apiKeyMethods'
+import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import {
   insertMembership,
   selectMemberships,
   updateMembership,
-} from './tableMethods/membershipMethods'
-import { selectOrganizations } from './tableMethods/organizationMethods'
-import { selectProducts } from './tableMethods/productMethods'
+} from '@/db/tableMethods/membershipMethods'
+import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
+import { selectProducts } from '@/db/tableMethods/productMethods'
+import { FlowgladApiKeyType } from '@/types'
+import { deleteSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
+import { hashData } from '@/utils/backendCore'
+import core from '@/utils/core'
 
 describe('API Key RLS', () => {
   // Test state

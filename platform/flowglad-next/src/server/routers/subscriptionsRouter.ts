@@ -311,6 +311,7 @@ const adjustSubscriptionProcedure = protectedProcedure
     // Step 1: Perform the adjustment in a transaction
     // This triggers the billing run but doesn't wait for it
     // Cache invalidations are handled automatically by the comprehensive transaction
+    // Domain errors are automatically converted to TRPCErrors by domainErrorMiddleware
     const adjustmentResult =
       await comprehensiveAuthenticatedTransaction(
         async (transactionCtx) => {

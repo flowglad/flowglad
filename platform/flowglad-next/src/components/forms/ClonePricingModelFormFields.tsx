@@ -24,16 +24,39 @@ import { DestinationEnvironment } from '@/types'
 interface ClonePricingModelFormFieldsProps {
   hasLivemodePricingModel?: boolean
   onWarningChange?: (showWarning: boolean) => void
+  livemode: boolean
 }
 
 const ClonePricingModelFormFields: React.FC<
   ClonePricingModelFormFieldsProps
-> = ({ hasLivemodePricingModel = false, onWarningChange }) => {
+> = ({
+  hasLivemodePricingModel = false,
+  onWarningChange,
+  livemode,
+}) => {
   const form = useFormContext<ClonePricingModelInput>()
   const selectedDestination = form.watch('destinationEnvironment')
 
+  // In testmode, user can only clone to testmode
+  const isTestmode = !livemode
+
+  // Auto-set destination to testmode when in testmode
+  useEffect(() => {
+    if (
+      isTestmode &&
+      selectedDestination !== DestinationEnvironment.Testmode
+    ) {
+      form.setValue(
+        'destinationEnvironment',
+        DestinationEnvironment.Testmode
+      )
+    }
+  }, [isTestmode, selectedDestination, form])
+
   // Show warning if user is about to clone to livemode but already has one
+  // (only relevant in livemode since testmode can't select livemode)
   const showLivemodeWarning =
+    !isTestmode &&
     hasLivemodePricingModel &&
     selectedDestination === DestinationEnvironment.Livemode
 
@@ -60,38 +83,59 @@ const ClonePricingModelFormFields: React.FC<
           </FormItem>
         )}
       />
-      <FormField
-        control={form.control}
-        name="destinationEnvironment"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Destination Environment</FormLabel>
-            <FormControl>
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select Destination Environment" />
-                </SelectTrigger>
-                <SelectContent>
-                  {Object.values(DestinationEnvironment).map(
-                    (environment) => (
-                      <SelectItem
-                        key={environment}
-                        value={environment}
-                      >
-                        {sentenceCase(environment)}
-                      </SelectItem>
-                    )
-                  )}
-                </SelectContent>
-              </Select>
-            </FormControl>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+      {isTestmode ? (
+        // In testmode, show disabled select locked to testmode
+        <FormItem>
+          <FormLabel>Destination Environment</FormLabel>
+          <Select value={DestinationEnvironment.Testmode} disabled>
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={DestinationEnvironment.Testmode}>
+                {sentenceCase(DestinationEnvironment.Testmode)}
+              </SelectItem>
+            </SelectContent>
+          </Select>
+          <p className="text-sm text-muted-foreground">
+            Testmode pricing models can only be cloned to testmode.
+          </p>
+        </FormItem>
+      ) : (
+        // In livemode, show full select with both options
+        <FormField
+          control={form.control}
+          name="destinationEnvironment"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Destination Environment</FormLabel>
+              <FormControl>
+                <Select
+                  value={field.value}
+                  onValueChange={field.onChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select Destination Environment" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.values(DestinationEnvironment).map(
+                      (environment) => (
+                        <SelectItem
+                          key={environment}
+                          value={environment}
+                        >
+                          {sentenceCase(environment)}
+                        </SelectItem>
+                      )
+                    )}
+                  </SelectContent>
+                </Select>
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
 
       {showLivemodeWarning && (
         <div className="flex items-start gap-2 p-3 rounded-md bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800">

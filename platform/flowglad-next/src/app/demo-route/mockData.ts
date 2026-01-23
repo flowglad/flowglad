@@ -460,7 +460,7 @@ export const TRIGGER_DOCS: Record<EmailType, TriggerInfo> = {
   'payment-failed': {
     event: 'invoice.payment_failed',
     description:
-      'Sent when a payment attempt fails for an invoice. Subject line: "Payment Unsuccessful". Includes retry date if automatic retry is scheduled.',
+      'Sent when a payment attempt fails for an invoice. Subject line: "Your Payment Failed". Includes retry date if automatic retry is scheduled.',
     conditions: [
       'Payment attempt was made and declined',
       'Invoice status is "open" or "past_due"',
@@ -797,7 +797,7 @@ export const TRIGGER_DOCS: Record<EmailType, TriggerInfo> = {
   'org-payment-failed': {
     event: 'payment_intent.payment_failed',
     description:
-      'Internal notification sent to organization when a customer payment fails. Subject line: "Payment Failed: {CustomerName} payment of {Amount} {Currency} failed".',
+      'Internal notification sent to organization when a customer payment fails. Subject line: "Payment Failed from {CustomerName}".',
     conditions: [
       'Payment attempt failed',
       'Organization notifications are enabled',

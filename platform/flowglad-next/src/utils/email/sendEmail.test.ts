@@ -222,7 +222,7 @@ describe('getDefaultSubject', () => {
 
     it('returns the string subject for customer.payment.failed', () => {
       const subject = getDefaultSubject('customer.payment.failed')
-      expect(subject).toBe('Payment Unsuccessful')
+      expect(subject).toBe('Your Payment Failed')
     })
   })
 

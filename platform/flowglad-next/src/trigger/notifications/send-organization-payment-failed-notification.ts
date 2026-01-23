@@ -118,7 +118,7 @@ export const runSendOrganizationPaymentFailedNotification = async (
     bcc: getBccForLivemode(paymentData.livemode),
     to: recipientEmails,
     subject: formatEmailSubject(
-      `Payment Failed: ${customer.name} payment of ${paymentData.amount} ${paymentData.currency} failed`,
+      `Payment Failed from ${customer.name}`,
       paymentData.livemode
     ),
     react: await OrganizationPaymentFailedNotificationEmail({

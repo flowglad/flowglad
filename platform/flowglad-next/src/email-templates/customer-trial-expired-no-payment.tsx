@@ -3,8 +3,6 @@ import core from '@/utils/core'
 import { EmailButton } from './components/EmailButton'
 import TestModeBanner from './components/TestBanner'
 import {
-  DetailItem,
-  DetailSection,
   EmailLayout,
   Footer,
   Header,
@@ -18,7 +16,7 @@ export interface CustomerTrialExpiredNoPaymentEmailProps {
   organizationLogoUrl?: string
   organizationId: string
   customerId: string
-  planName: string
+  productName: string
   livemode: boolean
 }
 
@@ -28,7 +26,7 @@ export const CustomerTrialExpiredNoPaymentEmail = ({
   organizationLogoUrl,
   organizationId,
   customerId,
-  planName,
+  productName,
   livemode,
 }: CustomerTrialExpiredNoPaymentEmailProps) => {
   return (
@@ -41,25 +39,13 @@ export const CustomerTrialExpiredNoPaymentEmail = ({
 
       <Paragraph>Hi {customerName},</Paragraph>
 
-      <Paragraph>Your free trial for {planName} has ended.</Paragraph>
-
-      <DetailSection>
-        <DetailItem dataTestId="plan-name">
-          Plan: {planName}
-        </DetailItem>
-        <DetailItem dataTestId="status">
-          Status: Trial ended - Payment required
-        </DetailItem>
-      </DetailSection>
-
-      <Paragraph style={{ marginTop: '24px' }}>
-        To continue using {planName}, please add a payment method.
+      <Paragraph>
+        Thanks for trying {productName}! Your trial period has ended.
       </Paragraph>
 
-      <Paragraph style={{ marginTop: '16px' }}>
-        If you don't add a payment method, your subscription will
-        remain inactive and you won't have access to the features
-        included in your plan.
+      <Paragraph>
+        Please add a payment method to continue using {productName}{' '}
+        without interruption.
       </Paragraph>
 
       <EmailButton

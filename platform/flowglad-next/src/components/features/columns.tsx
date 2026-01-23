@@ -4,12 +4,15 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil } from 'lucide-react'
 import * as React from 'react'
 import EditFeatureModal from '@/components/forms/EditFeatureModal'
-import StatusBadge from '@/components/StatusBadge'
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import type { Feature } from '@/db/schema/features'
 import { FeatureType } from '@/types'
 
@@ -92,7 +95,9 @@ export const columns: ColumnDef<FeatureRow>[] = [
     accessorFn: (row) => row.feature.active,
     header: 'Status',
     cell: ({ row }) => (
-      <StatusBadge active={row.getValue('status')} />
+      <ActiveStatusTag
+        status={booleanToActiveStatus(row.getValue('status'))}
+      />
     ),
     size: 110,
     minSize: 105,

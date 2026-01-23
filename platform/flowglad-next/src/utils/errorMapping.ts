@@ -3,6 +3,7 @@ import {
   AuthorizationError,
   ConflictError,
   NotFoundError,
+  TerminalStateError,
   ValidationError,
 } from '@/errors'
 
@@ -14,6 +15,12 @@ export function toTRPCError(error: Error): TRPCError {
     })
   }
   if (error instanceof ValidationError) {
+    return new TRPCError({
+      code: 'BAD_REQUEST',
+      message: error.message,
+    })
+  }
+  if (error instanceof TerminalStateError) {
     return new TRPCError({
       code: 'BAD_REQUEST',
       message: error.message,

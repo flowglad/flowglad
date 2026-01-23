@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { notFound, redirect } from 'next/navigation'
 import CheckoutPage from '@/components/CheckoutPage'
 import PaymentStatusProcessing from '@/components/PaymentStatusProcessing'
