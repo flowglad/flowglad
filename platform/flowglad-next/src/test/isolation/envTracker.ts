@@ -26,6 +26,7 @@
 
 export function createAutoEnvTracker() {
   let originalEnv: Record<string, string | undefined> = {}
+  let isTracking = false
 
   return {
     /**
@@ -34,6 +35,7 @@ export function createAutoEnvTracker() {
      */
     startTracking(): void {
       originalEnv = { ...process.env }
+      isTracking = true
     },
 
     /**
@@ -43,8 +45,17 @@ export function createAutoEnvTracker() {
      * - Deletes variables that were deleted during the test
      *
      * Call this at the end of each test (in afterEach).
+     *
+     * Safety: If startTracking() was never called, this is a no-op to prevent
+     * accidentally wiping all environment variables.
      */
     restoreAll(): void {
+      // Guard: Don't restore if startTracking() was never called
+      // This prevents accidentally deleting all env vars when originalEnv is empty
+      if (!isTracking) {
+        return
+      }
+
       // Get current keys to find added variables
       const currentKeys = Object.keys(process.env)
 
@@ -66,6 +77,7 @@ export function createAutoEnvTracker() {
 
       // Clear the captured state
       originalEnv = {}
+      isTracking = false
     },
   }
 }
