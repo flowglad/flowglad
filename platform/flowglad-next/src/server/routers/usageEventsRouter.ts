@@ -1,4 +1,3 @@
-import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureComprehensiveTransaction,
@@ -62,12 +61,16 @@ export const createUsageEvent = protectedProcedure
           invalidateCache,
           enqueueLedgerCommand,
         } = transactionCtx
-        const resolvedInput = await resolveUsageEventInput(
+        const resolvedInputResult = await resolveUsageEventInput(
           input,
           transaction
         )
 
-        const result = await ingestAndProcessUsageEvent(
+        // Unwrap at router boundary - converts Result errors to thrown errors for TRPC
+        const resolvedInput = resolvedInputResult.unwrap()
+
+        // Return Result directly - wrapper handles error conversion
+        return ingestAndProcessUsageEvent(
           { input: resolvedInput, livemode: ctx.livemode },
           {
             transaction,
@@ -77,7 +80,6 @@ export const createUsageEvent = protectedProcedure
             enqueueLedgerCommand,
           }
         )
-        return Result.ok(result)
       }
     )
   )
