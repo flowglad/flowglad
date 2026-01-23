@@ -57,14 +57,35 @@ function generateSvixId({
   return `${prefix}_${id}_${modeStr}_${hmac}`
 }
 
+/**
+ * Generate a Svix application ID for the given organization and livemode.
+ *
+ * When `pricingModelId` is provided, generates a PM-scoped app ID:
+ *   `app_${orgId}_${pricingModelId}_${livemode}_${hmac}`
+ *
+ * When `pricingModelId` is not provided (legacy), generates:
+ *   `app_${orgId}_${livemode}_${hmac}`
+ *
+ * @param organization - Organization record used to compute the Svix application ID
+ * @param livemode - When `true`, use the live-mode application ID; when `false`, use test-mode
+ * @param pricingModelId - Optional pricing model ID for PM-scoped applications
+ * @returns The deterministic Svix application ID
+ */
 export function getSvixApplicationId(params: {
   organization: Organization.Record
   livemode: boolean
+  pricingModelId?: string // Optional for backward compat with legacy apps
 }) {
-  const { organization, livemode } = params
+  const { organization, livemode, pricingModelId } = params
+  // When pricingModelId is provided, include it in the ID base
+  // This creates PM-scoped app IDs like: app_${orgId}_${pmId}_${livemode}_${hmac}
+  // When not provided, creates legacy IDs like: app_${orgId}_${livemode}_${hmac}
+  const idBase = pricingModelId
+    ? `${organization.id}_${pricingModelId}`
+    : organization.id
   return generateSvixId({
     prefix: 'app',
-    id: organization.id,
+    id: idBase,
     organization,
     livemode,
   })
@@ -85,6 +106,30 @@ export function getSvixEndpointId(params: {
 }
 
 /**
+ * Check if a Svix application exists by ID.
+ *
+ * This is used to check for the existence of legacy (org+livemode) or
+ * PM-scoped (org+pm+livemode) Svix applications without creating them.
+ *
+ * @param applicationId - The Svix application ID to check
+ * @returns `true` if the application exists, `false` if not found
+ * @throws On other errors (network, auth, rate limits, etc.)
+ */
+export const checkSvixApplicationExists = async (
+  applicationId: string
+): Promise<boolean> => {
+  try {
+    await svix().application.get(applicationId)
+    return true
+  } catch (error) {
+    if (error instanceof ApiException && error.code === 404) {
+      return false
+    }
+    throw error
+  }
+}
+
+/**
  * Core findOrCreateSvixApplication logic with checkpoint callback for tracing.
  */
 const findOrCreateSvixApplicationCore = async (
@@ -92,13 +137,15 @@ const findOrCreateSvixApplicationCore = async (
   params: {
     organization: Organization.Record
     livemode: boolean
+    pricingModelId?: string // Optional for backward compat
   }
 ): Promise<ApplicationOut> => {
-  const { organization, livemode } = params
+  const { organization, livemode, pricingModelId } = params
   const modeSlug = livemode ? 'live' : 'test'
   const applicationId = getSvixApplicationId({
     organization,
     livemode,
+    pricingModelId,
   })
 
   let app: ApplicationOut | undefined
@@ -131,8 +178,12 @@ const findOrCreateSvixApplicationCore = async (
  *
  * Attempts to fetch a Svix application by its deterministic ID and creates a new application with a name derived from the organization if no existing application is found. The OpenTelemetry span used for the operation is annotated with the attribute `svix.created` set to `true` when a new application is created and `false` when an existing application is returned.
  *
+ * When `pricingModelId` is provided, creates/finds a PM-scoped application.
+ * When not provided, creates/finds a legacy org+livemode application.
+ *
  * @param organization - Organization record used to compute the Svix application ID and display name
  * @param livemode - When `true`, use the live-mode application ID; when `false`, use the test-mode application ID
+ * @param pricingModelId - Optional pricing model ID for PM-scoped applications (backward compat)
  * @returns The existing or newly created Svix application
  */
 export const findOrCreateSvixApplication = tracedWithCheckpoints(
