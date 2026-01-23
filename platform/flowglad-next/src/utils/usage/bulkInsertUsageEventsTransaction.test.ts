@@ -22,6 +22,7 @@ import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import {
   createCapturingEffectsContext,
   createDiscardingEffectsContext,
@@ -1357,7 +1358,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             organizationId: organization.id,
             name: 'Custom Pricing Model',
             isDefault: false,
-            livemode: true,
+            livemode: false,
           })
       )
 
@@ -1368,7 +1369,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             organizationId: organization.id,
             pricingModelId: customPricingModel.id,
             name: 'Custom Product',
-            livemode: true,
+            livemode: false,
           })
       )
 
@@ -1377,7 +1378,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
           setupUsageMeter({
             organizationId: organization.id,
             name: 'Custom Usage Meter',
-            livemode: true,
+            livemode: false,
             pricingModelId: customPricingModel.id,
           })
       )
@@ -1390,7 +1391,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             unitPrice: 20,
             intervalUnit: IntervalUnit.Day,
             intervalCount: 1,
-            livemode: true,
+            livemode: false,
             isDefault: false,
             currency: CurrencyCode.USD,
             usageMeterId: customUsageMeter.id,
@@ -1449,7 +1450,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
                 },
               ],
             },
-            livemode: true,
+            livemode: false,
           },
           createDiscardingEffectsContext(transaction)
         )
@@ -1541,13 +1542,58 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should handle mix of customers with and without explicit pricingModelId', async () => {
       // Setup: Create some customers with explicit pricing model, some without
+      // Get the testmode default pricing model for the existing organization
+      const testmodeDefaultPricingModel = await adminTransaction(
+        async ({ transaction }) =>
+          selectDefaultPricingModel(
+            {
+              organizationId: organization.id,
+              livemode: false,
+            },
+            transaction
+          )
+      )
+
+      if (!testmodeDefaultPricingModel) {
+        throw new Error(
+          'Testmode default pricing model not found for organization'
+        )
+      }
+
+      // Create testmode usage meter and price for the default pricing model
+      const defaultUsageMeter = await adminTransaction(
+        async ({ transaction }) =>
+          setupUsageMeter({
+            organizationId: organization.id,
+            name: 'Default Usage Meter (testmode)',
+            livemode: false,
+            pricingModelId: testmodeDefaultPricingModel.id,
+          })
+      )
+
+      const defaultPrice = await adminTransaction(
+        async ({ transaction }) =>
+          setupPrice({
+            name: 'Default Usage Price (testmode)',
+            type: PriceType.Usage,
+            unitPrice: 10,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: false,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: defaultUsageMeter.id,
+          })
+      )
+
+      // Create explicit pricing model (testmode) for customers with explicit pricingModelId
       const explicitPricingModel = await adminTransaction(
         async ({ transaction }) =>
           setupPricingModel({
             organizationId: organization.id,
             name: 'Explicit Pricing Model',
             isDefault: false,
-            livemode: true,
+            livemode: false,
           })
       )
 
@@ -1557,7 +1603,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             organizationId: organization.id,
             pricingModelId: explicitPricingModel.id,
             name: 'Explicit Product',
-            livemode: true,
+            livemode: false,
           })
       )
 
@@ -1566,7 +1612,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
           setupUsageMeter({
             organizationId: organization.id,
             name: 'Explicit Usage Meter',
-            livemode: true,
+            livemode: false,
             pricingModelId: explicitPricingModel.id,
           })
       )
@@ -1579,20 +1625,21 @@ describe('bulkInsertUsageEventsTransaction', () => {
             unitPrice: 15,
             intervalUnit: IntervalUnit.Day,
             intervalCount: 1,
-            livemode: true,
+            livemode: false,
             isDefault: false,
             currency: CurrencyCode.USD,
             usageMeterId: explicitUsageMeter.id,
           })
       )
 
-      // Create 3 customers with explicit pricing model
+      // Create 3 customers with explicit pricing model (testmode)
       const explicitCustomers = []
       for (let i = 0; i < 3; i++) {
         const customerData = await adminTransaction(
           async ({ transaction }) =>
             setupCustomer({
               organizationId: organization.id,
+              livemode: false,
               pricingModelId: explicitPricingModel.id,
             })
         )
@@ -1634,14 +1681,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
         })
       }
 
-      // Create 3 customers with default pricing model
+      // Create 3 customers without explicit pricingModelId (uses default testmode pricing model)
       const defaultCustomers = []
       for (let i = 0; i < 3; i++) {
         const customerData = await adminTransaction(
           async ({ transaction }) =>
             setupCustomer({
               organizationId: organization.id,
-              // No pricingModelId - uses default
+              livemode: false,
             })
         )
 
@@ -1659,7 +1706,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               organizationId: organization.id,
               customerId: customerData.id,
               paymentMethodId: pmData.id,
-              priceId: price.id,
+              priceId: defaultPrice.id,
             })
         )
 
@@ -1677,12 +1724,12 @@ describe('bulkInsertUsageEventsTransaction', () => {
         defaultCustomers.push({
           customer: customerData,
           subscription: subData,
-          price,
-          usageMeter,
+          price: defaultPrice,
+          usageMeter: defaultUsageMeter,
         })
       }
 
-      // Execute: Create usage events for all 6 customers in a single batch
+      // Execute: Create usage events for all 6 customers in a single batch (all testmode)
       const timestamp = Date.now()
       const allEvents = [
         ...explicitCustomers.map(
@@ -1690,14 +1737,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
             subscriptionId: subscription.id,
             priceId: price.id,
             amount: (index + 1) * 100,
-            transactionId: `txn_mixed_explicit_${index}_${timestamp}`,
+            transactionId: `txn_explicit_${index}_${timestamp}`,
           })
         ),
         ...defaultCustomers.map(({ subscription, price }, index) => ({
           subscriptionId: subscription.id,
           priceId: price.id,
           amount: (index + 4) * 100,
-          transactionId: `txn_mixed_default_${index}_${timestamp}`,
+          transactionId: `txn_default_${index}_${timestamp}`,
         })),
       ]
 
@@ -1707,7 +1754,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             input: {
               usageEvents: allEvents,
             },
-            livemode: true,
+            livemode: false,
           },
           createDiscardingEffectsContext(transaction)
         )
