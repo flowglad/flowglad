@@ -14,6 +14,11 @@
  *
  * This script validates that required env files exist before Bun loads them.
  *
+ * Bootstrap Scripts (skip env validation):
+ * - user (setup-env-user.ts)
+ * - vercel:env-pull:* (pulls env from Vercel)
+ * - install-packages
+ *
  * Safety Check:
  * This script blocks execution if DATABASE_URL points to a non-local database.
  *
@@ -98,6 +103,9 @@ function validateEnvironmentFiles(): void {
   // Skip when not running an npm/bun script (e.g., `bun -e`, `bunx`, etc.)
   const scriptName = process.env.npm_lifecycle_event
   if (!scriptName) return
+
+  // Skip for bootstrap scripts that don't need env files
+  if (isBootstrapScript()) return
 
   const nodeEnv = getEffectiveNodeEnv()
 
