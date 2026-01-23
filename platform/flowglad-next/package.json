@@ -6,6 +6,7 @@
     "dev": "next dev --turbopack",
     "prebuild": "dotenvx run -f .env.local -- bun run src/scripts/removeDevRoutes.ts && bun run build:preview-css",
     "build": "bun run check && next build",
+    "build:docker": "next build --no-lint",
     "build:preview-css": "bun run src/scripts/build-preview-css.ts",
     "user": "bun run src/scripts/setup-env-user.ts",
     "start": "next start",

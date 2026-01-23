@@ -1,0 +1,125 @@
+# .dockerignore - Reduces build context size for faster Docker builds
+# The Docker build context is the repo root, so paths are relative to it.
+
+# Dependencies - will be installed fresh inside the container
+**/node_modules
+**/.pnp
+**/.pnp.js
+**/.yarn/install-state.gz
+
+# Build outputs - will be generated inside the container
+**/.next
+**/out
+**/build
+**/dist
+**/.turbo
+
+# Test files and coverage - not needed for production build
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+**/*.spec.tsx
+**/coverage
+**/__tests__
+**/__mocks__
+**/vitest.*.ts
+**/jest.config.*
+**/.vitest
+
+# Git
+.git
+.gitignore
+.gitattributes
+**/.gitkeep
+
+# IDE and editor configs
+.vscode
+.idea
+**/.cursor
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+!platform/flowglad-next/README.md
+**/docs
+LICENSE*
+
+# Local environment files (we create a minimal .env.local inside Docker)
+**/.env
+**/.env.local
+**/.env*.local
+**/.env.development
+**/.env.production
+**/.env.test
+**/.env_user
+
+# Logs
+**/logs
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+logs_*
+
+# OS files
+**/.DS_Store
+**/Thumbs.db
+
+# Vercel
+**/.vercel
+
+# Sentry
+**/.env.sentry-build-plugin
+
+# Trigger.dev local
+**/.trigger
+
+# Supabase local
+**/supabase/.branches
+**/supabase/.temp
+**/.supabase-dumps
+
+# Data files
+**/src/scripts/data/*.csv
+**/src/scripts/data/*.json
+
+# Temporary files
+**/*.tmp
+**/*.temp
+**/temp-*
+**/.ion-target
+
+# TypeScript build info
+**/*.tsbuildinfo
+
+# Package manager lock files (bun.lock is needed, but others aren't)
+**/package-lock.json
+**/yarn.lock
+**/pnpm-lock.yaml
+
+# Yalc (local package linking)
+**/.yalc
+**/yalc.lock
+
+# Claude/AI tooling
+**/.claude
+**/AGENT_PROMPT.md
+**/.conductor
+
+# Generated files that will be rebuilt
+**/generated
+**/public/preview/preview.css
+**/public/preview/preview.*.css
+**/public/ui/*.json
+
+# Changeset files
+**/.changeset-lock.*
+
+# Workspace backups
+**/.workspace-deps-backup.json
+**/.dev-routes-backup
+
+# OpenAPI temp files
+**/temp-openapi**.json
