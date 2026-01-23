@@ -73,6 +73,7 @@ const ClonePricingModelModal: React.FC<
       <ClonePricingModelFormFields
         hasLivemodePricingModel={hasLivemodePricingModel}
         onWarningChange={handleWarningChange}
+        livemode={livemode ?? false}
       />
     </FormModal>
   )
