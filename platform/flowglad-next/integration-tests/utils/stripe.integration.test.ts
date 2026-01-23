@@ -530,7 +530,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
         expect(result.error.message).toBe(
-          'Missing stripeCustomerId for customer session creation'
+          'stripeCustomerId not found: Missing stripeCustomerId for customer session creation'
         )
       }
     })
@@ -1664,7 +1664,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         expect(Result.isError(refundResult)).toBe(true)
         if (Result.isError(refundResult)) {
           expect(refundResult.error.message).toBe(
-            'No charge found for payment intent'
+            'charge not found: No charge found for payment intent'
           )
         }
 
