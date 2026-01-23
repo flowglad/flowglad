@@ -11,7 +11,11 @@ import { server } from '@/../mocks/server'
 import { dummyOrganization } from '@/stubs/organizationStubs'
 import {
   checkSvixApplicationExists,
+  createSvixEndpoint,
+  findOrCreateSvixApplication,
   getSvixApplicationId,
+  getSvixSigningSecret,
+  updateSvixEndpoint,
 } from './svix'
 
 describe('getSvixApplicationId', () => {
@@ -206,5 +210,357 @@ describe('checkSvixApplicationExists', () => {
     await expect(
       checkSvixApplicationExists('app_unauth_test')
     ).rejects.toThrow()
+  })
+})
+
+describe('findOrCreateSvixApplication with pricingModelId', () => {
+  const organization = {
+    ...dummyOrganization,
+    id: 'org_findorcreate_test',
+    securitySalt: 'test-salt-findorcreate',
+  }
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' })
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
+  })
+
+  afterAll(() => {
+    server.close()
+  })
+
+  it('creates PM-scoped app when pricingModelId is provided', async () => {
+    const pricingModelId = 'pm_test_findorcreate'
+
+    // Track the app ID that was used in the request
+    let requestedAppId: string | undefined
+    server.use(
+      http.get(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/?$/,
+        ({ params }) => {
+          requestedAppId = params[1] as string
+          return HttpResponse.json(
+            { code: 'not_found', detail: 'Application not found' },
+            { status: 404 }
+          )
+        }
+      ),
+      http.post(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/?$/,
+        async ({ request }) => {
+          const body = (await request.json()) as { uid: string }
+          return HttpResponse.json({
+            id: `app_mock_created`,
+            name: 'Mock Application',
+            uid: body.uid,
+            createdAt: new Date().toISOString(),
+          })
+        }
+      )
+    )
+
+    const app = await findOrCreateSvixApplication({
+      organization,
+      livemode: true,
+      pricingModelId,
+    })
+
+    // Verify the app was created with PM-scoped ID
+    expect(app.uid).toContain(organization.id)
+    expect(app.uid).toContain(pricingModelId)
+    // Verify the app ID format includes both org and PM
+    const expectedIdPrefix = `app_${organization.id}_${pricingModelId}_live_`
+    expect(requestedAppId).toStartWith(expectedIdPrefix)
+  })
+
+  it('creates legacy app when pricingModelId is not provided', async () => {
+    // Track the app ID that was used in the request
+    let requestedAppId: string | undefined
+    server.use(
+      http.get(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/?$/,
+        ({ params }) => {
+          requestedAppId = params[1] as string
+          return HttpResponse.json(
+            { code: 'not_found', detail: 'Application not found' },
+            { status: 404 }
+          )
+        }
+      ),
+      http.post(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/?$/,
+        async ({ request }) => {
+          const body = (await request.json()) as { uid: string }
+          return HttpResponse.json({
+            id: `app_mock_created`,
+            name: 'Mock Application',
+            uid: body.uid,
+            createdAt: new Date().toISOString(),
+          })
+        }
+      )
+    )
+
+    await findOrCreateSvixApplication({
+      organization,
+      livemode: true,
+      // No pricingModelId - legacy format
+    })
+
+    // Verify the legacy app ID format (org ID only, no PM)
+    const expectedIdPrefix = `app_${organization.id}_live_`
+    expect(requestedAppId).toStartWith(expectedIdPrefix)
+    // Verify it does NOT contain a PM ID pattern (which would have another underscore segment)
+    const parts = requestedAppId?.split('_') ?? []
+    // Legacy format: app_org_<orgid>_live_<hmac> has 4 main parts
+    // PM format: app_org_<orgid>_pm_<pmid>_live_<hmac> has more
+    expect(parts.length).toBeLessThan(7)
+  })
+})
+
+describe('createSvixEndpoint with PM-scoped app', () => {
+  const organization = {
+    ...dummyOrganization,
+    id: 'org_endpoint_test',
+    securitySalt: 'test-salt-endpoint',
+  }
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' })
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
+  })
+
+  afterAll(() => {
+    server.close()
+  })
+
+  it('creates endpoint in PM-scoped Svix app when webhook has pricingModelId', async () => {
+    const pricingModelId = 'pm_endpoint_test'
+
+    // Create a webhook with pricingModelId (type assertion for forward compat)
+    const webhook = {
+      id: 'webhook_test_123',
+      livemode: true,
+      url: 'https://example.com/webhook',
+      filterTypes: ['customer.created'],
+      name: 'Test Webhook',
+      active: true,
+      organizationId: organization.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      pricingModelId, // This will be on Webhook.Record after patch 3
+    }
+
+    // Track which app ID was used for endpoint creation
+    let endpointCreatedInAppId: string | undefined
+    server.use(
+      http.post(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/endpoint\/?$/,
+        ({ params }) => {
+          endpointCreatedInAppId = params[1] as string
+          return HttpResponse.json({
+            id: `ep_mock_created`,
+            url: webhook.url,
+            uid: 'endpoint_uid_test',
+            createdAt: new Date().toISOString(),
+          })
+        }
+      )
+    )
+
+    // Type assertion: webhook missing some Record fields and pricingModelId not yet on type
+    await createSvixEndpoint({
+      organization,
+      webhook: webhook as unknown as Parameters<
+        typeof createSvixEndpoint
+      >[0]['webhook'],
+    })
+
+    // Verify endpoint was created in PM-scoped app
+    const expectedAppIdPrefix = `app_${organization.id}_${pricingModelId}_live_`
+    expect(endpointCreatedInAppId).toStartWith(expectedAppIdPrefix)
+  })
+
+  it('creates endpoint in legacy Svix app when webhook has no pricingModelId', async () => {
+    // Create a webhook without pricingModelId (legacy)
+    const webhook = {
+      id: 'webhook_legacy_456',
+      livemode: true,
+      url: 'https://example.com/webhook-legacy',
+      filterTypes: ['customer.created'],
+      name: 'Legacy Webhook',
+      active: true,
+      organizationId: organization.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      // No pricingModelId
+    }
+
+    // Track which app ID was used for endpoint creation
+    let endpointCreatedInAppId: string | undefined
+    server.use(
+      http.post(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/endpoint\/?$/,
+        ({ params }) => {
+          endpointCreatedInAppId = params[1] as string
+          return HttpResponse.json({
+            id: `ep_mock_legacy`,
+            url: webhook.url,
+            uid: 'endpoint_uid_legacy',
+            createdAt: new Date().toISOString(),
+          })
+        }
+      )
+    )
+
+    await createSvixEndpoint({
+      organization,
+      webhook: webhook as unknown as Parameters<
+        typeof createSvixEndpoint
+      >[0]['webhook'],
+    })
+
+    // Verify endpoint was created in legacy app (no PM in ID)
+    const expectedLegacyPrefix = `app_${organization.id}_live_`
+    expect(endpointCreatedInAppId).toStartWith(expectedLegacyPrefix)
+    // Verify it doesn't contain a PM ID
+    expect(endpointCreatedInAppId).not.toContain('pm_')
+  })
+})
+
+describe('getSvixSigningSecret with PM-scoped app', () => {
+  const organization = {
+    ...dummyOrganization,
+    id: 'org_secret_test',
+    securitySalt: 'test-salt-secret',
+  }
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' })
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
+  })
+
+  afterAll(() => {
+    server.close()
+  })
+
+  it('gets signing secret from PM-scoped Svix app when webhook has pricingModelId', async () => {
+    const pricingModelId = 'pm_secret_test'
+
+    const webhook = {
+      id: 'webhook_secret_123',
+      livemode: true,
+      url: 'https://example.com/webhook',
+      filterTypes: ['customer.created'],
+      name: 'Test Webhook',
+      active: true,
+      organizationId: organization.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      pricingModelId,
+    }
+
+    // Track which app ID was used for getting the secret
+    let secretRequestedFromAppId: string | undefined
+    server.use(
+      http.get(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/endpoint\/[^/]+\/secret\/?$/,
+        ({ params }) => {
+          secretRequestedFromAppId = params[1] as string
+          return HttpResponse.json({
+            key: 'whsec_pm_scoped_secret',
+          })
+        }
+      )
+    )
+
+    const result = await getSvixSigningSecret({
+      organization,
+      webhook: webhook as unknown as Parameters<
+        typeof getSvixSigningSecret
+      >[0]['webhook'],
+    })
+
+    // Verify secret was requested from PM-scoped app
+    const expectedAppIdPrefix = `app_${organization.id}_${pricingModelId}_live_`
+    expect(secretRequestedFromAppId).toStartWith(expectedAppIdPrefix)
+    expect(result.key).toBe('whsec_pm_scoped_secret')
+  })
+})
+
+describe('updateSvixEndpoint with PM-scoped app', () => {
+  const organization = {
+    ...dummyOrganization,
+    id: 'org_update_test',
+    securitySalt: 'test-salt-update',
+  }
+
+  beforeAll(() => {
+    server.listen({ onUnhandledRequest: 'bypass' })
+  })
+
+  afterEach(() => {
+    server.resetHandlers()
+  })
+
+  afterAll(() => {
+    server.close()
+  })
+
+  it('updates endpoint in PM-scoped Svix app when webhook has pricingModelId', async () => {
+    const pricingModelId = 'pm_update_test'
+
+    const webhook = {
+      id: 'webhook_update_123',
+      livemode: true,
+      url: 'https://example.com/webhook-updated',
+      filterTypes: ['customer.created', 'customer.updated'],
+      name: 'Updated Webhook',
+      active: false,
+      organizationId: organization.id,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      pricingModelId,
+    }
+
+    // Track which app ID was used when finding/creating the application
+    // This verifies the PM-scoped app ID is used
+    let findOrCreateAppRequestedId: string | undefined
+    server.use(
+      http.get(
+        /https:\/\/api(\.\w+)?\.svix\.com\/api\/v1\/app\/([^/]+)\/?$/,
+        ({ params }) => {
+          findOrCreateAppRequestedId = params[1] as string
+          return HttpResponse.json({
+            id: findOrCreateAppRequestedId,
+            name: 'Mock Application',
+            uid: findOrCreateAppRequestedId,
+            createdAt: new Date().toISOString(),
+          })
+        }
+      )
+    )
+
+    await updateSvixEndpoint({
+      organization,
+      webhook: webhook as unknown as Parameters<
+        typeof updateSvixEndpoint
+      >[0]['webhook'],
+    })
+
+    // Verify findOrCreateSvixApplication was called with PM-scoped app ID
+    const expectedAppIdPrefix = `app_${organization.id}_${pricingModelId}_live_`
+    expect(findOrCreateAppRequestedId).toStartWith(
+      expectedAppIdPrefix
+    )
   })
 })

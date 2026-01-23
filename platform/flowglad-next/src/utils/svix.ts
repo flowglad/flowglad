@@ -206,14 +206,21 @@ interface CreateSvixEndpointParams {
 
 /**
  * Core createSvixEndpoint logic without tracing.
+ *
+ * When the webhook has a `pricingModelId`, uses PM-scoped Svix application.
+ * Otherwise falls back to legacy org+livemode application format.
  */
 const createSvixEndpointCore = async (
   params: CreateSvixEndpointParams
 ) => {
   const { organization, webhook } = params
+  // Note: pricingModelId will be available on Webhook.Record after webhooks schema migration
+  const pricingModelId = (webhook as { pricingModelId?: string })
+    .pricingModelId
   const applicationId = getSvixApplicationId({
     organization,
     livemode: webhook.livemode,
+    pricingModelId,
   })
   if (!applicationId) {
     throw new Error('No application ID found')
@@ -221,6 +228,7 @@ const createSvixEndpointCore = async (
   await findOrCreateSvixApplication({
     organization,
     livemode: webhook.livemode,
+    pricingModelId,
   })
   const endpointId = getSvixEndpointId({
     organization,
@@ -251,6 +259,8 @@ export const createSvixEndpoint = svixTraced(
     'svix.app_id': getSvixApplicationId({
       organization: params.organization,
       livemode: params.webhook.livemode,
+      pricingModelId: (params.webhook as { pricingModelId?: string })
+        .pricingModelId,
     }),
   }),
   createSvixEndpointCore
@@ -263,11 +273,17 @@ interface UpdateSvixEndpointParams {
 
 /**
  * Core updateSvixEndpoint logic without tracing.
+ *
+ * When the webhook has a `pricingModelId`, uses PM-scoped Svix application.
+ * Otherwise falls back to legacy org+livemode application format.
  */
 const updateSvixEndpointCore = async (
   params: UpdateSvixEndpointParams
 ) => {
   const { webhook, organization } = params
+  // Note: pricingModelId will be available on Webhook.Record after webhooks schema migration
+  const pricingModelId = (webhook as { pricingModelId?: string })
+    .pricingModelId
   const endpointId = getSvixEndpointId({
     organization,
     webhook,
@@ -276,6 +292,7 @@ const updateSvixEndpointCore = async (
   const application = await findOrCreateSvixApplication({
     organization,
     livemode: webhook.livemode,
+    pricingModelId,
   })
   if (!application) {
     throw new Error('No application found')
@@ -306,6 +323,8 @@ export const updateSvixEndpoint = svixTraced(
     'svix.app_id': getSvixApplicationId({
       organization: params.organization,
       livemode: params.webhook.livemode,
+      pricingModelId: (params.webhook as { pricingModelId?: string })
+        .pricingModelId,
     }),
     'svix.endpoint_id': getSvixEndpointId({
       organization: params.organization,
@@ -373,11 +392,17 @@ interface GetSvixSigningSecretParams {
 
 /**
  * Core getSvixSigningSecret logic without tracing.
+ *
+ * When the webhook has a `pricingModelId`, uses PM-scoped Svix application.
+ * Otherwise falls back to legacy org+livemode application format.
  */
 const getSvixSigningSecretCore = async (
   params: GetSvixSigningSecretParams
 ): Promise<{ key: string }> => {
   const { webhook, organization } = params
+  // Note: pricingModelId will be available on Webhook.Record after webhooks schema migration
+  const pricingModelId = (webhook as { pricingModelId?: string })
+    .pricingModelId
   const endpointId = getSvixEndpointId({
     organization,
     webhook,
@@ -386,6 +411,7 @@ const getSvixSigningSecretCore = async (
   const applicationId = getSvixApplicationId({
     organization,
     livemode: webhook.livemode,
+    pricingModelId,
   })
   const secret = await svix().endpoint.getSecret(
     applicationId,
@@ -407,6 +433,8 @@ export const getSvixSigningSecret = svixTraced(
     'svix.app_id': getSvixApplicationId({
       organization: params.organization,
       livemode: params.webhook.livemode,
+      pricingModelId: (params.webhook as { pricingModelId?: string })
+        .pricingModelId,
     }),
     'svix.endpoint_id': getSvixEndpointId({
       organization: params.organization,
