@@ -26,7 +26,7 @@
     "test:integration": "NODE_ENV=test bun test --preload ./bun.integration.setup.ts --timeout 30000 $(find integration-tests -name '*.integration.test.ts') && bun run test:rls",
     "test:integration:watch": "NODE_ENV=test bun test --watch --preload ./bun.integration.setup.ts --timeout 30000 $(find integration-tests -name '*.integration.test.ts')",
     "test:slow": "NODE_ENV=test bun test --preload ./bun.setup.ts --timeout 30000 $(find slow-tests -name '*.test.ts')",
-    "test:setup": "NODE_ENV=test docker-compose -f docker-compose.test.yml down --volumes && docker-compose -f docker-compose.test.yml up -d --wait && docker-compose -f docker-compose.test.yml ps && bun run migrations:push",
+    "test:setup": "NODE_ENV=test docker-compose -f docker-compose.test.yml down --volumes && docker-compose -f docker-compose.test.yml up -d --wait && docker-compose -f docker-compose.test.yml ps && NODE_ENV=test bun run migrations:push",
     "test:teardown": "docker-compose -f docker-compose.test.yml down --volumes",
     "stripe:webhook-dev": "stripe listen --forward-to localhost:3000/api/webhook-stripe",
     "trigger:deploy": "bunx --bun trigger.dev@4.3.2 deploy --env $TRIGGER_ENV",

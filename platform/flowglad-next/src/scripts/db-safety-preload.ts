@@ -33,9 +33,13 @@ import { resolve } from 'path'
 // Environment Validation
 // ============================================================================
 
-type NodeEnvType = 'development' | 'production' | 'test'
+export type NodeEnvType = 'development' | 'production' | 'test'
 
-function getEffectiveNodeEnv(): NodeEnvType {
+/**
+ * Get the effective NODE_ENV, defaulting to 'development' if unset.
+ * This ensures development is always the default environment.
+ */
+export function getEffectiveNodeEnv(): NodeEnvType {
   const nodeEnv = process.env.NODE_ENV?.toLowerCase()
   if (nodeEnv === 'production') return 'production'
   if (nodeEnv === 'test') return 'test'
