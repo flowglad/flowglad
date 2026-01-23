@@ -205,7 +205,7 @@ const processSetupIntent = async ({
     }
   )
 
-  const { purchase, checkoutSession, type } = setupSuceededResult
+  const { purchase, checkoutSession } = setupSuceededResult
   if (
     isCheckoutSessionSubscriptionCreating(checkoutSession) &&
     setupSuceededResult.billingRun?.id

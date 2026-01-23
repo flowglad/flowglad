@@ -4,6 +4,7 @@ import type { BillingRun } from '@/db/schema/billingRuns'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Customer } from '@/db/schema/customers'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
+import type { Discount } from '@/db/schema/discounts'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
@@ -35,7 +36,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
-import { NotFoundError } from '@/errors'
+import { NotFoundError, ValidationError } from '@/errors'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
@@ -117,13 +118,38 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
   async (
     setupIntent: CoreSripeSetupIntent,
     ctx: TransactionEffectsContext
-  ) => {
+  ): Promise<
+    Result<
+      {
+        purchase: Purchase.Record
+        checkoutSession: CheckoutSession.Record
+        price: Price.Record
+        organization: Organization.Record
+        product: Product.Record | null
+        customer: Customer.Record
+        discount: Discount.Record | null
+        feeCalculation:
+          | import('@/db/schema/feeCalculations').FeeCalculation.Record
+          | null
+        discountRedemption: DiscountRedemption.Record | null
+        paymentMethod: PaymentMethod.Record
+      },
+      NotFoundError | ValidationError
+    >
+  > => {
     const { transaction } = ctx
-    const initialCheckoutSession =
+    const checkoutSessionResult =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
+    if (checkoutSessionResult.status === 'error') {
+      return Result.err(checkoutSessionResult.error)
+    }
+    const initialCheckoutSession = checkoutSessionResult.value
     if (checkoutSessionIsInTerminalState(initialCheckoutSession)) {
-      throw new Error(
-        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Checkout session is in terminal state (checkout session id: ${initialCheckoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.status',
+          `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Checkout session is in terminal state (checkout session id: ${initialCheckoutSession.id})`
+        )
       )
     }
     const checkoutSession = await updateCheckoutSession(
@@ -139,16 +165,22 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
     if (
       checkoutSession.type === CheckoutSessionType.AddPaymentMethod
     ) {
-      throw new Error(
-        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Add payment method checkout flow not support (checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Add payment method checkout flow not support (checkout session id: ${checkoutSession.id})`
+        )
       )
     }
     if (
       checkoutSession.type ===
       CheckoutSessionType.ActivateSubscription
     ) {
-      throw new Error(
-        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Activate subscription checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Activate subscription checkout flow not supported (checkout session id: ${checkoutSession.id})`
+        )
       )
     }
 
@@ -179,7 +211,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
         customer,
         ctx
       )
-    return {
+    return Result.ok({
       purchase,
       checkoutSession,
       price,
@@ -190,7 +222,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       feeCalculation,
       discountRedemption,
       paymentMethod,
-    }
+    })
   }
 
 export const calculateTrialEnd = (params: {
@@ -256,21 +288,31 @@ export const checkoutSessionFromSetupIntent = async (
     'status' | 'metadata' | 'id'
   >,
   transaction: DbTransaction
-) => {
+): Promise<
+  Result<CheckoutSession.Record, NotFoundError | ValidationError>
+> => {
   const metadata: StripeIntentMetadata =
     stripeIntentMetadataSchema.parse(setupIntent.metadata)
   if (!metadata) {
-    throw new Error('No metadata found')
+    return Result.err(
+      new NotFoundError('SetupIntentMetadata', setupIntent.id)
+    )
   }
   // FIXME: handle non-success cases
   if (setupIntent.status !== 'succeeded') {
-    throw new Error(
-      `Setup intent ${setupIntent.id} is not succeeded, but ${setupIntent.status}.`
+    return Result.err(
+      new ValidationError(
+        'setupIntent.status',
+        `Setup intent ${setupIntent.id} is not succeeded, but ${setupIntent.status}.`
+      )
     )
   }
   if (metadata.type !== IntentMetadataType.CheckoutSession) {
-    throw new Error(
-      `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
+    return Result.err(
+      new ValidationError(
+        'setupIntentMetadata.type',
+        `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
+      )
     )
   }
   const checkoutSessionId = metadata.checkoutSessionId
@@ -278,7 +320,7 @@ export const checkoutSessionFromSetupIntent = async (
     checkoutSessionId,
     transaction
   )
-  return checkoutSession
+  return Result.ok(checkoutSession)
 }
 
 interface ProcessAddPaymentMethodSetupIntentSucceededResult {
@@ -298,12 +340,21 @@ interface ProcessAddPaymentMethodSetupIntentSucceededResult {
 export const processAddPaymentMethodSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
   ctx: TransactionEffectsContext
-): Promise<ProcessAddPaymentMethodSetupIntentSucceededResult> => {
+): Promise<
+  Result<
+    ProcessAddPaymentMethodSetupIntentSucceededResult,
+    NotFoundError | ValidationError
+  >
+> => {
   const { transaction, invalidateCache } = ctx
-  const initialCheckoutSession = await checkoutSessionFromSetupIntent(
+  const checkoutSessionResult = await checkoutSessionFromSetupIntent(
     setupIntent,
     transaction
   )
+  if (checkoutSessionResult.status === 'error') {
+    return Result.err(checkoutSessionResult.error)
+  }
+  const initialCheckoutSession = checkoutSessionResult.value
   const checkoutSession = await updateCheckoutSession(
     {
       ...initialCheckoutSession,
@@ -329,8 +380,11 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
       transaction
     )
     if (subscription.status === SubscriptionStatus.CreditTrial) {
-      throw new Error(
-        `Subscription ${subscription.id} is a credit trial subscription. To add a payment method to it, you must first upgrade to a paid plan.`
+      return Result.err(
+        new ValidationError(
+          'subscription.status',
+          `Subscription ${subscription.id} is a credit trial subscription. To add a payment method to it, you must first upgrade to a paid plan.`
+        )
       )
     }
     await updateSubscription(
@@ -358,7 +412,7 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
   // Invalidate payment methods cache after adding a new payment method
   invalidateCache(CacheDependency.customerPaymentMethods(customer.id))
 
-  return {
+  return Result.ok({
     type: CheckoutSessionType.AddPaymentMethod,
     purchase: null,
     price: null,
@@ -367,7 +421,7 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
     checkoutSession,
     organization,
     customer,
-  }
+  })
 }
 
 interface ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult {
@@ -428,14 +482,15 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
   > => {
     const { transaction, emitEvent } = ctx
     if (!customer) {
-      throw new Error(
-        `Customer is required for setup intent ${setupIntent.id}`
-      )
+      return Result.err(new NotFoundError('Customer', setupIntent.id))
     }
 
     if (!isCheckoutSessionSubscriptionCreating(checkoutSession)) {
-      throw new Error(
-        `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
+        )
       )
     }
     /**
@@ -444,29 +499,48 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
      * the checkout session was for adding a payment method
      */
     if (!price) {
-      throw new Error(
-        `Price not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+      return Result.err(
+        new NotFoundError(
+          'Price',
+          `for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+        )
       )
     }
 
     if (!product) {
-      throw new Error(
-        `Product not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+      return Result.err(
+        new NotFoundError(
+          'Product',
+          `for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+        )
       )
     }
 
     if (!purchase) {
-      throw new Error(
-        `Purchase not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+      return Result.err(
+        new NotFoundError(
+          'Purchase',
+          `for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+        )
       )
     }
 
     if (!price.intervalUnit) {
-      throw new Error('Price interval unit is required')
+      return Result.err(
+        new ValidationError(
+          'price.intervalUnit',
+          'Price interval unit is required'
+        )
+      )
     }
 
     if (!price.intervalCount) {
-      throw new Error('Price interval count is required')
+      return Result.err(
+        new ValidationError(
+          'price.intervalCount',
+          'Price interval count is required'
+        )
+      )
     }
 
     const hasHadTrial = await hasCustomerUsedTrial(
@@ -575,12 +649,16 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
   ): Promise<
     Result<
       ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult,
-      NotFoundError
+      NotFoundError | ValidationError
     >
   > => {
     const { transaction } = ctx
-    const initialCheckoutSession =
+    const checkoutSessionResult =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
+    if (checkoutSessionResult.status === 'error') {
+      return Result.err(checkoutSessionResult.error)
+    }
+    const initialCheckoutSession = checkoutSessionResult.value
     const checkoutSession = await updateCheckoutSession(
       {
         ...initialCheckoutSession,
@@ -718,10 +796,12 @@ export const processSetupIntentSucceeded = async (
     // This setup intent was already processed, return the existing subscription
     // This prevents duplicate subscription creation in case of webhook replay
     const subscription = existingSubscription[0]
-    const checkoutSession = await checkoutSessionFromSetupIntent(
-      setupIntent,
-      transaction
-    )
+    const checkoutSessionResult =
+      await checkoutSessionFromSetupIntent(setupIntent, transaction)
+    if (checkoutSessionResult.status === 'error') {
+      return Result.err(checkoutSessionResult.error)
+    }
+    const checkoutSession = checkoutSessionResult.value
     const customer = await selectCustomerById(
       subscription.customerId!,
       transaction
@@ -745,8 +825,11 @@ export const processSetupIntentSucceeded = async (
 
       // Ensure payment method exists for activation
       if (!paymentMethod) {
-        throw new Error(
-          `processSetupIntentSucceeded: Payment method required for subscription activation (checkout session id: ${checkoutSession.id})`
+        return Result.err(
+          new NotFoundError(
+            'PaymentMethod',
+            `processSetupIntentSucceeded: Payment method required for subscription activation (checkout session id: ${checkoutSession.id})`
+          )
         )
       }
 
@@ -762,15 +845,21 @@ export const processSetupIntentSucceeded = async (
       })
     }
     if (checkoutSession.type === CheckoutSessionType.Purchase) {
-      throw new Error(
-        `processSetupIntentSucceeded: Purchase checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `processSetupIntentSucceeded: Purchase checkout flow not supported (checkout session id: ${checkoutSession.id})`
+        )
       )
     }
     if (
       checkoutSession.type === CheckoutSessionType.AddPaymentMethod
     ) {
-      throw new Error(
-        `processSetupIntentSucceeded: Add payment method checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `processSetupIntentSucceeded: Add payment method checkout flow not supported (checkout session id: ${checkoutSession.id})`
+        )
       )
     }
     // Default to subscription creating result type
@@ -782,15 +871,21 @@ export const processSetupIntentSucceeded = async (
 
     // Validate that price result exists
     if (!priceResult[0]) {
-      throw new Error(
-        `processSetupIntentSucceeded: Price not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new NotFoundError(
+          'Price',
+          `processSetupIntentSucceeded: Price not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id})`
+        )
       )
     }
 
     // Validate that product exists - subscription creation requires a product
     if (!priceResult[0].product) {
-      throw new Error(
-        `processSetupIntentSucceeded: Product not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id}). Usage prices are not supported for subscription checkout sessions.`
+      return Result.err(
+        new NotFoundError(
+          'Product',
+          `processSetupIntentSucceeded: Product not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id}). Usage prices are not supported for subscription checkout sessions.`
+        )
       )
     }
 
@@ -806,10 +901,12 @@ export const processSetupIntentSucceeded = async (
     })
   }
 
-  const initialCheckoutSession = await checkoutSessionFromSetupIntent(
-    setupIntent,
-    transaction
-  )
+  const initialCheckoutSessionResult =
+    await checkoutSessionFromSetupIntent(setupIntent, transaction)
+  if (initialCheckoutSessionResult.status === 'error') {
+    return Result.err(initialCheckoutSessionResult.error)
+  }
+  const initialCheckoutSession = initialCheckoutSessionResult.value
 
   if (checkoutSessionIsInTerminalState(initialCheckoutSession)) {
     const result = await processTerminalCheckoutSessionSetupIntent(
@@ -823,11 +920,15 @@ export const processSetupIntentSucceeded = async (
     initialCheckoutSession.type ===
     CheckoutSessionType.AddPaymentMethod
   ) {
-    const result = await processAddPaymentMethodSetupIntentSucceeded(
-      setupIntent,
-      ctx
-    )
-    return Result.ok(result)
+    const resultResult =
+      await processAddPaymentMethodSetupIntentSucceeded(
+        setupIntent,
+        ctx
+      )
+    if (resultResult.status === 'error') {
+      return Result.err(resultResult.error)
+    }
+    return Result.ok(resultResult.value)
   }
 
   if (
@@ -850,11 +951,16 @@ export const processSetupIntentSucceeded = async (
     return Result.ok(activateResult.value)
   }
 
-  const successProcessedResult =
+  const successProcessedResultResult =
     await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
       setupIntent,
       ctx
     )
+
+  if (successProcessedResultResult.status === 'error') {
+    return Result.err(successProcessedResultResult.error)
+  }
+  const successProcessedResult = successProcessedResultResult.value
 
   const withSetupIntent = Object.assign(successProcessedResult, {
     setupIntent,
