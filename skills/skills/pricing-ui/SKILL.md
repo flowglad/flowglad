@@ -1,3 +1,22 @@
+---
+name: flowglad-pricing-ui
+description: Build pricing pages, pricing cards, and plan displays with Flowglad. Use this skill when creating pricing tables, displaying subscription options, or building plan comparison interfaces.
+license: MIT
+metadata:
+  author: flowglad
+  version: "1.0.0"
+---
+
+<!--
+@flowglad/skill
+sources_reviewed: 2026-01-21T12:00:00Z
+source_files:
+  - platform/docs/features/prices.mdx
+  - platform/docs/features/pricing-models.mdx
+  - platform/docs/sdks/pricing-models-products.mdx
+  - platform/docs/sdks/react.mdx
+-->
+
 # Flowglad Pricing UI
 
 ## Abstract
