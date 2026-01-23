@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCheckoutSession,
   setupCustomer,
@@ -493,24 +494,26 @@ describe('derivePricingModelIdFromPayment', () => {
 
   it('should successfully derive pricingModelId from payment', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelId =
+      const derivedPricingModelIdResult =
         await derivePricingModelIdFromPayment(payment.id, transaction)
 
+      expect(Result.isOk(derivedPricingModelIdResult)).toBe(true)
+      const derivedPricingModelId =
+        derivedPricingModelIdResult.unwrap()
       expect(derivedPricingModelId).toBe(payment.pricingModelId)
       expect(derivedPricingModelId).toBe(pricingModel.id)
     })
   })
 
-  it('should throw an error when payment does not exist', async () => {
+  it('should return error Result when payment does not exist', async () => {
     await adminTransaction(async ({ transaction }) => {
       const nonExistentPaymentId = `payment_${core.nanoid()}`
 
-      await expect(
-        derivePricingModelIdFromPayment(
-          nonExistentPaymentId,
-          transaction
-        )
-      ).rejects.toThrow()
+      const result = await derivePricingModelIdFromPayment(
+        nonExistentPaymentId,
+        transaction
+      )
+      expect(Result.isError(result)).toBe(true)
     })
   })
 })
