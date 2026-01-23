@@ -36,6 +36,29 @@ import { resolve } from 'path'
 export type NodeEnvType = 'development' | 'production' | 'test'
 
 /**
+ * Scripts that don't require database access.
+ * These bootstrap/setup scripts should skip the DATABASE_URL safety check.
+ */
+const BOOTSTRAP_SCRIPTS = [
+  'user', // setup-env-user.ts - creates .env_user file
+  'vercel:env-pull', // pulls env from Vercel
+  'install-packages', // bun install wrapper
+] as const
+
+/**
+ * Check if the current script is a bootstrap script that doesn't need database access.
+ */
+export function isBootstrapScript(): boolean {
+  const scriptName =
+    process.env.npm_lifecycle_event?.toLowerCase() ?? ''
+  return BOOTSTRAP_SCRIPTS.some(
+    (bootstrap) =>
+      scriptName === bootstrap ||
+      scriptName.startsWith(`${bootstrap}:`)
+  )
+}
+
+/**
  * Check if the current npm script name starts with "test".
  * Uses npm_lifecycle_event which is set by bun/npm when running scripts.
  */
@@ -202,7 +225,8 @@ export function shouldSkipSafetyCheck(): boolean {
   return (
     process.env.VERCEL !== undefined ||
     process.env.CI !== undefined ||
-    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined
+    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined ||
+    isBootstrapScript()
   )
 }
 
