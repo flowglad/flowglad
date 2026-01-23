@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
-import { describe, expect, it } from 'vitest'
 import type { Price } from '@/db/schema/prices'
 import { IntervalUnit, PriceType } from '@/types'
 import {

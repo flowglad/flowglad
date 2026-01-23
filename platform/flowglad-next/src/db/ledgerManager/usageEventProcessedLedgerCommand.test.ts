@@ -1,5 +1,12 @@
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { and, eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupCreditLedgerEntry,
@@ -679,11 +686,12 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       }
 
       // Execute
-      const { ledgerTransaction, ledgerEntries } =
+      const { ledgerTransaction, ledgerEntries } = (
         await processUsageEventProcessedLedgerCommand(
           command,
           transaction
         )
+      ).unwrap()
 
       // Verify: LedgerTransaction created
 
@@ -719,7 +727,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           `Usage event ${sampleUsageEvent.id} processed.`
         )
         expect(usageCostEntry.billingPeriodId).toBe(
-          sampleUsageEvent.billingPeriodId
+          sampleUsageEvent.billingPeriodId!
         )
         expect(usageCostEntry.usageMeterId).toBe(
           sampleUsageEvent.usageMeterId
@@ -796,10 +804,12 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       const {
         ledgerTransaction: processedTx,
         ledgerEntries: processedEntries,
-      } = await processUsageEventProcessedLedgerCommand(
-        command,
-        transaction
-      )
+      } = (
+        await processUsageEventProcessedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       // Verify: Processed LedgerTransaction
       expect(processedTx.description).toBe(commandDescription)
@@ -966,10 +976,12 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       const {
         ledgerTransaction: processedTx,
         ledgerEntries: processedEntries,
-      } = await processUsageEventProcessedLedgerCommand(
-        command,
-        transaction
-      )
+      } = (
+        await processUsageEventProcessedLedgerCommand(
+          command,
+          transaction
+        )
+      ).unwrap()
 
       // Verify: Processed LedgerTransaction
       expect(processedTx.description).toBe(commandDescription)
@@ -1109,10 +1121,12 @@ describe('processUsageEventProcessedLedgerCommand', () => {
     await expect(
       adminTransaction(async ({ transaction }) => {
         // Expects: The call to processUsageEventProcessedLedgerCommand to throw an error
-        return await processUsageEventProcessedLedgerCommand(
-          command,
-          transaction
-        )
+        return (
+          await processUsageEventProcessedLedgerCommand(
+            command,
+            transaction
+          )
+        ).unwrap()
       })
     ).rejects.toThrowError('No subscriptions found with id')
     const rogueTransactions = await adminTransaction(
@@ -1181,11 +1195,12 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       }
 
       // 5. Execute
-      const { ledgerTransaction, ledgerEntries } =
+      const { ledgerTransaction, ledgerEntries } = (
         await processUsageEventProcessedLedgerCommand(
           command,
           transaction
         )
+      ).unwrap()
 
       // 6. VERIFY: LedgerTransaction created
       expect(ledgerTransaction.subscriptionId).toBe(subscription.id)
@@ -1238,7 +1253,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         expect(usageCostEntry.organizationId).toBe(organization.id)
         expect(usageCostEntry.livemode).toBe(TEST_LIVEMODE)
         expect(usageCostEntry.billingPeriodId).toBe(
-          newUsageEvent.billingPeriodId
+          newUsageEvent.billingPeriodId!
         )
         expect(usageCostEntry.usageMeterId).toBe(
           newUsageEvent.usageMeterId
@@ -1271,19 +1286,21 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         customerId: customer.id,
         livemode: TEST_LIVEMODE,
       })
-      await processUsageEventProcessedLedgerCommand(
-        {
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          payload: {
-            usageEvent: priorUsageEvent,
+      ;(
+        await processUsageEventProcessedLedgerCommand(
+          {
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            payload: {
+              usageEvent: priorUsageEvent,
+            },
+            type: LedgerTransactionType.UsageEventProcessed,
+            transactionDescription: 'Prior usage event',
+            livemode: TEST_LIVEMODE,
           },
-          type: LedgerTransactionType.UsageEventProcessed,
-          transactionDescription: 'Prior usage event',
-          livemode: TEST_LIVEMODE,
-        },
-        transaction
-      )
+          transaction
+        )
+      ).unwrap()
 
       // Setup: command
       const commandDescription = `Test processing for usage event ${sampleUsageEvent.id} without credits`
@@ -1300,11 +1317,12 @@ describe('processUsageEventProcessedLedgerCommand', () => {
       }
 
       // Execute
-      const { ledgerTransaction, ledgerEntries } =
+      const { ledgerTransaction, ledgerEntries } = (
         await processUsageEventProcessedLedgerCommand(
           command,
           transaction
         )
+      ).unwrap()
 
       // Verify: LedgerTransaction created
 
@@ -1340,7 +1358,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           `Usage event ${sampleUsageEvent.id} processed.`
         )
         expect(usageCostEntry.billingPeriodId).toBe(
-          sampleUsageEvent.billingPeriodId
+          sampleUsageEvent.billingPeriodId!
         )
         expect(usageCostEntry.usageMeterId).toBe(
           sampleUsageEvent.usageMeterId
@@ -1385,18 +1403,20 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         customerId: customer.id,
         livemode: TEST_LIVEMODE,
       })
-      await processUsageEventProcessedLedgerCommand(
-        {
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          payload: {
-            usageEvent: priorUsageEvent,
+      ;(
+        await processUsageEventProcessedLedgerCommand(
+          {
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            payload: {
+              usageEvent: priorUsageEvent,
+            },
+            type: LedgerTransactionType.UsageEventProcessed,
+            livemode: TEST_LIVEMODE,
           },
-          type: LedgerTransactionType.UsageEventProcessed,
-          livemode: TEST_LIVEMODE,
-        },
-        transaction
-      )
+          transaction
+        )
+      ).unwrap()
 
       // Verify: Final balance
       const finalBalance =
@@ -1454,18 +1474,20 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         customerId: customer.id,
         livemode: TEST_LIVEMODE,
       })
-      await processUsageEventProcessedLedgerCommand(
-        {
-          organizationId: organization.id,
-          subscriptionId: subscription.id,
-          payload: {
-            usageEvent: priorUsageEvent,
+      ;(
+        await processUsageEventProcessedLedgerCommand(
+          {
+            organizationId: organization.id,
+            subscriptionId: subscription.id,
+            payload: {
+              usageEvent: priorUsageEvent,
+            },
+            type: LedgerTransactionType.UsageEventProcessed,
+            livemode: TEST_LIVEMODE,
           },
-          type: LedgerTransactionType.UsageEventProcessed,
-          livemode: TEST_LIVEMODE,
-        },
-        transaction
-      )
+          transaction
+        )
+      ).unwrap()
 
       const initialBalance =
         await aggregateBalanceForLedgerAccountFromEntries(
@@ -1488,7 +1510,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
         customerId: customer.id,
         livemode: TEST_LIVEMODE,
       })
-      const { ledgerEntries } =
+      const { ledgerEntries } = (
         await processUsageEventProcessedLedgerCommand(
           {
             organizationId: organization.id,
@@ -1501,6 +1523,7 @@ describe('processUsageEventProcessedLedgerCommand', () => {
           },
           transaction
         )
+      ).unwrap()
 
       // Verify: Only a UsageCost entry was created
       expect(ledgerEntries.length).toBe(1)

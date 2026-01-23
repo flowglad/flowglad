@@ -1,5 +1,13 @@
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { TRPCError } from '@trpc/server'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   errorHandlers,
   extractErrorDetails,
@@ -8,9 +16,11 @@ import {
 
 describe('trpcErrorHandler', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
-    // biome-ignore lint/plugin: legacy spyOn usage
-    vi.spyOn(console, 'error').mockImplementation(() => {})
+    spyOn(console, 'error').mockImplementation(() => {})
+  })
+
+  afterEach(() => {
+    mock.restore()
   })
 
   describe('extractErrorDetails', () => {
@@ -181,8 +191,7 @@ describe('trpcErrorHandler', () => {
     })
 
     it('should log errors with context', () => {
-      // biome-ignore lint/plugin: legacy spyOn usage
-      const consoleSpy = vi.spyOn(console, 'error')
+      const consoleSpy = spyOn(console, 'error')
       const error = new Error('Test error')
 
       try {

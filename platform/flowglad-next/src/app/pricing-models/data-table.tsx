@@ -33,12 +33,14 @@ export interface PricingModelsTableFilters {
 interface PricingModelsDataTableProps {
   filters?: PricingModelsTableFilters
   onCreatePricingModel?: () => void
+  onTotalCountChange?: (count: number | null) => void
   hiddenColumns?: string[]
 }
 
 export function PricingModelsDataTable({
   filters = {},
   onCreatePricingModel,
+  onTotalCountChange,
   hiddenColumns = [],
 }: PricingModelsDataTableProps) {
   const router = useRouter()
@@ -81,6 +83,11 @@ export function PricingModelsDataTable({
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery])
+
+  // Report total count when data changes
+  React.useEffect(() => {
+    onTotalCountChange?.(data?.total ?? null)
+  }, [data?.total, onTotalCountChange])
 
   // Client-side state
   const [columnVisibility, setColumnVisibility] =

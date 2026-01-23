@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Country } from '@/db/schema/countries'
 import type {

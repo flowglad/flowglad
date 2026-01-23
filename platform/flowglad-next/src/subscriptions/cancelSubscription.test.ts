@@ -1,6 +1,13 @@
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -49,6 +56,7 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError, ValidationError } from '@/errors'
 import {
   abortScheduledBillingRuns,
   cancelSubscriptionImmediately,
@@ -801,7 +809,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           BillingPeriodStatus.Completed
         )
         expect(updatedActiveBP.endDate).toBe(
-          updatedSubscription.canceledAt
+          updatedSubscription.canceledAt!
         )
         expect(updatedFutureBP.status).toBe(
           BillingPeriodStatus.Canceled
@@ -911,7 +919,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
         // Verify subscription was canceled immediately
         expect(result.status).toBe(SubscriptionStatus.Canceled)
-        expect(result.canceledAt).toMatchObject({})
+        expect(typeof result.canceledAt).toBe('number')
         expect(effects.events).toHaveLength(1)
         expect(effects.events[0]).toMatchObject({
           type: FlowgladEventType.SubscriptionCanceled,
@@ -969,7 +977,7 @@ describe('Subscription Cancellation Test Suite', async () => {
 
           // Verify subscription was canceled regardless of initial status
           expect(result.status).toBe(SubscriptionStatus.Canceled)
-          expect(result.canceledAt).toMatchObject({})
+          expect(typeof result.canceledAt).toBe('number')
           expect(effects.events).toHaveLength(1)
           expect(effects.events[0]).toMatchObject({
             type: FlowgladEventType.SubscriptionCanceled,
@@ -1003,16 +1011,19 @@ describe('Subscription Cancellation Test Suite', async () => {
           endDate: new Date(futureStart.getTime() + 60 * 60 * 1000),
         })
         // Because the current time is before the billing period start, expect an error.
-        await expect(
-          cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          /Cannot end a subscription before its start date/
+        const result = await cancelSubscriptionImmediately(
+          {
+            subscription,
+          },
+          createDiscardingEffectsContext(transaction)
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot end a subscription before its start date/
+          )
+        }
       })
     })
 
@@ -1421,11 +1432,12 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        const updatedSubscription =
+        const updatedSubscription = (
           await scheduleSubscriptionCancellation(
             params,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
@@ -1471,15 +1483,17 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        const result = await scheduleSubscriptionCancellation(
-          params,
-          createDiscardingEffectsContext(transaction)
-        )
+        const result = (
+          await scheduleSubscriptionCancellation(
+            params,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
         expect(result.status).toBe(SubscriptionStatus.Canceled)
       })
     })
 
-    it('throws when scheduling cancellation for a non-renewing subscription', async () => {
+    it('returns ValidationError when scheduling cancellation for a non-renewing subscription', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const nonRenewing = await setupSubscription({
@@ -1500,16 +1514,21 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        await expect(
-          scheduleSubscriptionCancellation(
-            params,
-            createDiscardingEffectsContext(transaction)
+        const result = await scheduleSubscriptionCancellation(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /non-renewing subscription/
           )
-        ).rejects.toThrow(/non-renewing subscription/)
+        }
       })
     })
 
-    it('should throw an error if no current billing period exists for `AtEndOfCurrentBillingPeriod`', async () => {
+    it('returns NotFoundError if no current billing period exists for `AtEndOfCurrentBillingPeriod`', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const subscription = await setupSubscription({
@@ -1526,12 +1545,17 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        await expect(
-          scheduleSubscriptionCancellation(
-            params,
-            createDiscardingEffectsContext(transaction)
+        const result = await scheduleSubscriptionCancellation(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(NotFoundError)
+          expect(result.error.message).toMatch(
+            /Current billing period not found: subscription/
           )
-        ).rejects.toThrow('No current billing period found')
+        }
       })
     })
 
@@ -1561,11 +1585,12 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        const updatedSubscription =
+        const updatedSubscription = (
           await scheduleSubscriptionCancellation(
             params,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
@@ -1681,11 +1706,12 @@ describe('Subscription Cancellation Test Suite', async () => {
             timing: SubscriptionCancellationArrangement.Immediately,
           },
         }
-        const updatedSubscription =
+        const updatedSubscription = (
           await scheduleSubscriptionCancellation(
             params,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
@@ -1723,13 +1749,10 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
-      // biome-ignore lint/plugin: legacy spyOn usage
-      const notificationSpy = vi
-        .spyOn(
-          subscriptionCancellationNotifications,
-          'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
-        )
-        .mockResolvedValue(undefined)
+      const notificationSpy = spyOn(
+        subscriptionCancellationNotifications,
+        'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
+      ).mockResolvedValue(undefined)
       try {
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
@@ -1751,10 +1774,12 @@ describe('Subscription Cancellation Test Suite', async () => {
                 SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
             },
           }
-          await scheduleSubscriptionCancellation(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+          ;(
+            await scheduleSubscriptionCancellation(
+              params,
+              createDiscardingEffectsContext(transaction)
+            )
+          ).unwrap()
         })
         expect(notificationSpy).toHaveBeenCalledTimes(1)
       } finally {
@@ -2409,7 +2434,7 @@ describe('Subscription Cancellation Test Suite', async () => {
      Free Plan Protection
   --------------------------------------------------------------------------- */
   describe('Free Plan Protection', () => {
-    it('should throw an error when attempting to cancel a free plan subscription', async () => {
+    it('returns ValidationError when attempting to cancel a free plan subscription', async () => {
       const {
         organization,
         price: freePrice,
@@ -2449,28 +2474,32 @@ describe('Subscription Cancellation Test Suite', async () => {
         endDate: Date.now() + 60 * 60 * 1000,
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return cancelSubscriptionProcedureTransaction({
-            input: {
-              id: freeSubscription.id,
-              cancellation: {
-                timing:
-                  SubscriptionCancellationArrangement.Immediately,
-              },
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await cancelSubscriptionProcedureTransaction({
+          input: {
+            id: freeSubscription.id,
+            cancellation: {
+              timing: SubscriptionCancellationArrangement.Immediately,
             },
-            ctx: { apiKey: undefined },
-            transactionCtx: withAdminCacheContext({
-              transaction,
-              livemode: true,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: () => {},
-            }),
-          })
+          },
+          ctx: { apiKey: undefined },
+          transactionCtx: withAdminCacheContext({
+            transaction,
+            livemode: true,
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
+          }),
         })
-      ).rejects.toThrow(/Cannot cancel the default free plan/)
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot cancel the default free plan/
+          )
+        }
+      })
     })
 
     it('should allow cancellation of paid plan subscriptions', async () => {
@@ -2536,7 +2565,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       )
     })
 
-    it('should throw an error when attempting to schedule cancellation of a free plan', async () => {
+    it('returns ValidationError when attempting to schedule cancellation of a free plan', async () => {
       const {
         organization,
         price: freePrice,
@@ -2575,28 +2604,33 @@ describe('Subscription Cancellation Test Suite', async () => {
         endDate: Date.now() + 60 * 60 * 1000,
       })
 
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return cancelSubscriptionProcedureTransaction({
-            input: {
-              id: freeSubscription.id,
-              cancellation: {
-                timing:
-                  SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-              },
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await cancelSubscriptionProcedureTransaction({
+          input: {
+            id: freeSubscription.id,
+            cancellation: {
+              timing:
+                SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
             },
-            ctx: { apiKey: undefined },
-            transactionCtx: withAdminCacheContext({
-              transaction,
-              livemode: true,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: () => {},
-            }),
-          })
+          },
+          ctx: { apiKey: undefined },
+          transactionCtx: withAdminCacheContext({
+            transaction,
+            livemode: true,
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
+          }),
         })
-      ).rejects.toThrow(/Cannot cancel the default free plan/)
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot cancel the default free plan/
+          )
+        }
+      })
     })
   })
 
@@ -2800,7 +2834,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('should throw error for paid subscription without payment method (security)', async () => {
+    it('returns ValidationError when paid subscription has no payment method (security)', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
@@ -2832,14 +2866,17 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        await expect(
-          uncancelSubscription(
-            paidSubscription,
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          /Cannot uncancel paid subscription without an active payment method/
+        const result = await uncancelSubscription(
+          paidSubscription,
+          createDiscardingEffectsContext(transaction)
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot uncancel paid subscription without an active payment method/
+          )
+        }
       })
     })
 
@@ -3769,7 +3806,7 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('should handle authentication correctly and return proper error for paid subscription without payment method', async () => {
+    it('returns ValidationError when paid subscription has no payment method via procedure transaction', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const now = Date.now()
@@ -3800,8 +3837,8 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        await expect(
-          uncancelSubscriptionProcedureTransaction({
+        const result = await uncancelSubscriptionProcedureTransaction(
+          {
             input: { id: paidSubscription.id },
             ctx: { apiKey: undefined },
             transactionCtx: withAdminCacheContext({
@@ -3811,10 +3848,15 @@ describe('Subscription Cancellation Test Suite', async () => {
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
             }),
-          })
-        ).rejects.toThrow(
-          /Cannot uncancel paid subscription without an active payment method/
+          }
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot uncancel paid subscription without an active payment method/
+          )
+        }
       })
     })
   })
@@ -4119,16 +4161,18 @@ describe('cancelSubscription with resources', async () => {
     // Schedule the subscription cancellation for end of billing period
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      await scheduleSubscriptionCancellation(
-        {
-          id: subscription.id,
-          cancellation: {
-            timing:
-              SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+      ;(
+        await scheduleSubscriptionCancellation(
+          {
+            id: subscription.id,
+            cancellation: {
+              timing:
+                SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+            },
           },
-        },
-        createDiscardingEffectsContext(transaction)
-      )
+          createDiscardingEffectsContext(transaction)
+        )
+      ).unwrap()
     })
 
     // Verify claims remain active (should NOT be released)

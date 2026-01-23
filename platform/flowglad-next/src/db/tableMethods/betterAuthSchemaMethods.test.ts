@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { adminTransaction } from '@/db/adminTransaction'
 import { user } from '@/db/schema/betterAuthSchema'
 import core from '@/utils/core'

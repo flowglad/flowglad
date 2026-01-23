@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type {
   BillingPeriodTransitionLedgerCommand,
   LedgerCommandResult,
@@ -14,6 +15,7 @@ import {
   selectLedgerTransactions,
 } from '@/db/tableMethods/ledgerTransactionMethods'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import { LedgerTransactionType } from '@/types'
 import { expireCreditsAtEndOfBillingPeriod } from './expireCreditsAtEndOfBillingPeriod'
 import { grantEntitlementUsageCredits } from './grantEntitlementUsageCredits'
@@ -21,7 +23,7 @@ import { grantEntitlementUsageCredits } from './grantEntitlementUsageCredits'
 export const processBillingPeriodTransitionLedgerCommand = async (
   command: BillingPeriodTransitionLedgerCommand,
   transaction: DbTransaction
-): Promise<LedgerCommandResult> => {
+): Promise<Result<LedgerCommandResult, NotFoundError>> => {
   const initiatingSourceId =
     command.payload.type === 'standard'
       ? command.payload.newBillingPeriod.id
@@ -86,35 +88,43 @@ export const processBillingPeriodTransitionLedgerCommand = async (
     ])
   )
 
-  const { ledgerEntries: entitlementLedgerEntryRecords } =
-    await grantEntitlementUsageCredits(
-      {
-        ledgerAccountsByUsageMeterId,
-        ledgerTransaction,
-        command,
-      },
-      transaction
-    )
+  const entitlementResult = await grantEntitlementUsageCredits(
+    {
+      ledgerAccountsByUsageMeterId,
+      ledgerTransaction,
+      command,
+    },
+    transaction
+  )
+  if (Result.isError(entitlementResult)) {
+    return Result.err(entitlementResult.error)
+  }
+  const entitlementLedgerEntryRecords =
+    entitlementResult.value.ledgerEntries
 
   /**
    * 3. Expire usage credits at the end of the billing period. This runs *after*
    * usage has been processed to ensure credits are applied before expiring.
    */
-  const { ledgerEntries: expirationLedgerEntryRecords } =
-    await expireCreditsAtEndOfBillingPeriod(
-      {
-        ledgerAccountsForSubscription,
-        ledgerTransaction,
-        command,
-      },
-      transaction
-    )
+  const expirationResult = await expireCreditsAtEndOfBillingPeriod(
+    {
+      ledgerAccountsForSubscription,
+      ledgerTransaction,
+      command,
+    },
+    transaction
+  )
+  if (Result.isError(expirationResult)) {
+    return Result.err(expirationResult.error)
+  }
+  const expirationLedgerEntryRecords =
+    expirationResult.value.ledgerEntries
 
-  return {
+  return Result.ok({
     ledgerTransaction,
     ledgerEntries: [
       ...entitlementLedgerEntryRecords,
       ...expirationLedgerEntryRecords,
     ],
-  }
+  })
 }

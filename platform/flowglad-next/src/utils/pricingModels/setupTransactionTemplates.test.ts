@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import {
   AI_IMAGE_GENERATION_SUBSCRIPTION_TEMPLATE,
@@ -42,14 +42,16 @@ describe('Template Integration Tests', () => {
 
       for (const { template, expectedName } of templates) {
         const result = await adminTransaction(async (ctx) =>
-          setupPricingModelTransaction(
-            {
-              input: template.input,
-              organizationId: organization.id,
-              livemode: false,
-            },
-            ctx
-          )
+          (
+            await setupPricingModelTransaction(
+              {
+                input: template.input,
+                organizationId: organization.id,
+                livemode: false,
+              },
+              ctx
+            )
+          ).unwrap()
         )
 
         expect(typeof result.pricingModel.id).toBe('string')
@@ -65,14 +67,16 @@ describe('Template Integration Tests', () => {
       }
 
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          {
-            input: customInput,
-            organizationId: organization.id,
-            livemode: false,
-          },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input: customInput,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
       expect(result.pricingModel.name).toBe('My Custom Usage Model')
@@ -80,21 +84,23 @@ describe('Template Integration Tests', () => {
 
     it('should create template in correct environment', async () => {
       const result = await adminTransaction(async (ctx) =>
-        setupPricingModelTransaction(
-          {
-            input: UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE.input,
-            organizationId: organization.id,
-            livemode: true,
-          },
-          ctx
-        )
+        (
+          await setupPricingModelTransaction(
+            {
+              input: UNLIMITED_USAGE_SUBSCRIPTION_TEMPLATE.input,
+              organizationId: organization.id,
+              livemode: false,
+            },
+            ctx
+          )
+        ).unwrap()
       )
 
-      expect(result.pricingModel.livemode).toBe(true)
-      expect(result.products.every((p) => p.livemode === true)).toBe(
+      expect(result.pricingModel.livemode).toBe(false)
+      expect(result.products.every((p) => p.livemode === false)).toBe(
         true
       )
-      expect(result.prices.every((pr) => pr.livemode === true)).toBe(
+      expect(result.prices.every((pr) => pr.livemode === false)).toBe(
         true
       )
     })

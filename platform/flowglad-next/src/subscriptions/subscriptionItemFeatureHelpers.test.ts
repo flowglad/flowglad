@@ -1,5 +1,6 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import * as R from 'ramda'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -219,7 +220,10 @@ describe('SubscriptionItemFeatureHelpers', () => {
           [],
           transaction
         )
-        expect(result).toEqual([])
+        expect(Result.isOk(result)).toBe(true)
+        if (Result.isOk(result)) {
+          expect(result.value).toEqual([])
+        }
       })
     })
 
@@ -231,7 +235,10 @@ describe('SubscriptionItemFeatureHelpers', () => {
           [subscriptionItem],
           transaction
         )
-        expect(result).toEqual([])
+        expect(Result.isOk(result)).toBe(true)
+        if (Result.isOk(result)) {
+          expect(result.value).toEqual([])
+        }
         const featuresInDb = await selectSubscriptionItemFeatures(
           { subscriptionItemId: [subscriptionItem.id] },
           transaction
@@ -251,7 +258,10 @@ describe('SubscriptionItemFeatureHelpers', () => {
           [nonExistentPriceSubItem],
           transaction
         )
-        expect(result).toEqual([])
+        expect(Result.isOk(result)).toBe(true)
+        if (Result.isOk(result)) {
+          expect(result.value).toEqual([])
+        }
       })
     })
 
@@ -281,10 +291,12 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const createdSifs = await createSubscriptionFeatureItems(
-          [subscriptionItem],
-          transaction
-        )
+        const createdSifsResult =
+          await createSubscriptionFeatureItems(
+            [subscriptionItem],
+            transaction
+          )
+        const createdSifs = createdSifsResult.unwrap()
         expect(createdSifs.length).toBe(1)
         const sif = createdSifs[0]
         expect(sif.subscriptionItemId).toBe(subscriptionItem.id)
@@ -319,10 +331,12 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const createdSifs = await createSubscriptionFeatureItems(
-          [subscriptionItem],
-          transaction
-        )
+        const createdSifsResult =
+          await createSubscriptionFeatureItems(
+            [subscriptionItem],
+            transaction
+          )
+        const createdSifs = createdSifsResult.unwrap()
         expect(createdSifs.length).toBe(1)
         const sif = createdSifs[0]
         expect(sif.subscriptionItemId).toBe(subscriptionItem.id)
@@ -369,10 +383,12 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const createdSifs = await createSubscriptionFeatureItems(
-          [subscriptionItem],
-          transaction
-        )
+        const createdSifsResult =
+          await createSubscriptionFeatureItems(
+            [subscriptionItem],
+            transaction
+          )
+        const createdSifs = createdSifsResult.unwrap()
         expect(createdSifs.length).toBe(2)
 
         const grantSif = createdSifs.find(
@@ -421,10 +437,12 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const createdSifs = await createSubscriptionFeatureItems(
-          [subscriptionItem, subscriptionItem2],
-          transaction
-        )
+        const createdSifsResult =
+          await createSubscriptionFeatureItems(
+            [subscriptionItem, subscriptionItem2],
+            transaction
+          )
+        const createdSifs = createdSifsResult.unwrap()
         expect(createdSifs.length).toBe(2)
 
         const sif1 = createdSifs.find(
@@ -484,10 +502,12 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const createdSifs = await createSubscriptionFeatureItems(
-          [subscriptionItem2],
-          transaction
-        )
+        const createdSifsResult =
+          await createSubscriptionFeatureItems(
+            [subscriptionItem2],
+            transaction
+          )
+        const createdSifs = createdSifsResult.unwrap()
         expect(createdSifs.length).toBe(1)
         const sif = createdSifs[0]
         expect(sif.subscriptionItemId).toBe(subscriptionItem2.id)
@@ -535,10 +555,12 @@ describe('SubscriptionItemFeatureHelpers', () => {
           transaction
         )
 
-        const createdFeatures = await createSubscriptionFeatureItems(
-          [regularItem, manualItem],
-          transaction
-        )
+        const createdFeaturesResult =
+          await createSubscriptionFeatureItems(
+            [regularItem, manualItem],
+            transaction
+          )
+        const createdFeatures = createdFeaturesResult.unwrap()
 
         // Should create features for regular item only
         expect(createdFeatures.length).toBe(1)
@@ -563,22 +585,26 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const firstResult = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
-        const secondResult = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const firstResult = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
+        const secondResult = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
         expect(secondResult.subscriptionItemFeature.id).toBe(
           firstResult.subscriptionItemFeature.id
         )
@@ -615,14 +641,16 @@ describe('SubscriptionItemFeatureHelpers', () => {
         const { transaction } = ctx
         const { ctx: effectsCtx, effects } =
           createCapturingEffectsContext(transaction)
-        const result = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageFeature.id,
-            grantCreditsImmediately: true,
-          },
-          effectsCtx
-        )
+        const result = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            effectsCtx
+          )
+        ).unwrap()
 
         const manualSubscriptionItems = await selectSubscriptionItems(
           {
@@ -708,24 +736,28 @@ describe('SubscriptionItemFeatureHelpers', () => {
         const { transaction } = ctx
         const { ctx: firstCtx, effects: firstEffects } =
           createCapturingEffectsContext(transaction)
-        const firstResult = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageFeature.id,
-            grantCreditsImmediately: false,
-          },
-          firstCtx
-        )
+        const firstResult = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: false,
+            },
+            firstCtx
+          )
+        ).unwrap()
         const { ctx: secondCtx, effects: secondEffects } =
           createCapturingEffectsContext(transaction)
-        const secondResult = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageFeature.id,
-            grantCreditsImmediately: true,
-          },
-          secondCtx
-        )
+        const secondResult = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: true,
+            },
+            secondCtx
+          )
+        ).unwrap()
 
         expect(secondResult.subscriptionItemFeature.id).toBe(
           firstResult.subscriptionItemFeature.id
@@ -849,16 +881,15 @@ describe('SubscriptionItemFeatureHelpers', () => {
           ctx
         )
 
-        await expect(
-          addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: mismatchedFeature.id,
-              grantCreditsImmediately: false,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(/pricing model/i)
+        const result = await addFeatureToSubscriptionItem(
+          {
+            subscriptionItemId: subscriptionItem.id,
+            featureId: mismatchedFeature.id,
+            grantCreditsImmediately: false,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+        expect(Result.isError(result)).toBe(true)
       })
     })
 
@@ -882,14 +913,16 @@ describe('SubscriptionItemFeatureHelpers', () => {
           ctx
         )
 
-        const result = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: standaloneFeature.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const result = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: standaloneFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         const manualSubscriptionItems = await selectSubscriptionItems(
           {
@@ -925,14 +958,16 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const result = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const result = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         expect(result.subscriptionItemFeature.manuallyCreated).toBe(
           true
@@ -968,14 +1003,16 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const result = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: usageFeature.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const result = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: usageFeature.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         expect(result.subscriptionItemFeature.manuallyCreated).toBe(
           true
@@ -1004,14 +1041,16 @@ describe('SubscriptionItemFeatureHelpers', () => {
         const { transaction } = ctx
         const { ctx: effectsCtx, effects } =
           createCapturingEffectsContext(transaction)
-        const result = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: toggleFeature.id,
-            grantCreditsImmediately: false,
-          },
-          effectsCtx
-        )
+        const result = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: toggleFeature.id,
+              grantCreditsImmediately: false,
+            },
+            effectsCtx
+          )
+        ).unwrap()
 
         // Verify cache invalidation was emitted for the manual subscription item
         const manualItemId =
@@ -1037,23 +1076,27 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const result1 = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: feature1.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const result1 = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: feature1.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
-        const result2 = await addFeatureToSubscriptionItem(
-          {
-            subscriptionItemId: subscriptionItem.id,
-            featureId: feature2.id,
-            grantCreditsImmediately: false,
-          },
-          createDiscardingEffectsContext(transaction)
-        )
+        const result2 = (
+          await addFeatureToSubscriptionItem(
+            {
+              subscriptionItemId: subscriptionItem.id,
+              featureId: feature2.id,
+              grantCreditsImmediately: false,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         // Both features should be on the same manual subscription item
         expect(
@@ -1322,28 +1365,32 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // First call creates sub_item_feature_1 and grants credits
-          const result1 = await addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: usageFeature.id,
-              grantCreditsImmediately: true,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+          const result1 = (
+            await addFeatureToSubscriptionItem(
+              {
+                subscriptionItemId: subscriptionItem.id,
+                featureId: usageFeature.id,
+                grantCreditsImmediately: true,
+              },
+              createDiscardingEffectsContext(transaction)
+            )
+          ).unwrap()
           const firstSubFeatureId = result1.subscriptionItemFeature.id
 
           // Second call updates sub_item_feature (same ID due to upsert)
           // but should NOT grant duplicate credits
           const { ctx: effectsCtx, effects } =
             createCapturingEffectsContext(transaction)
-          const result2 = await addFeatureToSubscriptionItem(
-            {
-              subscriptionItemId: subscriptionItem.id,
-              featureId: usageFeature.id,
-              grantCreditsImmediately: true,
-            },
-            effectsCtx
-          )
+          const result2 = (
+            await addFeatureToSubscriptionItem(
+              {
+                subscriptionItemId: subscriptionItem.id,
+                featureId: usageFeature.id,
+                grantCreditsImmediately: true,
+              },
+              effectsCtx
+            )
+          ).unwrap()
 
           // The subscription item feature ID should be the same (due to upsert)
           expect(result2.subscriptionItemFeature.id).toBe(
@@ -1592,7 +1639,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
           // First, manually create a subscription item feature to reference
-          const manualFeatureResult =
+          const manualFeatureResult = (
             await addFeatureToSubscriptionItem(
               {
                 subscriptionItemId: subscriptionItem.id,
@@ -1601,6 +1648,7 @@ describe('SubscriptionItemFeatureHelpers', () => {
               },
               createDiscardingEffectsContext(transaction)
             )
+          ).unwrap()
           const subItemFeatureId =
             manualFeatureResult.subscriptionItemFeature.id
 

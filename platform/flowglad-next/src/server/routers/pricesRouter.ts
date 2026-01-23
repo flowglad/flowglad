@@ -185,9 +185,12 @@ export const updatePrice = protectedProcedure
         }
 
         // Validate reserved slug for usage prices being updated
+        // Only validate if the slug is actually changing - existing _no_charge prices
+        // should be editable for other fields without triggering slug validation
         if (
           existingPrice.type === PriceType.Usage &&
-          price.slug !== undefined
+          price.slug !== undefined &&
+          price.slug !== existingPrice.slug
         ) {
           validateUsagePriceSlug({
             type: existingPrice.type,

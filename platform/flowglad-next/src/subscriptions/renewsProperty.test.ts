@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -186,11 +187,11 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         )
 
         // Verify billing run was created
-        expect(result.billingRun).toMatchObject({})
+        expect(typeof result.billingRun).toBe('object')
         expect(result.billingRun!.status).toBe(
           BillingRunStatus.Scheduled
         )
-        expect(result.billingRun!.scheduledFor).toMatchObject({})
+        expect(typeof result.billingRun!.scheduledFor).toBe('number')
       })
 
       it('should create trial subscription with renews: true when trialEnd is provided', async () => {
@@ -258,16 +259,15 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
           status: BillingPeriodStatus.Active,
         })
 
-        // Attempt to transition should throw error
-        await expect(
-          adminTransaction(async (ctx) => {
-            const { transaction } = ctx
-            return attemptToTransitionSubscriptionBillingPeriod(
-              testBillingPeriod,
-              createDiscardingEffectsContext(transaction)
-            )
-          })
-        ).rejects.toThrow(/credit trial/)
+        // Attempt to transition should return Result.err
+        const result = await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          return attemptToTransitionSubscriptionBillingPeriod(
+            testBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+        expect(Result.isError(result)).toBe(true)
       })
 
       it('should not create future billing periods for non-renewing subscriptions', async () => {
@@ -637,7 +637,7 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
         expect(result.subscription.status).toBe(
           SubscriptionStatus.Canceled
         )
-        expect(result.subscription.canceledAt).toMatchObject({})
+        expect(typeof result.subscription.canceledAt).toBe('number')
 
         // Verify no new billing period was created
         await adminTransaction(async (ctx) => {

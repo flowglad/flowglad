@@ -18,10 +18,8 @@ export const DetailItem = ({
   dataTestId?: string
   variant?: 'customer' | 'organization'
 }) => {
-  const variantStyle: React.CSSProperties =
-    variant === 'organization'
-      ? { color: '#525f7f', marginBottom: '4px' }
-      : {}
+  // Variant prop kept for potential future use, but styling is now unified
+  const variantStyle: React.CSSProperties = {}
 
   return (
     <Text

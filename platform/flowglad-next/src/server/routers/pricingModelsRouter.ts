@@ -302,6 +302,7 @@ const getTableRowsProcedure = protectedProcedure
       z.object({
         organizationId: z.string().optional(),
         isDefault: z.boolean().optional(),
+        livemode: z.boolean().optional(),
       })
     )
   )
@@ -357,9 +358,10 @@ const setupPricingModelProcedure = protectedProcedure
           },
           transactionCtx
         )
+        const setupResult = result.unwrap()
         const [pricingModelWithProductsAndUsageMeters] =
           await selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere(
-            { id: result.pricingModel.id },
+            { id: setupResult.pricingModel.id },
             transaction
           )
         return Result.ok({
@@ -386,7 +388,7 @@ const exportPricingModelProcedure = protectedProcedure
           input.id,
           transaction
         )
-        return { pricingModelYAML: yaml.stringify(data) }
+        return { pricingModelYAML: yaml.stringify(data.unwrap()) }
       }
     )
   )
@@ -420,7 +422,7 @@ const getIntegrationGuideProcedure = protectedProcedure
 
     // Then stream the AI-generated content (doesn't need transaction)
     yield* constructIntegrationGuideStream({
-      pricingModelData,
+      pricingModelData: pricingModelData.unwrap(),
       isBackendJavascript: true,
       codebaseContext: codebaseContext ?? undefined,
     })

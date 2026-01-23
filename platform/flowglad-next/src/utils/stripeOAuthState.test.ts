@@ -1,11 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-import * as backendCore from './backendCore'
-import {
-  createStripeOAuthCsrfToken,
-  decodeStripeOAuthState,
-  encodeStripeOAuthState,
-  validateAndConsumeStripeOAuthCsrfToken,
-} from './stripeOAuthState'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 
 /**
  * In-memory Redis mock for testing CSRF token storage.
@@ -15,22 +8,26 @@ import {
  */
 const mockRedisStore: Map<string, string> = new Map()
 
-vi.mock('./redis', () => ({
+const mockGenerateRandomBytes = mock(
+  () => 'mock-csrf-token-32-bytes-long-xx'
+)
+
+mock.module('./redis', () => ({
   redis: () => ({
-    get: vi.fn((key: string) => mockRedisStore.get(key) || null),
+    get: mock((key: string) => mockRedisStore.get(key) || null),
     // Atomic get-and-delete operation (Redis GETDEL)
-    getdel: vi.fn((key: string) => {
+    getdel: mock((key: string) => {
       const value = mockRedisStore.get(key) || null
       mockRedisStore.delete(key)
       return value
     }),
-    set: vi.fn(
+    set: mock(
       (key: string, value: string, _options?: { ex?: number }) => {
         mockRedisStore.set(key, value)
         return 'OK'
       }
     ),
-    del: vi.fn((key: string) => {
+    del: mock((key: string) => {
       const existed = mockRedisStore.has(key)
       mockRedisStore.delete(key)
       return existed ? 1 : 0
@@ -41,24 +38,32 @@ vi.mock('./redis', () => ({
   },
 }))
 
-vi.mock('./backendCore', () => ({
-  generateRandomBytes: vi.fn(
-    () => 'mock-csrf-token-32-bytes-long-xx'
-  ),
+mock.module('./backendCore', () => ({
+  generateRandomBytes: mockGenerateRandomBytes,
 }))
 
-vi.mock('./logger', () => ({
+mock.module('./logger', () => ({
   logger: {
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
+    info: mock(),
+    warn: mock(),
+    error: mock(),
   },
 }))
+
+import {
+  createStripeOAuthCsrfToken,
+  decodeStripeOAuthState,
+  encodeStripeOAuthState,
+  validateAndConsumeStripeOAuthCsrfToken,
+} from './stripeOAuthState'
 
 describe('stripeOAuthState', () => {
   beforeEach(() => {
     mockRedisStore.clear()
-    vi.clearAllMocks()
+    mockGenerateRandomBytes.mockReset()
+    mockGenerateRandomBytes.mockImplementation(
+      () => 'mock-csrf-token-32-bytes-long-xx'
+    )
   })
 
   describe('encodeStripeOAuthState', () => {
@@ -303,7 +308,7 @@ describe('stripeOAuthState', () => {
   describe('full OAuth flow integration', () => {
     beforeEach(() => {
       // Reset the mock to generate predictable tokens
-      vi.mocked(backendCore.generateRandomBytes).mockReturnValue(
+      mockGenerateRandomBytes.mockReturnValue(
         'flow-test-token-abc123'
       )
     })

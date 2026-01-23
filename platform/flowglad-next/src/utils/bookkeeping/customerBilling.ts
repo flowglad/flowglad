@@ -269,7 +269,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
   })
 
   return await adminTransaction(async ({ transaction }) => {
-    return await createCheckoutSessionTransaction(
+    const result = await createCheckoutSessionTransaction(
       {
         checkoutSessionInput: {
           ...checkoutSessionInput,
@@ -281,6 +281,10 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       },
       transaction
     )
+    if (result.status === 'error') {
+      throw result.error
+    }
+    return result.value
   })
 }
 
@@ -309,7 +313,7 @@ export const customerBillingCreateAddPaymentMethodSession = async (
   })
 
   return await adminTransaction(async ({ transaction }) => {
-    return await createCheckoutSessionTransaction(
+    const result = await createCheckoutSessionTransaction(
       {
         checkoutSessionInput: {
           customerExternalId: customer.externalId,
@@ -322,5 +326,9 @@ export const customerBillingCreateAddPaymentMethodSession = async (
       },
       transaction
     )
+    if (result.status === 'error') {
+      throw result.error
+    }
+    return result.value
   })
 }

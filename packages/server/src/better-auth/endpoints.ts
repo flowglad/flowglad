@@ -40,13 +40,6 @@ export const isRecord = (
   )
 }
 
-export const stringOrFallback = (
-  value: string | null | undefined,
-  fallback: string
-): string => {
-  return typeof value === 'string' ? value : fallback
-}
-
 export const getStringProp = (
   record: Record<string, unknown>,
   key: string
@@ -195,8 +188,8 @@ export const createGetCustomerDetails = (params: {
     const innerSession: InnerSession = {
       user: {
         id: params.session.user.id,
-        name: stringOrFallback(params.session.user.name, ''),
-        email: stringOrFallback(params.session.user.email, ''),
+        name: params.session.user.name || '',
+        email: params.session.user.email || '',
         organizationId,
       },
     }
@@ -229,8 +222,8 @@ export const createGetCustomerDetails = (params: {
     }
 
     return {
-      name: stringOrFallback(params.session.user.name, ''),
-      email: stringOrFallback(params.session.user.email, ''),
+      name: params.session.user.name || '',
+      email: params.session.user.email || '',
     }
   }
 }

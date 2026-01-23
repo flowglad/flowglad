@@ -187,6 +187,11 @@ export const CustomerSubscriptionAdjustedEmail = ({
       <Hr
         style={{
           borderColor: '#e6e6e6',
+          borderTop: 'none',
+          borderLeft: 'none',
+          borderRight: 'none',
+          borderBottomWidth: '1px',
+          borderBottomStyle: 'dashed',
           margin: '16px 0',
         }}
       />

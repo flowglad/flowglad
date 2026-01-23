@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/../mocks/server'
 import {
   setupCustomer,
@@ -70,11 +70,10 @@ describe('apiKeyHelpers', () => {
         }
       )
 
-      expect(result).toMatchObject({})
-      expect(result.apiKey).toMatchObject({})
+      expect(result.apiKey.id).toMatch(/^apikey_/)
       expect(result.apiKey.name).toBe('Test API Key')
       expect(result.apiKey.type).toBe(FlowgladApiKeyType.Secret)
-      expect(result.shownOnlyOnceKey).toMatchObject({})
+      expect(typeof result.shownOnlyOnceKey).toBe('string')
     })
 
     it('should throw an error if no focused membership is found', async () => {
@@ -181,8 +180,7 @@ describe('apiKeyHelpers', () => {
         }
       )
 
-      expect(result).toMatchObject({})
-      expect(result.apiKey).toMatchObject({})
+      expect(result.apiKey.id).toMatch(/^apikey_/)
       expect(result.apiKey.name).toBe('Test API Key')
     })
 

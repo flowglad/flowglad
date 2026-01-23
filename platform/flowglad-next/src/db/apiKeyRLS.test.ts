@@ -4,8 +4,9 @@
  * These tests verify that API key authentication works correctly regardless of
  * membership focused state, while ensuring proper cross-organization isolation.
  */
+
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { sql } from 'drizzle-orm'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,

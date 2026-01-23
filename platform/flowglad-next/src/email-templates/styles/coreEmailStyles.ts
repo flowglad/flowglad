@@ -1,7 +1,8 @@
+import { BODY_FONT_FAMILY, HEADING_FONT_FAMILY } from './fontStyles'
+
 export const main = {
   backgroundColor: '#f6f9fc',
-  fontFamily:
-    '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Ubuntu,sans-serif',
+  fontFamily: BODY_FONT_FAMILY,
 }
 
 export const container = {
@@ -20,6 +21,7 @@ export const h1 = {
   color: '#32325d',
   fontSize: '24px',
   fontWeight: 'normal',
+  fontFamily: HEADING_FONT_FAMILY,
   textAlign: 'center' as const,
   margin: '30px 0',
 }

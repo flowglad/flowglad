@@ -44,11 +44,10 @@ export const stripePaymentIntentSucceededTask = task({
                 emitEvent: params.emitEvent,
                 enqueueLedgerCommand: params.enqueueLedgerCommand,
               }
-              const billingResult = await processOutcomeForBillingRun(
+              return await processOutcomeForBillingRun(
                 { input: payload },
                 effectsCtx
               )
-              return Result.ok(billingResult)
             }
           )
           return result
@@ -57,11 +56,15 @@ export const stripePaymentIntentSucceededTask = task({
         const { invoice, organization, customer, payment, purchase } =
           await comprehensiveAdminTransaction(async (ctx) => {
             const { transaction } = ctx
-            const { payment } =
+            const paymentResult =
               await processPaymentIntentStatusUpdated(
                 payload.data.object,
                 ctx
               )
+            if (paymentResult.status === 'error') {
+              return Result.err(paymentResult.error)
+            }
+            const { payment } = paymentResult.value
 
             // Only fetch purchase if purchaseId exists
             const purchase = payment.purchaseId

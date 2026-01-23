@@ -1,6 +1,6 @@
-import { fc, test } from '@fast-check/vitest'
+import { describe, expect, it } from 'bun:test'
 import BigNumber from 'bignumber.js'
-import { describe, expect } from 'vitest'
+import fc from 'fast-check'
 import type { Organization } from '@/db/schema/organizations'
 import { CurrencyCode, PaymentMethodType } from '@/types'
 import { calculatePlatformApplicationFee } from '@/utils/stripe'
@@ -19,81 +19,100 @@ import {
 
 describe('Decimal Precision - Property-Based Tests', () => {
   describe('calculatePercentageFee', () => {
-    test.prop([
-      fc.integer({ min: 0, max: 100_000_000 }), // amount in cents (up to $1M)
-      fc.float({ min: 0, max: 100, noNaN: true }), // percentage (0-100%)
-    ])(
-      'always returns an integer (no fractional cents)',
-      (amount, percentage) => {
-        const result = calculatePercentageFee(amount, percentage)
-        expect(Number.isInteger(result)).toBe(true)
-      }
-    )
+    it('always returns an integer (no fractional cents)', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 100_000_000 }), // amount in cents (up to $1M)
+          fc.float({ min: 0, max: 100, noNaN: true }), // percentage (0-100%)
+          (amount, percentage) => {
+            const result = calculatePercentageFee(amount, percentage)
+            expect(Number.isInteger(result)).toBe(true)
+          }
+        )
+      )
+    })
 
-    test.prop([
-      fc.integer({ min: 0, max: 100_000_000 }),
-      fc.float({ min: 0, max: 100, noNaN: true }),
-    ])(
-      'returns non-negative values for non-negative inputs',
-      (amount, percentage) => {
-        const result = calculatePercentageFee(amount, percentage)
-        expect(result).toBeGreaterThanOrEqual(0)
-      }
-    )
+    it('returns non-negative values for non-negative inputs', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 100_000_000 }),
+          fc.float({ min: 0, max: 100, noNaN: true }),
+          (amount, percentage) => {
+            const result = calculatePercentageFee(amount, percentage)
+            expect(result).toBeGreaterThanOrEqual(0)
+          }
+        )
+      )
+    })
 
-    test.prop([
-      fc.integer({ min: 0, max: 100_000_000 }),
-      fc.float({ min: 0, max: 100, noNaN: true }),
-    ])(
-      'is deterministic (same inputs give same output)',
-      (amount, percentage) => {
-        const result1 = calculatePercentageFee(amount, percentage)
-        const result2 = calculatePercentageFee(amount, percentage)
-        expect(result1).toBe(result2)
-      }
-    )
+    it('is deterministic (same inputs give same output)', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 100_000_000 }),
+          fc.float({ min: 0, max: 100, noNaN: true }),
+          (amount, percentage) => {
+            const result1 = calculatePercentageFee(amount, percentage)
+            const result2 = calculatePercentageFee(amount, percentage)
+            expect(result1).toBe(result2)
+          }
+        )
+      )
+    })
 
-    test.prop([
-      fc.integer({ min: 0, max: 100_000_000 }),
-      fc.stringMatching(/^[0-9]{1,3}(\.[0-9]{1,10})?$/), // string percentages like "0.65", "2.9", "10.5"
-    ])(
-      'string percentages produce same result as equivalent BigNumber calculation',
-      (amount, percentageStr) => {
-        const result = calculatePercentageFee(amount, percentageStr)
+    it('string percentages produce same result as equivalent BigNumber calculation', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 100_000_000 }),
+          fc.stringMatching(/^[0-9]{1,3}(\.[0-9]{1,10})?$/), // string percentages like "0.65", "2.9", "10.5"
+          (amount, percentageStr) => {
+            const result = calculatePercentageFee(
+              amount,
+              percentageStr
+            )
 
-        // Manual BigNumber calculation for comparison
-        const expected = new BigNumber(amount)
-          .times(percentageStr)
-          .dividedBy(100)
-          .decimalPlaces(0, BigNumber.ROUND_HALF_UP)
-          .toNumber()
+            // Manual BigNumber calculation for comparison
+            const expected = new BigNumber(amount)
+              .times(percentageStr)
+              .dividedBy(100)
+              .decimalPlaces(0, BigNumber.ROUND_HALF_UP)
+              .toNumber()
 
-        expect(result).toBe(expected)
-      }
-    )
+            expect(result).toBe(expected)
+          }
+        )
+      )
+    })
 
     // Specific regression test for the original bug
-    test('handles 0.65% fee on $100 correctly (regression test)', () => {
+    it('handles 0.65% fee on $100 correctly (regression test)', () => {
       // This was the original bug: parseFloat("0.65") / 100 = 0.006500000000000001
       const result = calculatePercentageFee(10000, '0.65')
       expect(result).toBe(65) // Not 66 due to floating point error
     })
 
-    test.prop([fc.integer({ min: 1, max: 100_000_000 })])(
-      '100% of an amount equals the amount',
-      (amount) => {
-        const result = calculatePercentageFee(amount, 100)
-        expect(result).toBe(amount)
-      }
-    )
+    it('100% of an amount equals the amount', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 1, max: 100_000_000 }),
+          (amount) => {
+            const result = calculatePercentageFee(amount, 100)
+            expect(result).toBe(amount)
+          }
+        )
+      )
+    })
 
-    test.prop([fc.integer({ min: 0, max: 100_000_000 })])(
-      '0% of any amount is 0',
-      (amount) => {
-        const result = calculatePercentageFee(amount, 0)
-        expect(result).toBe(0)
-      }
-    )
+    it('0% of any amount is 0', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 100_000_000 }),
+          (amount) => {
+            const result = calculatePercentageFee(amount, 0)
+            expect(result).toBe(0)
+          }
+        )
+      )
+    })
   })
 
   describe('calculatePlatformApplicationFee', () => {
@@ -109,48 +128,57 @@ describe('Decimal Precision - Property-Based Tests', () => {
         upfrontProcessingCredits: 0,
       }) as unknown as Organization.Record
 
-    test.prop([
-      fc.integer({ min: 0, max: 100_000_000 }), // subtotal in cents
-      fc.stringMatching(/^[0-9]{1,2}(\.[0-9]{1,10})?$/), // fee percentage like "0.65", "1.5"
-    ])('always returns an integer', (subtotal, feePercentage) => {
-      const org = createMockOrganization(feePercentage)
-      const result = calculatePlatformApplicationFee({
-        organization: org,
-        subtotal,
-        currency: CurrencyCode.USD,
-      })
-      expect(Number.isInteger(result)).toBe(true)
+    it('always returns an integer', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 100_000_000 }), // subtotal in cents
+          fc.stringMatching(/^[0-9]{1,2}(\.[0-9]{1,10})?$/), // fee percentage like "0.65", "1.5"
+          (subtotal, feePercentage) => {
+            const org = createMockOrganization(feePercentage)
+            const result = calculatePlatformApplicationFee({
+              organization: org,
+              subtotal,
+              currency: CurrencyCode.USD,
+            })
+            expect(Number.isInteger(result)).toBe(true)
+          }
+        )
+      )
     })
 
-    test.prop([
-      fc.integer({ min: 0, max: 100_000_000 }),
-      fc.stringMatching(/^[0-9]{1,2}(\.[0-9]{1,10})?$/),
-    ])(
-      'matches manual BigNumber calculation',
-      (subtotal, feePercentage) => {
-        const org = createMockOrganization(feePercentage)
-        const result = calculatePlatformApplicationFee({
-          organization: org,
-          subtotal,
-          currency: CurrencyCode.USD,
-        })
+    it('matches manual BigNumber calculation', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 0, max: 100_000_000 }),
+          fc.stringMatching(/^[0-9]{1,2}(\.[0-9]{1,10})?$/),
+          (subtotal, feePercentage) => {
+            const org = createMockOrganization(feePercentage)
+            const result = calculatePlatformApplicationFee({
+              organization: org,
+              subtotal,
+              currency: CurrencyCode.USD,
+            })
 
-        // Manual BigNumber calculation
-        const takeRate = new BigNumber(feePercentage).dividedBy(100)
-        const stripeFeeRate = new BigNumber('0.029')
-        const fixedFeeCents = new BigNumber(50)
-        const expected = new BigNumber(subtotal)
-          .times(takeRate.plus(stripeFeeRate))
-          .plus(fixedFeeCents)
-          .integerValue(BigNumber.ROUND_CEIL)
-          .toNumber()
+            // Manual BigNumber calculation
+            const takeRate = new BigNumber(feePercentage).dividedBy(
+              100
+            )
+            const stripeFeeRate = new BigNumber('0.029')
+            const fixedFeeCents = new BigNumber(50)
+            const expected = new BigNumber(subtotal)
+              .times(takeRate.plus(stripeFeeRate))
+              .plus(fixedFeeCents)
+              .integerValue(BigNumber.ROUND_CEIL)
+              .toNumber()
 
-        expect(result).toBe(expected)
-      }
-    )
+            expect(result).toBe(expected)
+          }
+        )
+      )
+    })
 
     // The original failing test case
-    test('handles 0.65% fee on $100 correctly (regression test)', () => {
+    it('handles 0.65% fee on $100 correctly (regression test)', () => {
       const org = createMockOrganization('0.65')
       const result = calculatePlatformApplicationFee({
         organization: org,
@@ -161,73 +189,94 @@ describe('Decimal Precision - Property-Based Tests', () => {
       expect(result).toBe(405)
     })
 
-    test.prop([fc.stringMatching(/^[0-9]{1,2}(\.[0-9]{1,10})?$/)])(
-      'zero subtotal results in fixed fee only',
-      (feePercentage) => {
-        const org = createMockOrganization(feePercentage)
-        const result = calculatePlatformApplicationFee({
-          organization: org,
-          subtotal: 0,
-          currency: CurrencyCode.USD,
-        })
-        expect(result).toBe(50) // Fixed fee only
-      }
-    )
+    it('zero subtotal results in fixed fee only', () => {
+      fc.assert(
+        fc.property(
+          fc.stringMatching(/^[0-9]{1,2}(\.[0-9]{1,10})?$/),
+          (feePercentage) => {
+            const org = createMockOrganization(feePercentage)
+            const result = calculatePlatformApplicationFee({
+              organization: org,
+              subtotal: 0,
+              currency: CurrencyCode.USD,
+            })
+            expect(result).toBe(50) // Fixed fee only
+          }
+        )
+      )
+    })
   })
 
   describe('calculatePaymentMethodFeeAmount', () => {
-    test.prop([
-      fc.integer({ min: 1, max: 100_000_000 }), // positive amounts
-    ])('Card payments: always returns an integer', (amount) => {
-      const result = calculatePaymentMethodFeeAmount(
-        amount,
-        PaymentMethodType.Card
+    it('Card payments: always returns an integer', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 1, max: 100_000_000 }), // positive amounts
+          (amount) => {
+            const result = calculatePaymentMethodFeeAmount(
+              amount,
+              PaymentMethodType.Card
+            )
+            expect(Number.isInteger(result)).toBe(true)
+          }
+        )
       )
-      expect(Number.isInteger(result)).toBe(true)
     })
 
-    test.prop([fc.integer({ min: 1, max: 100_000_000 })])(
-      'Card payments: matches manual BigNumber calculation (2.9% + 30 cents)',
-      (amount) => {
-        const result = calculatePaymentMethodFeeAmount(
-          amount,
-          PaymentMethodType.Card
+    it('Card payments: matches manual BigNumber calculation (2.9% + 30 cents)', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 1, max: 100_000_000 }),
+          (amount) => {
+            const result = calculatePaymentMethodFeeAmount(
+              amount,
+              PaymentMethodType.Card
+            )
+
+            const expected = new BigNumber(amount)
+              .times(2.9)
+              .dividedBy(100)
+              .plus(30)
+              .decimalPlaces(0, BigNumber.ROUND_HALF_UP)
+              .toNumber()
+
+            expect(result).toBe(expected)
+          }
         )
+      )
+    })
 
-        const expected = new BigNumber(amount)
-          .times(2.9)
-          .dividedBy(100)
-          .plus(30)
-          .decimalPlaces(0, BigNumber.ROUND_HALF_UP)
-          .toNumber()
-
-        expect(result).toBe(expected)
-      }
-    )
-
-    test.prop([fc.integer({ min: 1, max: 100_000_000 })])(
-      'US Bank Account payments: respects $5 cap',
-      (amount) => {
-        const result = calculatePaymentMethodFeeAmount(
-          amount,
-          PaymentMethodType.USBankAccount
+    it('US Bank Account payments: respects $5 cap', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 1, max: 100_000_000 }),
+          (amount) => {
+            const result = calculatePaymentMethodFeeAmount(
+              amount,
+              PaymentMethodType.USBankAccount
+            )
+            expect(result).toBeLessThanOrEqual(500) // $5 cap in cents
+          }
         )
-        expect(result).toBeLessThanOrEqual(500) // $5 cap in cents
-      }
-    )
+      )
+    })
 
-    test.prop([fc.integer({ min: 1, max: 100_000_000 })])(
-      'SEPA Debit payments: respects 6 EUR cap',
-      (amount) => {
-        const result = calculatePaymentMethodFeeAmount(
-          amount,
-          PaymentMethodType.SEPADebit
+    it('SEPA Debit payments: respects 6 EUR cap', () => {
+      fc.assert(
+        fc.property(
+          fc.integer({ min: 1, max: 100_000_000 }),
+          (amount) => {
+            const result = calculatePaymentMethodFeeAmount(
+              amount,
+              PaymentMethodType.SEPADebit
+            )
+            expect(result).toBeLessThanOrEqual(600) // 6 EUR cap in cents
+          }
         )
-        expect(result).toBeLessThanOrEqual(600) // 6 EUR cap in cents
-      }
-    )
+      )
+    })
 
-    test('zero amount returns zero fee', () => {
+    it('zero amount returns zero fee', () => {
       expect(
         calculatePaymentMethodFeeAmount(0, PaymentMethodType.Card)
       ).toBe(0)
@@ -245,7 +294,7 @@ describe('Decimal Precision - Property-Based Tests', () => {
       ).toBe(0)
     })
 
-    test('negative amount returns zero fee', () => {
+    it('negative amount returns zero fee', () => {
       expect(
         calculatePaymentMethodFeeAmount(-100, PaymentMethodType.Card)
       ).toBe(0)
@@ -264,20 +313,20 @@ describe('Decimal Precision - Property-Based Tests', () => {
       { amount: 999, percentage: '0.1', expected: 1 }, // 999 * 0.001 = 0.999 -> rounds to 1
     ]
 
-    test.each(
-      precisionTestCases
-    )('calculatePercentageFee($amount, "$percentage") = $expected', ({
+    for (const {
       amount,
       percentage,
       expected,
-    }) => {
-      expect(calculatePercentageFee(amount, percentage)).toBe(
-        expected
-      )
-    })
+    } of precisionTestCases) {
+      it(`calculatePercentageFee(${amount}, "${percentage}") = ${expected}`, () => {
+        expect(calculatePercentageFee(amount, percentage)).toBe(
+          expected
+        )
+      })
+    }
 
     // Verify that the OLD approach would have failed on some of these
-    test('demonstrates why BigNumber is needed', () => {
+    it('demonstrates why BigNumber is needed', () => {
       // This is what the old code would have done (using parseFloat)
       const oldCalculation = (amount: number, percentage: string) => {
         const pct = parseFloat(percentage)

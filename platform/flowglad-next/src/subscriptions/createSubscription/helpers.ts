@@ -222,7 +222,7 @@ export const safelyProcessCreationForExistingSubscription = async (
   Result<
     | StandardCreateSubscriptionResult
     | NonRenewingCreateSubscriptionResult,
-    NotFoundError
+    NotFoundError | ValidationError
   >
 > => {
   if (subscription.renews === false) {
@@ -264,18 +264,21 @@ export const safelyProcessCreationForExistingSubscription = async (
     ? subscription.currentBillingPeriodStart!
     : subscription.currentBillingPeriodEnd!
 
-  const billingRun: BillingRun.Record | undefined =
-    existingBillingRun ??
-    (params.defaultPaymentMethod
-      ? await createBillingRun(
-          {
-            billingPeriod,
-            paymentMethod: params.defaultPaymentMethod,
-            scheduledFor,
-          },
-          transaction
-        )
-      : undefined)
+  let billingRun: BillingRun.Record | undefined = existingBillingRun
+  if (!existingBillingRun && params.defaultPaymentMethod) {
+    const billingRunResult = await createBillingRun(
+      {
+        billingPeriod,
+        paymentMethod: params.defaultPaymentMethod,
+        scheduledFor,
+      },
+      transaction
+    )
+    if (billingRunResult.status === 'error') {
+      return Result.err(billingRunResult.error)
+    }
+    billingRun = billingRunResult.value
+  }
   /**
    * Billing timing depends on the price type:
    * - For subscription prices: billing runs at period start
@@ -416,7 +419,17 @@ export const activateSubscription = async (
     autoStart: boolean
   },
   ctx: TransactionEffectsContext
-) => {
+): Promise<
+  Result<
+    {
+      subscription: Subscription.Record
+      billingPeriod: BillingPeriod.Record | null
+      billingPeriodItems: BillingPeriodItem.Record[] | null
+      billingRun: BillingRun.Record | null
+    },
+    NotFoundError | ValidationError
+  >
+> => {
   const { transaction } = ctx
   const { subscription, subscriptionItems, defaultPaymentMethod } =
     params
@@ -478,15 +491,15 @@ export const activateSubscription = async (
   }
 
   if (!activatedSubscription.renews) {
-    return {
+    return Result.ok({
       subscription: activatedSubscription,
       billingPeriod: null,
       billingPeriodItems: null,
       billingRun: null,
-    }
+    })
   }
 
-  const { billingPeriod, billingPeriodItems } =
+  const billingPeriodAndItemsResult =
     await createBillingPeriodAndItems(
       {
         subscription: activatedSubscription,
@@ -496,6 +509,11 @@ export const activateSubscription = async (
       },
       transaction
     )
+  if (Result.isError(billingPeriodAndItemsResult)) {
+    return Result.err(billingPeriodAndItemsResult.error)
+  }
+  const { billingPeriod, billingPeriodItems } =
+    billingPeriodAndItemsResult.value
   const scheduledFor = subscription.runBillingAtPeriodStart
     ? startDate
     : endDate
@@ -508,22 +526,27 @@ export const activateSubscription = async (
   /**
    * create a billing run, set to to execute
    */
-  const billingRun = shouldCreateBillingRun
-    ? await createBillingRun(
-        {
-          billingPeriod,
-          paymentMethod: defaultPaymentMethod,
-          scheduledFor,
-        },
-        transaction
-      )
-    : null
-  return {
+  let billingRun: BillingRun.Record | null = null
+  if (shouldCreateBillingRun) {
+    const billingRunResult = await createBillingRun(
+      {
+        billingPeriod,
+        paymentMethod: defaultPaymentMethod,
+        scheduledFor,
+      },
+      transaction
+    )
+    if (billingRunResult.status === 'error') {
+      return Result.err(billingRunResult.error)
+    }
+    billingRun = billingRunResult.value
+  }
+  return Result.ok({
     subscription: activatedSubscription,
     billingPeriod,
     billingPeriodItems,
     billingRun,
-  }
+  })
 }
 
 export const initiateSubscriptionTrialPeriod = async (
@@ -542,7 +565,7 @@ export const initiateSubscriptionTrialPeriod = async (
       billingPeriodItems: BillingPeriodItem.Record[]
       billingRun: BillingRun.Record | null
     },
-    ValidationError
+    ValidationError | NotFoundError
   >
 > => {
   const { transaction } = ctx
@@ -561,7 +584,7 @@ export const initiateSubscriptionTrialPeriod = async (
     )
   }
 
-  const { billingPeriod, billingPeriodItems } =
+  const billingPeriodAndItemsResult =
     await createBillingPeriodAndItems(
       {
         subscription,
@@ -571,6 +594,11 @@ export const initiateSubscriptionTrialPeriod = async (
       },
       transaction
     )
+  if (Result.isError(billingPeriodAndItemsResult)) {
+    return Result.err(billingPeriodAndItemsResult.error)
+  }
+  const { billingPeriod, billingPeriodItems } =
+    billingPeriodAndItemsResult.value
   const shouldCreateBillingRun =
     defaultPaymentMethod &&
     subscription.runBillingAtPeriodStart &&
@@ -580,16 +608,21 @@ export const initiateSubscriptionTrialPeriod = async (
   /**
    * create a billing run, set to to execute
    */
-  const billingRun = shouldCreateBillingRun
-    ? await createBillingRun(
-        {
-          billingPeriod,
-          paymentMethod: defaultPaymentMethod,
-          scheduledFor,
-        },
-        transaction
-      )
-    : null
+  let billingRun: BillingRun.Record | null = null
+  if (shouldCreateBillingRun) {
+    const billingRunResult = await createBillingRun(
+      {
+        billingPeriod,
+        paymentMethod: defaultPaymentMethod,
+        scheduledFor,
+      },
+      transaction
+    )
+    if (billingRunResult.status === 'error') {
+      return Result.err(billingRunResult.error)
+    }
+    billingRun = billingRunResult.value
+  }
   return Result.ok({
     subscription,
     billingPeriod,
@@ -618,7 +651,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
       billingPeriodItems: BillingPeriodItem.Record[] | null
       billingRun: BillingRun.Record | null
     },
-    ValidationError
+    ValidationError | NotFoundError
   >
 > => {
   const { transaction } = ctx
@@ -682,7 +715,7 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
     subscription.runBillingAtPeriodStart
 
   if (shouldCreateBillingPeriod) {
-    const { billingPeriod, billingPeriodItems } =
+    const billingPeriodAndItemsResult =
       await createBillingPeriodAndItems(
         {
           subscription,
@@ -692,6 +725,11 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
         },
         transaction
       )
+    if (Result.isError(billingPeriodAndItemsResult)) {
+      return Result.err(billingPeriodAndItemsResult.error)
+    }
+    const { billingPeriod, billingPeriodItems } =
+      billingPeriodAndItemsResult.value
 
     // Handle proration if needed
     let finalBillingPeriodItems = billingPeriodItems
@@ -718,10 +756,15 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
           )
 
         // Insert the prorated items
-        finalBillingPeriodItems = await bulkInsertBillingPeriodItems(
-          proratedItems,
-          transaction
-        )
+        const proratedItemsResult =
+          await bulkInsertBillingPeriodItems(
+            proratedItems,
+            transaction
+          )
+        if (Result.isError(proratedItemsResult)) {
+          return Result.err(proratedItemsResult.error)
+        }
+        finalBillingPeriodItems = proratedItemsResult.value
       }
     }
 
@@ -733,17 +776,21 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
      * If doNotCharge is true, we skip the billing run since there's nothing to charge,
      * even if a payment method exists (defensive check in case API validation is bypassed).
      */
-    const billingRun =
-      defaultPaymentMethod && !doNotCharge
-        ? await createBillingRun(
-            {
-              billingPeriod,
-              paymentMethod: defaultPaymentMethod,
-              scheduledFor,
-            },
-            transaction
-          )
-        : null
+    let billingRun: BillingRun.Record | null = null
+    if (defaultPaymentMethod && !doNotCharge) {
+      const billingRunResult = await createBillingRun(
+        {
+          billingPeriod,
+          paymentMethod: defaultPaymentMethod,
+          scheduledFor,
+        },
+        transaction
+      )
+      if (billingRunResult.status === 'error') {
+        return Result.err(billingRunResult.error)
+      }
+      billingRun = billingRunResult.value
+    }
     return Result.ok({
       subscription,
       billingPeriod,
@@ -783,14 +830,13 @@ export const maybeCreateInitialBillingPeriodAndRun = async (
    * If we have a defaultPaymentMethod and no trial period,
    * we activate the subscription
    */
-  const activationResult = await activateSubscription(
+  return await activateSubscription(
     {
       ...params,
       defaultPaymentMethod: defaultPaymentMethod ?? undefined,
     },
     ctx
   )
-  return Result.ok(activationResult)
 }
 
 export const ledgerCommandPayload = (params: {
