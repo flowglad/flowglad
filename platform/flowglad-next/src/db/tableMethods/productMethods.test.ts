@@ -121,16 +121,14 @@ describe('getProductTableRows', () => {
       (p) => p.product.id === thirdProductId
     )
 
-    // Check Product 1
-    expect(secondProductResult).toBeDefined()
+    // Check Product 1 - find() result checked via property assertions
     expect(secondProductResult!.product.name).toBe('Product 1')
     expect(secondProductResult!.product.active).toBe(true)
     expect(secondProductResult!.prices.length).toBe(1)
     expect(secondProductResult!.prices[0].id).toBe(secondPriceId)
     expect(secondProductResult!.pricingModel?.id).toBe(pricingModelId)
 
-    // Check Product 2
-    expect(thirdProductResult).toBeDefined()
+    // Check Product 2 - find() result checked via property assertions
     expect(thirdProductResult!.product.name).toBe('Product 2')
     expect(thirdProductResult!.product.active).toBe(true)
     expect(thirdProductResult!.prices.length).toBe(1)
@@ -375,10 +373,8 @@ describe('getProductTableRows', () => {
     })
 
     // Verify the new product is in the results
-    const newProductResult = result.data.find(
-      (p) => p.product.id === newProduct.id
-    )
-    expect(newProductResult).toBeDefined()
+    const productIds = result.data.map((p) => p.product.id)
+    expect(productIds).toContain(newProduct.id)
 
     // Verify results are sorted by createdAt DESC
     const createdAtTimestamps = result.data.map((p) =>
@@ -729,11 +725,10 @@ describe('selectProductPriceAndFeaturesByProductId', () => {
     expect(result.product.id).toBe(product.id)
     expect(result.product.name).toBe('Test Product')
     expect(result.prices).toHaveLength(2)
-    // Don't assume price ordering - find by name instead
-    const price1 = result.prices.find((p) => p.name === 'Price 1')
-    const price2 = result.prices.find((p) => p.name === 'Price 2')
-    expect(price1).toBeDefined()
-    expect(price2).toBeDefined()
+    // Don't assume price ordering - check both prices exist by name
+    const priceNames = result.prices.map((p) => p.name)
+    expect(priceNames).toContain('Price 1')
+    expect(priceNames).toContain('Price 2')
     expect(Array.isArray(result.features)).toBe(true)
   })
 })
