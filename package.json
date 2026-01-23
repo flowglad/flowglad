@@ -5,7 +5,7 @@
   "version": "0.0.0",
   "scripts": {
     "init:flowglad-next": "bun install && bun run build && bun run init:flowglad-next:link && bun run init:flowglad-next:packages && bun run init:flowglad-next:user && bun run init:flowglad-next:env",
-    "init:flowglad-next:link": "cd platform/flowglad-next && bunx vercel link --yes --scope flowglad --project $FLOWGLAD_VERCEL_PROJECT_ID",
+    "init:flowglad-next:link": "cd platform/flowglad-next && mkdir -p .vercel && printf '{\"projectId\":\"%s\",\"orgId\":\"%s\"}' \"$FLOWGLAD_VERCEL_PROJECT_ID\" \"$FLOWGLAD_VERCEL_ORG_ID\" > .vercel/project.json",
     "init:flowglad-next:packages": "cd platform/flowglad-next && bun install",
     "init:flowglad-next:user": "cd platform/flowglad-next && bun user $FLOWGLAD_LOCAL_USER",
     "init:flowglad-next:env": "cd platform/flowglad-next && bun run vercel:env-pull:dev",
