@@ -37,6 +37,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { ConflictError } from '@/errors'
 import { PriceType } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -284,7 +285,8 @@ export const safelyInsertPricingModel = async (
       ctx.transaction
     )
     if (exists) {
-      throw new Error(
+      throw new ConflictError(
+        'pricingModel',
         'Organization already has a livemode pricing model. Only one livemode pricing model is allowed per organization.'
       )
     }
