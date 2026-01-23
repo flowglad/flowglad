@@ -1176,24 +1176,26 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         cancelUrl: 'http://cancel.url',
       }
 
-    const result = await customerBillingCreatePricedCheckoutSession({
-      checkoutSessionInput,
-      customer,
-    })
+    const checkoutSessionResult =
+      await customerBillingCreatePricedCheckoutSession({
+        checkoutSessionInput,
+        customer,
+      })
 
-    expect(result).toMatchObject({})
-    expect(result.checkoutSession).toMatchObject({})
-    expect(result.checkoutSession.priceId).toBe(
+    expect(checkoutSessionResult.checkoutSession).toMatchObject({})
+    expect(checkoutSessionResult.checkoutSession.priceId).toBe(
       created.nonDefaultPrice.id
     )
-    expect(result.checkoutSession.customerId).toBe(customer.id)
-    expect(result.checkoutSession.organizationId).toBe(
+    expect(checkoutSessionResult.checkoutSession.customerId).toBe(
+      customer.id
+    )
+    expect(checkoutSessionResult.checkoutSession.organizationId).toBe(
       organization.id
     )
-    expect(result.checkoutSession.type).toBe(
+    expect(checkoutSessionResult.checkoutSession.type).toBe(
       CheckoutSessionType.Product
     )
-    expect(result.url).toContain('/checkout/')
+    expect(checkoutSessionResult.url).toContain('/checkout/')
   })
 
   it('should fail with invalid checkout session type', async () => {
@@ -1255,20 +1257,22 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         cancelUrl: 'http://cancel.url',
       }
 
-    const result = await customerBillingCreatePricedCheckoutSession({
-      checkoutSessionInput,
-      customer,
-    })
+    const checkoutSessionResult =
+      await customerBillingCreatePricedCheckoutSession({
+        checkoutSessionInput,
+        customer,
+      })
 
-    expect(result).toMatchObject({})
-    expect(result.checkoutSession).toMatchObject({})
-    expect(result.checkoutSession.type).toBe(
+    expect(checkoutSessionResult.checkoutSession).toMatchObject({})
+    expect(checkoutSessionResult.checkoutSession.type).toBe(
       CheckoutSessionType.ActivateSubscription
     )
-    expect(result.checkoutSession.targetSubscriptionId).toBe(
-      subscription.id
+    expect(
+      checkoutSessionResult.checkoutSession.targetSubscriptionId
+    ).toBe(subscription.id)
+    expect(checkoutSessionResult.checkoutSession.priceId).toBe(
+      price.id
     )
-    expect(result.checkoutSession.priceId).toBe(price.id)
   })
 
   // Note: The test "should fail when customer has no pricing model and tries to access price"

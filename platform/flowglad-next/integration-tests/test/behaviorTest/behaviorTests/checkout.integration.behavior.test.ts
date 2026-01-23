@@ -128,14 +128,14 @@ const confirmCheckoutSessionBehavior = defineBehavior({
     })
 
     // Create payment intent for the checkout session (use updatedCheckoutSession which has billing address)
-    const paymentIntent = await createPaymentIntentForCheckoutSession(
-      {
+    const paymentIntent = (
+      await createPaymentIntentForCheckoutSession({
         price: prev.price,
         organization: prev.organization,
         product: prev.product,
         checkoutSession: prev.updatedCheckoutSession,
-      }
-    )
+      })
+    ).unwrap()
 
     // Update payment intent with customer
     await updatePaymentIntent(

@@ -7,6 +7,7 @@ import {
   it,
   mock,
 } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -1189,7 +1190,7 @@ describe('billingRunHelpers', async () => {
         })
 
         mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-          mockPaymentIntent
+          Result.ok(mockPaymentIntent)
         )
 
         // Mock confirmation to fail (card declined scenario)
@@ -1247,7 +1248,7 @@ describe('billingRunHelpers', async () => {
         })
 
         mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-          mockPaymentIntent
+          Result.ok(mockPaymentIntent)
         )
 
         // Mock confirmation API to fail (network error, Stripe API down, etc.)
@@ -1399,7 +1400,7 @@ describe('billingRunHelpers', async () => {
         )
 
         mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-          mockPaymentIntent
+          Result.ok(mockPaymentIntent)
         )
         mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
           mockConfirmationResult
@@ -1574,7 +1575,7 @@ describe('billingRunHelpers', async () => {
         )
 
         mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-          mockPaymentIntent
+          Result.ok(mockPaymentIntent)
         )
         mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
           mockConfirmationResult

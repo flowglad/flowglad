@@ -7,6 +7,7 @@ import {
   it,
   mock,
 } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -283,7 +284,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     )
 
     mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-      mockPaymentIntent
+      Result.ok(mockPaymentIntent)
     )
     mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
       mockConfirmationResult
@@ -358,7 +359,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     )
 
     mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-      mockPaymentIntent
+      Result.ok(mockPaymentIntent)
     )
     mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
       mockConfirmationResult
@@ -461,7 +462,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-      mockPaymentIntent
+      Result.ok(mockPaymentIntent)
     )
 
     // Mock payment confirmation to fail (requires_payment_method)
@@ -614,7 +615,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     )
 
     mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-      mockPaymentIntent
+      Result.ok(mockPaymentIntent)
     )
     mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
       mockConfirmationResult
@@ -724,7 +725,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     )
 
     mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-      mockPaymentIntent
+      Result.ok(mockPaymentIntent)
     )
     mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
       mockConfirmationResult
@@ -823,7 +824,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     )
 
     mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-      mockPaymentIntent
+      Result.ok(mockPaymentIntent)
     )
     mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
       mockConfirmationResult
@@ -953,7 +954,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     )
 
     mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-      mockPaymentIntent
+      Result.ok(mockPaymentIntent)
     )
     mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
       mockConfirmationResult
@@ -1024,7 +1025,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     )
 
     mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-      mockPaymentIntent
+      Result.ok(mockPaymentIntent)
     )
     mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
       mockConfirmationResult
@@ -1104,7 +1105,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     )
 
     mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
-      mockPaymentIntent
+      Result.ok(mockPaymentIntent)
     )
     mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
       mockConfirmationResult
