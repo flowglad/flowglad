@@ -1,10 +1,16 @@
 /**
  * Bun preload script for database safety and environment validation.
  *
+ * IMPORTANT: DEVELOPMENT IS THE DEFAULT
+ * When NODE_ENV is unset, this script defaults to "development" and requires
+ * .env.development to exist. This is an interim solution - future iterations
+ * will add support for full local development without Vercel credentials.
+ *
  * Environment Loading (handled by Bun automatically):
- * - NODE_ENV unset or "development" → uses .env.development (default)
- * - NODE_ENV=production → uses .env.production
- * - NODE_ENV=test → uses .env.test
+ * - NODE_ENV unset     → uses .env.development (DEFAULT - Vercel dev)
+ * - NODE_ENV=development → uses .env.development (Vercel dev)
+ * - NODE_ENV=production  → uses .env.production (Vercel prod)
+ * - NODE_ENV=test        → uses .env.test (test database)
  *
  * This script validates that required env files exist before Bun loads them.
  *
