@@ -1385,7 +1385,8 @@ describe('RLS for selectPricingModels', () => {
   let pricingModel2: PricingModel.Record
   let catUserA: User.Record
   let catUserB: User.Record
-  let apiKeyCatAOrg1: ApiKey.Record
+  let apiKeyCatAOrg1: ApiKey.Record // livemode=true for accessing setupOrg's pricing model
+  let apiKeyCatAOrg1Test: ApiKey.Record // livemode=false for inserting new pricing models
   let apiKeyCatAOrg2: ApiKey.Record
 
   beforeEach(async () => {
@@ -1398,13 +1399,20 @@ describe('RLS for selectPricingModels', () => {
     catOrg2 = orgSetup2.organization
     pricingModel2 = orgSetup2.pricingModel
 
-    // Create user A focused on org1 with an API key
+    // Create user A focused on org1 with an API key (livemode=true for accessing existing pricing model)
     const uaOrg1 = await setupUserAndApiKey({
       organizationId: catOrg1.id,
       livemode: true,
     })
     catUserA = uaOrg1.user
     apiKeyCatAOrg1 = uaOrg1.apiKey
+
+    // Create a second API key with livemode=false (for inserting new pricing models)
+    const uaOrg1Test = await setupUserAndApiKey({
+      organizationId: catOrg1.id,
+      livemode: false,
+    })
+    apiKeyCatAOrg1Test = uaOrg1Test.apiKey
 
     // Also give user A a membership in org2, unfocused
     await adminTransaction(async (ctx) => {
@@ -1533,6 +1541,7 @@ describe('RLS for selectPricingModels', () => {
   })
 
   it('can insert a pricingModel for the current organization', async () => {
+    // Use the testmode API key to avoid livemode uniqueness constraint
     const created = await authenticatedTransaction(
       async ({ transaction }) =>
         insertPricingModel(
@@ -1540,11 +1549,11 @@ describe('RLS for selectPricingModels', () => {
             organizationId: catOrg1.id,
             name: 'New Org1 PricingModel',
             isDefault: false,
-            livemode: true,
+            livemode: false, // Use testmode to avoid livemode uniqueness constraint
           },
           transaction
         ),
-      { apiKey: apiKeyCatAOrg1.token }
+      { apiKey: apiKeyCatAOrg1Test.token }
     )
     expect(created.organizationId).toBe(catOrg1.id)
   })

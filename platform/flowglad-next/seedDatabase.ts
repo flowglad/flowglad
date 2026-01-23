@@ -1272,7 +1272,7 @@ export const setupSubscriptionItem = async ({
 export const setupPricingModel = async ({
   organizationId,
   name = 'Test Pricing Model',
-  livemode = true,
+  livemode = false,
   isDefault = false,
 }: {
   organizationId: string

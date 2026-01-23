@@ -1473,7 +1473,7 @@ describe('usageEventHelpers', () => {
         const secondPricingModel = await setupPricingModel({
           organizationId: organization.id,
           name: 'Second Pricing Model',
-          livemode: true,
+          livemode: false,
           isDefault: false,
         })
 
@@ -1482,14 +1482,14 @@ describe('usageEventHelpers', () => {
           organizationId: organization.id,
           pricingModelId: secondPricingModel.id,
           name: 'Second Product',
-          livemode: true,
+          livemode: false,
           active: true,
         })
 
         const secondUsageMeter = await setupUsageMeter({
           organizationId: organization.id,
           name: 'Second Usage Meter',
-          livemode: true,
+          livemode: false,
           pricingModelId: secondPricingModel.id,
         })
 
@@ -1500,7 +1500,7 @@ describe('usageEventHelpers', () => {
           unitPrice: 20,
           intervalUnit: IntervalUnit.Day,
           intervalCount: 1,
-          livemode: true,
+          livemode: false,
           isDefault: false,
           currency: CurrencyCode.USD,
           usageMeterId: secondUsageMeter.id,

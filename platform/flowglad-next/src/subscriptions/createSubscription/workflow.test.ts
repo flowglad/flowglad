@@ -1730,13 +1730,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
 
   describe('createSubscriptionWorkflow - Ledger Command Creation', () => {
     it('should create billing period transition ledger command for non-renewing subscription', async () => {
+      // Use livemode=false to avoid conflict with setupOrg's livemode=true pricing model
       const newPricingModel = await adminTransaction(
         async ({ transaction }) => {
           return insertPricingModel(
             {
               name: 'Test Pricing Model',
               organizationId: organization.id,
-              livemode: true,
+              livemode: false,
               isDefault: false,
             },
             transaction
@@ -1749,7 +1750,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         name: 'Default Product',
         pricingModelId: newPricingModel.id,
         default: true,
-        livemode: true,
+        livemode: false,
       })
 
       const singlePaymentPrice = await setupPrice({
@@ -1757,13 +1758,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         name: 'Single Payment Price',
         type: PriceType.SinglePayment,
         unitPrice: 1000,
-        livemode: true,
+        livemode: false,
         isDefault: false,
         currency: organization.defaultCurrency,
       })
 
       const newCustomer = await setupCustomer({
         organizationId: organization.id,
+        livemode: false, // Must match pricing model livemode
       })
       const newPaymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
@@ -1781,7 +1783,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               product: defaultProduct,
               price: singlePaymentPrice,
               quantity: 1,
-              livemode: true,
+              livemode: false, // Must match test data livemode
               startDate: new Date(),
               interval: IntervalUnit.Month,
               intervalCount: 1,
