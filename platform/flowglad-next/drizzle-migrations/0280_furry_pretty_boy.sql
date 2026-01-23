@@ -73,14 +73,6 @@ WHERE e."pricing_model_id" IS NULL
   AND e."payload"->>'object' = 'purchase'
   AND e."payload"->>'id' = pur."id";
 
--- Backfill from invoices (object = 'invoice')
-UPDATE "events" e
-SET "pricing_model_id" = inv."pricing_model_id"
-FROM "invoices" inv
-WHERE e."pricing_model_id" IS NULL
-  AND e."payload"->>'object' = 'invoice'
-  AND e."payload"->>'id' = inv."id";
-
 -- For remaining events without pricing_model_id (e.g., object = 'product', 'user'),
 -- derive from organization's default pricing model
 UPDATE "events" e
