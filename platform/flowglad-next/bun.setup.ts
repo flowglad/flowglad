@@ -29,6 +29,7 @@ import { webcrypto } from 'node:crypto'
 // Now import the remaining modules (after mocks are set up)
 import { GlobalRegistrator } from '@happy-dom/global-registrator'
 import { cleanup } from '@testing-library/react'
+import { resetGlobalTestState } from '@/test/helpers/testIsolation'
 import { server } from './mocks/server'
 import { seedDatabase } from './seedDatabase'
 
@@ -54,6 +55,9 @@ beforeAll(async () => {
 afterEach(() => {
   server.resetHandlers()
   cleanup()
+  // Reset global test state (auth session, __mock* globals)
+  // This ensures tests don't leak state to subsequent tests during parallel execution
+  resetGlobalTestState()
 })
 
 afterAll(async () => {
