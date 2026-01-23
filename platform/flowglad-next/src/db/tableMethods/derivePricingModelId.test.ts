@@ -1,5 +1,4 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
-import { Result } from 'better-result'
 import {
   setupCheckoutSession,
   setupCustomer,
@@ -494,26 +493,24 @@ describe('derivePricingModelIdFromPayment', () => {
 
   it('should successfully derive pricingModelId from payment', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const derivedPricingModelIdResult =
+      const derivedPricingModelId =
         await derivePricingModelIdFromPayment(payment.id, transaction)
 
-      expect(Result.isOk(derivedPricingModelIdResult)).toBe(true)
-      const derivedPricingModelId =
-        derivedPricingModelIdResult.unwrap()
       expect(derivedPricingModelId).toBe(payment.pricingModelId)
       expect(derivedPricingModelId).toBe(pricingModel.id)
     })
   })
 
-  it('should return error Result when payment does not exist', async () => {
+  it('should throw an error when payment does not exist', async () => {
     await adminTransaction(async ({ transaction }) => {
       const nonExistentPaymentId = `payment_${core.nanoid()}`
 
-      const result = await derivePricingModelIdFromPayment(
-        nonExistentPaymentId,
-        transaction
-      )
-      expect(Result.isError(result)).toBe(true)
+      await expect(
+        derivePricingModelIdFromPayment(
+          nonExistentPaymentId,
+          transaction
+        )
+      ).rejects.toThrow()
     })
   })
 })
@@ -642,7 +639,7 @@ describe('insertRefund with derived pricingModelId', () => {
 
   it('should automatically derive and set pricingModelId when inserting refund', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const refundResult = await insertRefund(
+      const refund = await insertRefund(
         {
           organizationId: organization.id,
           paymentId: payment.id,
@@ -659,7 +656,6 @@ describe('insertRefund with derived pricingModelId', () => {
         },
         transaction
       )
-      const refund = refundResult.unwrap()
 
       expect(refund.pricingModelId).toBe(payment.pricingModelId)
       expect(refund.pricingModelId).toBe(pricingModel.id)

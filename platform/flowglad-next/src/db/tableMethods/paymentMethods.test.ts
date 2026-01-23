@@ -97,10 +97,9 @@ describe('paymentMethods.ts', () => {
           )
         const updatedPayment = updatedPaymentResult.unwrap()
 
-        const result = updatedPayment.unwrap()
-        expect(result.refunded).toBe(true)
-        expect(result.refundedAmount).toBe(payment.amount)
-        expect(typeof result.refundedAt).toBe('number')
+        expect(updatedPayment.refunded).toBe(true)
+        expect(updatedPayment.refundedAmount).toBe(payment.amount)
+        expect(typeof updatedPayment.refundedAt).toBe('number')
       })
     })
     it('fails if refund status is not explicitly set', async () => {
@@ -159,13 +158,18 @@ describe('paymentMethods.ts', () => {
           )
         const updatedPayment = updatedPaymentResult.unwrap()
 
-        const result = updatedPayment.unwrap()
-        expect(result.refunded).toBe(false)
-        expect(result.refundedAmount).toBe(partialRefundAmount)
-        expect(result.status).toBe(PaymentStatus.Succeeded)
-        expect(result.amount).toBe(payment.amount)
-        expect(result.refundedAt).toBeGreaterThan(refundedAt - 5_000)
-        expect(result.refundedAt).toBeLessThanOrEqual(Date.now())
+        expect(updatedPayment.refunded).toBe(false)
+        expect(updatedPayment.refundedAmount).toBe(
+          partialRefundAmount
+        )
+        expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
+        expect(updatedPayment.amount).toBe(payment.amount)
+        expect(updatedPayment.refundedAt).toBeGreaterThan(
+          refundedAt - 5_000
+        )
+        expect(updatedPayment.refundedAt).toBeLessThanOrEqual(
+          Date.now()
+        )
       })
     })
 
@@ -278,9 +282,8 @@ describe('paymentMethods.ts', () => {
           )
         const updatedPayment = updatedPaymentResult.unwrap()
 
-        const result = updatedPayment.unwrap()
-        expect(result.refunded).toBe(true)
-        expect(result.refundedAmount).toBe(1000)
+        expect(updatedPayment.refunded).toBe(true)
+        expect(updatedPayment.refundedAmount).toBe(1000)
       })
     })
   })
@@ -308,10 +311,11 @@ describe('paymentMethods.ts', () => {
         expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
 
         // Verify the payment was actually updated in the database
-        const fetchedPayment = (
-          await selectPaymentById(payment.id, transaction)
-        ).unwrap()
-        expect(fetchedPayment.status).toBe(PaymentStatus.Succeeded)
+        const fetchedPayment = await selectPaymentById(
+          payment.id,
+          transaction
+        )
+        expect(fetchedPayment?.status).toBe(PaymentStatus.Succeeded)
       })
     })
 
