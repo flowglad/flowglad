@@ -30,3 +30,17 @@ jobs:
         env:
           BASE_BRANCH: ${{ github.base_ref }}
         run: bun run .github/scripts/check-skills-sync.ts
+
+  all-jobs-succeed:
+    name: All checks succeeded
+    # On failure, we run and unconditionally exit with a failing status code.
+    # On success, this job is skipped. Jobs skipped using `if:` are considered
+    # to have succeeded:
+    #
+    # https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/collaborating-on-repositories-with-code-quality-features/troubleshooting-required-status-checks#handling-skipped-but-required-checks
+    if: failure()
+    runs-on: ubuntu-latest
+    needs: [check-sync]
+    steps:
+      - name: Mark the job as failed
+        run: exit 1
