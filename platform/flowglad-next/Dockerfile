@@ -50,6 +50,9 @@ COPY platform/flowglad-next/ .
 ARG VERCEL_ENV=production
 ENV VERCEL_ENV=${VERCEL_ENV}
 
+# Disable Sentry source map upload - Vercel handles this during deployment
+ENV SENTRY_AUTH_TOKEN=""
+
 # Run prebuild (removeDevRoutes + build:preview-css) then build:docker (next build --no-lint)
 # We skip `bun run check` in Docker since CI already runs lint/typecheck separately.
 # We use --no-lint to also skip Next.js's built-in linting phase, saving ~2-3 minutes.
