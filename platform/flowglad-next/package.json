@@ -19,7 +19,7 @@
     "test:frontend": "vitest run --config vitest.frontend.config.ts --reporter=verbose",
     "test:frontend:watch": "vitest --config vitest.frontend.config.ts",
     "test": "bun run test:backend && bun run test:frontend",
-    "test:rls": "bun test --preload ./bun.rls.setup.ts --timeout 30000 --max-concurrency 1 $(find integration-tests -name '*.rls.test.ts')",
+    "test:rls": "bun test --preload ./bun.rls.setup.ts --timeout 30000 --max-concurrency 1 $(find rls-tests -name '*.rls.test.ts')",
     "test:unit": "bun run test:backend && bun run test:frontend",
     "test:watch": "bun run test:backend:watch & bun run test:frontend:watch",
     "test:integration": "bun test --preload ./bun.integration.setup.ts --timeout 30000 $(find integration-tests -name '*.integration.test.ts') && bun run test:rls",
