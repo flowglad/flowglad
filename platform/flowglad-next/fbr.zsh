@@ -1,38 +1,7 @@
-# fbr - Flowglad Bun Run
-# A wrapper for 'bun run' with environment selection
+# Zsh completions for fbr (flowglad bun run)
 #
-# Usage: fbr <script> [environment]
-#   script      - Any script from package.json
-#   environment - Optional: test, development, production (default: development)
-#
-# Examples:
-#   fbr dev                    # NODE_ENV=development bun run dev
-#   fbr migrations:push test   # NODE_ENV=test bun run migrations:push
-#   fbr build production       # NODE_ENV=production bun run build
-#
-# Installation: Add to your .zshrc:
-#   source /path/to/flowglad/platform/flowglad-next/fbr.zsh
-
-fbr() {
-  if [[ -z "$1" ]]; then
-    echo "Usage: fbr <script> [environment]"
-    echo "  environment: test, development, production (default: development)"
-    return 1
-  fi
-
-  local script="$1"
-  local env="${2:-development}"
-
-  # Validate environment
-  if [[ "$env" != "test" && "$env" != "development" && "$env" != "production" ]]; then
-    echo "Invalid environment: $env"
-    echo "Valid options: test, development, production"
-    return 1
-  fi
-
-  echo "Running: NODE_ENV=$env bun run $script"
-  NODE_ENV="$env" bun run "$script"
-}
+# This file is automatically sourced by direnv when entering the directory.
+# It can also be manually sourced: source fbr.zsh
 
 # Zsh completion for fbr
 _fbr() {
@@ -60,4 +29,4 @@ _fbr() {
   esac
 }
 
-compdef _fbr fbr
+compdef _fbr fbr 2>/dev/null
