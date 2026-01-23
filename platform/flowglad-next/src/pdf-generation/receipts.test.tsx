@@ -90,6 +90,7 @@ function createMockInvoice(
     createdAt: new Date(),
     updatedAt: new Date(),
     invoiceNumber: `INV-${idCounter}`,
+    invoiceDate: now, // Required field - current timestamp
     status: InvoiceStatus.Draft,
     type: InvoiceType.Purchase,
     subtotal: 6000,
