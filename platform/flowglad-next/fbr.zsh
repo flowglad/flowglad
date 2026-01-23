@@ -1,9 +1,10 @@
 # Zsh completions for fbr (flowglad bun run)
 #
-# This file is automatically sourced by direnv when entering the directory.
-# It can also be manually sourced: source fbr.zsh
+# Add to your ~/.zshrc for tab completions:
+#   source /path/to/flowglad/platform/flowglad-next/fbr.zsh
+#
+# The fbr command itself is added to PATH by direnv when in the directory.
 
-# Zsh completion for fbr
 _fbr() {
   local state
 
@@ -29,4 +30,4 @@ _fbr() {
   esac
 }
 
-compdef _fbr fbr 2>/dev/null
+compdef _fbr fbr
