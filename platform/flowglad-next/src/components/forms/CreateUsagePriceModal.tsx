@@ -149,8 +149,8 @@ function IsDefaultField() {
                     side="top"
                     className="max-w-xs text-sm px-3 py-2"
                   >
-                    The default price is used when usage events are created
-                    with just the meter identifier.
+                    The default price is used when usage events are
+                    created with just the meter identifier.
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
