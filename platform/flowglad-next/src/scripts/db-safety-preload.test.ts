@@ -212,6 +212,15 @@ describe('db-safety-preload', () => {
       expect(masked).not.toContain('pass@word')
       expect(masked).toContain('****')
     })
+
+    it('masks percent-encoded passwords correctly', () => {
+      // Password with @ encoded as %40
+      const url = 'postgresql://user:pass%40word@localhost:5432/db'
+      const masked = maskDatabaseUrl(url)
+      expect(masked).toBe('postgresql://user:****@localhost:5432/db')
+      expect(masked).not.toContain('%40')
+      expect(masked).not.toContain('pass')
+    })
   })
 
   describe('LOCAL_HOST_PATTERNS', () => {

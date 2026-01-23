@@ -75,6 +75,7 @@ export function isLocalDatabaseUrl(url: string): boolean {
 
 /**
  * Mask credentials in a database URL for safe display in error messages.
+ * Uses URL object manipulation to ensure percent-encoded passwords are handled correctly.
  *
  * @param url - The DATABASE_URL to mask
  * @returns URL with password replaced by ****
@@ -83,7 +84,8 @@ export function maskDatabaseUrl(url: string): string {
   try {
     const parsed = new URL(url)
     if (parsed.password) {
-      return url.replace(`:${parsed.password}@`, ':****@')
+      parsed.password = '****'
+      return parsed.toString()
     }
     return url
   } catch {
