@@ -498,7 +498,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       expect(clientSecret).toContain('_secret_')
     })
 
-    it('throws error when customer has no stripeCustomerId', async () => {
+    it('returns error Result when customer has no stripeCustomerId', async () => {
       const customerRecord: Customer.Record = {
         id: `cust_${core.nanoid()}`,
         createdAt: Date.now(),
@@ -524,11 +524,15 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         livemode: false,
       }
 
-      await expect(
-        createCustomerSessionForCheckout(customerRecord)
-      ).rejects.toThrow(
-        'Missing stripeCustomerId for customer session creation'
-      )
+      const result =
+        await createCustomerSessionForCheckout(customerRecord)
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          'Missing stripeCustomerId for customer session creation'
+        )
+      }
     })
   })
 
@@ -1614,7 +1618,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         expect(refund.amount).toBe(partialRefundAmount)
       })
 
-      it('throws error when payment intent has no charge', async () => {
+      it('returns error Result when payment intent has no charge', async () => {
         // Setup: create an unconfirmed payment intent (no charge)
         const stripeCustomer = await createTestStripeCustomer()
         createdCustomerId = stripeCustomer.id
@@ -1649,10 +1653,20 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         }
         const paymentIntent = paymentIntentResult.value
 
-        // Action & Verify: attempting to refund should throw
-        await expect(
-          refundPayment(paymentIntent.id, null, false)
-        ).rejects.toThrow('No charge found for payment intent')
+        // Action: attempt to refund
+        const refundResult = await refundPayment(
+          paymentIntent.id,
+          null,
+          false
+        )
+
+        // Verify: should return error Result
+        expect(Result.isError(refundResult)).toBe(true)
+        if (Result.isError(refundResult)) {
+          expect(refundResult.error.message).toBe(
+            'No charge found for payment intent'
+          )
+        }
 
         // Cleanup the unconfirmed payment intent
         await cleanupStripeTestData({
