@@ -814,7 +814,7 @@ export const adjustSubscription = async (
       transaction
     )
     // TODO: maybe only create billing run if prorationAdjustments.length > 0
-    const billingRun = await createBillingRun(
+    const billingRunResult = await createBillingRun(
       {
         billingPeriod: currentBillingPeriodForSubscription,
         paymentMethod,
@@ -823,6 +823,10 @@ export const adjustSubscription = async (
       },
       transaction
     )
+    if (Result.isError(billingRunResult)) {
+      return Result.err(billingRunResult.error)
+    }
+    const billingRun = billingRunResult.value
 
     // Execute billing run immediately after creation
     // executeBillingRun uses its own transactions internally

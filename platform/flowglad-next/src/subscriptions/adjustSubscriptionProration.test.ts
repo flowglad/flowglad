@@ -242,15 +242,12 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       const mockTrigger = getMockTrigger()
       const wasBillingRunTriggered = mockTrigger.mock.calls.length > 0
 
-      expect(result.status).toBe('ok')
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggered) {
-          // Net charge > 0: subscription name not updated yet
-          expect(result.value.subscription.name).toBeNull()
-        } else {
-          // Net charge === 0: subscription name updated immediately
-          expect(result.value.subscription.name).toBe('Premium Plan')
-        }
+      if (wasBillingRunTriggered) {
+        // Net charge > 0: subscription name not updated yet
+        expect(result.subscription.name).toBeNull()
+      } else {
+        // Net charge === 0: subscription name updated immediately
+        expect(result.subscription.name).toBe('Premium Plan')
       }
 
       // Verify proration logic is working (removal credit + addition charge)
@@ -514,15 +511,12 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       const mockTrigger = getMockTrigger()
       const wasBillingRunTriggered = mockTrigger.mock.calls.length > 0
 
-      expect(result.status).toBe('ok')
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggered) {
-          // Net charge > 0: items are NOT updated immediately
-          expect(result.value.subscriptionItems).toHaveLength(1) // Original item still exists
-        } else {
-          // Net charge === 0: items ARE updated immediately
-          expect(result.value.subscriptionItems).toHaveLength(2) // Both items updated
-        }
+      if (wasBillingRunTriggered) {
+        // Net charge > 0: items are NOT updated immediately
+        expect(result.subscriptionItems).toHaveLength(1) // Original item still exists
+      } else {
+        // Net charge === 0: items ARE updated immediately
+        expect(result.subscriptionItems).toHaveLength(2) // Both items updated
       }
 
       // Verify: Get billing period items
@@ -549,16 +543,12 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
 
       // Verify subscription name (using mockTrigger already declared above)
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggered) {
-          // Net charge > 0: subscription name not updated yet
-          expect(result.value.subscription.name).toBeNull()
-        } else {
-          // Net charge === 0: subscription name updated immediately
-          expect(result.value.subscription.name).toBe(
-            'Add-on Feature'
-          )
-        }
+      if (wasBillingRunTriggered) {
+        // Net charge > 0: subscription name not updated yet
+        expect(result.subscription.name).toBeNull()
+      } else {
+        // Net charge === 0: subscription name updated immediately
+        expect(result.subscription.name).toBe('Add-on Feature')
       }
       return Result.ok(null)
     })
@@ -603,10 +593,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ).unwrap()
 
       // Verify: Should have 0 subscription items (all removed)
-      expect(result.status).toBe('ok')
-      if (result.status === 'ok') {
-        expect(result.value.subscriptionItems).toHaveLength(0)
-      }
+      expect(result.subscriptionItems).toHaveLength(0)
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -626,9 +613,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
 
       // Verify subscription record name remains unchanged when no active items
       // (The sync logic doesn't update when there are no active items)
-      if (result.status === 'ok') {
-        expect(result.value.subscription.name).toBe(subscription.name)
-      }
+      expect(result.subscription.name).toBe(subscription.name)
       return Result.ok(null)
     })
   })
@@ -732,15 +717,12 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       const mockTrigger = getMockTrigger()
       const wasBillingRunTriggered = mockTrigger.mock.calls.length > 0
 
-      expect(result.status).toBe('ok')
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggered) {
-          // Net charge > 0: subscription name not updated yet
-          expect(result.value.subscription.name).toBeNull()
-        } else {
-          // Net charge === 0: subscription name updated immediately (downgrade with no refund)
-          expect(result.value.subscription.name).toBe('Basic Plan')
-        }
+      if (wasBillingRunTriggered) {
+        // Net charge > 0: subscription name not updated yet
+        expect(result.subscription.name).toBeNull()
+      } else {
+        // Net charge === 0: subscription name updated immediately (downgrade with no refund)
+        expect(result.subscription.name).toBe('Basic Plan')
       }
       return Result.ok(null)
     })
@@ -800,30 +782,23 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       const mockTrigger = getMockTrigger()
       const wasBillingRunTriggered = mockTrigger.mock.calls.length > 0
 
-      expect(result.status).toBe('ok')
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggered) {
-          // Net charge > 0: items are NOT updated immediately
-          expect(result.value.subscriptionItems).toHaveLength(1) // Original item still exists
-          expect(result.value.subscriptionItems[0].name).toBe(
-            'Base Plan'
-          ) // Original item name
-        } else {
-          // Net charge === 0: items ARE updated immediately
-          expect(result.value.subscriptionItems).toHaveLength(1) // Replacement item
-          expect(result.value.subscriptionItems[0].name).toBe(
-            'Replacement Plan'
-          )
-        }
+      if (wasBillingRunTriggered) {
+        // Net charge > 0: items are NOT updated immediately
+        expect(result.subscriptionItems).toHaveLength(1) // Original item still exists
+        expect(result.subscriptionItems[0].name).toBe('Base Plan') // Original item name
+      } else {
+        // Net charge === 0: items ARE updated immediately
+        expect(result.subscriptionItems).toHaveLength(1) // Replacement item
+        expect(result.subscriptionItems[0].name).toBe(
+          'Replacement Plan'
+        )
+      }
 
-        // Verify subscription name
-        if (wasBillingRunTriggered) {
-          expect(result.value.subscription.name).toBeNull()
-        } else {
-          expect(result.value.subscription.name).toBe(
-            'Replacement Plan'
-          )
-        }
+      // Verify subscription name
+      if (wasBillingRunTriggered) {
+        expect(result.subscription.name).toBeNull()
+      } else {
+        expect(result.subscription.name).toBe('Replacement Plan')
       }
 
       // Verify: Get billing period items
@@ -852,14 +827,10 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       expect(correctionItems[0].unitPrice / 100).toBeCloseTo(10, 0) // ~$10.00
 
       // Verify subscription name (using wasBillingRunTriggered already declared above)
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggered) {
-          expect(result.value.subscription.name).toBeNull()
-        } else {
-          expect(result.value.subscription.name).toBe(
-            'Replacement Plan'
-          )
-        }
+      if (wasBillingRunTriggered) {
+        expect(result.subscription.name).toBeNull()
+      } else {
+        expect(result.subscription.name).toBe('Replacement Plan')
       }
       return Result.ok(null)
     })
@@ -947,10 +918,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       expect(totalProrationAmount).toBe(0) // No additional charge due to downgrade protection
 
       // Verify subscription record reflects new plan
-      expect(result.status).toBe('ok')
-      if (result.status === 'ok') {
-        expect(result.value.subscription.name).toBe('Free Plan')
-      }
+      expect(result.subscription.name).toBe('Free Plan')
       return Result.ok(null)
     })
   })
@@ -1030,25 +998,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       const mockTrigger = getMockTrigger()
       const wasBillingRunTriggered = mockTrigger.mock.calls.length > 0
 
-      expect(result.status).toBe('ok')
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggered) {
-          // Net charge > 0: items are NOT updated immediately
-          expect(result.value.subscriptionItems).toHaveLength(2) // Original items still exist
-        } else {
-          // Net charge === 0: items ARE updated immediately
-          expect(result.value.subscriptionItems).toHaveLength(1) // New item created
-          expect(result.value.subscriptionItems[0].name).toBe(
-            'Premium Plan'
-          )
-        }
+      if (wasBillingRunTriggered) {
+        // Net charge > 0: items are NOT updated immediately
+        expect(result.subscriptionItems).toHaveLength(2) // Original items still exist
+      } else {
+        // Net charge === 0: items ARE updated immediately
+        expect(result.subscriptionItems).toHaveLength(1) // New item created
+        expect(result.subscriptionItems[0].name).toBe('Premium Plan')
+      }
 
-        // Verify subscription name
-        if (wasBillingRunTriggered) {
-          expect(result.value.subscription.name).toBeNull()
-        } else {
-          expect(result.value.subscription.name).toBe('Premium Plan')
-        }
+      // Verify subscription name
+      if (wasBillingRunTriggered) {
+        expect(result.subscription.name).toBeNull()
+      } else {
+        expect(result.subscription.name).toBe('Premium Plan')
       }
 
       // Verify: Get billing period items
@@ -1091,14 +1054,12 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       const wasBillingRunTriggeredForPremium =
         mockTriggerForPremium.mock.calls.length > 0
 
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggeredForPremium) {
-          // Net charge > 0: subscription name not updated yet
-          expect(result.value.subscription.name).toBeNull()
-        } else {
-          // Net charge === 0: subscription name updated immediately
-          expect(result.value.subscription.name).toBe('Premium Plan')
-        }
+      if (wasBillingRunTriggeredForPremium) {
+        // Net charge > 0: subscription name not updated yet
+        expect(result.subscription.name).toBeNull()
+      } else {
+        // Net charge === 0: subscription name updated immediately
+        expect(result.subscription.name).toBe('Premium Plan')
       }
       return Result.ok(null)
     })
@@ -1193,14 +1154,12 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       const mockTrigger = getMockTrigger()
       const wasBillingRunTriggered = mockTrigger.mock.calls.length > 0
 
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggered) {
-          // Net charge > 0: subscription name not updated yet
-          expect(result.value.subscription.name).toBeNull()
-        } else {
-          // Net charge === 0: subscription name updated immediately
-          expect(result.value.subscription.name).toBe('Standard Plan')
-        }
+      if (wasBillingRunTriggered) {
+        // Net charge > 0: subscription name not updated yet
+        expect(result.subscription.name).toBeNull()
+      } else {
+        // Net charge === 0: subscription name updated immediately
+        expect(result.subscription.name).toBe('Standard Plan')
       }
       return Result.ok(null)
     })
@@ -1292,14 +1251,12 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       const wasBillingRunTriggeredForFreePlan =
         mockTriggerForFreePlan.mock.calls.length > 0
 
-      if (result.status === 'ok') {
-        if (wasBillingRunTriggeredForFreePlan) {
-          // Net charge > 0: subscription name not updated yet
-          expect(result.value.subscription.name).toBeNull()
-        } else {
-          // Net charge === 0: subscription name updated immediately
-          expect(result.value.subscription.name).toBe('Free Plan')
-        }
+      if (wasBillingRunTriggeredForFreePlan) {
+        // Net charge > 0: subscription name not updated yet
+        expect(result.subscription.name).toBeNull()
+      } else {
+        // Net charge === 0: subscription name updated immediately
+        expect(result.subscription.name).toBe('Free Plan')
       }
 
       // Verify no arithmetic errors occurred (test should complete without throwing)
