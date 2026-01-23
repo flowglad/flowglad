@@ -338,10 +338,12 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
     )
 
     expect(result).toHaveLength(2) // Should insert 2 new events
-    expect(result[0].amount).toBe(100)
-    expect(result[1].amount).toBe(200)
-    expect(result[0].transactionId).toBe(transactionId)
-    expect(result[1].transactionId).toBe(transactionId)
+    const amounts = result.map((r) => r.amount)
+    expect(amounts).toContain(100)
+    expect(amounts).toContain(200)
+    expect(
+      result.every((r) => r.transactionId === transactionId)
+    ).toBe(true)
   })
 
   it('should not insert duplicate events for the same transaction ID', async () => {
