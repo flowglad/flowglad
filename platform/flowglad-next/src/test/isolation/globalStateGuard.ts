@@ -1,10 +1,13 @@
 /**
  * Global State Guard
  *
- * Resets all known global mock state to clean defaults.
- * This ensures tests don't leak state through globalThis.__mock* patterns.
+ * Manages global mock state for test isolation. The key insight is that some
+ * __mock* globals are set up by mock.module() at module load time and should
+ * PERSIST across tests (only cleared, not deleted). Other __mock* globals may
+ * be added by individual tests and should be DELETED after each test.
  *
- * This is used internally by setup files - tests don't need to call this directly.
+ * This module tracks which globals existed at initialization (from mock.module())
+ * and handles them appropriately during reset.
  */
 
 declare global {
@@ -16,11 +19,48 @@ declare global {
 }
 
 /**
- * Resets all known global mock state patterns.
+ * Set of __mock* global keys that existed at initialization time.
+ * These were set up by mock.module() and should persist across tests.
+ */
+let initialMockGlobals: Set<string> = new Set()
+
+/**
+ * Whether initialization has been called.
+ */
+let initialized = false
+
+/**
+ * Initializes global mock state tracking.
+ * Call this once in beforeAll, AFTER mock.module() calls have run.
  *
- * This function:
- * 1. Resets __mockedAuthSession to null (default unauthenticated state)
- * 2. Deletes any globalThis.__mock* properties (trigger task mocks, etc.)
+ * This captures which __mock* globals exist at startup so we know
+ * which ones to preserve (clear, not delete) during reset.
+ */
+export function initializeGlobalMockState(): void {
+  globalThis.__mockedAuthSession = null
+
+  // Capture all __mock* globals that exist at initialization
+  // These were set up by mock.module() and should persist
+  initialMockGlobals = new Set()
+  const globalKeys = Object.keys(globalThis)
+  for (const key of globalKeys) {
+    if (key.startsWith('__mock')) {
+      initialMockGlobals.add(key)
+    }
+  }
+
+  initialized = true
+}
+
+/**
+ * Resets all global mock state to clean defaults.
+ *
+ * For __mock* globals that existed at initialization (from mock.module()):
+ * - Calls mockClear() if available (preserves mock but clears call history)
+ * - Does NOT delete them (they need to persist for subsequent tests)
+ *
+ * For __mock* globals added during tests:
+ * - Deletes them entirely
  *
  * Called automatically by setup files in afterEach.
  */
@@ -28,20 +68,27 @@ export function resetAllGlobalMocks(): void {
   // Reset the auth session mock to null (default state)
   globalThis.__mockedAuthSession = null
 
-  // Clean up any __mock* globals that tests may have set
-  // These are commonly used for mocking trigger tasks and notifications
   const globalKeys = Object.keys(globalThis)
   for (const key of globalKeys) {
     if (key.startsWith('__mock') && key !== '__mockedAuthSession') {
-      delete (globalThis as Record<string, unknown>)[key]
+      const value = (globalThis as Record<string, unknown>)[key]
+
+      if (initialized && initialMockGlobals.has(key)) {
+        // This global existed at initialization (from mock.module())
+        // Clear it rather than delete it
+        if (
+          value &&
+          typeof value === 'object' &&
+          'mockClear' in value
+        ) {
+          const mock = value as { mockClear: () => void }
+          mock.mockClear()
+        }
+        // Don't delete - the mock needs to persist for subsequent tests
+      } else {
+        // This global was added during a test - delete it
+        delete (globalThis as Record<string, unknown>)[key]
+      }
     }
   }
-}
-
-/**
- * Initializes global mock state to safe defaults.
- * Call this once at the start of test setup.
- */
-export function initializeGlobalMockState(): void {
-  globalThis.__mockedAuthSession = null
 }

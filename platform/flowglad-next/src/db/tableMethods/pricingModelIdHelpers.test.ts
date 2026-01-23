@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import { describe, expect, it } from 'vitest'
 import { NotFoundError } from '@/errors'
 import {
   derivePricingModelIdCoalesce,
