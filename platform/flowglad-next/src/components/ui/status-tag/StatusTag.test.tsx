@@ -246,32 +246,29 @@ describe('StatusTag', () => {
   })
 
   describe('unknown status handling', () => {
-    it('throws Error with status name in message when config is missing in development', () => {
-      const originalEnv = process.env.NODE_ENV
-      vi.stubEnv('NODE_ENV', 'development')
+    it('renders fallback badge showing the invalid status value when config is missing', () => {
+      // Note: core.error reports this to Sentry in production, console.error in dev
+      // The error IS logged (visible in test output) but we focus on UI behavior
 
-      expect(() => {
+      render(
         // @ts-expect-error - Testing with unknown status value
-        render(<StatusTag status="unknown" config={testConfig} />)
-      }).toThrow('[StatusTag] Missing config for status: "unknown"')
-
-      vi.stubEnv('NODE_ENV', originalEnv)
-    })
-
-    it('renders Badge with "Unknown" text when status not in config and NODE_ENV is production', () => {
-      const originalEnv = process.env.NODE_ENV
-      vi.stubEnv('NODE_ENV', 'production')
-
-      // @ts-expect-error - Testing with nonexistent status value
-      render(<StatusTag status="nonexistent" config={testConfig} />)
-
-      expect(screen.getByRole('status')).toHaveTextContent('Unknown')
-      expect(screen.getByRole('status')).toHaveAttribute(
-        'aria-label',
-        'Unknown status'
+        <StatusTag status="unknown_status" config={testConfig} />
       )
 
-      vi.stubEnv('NODE_ENV', originalEnv)
+      // Should render the invalid status value in the badge for debugging
+      const badge = screen.getByRole('status')
+      expect(badge).toHaveTextContent('unknown_status')
+      expect(badge).toHaveAttribute(
+        'aria-label',
+        'Unknown status: unknown_status'
+      )
+    })
+
+    it('renders "Unknown" when status value is empty string', () => {
+      // @ts-expect-error - Testing with empty status value
+      render(<StatusTag status="" config={testConfig} />)
+
+      expect(screen.getByRole('status')).toHaveTextContent('Unknown')
     })
   })
 

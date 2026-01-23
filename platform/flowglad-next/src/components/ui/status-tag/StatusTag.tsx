@@ -8,6 +8,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
+import core from '@/utils/core'
 import type { StatusConfig } from './types'
 import { variantStyles } from './variants'
 
@@ -63,22 +64,23 @@ export function StatusTag<T extends string>({
 }: StatusTagProps<T>) {
   const statusConfig = config[status]
 
-  // Fail fast in development, graceful fallback in production
+  // Report error and provide graceful fallback
+  // This handles runtime edge cases like API drift or type coercion
   if (!statusConfig) {
-    if (process.env.NODE_ENV === 'development') {
-      throw new Error(
+    core.error(
+      new Error(
         `[StatusTag] Missing config for status: "${status}". ` +
-          `Ensure all enum values are defined in the config object.`
+          `This indicates either a missing config entry or API drift.`
       )
-    }
+    )
     return (
       <Badge
         variant="outline"
         role="status"
-        aria-label="Unknown status"
+        aria-label={`Unknown status: ${status}`}
         className="font-medium"
       >
-        Unknown
+        {String(status) || 'Unknown'}
       </Badge>
     )
   }
