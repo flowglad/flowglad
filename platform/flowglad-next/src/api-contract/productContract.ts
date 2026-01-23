@@ -30,7 +30,9 @@ const getProductListResource = (client: FlowgladNode) => {
   return client.products.list()
 }
 
-export const verifyProductContract = async (logger: StandardLogger) => {
+export const verifyProductContract = async (
+  logger: StandardLogger
+) => {
   const client = flowgladNode()
   const testId = 'test-product-' + core.nanoid()
   logger.info(`Product test ID: ${testId}`)
