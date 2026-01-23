@@ -1021,7 +1021,7 @@ export const executeBillingRun = async (
           },
           effectsCtx
         )
-        return Result.ok(result)
+        return result
       })
     }
 
