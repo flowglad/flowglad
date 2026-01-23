@@ -15,8 +15,12 @@ _fbr() {
   case $state in
     script)
       # Get scripts from bun's built-in completion
+      # Escape colons so they're not treated as value:description separators
       local -a scripts_list
-      IFS=$'\n' scripts_list=($(SHELL=zsh bun getcompletes s 2>/dev/null))
+      local script
+      while IFS= read -r script; do
+        scripts_list+=("${script//:/\\:}")
+      done < <(SHELL=zsh bun getcompletes s 2>/dev/null)
       _describe 'script' scripts_list
       ;;
     env)
