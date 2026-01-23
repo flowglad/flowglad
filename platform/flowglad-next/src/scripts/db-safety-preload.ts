@@ -72,6 +72,10 @@ function validateEnvironmentFiles(): void {
   )
     return
 
+  // Skip when not running an npm/bun script (e.g., `bun -e`, `bunx`, etc.)
+  const scriptName = process.env.npm_lifecycle_event
+  if (!scriptName) return
+
   const nodeEnv = getEffectiveNodeEnv()
 
   // Map NODE_ENV to the expected env file
@@ -85,17 +89,16 @@ function validateEnvironmentFiles(): void {
   const envPath = resolve(process.cwd(), envFile)
 
   if (!existsSync(envPath)) {
-    console.error(`ERROR: ${envFile} does not exist.`)
+    // Just warn - don't block. Commands that need DB will fail naturally.
+    console.warn(`Warning: ${envFile} does not exist.`)
     if (nodeEnv === 'development') {
-      console.error('Run: bun run vercel:env-pull:dev')
+      console.warn('To set up: bun run vercel:env-pull:dev')
     } else if (nodeEnv === 'production') {
-      console.error('Run: bun run vercel:env-pull:prod')
+      console.warn('To set up: bun run vercel:env-pull:prod')
     } else if (nodeEnv === 'test') {
-      console.error(
-        'Run: bun run test:setup to create the test database'
-      )
+      console.warn('To set up: bun run test:setup')
     }
-    process.exit(1)
+    return
   }
   console.log(`Environment: ${nodeEnv} (using ${envFile})`)
 }
@@ -199,8 +202,7 @@ export function shouldSkipSafetyCheck(): boolean {
   return (
     process.env.VERCEL !== undefined ||
     process.env.CI !== undefined ||
-    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined ||
-    isBootstrapScript()
+    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined
   )
 }
 
