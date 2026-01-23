@@ -1389,20 +1389,22 @@ describe('Customer Role RLS Policies', () => {
           ctx
         )
 
-        // Assign customerA_Org1 to pricing model A
+        // Assign customerA_Org1 to pricing model A and set livemode: false to match
         await updateCustomer(
           {
             id: customerA_Org1.id,
             pricingModelId: pricingModelA.id,
+            livemode: false,
           },
           transaction
         )
 
-        // Assign customerB_Org1 to pricing model B
+        // Assign customerB_Org1 to pricing model B and set livemode: false to match
         await updateCustomer(
           {
             id: customerB_Org1.id,
             pricingModelId: pricingModelB.id,
+            livemode: false,
           },
           transaction
         )
@@ -1457,7 +1459,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
@@ -1490,7 +1492,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
@@ -1526,7 +1528,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
@@ -1565,7 +1567,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
@@ -1616,7 +1618,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
@@ -1657,7 +1659,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
@@ -1703,7 +1705,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
@@ -1737,7 +1739,7 @@ describe('Customer Role RLS Policies', () => {
                 intervalUnit: IntervalUnit.Month,
                 intervalCount: 1,
                 active: true, // Price is active but product is not
-                livemode: true,
+                livemode: false,
                 isDefault: true,
                 trialPeriodDays: 0,
                 currency: CurrencyCode.USD,
@@ -1770,7 +1772,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
@@ -1808,7 +1810,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
@@ -1839,7 +1841,7 @@ describe('Customer Role RLS Policies', () => {
               intervalUnit: IntervalUnit.Month,
               intervalCount: 1,
               active: false, // Both product and price inactive
-              livemode: true,
+              livemode: false,
               isDefault: false,
               trialPeriodDays: 0,
               currency: CurrencyCode.USD,
@@ -1871,7 +1873,7 @@ describe('Customer Role RLS Policies', () => {
                   purchaseId: null,
                   targetSubscriptionId: null,
                   automaticallyUpdateSubscriptions: null,
-                  livemode: true,
+                  livemode: false,
                 },
                 transaction
               )
