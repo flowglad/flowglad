@@ -83,7 +83,9 @@ function getLocalDbUrl(port: number): string {
 // ============================================================================
 
 interface PgcpOptions {
-  sourceUrl: string
+  mode: 'remote' | 'file'
+  sourceUrl: string | null
+  filePath: string | null
   port: number
   schemaOnly: boolean
   keepDumps: boolean
@@ -217,17 +219,22 @@ class StepCounter {
   private total: number
 
   constructor(options: PgcpOptions) {
-    // Calculate total steps based on options
-    // Base steps: prereqs(1) + stop(1) + start(1) + wait(1) + dump roles(1) + dump schema(1)
-    //           + restore roles(1) + grant roles(1) + restore schema(1) + cleanup(1) = 10
-    let steps = 10
-    if (!options.schemaOnly) {
-      steps += 2 // dump data + restore data
+    if (options.mode === 'file') {
+      // File mode steps: prereqs(1) + stop(1) + start(1) + wait(1) + restore(1) + verify(1) = 6
+      this.total = 6
+    } else {
+      // Remote mode steps
+      // Base steps: prereqs(1) + stop(1) + start(1) + wait(1) + dump roles(1) + dump schema(1)
+      //           + restore roles(1) + grant roles(1) + restore schema(1) + cleanup(1) = 10
+      let steps = 10
+      if (!options.schemaOnly) {
+        steps += 2 // dump data + restore data
+      }
+      if (options.keepDumps) {
+        steps -= 1 // no cleanup step
+      }
+      this.total = steps
     }
-    if (options.keepDumps) {
-      steps -= 1 // no cleanup step
-    }
-    this.total = steps
   }
 
   next(message: string): string {
@@ -459,14 +466,16 @@ ${COLORS.bold}pgcp${COLORS.reset} v${VERSION} - PostgreSQL Copy Tool
 
 ${COLORS.bold}USAGE${COLORS.reset}
   pgcp [options] <source> [port]
+  pgcp --file <backup-file> [port]
 
 ${COLORS.bold}ARGUMENTS${COLORS.reset}
   <source>    Source database URL or env:VARNAME to read from .env files
   [port]      Local Supabase port (default: ${CONFIG.DEFAULT_DB_PORT})
 
 ${COLORS.bold}OPTIONS${COLORS.reset}
-  --schema-only, -s    Copy schema only, skip data
-  --keep-dumps, -k     Keep dump files after completion
+  --file <path>        Restore from a pg_dumpall backup file
+  --schema-only, -s    Copy schema only, skip data (remote mode only)
+  --keep-dumps, -k     Keep dump files after completion (remote mode only)
   --help, -h           Show this help message
 
 ${COLORS.bold}EXAMPLES${COLORS.reset}
@@ -479,6 +488,9 @@ ${COLORS.bold}EXAMPLES${COLORS.reset}
   # Copy schema only
   pgcp --schema-only env:PROD_DATABASE_URL
 
+  # Restore from a Supabase dashboard backup file
+  pgcp --file /path/to/backup.backup
+
 ${COLORS.bold}ENVIRONMENT${COLORS.reset}
   Automatically loads .env and .env.local from current directory.
   Use the env:VARNAME syntax to reference variables from these files.
@@ -489,7 +501,7 @@ ${COLORS.bold}PORT CONFIGURATION${COLORS.reset}
   This allows running multiple local Supabase instances on different ports.
 
 ${COLORS.bold}NOTES${COLORS.reset}
-  - v${VERSION} only supports Supabase as the source
+  - v${VERSION} only supports Supabase as the source (in remote mode)
   - Requires: Docker, Supabase CLI, psql
 `)
 }
@@ -503,9 +515,53 @@ function parseArgs(loadedEnv: Record<string, string>): PgcpOptions {
   const keepDumps =
     args.includes('--keep-dumps') || args.includes('-k')
 
-  // Get positional arguments (filter out flags)
-  const positional = args.filter((arg) => !arg.startsWith('-'))
+  // Parse --file flag
+  let filePath: string | null = null
+  const fileIndex = args.indexOf('--file')
+  if (fileIndex !== -1) {
+    const fileValue = args[fileIndex + 1]
+    if (!fileValue || fileValue.startsWith('-')) {
+      logError('--file requires a path argument')
+      console.log('\nRun "pgcp --help" for usage information.')
+      process.exit(1)
+    }
+    filePath = fileValue
+  }
 
+  // Get positional arguments (filter out flags and their values)
+  const positional = args.filter((arg, index) => {
+    if (arg.startsWith('-')) return false
+    // Skip the value after --file
+    if (index > 0 && args[index - 1] === '--file') return false
+    return true
+  })
+
+  // File mode: only port is positional
+  if (filePath !== null) {
+    const [portArg] = positional
+
+    let port: number = CONFIG.DEFAULT_DB_PORT
+    if (portArg) {
+      const parsed = parseInt(portArg, 10)
+      if (isNaN(parsed) || parsed < 1 || parsed > 65535) {
+        logError(`Invalid port: ${portArg}`)
+        logInfo('Port must be a number between 1 and 65535.')
+        process.exit(1)
+      }
+      port = parsed
+    }
+
+    return {
+      mode: 'file',
+      sourceUrl: null,
+      filePath,
+      port,
+      schemaOnly: false, // Not applicable for file mode
+      keepDumps: false, // Not applicable for file mode
+    }
+  }
+
+  // Remote mode: source URL is required
   if (positional.length < 1) {
     logError('Missing required argument: <source>')
     console.log('\nRun "pgcp --help" for usage information.')
@@ -542,7 +598,9 @@ function parseArgs(loadedEnv: Record<string, string>): PgcpOptions {
   }
 
   return {
+    mode: 'remote',
     sourceUrl,
+    filePath: null,
     port,
     schemaOnly,
     keepDumps,
@@ -933,6 +991,75 @@ async function restoreToLocal(
 }
 
 // ============================================================================
+// File Restore Operations
+// ============================================================================
+
+/**
+ * Restore from a pg_dumpall backup file.
+ * Uses psql with ON_ERROR_STOP=0 to continue past expected role conflicts.
+ */
+async function restoreFromFile(
+  filePath: string,
+  steps: StepCounter,
+  port: number
+): Promise<void> {
+  const localDbUrl = getLocalDbUrl(port)
+
+  // Restore backup using psql
+  let stepMsg = steps.next('Restoring from backup file')
+  spinner.start(stepMsg)
+
+  try {
+    // Use ON_ERROR_STOP=0 to continue past role conflicts
+    // (pg_dumpall includes CREATE ROLE statements that conflict with local Supabase roles)
+    await runCommandAsync(
+      `psql "${localDbUrl}" -v ON_ERROR_STOP=0 -f "${filePath}"`,
+      { silent: true }
+    )
+  } catch (err) {
+    spinner.fail(stepMsg.replace('Restoring', 'Failed to restore'))
+    throw err
+  }
+  spinner.success(
+    stepMsg.replace(
+      'Restoring from backup file',
+      'Restored from backup'
+    )
+  )
+
+  // Verify restore by counting tables
+  stepMsg = steps.next('Verifying restore')
+  spinner.start(stepMsg)
+
+  try {
+    const result = await runCommandQuiet(
+      `psql "${localDbUrl}" -t -c "SELECT COUNT(*) FROM pg_tables WHERE schemaname = 'public'"`
+    )
+    const tableCount = parseInt(result.trim(), 10)
+
+    if (tableCount > 0) {
+      spinner.success(
+        stepMsg.replace('Verifying', `Verified`) +
+          ` (${tableCount} tables in public schema)`
+      )
+    } else {
+      spinner.fail(stepMsg.replace('Verifying', 'Failed:'))
+      logError('No tables found in public schema.')
+      logError(
+        'The restore may have failed. Check the backup file format.'
+      )
+      throw new Error('Restore verification failed')
+    }
+  } catch (err) {
+    if ((err as Error).message === 'Restore verification failed') {
+      throw err
+    }
+    spinner.fail(stepMsg.replace('Verifying', 'Failed to verify'))
+    throw err
+  }
+}
+
+// ============================================================================
 // Cleanup Operations
 // ============================================================================
 
@@ -1047,13 +1174,68 @@ async function main(): Promise<void> {
   // Store keepDumps option for signal handler
   keepDumpsOption = options.keepDumps
 
+  // Handle file mode
+  if (options.mode === 'file') {
+    // Resolve file path
+    const absoluteBackupPath = path.isAbsolute(options.filePath!)
+      ? options.filePath!
+      : path.resolve(projectDir, options.filePath!)
+
+    // Check backup file exists
+    try {
+      await fs.access(absoluteBackupPath)
+    } catch {
+      logError(`Backup file not found: ${absoluteBackupPath}`)
+      process.exit(1)
+    }
+
+    // Show configuration
+    logInfo(`Source: ${absoluteBackupPath} (backup file)`)
+    logInfo(`Destination: localhost:${options.port} (local supabase)`)
+    console.log('')
+
+    // Create step counter
+    const steps = new StepCounter(options)
+
+    try {
+      // Check prerequisites
+      await checkPrerequisites(steps)
+
+      // Prepare destination (stop/start Supabase)
+      await prepareDestination(steps, options.port)
+
+      // Restore from backup file
+      await restoreFromFile(absoluteBackupPath, steps, options.port)
+
+      // Success!
+      console.log('')
+      logSuccess('Restore complete!')
+      console.log('')
+      logInfo(`Destination: ${getLocalDbUrl(options.port)}`)
+      console.log('')
+    } catch (err) {
+      console.log('')
+      logError(`Restore failed: ${err}`)
+      console.log('')
+      logInfo('Hints:')
+      logInfo(
+        '  - Check that the backup file is a valid pg_dumpall format'
+      )
+      logInfo('  - Verify Docker is running')
+      process.exit(1)
+    }
+
+    return
+  }
+
+  // Remote mode
   // Detect and validate provider
-  const provider = detectProvider(options.sourceUrl)
+  const provider = detectProvider(options.sourceUrl!)
   if (!provider) {
     logError('Source URL does not appear to be a Supabase database.')
     logInfo(`pgcp v${VERSION} only supports Supabase sources.`)
     logInfo('')
-    logInfo(`Detected URL: ${getMaskedUrl(options.sourceUrl)}`)
+    logInfo(`Detected URL: ${getMaskedUrl(options.sourceUrl!)}`)
     logInfo('')
     logInfo(
       'If this IS a Supabase database, please report this issue.'
@@ -1065,7 +1247,7 @@ async function main(): Promise<void> {
   if (envFilesLoaded) {
     logSuccess('Loaded environment from .env/.env.local')
   }
-  logInfo(`Source: ${getMaskedUrl(options.sourceUrl)} (${provider})`)
+  logInfo(`Source: ${getMaskedUrl(options.sourceUrl!)} (${provider})`)
   logInfo(`Destination: localhost:${options.port} (local supabase)`)
   if (options.schemaOnly) {
     logInfo('Mode: Schema only (no data)')
@@ -1086,7 +1268,7 @@ async function main(): Promise<void> {
 
     // Dump source database
     dumpResult = await dumpSourceDatabase(
-      options.sourceUrl,
+      options.sourceUrl!,
       options,
       steps
     )
