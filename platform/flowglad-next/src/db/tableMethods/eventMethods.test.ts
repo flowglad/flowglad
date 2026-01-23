@@ -808,12 +808,15 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
       )
 
       expect(result).toHaveLength(2)
-      // First event should have org1's pricingModelId
-      expect(result[0].pricingModelId).toBe(pricingModel.id)
-      expect(result[0].organizationId).toBe(organization.id)
-      // Second event should have org2's pricingModelId
-      expect(result[1].pricingModelId).toBe(org2Data.pricingModel.id)
-      expect(result[1].organizationId).toBe(org2Data.organization.id)
+      // Find events by hash to make test order-independent
+      const event1 = result.find((r) => r.hash === hash1)
+      const event2 = result.find((r) => r.hash === hash2)
+      // Event with hash1 should have org1's pricingModelId
+      expect(event1?.pricingModelId).toBe(pricingModel.id)
+      expect(event1?.organizationId).toBe(organization.id)
+      // Event with hash2 should have org2's pricingModelId
+      expect(event2?.pricingModelId).toBe(org2Data.pricingModel.id)
+      expect(event2?.organizationId).toBe(org2Data.organization.id)
     })
   })
 })
