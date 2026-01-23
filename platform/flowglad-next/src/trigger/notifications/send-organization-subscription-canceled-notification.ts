@@ -63,14 +63,65 @@ export const runSendOrganizationSubscriptionCanceledNotification =
           transaction
         )
 
-        // Fetch the product associated with the subscription for user-friendly naming
-        const price = subscription.priceId
-          ? await selectPriceById(subscription.priceId, transaction)
-          : null
-        const product =
-          price && Price.hasProductId(price)
-            ? await selectProductById(price.productId, transaction)
-            : null
+        // Fetch the product associated with the subscription for user-friendly naming.
+        //
+        // IMPORTANT: Price/Product lookups are treated as non-fatal because:
+        // 1. The email only needs a friendly subscription name, which has fallbacks
+        //    (subscription.name || product?.name || 'their subscription')
+        // 2. A missing price/product record (e.g., deleted, orphaned data) should
+        //    not prevent the cancellation notification from being sent
+        // 3. We still want to log warnings for observability so orphaned data
+        //    can be investigated if it becomes a pattern
+        //
+        // Only NotFoundError is caught; other errors (DB failures, etc.) are
+        // re-thrown to allow Trigger.dev to retry the task.
+        let price: Price.Record | null = null
+        if (subscription.priceId) {
+          try {
+            price = await selectPriceById(
+              subscription.priceId,
+              transaction
+            )
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              // Price was deleted or never existed - proceed with fallback name
+              logger.warn(
+                'Price not found for subscription, using fallbacks',
+                {
+                  priceId: subscription.priceId,
+                  subscriptionId: subscription.id,
+                }
+              )
+            } else {
+              // Unexpected error (connection issue, etc.) - let Trigger.dev retry
+              throw error
+            }
+          }
+        }
+
+        let product: Product.Record | null = null
+        if (price && Price.hasProductId(price)) {
+          try {
+            product = await selectProductById(
+              price.productId,
+              transaction
+            )
+          } catch (error) {
+            if (error instanceof NotFoundError) {
+              // Product was deleted or never existed - proceed with fallback name
+              logger.warn(
+                'Product not found for subscription, using fallbacks',
+                {
+                  productId: price.productId,
+                  subscriptionId: subscription.id,
+                }
+              )
+            } else {
+              // Unexpected error (connection issue, etc.) - let Trigger.dev retry
+              throw error
+            }
+          }
+        }
 
         return {
           ...context,
