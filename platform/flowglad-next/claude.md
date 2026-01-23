@@ -7,6 +7,44 @@ Examples:
 - Build: `bun run build`
 - Lint and typecheck: `bun run check`
 
+## Environment Configuration (NODE_ENV)
+
+This project uses a NODE_ENV-based environment system that automatically selects the correct `.env` file:
+
+| NODE_ENV | Env File | Use Case |
+|----------|----------|----------|
+| `development` | `.env.development` | Local dev with Vercel credentials (DEFAULT) |
+| `test` | `.env.test` | Running tests against local test database |
+| `production` | `.env.production` | Production builds/deploys |
+
+**Key behaviors:**
+- **Development is the default** - When NODE_ENV is unset, it defaults to `development`
+- **Test scripts auto-detect** - Scripts starting with "test" automatically use `.env.test`
+- **Database safety check** - A preload script blocks execution if DATABASE_URL points to a non-local database (prevents accidental production writes)
+
+**Safety check bypass:**
+- `CI=1` - Automatically set in CI environments
+- `VERCEL=1` - Automatically set on Vercel deployments
+- `DANGEROUSLY_ALLOW_REMOTE_DB=1` - Explicit opt-out for remote database access
+
+**Note:** `NODE_ENV=production` does NOT bypass the safety check (too easy for AI agents to accidentally use). Use `DANGEROUSLY_ALLOW_REMOTE_DB=1` for intentional remote database access.
+
+### The `fbr` Command (Flowglad Bun Run)
+
+A convenience wrapper for `bun run` that sets NODE_ENV:
+
+```bash
+# Install (one-time setup)
+cp bin/fbr ~/bin/fbr && fbr --install
+
+# Usage: fbr <script> [environment]
+fbr dev                      # NODE_ENV=development bun run dev
+fbr migrations:push test     # NODE_ENV=test bun run migrations:push
+fbr build production         # NODE_ENV=production bun run build
+```
+
+The `fbr` command provides shell completions for both script names and environments.
+
 ## Installing Dependencies 
 
 ## On Every Change
@@ -22,6 +60,13 @@ If you are trying to run tests to see whether they pass, you must use `bun run t
 ```bash
 CLAUDECODE=1 bun run test:backend
 ```
+
+**Test Database Setup**: Before running tests, ensure the test database is running:
+```bash
+bun run test:setup   # Starts Docker postgres, creates .env.test, runs migrations
+```
+
+In CI environments, tests run with `CI=1` which bypasses the database safety check. For local development with a remote DATABASE_URL in `.env.local`, you may need `CI=1` to run tests against the local test database.
 
 ### Test Categories (Isolation by Default)
 

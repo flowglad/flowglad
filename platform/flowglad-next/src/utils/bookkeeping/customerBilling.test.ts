@@ -1320,12 +1320,11 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       )
     })
 
-    // currentSubscription should be defined and one of the active subscriptions
-    expect(billingState.currentSubscription).toBeDefined()
+    // currentSubscription should be an object and one of the active subscriptions
     expect(typeof billingState.currentSubscription).toBe('object')
     // In transaction-isolated tests, timestamps may be equal, so we can't assume
     // which specific subscription is "most recent". Verify it's one of the current ones.
-    const currentSubId = billingState.currentSubscription.id
+    const currentSubId = billingState.currentSubscription!.id
     expect([sub1.id, sub2.id, sub3.id]).toContain(currentSubId)
     expect(billingState.currentSubscriptions.length).toBe(3)
     expect(billingState.currentSubscriptions).toContainEqual(
@@ -1503,14 +1502,13 @@ describe('customerBillingTransaction - currentSubscription field', () => {
       )
     })
 
-    // currentSubscription should be defined and one of the created subscriptions
-    expect(billingState.currentSubscription).toBeDefined()
+    // currentSubscription should be an object and one of the created subscriptions
     expect(typeof billingState.currentSubscription).toBe('object')
     // In transaction-isolated tests, timestamps may be equal, so we verify it's
     // one of the subscriptions we created rather than a specific one
     const subscriptionIds = subscriptions.map((s) => s.id)
     expect(subscriptionIds).toContain(
-      billingState.currentSubscription.id
+      billingState.currentSubscription!.id
     )
     expect(billingState.currentSubscriptions).toHaveLength(5)
   })
