@@ -1,6 +1,10 @@
 #!/usr/bin/env zsh
 # fbr - Flowglad Bun Run
-# A wrapper for 'bun run' with environment selection
+# A wrapper for 'bun run' with environment selection and shell completions
+#
+# Installation:
+#   1. Copy this file to ~/bin/fbr (ensure ~/bin is in your PATH)
+#   2. Run: fbr --install
 #
 # Usage: fbr <script> [environment]
 #   script      - Any script from package.json
@@ -11,21 +15,129 @@
 #   fbr migrations:push test   # NODE_ENV=test bun run migrations:push
 #   fbr build production       # NODE_ENV=production bun run build
 
-if [[ -z "$1" ]]; then
-  echo "Usage: fbr <script> [environment]"
-  echo "  environment: test, development, production (default: development)"
-  exit 1
-fi
+# ============================================================================
+# Completion Function
+# ============================================================================
 
-script="$1"
-env="${2:-development}"
+_fbr() {
+  local state
 
-# Validate environment
-if [[ "$env" != "test" && "$env" != "development" && "$env" != "production" ]]; then
-  echo "Invalid environment: $env"
-  echo "Valid options: test, development, production"
-  exit 1
-fi
+  _arguments -C \
+    '1:script:->script' \
+    '2:environment:->env'
 
-echo "Running: NODE_ENV=$env bun run $script"
-NODE_ENV="$env" bun run "$script"
+  case $state in
+    script)
+      # Skip 'install' and flags when completing scripts
+      local -a scripts_list
+      local script
+      while IFS= read -r script; do
+        # Escape colons (zsh uses : as value:description separator)
+        scripts_list+=("${script//:/\\:}")
+      done < <(SHELL=zsh bun getcompletes s 2>/dev/null)
+      _describe 'script' scripts_list
+      ;;
+    env)
+      local -a envs=(
+        'test:Use .env.test (test database)'
+        'development:Use .env.development (Vercel dev)'
+        'production:Use .env.production (Vercel prod)'
+      )
+      _describe 'environment' envs
+      ;;
+  esac
+}
+
+# ============================================================================
+# Subcommands
+# ============================================================================
+
+_fbr_completions() {
+  # Output the completion function for eval
+  declare -f _fbr
+  echo "compdef _fbr fbr"
+}
+
+_fbr_install() {
+  local rc_file
+  local shell_name="${SHELL##*/}"
+
+  case "$shell_name" in
+    zsh)
+      rc_file="$HOME/.zshrc"
+      ;;
+    *)
+      echo "Unsupported shell: $shell_name (only zsh is supported)"
+      return 1
+      ;;
+  esac
+
+  local install_line='eval "$(~/bin/fbr --completions)"'
+
+  # Check if already installed
+  if grep -qF "$install_line" "$rc_file" 2>/dev/null; then
+    echo "fbr completions already installed in $rc_file"
+    return 0
+  fi
+
+  # Add to rc file
+  echo "" >> "$rc_file"
+  echo "# fbr (flowglad bun run) completions" >> "$rc_file"
+  echo "$install_line" >> "$rc_file"
+
+  echo "Installed fbr completions to $rc_file"
+  echo "Run 'source $rc_file' or start a new shell to activate"
+}
+
+_fbr_help() {
+  echo "fbr - Flowglad Bun Run"
+  echo ""
+  echo "Usage:"
+  echo "  fbr <script> [environment]    Run a bun script with NODE_ENV"
+  echo "  fbr --install                 Install shell completions to ~/.zshrc"
+  echo "  fbr --completions             Output completion code (for eval)"
+  echo "  fbr --help                    Show this help"
+  echo ""
+  echo "Environments:"
+  echo "  test         Use .env.test (local test database)"
+  echo "  development  Use .env.development (Vercel dev) [default]"
+  echo "  production   Use .env.production (Vercel prod)"
+  echo ""
+  echo "Examples:"
+  echo "  fbr dev                       Run dev server"
+  echo "  fbr test:backend              Run backend tests"
+  echo "  fbr migrations:push test      Push migrations to test db"
+  echo ""
+  echo "Installation:"
+  echo "  cp /path/to/fbr ~/bin/fbr && fbr --install"
+}
+
+# ============================================================================
+# Main
+# ============================================================================
+
+case "$1" in
+  --completions)
+    _fbr_completions
+    ;;
+  --install)
+    _fbr_install
+    ;;
+  --help|-h|"")
+    _fbr_help
+    ;;
+  *)
+    script="$1"
+    env="${2:-development}"
+
+    # Validate environment
+    if [[ "$env" != "test" && "$env" != "development" && "$env" != "production" ]]; then
+      echo "Invalid environment: $env"
+      echo "Valid options: test, development, production"
+      exit 1
+    fi
+
+    echo "Running: NODE_ENV=$env bun run $script"
+    NODE_ENV="$env" bun run "$script"
+    ;;
+esac
