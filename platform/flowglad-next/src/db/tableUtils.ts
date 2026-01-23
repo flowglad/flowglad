@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { noCase, snakeCase } from 'change-case'
 import {
   and,
@@ -194,6 +195,50 @@ export const createSelectById = <
       if (error instanceof NotFoundError) {
         throw error
       }
+      if (!IS_TEST) {
+        console.error(
+          `[selectById] Error selecting ${config.tableName} with id ${id}:`,
+          error
+        )
+      }
+      throw new Error(
+        `Failed to select ${config.tableName} by id ${id}: ${error instanceof Error ? error.message : String(error)}`,
+        { cause: error }
+      )
+    }
+  }
+}
+
+/**
+ * Creates a selectById function that returns a Result instead of throwing.
+ * Use this for functions that are being migrated to Result-based error handling.
+ */
+export const createSelectByIdResult = <
+  T extends PgTableWithId,
+  S extends ZodTableUnionOrType<InferSelectModel<T>>,
+  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
+  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
+>(
+  table: T,
+  config: ORMMethodCreatorConfig<T, S, I, U>
+) => {
+  const selectSchema = config.selectSchema
+
+  return async function selectById(
+    id: InferSelectModel<T>['id'] extends string ? string : number,
+    transaction: DbTransaction
+  ): Promise<Result<z.infer<S>, NotFoundError>> {
+    try {
+      const results = await transaction
+        .select()
+        .from(table as SelectTable)
+        .where(eq(table.id, id))
+      if (results.length === 0) {
+        return Result.err(new NotFoundError(config.tableName, id))
+      }
+      const result = results[0]
+      return Result.ok(selectSchema.parse(result))
+    } catch (error) {
       if (!IS_TEST) {
         console.error(
           `[selectById] Error selecting ${config.tableName} with id ${id}:`,
