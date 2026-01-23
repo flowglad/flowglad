@@ -321,8 +321,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
 
-      expect(result?.billingRun.id).toBe(billingRun.id)
-      expect(result?.invoice.id).toBe(invoice.id)
+      expect(result.billingRun.id).toBe(billingRun.id)
+      expect(result.invoice.id).toBe(invoice.id)
 
       expect(effects.ledgerCommands.length).toBeGreaterThan(0)
       const invoiceLedgerCommand =
@@ -768,7 +768,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
   })
 
-  it('throws an error if no latest charge is found in the event', async () => {
+  it('returns Result.err when no latest charge is found in the event', async () => {
     const billingRun = await setupBillingRun({
       stripePaymentIntentId: 'pi_no_charge',
       lastPaymentIntentEventTimestamp: 0,
@@ -778,7 +778,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
     await adminTransaction(async ({ transaction }) => {
-      const invoice = await setupInvoice({
+      await setupInvoice({
         billingPeriodId: billingPeriod.id,
         customerId: customer.id,
         organizationId: organization.id,
@@ -806,14 +806,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      await expect(
-        processOutcomeForBillingRun(
-          { input: event },
-          createDiscardingEffectsContext(transaction)
-        )
-      ).rejects.toThrow(
-        /No latest charge found for payment intent pi_no_charge/
+      const result = await processOutcomeForBillingRun(
+        { input: event },
+        createDiscardingEffectsContext(transaction)
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toMatch(
+          /LatestCharge not found: pi_no_charge/
+        )
+      }
     })
   })
   // FIXME: restore this test once we have a way to set up payment intents with associated charges

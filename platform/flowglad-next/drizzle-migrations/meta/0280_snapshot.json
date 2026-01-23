@@ -1,5 +1,5 @@
 {
-  "id": "c6b220e8-e5d4-4ebc-aba8-1d6ab04e74a5",
+  "id": "32619e31-218d-49e0-83d8-b35d09ce99f2",
   "prevId": "ec683360-0a29-4b9d-9aa6-299fad13b84e",
   "version": "7",
   "dialect": "postgresql",
@@ -2630,12 +2630,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
-        },
-        "pricing_model_id": {
-          "name": "pricing_model_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {
@@ -2690,21 +2684,6 @@
           "method": "btree",
           "with": {}
         },
-        "events_pricing_model_id_idx": {
-          "name": "events_pricing_model_id_idx",
-          "columns": [
-            {
-              "expression": "pricing_model_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
         "events_hash_unique_idx": {
           "name": "events_hash_unique_idx",
           "columns": [
@@ -2727,15 +2706,6 @@
           "tableFrom": "events",
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "events_pricing_model_id_pricing_models_id_fk": {
-          "name": "events_pricing_model_id_pricing_models_id_fk",
-          "tableFrom": "events",
-          "tableTo": "pricing_models",
-          "columnsFrom": ["pricing_model_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"
@@ -6994,6 +6964,22 @@
             }
           ],
           "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "pricing_models_organization_id_livemode_unique_idx": {
+          "name": "pricing_models_organization_id_livemode_unique_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "where": "\"pricing_models\".\"livemode\" = true",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -11744,12 +11730,6 @@
           "primaryKey": false,
           "notNull": true,
           "default": true
-        },
-        "pricing_model_id": {
-          "name": "pricing_model_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
         }
       },
       "indexes": {
@@ -11782,21 +11762,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "webhooks_pricing_model_id_idx": {
-          "name": "webhooks_pricing_model_id_idx",
-          "columns": [
-            {
-              "expression": "pricing_model_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {
@@ -11805,15 +11770,6 @@
           "tableFrom": "webhooks",
           "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "webhooks_pricing_model_id_pricing_models_id_fk": {
-          "name": "webhooks_pricing_model_id_pricing_models_id_fk",
-          "tableFrom": "webhooks",
-          "tableTo": "pricing_models",
-          "columnsFrom": ["pricing_model_id"],
           "columnsTo": ["id"],
           "onDelete": "no action",
           "onUpdate": "no action"

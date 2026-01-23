@@ -224,12 +224,12 @@ describe('usageEventsRouter', () => {
       expect(result.hasMore).toBe(false)
 
       // Should respect RLS policies - verify exact events by ID
-      const org1EventIds = result.items.map((event) => event.id)
+      const org1EventIds = result.data.map((event) => event.id)
       const expectedEventIds = usageEvents1.map((event) => event.id)
       expect(org1EventIds.sort()).toEqual(expectedEventIds.sort())
 
       // Verify all returned events belong to org1 (through customer relationship)
-      result.items.forEach((event) => {
+      result.data.forEach((event) => {
         expect(event.customerId).toBe(customer1.id)
       })
     })
@@ -247,7 +247,7 @@ describe('usageEventsRouter', () => {
       })
 
       // Should return empty array
-      expect(result.items).toEqual([])
+      expect(result.data).toEqual([])
       expect(result.total).toBe(0)
       expect(result.hasMore).toBe(false)
     })
@@ -285,7 +285,7 @@ describe('usageEventsRouter', () => {
       expect(typeof result.nextCursor).toBe('string')
 
       // Verify returned events are from our created events
-      const returnedEventIds = result.items.map((event) => event.id)
+      const returnedEventIds = result.data.map((event) => event.id)
       const createdEventIds = createdEvents.map((event) => event.id)
       expect(returnedEventIds).toHaveLength(3)
       returnedEventIds.forEach((eventId) => {
@@ -293,7 +293,7 @@ describe('usageEventsRouter', () => {
       })
 
       // Verify all returned events belong to org1 (through customer relationship)
-      result.items.forEach((event) => {
+      result.data.forEach((event) => {
         expect(event.customerId).toBe(customer1.id)
       })
     })

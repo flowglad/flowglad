@@ -1,11 +1,7 @@
 /// <reference types="@testing-library/jest-dom" />
 
-// Set environment variables FIRST, before any imports that might use them
-process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
-process.env.UNKEY_ROOT_KEY =
-  process.env.UNKEY_ROOT_KEY || 'unkey_test_mock'
-process.env.BETTER_AUTH_URL =
-  process.env.BETTER_AUTH_URL || 'http://localhost:3000'
+// Environment variables are loaded from .env.test via the db-safety-preload script
+// which auto-detects test scripts and loads the appropriate env file.
 
 /**
  * Global mutable auth state for testing.

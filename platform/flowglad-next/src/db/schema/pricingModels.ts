@@ -1,5 +1,10 @@
 import { sql } from 'drizzle-orm'
-import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  pgTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
 import {
@@ -36,6 +41,9 @@ export const pricingModels = pgTable(
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.name]),
+    uniqueIndex('pricing_models_organization_id_livemode_unique_idx')
+      .on(table.organizationId)
+      .where(sql`${table.livemode} = true`),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {
