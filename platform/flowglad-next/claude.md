@@ -40,6 +40,20 @@ This includes:
 
 This tells Vitest to run that specific test file in a jsdom environment.
 
+### Test Organization by Type
+
+Tests are organized into different directories based on their purpose:
+
+- **`src/`** - Unit tests and integration tests for regular functionality
+- **`slow-tests/`** - Tests that require significant setup time or database seeding
+- **`rls-tests/`** - Row Level Security (RLS) tests that verify PostgreSQL RLS policies
+
+**RLS Tests**: All tests that verify Row Level Security policies must:
+- Be placed in the `rls-tests/` directory
+- Follow the naming convention `foo.rls.test.ts`
+- Test organization-based data isolation via `authenticatedTransaction`
+- Verify that users cannot access data from other organizations
+
 ### bun:test Patterns and Pitfalls
 
 **Mock Restoration**: When using `spyOn()` alongside `mock.module()`, restore spies individually - not with `mock.restore()`. The global `mock.restore()` can undo `mock.module()` overrides, breaking subsequent tests that rely on those module mocks.

@@ -12,7 +12,54 @@ import {
   setupSubscription,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { selectProducts } from '@/db/tableMethods/productMethods'
+import { adminTransaction } from '@/db/adminTransaction'
+import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import db from '@/db/client'
+import type { ApiKey } from '@/db/schema/apiKeys'
+import type { Customer } from '@/db/schema/customers'
+import type { Invoice } from '@/db/schema/invoices'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Payment } from '@/db/schema/payments'
+import type { Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
+import type { Product } from '@/db/schema/products'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
+import {
+  insertCheckoutSession,
+  safelyUpdateCheckoutSessionStatus,
+  updateCheckoutSession,
+} from '@/db/tableMethods/checkoutSessionMethods'
+import {
+  insertCustomer,
+  selectCustomerById,
+  selectCustomers,
+  updateCustomer,
+} from '@/db/tableMethods/customerMethods'
+import {
+  insertInvoice,
+  selectInvoiceById,
+  selectInvoices,
+} from '@/db/tableMethods/invoiceMethods'
+import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
+import { selectPayments } from '@/db/tableMethods/paymentMethods'
+import { insertPrice } from '@/db/tableMethods/priceMethods'
+import {
+  insertPricingModel,
+  selectPricingModelForCustomer,
+} from '@/db/tableMethods/pricingModelMethods'
+import {
+  insertProduct,
+  selectProducts,
+} from '@/db/tableMethods/productMethods'
+import {
+  selectSubscriptionById,
+  selectSubscriptions,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+import { insertUser } from '@/db/tableMethods/userMethods'
+import type { DbTransaction } from '@/db/types'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -26,51 +73,6 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
-import { adminTransaction } from './adminTransaction'
-import { authenticatedTransaction } from './authenticatedTransaction'
-import db from './client'
-import type { ApiKey } from './schema/apiKeys'
-import type { Customer } from './schema/customers'
-import type { Invoice } from './schema/invoices'
-import type { Organization } from './schema/organizations'
-import type { PaymentMethod } from './schema/paymentMethods'
-import type { Payment } from './schema/payments'
-import type { Price } from './schema/prices'
-import type { PricingModel } from './schema/pricingModels'
-import type { Product } from './schema/products'
-import type { Subscription } from './schema/subscriptions'
-import type { User } from './schema/users'
-import {
-  insertCheckoutSession,
-  safelyUpdateCheckoutSessionStatus,
-  updateCheckoutSession,
-} from './tableMethods/checkoutSessionMethods'
-import {
-  insertCustomer,
-  selectCustomerById,
-  selectCustomers,
-  updateCustomer,
-} from './tableMethods/customerMethods'
-import {
-  insertInvoice,
-  selectInvoiceById,
-  selectInvoices,
-} from './tableMethods/invoiceMethods'
-import { selectPaymentMethods } from './tableMethods/paymentMethodMethods'
-import { selectPayments } from './tableMethods/paymentMethods'
-import { insertPrice } from './tableMethods/priceMethods'
-import {
-  insertPricingModel,
-  selectPricingModelForCustomer,
-} from './tableMethods/pricingModelMethods'
-import { insertProduct } from './tableMethods/productMethods'
-import {
-  selectSubscriptionById,
-  selectSubscriptions,
-  updateSubscription,
-} from './tableMethods/subscriptionMethods'
-import { insertUser } from './tableMethods/userMethods'
-import type { DbTransaction } from './types'
 
 /**
  * Helper function to create an authenticated transaction with customer role.
