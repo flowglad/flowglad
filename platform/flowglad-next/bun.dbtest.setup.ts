@@ -1,0 +1,90 @@
+/**
+ * DB-Backed Test Setup
+ *
+ * This setup file is for tests that need database access but should be isolated.
+ * Each test runs within a savepoint that rolls back after the test completes.
+ *
+ * Use for: Table methods, business logic with DB, service layer tests
+ * File pattern: *.dbtest.ts
+ *
+ * Features:
+ * - Database access via auto-rollback savepoints
+ * - Each test starts clean (changes don't persist between tests)
+ * - MSW in STRICT mode (errors on unhandled requests)
+ * - Environment variables auto-tracked and restored
+ * - Spies auto-restored via globalSpyManager
+ * - Global mock state reset after each test
+ *
+ * Note: The database is seeded ONCE in beforeAll. Each test then creates
+ * a savepoint and rolls back at the end, so tests see the seeded data
+ * but don't affect each other.
+ */
+
+/// <reference types="@testing-library/jest-dom" />
+
+// IMPORTANT: Import mocks first, before any other imports
+import './bun.mocks'
+
+import { afterAll, afterEach, beforeAll, beforeEach } from 'bun:test'
+import { cleanup } from '@testing-library/react'
+import {
+  beginTestTransaction,
+  resetSavepointCounter,
+  rollbackTestTransaction,
+} from '@/test/db/transactionWrapper'
+import { createAutoEnvTracker } from '@/test/isolation/envTracker'
+import {
+  initializeGlobalMockState,
+  resetAllGlobalMocks,
+} from '@/test/isolation/globalStateGuard'
+import { globalSpyManager } from '@/test/isolation/spyManager'
+import { server } from './mocks/server'
+import { seedDatabase } from './seedDatabase'
+
+const envTracker = createAutoEnvTracker()
+
+// Initialize global state once at setup load time
+initializeGlobalMockState()
+
+beforeAll(async () => {
+  // MSW STRICT mode - fail on unhandled external requests
+  server.listen({ onUnhandledRequest: 'error' })
+
+  // Seed database once (this commits and persists)
+  await seedDatabase()
+
+  // Reset savepoint counter for clean tracking
+  resetSavepointCounter()
+})
+
+beforeEach(async () => {
+  // Capture environment state at test start
+  envTracker.startTracking()
+
+  // Start a savepoint - all DB changes in this test will be rolled back
+  await beginTestTransaction()
+})
+
+afterEach(async () => {
+  // Rollback all DB changes made during the test
+  await rollbackTestTransaction()
+
+  // Reset MSW handlers
+  server.resetHandlers()
+
+  // Cleanup React testing-library
+  cleanup()
+
+  // Auto-restore all tracked spies (does not affect mock.module)
+  globalSpyManager.restoreAll()
+
+  // Auto-restore all environment variable changes
+  envTracker.restoreAll()
+
+  // Reset all global mock state (__mockedAuthSession, __mock*, etc.)
+  resetAllGlobalMocks()
+})
+
+afterAll(async () => {
+  server.close()
+})

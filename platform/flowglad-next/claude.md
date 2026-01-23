@@ -23,6 +23,73 @@ If you are trying to run tests to see whether they pass, you must use `bun run t
 CLAUDECODE=1 bun run test:backend
 ```
 
+### Test Categories (Isolation by Default)
+
+This project uses isolated-by-default test infrastructure. Tests are categorized by their isolation level:
+
+| Category | File Pattern | Database | External APIs | Setup File |
+|----------|--------------|----------|---------------|------------|
+| **Pure Unit** | `*.unit.test.ts` | BLOCKED | MSW strict | `bun.unit.setup.ts` |
+| **DB-Backed** | `*.dbtest.ts` | Transaction-isolated | MSW strict | `bun.dbtest.setup.ts` |
+| **Backend** (legacy) | `*.test.ts` | Full access | MSW warn | `bun.setup.ts` |
+| **Integration** | `*.integration.test.ts` | Full access | Real APIs | `bun.integration.setup.ts` |
+| **RLS** | `*.rls.test.ts` | Full access | MSW | `bun.rls.setup.ts` |
+
+**Test Commands:**
+```bash
+# Pure unit tests (no DB, strict isolation)
+bun run test:pure-unit
+
+# DB-backed tests (transaction-isolated)
+bun run test:db
+
+# Legacy backend tests (existing pattern)
+bun run test:backend
+
+# All tests (backend + frontend)
+bun run test
+
+# Integration tests (real APIs)
+bun run test:integration
+
+# Everything
+bun run test:all
+```
+
+**When to use which pattern:**
+
+- **Pure Unit (`*.unit.test.ts`)**: Schema validation, utility functions, UI logic, pure business rules. Database imports will throw an error - if your test needs DB, use `*.dbtest.ts`.
+
+- **DB-Backed (`*.dbtest.ts`)**: Table methods, services with database access, business logic requiring real data. Each test runs in a savepoint that rolls back automatically.
+
+- **Legacy Backend (`*.test.ts`)**: Existing tests. Migrate to `*.unit.test.ts` or `*.dbtest.ts` for better isolation.
+
+- **Integration (`*.integration.test.ts`)**: Real API calls to Stripe, real external services. Located in `integration-tests/` directory.
+
+### Automatic Isolation (No Opt-In Required)
+
+The test setup files automatically provide isolation:
+
+| Feature | How It Works |
+|---------|--------------|
+| Env vars | Auto-snapshot at test start, auto-restore in afterEach |
+| Spies | Use `trackSpy(spyOn(...))` - auto-restored in afterEach |
+| Global state | All `__mock*` globals reset automatically |
+| MSW | Unhandled requests FAIL the test in strict mode |
+| Database (dbtest) | Each test in savepoint that rolls back |
+
+**Using trackSpy for automatic spy cleanup:**
+```typescript
+import { trackSpy } from '@/test/isolation'
+import { spyOn } from 'bun:test'
+
+beforeEach(() => {
+  // Spy is automatically restored after each test
+  trackSpy(spyOn(myModule, 'myFunction').mockResolvedValue('mocked'))
+})
+// No afterEach cleanup needed!
+```
+
 ### Test Environments
 The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
 
