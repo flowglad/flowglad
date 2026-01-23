@@ -198,23 +198,12 @@ describe('checkSvixApplicationExists', () => {
 })
 
 describe('findOrCreateSvixApplication with pricingModelId', () => {
+  // Note: MSW server lifecycle is managed globally in bun.setup.ts
   const organization = {
     ...dummyOrganization,
     id: 'org_findorcreate_test',
     securitySalt: 'test-salt-findorcreate',
   }
-
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
-  })
 
   it('creates PM-scoped app when pricingModelId is provided', async () => {
     const pricingModelId = 'pm_test_findorcreate'
@@ -306,23 +295,12 @@ describe('findOrCreateSvixApplication with pricingModelId', () => {
 })
 
 describe('createSvixEndpoint with PM-scoped app', () => {
+  // Note: MSW server lifecycle is managed globally in bun.setup.ts
   const organization = {
     ...dummyOrganization,
     id: 'org_endpoint_test',
     securitySalt: 'test-salt-endpoint',
   }
-
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
-  })
 
   it('creates endpoint in PM-scoped Svix app when webhook has pricingModelId', async () => {
     const pricingModelId = 'pm_endpoint_test'
@@ -419,23 +397,12 @@ describe('createSvixEndpoint with PM-scoped app', () => {
 })
 
 describe('getSvixSigningSecret with PM-scoped app', () => {
+  // Note: MSW server lifecycle is managed globally in bun.setup.ts
   const organization = {
     ...dummyOrganization,
     id: 'org_secret_test',
     securitySalt: 'test-salt-secret',
   }
-
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
-  })
 
   it('gets signing secret from PM-scoped Svix app when webhook has pricingModelId', async () => {
     const pricingModelId = 'pm_secret_test'
@@ -482,23 +449,12 @@ describe('getSvixSigningSecret with PM-scoped app', () => {
 })
 
 describe('updateSvixEndpoint with PM-scoped app', () => {
+  // Note: MSW server lifecycle is managed globally in bun.setup.ts
   const organization = {
     ...dummyOrganization,
     id: 'org_update_test',
     securitySalt: 'test-salt-update',
   }
-
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
-  })
 
   it('updates endpoint in PM-scoped Svix app when webhook has pricingModelId', async () => {
     const pricingModelId = 'pm_update_test'
