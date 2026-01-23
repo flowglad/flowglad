@@ -252,8 +252,10 @@ export function SubscriptionsDataTable({
   const [columnSizing, setColumnSizing] =
     React.useState<ColumnSizingState>({})
 
+  const tableData = data?.items || []
+
   const table = useReactTable({
-    data: data?.items || [],
+    data: tableData,
     columns,
     enableColumnResizing: true,
     columnResizeMode: 'onEnd',
