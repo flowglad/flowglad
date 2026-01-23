@@ -858,7 +858,7 @@ export const adjustSubscription = async (
       livemode: subscription.livemode,
     }))
 
-    await handleSubscriptionItemAdjustment(
+    const adjustmentResult = await handleSubscriptionItemAdjustment(
       {
         subscriptionId: id,
         newSubscriptionItems: preparedItems,
@@ -866,6 +866,9 @@ export const adjustSubscription = async (
       },
       ctx
     )
+    if (Result.isError(adjustmentResult)) {
+      return Result.err(adjustmentResult.error)
+    }
 
     // For AtEndOfCurrentBillingPeriod, don't sync with future-dated items
     // Sync using current time to preserve the current subscription state
