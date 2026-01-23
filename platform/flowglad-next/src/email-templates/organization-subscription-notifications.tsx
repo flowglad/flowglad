@@ -1,5 +1,6 @@
 import { Img, Section, Text } from '@react-email/components'
 import * as React from 'react'
+import { emailBaseUrl } from '@/utils/core'
 import { EmailButton } from './components/EmailButton'
 import TestModeBanner from './components/TestBanner'
 import {
@@ -41,7 +42,7 @@ export interface OrganizationSubscriptionCancellationScheduledNotificationEmailP
 }
 
 const detailsValue = {
-  color: '#32325d',
+  color: '#141312',
   fontSize: '16px',
   fontWeight: 'bold' as const,
   marginBottom: '16px',
@@ -62,39 +63,40 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
     >
       <TestModeBanner livemode={livemode} />
       <Img
-        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-        width="540"
-        height="199"
+        src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
+        width="40"
+        height="40"
         alt="Flowglad Logo"
-        style={{ margin: '0 auto', marginBottom: '32px' }}
+        style={{ marginBottom: '32px' }}
       />
       <Header
         title="New Subscription"
-        style={{ textAlign: 'center', fontWeight: 'normal' }}
+        variant="organization"
+        style={{ fontWeight: 'normal' }}
       />
       <Paragraph
+        variant="organization"
         style={{
-          color: '#525f7f',
-          textAlign: 'center',
+          color: '#797063',
           margin: 0,
         }}
       >
         A new customer has subscribed to your {subscriptionName} plan.
       </Paragraph>
       <DetailSection>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Customer Name
         </DetailItem>
         <Text style={detailsValue}>{customerName}</Text>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Customer Email
         </DetailItem>
         <Text style={detailsValue}>{customerEmail}</Text>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Subscription
         </DetailItem>
         <Text style={detailsValue}>{subscriptionName}</Text>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Status
         </DetailItem>
         <Text style={detailsValue}>Active</Text>
@@ -109,10 +111,10 @@ export const OrganizationSubscriptionCreatedNotificationEmail = ({
         </EmailButton>
       </Section>
       <Paragraph
+        variant="organization"
         style={{
-          color: '#525f7f',
+          color: '#797063',
           lineHeight: '20px',
-          textAlign: 'center',
           marginTop: '24px',
         }}
       >
@@ -142,20 +144,21 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
     >
       <TestModeBanner livemode={livemode} />
       <Img
-        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-        width="540"
-        height="199"
+        src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
+        width="40"
+        height="40"
         alt="Flowglad Logo"
-        style={{ margin: '0 auto', marginBottom: '32px' }}
+        style={{ marginBottom: '32px' }}
       />
       <Header
         title="Subscription Cancellation Alert"
-        style={{ textAlign: 'center', fontWeight: 'normal' }}
+        variant="organization"
+        style={{ fontWeight: 'normal' }}
       />
       <Paragraph
+        variant="organization"
         style={{
-          color: '#525f7f',
-          textAlign: 'center',
+          color: '#797063',
           margin: 0,
         }}
       >
@@ -163,19 +166,19 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
         {subscriptionName} plan.
       </Paragraph>
       <DetailSection>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Customer Name
         </DetailItem>
         <Text style={detailsValue}>{customerName}</Text>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Customer Email
         </DetailItem>
         <Text style={detailsValue}>{customerEmail}</Text>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Subscription
         </DetailItem>
         <Text style={detailsValue}>{subscriptionName}</Text>
-        <DetailItem style={{ color: '#525f7f', marginBottom: '4px' }}>
+        <DetailItem style={{ color: '#797063', marginBottom: '4px' }}>
           Cancellation Date
         </DetailItem>
         <Text style={detailsValue}>
@@ -192,10 +195,10 @@ export const OrganizationSubscriptionCanceledNotificationEmail = ({
         </EmailButton>
       </Section>
       <Paragraph
+        variant="organization"
         style={{
-          color: '#525f7f',
+          color: '#797063',
           lineHeight: '20px',
-          textAlign: 'center',
           marginTop: '24px',
         }}
       >
@@ -226,20 +229,21 @@ export const OrganizationSubscriptionCancellationScheduledNotificationEmail =
       >
         <TestModeBanner livemode={livemode} />
         <Img
-          src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-          width="540"
-          height="199"
+          src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
+          width="40"
+          height="40"
           alt="Flowglad Logo"
-          style={{ margin: '0 auto', marginBottom: '32px' }}
+          style={{ marginBottom: '32px' }}
         />
         <Header
           title="Subscription Cancellation Scheduled"
-          style={{ textAlign: 'center', fontWeight: 'normal' }}
+          variant="organization"
+          style={{ fontWeight: 'normal' }}
         />
         <Paragraph
+          variant="organization"
           style={{
-            color: '#525f7f',
-            textAlign: 'center',
+            color: '#797063',
             margin: 0,
           }}
         >
@@ -248,25 +252,25 @@ export const OrganizationSubscriptionCancellationScheduledNotificationEmail =
         </Paragraph>
         <DetailSection>
           <DetailItem
-            style={{ color: '#525f7f', marginBottom: '4px' }}
+            style={{ color: '#797063', marginBottom: '4px' }}
           >
             Customer Name
           </DetailItem>
           <Text style={detailsValue}>{customerName}</Text>
           <DetailItem
-            style={{ color: '#525f7f', marginBottom: '4px' }}
+            style={{ color: '#797063', marginBottom: '4px' }}
           >
             Customer Email
           </DetailItem>
           <Text style={detailsValue}>{customerEmail}</Text>
           <DetailItem
-            style={{ color: '#525f7f', marginBottom: '4px' }}
+            style={{ color: '#797063', marginBottom: '4px' }}
           >
             Subscription
           </DetailItem>
           <Text style={detailsValue}>{subscriptionName}</Text>
           <DetailItem
-            style={{ color: '#525f7f', marginBottom: '4px' }}
+            style={{ color: '#797063', marginBottom: '4px' }}
           >
             Scheduled Cancellation Date
           </DetailItem>
@@ -274,7 +278,7 @@ export const OrganizationSubscriptionCancellationScheduledNotificationEmail =
             {scheduledCancellationDate.toLocaleDateString()}
           </Text>
           <DetailItem
-            style={{ color: '#525f7f', marginBottom: '4px' }}
+            style={{ color: '#797063', marginBottom: '4px' }}
           >
             Status
           </DetailItem>
@@ -292,10 +296,10 @@ export const OrganizationSubscriptionCancellationScheduledNotificationEmail =
           </EmailButton>
         </Section>
         <Paragraph
+          variant="organization"
           style={{
-            color: '#525f7f',
+            color: '#797063',
             lineHeight: '20px',
-            textAlign: 'center',
             marginTop: '24px',
           }}
         >
