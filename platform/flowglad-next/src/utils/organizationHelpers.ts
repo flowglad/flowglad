@@ -31,7 +31,6 @@ import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
-import { findOrCreateSvixApplication } from '@/utils/svix'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -241,16 +240,6 @@ export const createOrganizationTransaction = async (
       organizationId,
     }
   )
-
-  await findOrCreateSvixApplication({
-    organization: organizationRecord,
-    livemode: false,
-  })
-
-  await findOrCreateSvixApplication({
-    organization: organizationRecord,
-    livemode: true,
-  })
 
   return {
     organization: organizationsClientSelectSchema.parse(

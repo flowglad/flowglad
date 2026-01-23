@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'bun:test'
+import { ApiException } from 'svix/dist/util'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CreateOrganizationInput } from '@/db/schema/organizations'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
@@ -18,7 +19,27 @@ import {
 } from '@/utils/countries'
 import { createOrganizationTransaction } from '@/utils/organizationHelpers'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
+import { getSvixApplicationId, svix } from '@/utils/svix'
 import core from './core'
+
+/**
+ * Helper to check if a Svix application exists by ID.
+ * Returns true if exists, false if not found.
+ * This is a test-local helper until checkSvixApplicationExists is implemented in svix.ts (patch 5).
+ */
+const checkSvixApplicationExists = async (
+  applicationId: string
+): Promise<boolean> => {
+  try {
+    await svix().application.get(applicationId)
+    return true
+  } catch (error) {
+    if (error instanceof ApiException && error.code === 404) {
+      return false
+    }
+    throw error
+  }
+}
 
 const getPlatformEligibleCountryId = async (
   transaction: Parameters<typeof selectCountries>[1]
@@ -615,6 +636,63 @@ describe('createOrganizationTransaction', () => {
         // And should enforce USD as the default currency
         expect(organization.defaultCurrency).toBe(CurrencyCode.USD)
       })
+    })
+  })
+
+  describe('Organization creation without eager Svix apps', () => {
+    it('should not create Svix apps on org creation, verifying both livemode and testmode apps are absent', async () => {
+      const organizationName = `org_${core.nanoid()}`
+      // Using definite assignment assertion since adminTransaction callback executes synchronously
+      let organizationRecord!: Awaited<
+        ReturnType<typeof selectOrganizations>
+      >[0]
+
+      // Create organization
+      await adminTransaction(async ({ transaction }) => {
+        const countryId =
+          await getPlatformEligibleCountryId(transaction)
+        const input: CreateOrganizationInput = {
+          organization: {
+            name: organizationName,
+            countryId,
+          },
+        }
+
+        await createOrganizationTransaction(
+          input,
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
+
+        const [org] = await selectOrganizations(
+          { name: organizationName },
+          transaction
+        )
+        organizationRecord = org
+      })
+
+      // Verify Svix apps do NOT exist for both livemodes
+      const livemodeAppId = getSvixApplicationId({
+        organization: organizationRecord,
+        livemode: true,
+      })
+      const testmodeAppId = getSvixApplicationId({
+        organization: organizationRecord,
+        livemode: false,
+      })
+
+      const livemodeAppExists =
+        await checkSvixApplicationExists(livemodeAppId)
+      const testmodeAppExists =
+        await checkSvixApplicationExists(testmodeAppId)
+
+      expect(livemodeAppExists).toBe(false)
+      expect(testmodeAppExists).toBe(false)
     })
   })
 })
