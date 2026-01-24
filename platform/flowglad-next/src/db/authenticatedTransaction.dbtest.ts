@@ -96,9 +96,18 @@ describe('authenticatedTransaction', () => {
     userB = userApiKeyB.user
     apiKeyB = userApiKeyB.apiKey
 
-    // Setup memberships - userA gets membership in both orgs
-    membershipA1 = await setupMemberships({
-      organizationId: testOrg1.id,
+    // Get the membership that was created by setupUserAndApiKey for userA
+    // Note: setupUserAndApiKey already creates a membership, so we just need to retrieve it
+    membershipA1 = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const [membership] = await selectMemberships(
+        { userId: userA.id, organizationId: testOrg1.id },
+        transaction
+      )
+      if (!membership) {
+        throw new Error('Failed to find membershipA1')
+      }
+      return membership
     })
 
     // Create additional membership for userA in testOrg2 (focused: false)
@@ -116,9 +125,17 @@ describe('authenticatedTransaction', () => {
       )
     })
 
-    // UserB only has membership in testOrg2 (focused: true)
-    membershipB2 = await setupMemberships({
-      organizationId: testOrg2.id,
+    // Get the membership that was created by setupUserAndApiKey for userB
+    membershipB2 = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const [membership] = await selectMemberships(
+        { userId: userB.id, organizationId: testOrg2.id },
+        transaction
+      )
+      if (!membership) {
+        throw new Error('Failed to find membershipB2')
+      }
+      return membership
     })
   })
 

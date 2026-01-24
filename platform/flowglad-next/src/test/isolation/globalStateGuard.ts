@@ -10,13 +10,8 @@
  * and handles them appropriately during reset.
  */
 
-declare global {
-  // eslint-disable-next-line no-var
-  var __mockedAuthSession:
-    | null
-    | { user: { id: string; email: string } }
-    | undefined
-}
+// Import consolidated global type declarations
+import '@/test/globals.d'
 
 /**
  * Set of __mock* global keys that existed at initialization time.
