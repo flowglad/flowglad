@@ -29,25 +29,14 @@ process.env.UNKEY_ROOT_KEY =
 process.env.BETTER_AUTH_URL =
   process.env.BETTER_AUTH_URL || 'http://localhost:3000'
 
-/**
- * Global mutable auth state for testing.
- * Tests can set `globalThis.__mockedAuthSession` to control what getSession() returns.
- * This ensures consistent mocking across all test files.
- */
-declare global {
-  // eslint-disable-next-line no-var
-  var __mockedAuthSession:
-    | null
-    | { user: { id: string; email: string } }
-    | undefined
-  // eslint-disable-next-line no-var
-  var __testDbInitialized: boolean
-}
-globalThis.__mockedAuthSession = null
-globalThis.__testDbInitialized = false
-
 // IMPORTANT: Import mocks first, before any other imports
 import './bun.mocks'
+
+// Import consolidated global type declarations (after mocks)
+import '@/test/globals.d'
+
+// Initialize auth session mock to null (will be reset after each test)
+globalThis.__mockedAuthSession = null
 
 import { afterAll, afterEach, beforeAll, beforeEach } from 'bun:test'
 import { cleanup } from '@testing-library/react'
@@ -55,7 +44,6 @@ import {
   beginOuterTransaction,
   beginTestTransaction,
   cleanupTestDb,
-  initializeTestDb,
   rollbackTestTransaction,
 } from '@/test/db/transactionIsolation'
 import { createAutoEnvTracker } from '@/test/isolation/envTracker'
@@ -79,10 +67,9 @@ beforeAll(async () => {
   // Seed database once (this commits and persists via normal db client)
   await seedDatabase()
 
-  // Initialize the test connection and start outer transaction
-  await initializeTestDb()
+  // Start outer transaction for this file's test isolation
+  // Each file gets its own dedicated connection
   await beginOuterTransaction()
-  globalThis.__testDbInitialized = true
 })
 
 beforeEach(async () => {
@@ -116,5 +103,4 @@ afterEach(async () => {
 afterAll(async () => {
   server.close()
   await cleanupTestDb()
-  globalThis.__testDbInitialized = false
 })

@@ -5,6 +5,7 @@ import {
 } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { format } from 'sql-formatter'
+import type { FileTestContext } from '@/test/globals.d'
 import core from '@/utils/core'
 
 const dbUrl = core.IS_TEST
@@ -69,52 +70,44 @@ const _db = drizzle(client, {
   logger,
 })
 
-// Type for global test contexts map (shared with transactionIsolation.ts)
-// Using a minimal type that's compatible with FileTestContext
-interface TestContext {
-  db: PostgresJsDatabase
-  inTransaction: boolean
-}
-
-/**
- * Get the current test file path from the stack trace.
- * This identifies which file's DB context to use for parallel test execution.
- */
-function getCurrentTestFile(): string | null {
-  const stack = new Error().stack || ''
-  const lines = stack.split('\n')
-
-  // Find the first line that contains a .dbtest.ts file
-  for (const line of lines) {
-    const match = line.match(/\(([^)]+\.dbtest\.ts)/)
-    if (match) {
-      return match[1]
-    }
-    // Also check for format without parentheses
-    const match2 = line.match(/at\s+([^\s]+\.dbtest\.ts)/)
-    if (match2) {
-      return match2[1]
-    }
-  }
-
-  return null
-}
+// Import shared test file detection utility
+// Note: This import is lazy-loaded only in test mode to avoid bundling test code in production
+let getCurrentTestFileOrNull: (() => string | null) | undefined
 
 /**
  * Get the test DB for the current context.
  * Looks up the correct DB based on the calling test file.
  */
 function getTestDbForCurrentContext(): PostgresJsDatabase | null {
+  // Only attempt test DB lookup in test mode
+  if (!core.IS_TEST) {
+    return null
+  }
+
+  // Lazy-load the test file detection function
+  if (!getCurrentTestFileOrNull) {
+    try {
+      // Dynamic import to avoid bundling test utilities in production
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      const testFileDetection = require('@/test/db/testFileDetection')
+      getCurrentTestFileOrNull =
+        testFileDetection.getCurrentTestFileOrNull
+    } catch {
+      // Module not available (e.g., in production bundle)
+      return null
+    }
+  }
+
   // Find the context for the current test file
-  const filePath = getCurrentTestFile()
+  const filePath = getCurrentTestFileOrNull?.()
   if (!filePath) {
     return null
   }
 
   // Access the global contexts map (set by transactionIsolation.ts)
-  const contexts = (
-    globalThis as { __testContexts?: Map<string, TestContext> }
-  ).__testContexts
+  const contexts = globalThis.__testContexts as
+    | Map<string, FileTestContext>
+    | undefined
   if (!contexts) {
     return null
   }

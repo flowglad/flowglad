@@ -16,35 +16,18 @@
  * 1. Files can run in parallel (each has its own connection)
  * 2. Tests within a file don't affect each other (savepoint rollback)
  * 3. No test data persists (outer transaction rollback)
+ *
+ * Debug logging: Set DEBUG_TEST_DB=1 to enable verbose logging for troubleshooting.
  */
 
 import {
   drizzle,
   type PostgresJsDatabase,
 } from 'drizzle-orm/postgres-js'
-import postgres, { type Sql } from 'postgres'
-
-// Global type declaration for test contexts map
-declare global {
-  // eslint-disable-next-line no-var
-  var __testContexts: Map<string, FileTestContext> | undefined
-}
-
-/**
- * Context for a single test file's database isolation.
- */
-interface FileTestContext {
-  /** Dedicated connection for this file */
-  connection: Sql
-  /** Drizzle instance on the connection */
-  db: PostgresJsDatabase
-  /** Current savepoint name (if any) */
-  currentSavepoint: string | null
-  /** Savepoint counter for unique names */
-  savepointCounter: number
-  /** Whether we're in an active transaction */
-  inTransaction: boolean
-}
+import postgres from 'postgres'
+import { getCurrentTestFile } from '@/test/db/testFileDetection'
+// Import consolidated global types and shared utilities
+import type { FileTestContext } from '@/test/globals.d'
 
 // Ensure global contexts map exists
 function getContextsMap(): Map<string, FileTestContext> {
@@ -52,6 +35,16 @@ function getContextsMap(): Map<string, FileTestContext> {
     globalThis.__testContexts = new Map()
   }
   return globalThis.__testContexts
+}
+
+/**
+ * Debug logging helper. Enabled by DEBUG_TEST_DB=1 environment variable.
+ */
+function debugLog(message: string, ...args: unknown[]): void {
+  if (process.env.DEBUG_TEST_DB === '1') {
+    // eslint-disable-next-line no-console
+    console.log(`[transactionIsolation] ${message}`, ...args)
+  }
 }
 
 /**
@@ -69,44 +62,11 @@ function getConnectionString(): string {
 }
 
 /**
- * Get the current test file path from the stack trace.
- * This is the most reliable way to identify which file's context to use.
- */
-function getCurrentTestFile(): string {
-  const stack = new Error().stack || ''
-  const lines = stack.split('\n')
-
-  // Find the first line that contains a .dbtest.ts file
-  for (const line of lines) {
-    const match = line.match(/\(([^)]+\.dbtest\.ts)/)
-    if (match) {
-      return match[1]
-    }
-    // Also check for format without parentheses
-    const match2 = line.match(/at\s+([^\s]+\.dbtest\.ts)/)
-    if (match2) {
-      return match2[1]
-    }
-  }
-
-  // Fallback: use the setup file indicator
-  return 'unknown_test_file'
-}
-
-/**
  * Get the current file's test context.
  */
 function getCurrentContext(): FileTestContext | undefined {
   const filePath = getCurrentTestFile()
   return getContextsMap().get(filePath)
-}
-
-/**
- * Initialize a new test context for a file.
- * Call this in beforeAll. This is a no-op now, actual init happens in beginOuterTransaction.
- */
-export async function initializeTestDb(): Promise<void> {
-  // No-op - actual initialization happens in beginOuterTransaction
 }
 
 /**
@@ -124,21 +84,27 @@ export function getTestDb(): PostgresJsDatabase {
 
 /**
  * Start the outer transaction for a test file.
- * Call this in beforeAll after initializeTestDb().
+ * Call this in beforeAll.
  *
  * This creates a dedicated connection for this file and starts a transaction.
  * All tests in this file will use this connection.
  */
 export async function beginOuterTransaction(): Promise<void> {
   const filePath = getCurrentTestFile()
+  debugLog('beginOuterTransaction for file: %s', filePath)
 
   // Check if this file already has a context (shouldn't happen, but be safe)
   if (getContextsMap().has(filePath)) {
+    debugLog(
+      'Context already exists for file, skipping: %s',
+      filePath
+    )
     return
   }
 
   // Create a dedicated connection for this file
   // Each file gets its own connection so they can run in parallel
+  debugLog('Creating dedicated postgres connection for: %s', filePath)
   const connection = postgres(getConnectionString(), {
     max: 1, // Single connection for this file
     idle_timeout: 0,
@@ -160,10 +126,15 @@ export async function beginOuterTransaction(): Promise<void> {
 
   // Store context in map keyed by file path
   getContextsMap().set(filePath, ctx)
+  debugLog(
+    'Stored context in map. Total contexts: %d',
+    getContextsMap().size
+  )
 
   // Start the outer transaction
   await connection`BEGIN`
   ctx.inTransaction = true
+  debugLog('Outer transaction started for: %s', filePath)
 }
 
 /**
@@ -178,6 +149,11 @@ export async function beginTestTransaction(): Promise<void> {
     const availableKeys = Array.from(getContextsMap().keys()).join(
       ', '
     )
+    debugLog(
+      'No context found for file: %s. Available: [%s]',
+      filePath,
+      availableKeys
+    )
     throw new Error(
       `No test context for file: ${filePath}. Available contexts: [${availableKeys}]. ` +
         'Ensure beforeAll ran beginOuterTransaction.'
@@ -186,12 +162,18 @@ export async function beginTestTransaction(): Promise<void> {
 
   // Ensure we're in a transaction
   if (!ctx.inTransaction) {
+    debugLog('Starting new transaction (was not in transaction)')
     await ctx.connection`BEGIN`
     ctx.inTransaction = true
   }
 
   ctx.savepointCounter++
   const name = `sp_${ctx.savepointCounter}`
+  debugLog(
+    'Creating savepoint: %s (counter: %d)',
+    name,
+    ctx.savepointCounter
+  )
   await ctx.connection`SAVEPOINT ${ctx.connection.unsafe(name)}`
   ctx.currentSavepoint = name
 }
@@ -203,21 +185,38 @@ export async function beginTestTransaction(): Promise<void> {
 export async function rollbackTestTransaction(): Promise<void> {
   const ctx = getCurrentContext()
   if (!ctx || !ctx.currentSavepoint) {
+    debugLog(
+      'No savepoint to rollback (ctx: %s, savepoint: %s)',
+      !!ctx,
+      ctx?.currentSavepoint
+    )
     return
   }
 
   const savepointName = ctx.currentSavepoint
   ctx.currentSavepoint = null
+  debugLog('Rolling back to savepoint: %s', savepointName)
 
   try {
     await ctx.connection`ROLLBACK TO SAVEPOINT ${ctx.connection.unsafe(savepointName)}`
     await ctx.connection`RELEASE SAVEPOINT ${ctx.connection.unsafe(savepointName)}`
-  } catch {
+    debugLog('Savepoint rollback successful: %s', savepointName)
+  } catch (error) {
     // Transaction was likely aborted, rollback and mark as not in transaction
+    debugLog(
+      'Savepoint rollback failed (likely aborted transaction), performing full rollback. Error: %s',
+      error instanceof Error ? error.message : String(error)
+    )
     try {
       await ctx.connection`ROLLBACK`
-    } catch {
-      // Ignore
+      debugLog('Full rollback successful')
+    } catch (rollbackError) {
+      debugLog(
+        'Full rollback also failed: %s',
+        rollbackError instanceof Error
+          ? rollbackError.message
+          : String(rollbackError)
+      )
     }
     ctx.inTransaction = false
   }
@@ -230,38 +229,48 @@ export async function rollbackTestTransaction(): Promise<void> {
 export async function cleanupTestDb(): Promise<void> {
   const filePath = getCurrentTestFile()
   const ctx = getContextsMap().get(filePath)
+  debugLog(
+    'cleanupTestDb for file: %s (has context: %s)',
+    filePath,
+    !!ctx
+  )
 
   if (!ctx) {
+    debugLog('No context found for cleanup, skipping')
     return
   }
 
   // Rollback the outer transaction
   if (ctx.inTransaction) {
+    debugLog('Rolling back outer transaction')
     try {
       await ctx.connection`ROLLBACK`
-    } catch {
-      // Ignore rollback errors
+      debugLog('Outer transaction rollback successful')
+    } catch (error) {
+      debugLog(
+        'Outer transaction rollback failed: %s',
+        error instanceof Error ? error.message : String(error)
+      )
     }
     ctx.inTransaction = false
   }
 
   // Close the connection
+  debugLog('Closing connection')
   try {
     await ctx.connection.end()
-  } catch {
-    // Ignore close errors
+    debugLog('Connection closed successfully')
+  } catch (error) {
+    debugLog(
+      'Connection close failed: %s',
+      error instanceof Error ? error.message : String(error)
+    )
   }
 
   // Remove from map
   getContextsMap().delete(filePath)
-}
-
-/**
- * Reset the savepoint counter (useful for debugging).
- */
-export function resetSavepointCounter(): void {
-  const ctx = getCurrentContext()
-  if (ctx) {
-    ctx.savepointCounter = 0
-  }
+  debugLog(
+    'Context removed. Remaining contexts: %d',
+    getContextsMap().size
+  )
 }

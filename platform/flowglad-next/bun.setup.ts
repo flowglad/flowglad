@@ -3,25 +3,17 @@
 // Environment variables are loaded from .env.test via the db-safety-preload script
 // which auto-detects test scripts and loads the appropriate env file.
 
-/**
- * Global mutable auth state for testing.
- * Tests can set `globalThis.__mockedAuthSession` to control what getSession() returns.
- * This ensures consistent mocking across all test files.
- */
-declare global {
-  // eslint-disable-next-line no-var
-  var __mockedAuthSession:
-    | null
-    | { user: { id: string; email: string } }
-    | undefined
-}
-globalThis.__mockedAuthSession = null
-
 // IMPORTANT: Import mocks first, before any other imports.
 // Mock module registration order is critical in bun:test - mock.module() calls
 // must precede any imports that transitively load the mocked modules.
 // See bun.mocks.ts for details.
 import './bun.mocks'
+
+// Import consolidated global type declarations (after mocks)
+import '@/test/globals.d'
+
+// Initialize auth session mock to null (will be reset after each test)
+globalThis.__mockedAuthSession = null
 
 import { afterAll, afterEach, beforeAll } from 'bun:test'
 import { webcrypto } from 'node:crypto'
