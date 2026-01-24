@@ -40,8 +40,11 @@ declare global {
     | null
     | { user: { id: string; email: string } }
     | undefined
+  // eslint-disable-next-line no-var
+  var __testDbInitialized: boolean
 }
 globalThis.__mockedAuthSession = null
+globalThis.__testDbInitialized = false
 
 // IMPORTANT: Import mocks first, before any other imports
 import './bun.mocks'
@@ -49,10 +52,12 @@ import './bun.mocks'
 import { afterAll, afterEach, beforeAll, beforeEach } from 'bun:test'
 import { cleanup } from '@testing-library/react'
 import {
+  beginOuterTransaction,
   beginTestTransaction,
-  resetSavepointCounter,
+  cleanupTestDb,
+  initializeTestDb,
   rollbackTestTransaction,
-} from '@/test/db/transactionWrapper'
+} from '@/test/db/transactionIsolation'
 import { createAutoEnvTracker } from '@/test/isolation/envTracker'
 import {
   initializeGlobalMockState,
@@ -71,11 +76,13 @@ beforeAll(async () => {
   // MSW STRICT mode - fail on unhandled external requests
   server.listen({ onUnhandledRequest: 'error' })
 
-  // Seed database once (this commits and persists)
+  // Seed database once (this commits and persists via normal db client)
   await seedDatabase()
 
-  // Reset savepoint counter for clean tracking
-  resetSavepointCounter()
+  // Initialize the test connection and start outer transaction
+  await initializeTestDb()
+  await beginOuterTransaction()
+  globalThis.__testDbInitialized = true
 })
 
 beforeEach(async () => {
@@ -108,4 +115,6 @@ afterEach(async () => {
 
 afterAll(async () => {
   server.close()
+  await cleanupTestDb()
+  globalThis.__testDbInitialized = false
 })
