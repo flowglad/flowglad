@@ -1,5 +1,8 @@
 import { DefaultLogger } from 'drizzle-orm/logger'
-import { drizzle } from 'drizzle-orm/postgres-js'
+import {
+  drizzle,
+  type PostgresJsDatabase,
+} from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { format } from 'sql-formatter'
 import core from '@/utils/core'
@@ -55,8 +58,89 @@ if (core.IS_PROD) {
   logger = new FormattedSQLLogger()
 }
 
-export const db = drizzle(client, {
+/**
+ * The main database instance.
+ *
+ * In test mode (dbtest files), this can be redirected to a test-specific
+ * connection that uses savepoints for isolation. Set `globalThis.__testDb`
+ * to redirect queries.
+ */
+const _db = drizzle(client, {
   logger,
+})
+
+// Type for global test contexts map (shared with transactionIsolation.ts)
+// Using a minimal type that's compatible with FileTestContext
+interface TestContext {
+  db: PostgresJsDatabase
+  inTransaction: boolean
+}
+
+/**
+ * Get the current test file path from the stack trace.
+ * This identifies which file's DB context to use for parallel test execution.
+ */
+function getCurrentTestFile(): string | null {
+  const stack = new Error().stack || ''
+  const lines = stack.split('\n')
+
+  // Find the first line that contains a .dbtest.ts file
+  for (const line of lines) {
+    const match = line.match(/\(([^)]+\.dbtest\.ts)/)
+    if (match) {
+      return match[1]
+    }
+    // Also check for format without parentheses
+    const match2 = line.match(/at\s+([^\s]+\.dbtest\.ts)/)
+    if (match2) {
+      return match2[1]
+    }
+  }
+
+  return null
+}
+
+/**
+ * Get the test DB for the current context.
+ * Looks up the correct DB based on the calling test file.
+ */
+function getTestDbForCurrentContext(): PostgresJsDatabase | null {
+  // Find the context for the current test file
+  const filePath = getCurrentTestFile()
+  if (!filePath) {
+    return null
+  }
+
+  // Access the global contexts map (set by transactionIsolation.ts)
+  const contexts = (
+    globalThis as { __testContexts?: Map<string, TestContext> }
+  ).__testContexts
+  if (!contexts) {
+    return null
+  }
+
+  const ctx = contexts.get(filePath)
+  if (ctx?.db && ctx.inTransaction) {
+    return ctx.db
+  }
+
+  return null
+}
+
+/**
+ * Proxy that redirects to test DB when available.
+ * This enables savepoint-based test isolation in *.dbtest.ts files.
+ * Dynamically looks up the correct DB context based on the call stack.
+ */
+export const db: PostgresJsDatabase = new Proxy(_db, {
+  get(target, prop, receiver) {
+    // Try to find the test DB for the current context
+    const testDb = getTestDbForCurrentContext()
+    if (testDb) {
+      return Reflect.get(testDb, prop, receiver)
+    }
+    return Reflect.get(target, prop, receiver)
+  },
 })
 
 export default db

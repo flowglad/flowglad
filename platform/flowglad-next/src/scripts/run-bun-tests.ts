@@ -83,12 +83,18 @@ console.log(
 )
 
 // Build bun test command
+// Prefix file paths with './' so bun treats them as paths, not filter patterns
+// This is required for non-standard test file extensions like .dbtest.ts
+const filePathsWithPrefix = files.map((f) =>
+  f.startsWith('./') || f.startsWith('/') ? f : `./${f}`
+)
+
 const bunArgs = [
   'test',
   '--preload',
   setupFile,
   ...extraArgs,
-  ...files,
+  ...filePathsWithPrefix,
 ]
 
 // Run bun test

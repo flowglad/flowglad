@@ -156,9 +156,16 @@ const insertCountries = async () => {
     .onConflictDoNothing()
 }
 
+// Track if database has been seeded to prevent duplicate seeding in parallel test runs
+let isSeeded = false
+
 export const seedDatabase = async () => {
+  if (isSeeded) {
+    return // Already seeded, skip
+  }
   //   await migrateDb()
   await insertCountries()
+  isSeeded = true
 }
 
 export const dropDatabase = async () => {
