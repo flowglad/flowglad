@@ -351,7 +351,9 @@ describe('Reset Password Page - Form Validation', () => {
               issue.message ===
               `Password must be at least ${PASSWORD_MIN_LENGTH} characters`
           )
-          expect(lengthError).toBeDefined()
+        expect(lengthError?.message).toBe(
+            `Password must be at least ${PASSWORD_MIN_LENGTH} characters`
+          )
         }
       })
     })
