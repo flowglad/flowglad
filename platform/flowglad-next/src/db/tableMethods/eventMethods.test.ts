@@ -325,7 +325,7 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
         type: FlowgladEventType.CustomerCreated,
         payload: {
           id: `cust_${core.nanoid()}`,
-          object: EventNoun.Customer as const,
+          object: EventNoun.Customer,
         },
         occurredAt: now,
         submittedAt: now,
@@ -338,7 +338,7 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
         type: FlowgladEventType.PaymentSucceeded,
         payload: {
           id: `pay_${core.nanoid()}`,
-          object: EventNoun.Payment as const,
+          object: EventNoun.Payment,
         },
         occurredAt: now,
         submittedAt: now,
@@ -387,7 +387,7 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
         type: FlowgladEventType.CustomerUpdated,
         payload: {
           id: `cust_${core.nanoid()}`,
-          object: EventNoun.Customer as const,
+          object: EventNoun.Customer,
         },
         occurredAt: now,
         submittedAt: now,
@@ -400,7 +400,7 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
         type: FlowgladEventType.PaymentSucceeded,
         payload: {
           id: `pay_${core.nanoid()}`,
-          object: EventNoun.Payment as const,
+          object: EventNoun.Payment,
         },
         occurredAt: now,
         submittedAt: now,
