@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it } from 'bun:test'
 import { setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
-import { insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { FlowgladEventType } from '@/types'
 import { createWebhookTransaction } from './webhooks'
 
@@ -194,23 +193,14 @@ describe('createWebhookTransaction', () => {
 
   describe('multiple pricing models in same organization', () => {
     it('allows creating webhooks for different pricing models in the same organization', async () => {
+      // Note: There's a unique constraint that only allows one livemode=true pricing model per org
+      // So we test with the existing livemode and testmode pricing models from setupOrg
       const result = await adminTransaction(
         async ({ transaction }) => {
-          // Create a second pricing model for the same org
-          const secondPricingModel = await insertPricingModel(
-            {
-              name: 'Second Pricing Model',
-              organizationId: organization.id,
-              livemode: true,
-              isDefault: false,
-            },
-            transaction
-          )
-
-          // Create webhook for first pricing model
+          // Create webhook for livemode pricing model
           const result1 = await createWebhookTransaction({
             webhook: {
-              name: 'Webhook for PM 1',
+              name: 'Webhook for Livemode PM',
               url: 'https://example.com/pm1',
               filterTypes: [FlowgladEventType.SubscriptionCreated],
               active: true,
@@ -221,31 +211,30 @@ describe('createWebhookTransaction', () => {
             transaction,
           })
 
-          // Create webhook for second pricing model
+          // Create webhook for testmode pricing model
           const result2 = await createWebhookTransaction({
             webhook: {
-              name: 'Webhook for PM 2',
+              name: 'Webhook for Testmode PM',
               url: 'https://example.com/pm2',
               filterTypes: [FlowgladEventType.PaymentSucceeded],
               active: true,
-              pricingModelId: secondPricingModel.id,
+              pricingModelId: testmodePricingModelId,
             },
             organization,
-            livemode: true,
+            livemode: false,
             transaction,
           })
 
           return {
             webhook1: result1.webhook,
             webhook2: result2.webhook,
-            secondPricingModel,
           }
         }
       )
 
       expect(result.webhook1.pricingModelId).toBe(livePricingModelId)
       expect(result.webhook2.pricingModelId).toBe(
-        result.secondPricingModel.id
+        testmodePricingModelId
       )
       expect(result.webhook1.pricingModelId).not.toBe(
         result.webhook2.pricingModelId
