@@ -7,7 +7,7 @@ import {
   webhooksTableRowDataSchema,
 } from '@/db/schema/webhooks'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import {
   insertWebhook,
   selectWebhookAndOrganizationByWebhookId,
@@ -24,6 +24,7 @@ import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {
   createSvixEndpoint,
+  findOrCreateSvixApplication,
   getSvixSigningSecret,
   updateSvixEndpoint,
 } from '@/utils/svix'
@@ -54,21 +55,34 @@ export const createWebhook = protectedProcedure
         if (!organization) {
           throw new Error('Organization not found')
         }
-        const defaultPricingModel = await selectDefaultPricingModel(
-          { organizationId: organization.id, livemode },
+
+        // Validate pricingModelId belongs to org and livemode
+        const pricingModel = await selectPricingModelById(
+          input.pricingModelId,
           transaction
         )
-        if (!defaultPricingModel) {
+        if (
+          pricingModel.organizationId !== organization.id ||
+          pricingModel.livemode !== livemode
+        ) {
           throw new Error(
-            'No default pricing model found for organization'
+            'Invalid pricing model for this organization and mode'
           )
         }
+
+        // Create PM-scoped Svix app (lazy creation)
+        await findOrCreateSvixApplication({
+          organization,
+          livemode,
+          pricingModelId: input.pricingModelId,
+        })
+
         const webhook = await insertWebhook(
           {
             ...input.webhook,
             organizationId: organization.id,
             livemode,
-            pricingModelId: defaultPricingModel.id,
+            pricingModelId: input.pricingModelId,
           },
           transaction
         )

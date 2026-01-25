@@ -100,6 +100,7 @@ export namespace Webhook {
 
 export const createWebhookInputSchema = z.object({
   webhook: webhookClientInsertSchema,
+  pricingModelId: z.string(),
 })
 
 export type CreateWebhookInput = z.infer<
