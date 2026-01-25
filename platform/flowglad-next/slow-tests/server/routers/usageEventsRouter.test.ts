@@ -224,12 +224,12 @@ describe('usageEventsRouter', () => {
       expect(result.hasMore).toBe(false)
 
       // Should respect RLS policies - verify exact events by ID
-      const org1EventIds = result.items.map((event) => event.id)
+      const org1EventIds = result.data.map((event) => event.id)
       const expectedEventIds = usageEvents1.map((event) => event.id)
       expect(org1EventIds.sort()).toEqual(expectedEventIds.sort())
 
       // Verify all returned events belong to org1 (through customer relationship)
-      result.items.forEach((event) => {
+      result.data.forEach((event) => {
         expect(event.customerId).toBe(customer1.id)
       })
     })
@@ -247,7 +247,7 @@ describe('usageEventsRouter', () => {
       })
 
       // Should return empty array
-      expect(result.items).toEqual([])
+      expect(result.data).toEqual([])
       expect(result.total).toBe(0)
       expect(result.hasMore).toBe(false)
     })
@@ -285,7 +285,7 @@ describe('usageEventsRouter', () => {
       expect(typeof result.nextCursor).toBe('string')
 
       // Verify returned events are from our created events
-      const returnedEventIds = result.items.map((event) => event.id)
+      const returnedEventIds = result.data.map((event) => event.id)
       const createdEventIds = createdEvents.map((event) => event.id)
       expect(returnedEventIds).toHaveLength(3)
       returnedEventIds.forEach((eventId) => {
@@ -293,7 +293,7 @@ describe('usageEventsRouter', () => {
       })
 
       // Verify all returned events belong to org1 (through customer relationship)
-      result.items.forEach((event) => {
+      result.data.forEach((event) => {
         expect(event.customerId).toBe(customer1.id)
       })
     })
@@ -550,7 +550,7 @@ describe('usageEventsRouter', () => {
           },
         })
       ).rejects.toThrow(
-        "Price with slug invalid-slug-does-not-exist not found for this customer's pricing model"
+        "Price not found: with slug invalid-slug-does-not-exist (not in customer's pricing model)"
       )
 
       // Test bulkInsert procedure
@@ -571,9 +571,7 @@ describe('usageEventsRouter', () => {
             },
           ],
         })
-      ).rejects.toThrow(
-        "Price with slug invalid-slug-bulk not found for this customer's pricing model at index 1"
-      )
+      ).rejects.toThrow('Price not found: slug "invalid-slug-bulk"')
     })
 
     it('should throw error when both priceId and priceSlug are provided', async () => {
@@ -789,7 +787,7 @@ describe('usageEventsRouter', () => {
           },
         })
       ).rejects.toThrow(
-        "Usage meter with slug invalid-usage-meter-slug not found for this customer's pricing model"
+        "UsageMeter not found: with slug invalid-usage-meter-slug (not in customer's pricing model)"
       )
 
       // Test bulkInsert procedure
@@ -811,7 +809,7 @@ describe('usageEventsRouter', () => {
           ],
         })
       ).rejects.toThrow(
-        "Usage meter with slug invalid-usage-meter-slug not found for this customer's pricing model at index 1"
+        'UsageMeter not found: slug "invalid-usage-meter-slug"'
       )
     })
 
@@ -987,7 +985,7 @@ describe('usageEventsRouter', () => {
           },
         })
       ).rejects.toThrow(
-        `Usage meter ${usageMeter2.id} not found for this customer's pricing model`
+        `UsageMeter not found: ${usageMeter2.id} (not in customer's pricing model)`
       )
 
       // Test bulkInsert procedure - try to use org2's usage meter with org1's subscription
@@ -1002,9 +1000,7 @@ describe('usageEventsRouter', () => {
             },
           ],
         })
-      ).rejects.toThrow(
-        `Usage meter ${usageMeter2.id} not found for this customer's pricing model at index 0`
-      )
+      ).rejects.toThrow(`UsageMeter not found: ${usageMeter2.id}`)
     })
   })
 

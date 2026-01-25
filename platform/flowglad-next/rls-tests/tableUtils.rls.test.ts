@@ -38,7 +38,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
     org1Data = await setupOrg() // Sets up org, product, price in livemode (presumably true)
     const userApiKeyOrg1 = await setupUserAndApiKey({
       organizationId: org1Data.organization.id,
-      livemode: true, // API key for org1 is livemode: true
+      livemode: false, // Use testmode API key to allow inserting testmode pricing models
     })
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
@@ -52,12 +52,12 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
     await authenticatedTransaction(
       async (ctx) => {
         const { transaction, livemode } = ctx
-        expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode should be false based on API key
+        expect(livemode).toBe(org1UserApiKey.livemode) // Session livemode matches API key (false, testmode)
 
         const newPricingModelInput: PricingModel.Insert = {
           name: 'Test Allowed RLS PricingModel',
           organizationId: org1Data.organization.id,
-          livemode: org1UserApiKey.livemode, // PricingModel livemode matches session
+          livemode: false, // Use testmode to avoid livemode uniqueness constraint (org already has livemode pricing model from setupOrg)
         }
 
         // INSERT
@@ -105,7 +105,7 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
           pluralQuantityLabel: 'Test product plural quantity label',
           active: true,
           externalId: null,
-          pricingModelId: org1Data.pricingModel.id,
+          pricingModelId: org1Data.testmodePricingModel.id, // Use testmode pricing model to match testmode session
           default: false,
           slug: `flowglad-test-product-price+${core.nanoid()}`,
         }

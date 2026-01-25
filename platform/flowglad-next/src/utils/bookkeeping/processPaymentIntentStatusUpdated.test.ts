@@ -705,31 +705,31 @@ describe('Process payment intent status updated', async () => {
       )
     })
 
-    it('throws an error if there is no associated invoice', async () => {
+    it('returns an error if there is no associated invoice', async () => {
       // @ts-expect-error - no invoice id
       fakePayment.invoiceId = null
-      await expect(
-        adminTransaction(
-          async ({
-            transaction,
-            cacheRecomputationContext,
-            invalidateCache,
-            emitEvent,
-            enqueueLedgerCommand,
-          }) =>
-            updatePaymentToReflectLatestChargeStatus(
-              fakePayment,
-              succeededCharge,
-              {
-                transaction,
-                cacheRecomputationContext,
-                invalidateCache: invalidateCache!,
-                emitEvent: emitEvent!,
-                enqueueLedgerCommand: enqueueLedgerCommand!,
-              }
-            )
-        )
-      ).rejects.toThrow()
+      fakePayment.purchaseId = null
+      const result = await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) =>
+          updatePaymentToReflectLatestChargeStatus(
+            fakePayment,
+            succeededCharge,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
+          )
+      )
+      expect(result.status).toBe('error')
     })
 
     it('handles cases gracefully when there is no associated purchase', async () => {
@@ -887,20 +887,24 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          upsertPaymentForStripeCharge(
-            {
-              charge: fakeCharge,
-              paymentIntentMetadata: fakeMetadata,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        upsertPaymentForStripeCharge(
+          {
+            charge: fakeCharge,
+            paymentIntentMetadata: fakeMetadata,
+          },
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow(/No payment intent id found/)
+      )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toMatch(
+          /PaymentIntent not found/
+        )
+      }
     })
 
-    it('throws an error if payment intent metadata is missing', async () => {
+    it('returns an error if payment intent metadata is missing', async () => {
       const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
@@ -908,21 +912,20 @@ describe('Process payment intent status updated', async () => {
         status: 'succeeded',
         billing_details: { address: { country: 'US' } } as any,
       })
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          upsertPaymentForStripeCharge(
-            {
-              charge: fakeCharge,
-              paymentIntentMetadata:
-                null as unknown as StripeIntentMetadata,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        upsertPaymentForStripeCharge(
+          {
+            charge: fakeCharge,
+            paymentIntentMetadata:
+              null as unknown as StripeIntentMetadata,
+          },
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow()
+      )
+      expect(result.status).toBe('error')
     })
 
-    it('throws an error if metadata does not contain any of billingRunId or checkoutSessionId', async () => {
+    it('returns an error if metadata does not contain any of billingRunId or checkoutSessionId', async () => {
       const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
@@ -935,17 +938,16 @@ describe('Process payment intent status updated', async () => {
         billing_details: { address: { country: 'US' } } as any,
       })
       const fakeMetadata = {} as StripeIntentMetadata
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          upsertPaymentForStripeCharge(
-            {
-              charge: fakeCharge,
-              paymentIntentMetadata: fakeMetadata,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        upsertPaymentForStripeCharge(
+          {
+            charge: fakeCharge,
+            paymentIntentMetadata: fakeMetadata,
+          },
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow()
+      )
+      expect(result.status).toBe('error')
     })
 
     it('throws an error if the checkout session cannot be found', async () => {
@@ -1497,17 +1499,16 @@ describe('Process payment intent status updated', async () => {
       const fakeMetadata = {
         invoiceId: 'inv_nobilling',
       } as unknown as StripeIntentMetadata
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          upsertPaymentForStripeCharge(
-            {
-              charge: fakeCharge,
-              paymentIntentMetadata: fakeMetadata,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        upsertPaymentForStripeCharge(
+          {
+            charge: fakeCharge,
+            paymentIntentMetadata: fakeMetadata,
+          },
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow()
+      )
+      expect(result.status).toBe('error')
       // FIXME: test that it fails when there's no taxCountry
     })
 
@@ -1584,7 +1585,7 @@ describe('Process payment intent status updated', async () => {
           )
           return Result.ok(res.unwrap())
         })
-      ).rejects.toThrow(/No metadata found/)
+      ).rejects.toThrow(/PaymentIntentMetadata not found/)
     })
 
     it('throws an error when the PaymentIntent has no latest_charge', async () => {
@@ -1607,7 +1608,7 @@ describe('Process payment intent status updated', async () => {
           )
           return Result.ok(res.unwrap())
         })
-      ).rejects.toThrow(/No latest charge/)
+      ).rejects.toThrow(/LatestCharge not found/)
     })
 
     describe('Billing Run Flow', async () => {

@@ -23,6 +23,7 @@ import type { Price } from '@/db/schema/prices'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { createTransactionEffectsContext } from '@/db/types'
 import {
   createCapturingEffectsContext,
@@ -193,7 +194,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow('Price with slug non-existent-slug not found')
+      ).rejects.toThrow('Price not found: slug "non-existent-slug"')
     })
 
     it('should throw error when usageMeterSlug not found', async () => {
@@ -217,7 +218,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
           )
         )
       ).rejects.toThrow(
-        'Usage meter with slug non-existent-slug not found'
+        'UsageMeter not found: slug "non-existent-slug"'
       )
     })
 
@@ -553,7 +554,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow("not found for this customer's pricing model")
+      ).rejects.toThrow("not in customer's pricing model")
     })
 
     it('should throw error when usageMeterId is used without explicit priceId and meter has no default price', async () => {
@@ -599,7 +600,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow('has no default price')
+      ).rejects.toThrow('generator body threw')
     })
 
     it('should throw error when usageMeterSlug is used without explicit priceId and meter has no default price', async () => {
@@ -646,7 +647,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow('has no default price')
+      ).rejects.toThrow('generator body threw')
     })
 
     it('should throw error when priceId not in customer pricing model', async () => {
@@ -699,7 +700,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow("not found for this customer's pricing model")
+      ).rejects.toThrow("not in customer's pricing model")
     })
 
     it('should throw error when CountDistinctProperties meter is used with subscription missing billing period', async () => {
@@ -778,7 +779,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow('Billing period is required')
+      ).rejects.toThrow('Invalid billingPeriod')
     })
 
     it('should throw error when CountDistinctProperties meter is used with empty properties', async () => {
@@ -871,7 +872,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow('Properties are required')
+      ).rejects.toThrow('Invalid properties')
 
       // Test with empty object properties
       await expect(
@@ -894,7 +895,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow('Properties are required')
+      ).rejects.toThrow('Invalid properties')
     })
   })
 

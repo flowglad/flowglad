@@ -14,7 +14,7 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
-import type { ValidationError } from '@/errors'
+import { ValidationError } from '@/errors'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -222,8 +222,11 @@ export const createNonInvoiceCheckoutSession = async (
   if (Price.hasProductId(price)) {
     product = await selectProductById(price.productId, transaction)
     if (product.default) {
-      throw new Error(
-        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+      return Result.err(
+        new ValidationError(
+          'product',
+          'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+        )
       )
     }
   }
@@ -270,7 +273,7 @@ export const createNonInvoiceCheckoutSession = async (
           `Product is required for single payment checkout session but was null for price ${price.id}`
         )
       }
-      const paymentIntent =
+      const paymentIntentResult =
         await createPaymentIntentForCheckoutSession({
           price,
           product,
@@ -278,7 +281,10 @@ export const createNonInvoiceCheckoutSession = async (
           checkoutSession,
           organization,
         })
-      stripePaymentIntentId = paymentIntent.id
+      if (Result.isError(paymentIntentResult)) {
+        return Result.err(paymentIntentResult.error)
+      }
+      stripePaymentIntentId = paymentIntentResult.value.id
     }
   }
 

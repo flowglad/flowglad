@@ -385,7 +385,7 @@ export const EMAIL_PREVIEWS: EmailPreviewData = {
       organizationLogoUrl: mockOrganization.logoUrl,
       organizationId: mockOrganization.id,
       customerId: mockCustomer.id,
-      planName: 'Pro Plan',
+      productName: 'Pro Plan',
       livemode: true,
     },
   },

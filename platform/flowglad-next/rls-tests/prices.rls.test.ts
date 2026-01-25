@@ -563,11 +563,11 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
   })
 
   it('denies updating a usage price to use a usage meter from a different pricing model', async () => {
-    // Create a second pricing model for the same organization
+    // Create a second pricing model for the same organization (use testmode to avoid livemode uniqueness constraint)
     const pricingModel2 = await setupPricingModel({
       organizationId: organization.id,
       name: 'Second Pricing Model',
-      livemode: true,
+      livemode: false,
     })
 
     // Create a usage meter in the second pricing model
@@ -575,7 +575,7 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
       organizationId: organization.id,
       name: 'Usage Meter in PM2',
       pricingModelId: pricingModel2.id,
-      livemode: true,
+      livemode: false,
     })
 
     // The update should fail because the RLS policy requires the usage meter's

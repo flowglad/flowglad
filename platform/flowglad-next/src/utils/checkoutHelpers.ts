@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
@@ -71,8 +72,11 @@ export async function getClientSecretsForCheckoutSession(
       customer?.stripeCustomerId &&
       paymentIntent.customer === customer.stripeCustomerId
     ) {
-      customerSessionClientSecret =
+      const customerSessionResult =
         await createCustomerSessionForCheckout(customer)
+      if (Result.isOk(customerSessionResult)) {
+        customerSessionClientSecret = customerSessionResult.value
+      }
     }
   } else if (checkoutSession.stripeSetupIntentId) {
     const setupIntent = await getSetupIntent(
@@ -86,8 +90,11 @@ export async function getClientSecretsForCheckoutSession(
       customer?.stripeCustomerId &&
       setupIntent.customer === customer.stripeCustomerId
     ) {
-      customerSessionClientSecret =
+      const customerSessionResult =
         await createCustomerSessionForCheckout(customer)
+      if (Result.isOk(customerSessionResult)) {
+        customerSessionClientSecret = customerSessionResult.value
+      }
     }
   }
 
@@ -221,6 +228,7 @@ export async function checkoutInfoForPriceWhere(
         feeCalculation: null,
         maybeCustomer: null,
         isEligibleForTrial: undefined,
+        error: checkoutSessionResult.error,
       }
     }
     const checkoutSession = checkoutSessionResult.value
@@ -266,14 +274,16 @@ export async function checkoutInfoForPriceWhere(
       isEligibleForTrial,
     }
   })
-  const { checkoutSession, organization, features } = result
-  if (!checkoutSession) {
+  const { checkoutSession, organization, features, error } = result
+  if (!checkoutSession || error) {
     // FIXME: ERROR PAGE UI
     return {
       checkoutInfo: null,
       success: false,
       organization,
-      error: `This checkout link is no longer valid. Please contact the ${organization.name} team for assistance.`,
+      error:
+        error?.message ??
+        `This checkout link is no longer valid. Please contact the ${organization.name} team for assistance.`,
     }
   }
 

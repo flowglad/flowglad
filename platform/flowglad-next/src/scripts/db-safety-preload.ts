@@ -1,17 +1,133 @@
 /**
- * Bun preload script for database safety.
+ * Bun preload script for database safety and environment validation.
  *
- * This script runs before any other code when using `bun` and blocks
- * execution if DATABASE_URL points to a non-local database in development.
+ * IMPORTANT: DEVELOPMENT IS THE DEFAULT
+ * When NODE_ENV is unset, this script defaults to "development" and requires
+ * .env.development to exist. This is an interim solution - future iterations
+ * will add support for full local development without Vercel credentials.
+ *
+ * Environment Detection:
+ * - Scripts starting with "test" → uses .env.test (automatic detection)
+ * - NODE_ENV=production          → uses .env.production (Vercel prod)
+ * - NODE_ENV=test                → uses .env.test (explicit)
+ * - Otherwise                    → uses .env.development (DEFAULT)
+ *
+ * This script validates that required env files exist before Bun loads them.
+ *
+ * Safety Check:
+ * This script blocks execution if DATABASE_URL points to a non-local database.
  *
  * Skips the check when:
  * - VERCEL is set (Vercel deployments)
  * - CI is set (CI/CD pipelines)
  * - DANGEROUSLY_ALLOW_REMOTE_DB is set (explicit opt-out)
  *
- * Note: NODE_ENV=production intentionally does NOT bypass. It's too easy
- * for an AI agent to accidentally use it. Use DANGEROUSLY_ALLOW_REMOTE_DB instead.
+ * Note: NODE_ENV=production intentionally does NOT bypass the safety check.
+ * It's too easy for an AI agent to accidentally use it. Use DANGEROUSLY_ALLOW_REMOTE_DB instead.
  */
+
+import { existsSync } from 'fs'
+import { resolve } from 'path'
+
+// ============================================================================
+// Environment Validation
+// ============================================================================
+
+export type NodeEnvType = 'development' | 'production' | 'test'
+
+/**
+ * Scripts that don't require database access.
+ * These bootstrap/setup scripts should skip the DATABASE_URL safety check.
+ */
+const BOOTSTRAP_SCRIPTS = [
+  'user', // setup-env-user.ts - creates .env_user file
+  'vercel:env-pull', // pulls env from Vercel
+  'install-packages', // bun install wrapper
+] as const
+
+/**
+ * Check if the current script is a bootstrap script that doesn't need database access.
+ */
+export function isBootstrapScript(): boolean {
+  const scriptName =
+    process.env.npm_lifecycle_event?.toLowerCase() ?? ''
+  return BOOTSTRAP_SCRIPTS.some(
+    (bootstrap) =>
+      scriptName === bootstrap ||
+      scriptName.startsWith(`${bootstrap}:`)
+  )
+}
+
+/**
+ * Check if the current npm script name starts with "test".
+ * Uses npm_lifecycle_event which is set by bun/npm when running scripts.
+ */
+export function isTestScript(): boolean {
+  const scriptName =
+    process.env.npm_lifecycle_event?.toLowerCase() ?? ''
+  return scriptName.startsWith('test')
+}
+
+/**
+ * Get the effective NODE_ENV.
+ *
+ * Detection order:
+ * 1. If script name starts with "test" → 'test'
+ * 2. If NODE_ENV is 'production' → 'production'
+ * 3. If NODE_ENV is 'test' → 'test'
+ * 4. Otherwise → 'development' (default)
+ */
+export function getEffectiveNodeEnv(): NodeEnvType {
+  // Auto-detect test environment from script name
+  if (isTestScript()) return 'test'
+
+  const nodeEnv = process.env.NODE_ENV?.toLowerCase()
+  if (nodeEnv === 'production') return 'production'
+  if (nodeEnv === 'test') return 'test'
+  return 'development' // Default to development
+}
+
+function validateEnvironmentFiles(): void {
+  // Skip in Vercel/CI - they manage their own env
+  if (
+    process.env.VERCEL !== undefined ||
+    process.env.CI !== undefined
+  )
+    return
+
+  // Skip when not running an npm/bun script (e.g., `bun -e`, `bunx`, etc.)
+  const scriptName = process.env.npm_lifecycle_event
+  if (!scriptName) return
+
+  const nodeEnv = getEffectiveNodeEnv()
+
+  // Map NODE_ENV to the expected env file
+  const envFileMap: Record<NodeEnvType, string> = {
+    development: '.env.development',
+    production: '.env.production',
+    test: '.env.test',
+  }
+
+  const envFile = envFileMap[nodeEnv]
+  const envPath = resolve(process.cwd(), envFile)
+
+  if (!existsSync(envPath)) {
+    // Just warn - don't block. Commands that need DB will fail naturally.
+    console.warn(`Warning: ${envFile} does not exist.`)
+    if (nodeEnv === 'development') {
+      console.warn('To set up: bun run vercel:env-pull:dev')
+    } else if (nodeEnv === 'production') {
+      console.warn('To set up: bun run vercel:env-pull:prod')
+    } else if (nodeEnv === 'test') {
+      console.warn('To set up: bun run test:setup')
+    }
+    return
+  }
+  console.log(`Environment: ${nodeEnv} (using ${envFile})`)
+}
+
+// Validate environment files exist
+validateEnvironmentFiles()
 
 // ============================================================================
 // Configuration
@@ -109,7 +225,8 @@ export function shouldSkipSafetyCheck(): boolean {
   return (
     process.env.VERCEL !== undefined ||
     process.env.CI !== undefined ||
-    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined
+    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined ||
+    isBootstrapScript()
   )
 }
 

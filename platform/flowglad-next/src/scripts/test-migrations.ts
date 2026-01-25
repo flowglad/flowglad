@@ -11,6 +11,18 @@
  *   bun run migrations:test --prod       # Test against prod only (use with caution)
  *   bun run migrations:test --inspect    # Keep containers running for inspection after tests
  *
+ * Note if bun run migrations:test command is not present,
+ * use `bun run src/scripts/test-migrations.ts {--flags}`
+ * eg. `bun run src/scripts/test-migrations.ts --prod --inspect --port=5435`
+ *
+ * Port Options:
+ *   --port=<port>   Custom port for the test container. Must be used with --staging or --prod.
+ *                   Useful when the default port (5433 for staging, 5434 for prod) is already in use.
+ *                   Examples:
+ *                     bun run migrations:test --staging --port=5440
+ *                     bun run migrations:test --prod --port=5450
+ *                     bun run migrations:test --staging --inspect --port=5440
+ *
  * Interactive Features (--inspect mode):
  *   - Press 'e' to export all migration output (including PostgreSQL NOTICE messages) to a timestamped log file
  *   - Press 'm' to re-run migrations without doing pg_dump again (useful for quickly running migrations again on the same pre-migration DB state after updating migration SQL files)
@@ -33,9 +45,47 @@ import * as fs from 'fs'
 import * as readline from 'readline'
 
 const TEST_CONTAINER_PREFIX = 'flowglad-migration-test'
-const TEST_PORT_STAGING = 5433
-const TEST_PORT_PROD = 5434
+const DEFAULT_PORT_STAGING = 5433
+const DEFAULT_PORT_PROD = 5434
 const POSTGRES_IMAGE = 'postgres:15'
+
+/**
+ * Parses a port argument from command-line args.
+ * Supports both --port=5440 and --port 5440 formats.
+ * @returns The parsed port number, or undefined if not provided
+ */
+function parsePortArg(args: string[]): number | undefined {
+  // Check for --port=5440 format
+  const equalsArg = args.find((arg) => arg.startsWith('--port='))
+  if (equalsArg) {
+    const portStr = equalsArg.split('=')[1]
+    const port = Number.parseInt(portStr, 10)
+    if (Number.isNaN(port) || port < 1 || port > 65535) {
+      throw new Error(
+        `Invalid port number: ${portStr}. Must be between 1 and 65535.`
+      )
+    }
+    return port
+  }
+
+  // Check for --port 5440 format (space-separated)
+  const argIndex = args.indexOf('--port')
+  if (argIndex !== -1 && argIndex < args.length - 1) {
+    const portStr = args[argIndex + 1]
+    // Make sure it's not another flag
+    if (!portStr.startsWith('-')) {
+      const port = Number.parseInt(portStr, 10)
+      if (Number.isNaN(port) || port < 1 || port > 65535) {
+        throw new Error(
+          `Invalid port number: ${portStr}. Must be between 1 and 65535.`
+        )
+      }
+      return port
+    }
+  }
+
+  return undefined
+}
 
 interface TestResult {
   environment: 'staging' | 'production'
@@ -611,6 +661,23 @@ async function main(): Promise<void> {
   const prodOnly = args.includes('--prod')
   const inspect = args.includes('--inspect')
 
+  // Parse custom port if provided
+  const customPort = parsePortArg(args)
+
+  // Validate --port usage: must be used with --staging or --prod (single environment)
+  if (customPort && !stagingOnly && !prodOnly) {
+    throw new Error(
+      '--port can only be used with --staging or --prod flag.\n' +
+        'When running both environments, default ports are used (staging: 5433, prod: 5434).'
+    )
+  }
+
+  // Determine ports for each environment
+  const testPortStaging =
+    stagingOnly && customPort ? customPort : DEFAULT_PORT_STAGING
+  const testPortProd =
+    prodOnly && customPort ? customPort : DEFAULT_PORT_PROD
+
   console.log('\n')
   log('🧪 Migration Test Script')
   log('Testing pending migrations against database clones\n')
@@ -620,6 +687,11 @@ async function main(): Promise<void> {
       'Inspect mode enabled - containers will be kept running',
       'warn'
     )
+  }
+
+  if (customPort) {
+    const env = stagingOnly ? 'staging' : 'prod'
+    log(`Using custom port for ${env}: ${customPort}`, 'info')
   }
 
   try {
@@ -637,7 +709,7 @@ async function main(): Promise<void> {
       const prodResult = await testMigration(
         'production',
         dbUrls.prod,
-        TEST_PORT_PROD,
+        testPortProd,
         { inspect }
       )
       results.push(prodResult)
@@ -646,7 +718,7 @@ async function main(): Promise<void> {
       const stagingResult = await testMigration(
         'staging',
         dbUrls.staging,
-        TEST_PORT_STAGING,
+        testPortStaging,
         { inspect }
       )
       results.push(stagingResult)
@@ -655,7 +727,7 @@ async function main(): Promise<void> {
       const stagingResult = await testMigration(
         'staging',
         dbUrls.staging,
-        TEST_PORT_STAGING,
+        testPortStaging,
         { inspect }
       )
       results.push(stagingResult)
@@ -664,7 +736,7 @@ async function main(): Promise<void> {
         const prodResult = await testMigration(
           'production',
           dbUrls.prod,
-          TEST_PORT_PROD,
+          testPortProd,
           { inspect }
         )
         results.push(prodResult)
@@ -757,7 +829,7 @@ async function main(): Promise<void> {
       }
 
       // Use the first result's port for migration state checks
-      const primaryPort = results[0]?.port || TEST_PORT_STAGING
+      const primaryPort = results[0]?.port || DEFAULT_PORT_STAGING
 
       console.log('\n')
       await waitForUserAction(

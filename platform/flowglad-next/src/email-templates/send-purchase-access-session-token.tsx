@@ -31,12 +31,12 @@ export const SendPurchaseAccessSessionTokenEmail = ({
       <TestModeBanner livemode={livemode} />
       <Container style={container}>
         <Img
-          src={`${emailBaseUrl}/static/flowglad-logo.png`}
+          src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
           width={48}
           height={48}
           alt="Flowglad"
         />
-        <Heading style={heading}>🪄 Your Order Link</Heading>
+        <Heading style={heading}>Access your Order</Heading>
         <Section style={body}>
           <Text style={paragraph}>
             <Link style={link} href={magicLink}>
@@ -53,7 +53,7 @@ export const SendPurchaseAccessSessionTokenEmail = ({
         </Text>
         <Hr style={hr} />
         <Img
-          src={`${emailBaseUrl}/static/flowglad-logo.png`}
+          src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
           width={32}
           height={32}
           style={{

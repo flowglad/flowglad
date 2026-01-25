@@ -46,11 +46,11 @@ export const OrganizationPaymentConfirmationEmail = ({
     >
       <TestModeBanner livemode={livemode} />
       <Img
-        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-        width="540"
-        height="199"
+        src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
+        width="40"
+        height="40"
         alt="Flowglad Logo"
-        style={{ margin: '0 auto', marginBottom: '32px' }}
+        style={{ marginBottom: '32px' }}
       />
       <Header
         title="Payment Pending Confirmation"
