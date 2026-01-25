@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
@@ -14,20 +14,6 @@ import type { PricingModel } from '@/db/schema/pricingModels'
 import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
 import { PaymentMethodType } from '@/types'
 import { core } from '@/utils/core'
-
-// Import actual stripe module functions we want to keep
-import * as actualStripe from '@/utils/stripe'
-
-// Create mock for getStripePaymentMethod
-const mockGetStripePaymentMethod =
-  mock<typeof actualStripe.getStripePaymentMethod>()
-
-// Mock the stripe utils
-mock.module('@/utils/stripe', () => ({
-  ...actualStripe,
-  getStripePaymentMethod: mockGetStripePaymentMethod,
-}))
-
 import {
   paymentMethodForStripePaymentMethodId,
   paymentMethodInsertFromStripeCardPaymentMethod,
@@ -116,38 +102,6 @@ describe('paymentMethodForStripePaymentMethodId', () => {
   let customer: Customer.Record
 
   beforeEach(async () => {
-    // Reset mock before each test
-    mockGetStripePaymentMethod.mockReset()
-
-    // Set default mock implementation
-    mockGetStripePaymentMethod.mockImplementation(
-      async (paymentMethodId: string) => {
-        return {
-          id: paymentMethodId,
-          object: 'payment_method',
-          type: 'card',
-          billing_details: {
-            name: 'John Doe',
-            email: 'john.doe@example.com',
-            address: {
-              line1: '123 Test St',
-              line2: 'Apt 1',
-              city: 'Test City',
-              state: 'Test State',
-              postal_code: '12345',
-              country: 'US',
-            },
-          },
-          card: {
-            brand: 'visa',
-            last4: '1234',
-            exp_month: 12,
-            exp_year: 2025,
-          },
-        } as Stripe.PaymentMethod
-      }
-    )
-
     const orgData = await setupOrg()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
@@ -194,7 +148,7 @@ describe('paymentMethodForStripePaymentMethodId', () => {
         expect(paymentMethod.type).toBe(PaymentMethodType.Card)
         expect(paymentMethod.pricingModelId).toBe(pricingModel.id)
         expect(paymentMethod.livemode).toBe(true)
-        // The mock returns these billing details
+        // The MSW mock returns these billing details
         expect(paymentMethod.billingDetails.name).toBe('John Doe')
         expect(paymentMethod.billingDetails.email).toBe(
           'john.doe@example.com'
