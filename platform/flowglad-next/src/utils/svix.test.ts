@@ -1,11 +1,4 @@
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  describe,
-  expect,
-  it,
-} from 'bun:test'
+import { describe, expect, it } from 'bun:test'
 import { HttpResponse, http } from 'msw'
 import { server } from '@/../mocks/server'
 import { dummyOrganization } from '@/stubs/organizationStubs'
@@ -206,23 +199,14 @@ describe('checkSvixApplicationExists', () => {
 })
 
 describe('findOrCreateSvixApplication with pricingModelId', () => {
+  // Note: MSW server lifecycle (listen/resetHandlers/close) is managed globally in bun.setup.ts
+  // We only need to use server.use() for test-specific handler overrides
+
   const organization = {
     ...dummyOrganization,
     id: 'org_findorcreate_test',
     securitySalt: 'test-salt-findorcreate',
   }
-
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
-  })
 
   it('creates PM-scoped app when pricingModelId is provided', async () => {
     const pricingModelId = 'pm_test_findorcreate'
@@ -314,23 +298,14 @@ describe('findOrCreateSvixApplication with pricingModelId', () => {
 })
 
 describe('createSvixEndpoint with PM-scoped app', () => {
+  // Note: MSW server lifecycle (listen/resetHandlers/close) is managed globally in bun.setup.ts
+  // We only need to use server.use() for test-specific handler overrides
+
   const organization = {
     ...dummyOrganization,
     id: 'org_endpoint_test',
     securitySalt: 'test-salt-endpoint',
   }
-
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
-  })
 
   it('creates endpoint in PM-scoped Svix app when webhook has pricingModelId', async () => {
     const pricingModelId = 'pm_endpoint_test'
@@ -427,23 +402,14 @@ describe('createSvixEndpoint with PM-scoped app', () => {
 })
 
 describe('getSvixSigningSecret with PM-scoped app', () => {
+  // Note: MSW server lifecycle (listen/resetHandlers/close) is managed globally in bun.setup.ts
+  // We only need to use server.use() for test-specific handler overrides
+
   const organization = {
     ...dummyOrganization,
     id: 'org_secret_test',
     securitySalt: 'test-salt-secret',
   }
-
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
-  })
 
   it('gets signing secret from PM-scoped Svix app when webhook has pricingModelId', async () => {
     const pricingModelId = 'pm_secret_test'
@@ -490,23 +456,14 @@ describe('getSvixSigningSecret with PM-scoped app', () => {
 })
 
 describe('updateSvixEndpoint with PM-scoped app', () => {
+  // Note: MSW server lifecycle (listen/resetHandlers/close) is managed globally in bun.setup.ts
+  // We only need to use server.use() for test-specific handler overrides
+
   const organization = {
     ...dummyOrganization,
     id: 'org_update_test',
     securitySalt: 'test-salt-update',
   }
-
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
-  })
 
   it('updates endpoint in PM-scoped Svix app when webhook has pricingModelId', async () => {
     const pricingModelId = 'pm_update_test'
@@ -558,6 +515,9 @@ describe('updateSvixEndpoint with PM-scoped app', () => {
 })
 
 describe('sendSvixEvent legacy-first routing', () => {
+  // Note: MSW server lifecycle (listen/resetHandlers/close) is managed globally in bun.setup.ts
+  // We only need to use server.use() for test-specific handler overrides
+
   const organization = {
     ...dummyOrganization,
     id: 'org_send_event_test',
@@ -585,18 +545,6 @@ describe('sendSvixEvent legacy-first routing', () => {
     createdAt: new Date(),
     updatedAt: new Date(),
     pricingModelId: overrides.pricingModelId,
-  })
-
-  beforeAll(() => {
-    server.listen({ onUnhandledRequest: 'bypass' })
-  })
-
-  afterEach(() => {
-    server.resetHandlers()
-  })
-
-  afterAll(() => {
-    server.close()
   })
 
   it('sends to legacy app when it exists, even when event has pricingModelId', async () => {
