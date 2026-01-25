@@ -426,7 +426,7 @@ async function resolvePriceSlugs(
 ): Promise<
   Result<
     WithSlugEventsContext & { slugToPriceIdMap: Map<string, string> },
-    DomainError
+    TRPCError
   >
 > {
   const { eventsWithPriceSlugs, getPricingModelForCustomer } = context
@@ -448,10 +448,10 @@ async function resolvePriceSlugs(
     const foundPrice = slugToPriceMap.get(event.slug)
     if (!foundPrice) {
       return Result.err(
-        new NotFoundError(
-          'Price',
-          `slug "${event.slug}" (index ${event.index})`
-        )
+        new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Price with slug ${event.slug} not found for this customer's pricing model`,
+        })
       )
     }
 
@@ -590,7 +590,7 @@ function resolveEventIdentifiers(
 // Step 6: Validate prices and build price map
 async function validatePricesAndBuildMap(
   context: WithResolvedEventsContext
-): Promise<Result<WithValidatedPricesContext, DomainError>> {
+): Promise<Result<WithValidatedPricesContext, TRPCError>> {
   const {
     resolvedUsageEvents,
     getPricingModelForCustomer,
@@ -622,16 +622,19 @@ async function validatePricesAndBuildMap(
     const price = pricesMap.get(event.priceId)
     if (!price) {
       return Result.err(
-        new NotFoundError('Price', `${event.priceId} (index ${i})`)
+        new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Price ${event.priceId} not found at index ${i}`,
+        })
       )
     }
 
     if (price.type !== PriceType.Usage) {
       return Result.err(
-        new ValidationError(
-          'priceId',
-          `Price ${event.priceId} at index ${i} is type "${price.type}" which is not a usage price`
-        )
+        new TRPCError({
+          code: 'BAD_REQUEST',
+          message: `Price ${event.priceId} at index ${i} is type "${price.type}" which is not a usage price`,
+        })
       )
     }
 
@@ -646,10 +649,10 @@ async function validatePricesAndBuildMap(
       // First check pricing model ID matches
       if (price.pricingModelId !== pricingModel.id) {
         return Result.err(
-          new NotFoundError(
-            'Price',
-            `${event.priceId} not in customer's pricing model (index ${i})`
-          )
+          new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Price ${event.priceId} not found for this customer's pricing model at index ${i}`,
+          })
         )
       }
       // Then check if price exists in the filtered pricing model's prices array
@@ -658,10 +661,10 @@ async function validatePricesAndBuildMap(
       )
       if (!priceInModel) {
         return Result.err(
-          new NotFoundError(
-            'Price',
-            `${event.priceId} not in customer's pricing model (index ${i})`
-          )
+          new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Price ${event.priceId} not found for this customer's pricing model`,
+          })
         )
       }
     }
@@ -1016,7 +1019,10 @@ export const bulkInsertUsageEventsTransaction = async (
   },
   ctx: TransactionEffectsContext
 ): Promise<
-  Result<{ usageEvents: UsageEvent.ClientRecord[] }, DomainError>
+  Result<
+    { usageEvents: UsageEvent.ClientRecord[] },
+    TRPCError | DomainError
+  >
 > => {
   return Result.gen(async function* () {
     const withSubscriptions = yield* Result.await(

@@ -194,7 +194,9 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow('Price not found: slug "non-existent-slug"')
+      ).rejects.toThrow(
+        "Price with slug non-existent-slug not found for this customer's pricing model"
+      )
     })
 
     it('should throw error when usageMeterSlug not found', async () => {
@@ -700,7 +702,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow("not in customer's pricing model")
+      ).rejects.toThrow("not found for this customer's pricing model")
     })
 
     it('should throw error when CountDistinctProperties meter is used with subscription missing billing period', async () => {
