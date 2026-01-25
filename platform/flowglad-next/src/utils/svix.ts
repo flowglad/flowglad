@@ -363,7 +363,10 @@ const sendSvixEventCore = async (params: SendSvixEventParams) => {
       {
         eventType: event.type,
         eventId: event.hash,
-        payload: event.payload,
+        payload: {
+          ...event.payload,
+          pricingModelId: event.pricingModelId,
+        },
       },
       {
         idempotencyKey: event.hash,
@@ -387,7 +390,10 @@ const sendSvixEventCore = async (params: SendSvixEventParams) => {
         {
           eventType: event.type,
           eventId: event.hash,
-          payload: event.payload,
+          payload: {
+            ...event.payload,
+            pricingModelId: event.pricingModelId,
+          },
         },
         {
           idempotencyKey: event.hash,
