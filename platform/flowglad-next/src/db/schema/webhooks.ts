@@ -63,6 +63,9 @@ const columnRefinements = {
 const readOnlyColumns = {
   livemode: true,
   organizationId: true,
+} as const
+
+const createOnlyColumns = {
   pricingModelId: true,
 } as const
 
@@ -79,12 +82,10 @@ export const {
   },
 } = buildSchemas(webhooks, {
   refine: columnRefinements,
-  insertRefine: {
-    pricingModelId: z.string().optional(),
-  },
   client: {
     hiddenColumns,
     readOnlyColumns,
+    createOnlyColumns,
   },
 })
 
@@ -100,7 +101,6 @@ export namespace Webhook {
 
 export const createWebhookInputSchema = z.object({
   webhook: webhookClientInsertSchema,
-  pricingModelId: z.string(),
 })
 
 export type CreateWebhookInput = z.infer<

@@ -7,9 +7,7 @@ import {
   webhooksTableRowDataSchema,
 } from '@/db/schema/webhooks'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectPricingModelById } from '@/db/tableMethods/pricingModelMethods'
 import {
-  insertWebhook,
   selectWebhookAndOrganizationByWebhookId,
   selectWebhookById,
   selectWebhooksTableRowData,
@@ -23,11 +21,10 @@ import {
 import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {
-  createSvixEndpoint,
-  findOrCreateSvixApplication,
   getSvixSigningSecret,
   updateSvixEndpoint,
 } from '@/utils/svix'
+import { createWebhookTransaction } from '@/utils/webhooks'
 import { router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -56,45 +53,12 @@ export const createWebhook = protectedProcedure
           throw new Error('Organization not found')
         }
 
-        // Validate pricingModelId belongs to org and livemode
-        const pricingModel = await selectPricingModelById(
-          input.pricingModelId,
-          transaction
-        )
-        if (
-          pricingModel.organizationId !== organization.id ||
-          pricingModel.livemode !== livemode
-        ) {
-          throw new Error(
-            'Invalid pricing model for this organization and mode'
-          )
-        }
-
-        // Create PM-scoped Svix app (lazy creation)
-        await findOrCreateSvixApplication({
+        return createWebhookTransaction({
+          webhook: input.webhook,
           organization,
           livemode,
-          pricingModelId: input.pricingModelId,
+          transaction,
         })
-
-        const webhook = await insertWebhook(
-          {
-            ...input.webhook,
-            organizationId: organization.id,
-            livemode,
-            pricingModelId: input.pricingModelId,
-          },
-          transaction
-        )
-        await createSvixEndpoint({
-          webhook,
-          organization,
-        })
-        const secret = await getSvixSigningSecret({
-          webhook,
-          organization,
-        })
-        return { webhook, secret: secret.key }
       }
     )
   )

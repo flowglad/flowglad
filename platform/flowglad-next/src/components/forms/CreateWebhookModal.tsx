@@ -40,6 +40,7 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
     url: '',
     filterTypes: [],
     active: true,
+    pricingModelId: '',
   }
 
   return (
