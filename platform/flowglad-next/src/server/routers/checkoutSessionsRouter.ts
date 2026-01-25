@@ -3,7 +3,6 @@ import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   authenticatedProcedureComprehensiveTransaction,
-  authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
@@ -76,7 +75,7 @@ export const createCheckoutSession = protectedProcedure
           })
         }
 
-        return await createCheckoutSessionTransaction(
+        const result = await createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: ctx.organizationId!,
@@ -84,6 +83,7 @@ export const createCheckoutSession = protectedProcedure
           },
           transaction
         )
+        return result
       }
     )
   )

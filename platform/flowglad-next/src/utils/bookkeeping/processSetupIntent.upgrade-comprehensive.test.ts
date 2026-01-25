@@ -1727,17 +1727,16 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         },
       }
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        await expect(
-          processSetupIntentSucceeded(
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          return processSetupIntentSucceeded(
             setupIntentNoPM,
             createDiscardingEffectsContext(transaction)
           )
-        ).rejects.toThrow(
-          'Payment method required for subscription activation'
-        )
-        return Result.ok(null)
-      })
+        })
+      ).rejects.toThrow(
+        /Payment method required for subscription activation/
+      )
     })
   })
 

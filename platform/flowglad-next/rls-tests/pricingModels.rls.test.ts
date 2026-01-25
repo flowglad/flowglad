@@ -4,7 +4,6 @@ import {
   setupPricingModel,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import {

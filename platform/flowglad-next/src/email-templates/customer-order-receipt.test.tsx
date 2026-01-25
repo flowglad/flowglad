@@ -44,7 +44,7 @@ describe('OrderReceiptEmail', () => {
 
     // Check header content
     expect(getByTestId('email-title')).toHaveTextContent(
-      'Thanks for your order!'
+      'Your Order is Confirmed'
     )
     expect(getByAltText('Logo')).toHaveAttribute(
       'src',

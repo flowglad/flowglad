@@ -894,19 +894,24 @@ export const executeBillingRun = async (
               )
             }
 
-            paymentIntent = await createPaymentIntentForBillingRun({
-              amount: amountToCharge,
-              currency: resultFromSteps.invoice.currency,
-              stripeCustomerId:
-                resultFromSteps.customer.stripeCustomerId,
-              stripePaymentMethodId:
-                resultFromSteps.paymentMethod.stripePaymentMethodId,
-              billingPeriodId: billingRun.billingPeriodId,
-              billingRunId: billingRun.id,
-              feeCalculation: resultFromSteps.feeCalculation,
-              organization: resultFromSteps.organization,
-              livemode: billingRun.livemode,
-            })
+            const paymentIntentResult =
+              await createPaymentIntentForBillingRun({
+                amount: amountToCharge,
+                currency: resultFromSteps.invoice.currency,
+                stripeCustomerId:
+                  resultFromSteps.customer.stripeCustomerId,
+                stripePaymentMethodId:
+                  resultFromSteps.paymentMethod.stripePaymentMethodId,
+                billingPeriodId: billingRun.billingPeriodId,
+                billingRunId: billingRun.id,
+                feeCalculation: resultFromSteps.feeCalculation,
+                organization: resultFromSteps.organization,
+                livemode: billingRun.livemode,
+              })
+            if (Result.isError(paymentIntentResult)) {
+              return Result.err(paymentIntentResult.error)
+            }
+            paymentIntent = paymentIntentResult.value
 
             // Update payment record with payment intent ID
             await updatePayment(
@@ -1021,7 +1026,7 @@ export const executeBillingRun = async (
           },
           effectsCtx
         )
-        return Result.ok(result)
+        return result
       })
     }
 

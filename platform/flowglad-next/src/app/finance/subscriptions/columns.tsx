@@ -1,49 +1,18 @@
 'use client'
 
 import type { ColumnDef } from '@tanstack/react-table'
-import { sentenceCase } from 'change-case'
 import { X } from 'lucide-react'
 import * as React from 'react'
 import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
-import { Badge } from '@/components/ui/badge'
 import { DataTableLinkableCell } from '@/components/ui/data-table-linkable-cell'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import { SubscriptionStatusTag } from '@/components/ui/status-tag'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { SubscriptionStatus } from '@/types'
 import { formatDate } from '@/utils/core'
-
-const subscriptionStatusColors: Record<SubscriptionStatus, string> = {
-  [SubscriptionStatus.Active]:
-    'bg-jade-background text-jade-foreground',
-  [SubscriptionStatus.Canceled]: 'bg-red-100 text-red-800',
-  [SubscriptionStatus.CancellationScheduled]:
-    'bg-red-100 text-red-800',
-  [SubscriptionStatus.Incomplete]: 'bg-yellow-100 text-yellow-800',
-  [SubscriptionStatus.IncompleteExpired]: 'bg-red-100 text-red-800',
-  [SubscriptionStatus.PastDue]: 'bg-red-100 text-red-800',
-  [SubscriptionStatus.Paused]: 'bg-yellow-100 text-yellow-800',
-  [SubscriptionStatus.Trialing]: 'bg-yellow-100 text-yellow-800',
-  [SubscriptionStatus.Unpaid]: 'bg-yellow-100 text-yellow-800',
-  [SubscriptionStatus.CreditTrial]: 'bg-yellow-100 text-yellow-800',
-}
-
-const SubscriptionStatusBadge = ({
-  status,
-}: {
-  status: SubscriptionStatus
-}) => {
-  return (
-    <Badge
-      variant="secondary"
-      className={subscriptionStatusColors[status]}
-    >
-      {sentenceCase(status)}
-    </Badge>
-  )
-}
 
 function SubscriptionActionsMenu({
   subscription,
@@ -134,7 +103,13 @@ export const columns: ColumnDef<Subscription.TableRowData>[] = [
     header: 'Status',
     cell: ({ row }) => {
       const status = row.getValue('status') as SubscriptionStatus
-      return <SubscriptionStatusBadge status={status} />
+      return (
+        <SubscriptionStatusTag
+          status={status}
+          showTooltip
+          tooltipVariant="muted"
+        />
+      )
     },
     size: 110,
     minSize: 105,

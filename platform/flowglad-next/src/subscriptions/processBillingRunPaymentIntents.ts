@@ -43,7 +43,7 @@ import type { TransactionEffectsContext } from '@/db/types'
 import {
   NotFoundError,
   type TerminalStateError,
-  type ValidationError,
+  ValidationError,
 } from '@/errors'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '@/trigger/notifications/send-customer-payment-succeeded-notification'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'

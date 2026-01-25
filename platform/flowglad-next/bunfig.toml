@@ -1,3 +1,6 @@
+# Global preload for database safety - blocks non-local DATABASE_URL in development
+preload = ["./src/scripts/db-safety-preload.ts"]
+
 [install]
 autoInstall = false
 

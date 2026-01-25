@@ -6,12 +6,13 @@ Skills for integrating Flowglad billing into applications.
 
 ```text
 skills/
-├── setup/SKILL.md           # SDK installation and configuration
-├── feature-gating/SKILL.md  # Feature access checks
-├── checkout/SKILL.md        # Purchase and checkout flows
-├── usage-tracking/SKILL.md  # Metered billing implementation
-├── subscriptions/SKILL.md   # Subscription lifecycle management
-└── pricing-ui/SKILL.md      # Pricing page components
+└── skills/
+    ├── setup/SKILL.md           # SDK installation and configuration
+    ├── feature-gating/SKILL.md  # Feature access checks
+    ├── checkout/SKILL.md        # Purchase and checkout flows
+    ├── usage-tracking/SKILL.md  # Metered billing implementation
+    ├── subscriptions/SKILL.md   # Subscription lifecycle management
+    └── pricing-ui/SKILL.md      # Pricing page components
 ```
 
 ## When to Use These Skills
