@@ -371,14 +371,30 @@ const createFlowgladBillingEndpoint = <
         ? ctx.body
         : {}
 
-      const bodyWithExternalId: Record<string, unknown> = {
-        ...rawBody,
-        externalId: customerResult.externalId,
-      }
+      /**
+       * IMPORTANT: In Flowglad's action schemas, `externalId` is overloaded:
+       * - For customer endpoints it refers to the *customer externalId* (derived from session)
+       * - For resource-claim endpoints it refers to the *claim externalId* (user-provided)
+       *
+       * So we must ONLY inject the customer externalId for the small set of endpoints
+       * that are explicitly defined to take it, otherwise we overwrite legitimate inputs
+       * (e.g. `claimResource({ externalId: inviteeEmail })`).
+       */
+      const shouldInjectCustomerExternalIdIntoBody =
+        params.actionKey === FlowgladActionKey.GetCustomerBilling ||
+        params.actionKey === FlowgladActionKey.FindOrCreateCustomer ||
+        params.actionKey === FlowgladActionKey.UpdateCustomer
 
-      const validatedBody = params.validator.inputValidator.safeParse(
-        bodyWithExternalId
-      )
+      const bodyForValidation: Record<string, unknown> =
+        shouldInjectCustomerExternalIdIntoBody
+          ? {
+              ...rawBody,
+              externalId: customerResult.externalId,
+            }
+          : rawBody
+
+      const validatedBody =
+        params.validator.inputValidator.safeParse(bodyForValidation)
       if (!validatedBody.success) {
         return ctx.json(
           {

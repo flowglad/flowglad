@@ -31,7 +31,7 @@ export default function CreateOrgPage() {
         await authClient.organization.setActive({
           organizationId: data.id,
         })
-        router.push('/debug')
+        router.push('/')
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
