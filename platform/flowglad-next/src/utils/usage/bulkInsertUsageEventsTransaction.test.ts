@@ -51,7 +51,23 @@ import {
   bulkInsertUsageEventsTransaction,
   resolvePriceSlugs,
   resolveUsageMeterSlugs,
+  type SlugResolutionEvent,
+  type WithSlugEventsContext,
 } from './bulkInsertUsageEventsTransaction'
+
+// Typed partial contexts for unit testing resolvePriceSlugs and resolveUsageMeterSlugs
+// These use Pick to define exactly what fields are needed, then cast to full context type
+type TestResolvePriceSlugsContext = Pick<
+  WithSlugEventsContext,
+  'eventsWithPriceSlugs' | 'getPricingModelForCustomer'
+>
+
+type TestResolveUsageMeterSlugsContext = Pick<
+  WithSlugEventsContext,
+  'eventsWithUsageMeterSlugs' | 'getPricingModelForCustomer'
+> & {
+  slugToPriceIdMap: Map<string, string>
+}
 
 describe('bulkInsertUsageEventsTransaction', () => {
   let organization: Organization.Record
@@ -2313,7 +2329,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               pricingModel
             )
 
-          const context = {
+          const context: TestResolvePriceSlugsContext = {
             eventsWithPriceSlugs: [
               {
                 index: 0,
@@ -2324,7 +2340,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             getPricingModelForCustomer,
           }
 
-          return resolvePriceSlugs(context as any)
+          return resolvePriceSlugs(context as WithSlugEventsContext)
         }
       )
 
@@ -2358,7 +2374,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Test resolvePriceSlugs
       const priceSlugResult = await adminTransaction(
         async ({ transaction }) => {
-          const context = {
+          const context: TestResolvePriceSlugsContext = {
             eventsWithPriceSlugs: [
               {
                 index: 0,
@@ -2369,7 +2385,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             getPricingModelForCustomer,
           }
 
-          return resolvePriceSlugs(context as any)
+          return resolvePriceSlugs(context as WithSlugEventsContext)
         }
       )
 
@@ -2384,7 +2400,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
       // Test resolveUsageMeterSlugs
       const usageMeterSlugResult = await adminTransaction(
         async ({ transaction }) => {
-          const context = {
+          const context: TestResolveUsageMeterSlugsContext = {
             eventsWithUsageMeterSlugs: [
               {
                 index: 0,
@@ -2396,7 +2412,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
             slugToPriceIdMap: new Map(),
           }
 
-          return resolveUsageMeterSlugs(context as any)
+          return resolveUsageMeterSlugs(
+            context as WithSlugEventsContext & {
+              slugToPriceIdMap: Map<string, string>
+            }
+          )
         }
       )
 
@@ -2433,7 +2453,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               pricingModel
             )
 
-          const context = {
+          const context: TestResolvePriceSlugsContext = {
             eventsWithPriceSlugs: [
               {
                 index: 0,
@@ -2444,7 +2464,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             getPricingModelForCustomer,
           }
 
-          return resolvePriceSlugs(context as any)
+          return resolvePriceSlugs(context as WithSlugEventsContext)
         }
       )
 
@@ -2471,7 +2491,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               pricingModel
             )
 
-          const context = {
+          const context: TestResolveUsageMeterSlugsContext = {
             eventsWithUsageMeterSlugs: [
               {
                 index: 0,
@@ -2483,7 +2503,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
             slugToPriceIdMap: new Map(),
           }
 
-          return resolveUsageMeterSlugs(context as any)
+          return resolveUsageMeterSlugs(
+            context as WithSlugEventsContext & {
+              slugToPriceIdMap: Map<string, string>
+            }
+          )
         }
       )
 
@@ -2526,7 +2550,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               pricingModel
             )
 
-          const context = {
+          const context: TestResolveUsageMeterSlugsContext = {
             eventsWithUsageMeterSlugs: [
               {
                 index: 0,
@@ -2538,7 +2562,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
             slugToPriceIdMap: new Map(),
           }
 
-          return resolveUsageMeterSlugs(context as any)
+          return resolveUsageMeterSlugs(
+            context as WithSlugEventsContext & {
+              slugToPriceIdMap: Map<string, string>
+            }
+          )
         }
       )
 
@@ -2609,7 +2637,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             )
           }
 
-          const context = {
+          const context: TestResolveUsageMeterSlugsContext = {
             eventsWithUsageMeterSlugs: [
               {
                 index: 0,
@@ -2626,7 +2654,11 @@ describe('bulkInsertUsageEventsTransaction', () => {
             slugToPriceIdMap: new Map(),
           }
 
-          return resolveUsageMeterSlugs(context as any)
+          return resolveUsageMeterSlugs(
+            context as WithSlugEventsContext & {
+              slugToPriceIdMap: Map<string, string>
+            }
+          )
         }
       )
 

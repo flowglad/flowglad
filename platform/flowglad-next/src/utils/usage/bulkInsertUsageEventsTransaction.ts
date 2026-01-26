@@ -1,4 +1,3 @@
-import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import type { z } from 'zod'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -43,7 +42,7 @@ type BulkInsertUsageEventsInput = z.infer<
   typeof bulkInsertUsageEventsSchema
 >
 
-type SlugResolutionEvent = {
+export type SlugResolutionEvent = {
   index: number
   slug: string
   customerId: string
@@ -68,7 +67,7 @@ type WithSubscriptionsContext = BaseContext & {
   subscriptionsMap: Map<string, Subscription.Record>
 }
 
-type WithSlugEventsContext = WithSubscriptionsContext & {
+export type WithSlugEventsContext = WithSubscriptionsContext & {
   eventsWithPriceSlugs: SlugResolutionEvent[]
   eventsWithUsageMeterSlugs: SlugResolutionEvent[]
   pricingModelCache: Map<string, PricingModelSlugResolutionData>
@@ -77,7 +76,7 @@ type WithSlugEventsContext = WithSubscriptionsContext & {
   ) => PricingModelSlugResolutionData
 }
 
-type WithResolvedSlugsContext = WithSlugEventsContext & {
+export type WithResolvedSlugsContext = WithSlugEventsContext & {
   slugToPriceIdMap: Map<string, string>
   slugToUsageMeterIdMap: Map<string, string>
 }
@@ -855,10 +854,7 @@ async function resolveDefaultPricesForMeterEvents(
     }
     defaultPriceByUsageMeterId.set(usageMeterId, defaultPrice.id)
     // Add the default price to the prices map so downstream code can access it
-    updatedPricesMap.set(
-      defaultPrice.id,
-      defaultPrice as NonNullable<typeof defaultPrice>
-    )
+    updatedPricesMap.set(defaultPrice.id, defaultPrice)
   }
 
   // Update events to use the resolved default prices
