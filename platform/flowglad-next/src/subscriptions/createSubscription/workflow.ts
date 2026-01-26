@@ -213,9 +213,14 @@ export const createSubscriptionWorkflow = async (
         transaction
       )
       // Fetch price record to check trial eligibility
-      const price = (
-        await selectPriceById(params.price.id, transaction)
-      ).unwrap()
+      const priceResult = await selectPriceById(
+        params.price.id,
+        transaction
+      )
+      if (Result.isError(priceResult)) {
+        return Result.err(new NotFoundError('Price', params.price.id))
+      }
+      const price = priceResult.value
 
       // Calculate trial eligibility (returns undefined for non-subscription prices)
       const isEligibleForTrial = await calculateTrialEligibility(
