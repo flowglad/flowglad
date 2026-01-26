@@ -15,11 +15,7 @@ export function DebugClient() {
 
   const userId = session?.user?.id ?? 'Not available'
   const activeOrganizationId =
-    (
-      session?.session as
-        | { activeOrganizationId?: string }
-        | undefined
-    )?.activeOrganizationId ?? 'Not available'
+    session?.session?.activeOrganizationId ?? 'Not available'
   const customerExternalId =
     billing.customer?.externalId ?? 'Not available'
   const billingJson = JSON.stringify(billing, null, 2)

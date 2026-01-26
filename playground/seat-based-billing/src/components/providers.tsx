@@ -1,6 +1,5 @@
 'use client'
 
-import { FlowgladProvider } from '@flowglad/nextjs'
 import {
   QueryClient,
   QueryClientProvider,
@@ -27,24 +26,14 @@ const getQueryClient = () => {
   return (clientQueryClientSingleton ??= createQueryClient())
 }
 
-export function ReactQueryProvider(props: {
+export const ReactQueryProvider = (props: {
   children: React.ReactNode
-}) {
+}) => {
   const queryClient = getQueryClient()
 
   return (
     <QueryClientProvider client={queryClient}>
       {props.children}
     </QueryClientProvider>
-  )
-}
-
-export function FlowgladProviderWrapper(props: {
-  children: React.ReactNode
-}) {
-  return (
-    <FlowgladProvider betterAuthBasePath="/api/auth">
-      {props.children}
-    </FlowgladProvider>
   )
 }

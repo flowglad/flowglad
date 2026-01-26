@@ -10,8 +10,9 @@ import {
   endpointKeyToActionKey,
   type FlowgladBetterAuthPluginOptions,
   flowgladPlugin,
+  getOrganizationDetails,
   resolveCustomerExternalId,
-} from './better-auth'
+} from '.'
 
 describe('resolveCustomerExternalId', () => {
   const baseSession: BetterAuthSessionResult = {
@@ -100,6 +101,149 @@ describe('resolveCustomerExternalId', () => {
         )
       }
     })
+  })
+})
+
+describe('getOrganizationDetails', () => {
+  type Row = Record<string, string>
+
+  class InMemoryAdapter {
+    private readonly data: Record<string, Row[]>
+
+    public constructor(data: Record<string, Row[]>) {
+      this.data = data
+    }
+
+    public findOne = async (args: {
+      model: string
+      where: { field: string; value: string }[]
+    }): Promise<unknown> => {
+      const rows = this.data[args.model] ?? []
+      const found =
+        rows.find((row) =>
+          args.where.every(
+            (clause) => row[clause.field] === clause.value
+          )
+        ) ?? null
+      return found
+    }
+
+    public findMany = async (args: {
+      model: string
+      where: { field: string; value: string }[]
+    }): Promise<unknown> => {
+      const rows = this.data[args.model] ?? []
+      return rows.filter((row) =>
+        args.where.every(
+          (clause) => row[clause.field] === clause.value
+        )
+      )
+    }
+  }
+
+  it('returns org id + name and owner email when user is a member but not the owner', async () => {
+    const adapter = new InMemoryAdapter({
+      organization: [{ id: 'org-1', name: 'Acme Inc', slug: 'acme' }],
+      member: [
+        {
+          userId: 'user-member',
+          organizationId: 'org-1',
+          role: 'member',
+        },
+        {
+          userId: 'user-owner',
+          organizationId: 'org-1',
+          role: 'owner',
+        },
+      ],
+      user: [{ id: 'user-owner', email: 'owner@acme.com' }],
+    })
+
+    const result = await getOrganizationDetails({
+      adapter,
+      organizationId: 'org-1',
+      userId: 'user-member',
+      creatorRole: 'owner',
+    })
+
+    expect(result).toEqual({
+      id: 'org-1',
+      name: 'Acme Inc',
+      email: 'owner@acme.com',
+    })
+  })
+
+  it('returns owner email when the requesting member has the creatorRole', async () => {
+    const adapter = new InMemoryAdapter({
+      organization: [{ id: 'org-1', name: 'Acme Inc', slug: 'acme' }],
+      member: [
+        {
+          userId: 'user-owner',
+          organizationId: 'org-1',
+          role: 'owner',
+        },
+      ],
+      user: [{ id: 'user-owner', email: 'owner@acme.com' }],
+    })
+
+    const result = await getOrganizationDetails({
+      adapter,
+      organizationId: 'org-1',
+      userId: 'user-owner',
+      creatorRole: 'owner',
+    })
+
+    expect(result).toEqual({
+      id: 'org-1',
+      name: 'Acme Inc',
+      email: 'owner@acme.com',
+    })
+  })
+
+  it('returns null when the requesting user is not a member of the organization', async () => {
+    const adapter = new InMemoryAdapter({
+      organization: [{ id: 'org-1', name: 'Acme Inc', slug: 'acme' }],
+      member: [
+        {
+          userId: 'user-owner',
+          organizationId: 'org-1',
+          role: 'owner',
+        },
+      ],
+      user: [{ id: 'user-owner', email: 'owner@acme.com' }],
+    })
+
+    const result = await getOrganizationDetails({
+      adapter,
+      organizationId: 'org-1',
+      userId: 'user-stranger',
+      creatorRole: 'owner',
+    })
+
+    expect(result).toBe(null)
+  })
+
+  it('falls back to org slug and empty email when org exists but owner email cannot be determined', async () => {
+    const adapter = new InMemoryAdapter({
+      organization: [{ id: 'org-1', slug: 'acme' }],
+      member: [
+        {
+          userId: 'user-member',
+          organizationId: 'org-1',
+          role: 'member',
+        },
+      ],
+      user: [],
+    })
+
+    const result = await getOrganizationDetails({
+      adapter,
+      organizationId: 'org-1',
+      userId: 'user-member',
+      creatorRole: 'owner',
+    })
+
+    expect(result).toEqual({ id: 'org-1', name: 'acme', email: '' })
   })
 })
 
