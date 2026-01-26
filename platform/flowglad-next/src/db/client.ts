@@ -78,7 +78,15 @@ let UNKNOWN_TEST_FILE: string | undefined
 /**
  * Get the test context for the current file.
  * Looks up the correct context based on the calling test file.
- * Falls back to the shared context key if no file-specific context exists.
+ * Falls back to any available context with an active transaction.
+ *
+ * The lookup strategy is:
+ * 1. Try to find context by detected file path
+ * 2. Fall back to UNKNOWN_TEST_FILE (shared context)
+ * 3. Fall back to ANY context with inTransaction=true
+ *
+ * This aggressive fallback ensures that if test isolation is active,
+ * all db operations go through the isolated connection.
  */
 function getTestContextForCurrentFile(): FileTestContext | null {
   // Only attempt test context lookup in test mode
@@ -105,11 +113,11 @@ function getTestContextForCurrentFile(): FileTestContext | null {
   const contexts = globalThis.__testContexts as
     | Map<string, FileTestContext>
     | undefined
-  if (!contexts) {
+  if (!contexts || contexts.size === 0) {
     return null
   }
 
-  // Find the context for the current test file
+  // Strategy 1: Find context by detected file path
   const filePath = getCurrentTestFileOrNull?.()
   if (filePath) {
     const ctx = contexts.get(filePath)
@@ -118,13 +126,19 @@ function getTestContextForCurrentFile(): FileTestContext | null {
     }
   }
 
-  // Fall back to the shared context key
-  // This handles the case where beginOuterTransaction() ran from a setup file
-  // (storing context under the fallback key) but we're querying from a test file
+  // Strategy 2: Fall back to the shared context key (UNKNOWN_TEST_FILE)
   if (UNKNOWN_TEST_FILE) {
     const fallbackCtx = contexts.get(UNKNOWN_TEST_FILE)
     if (fallbackCtx?.db && fallbackCtx.inTransaction) {
       return fallbackCtx
+    }
+  }
+
+  // Strategy 3: Fall back to ANY context with an active transaction
+  // This handles edge cases where file detection fails but isolation is active
+  for (const ctx of contexts.values()) {
+    if (ctx?.db && ctx.inTransaction) {
+      return ctx
     }
   }
 
