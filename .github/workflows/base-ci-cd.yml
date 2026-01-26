@@ -132,8 +132,7 @@ jobs:
         run: bun run build
 
   packages-test:
-    # Only run unit tests in the merge queue as the final pre-merge check.
-    if: github.event_name == 'merge_group'
+    # Run unit tests on every CI run (PRs and merge queue)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
