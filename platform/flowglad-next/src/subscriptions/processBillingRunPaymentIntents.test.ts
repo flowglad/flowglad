@@ -1405,10 +1405,12 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     // Get the billing period
     const testBillingPeriod = await adminTransaction(
       async ({ transaction }) => {
-        return selectBillingPeriodById(
-          testBillingRun.billingPeriodId,
-          transaction
-        )
+        return (
+          await selectBillingPeriodById(
+            testBillingRun.billingPeriodId,
+            transaction
+          )
+        ).unwrap()
       }
     )
 
@@ -1592,10 +1594,12 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     // Get the billing period
     const testBillingPeriod = await adminTransaction(
       async ({ transaction }) => {
-        return selectBillingPeriodById(
-          testBillingRun.billingPeriodId,
-          transaction
-        )
+        return (
+          await selectBillingPeriodById(
+            testBillingRun.billingPeriodId,
+            transaction
+          )
+        ).unwrap()
       }
     )
 
@@ -1773,10 +1777,12 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     const testBillingPeriod = await adminTransaction(
       async ({ transaction }) => {
-        return selectBillingPeriodById(
-          testBillingRun.billingPeriodId,
-          transaction
-        )
+        return (
+          await selectBillingPeriodById(
+            testBillingRun.billingPeriodId,
+            transaction
+          )
+        ).unwrap()
       }
     )
 
