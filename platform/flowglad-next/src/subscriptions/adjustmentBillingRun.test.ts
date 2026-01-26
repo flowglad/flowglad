@@ -1062,8 +1062,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     // Verify subscription record was synced
     const updatedSubscription = await adminTransaction(
-      ({ transaction }) =>
-        selectSubscriptionById(subscription.id, transaction)
+      async ({ transaction }) =>
+        (
+          await selectSubscriptionById(subscription.id, transaction)
+        ).unwrap()
     )
 
     // Subscription should reflect the most expensive item (the new higher price)

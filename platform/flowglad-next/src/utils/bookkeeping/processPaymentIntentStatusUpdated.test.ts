@@ -657,10 +657,12 @@ describe('Process payment intent status updated', async () => {
               enqueueLedgerCommand: enqueueLedgerCommand!,
             }
           )
-          const invoice = await selectInvoiceById(
-            fakePayment.invoiceId,
-            transaction
-          )
+          const invoice = (
+            await selectInvoiceById(
+              fakePayment.invoiceId,
+              transaction
+            )
+          ).unwrap()
           expect(invoice.status).toEqual(InvoiceStatus.Paid)
         }
       )

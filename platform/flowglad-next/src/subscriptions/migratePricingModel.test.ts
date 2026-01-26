@@ -1358,7 +1358,9 @@ describe('Pricing Model Migration Test Suite', async () => {
       // Verify customer in database was updated
       const updatedCustomer = await adminTransaction(
         async ({ transaction }) => {
-          return await selectCustomerById(customer.id, transaction)
+          return (
+            await selectCustomerById(customer.id, transaction)
+          ).unwrap()
         }
       )
       expect(updatedCustomer.pricingModelId).toBe(pricingModel2.id)

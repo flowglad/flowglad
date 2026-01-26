@@ -1109,7 +1109,9 @@ describe('Customer uniqueness constraints', () => {
       // Verify customer2 still has its original externalId
       const unchangedCustomer = await adminTransaction(
         async ({ transaction }) => {
-          return await selectCustomerById(customer2.id, transaction)
+          return (
+            await selectCustomerById(customer2.id, transaction)
+          ).unwrap()
         }
       )
       expect(unchangedCustomer.externalId).toBe(externalId2)
@@ -1706,7 +1708,9 @@ describe('Customer uniqueness constraints', () => {
       // Verify customer2 still has its original stripeCustomerId
       const unchangedCustomer = await adminTransaction(
         async ({ transaction }) => {
-          return await selectCustomerById(customer2.id, transaction)
+          return (
+            await selectCustomerById(customer2.id, transaction)
+          ).unwrap()
         }
       )
       expect(unchangedCustomer.stripeCustomerId).toBe(stripeId2)

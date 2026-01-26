@@ -2114,14 +2114,12 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
     const afterWorkflow = Date.now()
 
     await adminTransaction(async ({ transaction }) => {
-      const canceledFree = await selectSubscriptionById(
-        freeSubscription.id,
-        transaction
-      )
-      const upgraded = await selectSubscriptionById(
-        paidSubscription.id,
-        transaction
-      )
+      const canceledFree = (
+        await selectSubscriptionById(freeSubscription.id, transaction)
+      ).unwrap()
+      const upgraded = (
+        await selectSubscriptionById(paidSubscription.id, transaction)
+      ).unwrap()
 
       // Free subscription should be canceled and linked to new paid subscription
       expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
@@ -2239,14 +2237,12 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
     ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
-      const canceledFree = await selectSubscriptionById(
-        freeSubscription.id,
-        transaction
-      )
-      const upgraded = await selectSubscriptionById(
-        paidSubscription.id,
-        transaction
-      )
+      const canceledFree = (
+        await selectSubscriptionById(freeSubscription.id, transaction)
+      ).unwrap()
+      const upgraded = (
+        await selectSubscriptionById(paidSubscription.id, transaction)
+      ).unwrap()
 
       // Free subscription should still be canceled and linked
       expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)

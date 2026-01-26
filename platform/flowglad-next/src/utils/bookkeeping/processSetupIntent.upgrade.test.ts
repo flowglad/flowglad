@@ -205,10 +205,12 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // Verify free subscription was canceled
       const updatedFreeSubscription = await adminTransaction(
         async ({ transaction }) => {
-          return await selectSubscriptionById(
-            freeSubscription.id,
-            transaction
-          )
+          return (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
         }
       )
       expect(updatedFreeSubscription.status).toBe(
@@ -514,10 +516,12 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // Verify free subscription was canceled
       const updatedFreeSubscription = await adminTransaction(
         async ({ transaction }) => {
-          return await selectSubscriptionById(
-            freeSubscription.id,
-            transaction
-          )
+          return (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
         }
       )
       expect(updatedFreeSubscription.status).toBe(
@@ -530,10 +534,12 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // Verify original paid subscription remains active
       const updatedExistingPaid = await adminTransaction(
         async ({ transaction }) => {
-          return await selectSubscriptionById(
-            existingPaidSubscription.id,
-            transaction
-          )
+          return (
+            await selectSubscriptionById(
+              existingPaidSubscription.id,
+              transaction
+            )
+          ).unwrap()
         }
       )
       expect(updatedExistingPaid.status).toBe(
@@ -646,10 +652,12 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       // Verify free subscription remains active
       const updatedFreeSubscription = await adminTransaction(
         async ({ transaction }) => {
-          return await selectSubscriptionById(
-            freeSubscription.id,
-            transaction
-          )
+          return (
+            await selectSubscriptionById(
+              freeSubscription.id,
+              transaction
+            )
+          ).unwrap()
         }
       )
       expect(updatedFreeSubscription.status).toBe(
