@@ -15,6 +15,7 @@ bun run init:flowglad-next
 
 **Note:** This requires two environment variables to be set:
 - `FLOWGLAD_VERCEL_PROJECT_ID` - The Vercel project ID
+- `FLOWGLAD_VERCEL_ORG_ID` - The Vercel organization ID
 - `FLOWGLAD_LOCAL_USER` - Your local username for env var prefixing (e.g., BROOKS)
 
 ## Resources
