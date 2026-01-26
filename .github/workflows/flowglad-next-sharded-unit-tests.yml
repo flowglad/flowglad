@@ -5,6 +5,9 @@
 # - DB tests (*.db.test.ts) - Slower, requires postgres, sharded across 4 jobs
 # - RLS tests (*.rls.test.ts) - Row Level Security tests, requires postgres, sharded across 2 jobs with serial execution
 # - Frontend tests (.test.tsx) - React components via vitest with jsdom
+#
+# Note: Behavior tests (*.behavior.test.ts) are not run in CI - they require
+# additional setup and are intended for local development with real credentials.
 name: Flowglad Next Unit Tests
 
 # This workflow is designed to be called by other workflows

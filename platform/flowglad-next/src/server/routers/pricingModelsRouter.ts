@@ -28,7 +28,6 @@ import {
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   idInputSchema,
-  NotFoundError,
 } from '@/db/tableUtils'
 import { protectedProcedure, router } from '@/server/trpc'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
@@ -248,25 +247,25 @@ const clonePricingModelProcedure = protectedProcedure
     })
   )
   .mutation(async ({ input, ctx }) => {
-    const pricingModel = await authenticatedTransaction(
+    const pricingModelResult = await authenticatedTransaction(
       async ({ transaction }) => {
-        return (
-          await selectPricingModelById(input.id, transaction)
-        ).unwrap()
+        return await selectPricingModelById(input.id, transaction)
       },
       {
         apiKey: ctx.apiKey,
       }
-    ).catch((error) => {
-      if (error instanceof NotFoundError) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message:
-            'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
-        })
-      }
-      throw error
-    })
+    )
+
+    if (Result.isError(pricingModelResult)) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message:
+          'The pricing model you are trying to clone either does not exist or you do not have permission to clone it.',
+      })
+    }
+
+    // pricingModelResult.value contains the pricing model but we don't need it -
+    // the authorization check above ensures the user can access it.
 
     /**
      * We intentionally use adminTransaction here to allow cloning pricing models
