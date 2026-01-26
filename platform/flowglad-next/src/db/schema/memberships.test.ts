@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { setupMemberships, setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import { selectCountries } from '@/db/tableMethods/countryMethods'
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type NotificationPreferences,
@@ -15,6 +16,25 @@ import {
 } from '@/db/tableMethods/membershipMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
 import core from '@/utils/core'
+import { cardPaymentsCountries } from '@/utils/countries'
+import { createOrganizationTransaction } from '@/utils/organizationHelpers'
+
+const getPlatformEligibleCountryId = async (
+  transaction: Parameters<typeof selectCountries>[1]
+) => {
+  const countries = await selectCountries({}, transaction)
+  const platformEligibleCountry = countries.find((country) =>
+    cardPaymentsCountries.includes(country.code)
+  )
+
+  if (!platformEligibleCountry) {
+    throw new Error(
+      'Expected at least one platform-eligible country in the database.'
+    )
+  }
+
+  return platformEligibleCountry.id
+}
 
 describe('memberships schema', () => {
   let organization: Organization.Record
@@ -22,6 +42,84 @@ describe('memberships schema', () => {
   beforeEach(async () => {
     const setup = await setupOrg()
     organization = setup.organization
+  })
+
+  describe('role and deactivatedAt columns', () => {
+    it('includes role column with default value of member', async () => {
+      const organizationName = core.nanoid()
+      let membershipId: string
+
+      await adminTransaction(async ({ transaction }) => {
+        const countryId =
+          await getPlatformEligibleCountryId(transaction)
+        const result = await createOrganizationTransaction(
+          {
+            organization: {
+              name: organizationName,
+              countryId,
+            },
+          },
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
+        membershipId = result.membership.id
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const memberships = await selectMemberships(
+          {
+            id: membershipId!,
+          },
+          transaction
+        )
+        expect(memberships.length).toBe(1)
+        const membership = memberships[0]
+        expect(membership.role).toBe('member')
+      })
+    })
+
+    it('includes nullable deactivatedAt column', async () => {
+      const organizationName = core.nanoid()
+      let membershipId: string
+
+      await adminTransaction(async ({ transaction }) => {
+        const countryId =
+          await getPlatformEligibleCountryId(transaction)
+        const result = await createOrganizationTransaction(
+          {
+            organization: {
+              name: organizationName,
+              countryId,
+            },
+          },
+          {
+            id: core.nanoid(),
+            email: `test+${core.nanoid()}@test.com`,
+            fullName: 'Test User',
+          },
+          transaction,
+          { type: 'admin', livemode: true }
+        )
+        membershipId = result.membership.id
+      })
+
+      await adminTransaction(async ({ transaction }) => {
+        const memberships = await selectMemberships(
+          {
+            id: membershipId!,
+          },
+          transaction
+        )
+        expect(memberships.length).toBe(1)
+        const membership = memberships[0]
+        expect(membership.deactivatedAt).toBe(null)
+      })
+    })
   })
 
   describe('notificationPreferences', () => {

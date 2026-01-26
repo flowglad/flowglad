@@ -744,6 +744,11 @@ export enum StripeConnectContractType {
   MerchantOfRecord = 'merchant_of_record',
 }
 
+export enum MembershipRole {
+  Owner = 'owner',
+  Member = 'member',
+}
+
 export enum BillingPeriodStatus {
   Upcoming = 'upcoming',
   Active = 'active',
