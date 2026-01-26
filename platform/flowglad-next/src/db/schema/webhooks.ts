@@ -116,4 +116,5 @@ export type EditWebhookInput = z.infer<typeof editWebhookInputSchema>
 
 export const webhooksTableRowDataSchema = z.object({
   webhook: webhookClientSelectSchema,
+  pricingModelName: z.string().nullable(),
 })
