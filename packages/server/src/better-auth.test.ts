@@ -420,6 +420,46 @@ describe('externalId injection into validators', () => {
         expect(result.data).toHaveProperty('priceId', 'price-123')
       }
     })
+
+    it('GetUsageMeterBalances validator accepts empty object', () => {
+      const validator =
+        flowgladActionValidators[
+          FlowgladActionKey.GetUsageMeterBalances
+        ]
+      const result = validator.inputValidator.safeParse({})
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).toEqual({})
+      }
+    })
+
+    it('GetUsageMeterBalances validator accepts subscriptionId filter', () => {
+      const validator =
+        flowgladActionValidators[
+          FlowgladActionKey.GetUsageMeterBalances
+        ]
+      const result = validator.inputValidator.safeParse({
+        subscriptionId: 'sub_123',
+      })
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data).toEqual({ subscriptionId: 'sub_123' })
+      }
+    })
+
+    it('GetUsageMeterBalances validator rejects unknown keys (strict)', () => {
+      const validator =
+        flowgladActionValidators[
+          FlowgladActionKey.GetUsageMeterBalances
+        ]
+      const result = validator.inputValidator.safeParse({
+        unknown: 'value',
+      })
+
+      expect(result.success).toBe(false)
+    })
   })
 
   describe('externalId override security', () => {

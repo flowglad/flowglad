@@ -95,12 +95,9 @@ export const customerUsageBalancesRouteConfig: Record<
   'GET /customers/:externalId/usage-balances': {
     procedure: 'customers.getUsageBalances',
     pattern: /^customers\/([^\\/]+)\/usage-balances$/,
-    mapParams: (matches, body) => {
+    mapParams: (matches) => {
       return {
         externalId: matches[0],
-        ...(body?.subscriptionId
-          ? { subscriptionId: body.subscriptionId }
-          : {}),
       }
     },
   },
