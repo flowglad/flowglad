@@ -1,5 +1,5 @@
 {
-  "id": "b75bed7f-ff87-41fc-9b30-22c7a265500a",
+  "id": "8754cd6f-4cba-4d0c-bb6b-73e31cc03cbe",
   "prevId": "1b7d786d-52b8-48b5-9082-135f2b0c6fe5",
   "version": "7",
   "dialect": "postgresql",
@@ -1862,8 +1862,8 @@
           "method": "btree",
           "with": {}
         },
-        "customers_pricing_model_id_external_id_unique_idx": {
-          "name": "customers_pricing_model_id_external_id_unique_idx",
+        "customers_pricing_model_id_external_id_unique_idx_partial": {
+          "name": "customers_pricing_model_id_external_id_unique_idx_partial",
           "columns": [
             {
               "expression": "pricing_model_id",
@@ -1879,6 +1879,7 @@
             }
           ],
           "isUnique": true,
+          "where": "\"customers\".\"archived\" = false",
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -5365,20 +5366,6 @@
           "primaryKey": false,
           "notNull": false,
           "default": "'{}'::jsonb"
-        },
-        "role": {
-          "name": "role",
-          "type": "MembershipRole",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'member'"
-        },
-        "deactivated_at": {
-          "name": "deactivated_at",
-          "type": "timestamptz",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {
@@ -5489,14 +5476,14 @@
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": ["merchant"],
-          "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id() AND (current_auth_type() = 'api_key' OR \"focused\" = true) AND \"deactivated_at\" IS NULL"
+          "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id() AND (current_auth_type() = 'api_key' OR \"focused\" = true)"
         },
         "Enable update for own membership in current organization": {
           "name": "Enable update for own membership in current organization",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": ["merchant"],
-          "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id() AND \"deactivated_at\" IS NULL",
+          "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()",
           "withCheck": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()"
         }
       },
@@ -11877,13 +11864,7 @@
       "isRLSEnabled": true
     }
   },
-  "enums": {
-    "public.MembershipRole": {
-      "name": "MembershipRole",
-      "schema": "public",
-      "values": ["owner", "member"]
-    }
-  },
+  "enums": {},
   "schemas": {},
   "sequences": {},
   "roles": {},
