@@ -1,6 +1,6 @@
 You are creating a new changelog announcement. These changelog notes will be used to also generate a github release as well. Please generate a new changelog file in the following format.
 
-Use the git log to determine what changes in packages/* have happened since the last changelog. Group the notes thematically into sections. They may be grouped around new features, improvements, bug fixes, etc.
+Use the git log to determine what changes in packages/* have happened since the last changelog (search the git log for the last time we had a commit "chore: version packages"). Group the notes thematically into sections. They may be grouped around new features, improvements, bug fixes, etc.
 
 Include links to commits for each of the changes.
 
