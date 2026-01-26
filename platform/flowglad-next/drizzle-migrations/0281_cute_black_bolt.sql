@@ -1,2 +1,0 @@
-DROP INDEX IF EXISTS "customers_pricing_model_id_external_id_unique_idx";--> statement-breakpoint
-CREATE UNIQUE INDEX IF NOT EXISTS "customers_pricing_model_id_external_id_unique_idx_partial" ON "customers" USING btree ("pricing_model_id","external_id") WHERE "customers"."archived" = false;
