@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { setupMemberships, setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCountries } from '@/db/tableMethods/countryMethods'
 import {
   DEFAULT_NOTIFICATION_PREFERENCES,
   type NotificationPreferences,
 } from '@/db/schema/memberships'
 import type { Organization } from '@/db/schema/organizations'
+import { selectCountries } from '@/db/tableMethods/countryMethods'
 import {
   getMembershipNotificationPreferences,
   insertMembership,
