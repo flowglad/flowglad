@@ -603,10 +603,10 @@ export class FlowgladServer {
     params?: GetUsageMeterBalancesParams
   ): Promise<GetUsageMeterBalancesResponse> => {
     const customer = await this.findOrCreateCustomer()
-    return this.flowgladNode.post(
+    return this.flowgladNode.get(
       `/api/v1/customers/${customer.externalId}/usage-balances`,
       {
-        body: params ?? {},
+        query: params ?? {},
       }
     )
   }
