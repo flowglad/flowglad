@@ -6402,9 +6402,17 @@
                       },
                       "active": {
                         "type": "boolean"
+                      },
+                      "pricingModelId": {
+                        "type": "string"
                       }
                     },
-                    "required": ["filterTypes", "url", "name"]
+                    "required": [
+                      "filterTypes",
+                      "url",
+                      "name",
+                      "pricingModelId"
+                    ]
                   }
                 },
                 "required": ["webhook"]
