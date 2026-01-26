@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm'
 import {
   boolean,
-  integer,
   jsonb,
   pgEnum,
   pgTable,
@@ -22,6 +21,7 @@ import {
   notNullStringForeignKey,
   type SelectConditions,
   tableBase,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
 import { MembershipRole } from '@/types'
 
@@ -54,7 +54,7 @@ export const memberships = pgTable(
     role: membershipRoleEnum()
       .notNull()
       .default(MembershipRole.Member),
-    deactivatedAt: integer('deactivated_at'),
+    deactivatedAt: timestampWithTimezoneColumn('deactivated_at'),
   },
   (table) => {
     return [
@@ -142,6 +142,7 @@ export const {
       .partial()
       .nullable()
       .optional(),
+    role: z.enum([MembershipRole.Owner, MembershipRole.Member]),
   },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
@@ -155,6 +156,7 @@ export const {
       organizationId: true,
       livemode: true,
       role: true,
+      deactivatedAt: true,
     },
     createOnlyColumns: {},
   },

@@ -1,5 +1,5 @@
 {
-  "id": "989e6738-f00d-408e-9fdc-dd91c9e8b5a9",
+  "id": "09c124aa-1886-4fee-84ac-b40a585fb9c7",
   "prevId": "32619e31-218d-49e0-83d8-b35d09ce99f2",
   "version": "7",
   "dialect": "postgresql",
@@ -5346,7 +5346,7 @@
         },
         "deactivated_at": {
           "name": "deactivated_at",
-          "type": "integer",
+          "type": "timestamptz",
           "primaryKey": false,
           "notNull": false
         }
