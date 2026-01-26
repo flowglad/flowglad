@@ -1,10 +1,9 @@
-# This workflow runs the unit tests
-# for flowglad-next with bun test (backend) and vitest (frontend).
+# This workflow runs the tests for flowglad-next.
 #
-# Backend tests run via bun test with file-based sharding:
-# - Unit tests (*.unit.test.ts) use bun.unit.setup.ts
-# - DB tests (*.db.test.ts) use bun.db.test.setup.ts
-# Frontend tests (.test.tsx) run via vitest with jsdom environment.
+# Test categories:
+# - Unit tests (*.unit.test.ts) - Fast, no database, single job
+# - DB tests (*.db.test.ts) - Slower, requires postgres, sharded across 4 jobs
+# - Frontend tests (.test.tsx) - React components via vitest with jsdom
 #
 # Note: RLS tests run as part of test:integration in the merge queue only,
 # since they require sequential execution due to shared database connection pools.
@@ -16,9 +15,42 @@ on:
   workflow_call:
 
 jobs:
-  # Backend tests (.test.ts) run via bun test with file-based sharding
-  # Each shard runs a subset of test files for better performance
-  flowglad-next-backend-tests:
+  # Unit tests are fast and don't need a database - run in a single job
+  flowglad-next-unit-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: platform/flowglad-next
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        with:
+          node-version: '18'
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: '1.3.6'
+      - name: Install dependencies
+        run: bun run install-packages --no-progress
+      - name: Run unit tests
+        run: |
+          files=$(find src -name "*.unit.test.ts" | sort | tr '\n' ' ')
+          echo "Running $(echo "$files" | wc -w | tr -d ' ') unit test files"
+          if [ -n "$files" ]; then
+            echo "$files" | xargs bun test --preload ./bun.unit.setup.ts
+          else
+            echo "No unit test files found"
+          fi
+        env:
+          NODE_ENV: test
+          CLAUDECODE: 1
+
+  # DB tests require postgres and are sharded for performance
+  flowglad-next-db-tests:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -64,21 +96,10 @@ jobs:
         run: bun run migrations:push
         env:
           NODE_ENV: test
-      - name: Run sharded backend tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+      - name: Run sharded db tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: |
-          # Get sorted list of unit test files
-          unit_files=$(find src -name "*.unit.test.ts" | sort)
-          unit_total=$(echo "$unit_files" | grep -c . || echo 0)
-
-          # Get sorted list of db test files
-          db_files=$(find src -name "*.db.test.ts" | sort)
-          db_total=$(echo "$db_files" | grep -c . || echo 0)
-
-          # Combine all files for sharding
-          all_files=$(echo -e "$unit_files\n$db_files" | grep -v '^$' | sort)
-          total=$(echo "$all_files" | grep -c . || echo 0)
-
-          echo "Found $unit_total unit test files and $db_total db test files ($total total)"
+          files=$(find src -name "*.db.test.ts" | sort)
+          total=$(echo "$files" | grep -c . || echo 0)
 
           # Calculate shard size and file range
           shard_size=$(( (total + ${{ matrix.shardTotal }} - 1) / ${{ matrix.shardTotal }} ))
@@ -86,28 +107,14 @@ jobs:
           end=$(( start + shard_size - 1 ))
 
           # Get files for this shard
-          shard_files=$(echo "$all_files" | sed -n "${start},${end}p")
+          shard_files=$(echo "$files" | sed -n "${start},${end}p" | tr '\n' ' ')
 
           echo "Running shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}: files $start to $end of $total"
+          echo "Files: $shard_files"
 
-          # Separate unit and db test files in this shard
-          shard_unit_files=$(echo "$shard_files" | grep '\.unit\.test\.ts$' | tr '\n' ' ')
-          shard_db_files=$(echo "$shard_files" | grep '\.db\.test\.ts$' | tr '\n' ' ')
-
-          # Run unit tests with unit setup
-          if [ -n "$shard_unit_files" ]; then
-            echo "Running unit tests: $shard_unit_files"
-            echo "$shard_unit_files" | xargs bun test --preload ./bun.unit.setup.ts
-          fi
-
-          # Run db tests with db setup
-          if [ -n "$shard_db_files" ]; then
-            echo "Running db tests: $shard_db_files"
-            echo "$shard_db_files" | xargs bun test --preload ./bun.db.test.setup.ts
-          fi
-
-          # Check if any tests were run
-          if [ -z "$shard_unit_files" ] && [ -z "$shard_db_files" ]; then
+          if [ -n "$shard_files" ]; then
+            echo "$shard_files" | xargs bun test --preload ./bun.db.test.setup.ts
+          else
             echo "No files to test in this shard"
           fi
         env:
@@ -115,25 +122,8 @@ jobs:
           CLAUDECODE: 1
 
   # Frontend tests (.test.tsx) run via vitest with jsdom environment
-  # These are React component tests that need DOM APIs
   flowglad-next-frontend-tests:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:15
-        env:
-          POSTGRES_USER: test
-          POSTGRES_PASSWORD: test
-          POSTGRES_DB: test_db
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-          --health-start-period 10s
-
     defaults:
       run:
         working-directory: platform/flowglad-next
@@ -152,10 +142,6 @@ jobs:
           bun-version: '1.3.6'
       - name: Install dependencies
         run: bun run install-packages --no-progress
-      - name: Run database migrations
-        run: bun run migrations:push
-        env:
-          NODE_ENV: test
       - name: Run frontend tests
         run: bun run test:frontend
         env:
@@ -164,17 +150,19 @@ jobs:
   # Summary job that waits for all test jobs to complete
   test-summary:
     if: ${{ !cancelled() }}
-    needs: [flowglad-next-backend-tests, flowglad-next-frontend-tests]
+    needs: [flowglad-next-unit-tests, flowglad-next-db-tests, flowglad-next-frontend-tests]
     runs-on: ubuntu-latest
     steps:
       - name: Check test results
         run: |
           echo "All test jobs completed"
-          echo "Backend tests: ${{ needs.flowglad-next-backend-tests.result }}"
+          echo "Unit tests: ${{ needs.flowglad-next-unit-tests.result }}"
+          echo "DB tests: ${{ needs.flowglad-next-db-tests.result }}"
           echo "Frontend tests: ${{ needs.flowglad-next-frontend-tests.result }}"
 
           # Fail if any job failed
-          if [ "${{ needs.flowglad-next-backend-tests.result }}" = "failure" ] || \
+          if [ "${{ needs.flowglad-next-unit-tests.result }}" = "failure" ] || \
+             [ "${{ needs.flowglad-next-db-tests.result }}" = "failure" ] || \
              [ "${{ needs.flowglad-next-frontend-tests.result }}" = "failure" ]; then
             echo "One or more test jobs failed"
             exit 1
