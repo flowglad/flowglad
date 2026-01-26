@@ -2,8 +2,8 @@
  * @vitest-environment jsdom
  */
 
-import { describe, expect, it, mock, spyOn } from 'bun:test'
 import { act, renderHook } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import { RevenueChartIntervalUnit } from '@/types'
 import { useChartInterval } from './useChartInterval'
 
@@ -115,7 +115,7 @@ describe('useChartInterval', () => {
       const fromDate = new Date('2024-01-01T00:00:00Z')
       const toDate = new Date('2024-01-08T00:00:00Z')
       const controlledInterval = RevenueChartIntervalUnit.Day
-      const onIntervalChange = mock()
+      const onIntervalChange = vi.fn()
 
       const { result } = renderHook(() =>
         useChartInterval({
@@ -134,7 +134,7 @@ describe('useChartInterval', () => {
       const fromDate = new Date('2024-01-01T00:00:00Z')
       const toDate = new Date('2024-01-08T00:00:00Z')
       const controlledInterval = RevenueChartIntervalUnit.Day
-      const onIntervalChange = mock()
+      const onIntervalChange = vi.fn()
 
       const { result } = renderHook(() =>
         useChartInterval({
@@ -161,7 +161,7 @@ describe('useChartInterval', () => {
       let fromDate = new Date('2024-01-01T00:00:00Z')
       let toDate = new Date('2024-01-08T00:00:00Z')
       const controlledInterval = RevenueChartIntervalUnit.Week
-      const onIntervalChange = mock()
+      const onIntervalChange = vi.fn()
 
       const { result, rerender } = renderHook(() =>
         useChartInterval({

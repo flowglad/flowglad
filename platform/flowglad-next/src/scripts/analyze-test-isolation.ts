@@ -9,7 +9,7 @@
  *
  * Test file categories:
  * - *.unit.test.ts: Pure unit tests (no DB, strict mocking)
- * - *.dbtest.ts: DB-backed tests (transaction-isolated)
+ * - *.db.test.ts: DB-backed tests (transaction-isolated)
  * - *.integration.test.ts: Integration tests (real external APIs)
  * - *.test.ts: Legacy backend tests (should be migrated)
  */
@@ -22,7 +22,6 @@ const INTEGRATION_TESTS_DIR = path.resolve(
   __dirname,
   '../../integration-tests'
 )
-const SLOW_TESTS_DIR = path.resolve(__dirname, '../../slow-tests')
 const RLS_TESTS_DIR = path.resolve(__dirname, '../../rls-tests')
 
 interface TestFileAnalysis {
@@ -63,6 +62,12 @@ const STRIPE_PATTERNS = [
   /new\s+Stripe\(/,
 ]
 
+// Patterns that indicate a module is properly mocked (safe for unit tests)
+const STRIPE_MOCK_PATTERNS = [
+  /mock\.module\s*\(\s*['"]stripe['"]/,
+  /mock\.module\s*\(\s*['"]@\/utils\/stripe['"]/,
+]
+
 const REDIS_PATTERNS = [
   /import.*from\s+['"]@\/utils\/redis['"]/,
   /import.*from\s+['"]ioredis['"]/,
@@ -88,7 +93,7 @@ function getTestCategory(filePath: string): TestCategory {
   if (filePath.endsWith('.unit.test.ts')) {
     return 'unit'
   }
-  if (filePath.endsWith('.dbtest.ts')) {
+  if (filePath.endsWith('.db.test.ts')) {
     return 'dbtest'
   }
   if (
@@ -109,6 +114,14 @@ function matchesAnyPattern(
   patterns: RegExp[]
 ): boolean {
   return patterns.some((pattern) => pattern.test(content))
+}
+
+/**
+ * Check if stripe imports are properly mocked via mock.module().
+ * If both import and mock patterns are present, the import is considered safe.
+ */
+function isStripeProperyMocked(content: string): boolean {
+  return matchesAnyPattern(content, STRIPE_MOCK_PATTERNS)
 }
 
 function findTestFiles(dir: string, pattern: RegExp): string[] {
@@ -165,14 +178,18 @@ function analyzeTestFile(filePath: string): TestFileAnalysis {
   const importsTrigger = matchesAnyPattern(content, TRIGGER_PATTERNS)
   const importsUnkey = matchesAnyPattern(content, UNKEY_PATTERNS)
 
+  // Check if stripe is properly mocked (safe for unit tests)
+  const stripeIsMocked = isStripeProperyMocked(content)
+
   // Check for issues based on category
   if (category === 'unit') {
     if (importsTransaction) {
       issues.push(
-        'Unit test imports transaction functions - should be *.dbtest.ts'
+        'Unit test imports transaction functions - should be *.db.test.ts'
       )
     }
-    if (importsStripe) {
+    // Only flag stripe imports if they're NOT mocked
+    if (importsStripe && !stripeIsMocked) {
       issues.push(
         'Unit test imports Stripe - should mock or use *.integration.test.ts'
       )
@@ -187,7 +204,7 @@ function analyzeTestFile(filePath: string): TestFileAnalysis {
   if (category === 'legacy') {
     if (importsTransaction) {
       issues.push(
-        'Legacy test uses transactions - migrate to *.dbtest.ts'
+        'Legacy test uses transactions - migrate to *.db.test.ts'
       )
     }
     if (importsStripe || importsRedis || importsUnkey) {
@@ -195,7 +212,9 @@ function analyzeTestFile(filePath: string): TestFileAnalysis {
         'Legacy test uses external resources - migrate to appropriate category'
       )
     }
-    issues.push('Consider migrating to *.unit.test.ts or *.dbtest.ts')
+    issues.push(
+      'Consider migrating to *.unit.test.ts or *.db.test.ts'
+    )
   }
 
   return {
@@ -230,7 +249,7 @@ function printReport(analyses: TestFileAnalysis[]) {
     `  Unit tests (*.unit.test.ts):       ${categoryCounts.unit}`
   )
   console.log(
-    `  DB tests (*.dbtest.ts):            ${categoryCounts.dbtest}`
+    `  DB tests (*.db.test.ts):           ${categoryCounts.dbtest}`
   )
   console.log(
     `  Integration tests:                 ${categoryCounts.integration}`
@@ -342,7 +361,7 @@ function printReport(analyses: TestFileAnalysis[]) {
         test.importsTransaction ||
         test.importsStripe ||
         test.importsRedis
-          ? '-> *.dbtest.ts or *.integration.test.ts'
+          ? '-> *.db.test.ts or *.integration.test.ts'
           : '-> *.unit.test.ts'
       console.log(`  ${test.file} ${suggestion}`)
     }
@@ -354,11 +373,10 @@ function main() {
 
   // Find all test files
   const testPattern =
-    /\.(test|dbtest|unit\.test|integration\.test|rls\.test)\.tsx?$/
+    /\.(test|db\.test|unit\.test|integration\.test|rls\.test)\.tsx?$/
   const allTestFiles = [
     ...findTestFiles(SRC_DIR, testPattern),
     ...findTestFiles(INTEGRATION_TESTS_DIR, testPattern),
-    ...findTestFiles(SLOW_TESTS_DIR, testPattern),
     ...findTestFiles(RLS_TESTS_DIR, testPattern),
   ]
 

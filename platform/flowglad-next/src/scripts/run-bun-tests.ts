@@ -1,29 +1,21 @@
 #!/usr/bin/env bun
 /**
- * Test runner script that handles:
- * - Finding test files by pattern across multiple directories
- * - Gracefully skipping when no files match
- * - Running bun test with the correct preload file
+ * Test runner that finds files by pattern and runs them with the correct setup.
  *
- * Usage: bun run src/scripts/run-bun-tests.ts <setup-file> <pattern> <search-dirs...> [-- bun test options...]
+ * Why this exists (instead of raw `bun test`):
+ * - Gracefully exits 0 when no files match (bun would run ALL tests instead)
+ * - Ensures only intended test files run with each setup file
  *
- * Examples:
- *   bun run src/scripts/run-bun-tests.ts ./bun.unit.setup.ts '*.unit.test.ts' src
- *   bun run src/scripts/run-bun-tests.ts ./bun.db.test.setup.ts '*.db.test.ts' src --watch
- *   bun run src/scripts/run-bun-tests.ts ./bun.setup.ts '*.test.ts' src
- *   bun run src/scripts/run-bun-tests.ts ./bun.rls.setup.ts '*.rls.test.ts' integration-tests src --timeout 30000 --max-concurrency 1
+ * Usage: bun run src/scripts/run-bun-tests.ts <setup-file> <pattern> <dirs...> [options...]
  */
 
-import { execFileSync, spawn } from 'child_process'
+import { $ } from 'bun'
 
 const args = process.argv.slice(2)
 
 if (args.length < 3) {
   console.error(
-    'Usage: bun run src/scripts/run-bun-tests.ts <setup-file> <pattern> <search-dirs...> [bun test options...]'
-  )
-  console.error(
-    'Example: bun run src/scripts/run-bun-tests.ts ./bun.unit.setup.ts "*.unit.test.ts" src'
+    'Usage: run-bun-tests.ts <setup-file> <pattern> <dirs...> [options...]'
   )
   process.exit(1)
 }
@@ -31,21 +23,16 @@ if (args.length < 3) {
 const setupFile = args[0]
 const pattern = args[1]
 
-// Parse remaining args - directories come first, then options starting with --
+// Parse remaining args - directories first, then options starting with --
 const searchDirs: string[] = []
 const extraArgs: string[] = []
 let inOptions = false
 
 for (let i = 2; i < args.length; i++) {
   const arg = args[i]
-  if (arg.startsWith('--')) {
-    inOptions = true
-  }
-  if (inOptions) {
-    extraArgs.push(arg)
-  } else {
-    searchDirs.push(arg)
-  }
+  if (arg.startsWith('--')) inOptions = true
+  if (inOptions) extraArgs.push(arg)
+  else searchDirs.push(arg)
 }
 
 if (searchDirs.length === 0) {
@@ -53,24 +40,18 @@ if (searchDirs.length === 0) {
   process.exit(1)
 }
 
-// Find test files across all directories
-// Use execFileSync with array args to avoid shell injection and handle spaces in paths
-let files: string[] = []
-for (const searchDir of searchDirs) {
-  try {
-    const findOutput = execFileSync(
-      'find',
-      [searchDir, '-name', pattern, '-type', 'f'],
-      { encoding: 'utf-8' }
-    )
-    const dirFiles = findOutput
+// Find test files using Bun Shell
+const files: string[] = []
+for (const dir of searchDirs) {
+  const result = await $`find ${dir} -name ${pattern} -type f`
+    .nothrow()
+    .text()
+  files.push(
+    ...result
       .trim()
       .split('\n')
       .filter((f) => f.length > 0)
-    files = files.concat(dirFiles)
-  } catch {
-    // find command failed or returned empty for this directory - continue
-  }
+  )
 }
 
 if (files.length === 0) {
@@ -78,31 +59,17 @@ if (files.length === 0) {
   process.exit(0)
 }
 
-console.log(
-  `Found ${files.length} test file(s) matching ${pattern} in ${searchDirs.join(', ')}`
-)
+console.log(`Found ${files.length} ${pattern} file(s)`)
 
-// Build bun test command
-// Prefix file paths with './' so bun treats them as paths, not filter patterns
-// This is required for non-standard test file extensions like .db.test.ts
-const filePathsWithPrefix = files.map((f) =>
+// Prefix paths with './' so bun treats them as files, not filter patterns
+const filePaths = files.map((f) =>
   f.startsWith('./') || f.startsWith('/') ? f : `./${f}`
 )
 
-const bunArgs = [
-  'test',
-  '--preload',
-  setupFile,
-  ...extraArgs,
-  ...filePathsWithPrefix,
-]
-
 // Run bun test
-const child = spawn('bun', bunArgs, {
-  stdio: 'inherit',
-  env: process.env,
-})
+const proc = Bun.spawn(
+  ['bun', 'test', '--preload', setupFile, ...extraArgs, ...filePaths],
+  { stdio: ['inherit', 'inherit', 'inherit'] }
+)
 
-child.on('close', (code) => {
-  process.exit(code ?? 0)
-})
+process.exit(await proc.exited)
