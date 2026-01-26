@@ -108,9 +108,9 @@ export const customerUsageBalancesRouteConfig: Record<
 
 export const customerArchiveRouteConfig: Record<string, RouteConfig> =
   {
-    'POST /customer/:externalId/archive': {
+    'POST /customers/:externalId/archive': {
       procedure: 'customers.archive',
-      pattern: /^customer\/([^\\/]+)\/archive$/,
+      pattern: /^customers\/([^\\/]+)\/archive$/,
       mapParams: (matches) => {
         return {
           externalId: matches[0],
@@ -781,7 +781,7 @@ const archiveCustomerOutputSchema = z.object({
 const archiveCustomerProcedure = protectedProcedure
   .meta(
     createPostOpenApiMetaWithIdParam({
-      resource: 'customer',
+      resource: 'customers',
       routeSuffix: 'archive',
       summary: 'Archive Customer',
       tags: ['Customer'],

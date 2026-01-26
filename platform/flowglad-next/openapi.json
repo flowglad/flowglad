@@ -2255,7 +2255,7 @@
         }
       }
     },
-    "/api/v1/customer/{externalId}/archive": {
+    "/api/v1/customers/{externalId}/archive": {
       "post": {
         "operationId": "customers-archive",
         "summary": "Archive Customer",
