@@ -1,23 +1,32 @@
 import { HTTPMethod } from '@flowglad/shared'
 import { describe, expect, it, vi } from 'vitest'
 import type { FlowgladServer } from '../FlowgladServer'
+import {
+  assert200Success,
+  assert405MethodNotAllowed,
+  assertHandlerResponse,
+} from './test-utils'
 import { getUsageMeterBalances } from './usageMeterHandlers'
 
-/**
- * Mock data for testing usage meter handlers
- */
-const mockUsageMeterBalance = {
-  id: 'umb_123',
-  livemode: false,
-  name: 'API Calls',
-  slug: 'api-calls',
-  availableBalance: 1000,
-  subscriptionId: 'sub_test_123',
-}
+const mockUsageMeterBalances = [
+  {
+    id: 'umb_123',
+    livemode: true,
+    name: 'API Calls',
+    slug: 'api-calls',
+    availableBalance: 1000,
+    subscriptionId: 'sub_123',
+  },
+  {
+    id: 'umb_456',
+    livemode: true,
+    name: 'Storage',
+    slug: 'storage',
+    availableBalance: 500,
+    subscriptionId: 'sub_123',
+  },
+]
 
-/**
- * Creates a mock FlowgladServer for testing handlers
- */
 const createMockFlowgladServer = () => {
   const mockGetUsageMeterBalances = vi.fn()
 
@@ -35,63 +44,52 @@ const createMockFlowgladServer = () => {
 
 describe('Usage meter subroute handlers', () => {
   describe('getUsageMeterBalances handler', () => {
-    it('returns { status: 405, error: { code: "Method not allowed" } } for GET request', async () => {
+    it('returns 405 for GET request', async () => {
       const { server } = createMockFlowgladServer()
 
-      // Use type assertion to test non-POST method handling
       const result = await getUsageMeterBalances(
         {
-          method: HTTPMethod.GET as HTTPMethod.POST,
+          method: HTTPMethod.GET,
           data: {},
-        },
+        } as unknown as Parameters<typeof getUsageMeterBalances>[0],
         server
       )
 
-      expect(result.status).toBe(405)
-      expect(result.error).toEqual({
-        code: 'Method not allowed',
-        json: {},
-      })
-      expect(result.data).toEqual({})
+      assert405MethodNotAllowed(result)
     })
 
-    it('returns { status: 405, error } for PUT request', async () => {
+    it('returns 405 for PUT request', async () => {
       const { server } = createMockFlowgladServer()
 
-      // Use type assertion to test non-POST method handling
       const result = await getUsageMeterBalances(
         {
-          method: HTTPMethod.PUT as HTTPMethod.POST,
+          method: HTTPMethod.PUT,
           data: {},
-        },
+        } as unknown as Parameters<typeof getUsageMeterBalances>[0],
         server
       )
 
-      expect(result.status).toBe(405)
-      expect(result.error?.code).toBe('Method not allowed')
+      assert405MethodNotAllowed(result)
     })
 
-    it('returns { status: 405, error } for DELETE request', async () => {
+    it('returns 405 for DELETE request', async () => {
       const { server } = createMockFlowgladServer()
 
-      // Use type assertion to test non-POST method handling
       const result = await getUsageMeterBalances(
         {
-          method: HTTPMethod.DELETE as HTTPMethod.POST,
+          method: HTTPMethod.DELETE,
           data: {},
-        },
+        } as unknown as Parameters<typeof getUsageMeterBalances>[0],
         server
       )
 
-      expect(result.status).toBe(405)
-      expect(result.error?.code).toBe('Method not allowed')
+      assert405MethodNotAllowed(result)
     })
 
-    it('returns { status: 200, data: { usageMeterBalances } } for valid POST request', async () => {
+    it('returns balances via FlowgladServer.getUsageMeterBalances with empty params', async () => {
       const { server, mocks } = createMockFlowgladServer()
-      const mockBalances = [mockUsageMeterBalance]
       mocks.getUsageMeterBalances.mockResolvedValue({
-        usageMeterBalances: mockBalances,
+        usageMeterBalances: mockUsageMeterBalances,
       })
 
       const result = await getUsageMeterBalances(
@@ -102,19 +100,16 @@ describe('Usage meter subroute handlers', () => {
         server
       )
 
-      expect(result.status).toBe(200)
-      expect(result.data).toEqual({
-        usageMeterBalances: mockBalances,
-      })
-      expect(result.error).toBeUndefined()
       expect(mocks.getUsageMeterBalances).toHaveBeenCalledWith({})
+      assert200Success(result, {
+        usageMeterBalances: mockUsageMeterBalances,
+      })
     })
 
-    it('returns { status: 200, data: { usageMeterBalances } } when subscriptionId is provided', async () => {
+    it('returns balances filtered by subscriptionId', async () => {
       const { server, mocks } = createMockFlowgladServer()
-      const mockBalances = [mockUsageMeterBalance]
       mocks.getUsageMeterBalances.mockResolvedValue({
-        usageMeterBalances: mockBalances,
+        usageMeterBalances: mockUsageMeterBalances,
       })
 
       const result = await getUsageMeterBalances(
@@ -125,63 +120,15 @@ describe('Usage meter subroute handlers', () => {
         server
       )
 
-      expect(result.status).toBe(200)
-      expect(result.data).toEqual({
-        usageMeterBalances: mockBalances,
-      })
       expect(mocks.getUsageMeterBalances).toHaveBeenCalledWith({
         subscriptionId: 'sub_123',
       })
-    })
-
-    it('returns { status: 500, error: { code: "get_usage_meter_balances_failed", json: { message } } } when FlowgladServer throws', async () => {
-      const { server, mocks } = createMockFlowgladServer()
-      mocks.getUsageMeterBalances.mockRejectedValue(
-        new Error('User not authenticated')
-      )
-
-      const result = await getUsageMeterBalances(
-        {
-          method: HTTPMethod.POST,
-          data: {},
-        },
-        server
-      )
-
-      expect(result.status).toBe(500)
-      expect(result.error).toEqual({
-        code: 'get_usage_meter_balances_failed',
-        json: {
-          message: 'User not authenticated',
-        },
-      })
-      expect(result.data).toEqual({})
-    })
-
-    it('returns { status: 500, error } when server throws API error', async () => {
-      const { server, mocks } = createMockFlowgladServer()
-      mocks.getUsageMeterBalances.mockRejectedValue(
-        new Error('NOT_FOUND: Customer not found')
-      )
-
-      const result = await getUsageMeterBalances(
-        {
-          method: HTTPMethod.POST,
-          data: { subscriptionId: 'sub_nonexistent' },
-        },
-        server
-      )
-
-      expect(result.status).toBe(500)
-      expect(result.error?.code).toBe(
-        'get_usage_meter_balances_failed'
-      )
-      expect(result.error?.json).toEqual({
-        message: 'NOT_FOUND: Customer not found',
+      assert200Success(result, {
+        usageMeterBalances: mockUsageMeterBalances,
       })
     })
 
-    it('returns empty usageMeterBalances array when no balances exist', async () => {
+    it('returns empty array when no balances exist', async () => {
       const { server, mocks } = createMockFlowgladServer()
       mocks.getUsageMeterBalances.mockResolvedValue({
         usageMeterBalances: [],
@@ -195,25 +142,14 @@ describe('Usage meter subroute handlers', () => {
         server
       )
 
-      expect(result.status).toBe(200)
-      expect(result.data).toEqual({ usageMeterBalances: [] })
+      assert200Success(result, { usageMeterBalances: [] })
     })
 
-    it('returns balances via FlowgladServer.getUsageMeterBalances', async () => {
+    it('returns 500 with parsed error code when server throws Error with parseable message', async () => {
       const { server, mocks } = createMockFlowgladServer()
-      const mockBalances = [
-        mockUsageMeterBalance,
-        {
-          ...mockUsageMeterBalance,
-          id: 'umb_456',
-          slug: 'storage-gb',
-          name: 'Storage GB',
-          availableBalance: 50,
-        },
-      ]
-      mocks.getUsageMeterBalances.mockResolvedValue({
-        usageMeterBalances: mockBalances,
-      })
+      mocks.getUsageMeterBalances.mockRejectedValue(
+        new Error('404 {"message": "Customer not found"}')
+      )
 
       const result = await getUsageMeterBalances(
         {
@@ -223,11 +159,81 @@ describe('Usage meter subroute handlers', () => {
         server
       )
 
-      expect(result.status).toBe(200)
-      expect(result.data).toEqual({
-        usageMeterBalances: mockBalances,
+      assertHandlerResponse(result, {
+        status: 500,
+        error: {
+          code: '404',
+          json: { message: 'Customer not found' },
+        },
+        data: {},
       })
-      expect(mocks.getUsageMeterBalances).toHaveBeenCalledTimes(1)
+    })
+
+    it('returns 500 with "Unknown" code when server throws Error with non-parseable message', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      mocks.getUsageMeterBalances.mockRejectedValue(
+        new Error('Something went wrong')
+      )
+
+      const result = await getUsageMeterBalances(
+        {
+          method: HTTPMethod.POST,
+          data: {},
+        },
+        server
+      )
+
+      assertHandlerResponse(result, {
+        status: 500,
+        error: {
+          code: 'Unknown',
+          json: { message: 'Something went wrong' },
+        },
+        data: {},
+      })
+    })
+
+    it('returns 500 with "Unknown error" when server throws non-Error', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+      mocks.getUsageMeterBalances.mockRejectedValue('oops')
+
+      const result = await getUsageMeterBalances(
+        {
+          method: HTTPMethod.POST,
+          data: {},
+        },
+        server
+      )
+
+      assertHandlerResponse(result, {
+        status: 500,
+        error: {
+          code: 'Unknown error',
+          json: {},
+        },
+        data: {},
+      })
+    })
+
+    it('rejects unknown keys in input (strict schema)', async () => {
+      const { server, mocks } = createMockFlowgladServer()
+
+      const result = await getUsageMeterBalances(
+        {
+          method: HTTPMethod.POST,
+          // Cast to bypass TypeScript - we're intentionally testing Zod's strict() validation
+          data: {
+            subscriptionId: 'sub_123',
+            unknownKey: 'value',
+          } as unknown as { subscriptionId?: string },
+        },
+        server
+      )
+
+      // Should fail Zod strict() validation
+      expect(result.status).toBe(500)
+      expect(result.error?.code).toBe('Unknown')
+      expect(mocks.getUsageMeterBalances).not.toHaveBeenCalled()
     })
   })
 })

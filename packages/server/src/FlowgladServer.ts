@@ -576,6 +576,41 @@ export class FlowgladServer {
     return { pricingModel: billing.pricingModel }
   }
 
+  /**
+   * Get usage meter balances for the authenticated customer.
+   *
+   * By default, returns balances for all current subscriptions.
+   * Optionally filter by a specific subscriptionId.
+   *
+   * @param params - Optional parameters for fetching usage balances
+   * @param params.subscriptionId - Optional. Filter to a specific subscription.
+   *
+   * @returns A promise that resolves to an object containing usage meter balances
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get all usage meter balances for current subscriptions
+   * const { usageMeterBalances } = await flowglad.getUsageMeterBalances()
+   *
+   * @example
+   * // Get usage balances for a specific subscription
+   * const { usageMeterBalances } = await flowglad.getUsageMeterBalances({
+   *   subscriptionId: 'sub_123'
+   * })
+   */
+  public getUsageMeterBalances = async (
+    params?: GetUsageMeterBalancesParams
+  ): Promise<GetUsageMeterBalancesResponse> => {
+    const customer = await this.findOrCreateCustomer()
+    return this.flowgladNode.post(
+      `/api/v1/customers/${customer.externalId}/usage-balances`,
+      {
+        body: params ?? {},
+      }
+    )
+  }
+
   private deriveSubscriptionId = async (
     maybeSubscriptionId?: string
   ): Promise<string> => {
