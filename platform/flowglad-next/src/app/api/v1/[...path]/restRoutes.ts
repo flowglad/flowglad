@@ -3,6 +3,7 @@ import { checkoutSessionsRouteConfigs } from '@/server/routers/checkoutSessionsR
 import {
   customerBillingRouteConfig,
   customersRouteConfigs,
+  customerUsageBalancesRouteConfig,
 } from '@/server/routers/customersRouter'
 import { discountsRouteConfigs } from '@/server/routers/discountsRouter'
 import { featuresRouteConfigs } from '@/server/routers/featuresRouter'
@@ -68,6 +69,7 @@ export const routes: Record<string, RouteConfig> = {
   ...setupPricingModelRouteConfig,
   ...refundPaymentRouteConfig,
   ...customerBillingRouteConfig,
+  ...customerUsageBalancesRouteConfig,
   ...usageEventsBulkRouteConfig,
   ...discountsRouteConfigs,
   ...productsRouteConfigs,

@@ -96,10 +96,10 @@ describe('customersRouteConfigs', () => {
       expect(result).toEqual({ externalId: 'test-id' })
     })
 
-    it('should map POST /customers/:externalId/usage-balances to customers.getUsageBalances procedure', () => {
+    it('should map GET /customers/:externalId/usage-balances to customers.getUsageBalances procedure', () => {
       const routeConfig =
         customerUsageBalancesRouteConfig[
-          'POST /customers/:externalId/usage-balances'
+          'GET /customers/:externalId/usage-balances'
         ]
 
       expect(routeConfig).toMatchObject({
@@ -334,7 +334,7 @@ describe('customersRouteConfigs', () => {
         'GET /customers/:externalId/billing'
       ) // custom billing route
       expect(usageBalancesKeys).toContain(
-        'POST /customers/:externalId/usage-balances'
+        'GET /customers/:externalId/usage-balances'
       ) // custom usage balances route
 
       // Check that we have exactly the expected number of routes
@@ -419,7 +419,7 @@ describe('customersRouteConfigs', () => {
       // Test usage balances route separately
       const usageBalancesConfig =
         customerUsageBalancesRouteConfig[
-          'POST /customers/:externalId/usage-balances'
+          'GET /customers/:externalId/usage-balances'
         ]
       expect(usageBalancesConfig!.procedure).toBe(
         'customers.getUsageBalances'

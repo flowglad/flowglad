@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
 import {
+  setupBillingPeriod,
   setupCustomer,
   setupLedgerAccount,
   setupLedgerEntries,
@@ -9,6 +10,7 @@ import {
   setupPaymentMethod,
   setupPrice,
   setupSubscription,
+  setupUsageCredit,
   setupUsageMeter,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
@@ -25,6 +27,7 @@ import {
   LedgerTransactionType,
   PriceType,
   SubscriptionStatus,
+  UsageCreditType,
 } from '@/types'
 import { customersRouter } from './customersRouter'
 
@@ -127,6 +130,21 @@ describe('customers.getUsageBalances', () => {
   })
 
   it('returns balances for current subscriptions', async () => {
+    // Setup billing periods for subscriptions
+    const billingPeriod1 = await setupBillingPeriod({
+      subscriptionId: subscription1.id,
+      startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      livemode: true,
+    })
+
+    const billingPeriod2 = await setupBillingPeriod({
+      subscriptionId: subscription2.id,
+      startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      livemode: true,
+    })
+
     // Setup ledger accounts and entries for both subscriptions
     const ledgerAccount1 = await setupLedgerAccount({
       organizationId: organization.id,
@@ -139,6 +157,28 @@ describe('customers.getUsageBalances', () => {
       organizationId: organization.id,
       subscriptionId: subscription2.id,
       usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+
+    // Create actual usage credits for subscription1
+    const usageCredit1 = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: subscription1.id,
+      usageMeterId: usageMeter.id,
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 100,
+      billingPeriodId: billingPeriod1.id,
+      livemode: true,
+    })
+
+    // Create actual usage credits for subscription2
+    const usageCredit2 = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: subscription2.id,
+      usageMeterId: usageMeter.id,
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 200,
+      billingPeriodId: billingPeriod2.id,
       livemode: true,
     })
 
@@ -158,7 +198,7 @@ describe('customers.getUsageBalances', () => {
       entries: [
         {
           entryType: LedgerEntryType.CreditGrantRecognized,
-          sourceUsageCreditId: `credit_${Date.now()}_1`,
+          sourceUsageCreditId: usageCredit1.id,
           amount: 100,
         },
       ],
@@ -180,7 +220,7 @@ describe('customers.getUsageBalances', () => {
       entries: [
         {
           entryType: LedgerEntryType.CreditGrantRecognized,
-          sourceUsageCreditId: `credit_${Date.now()}_2`,
+          sourceUsageCreditId: usageCredit2.id,
           amount: 200,
         },
       ],
@@ -215,6 +255,21 @@ describe('customers.getUsageBalances', () => {
   })
 
   it('filters by subscriptionId', async () => {
+    // Setup billing periods for subscriptions
+    const billingPeriod1 = await setupBillingPeriod({
+      subscriptionId: subscription1.id,
+      startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      livemode: true,
+    })
+
+    const billingPeriod2 = await setupBillingPeriod({
+      subscriptionId: subscription2.id,
+      startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      livemode: true,
+    })
+
     // Setup ledger accounts and entries for both subscriptions
     const ledgerAccount1 = await setupLedgerAccount({
       organizationId: organization.id,
@@ -227,6 +282,28 @@ describe('customers.getUsageBalances', () => {
       organizationId: organization.id,
       subscriptionId: subscription2.id,
       usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+
+    // Create actual usage credits for subscription1
+    const usageCredit1 = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: subscription1.id,
+      usageMeterId: usageMeter.id,
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 100,
+      billingPeriodId: billingPeriod1.id,
+      livemode: true,
+    })
+
+    // Create actual usage credits for subscription2
+    const usageCredit2 = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: subscription2.id,
+      usageMeterId: usageMeter.id,
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 200,
+      billingPeriodId: billingPeriod2.id,
       livemode: true,
     })
 
@@ -246,7 +323,7 @@ describe('customers.getUsageBalances', () => {
       entries: [
         {
           entryType: LedgerEntryType.CreditGrantRecognized,
-          sourceUsageCreditId: `credit_${Date.now()}_1`,
+          sourceUsageCreditId: usageCredit1.id,
           amount: 100,
         },
       ],
@@ -268,7 +345,7 @@ describe('customers.getUsageBalances', () => {
       entries: [
         {
           entryType: LedgerEntryType.CreditGrantRecognized,
-          sourceUsageCreditId: `credit_${Date.now()}_2`,
+          sourceUsageCreditId: usageCredit2.id,
           amount: 200,
         },
       ],
@@ -360,11 +437,30 @@ describe('customers.getUsageBalances', () => {
   })
 
   it('excludes canceled subscriptions from default behavior', async () => {
+    // Setup billing period for subscription1
+    const billingPeriod1 = await setupBillingPeriod({
+      subscriptionId: subscription1.id,
+      startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      livemode: true,
+    })
+
     // Setup ledger account for subscription1 (active)
     const ledgerAccount1 = await setupLedgerAccount({
       organizationId: organization.id,
       subscriptionId: subscription1.id,
       usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+
+    // Create actual usage credit for subscription1
+    const usageCredit1 = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: subscription1.id,
+      usageMeterId: usageMeter.id,
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 100,
+      billingPeriodId: billingPeriod1.id,
       livemode: true,
     })
 
@@ -383,7 +479,7 @@ describe('customers.getUsageBalances', () => {
       entries: [
         {
           entryType: LedgerEntryType.CreditGrantRecognized,
-          sourceUsageCreditId: `credit_${Date.now()}_1`,
+          sourceUsageCreditId: usageCredit1.id,
           amount: 100,
         },
       ],
@@ -408,11 +504,30 @@ describe('customers.getUsageBalances', () => {
       canceledAt: Date.now(),
     })
 
+    // Setup billing period for canceled subscription
+    const canceledBillingPeriod = await setupBillingPeriod({
+      subscriptionId: canceledSubscription.id,
+      startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      livemode: true,
+    })
+
     // Setup ledger account for canceled subscription
     const canceledLedgerAccount = await setupLedgerAccount({
       organizationId: organization.id,
       subscriptionId: canceledSubscription.id,
       usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+
+    // Create actual usage credit for canceled subscription
+    const canceledUsageCredit = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: canceledSubscription.id,
+      usageMeterId: usageMeter.id,
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 500,
+      billingPeriodId: canceledBillingPeriod.id,
       livemode: true,
     })
 
@@ -431,7 +546,7 @@ describe('customers.getUsageBalances', () => {
       entries: [
         {
           entryType: LedgerEntryType.CreditGrantRecognized,
-          sourceUsageCreditId: `credit_canceled_${Date.now()}`,
+          sourceUsageCreditId: canceledUsageCredit.id,
           amount: 500,
         },
       ],
