@@ -1,7 +1,9 @@
 # This workflow runs the unit tests
 # for flowglad-next with bun test (backend) and vitest (frontend).
 #
-# Backend tests (.test.ts) run via bun test with file-based sharding.
+# Backend tests run via bun test with file-based sharding:
+# - Unit tests (*.unit.test.ts) use bun.unit.setup.ts
+# - DB tests (*.db.test.ts) use bun.db.test.setup.ts
 # Frontend tests (.test.tsx) run via vitest with jsdom environment.
 #
 # Note: RLS tests run as part of test:integration in the merge queue only,
@@ -64,9 +66,19 @@ jobs:
           NODE_ENV: test
       - name: Run sharded backend tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: |
-          # Get sorted list of backend test files (exclude integration and RLS tests)
-          files=$(find src -name "*.test.ts" ! -name "*.integration.test.ts" ! -name "*.rls.test.ts" | sort)
-          total=$(echo "$files" | wc -l | tr -d ' ')
+          # Get sorted list of unit test files
+          unit_files=$(find src -name "*.unit.test.ts" | sort)
+          unit_total=$(echo "$unit_files" | grep -c . || echo 0)
+
+          # Get sorted list of db test files
+          db_files=$(find src -name "*.db.test.ts" | sort)
+          db_total=$(echo "$db_files" | grep -c . || echo 0)
+
+          # Combine all files for sharding
+          all_files=$(echo -e "$unit_files\n$db_files" | grep -v '^$' | sort)
+          total=$(echo "$all_files" | grep -c . || echo 0)
+
+          echo "Found $unit_total unit test files and $db_total db test files ($total total)"
 
           # Calculate shard size and file range
           shard_size=$(( (total + ${{ matrix.shardTotal }} - 1) / ${{ matrix.shardTotal }} ))
@@ -74,15 +86,28 @@ jobs:
           end=$(( start + shard_size - 1 ))
 
           # Get files for this shard
-          shard_files=$(echo "$files" | sed -n "${start},${end}p" | tr '\n' ' ')
+          shard_files=$(echo "$all_files" | sed -n "${start},${end}p")
 
           echo "Running shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}: files $start to $end of $total"
-          echo "Files: $shard_files"
 
-          # Run bun test with the selected files
-          if [ -n "$shard_files" ]; then
-            echo "$shard_files" | xargs bun test --preload ./bun.setup.ts
-          else
+          # Separate unit and db test files in this shard
+          shard_unit_files=$(echo "$shard_files" | grep '\.unit\.test\.ts$' | tr '\n' ' ')
+          shard_db_files=$(echo "$shard_files" | grep '\.db\.test\.ts$' | tr '\n' ' ')
+
+          # Run unit tests with unit setup
+          if [ -n "$shard_unit_files" ]; then
+            echo "Running unit tests: $shard_unit_files"
+            echo "$shard_unit_files" | xargs bun test --preload ./bun.unit.setup.ts
+          fi
+
+          # Run db tests with db setup
+          if [ -n "$shard_db_files" ]; then
+            echo "Running db tests: $shard_db_files"
+            echo "$shard_db_files" | xargs bun test --preload ./bun.db.test.setup.ts
+          fi
+
+          # Check if any tests were run
+          if [ -z "$shard_unit_files" ] && [ -z "$shard_db_files" ]; then
             echo "No files to test in this shard"
           fi
         env:
