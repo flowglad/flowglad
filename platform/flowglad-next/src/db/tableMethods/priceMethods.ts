@@ -617,10 +617,9 @@ export const selectPriceBySlugAndCustomerId = async (
   transaction: DbTransaction
 ): Promise<Price.ClientRecord | null> => {
   // First, get the customer to determine their pricing model
-  const customer = await selectCustomerById(
-    params.customerId,
-    transaction
-  )
+  const customer = (
+    await selectCustomerById(params.customerId, transaction)
+  ).unwrap()
 
   // Get the pricing model for the customer (includes products and prices)
   // Note: selectPricingModelForCustomer already filters for active prices

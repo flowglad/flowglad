@@ -11,7 +11,7 @@ import { users, usersSelectSchema } from '@/db/schema/users'
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -31,7 +31,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'organizations',
 }
 
-export const selectOrganizationById = createSelectById(
+export const selectOrganizationById = createSelectByIdResult(
   organizations,
   config
 )

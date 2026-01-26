@@ -241,10 +241,9 @@ export const createNonInvoiceCheckoutSession = async (
     return checkoutSessionResult
   }
   const checkoutSession = checkoutSessionResult.value
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
 
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null
@@ -259,7 +258,7 @@ export const createNonInvoiceCheckoutSession = async (
       price.type === PriceType.Usage
     ) {
       const customer = customerId
-        ? await selectCustomerById(customerId, transaction)
+        ? (await selectCustomerById(customerId, transaction)).unwrap()
         : undefined
       const setupIntent = await createSetupIntentForCheckoutSession({
         organization,

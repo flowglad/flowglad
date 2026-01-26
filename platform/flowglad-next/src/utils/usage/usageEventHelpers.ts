@@ -198,14 +198,15 @@ export const resolveUsageEventInput = async (
     }
 
     // Validate that the price belongs to the customer's pricing model
-    const subscription = await selectSubscriptionById(
-      input.usageEvent.subscriptionId,
-      transaction
-    )
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        input.usageEvent.subscriptionId,
+        transaction
+      )
+    ).unwrap()
+    const customer = (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
     if (!customer.pricingModelId) {
       return Result.err(
         new ValidationError(
@@ -244,16 +245,17 @@ export const resolveUsageEventInput = async (
     // because it already caches the pricing model for slug resolution, so reusing it adds no extra queries.
 
     // First get the subscription to determine the customerId (needed for validation)
-    const subscription = await selectSubscriptionById(
-      input.usageEvent.subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        input.usageEvent.subscriptionId,
+        transaction
+      )
+    ).unwrap()
 
     // Get the customer to determine their pricing model
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
 
     // Validate that the customer has a pricing model ID
     if (!customer.pricingModelId) {
@@ -310,10 +312,12 @@ export const resolveUsageEventInput = async (
   }
 
   // First get the subscription to determine the customerId (needed for both priceSlug and usageMeterSlug)
-  const subscription = await selectSubscriptionById(
-    input.usageEvent.subscriptionId,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(
+      input.usageEvent.subscriptionId,
+      transaction
+    )
+  ).unwrap()
 
   // If usageMeterSlug is provided, resolve it to usageMeterId and fetch default price
   if (input.usageEvent.usageMeterSlug) {
@@ -698,10 +702,12 @@ export const ingestAndProcessUsageEvent = async (
     )
 
   // Fetch subscription - needed for validation and for insert
-  const subscription = await selectSubscriptionById(
-    usageEventInput.subscriptionId,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(
+      usageEventInput.subscriptionId,
+      transaction
+    )
+  ).unwrap()
 
   // Determine usageMeterId and resolved priceId based on whether priceId is provided or not
   let usageMeterId: string
@@ -730,10 +736,9 @@ export const ingestAndProcessUsageEvent = async (
     }
 
     // Validate that the price belongs to the customer's pricing model
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
     if (!customer.pricingModelId) {
       return Result.err(
         new ValidationError(
@@ -767,10 +772,9 @@ export const ingestAndProcessUsageEvent = async (
 
   // If usageMeterId was provided directly, validate it belongs to customer's pricing model
   if (!usageEventInput.priceId) {
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
 
     // Validate that the customer has a pricing model ID
     if (!customer.pricingModelId) {

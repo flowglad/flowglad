@@ -244,17 +244,14 @@ export const validateAndResolveCustomerForSubscription =
     } = params
 
     if (customerId) {
-      try {
-        return await selectCustomerById(customerId, transaction)
-      } catch (error) {
-        if (error instanceof NotFoundError) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: `Customer with id "${customerId}" not found`,
-          })
-        }
-        throw error
+      const result = await selectCustomerById(customerId, transaction)
+      if (Result.isError(result)) {
+        throw new TRPCError({
+          code: 'NOT_FOUND',
+          message: `Customer with id "${customerId}" not found`,
+        })
       }
+      return result.unwrap()
     } else if (customerExternalId) {
       const customer =
         await selectCustomerByExternalIdAndOrganizationId(
@@ -373,10 +370,9 @@ const adjustSubscriptionProcedure = protectedProcedure
       // Pass apiKey to maintain authentication context after async wait
       const freshData = await authenticatedTransaction(
         async ({ transaction }) => {
-          const freshSubscription = await selectSubscriptionById(
-            subscription.id,
-            transaction
-          )
+          const freshSubscription = (
+            await selectSubscriptionById(subscription.id, transaction)
+          ).unwrap()
           const freshSubscriptionItems =
             await selectCurrentlyActiveSubscriptionItems(
               { subscriptionId: subscription.id },
@@ -498,10 +494,9 @@ const getSubscriptionProcedure = protectedProcedure
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
+        const subscription = (
+          await selectSubscriptionById(input.id, transaction)
+        ).unwrap()
         return {
           subscription: {
             ...subscription,
@@ -799,10 +794,9 @@ const updatePaymentMethodProcedure = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const subscription = await selectSubscriptionById(
-          input.id,
-          transaction
-        )
+        const subscription = (
+          await selectSubscriptionById(input.id, transaction)
+        ).unwrap()
 
         // Verify the payment method exists and belongs to the same customer
         const paymentMethod = await selectPaymentMethodById(
@@ -870,10 +864,12 @@ const retryBillingRunProcedure = protectedProcedure
             message: 'Billing period is already upcoming',
           })
         }
-        const subscription = await selectSubscriptionById(
-          billingPeriod.subscriptionId,
-          transaction
-        )
+        const subscription = (
+          await selectSubscriptionById(
+            billingPeriod.subscriptionId,
+            transaction
+          )
+        ).unwrap()
 
         if (subscription.doNotCharge) {
           throw new TRPCError({

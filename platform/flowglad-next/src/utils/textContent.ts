@@ -28,13 +28,11 @@ export const saveOrganizationCodebaseMarkdown = async ({
   // Fetch organization to get securitySalt
   const organization = await adminTransaction(
     async ({ transaction }) => {
-      return selectOrganizationById(organizationId, transaction)
+      return (
+        await selectOrganizationById(organizationId, transaction)
+      ).unwrap()
     }
   )
-
-  if (!organization) {
-    throw new Error(`Organization ${organizationId} not found`)
-  }
 
   // Generate content hash using organization's securitySalt
   const contentHash = generateContentHash({
@@ -73,11 +71,13 @@ export const getOrganizationCodebaseMarkdown = async (
   // Fetch hash from database
   const organization = await adminTransaction(
     async ({ transaction }) => {
-      return selectOrganizationById(organizationId, transaction)
+      return (
+        await selectOrganizationById(organizationId, transaction)
+      ).unwrap()
     }
   )
 
-  const contentHash = organization?.codebaseMarkdownHash ?? null
+  const contentHash = organization.codebaseMarkdownHash ?? null
   if (!contentHash) {
     return null
   }
@@ -107,13 +107,11 @@ export const savePricingModelIntegrationMarkdown = async ({
   // Fetch organization to get securitySalt
   const organization = await adminTransaction(
     async ({ transaction }) => {
-      return selectOrganizationById(organizationId, transaction)
+      return (
+        await selectOrganizationById(organizationId, transaction)
+      ).unwrap()
     }
   )
-
-  if (!organization) {
-    throw new Error(`Organization ${organizationId} not found`)
-  }
 
   // Generate content hash using organization's securitySalt
   const contentHash = generateContentHash({

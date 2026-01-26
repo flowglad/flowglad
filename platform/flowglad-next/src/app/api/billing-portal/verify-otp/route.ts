@@ -69,7 +69,9 @@ export async function POST(request: NextRequest) {
     }
     const customer = await adminTransaction(
       async ({ transaction }) => {
-        return await selectCustomerById(customerId, transaction)
+        return (
+          await selectCustomerById(customerId, transaction)
+        ).unwrap()
       }
     )
     if (!customer) {

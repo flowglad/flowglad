@@ -18,7 +18,7 @@ import {
   createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -48,7 +48,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'customers',
 }
 
-export const selectCustomerById = createSelectById(
+export const selectCustomerById = createSelectByIdResult(
   customersTable,
   config
 )
@@ -73,7 +73,10 @@ export const derivePricingModelIdFromCustomer =
   createDerivePricingModelId(
     customersTable,
     config,
-    selectCustomerById
+    async (id, transaction) => {
+      const result = await selectCustomerById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**

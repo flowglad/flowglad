@@ -251,10 +251,12 @@ export async function checkoutInfoForPriceWhere(
       transaction
     )
     const maybeCustomer = checkoutSession.customerId
-      ? await selectCustomerById(
-          checkoutSession.customerId,
-          transaction
-        )
+      ? (
+          await selectCustomerById(
+            checkoutSession.customerId,
+            transaction
+          )
+        ).unwrap()
       : null
 
     // Calculate trial eligibility
@@ -414,10 +416,12 @@ export async function checkoutInfoForCheckoutSession(
       ).unwrap()
     : null
   const maybeCustomer = checkoutSession.customerId
-    ? await selectCustomerById(
-        checkoutSession.customerId,
-        transaction
-      )
+    ? (
+        await selectCustomerById(
+          checkoutSession.customerId,
+          transaction
+        )
+      ).unwrap()
     : null
   const maybeCurrentSubscriptions =
     maybeCustomer &&
