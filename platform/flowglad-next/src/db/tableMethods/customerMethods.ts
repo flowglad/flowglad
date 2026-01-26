@@ -26,6 +26,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { ArchivedCustomerError } from '@/errors'
 import { PaymentStatus } from '@/types'
 import { invoices } from '../schema/invoices'
 import {
@@ -567,4 +568,22 @@ export const selectCustomerPricingInfoBatch = async (
     .where(inArray(customers.id, customerIds))
 
   return new Map(results.map((c) => [c.id, c]))
+}
+
+/**
+ * Guard function that throws if the customer is archived.
+ * Use this to block operations on archived customers such as
+ * creating payment methods or usage events.
+ *
+ * @param customer - The customer to check
+ * @param operation - Description of the operation being attempted (for error message)
+ * @throws ArchivedCustomerError if customer is archived
+ */
+export const assertCustomerNotArchived = (
+  customer: Customer.Record,
+  operation: string
+): void => {
+  if (customer.archived) {
+    throw new ArchivedCustomerError(operation)
+  }
 }
