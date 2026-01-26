@@ -21,6 +21,8 @@ import {
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
+  type GetUsageMeterBalancesParams,
+  type GetUsageMeterBalancesResponse,
   type ListResourceClaimsParams,
   type ReleaseResourceParams,
   type ResourceClaim,
@@ -959,6 +961,40 @@ export class FlowgladServer {
         query: params?.resourceSlug
           ? { resourceSlug: params.resourceSlug }
           : undefined,
+      }
+    )
+  }
+
+  /**
+   * Get usage meter balances for the authenticated customer.
+   *
+   * Returns usage meter balances for current subscriptions, optionally filtered by subscriptionId.
+   *
+   * @param params - Optional parameters for fetching usage meter balances
+   * @param params.subscriptionId - Optional. Filter balances to a specific subscription.
+   *
+   * @returns A promise that resolves to an object containing an array of usage meter balances
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get all usage meter balances for the customer
+   * const { usageMeterBalances } = await flowglad.getUsageMeterBalances()
+   *
+   * @example
+   * // Get balances for a specific subscription
+   * const { usageMeterBalances } = await flowglad.getUsageMeterBalances({ subscriptionId: 'sub_123' })
+   */
+  public getUsageMeterBalances = async (
+    params?: GetUsageMeterBalancesParams
+  ): Promise<GetUsageMeterBalancesResponse> => {
+    const customer = await this.findOrCreateCustomer()
+    return this.flowgladNode.post(
+      `/api/v1/customers/${customer.externalId}/usage-balances`,
+      {
+        body: params?.subscriptionId
+          ? { subscriptionId: params.subscriptionId }
+          : {},
       }
     )
   }

@@ -572,6 +572,24 @@ export type ListResourceClaimsParams = z.infer<
   typeof listResourceClaimsSchema
 >
 
+/**
+ * Schema for fetching usage meter balances for a customer.
+ * Returns usage meter balances for current subscriptions, optionally filtered by subscriptionId.
+ */
+export const getUsageMeterBalancesSchema = z
+  .object({
+    subscriptionId: z.string().optional(),
+  })
+  .strict()
+
+export type GetUsageMeterBalancesParams = z.infer<
+  typeof getUsageMeterBalancesSchema
+>
+
+export type GetUsageMeterBalancesResponse = {
+  usageMeterBalances: import('./types/sdk').UsageMeterBalance[]
+}
+
 export const flowgladActionValidators = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
@@ -644,5 +662,9 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.GetPricingModel]: {
     method: HTTPMethod.POST,
     inputValidator: z.object({}).strict(),
+  },
+  [FlowgladActionKey.GetUsageMeterBalances]: {
+    method: HTTPMethod.POST,
+    inputValidator: getUsageMeterBalancesSchema,
   },
 } as const satisfies FlowgladActionValidatorMap

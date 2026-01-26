@@ -72,6 +72,7 @@ export const endpointKeyToActionKey: Record<
   claimResource: FlowgladActionKey.ClaimResource,
   releaseResource: FlowgladActionKey.ReleaseResource,
   listResourceClaims: FlowgladActionKey.ListResourceClaims,
+  getUsageMeterBalances: FlowgladActionKey.GetUsageMeterBalances,
 }
 
 /**
@@ -104,6 +105,7 @@ const _actionKeyToEndpointKey = {
   [FlowgladActionKey.ClaimResource]: 'claimResource',
   [FlowgladActionKey.ReleaseResource]: 'releaseResource',
   [FlowgladActionKey.ListResourceClaims]: 'listResourceClaims',
+  [FlowgladActionKey.GetUsageMeterBalances]: 'getUsageMeterBalances',
 } satisfies Record<
   AuthenticatedActionKey,
   keyof typeof endpointKeyToActionKey
@@ -534,6 +536,10 @@ export const flowgladPlugin = (
       ),
       listResourceClaims: createFlowgladBillingEndpoint(
         FlowgladActionKey.ListResourceClaims,
+        options
+      ),
+      getUsageMeterBalances: createFlowgladBillingEndpoint(
+        FlowgladActionKey.GetUsageMeterBalances,
         options
       ),
 
