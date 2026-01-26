@@ -81,7 +81,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     // Verify database was updated with the hash
     const updatedOrg = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     expect(updatedOrg?.codebaseMarkdownHash).toBe(
       putCall.key.replace('codebase-', '').replace('.md', '')
@@ -120,7 +122,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
     const updatedOrg = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     expect(updatedOrg?.codebaseMarkdownHash).toBe(expectedHash)
   })
@@ -148,7 +152,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     // Verify database was updated (which only happens after successful putMarkdownFile)
     const updatedOrg = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     expect(typeof updatedOrg?.codebaseMarkdownHash).toBe('string')
   })
@@ -166,7 +172,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
     const orgAfterFirst = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     const firstHash = orgAfterFirst?.codebaseMarkdownHash
     expect(typeof firstHash).toBe('string')
@@ -183,7 +191,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
     const orgAfterSecond = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     const secondHash = orgAfterSecond?.codebaseMarkdownHash
     expect(typeof secondHash).toBe('string')
@@ -271,7 +281,9 @@ describe('getOrganizationCodebaseMarkdown', () => {
     // Verify it's undefined or null
     const org = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     expect(org?.codebaseMarkdownHash).toBeNull()
 

@@ -647,10 +647,12 @@ export const addFeatureToSubscriptionItem = async (
     )
     ensureSubscriptionItemIsActive(providedSubscriptionItem)
 
-    const subscription = await selectSubscriptionById(
-      providedSubscriptionItem.subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        providedSubscriptionItem.subscriptionId,
+        transaction
+      )
+    ).unwrap()
 
     const feature = await selectFeatureById(featureId, transaction)
     ensureFeatureIsEligible(feature)
@@ -668,10 +670,9 @@ export const addFeatureToSubscriptionItem = async (
         transaction
       )
 
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
     await ensureFeatureBelongsToCustomerPricingModel({
       customer,
       feature,

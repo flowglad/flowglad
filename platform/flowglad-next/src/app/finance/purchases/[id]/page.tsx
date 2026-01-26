@@ -21,10 +21,9 @@ const PurchasePage = async ({
         return null
       }
 
-      const customer = await selectCustomerById(
-        purchase.customerId,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(purchase.customerId, transaction)
+      ).unwrap()
 
       const price = purchase.priceId
         ? (

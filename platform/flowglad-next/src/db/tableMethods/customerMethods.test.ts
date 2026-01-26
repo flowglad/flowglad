@@ -775,7 +775,9 @@ describe('Customer uniqueness constraints', () => {
       // Verify customer1 is archived
       const archivedCustomer = await adminTransaction(
         async ({ transaction }) => {
-          return await selectCustomerById(customer1.id, transaction)
+          return (
+            await selectCustomerById(customer1.id, transaction)
+          ).unwrap()
         }
       )
       expect(archivedCustomer.archived).toBe(true)
@@ -885,14 +887,12 @@ describe('Customer uniqueness constraints', () => {
       // Verify both are archived with the same externalId
       const [archivedCustomer1, archivedCustomer2] =
         await adminTransaction(async ({ transaction }) => {
-          const c1 = await selectCustomerById(
-            customer1.id,
-            transaction
-          )
-          const c2 = await selectCustomerById(
-            customer2.id,
-            transaction
-          )
+          const c1 = (
+            await selectCustomerById(customer1.id, transaction)
+          ).unwrap()
+          const c2 = (
+            await selectCustomerById(customer2.id, transaction)
+          ).unwrap()
           return [c1, c2]
         })
 
@@ -942,7 +942,9 @@ describe('Customer uniqueness constraints', () => {
       // Verify customer1 is still archived
       const stillArchivedCustomer = await adminTransaction(
         async ({ transaction }) => {
-          return await selectCustomerById(customer1.id, transaction)
+          return (
+            await selectCustomerById(customer1.id, transaction)
+          ).unwrap()
         }
       )
       expect(stillArchivedCustomer.archived).toBe(true)
@@ -1109,7 +1111,9 @@ describe('Customer uniqueness constraints', () => {
       // Verify customer2 still has its original externalId
       const unchangedCustomer = await adminTransaction(
         async ({ transaction }) => {
-          return await selectCustomerById(customer2.id, transaction)
+          return (
+            await selectCustomerById(customer2.id, transaction)
+          ).unwrap()
         }
       )
       expect(unchangedCustomer.externalId).toBe(externalId2)
@@ -1706,7 +1710,9 @@ describe('Customer uniqueness constraints', () => {
       // Verify customer2 still has its original stripeCustomerId
       const unchangedCustomer = await adminTransaction(
         async ({ transaction }) => {
-          return await selectCustomerById(customer2.id, transaction)
+          return (
+            await selectCustomerById(customer2.id, transaction)
+          ).unwrap()
         }
       )
       expect(unchangedCustomer.stripeCustomerId).toBe(stripeId2)

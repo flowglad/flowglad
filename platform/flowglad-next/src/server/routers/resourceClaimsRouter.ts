@@ -6,6 +6,7 @@ import {
 } from '@/db/authenticatedTransaction'
 import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
+import type { Subscription } from '@/db/schema/subscriptions'
 import {
   countActiveResourceClaims,
   countActiveResourceClaimsBatch,
@@ -155,18 +156,14 @@ const validateSubscriptionOwnership = async (
   },
   transaction: DbTransaction
 ): Promise<{
-  subscription: Awaited<ReturnType<typeof selectSubscriptionById>>
+  subscription: Subscription.Record
   customerId: string
 }> => {
-  const subscription = await selectSubscriptionById(
-    subscriptionId,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(subscriptionId, transaction)
+  ).unwrap()
 
-  if (
-    !subscription ||
-    subscription.organizationId !== organizationId
-  ) {
+  if (subscription.organizationId !== organizationId) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Subscription not found',

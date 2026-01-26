@@ -95,15 +95,19 @@ export const reassignDefaultSubscription = async (
   }
 
   try {
-    const customer = await selectCustomerById(
-      canceledSubscription.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(
+        canceledSubscription.customerId,
+        transaction
+      )
+    ).unwrap()
 
-    const organization = await selectOrganizationById(
-      canceledSubscription.organizationId,
-      transaction
-    )
+    const organization = (
+      await selectOrganizationById(
+        canceledSubscription.organizationId,
+        transaction
+      )
+    ).unwrap()
 
     const pricingModelId = customer.pricingModelId
 
@@ -253,7 +257,9 @@ export const cancelSubscriptionImmediately = async (
   } = params
   const customer =
     providedCustomer ??
-    (await selectCustomerById(subscription.customerId, transaction))
+    (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
 
   // Cache invalidation for this customer's subscriptions
   invalidateCache(
@@ -457,7 +463,9 @@ export const scheduleSubscriptionCancellation = async (
   const { id, cancellation } =
     scheduleSubscriptionCancellationSchema.parse(params)
   const { timing } = cancellation
-  const subscription = await selectSubscriptionById(id, transaction)
+  const subscription = (
+    await selectSubscriptionById(id, transaction)
+  ).unwrap()
 
   /**
    * Prevent cancellation of free plans through the API/UI.
@@ -652,10 +660,9 @@ export const cancelSubscriptionProcedureTransaction = async ({
   }
 
   // Fetch subscription first to check if it's a free plan
-  const subscription = await selectSubscriptionById(
-    input.id,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(input.id, transaction)
+  ).unwrap()
 
   /**
    * Prevent cancellation of free plans through the API/UI.
@@ -987,10 +994,9 @@ export const uncancelSubscriptionProcedureTransaction = async ({
     enqueueLedgerCommand,
   }
 
-  const subscription = await selectSubscriptionById(
-    input.id,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(input.id, transaction)
+  ).unwrap()
 
   const uncancelResult = await uncancelSubscription(subscription, ctx)
   if (uncancelResult.status === 'error') {

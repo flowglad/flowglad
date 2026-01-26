@@ -2520,10 +2520,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         })
 
         // Verify invoice status was updated to Paid
-        const updatedInvoice = await selectInvoiceById(
-          invoice.id,
-          transaction
-        )
+        const updatedInvoice = (
+          await selectInvoiceById(invoice.id, transaction)
+        ).unwrap()
         expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
         return Result.ok(null)
       }
@@ -2559,10 +2558,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         })
 
         // Verify invoice status was NOT updated (should remain Draft)
-        const unchangedInvoice = await selectInvoiceById(
-          invoice.id,
-          transaction
-        )
+        const unchangedInvoice = (
+          await selectInvoiceById(invoice.id, transaction)
+        ).unwrap()
         expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
         return Result.ok(null)
       }
@@ -2606,10 +2604,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         })
 
         // Verify invoice status is still Paid (no change)
-        const unchangedInvoice = await selectInvoiceById(
-          paidInvoice.id,
-          transaction
-        )
+        const unchangedInvoice = (
+          await selectInvoiceById(paidInvoice.id, transaction)
+        ).unwrap()
         expect(unchangedInvoice.status).toBe(InvoiceStatus.Paid)
         return Result.ok(null)
       }
@@ -2658,10 +2655,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         )
 
         // Verify invoice status was NOT updated (should remain Draft)
-        const unchangedInvoice = await selectInvoiceById(
-          invoice.id,
-          transaction
-        )
+        const unchangedInvoice = (
+          await selectInvoiceById(invoice.id, transaction)
+        ).unwrap()
         expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
         return Result.ok(null)
       }
@@ -2722,10 +2718,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         )
 
         // Verify invoice status was updated to Paid
-        const updatedInvoice = await selectInvoiceById(
-          invoice.id,
-          transaction
-        )
+        const updatedInvoice = (
+          await selectInvoiceById(invoice.id, transaction)
+        ).unwrap()
         expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
         return Result.ok(null)
       }

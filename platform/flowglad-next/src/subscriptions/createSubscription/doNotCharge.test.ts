@@ -279,10 +279,12 @@ describe('doNotCharge subscription creation', () => {
     ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
-      const canceledFree = await selectSubscriptionById(
-        existingFreeSubscription.id,
-        transaction
-      )
+      const canceledFree = (
+        await selectSubscriptionById(
+          existingFreeSubscription.id,
+          transaction
+        )
+      ).unwrap()
       expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
       expect(canceledFree.cancellationReason).toBe(
         CancellationReason.UpgradedToPaid
@@ -502,10 +504,12 @@ describe('doNotCharge subscription creation', () => {
 
     // Should cancel existing free subscription (paid plan behavior)
     await adminTransaction(async ({ transaction }) => {
-      const canceledFree = await selectSubscriptionById(
-        existingFreeSubscription.id,
-        transaction
-      )
+      const canceledFree = (
+        await selectSubscriptionById(
+          existingFreeSubscription.id,
+          transaction
+        )
+      ).unwrap()
       expect(canceledFree.status).toBe(SubscriptionStatus.Canceled)
     })
   })
@@ -545,10 +549,9 @@ describe('doNotCharge subscription creation', () => {
 
     // Verify it persists when queried later
     await adminTransaction(async ({ transaction }) => {
-      const retrieved = await selectSubscriptionById(
-        subscription.id,
-        transaction
-      )
+      const retrieved = (
+        await selectSubscriptionById(subscription.id, transaction)
+      ).unwrap()
       expect(retrieved.doNotCharge).toBe(true)
     })
   })

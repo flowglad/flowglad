@@ -244,10 +244,9 @@ export const getCustomerById = protectedProcedure
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
         try {
-          const customer = await selectCustomerById(
-            input.id,
-            transaction
-          )
+          const customer = (
+            await selectCustomerById(input.id, transaction)
+          ).unwrap()
           return { customer }
         } catch (error) {
           errorHandlers.customer.handle(error, {
@@ -272,10 +271,9 @@ export const getPricingModelForCustomer = protectedProcedure
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
         try {
-          const customer = await selectCustomerById(
-            input.customerId,
-            transaction
-          )
+          const customer = (
+            await selectCustomerById(input.customerId, transaction)
+          ).unwrap()
           const pricingModel = await selectPricingModelForCustomer(
             customer,
             transaction

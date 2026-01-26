@@ -7,6 +7,7 @@ import {
   it,
   mock,
 } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -254,7 +255,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       amount: 1000,
       status: 'requires_confirmation',
     })
-    mockCreatePaymentIntent.mockResolvedValue(mockPaymentIntent)
+    mockCreatePaymentIntent.mockResolvedValue(
+      Result.ok(mockPaymentIntent)
+    )
 
     const mockConfirmationResult = createMockConfirmationResult(
       mockPaymentIntentId,
@@ -430,7 +433,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       amount: 500, // Proration amount
       status: 'requires_confirmation',
     })
-    mockCreatePaymentIntent.mockResolvedValue(mockPaymentIntent)
+    mockCreatePaymentIntent.mockResolvedValue(
+      Result.ok(mockPaymentIntent)
+    )
 
     const mockConfirmationResult = createMockConfirmationResult(
       mockPaymentIntentId,
@@ -567,7 +572,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       amount: 1000,
       status: 'requires_confirmation',
     })
-    mockCreatePaymentIntent.mockResolvedValue(mockPaymentIntent)
+    mockCreatePaymentIntent.mockResolvedValue(
+      Result.ok(mockPaymentIntent)
+    )
 
     // Payment fails
     const mockFailedResult = createMockConfirmationResult(

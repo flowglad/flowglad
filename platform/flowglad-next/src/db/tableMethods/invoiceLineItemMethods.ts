@@ -69,10 +69,9 @@ export const derivePricingModelIdForInvoiceLineItem = async (
 ): Promise<string> => {
   // Try invoice first (COALESCE logic)
   if (data.invoiceId) {
-    const invoice = await selectInvoiceById(
-      data.invoiceId,
-      transaction
-    )
+    const invoice = (
+      await selectInvoiceById(data.invoiceId, transaction)
+    ).unwrap()
     return invoice.pricingModelId
   }
 
@@ -352,7 +351,9 @@ export const deleteInvoiceLineItemsByinvoiceId = async (
   invoiceId: string,
   transaction: DbTransaction
 ) => {
-  const invoice = await selectInvoiceById(invoiceId, transaction)
+  const invoice = (
+    await selectInvoiceById(invoiceId, transaction)
+  ).unwrap()
   if (invoiceIsInTerminalState(invoice)) {
     throw Error(
       `Cannot delete invoice line items for a terminal invoice. Invoice: ${invoice.id}; invoice status: ${invoice.status}`

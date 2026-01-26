@@ -343,10 +343,12 @@ describe('pricesRouter - Default Price Constraints', () => {
           },
           ctx
         )
-        const org = await orgSetup.selectOrganizationById(
-          organizationId,
-          transaction
-        )
+        const org = (
+          await orgSetup.selectOrganizationById(
+            organizationId,
+            transaction
+          )
+        ).unwrap()
         const otherPrice = await insertPrice(
           {
             productId: otherProduct.id,
@@ -1590,10 +1592,12 @@ describe('pricesRouter.replaceUsagePrice', () => {
     // Create a second usage price for the same meter
     const secondPrice = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const org = await orgSetup.selectOrganizationById(
-        organizationId,
-        transaction
-      )
+      const org = (
+        await orgSetup.selectOrganizationById(
+          organizationId,
+          transaction
+        )
+      ).unwrap()
       return insertPrice(
         {
           productId: null,

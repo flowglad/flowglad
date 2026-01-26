@@ -1236,10 +1236,9 @@ export const setupSubscriptionItem = async ({
   usageEventsPerUnit?: number
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const subscription = await selectSubscriptionById(
-      subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(subscriptionId, transaction)
+    ).unwrap()
     if (!subscription) {
       throw new Error('Subscription not found')
     }

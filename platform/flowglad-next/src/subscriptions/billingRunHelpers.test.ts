@@ -299,8 +299,8 @@ describe('billingRunHelpers', async () => {
             transaction
           )
       )
-      invoice = await adminTransaction(({ transaction }) =>
-        selectInvoiceById(invoice.id, transaction)
+      invoice = await adminTransaction(async ({ transaction }) =>
+        (await selectInvoiceById(invoice.id, transaction)).unwrap()
       )
 
       expect(invoice.status).toBe(InvoiceStatus.Open)

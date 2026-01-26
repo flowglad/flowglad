@@ -3421,10 +3421,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     it('should handle slug update when product has multiple prices', async () => {
       // Create an inactive price (must use insertPrice directly since safelyInsertPrice always creates active prices)
       const inactivePrice = await adminTransaction(async (ctx) => {
-        const organization = await selectOrganizationById(
-          organizationId,
-          ctx.transaction
-        )
+        const organization = (
+          await selectOrganizationById(
+            organizationId,
+            ctx.transaction
+          )
+        ).unwrap()
         return await insertPrice(
           {
             productId: regularProductId,

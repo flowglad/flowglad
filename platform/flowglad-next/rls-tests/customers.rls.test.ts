@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import {
   setupCustomer,
@@ -444,10 +445,13 @@ describe('Customer Role RLS Policies', () => {
           )
 
           // Try to query customerB directly - should fail
-          const customerBQuery = await selectCustomerById(
+          const customerBQueryResult = await selectCustomerById(
             customerB_Org1.id,
             transaction
-          ).catch(() => null)
+          )
+          const customerBQuery = Result.isOk(customerBQueryResult)
+            ? customerBQueryResult.value
+            : null
 
           // Try to query all invoices - should only see own
           const invoicesVisible = await selectInvoices(
@@ -456,10 +460,13 @@ describe('Customer Role RLS Policies', () => {
           )
 
           // Try to query customerB's invoice directly - should fail
-          const invoiceBQuery = await selectInvoiceById(
+          const invoiceBQueryResult = await selectInvoiceById(
             invoiceB1_Org1.id,
             transaction
-          ).catch(() => null)
+          )
+          const invoiceBQuery = Result.isOk(invoiceBQueryResult)
+            ? invoiceBQueryResult.value
+            : null
 
           return {
             customersVisible,
@@ -506,10 +513,13 @@ describe('Customer Role RLS Policies', () => {
           )
 
           // Try to query customerA directly
-          const customerAQuery = await selectCustomerById(
+          const customerAQueryResult = await selectCustomerById(
             customerA_Org1.id,
             transaction
-          ).catch(() => null)
+          )
+          const customerAQuery = Result.isOk(customerAQueryResult)
+            ? customerAQueryResult.value
+            : null
 
           // Try to query all invoices
           const invoicesVisible = await selectInvoices(
@@ -558,10 +568,13 @@ describe('Customer Role RLS Policies', () => {
           )
 
           // Try to query customerB's subscription - should fail
-          const subBQuery = await selectSubscriptionById(
+          const subBQueryResult = await selectSubscriptionById(
             subscriptionB_Org1.id,
             transaction
-          ).catch(() => null)
+          )
+          const subBQuery = Result.isOk(subBQueryResult)
+            ? subBQueryResult.value
+            : null
 
           return { subscriptions, subBQuery }
         }
@@ -641,7 +654,9 @@ describe('Customer Role RLS Policies', () => {
       // Verify customerB's name is unchanged using admin transaction
       const verifyCustomerB = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        return selectCustomerById(customerB_Org1.id, transaction)
+        return (
+          await selectCustomerById(customerB_Org1.id, transaction)
+        ).unwrap()
       })
       expect(verifyCustomerB.name).toBe('Customer B Org1')
     })
@@ -675,10 +690,12 @@ describe('Customer Role RLS Policies', () => {
       const verifySubscription = await adminTransaction(
         async (ctx) => {
           const { transaction } = ctx
-          return selectSubscriptionById(
-            subscriptionB_Org1.id,
-            transaction
-          )
+          return (
+            await selectSubscriptionById(
+              subscriptionB_Org1.id,
+              transaction
+            )
+          ).unwrap()
         }
       )
       expect(verifySubscription.status).toBe(
@@ -705,10 +722,15 @@ describe('Customer Role RLS Policies', () => {
           )
 
           // Try to access customerA_Org2 directly (same user, different org)
-          const customerA_Org2Query = await selectCustomerById(
+          const customerA_Org2QueryResult = await selectCustomerById(
             customerA_Org2.id,
             transaction
-          ).catch(() => null)
+          )
+          const customerA_Org2Query = Result.isOk(
+            customerA_Org2QueryResult
+          )
+            ? customerA_Org2QueryResult.value
+            : null
 
           // Try to query org2 invoices
           const org2Invoices = await selectInvoices(
@@ -823,10 +845,15 @@ describe('Customer Role RLS Policies', () => {
           )
 
           // Try to access specific org1 customer
-          const customerA_Org1Query = await selectCustomerById(
+          const customerA_Org1QueryResult = await selectCustomerById(
             customerA_Org1.id,
             transaction
-          ).catch(() => null)
+          )
+          const customerA_Org1Query = Result.isOk(
+            customerA_Org1QueryResult
+          )
+            ? customerA_Org1QueryResult.value
+            : null
 
           // Try to access org1 invoices
           const org1Invoices = await selectInvoices(
@@ -1091,10 +1118,9 @@ describe('Customer Role RLS Policies', () => {
         async (ctx) => {
           const { transaction } = ctx
           // Get customer record
-          const customer = await selectCustomerById(
-            customerA_Org1.id,
-            transaction
-          )
+          const customer = (
+            await selectCustomerById(customerA_Org1.id, transaction)
+          ).unwrap()
 
           // Get all related data (should be filtered by RLS)
           const invoices = await selectInvoices({}, transaction)
@@ -1160,10 +1186,13 @@ describe('Customer Role RLS Policies', () => {
         async (ctx) => {
           const { transaction } = ctx
           // First, try to read customerB's subscription
-          const readAttempt = await selectSubscriptionById(
+          const readAttemptResult = await selectSubscriptionById(
             subscriptionB_Org1.id,
             transaction
-          ).catch(() => null)
+          )
+          const readAttempt = Result.isOk(readAttemptResult)
+            ? readAttemptResult.value
+            : null
 
           // Try to update it
           const updateAttempt = await updateSubscription(
@@ -1177,10 +1206,12 @@ describe('Customer Role RLS Policies', () => {
           ).catch(() => null)
 
           // Verify own subscription is still accessible
-          const ownSubscription = await selectSubscriptionById(
-            subscriptionA_Org1.id,
-            transaction
-          )
+          const ownSubscription = (
+            await selectSubscriptionById(
+              subscriptionA_Org1.id,
+              transaction
+            )
+          ).unwrap()
 
           return { readAttempt, updateAttempt, ownSubscription }
         }
@@ -1415,14 +1446,12 @@ describe('Customer Role RLS Policies', () => {
       // Refresh the customer objects AFTER the admin transaction commits
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        customerA_Org1 = await selectCustomerById(
-          customerA_Org1.id,
-          transaction
-        )
-        customerB_Org1 = await selectCustomerById(
-          customerB_Org1.id,
-          transaction
-        )
+        customerA_Org1 = (
+          await selectCustomerById(customerA_Org1.id, transaction)
+        ).unwrap()
+        customerB_Org1 = (
+          await selectCustomerById(customerB_Org1.id, transaction)
+        ).unwrap()
 
         // Verify the pricing models were assigned correctly
         if (!customerA_Org1.pricingModelId) {
@@ -1961,10 +1990,15 @@ describe('Customer Role RLS Policies', () => {
         async (ctx) => {
           const { transaction } = ctx
           const allCustomers = await selectCustomers({}, transaction)
-          const nullCustomerQuery = await selectCustomerById(
+          const nullCustomerQueryResult = await selectCustomerById(
             nullUserCustomer.id,
             transaction
-          ).catch(() => null)
+          )
+          const nullCustomerQuery = Result.isOk(
+            nullCustomerQueryResult
+          )
+            ? nullCustomerQueryResult.value
+            : null
 
           return { allCustomers, nullCustomerQuery }
         }

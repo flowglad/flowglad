@@ -155,10 +155,9 @@ describe('productsRouter - Default Product Constraints', () => {
         )
 
         // Create a price for the product
-        const org = await selectOrganizationById(
-          organizationId,
-          transaction
-        )
+        const org = (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
         await insertPrice(
           {
             productId: product.id,

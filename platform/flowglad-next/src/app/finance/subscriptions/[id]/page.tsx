@@ -39,10 +39,9 @@ const SubscriptionPage = async ({
           )
         : null
 
-      const customer = await selectCustomerById(
-        subscription.customerId,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(subscription.customerId, transaction)
+      ).unwrap()
 
       let product = null
       let pricingModel = null

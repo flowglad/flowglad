@@ -53,10 +53,12 @@ const PayPurchasePage = async ({
         transaction
       )
       const maybeCustomer = checkoutSession.customerId
-        ? await selectCustomerById(
-            checkoutSession.customerId,
-            transaction
-          )
+        ? (
+            await selectCustomerById(
+              checkoutSession.customerId,
+              transaction
+            )
+          ).unwrap()
         : null
       return {
         purchase,
