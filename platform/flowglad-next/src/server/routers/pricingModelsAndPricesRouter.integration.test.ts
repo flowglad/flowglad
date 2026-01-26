@@ -131,16 +131,18 @@ describe('pricingModelsRouter.create', () => {
   })
 
   it('handles isDefault=true semantics per safelyInsertPricingModel', async () => {
+    // Use testmode to allow creating multiple pricing models
+    // (livemode only allows ONE pricing model per organization)
     const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false,
+      environment: 'test' as const,
       isApi: true as any,
       path: '',
     }
@@ -459,23 +461,24 @@ describe('pricesRouter.create', () => {
 // pricingModelsRouter.clone
 describe('pricingModelsRouter.clone', () => {
   it('returns NOT_FOUND when cloning a pricing model from another organization', async () => {
+    // Use testmode to avoid livemode pricing model uniqueness constraint
     const org1 = await setupOrg({ skipPricingModel: true })
     const org2 = await setupOrg({ skipPricingModel: true })
 
     const { apiKey: org1ApiKey } = await setupUserAndApiKey({
       organizationId: org1.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const { apiKey: org2ApiKey } = await setupUserAndApiKey({
       organizationId: org2.organization.id,
-      livemode: true,
+      livemode: false,
     })
 
     const org1Ctx = {
       organizationId: org1.organization.id,
       apiKey: org1ApiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false,
+      environment: 'test' as const,
       isApi: true as const,
       path: '',
     }
@@ -483,8 +486,8 @@ describe('pricingModelsRouter.clone', () => {
     const org2Ctx = {
       organizationId: org2.organization.id,
       apiKey: org2ApiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false,
+      environment: 'test' as const,
       isApi: true as const,
       path: '',
     }
@@ -511,16 +514,17 @@ describe('pricingModelsRouter.clone', () => {
   })
 
   it('clones a pricing model within the same environment when no destinationEnvironment is specified', async () => {
+    // Use testmode because livemode only allows ONE pricing model per org
     const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: true,
+      livemode: false,
     })
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
-      livemode: true,
-      environment: 'live' as const,
+      livemode: false,
+      environment: 'test' as const,
       isApi: true as const,
       path: '',
     }
@@ -539,7 +543,7 @@ describe('pricingModelsRouter.clone', () => {
       })
 
     expect(clonedPM.name).toBe('Cloned PM')
-    expect(clonedPM.livemode).toBe(true)
+    expect(clonedPM.livemode).toBe(false)
     expect(clonedPM.isDefault).toBe(false)
     expect(clonedPM.id).not.toBe(sourcePM.id)
   })

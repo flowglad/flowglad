@@ -54,10 +54,10 @@ if (existsSync(devEnvPath)) {
   console.warn('To set up: bun run vercel:env-pull:dev')
 }
 
-// Import integration-specific mocks first (required for bun:test)
-// Uses bun.integration.mocks.ts which does NOT mock redis/svix
-// so integration tests can use real implementations with _setTestRedisClient
-import './bun.integration.mocks'
+// Import mocks first (required for bun:test)
+// Note: Uses standard bun.mocks which includes Redis/Svix mocks.
+// The REDIS_INTEGRATION_TEST_MODE flag below allows real Redis when needed.
+import './bun.mocks'
 
 import { beforeAll } from 'bun:test'
 import { seedDatabase } from './seedDatabase'
