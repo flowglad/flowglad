@@ -42,10 +42,9 @@ export type SyncEventType = z.infer<typeof syncEventTypeSchema>
 export const syncNamespaceSchema = z.enum(SYNC_NAMESPACES)
 
 /**
- * A sync event represents a change to an entity that should be
- * streamed to connected clients via SSE.
+ * Base fields shared by all sync events
  */
-export interface SyncEvent {
+interface SyncEventBase {
   /** Auto-generated unique ID for this event */
   id: string
   /** Namespace matching cache dependency (e.g., 'customerSubscriptions') */
@@ -54,10 +53,6 @@ export interface SyncEvent {
   entityId: string
   /** Scope identifier from API key (currently organizationId, will become pricingModelId) */
   scopeId: string
-  /** Event type - update means data changed, delete means entity removed */
-  eventType: 'update' | 'delete'
-  /** The full data payload (null for delete events) */
-  data: unknown | null
   /** Redis Stream sequence number (e.g., "1706745600000-0") */
   sequence: string
   /** ISO timestamp when event was created */
@@ -67,41 +62,130 @@ export interface SyncEvent {
 }
 
 /**
- * Zod schema for validating SyncEvent objects
+ * Sync event for entity updates - data contains the full payload
  */
-export const syncEventSchema = z.object({
+interface SyncEventUpdate extends SyncEventBase {
+  eventType: 'update'
+  /** The full data payload for the updated entity */
+  data: unknown
+}
+
+/**
+ * Sync event for entity deletions - data is null
+ */
+interface SyncEventDelete extends SyncEventBase {
+  eventType: 'delete'
+  /** Always null for delete events */
+  data: null
+}
+
+/**
+ * A sync event represents a change to an entity that should be
+ * streamed to connected clients via SSE.
+ * Discriminated union based on eventType ensures data matches the event type.
+ */
+export type SyncEvent = SyncEventUpdate | SyncEventDelete
+
+/**
+ * Base schema fields shared by all sync events
+ */
+const syncEventBaseSchema = {
   id: z.string().min(1),
   namespace: syncNamespaceSchema,
   entityId: z.string().min(1),
   scopeId: z.string().min(1),
-  eventType: syncEventTypeSchema,
-  data: z.unknown().nullable(),
   sequence: z.string().min(1),
   timestamp: z.string().datetime(),
   livemode: z.boolean(),
+}
+
+/**
+ * Schema for non-null unknown data (used for update events)
+ */
+const nonNullDataSchema = z.unknown().refine((val) => val !== null, {
+  message: 'data cannot be null for update events',
 })
 
 /**
- * Input type for creating a new sync event.
- * Omits auto-generated fields (id, sequence, timestamp).
+ * Zod schema for validating SyncEvent objects.
+ * Uses discriminated union to enforce data type based on eventType.
  */
-export interface SyncEventInsert {
+export const syncEventSchema = z.discriminatedUnion('eventType', [
+  z.object({
+    ...syncEventBaseSchema,
+    eventType: z.literal('update'),
+    data: nonNullDataSchema,
+  }),
+  z.object({
+    ...syncEventBaseSchema,
+    eventType: z.literal('delete'),
+    data: z.null(),
+  }),
+])
+
+/**
+ * Base fields shared by all sync event inserts
+ */
+interface SyncEventInsertBase {
   namespace: SyncNamespace
   entityId: string
   scopeId: string
-  eventType: 'update' | 'delete'
-  data: unknown | null
   livemode: boolean
 }
 
 /**
- * Zod schema for validating SyncEventInsert objects
+ * Insert type for update events - data contains the full payload
  */
-export const syncEventInsertSchema = z.object({
+interface SyncEventInsertUpdate extends SyncEventInsertBase {
+  eventType: 'update'
+  /** The full data payload for the updated entity */
+  data: unknown
+}
+
+/**
+ * Insert type for delete events - data is null
+ */
+interface SyncEventInsertDelete extends SyncEventInsertBase {
+  eventType: 'delete'
+  /** Always null for delete events */
+  data: null
+}
+
+/**
+ * Input type for creating a new sync event.
+ * Omits auto-generated fields (id, sequence, timestamp).
+ * Discriminated union based on eventType ensures data matches the event type.
+ */
+export type SyncEventInsert =
+  | SyncEventInsertUpdate
+  | SyncEventInsertDelete
+
+/**
+ * Base schema fields shared by all sync event inserts
+ */
+const syncEventInsertBaseSchema = {
   namespace: syncNamespaceSchema,
   entityId: z.string().min(1),
   scopeId: z.string().min(1),
-  eventType: syncEventTypeSchema,
-  data: z.unknown().nullable(),
   livemode: z.boolean(),
-})
+}
+
+/**
+ * Zod schema for validating SyncEventInsert objects.
+ * Uses discriminated union to enforce data type based on eventType.
+ */
+export const syncEventInsertSchema = z.discriminatedUnion(
+  'eventType',
+  [
+    z.object({
+      ...syncEventInsertBaseSchema,
+      eventType: z.literal('update'),
+      data: nonNullDataSchema,
+    }),
+    z.object({
+      ...syncEventInsertBaseSchema,
+      eventType: z.literal('delete'),
+      data: z.null(),
+    }),
+  ]
+)
