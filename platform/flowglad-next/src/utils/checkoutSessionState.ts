@@ -220,7 +220,9 @@ export const createNonInvoiceCheckoutSession = async (
   // 2. Creating payment intents for single payment prices
   let product = null
   if (Price.hasProductId(price)) {
-    product = await selectProductById(price.productId, transaction)
+    product = (
+      await selectProductById(price.productId, transaction)
+    ).unwrap()
     if (product.default) {
       return Result.err(
         new ValidationError(

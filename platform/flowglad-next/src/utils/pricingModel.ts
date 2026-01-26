@@ -155,10 +155,9 @@ export const createPriceTransaction = async (
   // Product validation only applies to non-usage prices.
   // Usage prices don't have productId, so skip product-related validation.
   if (Price.clientInsertHasProductId(price)) {
-    const product = await selectProductById(
-      price.productId,
-      transaction
-    )
+    const product = (
+      await selectProductById(price.productId, transaction)
+    ).unwrap()
     const existingPrices = await selectPrices(
       { productId: price.productId },
       transaction
@@ -345,13 +344,9 @@ export const editProductTransaction = async (
   }
 
   // Fetch the existing product to check if it's a default product
-  const existingProduct = await selectProductById(
-    product.id,
-    transaction
-  )
-  if (!existingProduct) {
-    throw new Error('Product not found')
-  }
+  const existingProduct = (
+    await selectProductById(product.id, transaction)
+  ).unwrap()
 
   // Check if product slug is being mutated
   // Compare slug values, treating null and undefined as equivalent
@@ -470,10 +465,9 @@ export const clonePricingModelTransaction = async (
   ctx: TransactionEffectsContext
 ) => {
   const { transaction } = ctx
-  const pricingModel = await selectPricingModelById(
-    input.id,
-    transaction
-  )
+  const pricingModel = (
+    await selectPricingModelById(input.id, transaction)
+  ).unwrap()
   const livemode = input.destinationEnvironment
     ? input.destinationEnvironment === DestinationEnvironment.Livemode
     : pricingModel.livemode

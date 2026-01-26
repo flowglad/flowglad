@@ -233,10 +233,12 @@ export async function checkoutInfoForPriceWhere(
     }
     const checkoutSession = checkoutSessionResult.value
     const discount = checkoutSession.discountId
-      ? await selectDiscountById(
-          checkoutSession.discountId,
-          transaction
-        )
+      ? (
+          await selectDiscountById(
+            checkoutSession.discountId,
+            transaction
+          )
+        ).unwrap()
       : null
     const feeCalculation = await selectLatestFeeCalculation(
       {
@@ -404,10 +406,12 @@ export async function checkoutInfoForCheckoutSession(
     transaction
   )
   const discount = checkoutSession.discountId
-    ? await selectDiscountById(
-        checkoutSession.discountId,
-        transaction
-      )
+    ? (
+        await selectDiscountById(
+          checkoutSession.discountId,
+          transaction
+        )
+      ).unwrap()
     : null
   const maybeCustomer = checkoutSession.customerId
     ? await selectCustomerById(

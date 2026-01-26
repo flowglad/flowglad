@@ -52,15 +52,12 @@ export const createOrRestoreProductFeature = protectedProcedure
         // The RLS on productFeatures ensures user has access to the product
         // and its organization, and that livemode matches current context.
         // Here, we need to set the livemode and organizationId fields on the productFeature record itself.
-        const product = await selectProductById(
-          input.productFeature.productId,
-          transaction
-        )
-        if (!product) {
-          throw new Error(
-            'Associated product not found or access denied.'
-          ) // TRPCError can be used here
-        }
+        const product = (
+          await selectProductById(
+            input.productFeature.productId,
+            transaction
+          )
+        ).unwrap()
 
         // Validate that toggle features cannot be associated with single payment products
         const feature = await selectFeatureById(

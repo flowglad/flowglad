@@ -72,10 +72,9 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
         if (item.createdAt > billingPeriod.startDate) {
           continue
         }
-        const price = await selectPriceById(
-          item.priceId!,
-          transaction
-        )
+        const price = (
+          await selectPriceById(item.priceId!, transaction)
+        ).unwrap()
         if (
           price.type === PriceType.Subscription ||
           price.type === PriceType.SinglePayment

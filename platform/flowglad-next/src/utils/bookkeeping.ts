@@ -274,10 +274,12 @@ export const createCustomerBookkeeping = async (
     )
   }
   const pricingModel = payload.customer.pricingModelId
-    ? await selectPricingModelById(
-        payload.customer.pricingModelId,
-        transaction
-      )
+    ? (
+        await selectPricingModelById(
+          payload.customer.pricingModelId,
+          transaction
+        )
+      ).unwrap()
     : await selectDefaultPricingModel(
         { organizationId: payload.customer.organizationId, livemode },
         transaction

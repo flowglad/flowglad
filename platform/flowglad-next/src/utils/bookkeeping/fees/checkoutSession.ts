@@ -169,10 +169,12 @@ export const createFeeCalculationForCheckoutSession = async (
   transaction: DbTransaction
 ): Promise<FeeCalculation.Record> => {
   const discount = checkoutSession.discountId
-    ? await selectDiscountById(
-        checkoutSession.discountId,
-        transaction
-      )
+    ? (
+        await selectDiscountById(
+          checkoutSession.discountId,
+          transaction
+        )
+      ).unwrap()
     : undefined
 
   const [{ price, organization }] =

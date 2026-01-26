@@ -38,10 +38,12 @@ export const createWebhookTransaction = async ({
   transaction,
 }: CreateWebhookTransactionParams): Promise<CreateWebhookTransactionResult> => {
   // Validate pricingModelId belongs to org and livemode
-  const pricingModel = await selectPricingModelById(
-    webhookInput.pricingModelId,
-    transaction
-  )
+  const pricingModel = (
+    await selectPricingModelById(
+      webhookInput.pricingModelId,
+      transaction
+    )
+  ).unwrap()
   if (
     pricingModel.organizationId !== organization.id ||
     pricingModel.livemode !== livemode

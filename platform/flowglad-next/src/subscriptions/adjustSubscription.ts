@@ -888,18 +888,16 @@ export const adjustSubscription = async (
     )
 
     // Send adjustment notifications (no proration - either downgrade or upgrade with proration disabled)
-    // TODO: Remove try/catch when selectPriceById is migrated to return Result
-    let price: Price.Record
-    try {
-      price = await selectPriceById(subscription.priceId, transaction)
-    } catch (error) {
-      if (error instanceof DbNotFoundError) {
-        return Result.err(
-          new NotFoundError('Price', subscription.priceId)
-        )
-      }
-      throw error
+    const priceResult = await selectPriceById(
+      subscription.priceId,
+      transaction
+    )
+    if (Result.isError(priceResult)) {
+      return Result.err(
+        new NotFoundError('Price', subscription.priceId)
+      )
     }
+    const price = priceResult.unwrap()
 
     await idempotentSendCustomerSubscriptionAdjustedNotification({
       subscriptionId: id,

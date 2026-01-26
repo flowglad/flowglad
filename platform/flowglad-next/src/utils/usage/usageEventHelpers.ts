@@ -170,10 +170,16 @@ export const resolveUsageEventInput = async (
   // Early return if priceId is already provided
   if (input.usageEvent.priceId) {
     // Fetch the price to get usageMeterId
-    const price = await selectPriceById(
+    const priceResult = await selectPriceById(
       input.usageEvent.priceId,
       transaction
     )
+    if (Result.isError(priceResult)) {
+      return Result.err(
+        new NotFoundError('Price', input.usageEvent.priceId)
+      )
+    }
+    const price = priceResult.value
     if (price.type !== PriceType.Usage) {
       return Result.err(
         new ValidationError(
@@ -703,10 +709,9 @@ export const ingestAndProcessUsageEvent = async (
 
   if (usageEventInput.priceId) {
     // When priceId is provided, get usageMeterId from the price
-    const price = await selectPriceById(
-      usageEventInput.priceId,
-      transaction
-    )
+    const price = (
+      await selectPriceById(usageEventInput.priceId, transaction)
+    ).unwrap()
     if (price.type !== PriceType.Usage) {
       return Result.err(
         new ValidationError(

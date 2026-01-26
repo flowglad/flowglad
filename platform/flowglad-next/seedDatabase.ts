@@ -515,7 +515,9 @@ export const setupSubscription = async (params: {
   }
   const status = params.status ?? SubscriptionStatus.Active
   return adminTransaction(async ({ transaction }) => {
-    const price = await selectPriceById(params.priceId, transaction)
+    const price = (
+      await selectPriceById(params.priceId, transaction)
+    ).unwrap()
     if (params.renews === false) {
       return (await insertSubscription(
         {
@@ -772,7 +774,9 @@ export const setupPurchase = async ({
   status?: PurchaseStatus
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const price = await selectPriceById(priceId, transaction)
+    const price = (
+      await selectPriceById(priceId, transaction)
+    ).unwrap()
     const purchaseFields = projectPriceFieldsOntoPurchaseFields(price)
     const coreFields = {
       customerId,
@@ -1589,13 +1593,9 @@ export const setupUsageMeter = async ({
     })
     let pricingModelToUseId: string | null = null
     if (pricingModelId) {
-      const pricingModel = await selectPricingModelById(
-        pricingModelId,
-        transaction
-      )
-      if (!pricingModel) {
-        throw new Error('Pricing model not found')
-      }
+      const pricingModel = (
+        await selectPricingModelById(pricingModelId, transaction)
+      ).unwrap()
       pricingModelToUseId = pricingModel.id
     } else {
       const defaultPricingModel = await selectDefaultPricingModel(
@@ -1726,10 +1726,14 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
       type: 'admin',
       livemode,
     })
-    const product = await selectProductById(productId, transaction)
-    if (!product) {
+    const productResult = await selectProductById(
+      productId,
+      transaction
+    )
+    if (productResult.status === 'error') {
       throw new Error('Product not found')
     }
+    const product = productResult.unwrap()
     const createdData: Array<{
       feature: Feature.Record
       productFeature: ProductFeature.Record

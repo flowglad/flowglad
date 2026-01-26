@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { Result } from 'better-result'
 import { setupOrg, setupPricingModel } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -347,12 +348,15 @@ describe('savePricingModelIntegrationMarkdown', () => {
     )
 
     // Verify database was updated with the hash
-    const updatedPricingModel = await adminTransaction(
+    const updatedPricingModelResult = await adminTransaction(
       async (ctx) => {
         const { transaction } = ctx
         return selectPricingModelById(pricingModel.id, transaction)
       }
     )
+    const updatedPricingModel = Result.isOk(updatedPricingModelResult)
+      ? updatedPricingModelResult.value
+      : null
     expect(typeof updatedPricingModel?.integrationGuideHash).toBe(
       'string'
     )
@@ -430,16 +434,15 @@ describe('getPricingModelIntegrationMarkdown', () => {
     )
   })
 
-  it('should throw an error when pricing model is not found', async () => {
+  it('should return null when pricing model is not found', async () => {
     const nonExistentPricingModelId = 'pm_nonexistent'
     mockGetMarkdownFile.mockClear()
 
-    await expect(
-      getPricingModelIntegrationMarkdown({
-        organizationId: organization.id,
-        pricingModelId: nonExistentPricingModelId,
-      })
-    ).rejects.toThrow(/No pricing models found with id/)
+    const result = await getPricingModelIntegrationMarkdown({
+      organizationId: organization.id,
+      pricingModelId: nonExistentPricingModelId,
+    })
+    expect(result).toBeNull()
   })
 
   it('should return null immediately when integrationGuideHash is null', async () => {
@@ -469,10 +472,11 @@ describe('getPricingModelIntegrationMarkdown', () => {
   it('should return null immediately when integrationGuideHash is undefined', async () => {
     // Pricing model starts with integrationGuideHash as undefined (not set)
     // Verify it's undefined or null
-    const pm = await adminTransaction(async (ctx) => {
+    const pmResult = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return selectPricingModelById(pricingModel.id, transaction)
     })
+    const pm = Result.isOk(pmResult) ? pmResult.value : null
     expect(pm?.integrationGuideHash).toBeNull()
 
     mockGetMarkdownFile.mockClear()

@@ -257,7 +257,9 @@ export async function buildNotificationContext(
 
     // Fetch price if requested and subscription has priceId
     if (include.includes('price') && subscription.priceId) {
-      price = await selectPriceById(subscription.priceId, transaction)
+      price = (
+        await selectPriceById(subscription.priceId, transaction)
+      ).unwrap()
     }
   }
 

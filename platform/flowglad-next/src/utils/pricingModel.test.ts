@@ -473,10 +473,12 @@ describe('clonePricingModelTransaction', () => {
     it('should not modify the original pricing model, its products, or prices', async () => {
       const originalPricingModel = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            sourcePricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              sourcePricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
 
@@ -501,10 +503,12 @@ describe('clonePricingModelTransaction', () => {
 
       const pricingModelAfterClone = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            sourcePricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              sourcePricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
 
@@ -1424,10 +1428,12 @@ describe('clonePricingModelTransaction', () => {
       // Verify the original livemode default is still default (unchanged by cloning)
       const refreshedLivemodeDefault = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            livemodeDefaultPricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              livemodeDefaultPricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
       expect(refreshedLivemodeDefault.isDefault).toBe(true)
@@ -1436,10 +1442,12 @@ describe('clonePricingModelTransaction', () => {
       // Verify the testmode default is still default (unchanged by cloning to testmode)
       const refreshedTestmodeDefault = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            testmodeDefaultPricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              testmodeDefaultPricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
       expect(refreshedTestmodeDefault.isDefault).toBe(true)
@@ -1466,10 +1474,12 @@ describe('clonePricingModelTransaction', () => {
       // Verify both original defaults are still default
       const finalLivemodeDefault = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            livemodeDefaultPricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              livemodeDefaultPricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
       expect(finalLivemodeDefault.isDefault).toBe(true)
@@ -1477,10 +1487,12 @@ describe('clonePricingModelTransaction', () => {
 
       const finalTestmodeDefault = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            testmodeDefaultPricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              testmodeDefaultPricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
       expect(finalTestmodeDefault.isDefault).toBe(true)
@@ -2932,7 +2944,9 @@ describe('editProductTransaction - Price Updates', () => {
 
   it('should silently ignore price updates when editing default products', async () => {
     const currentPrice = await adminTransaction(async (ctx) => {
-      return await selectPriceById(defaultPriceId, ctx.transaction)
+      return (
+        await selectPriceById(defaultPriceId, ctx.transaction)
+      ).unwrap()
     })
     if (!currentPrice) {
       throw new Error('Default price not found')
@@ -3000,7 +3014,9 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Verify the original price was not modified
     const priceAfterUpdate = await adminTransaction(async (ctx) => {
-      return await selectPriceById(defaultPriceId, ctx.transaction)
+      return (
+        await selectPriceById(defaultPriceId, ctx.transaction)
+      ).unwrap()
     })
     expect(priceAfterUpdate?.unitPrice).toBe(currentPrice.unitPrice)
     expect(priceAfterUpdate?.intervalUnit).toBe(
@@ -3048,7 +3064,9 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Get the current default price
     const currentPrice = await adminTransaction(async (ctx) => {
-      return await selectPriceById(regularPriceId, ctx.transaction)
+      return (
+        await selectPriceById(regularPriceId, ctx.transaction)
+      ).unwrap()
     })
     if (!currentPrice) {
       throw new Error('Regular price not found')
@@ -3123,7 +3141,9 @@ describe('editProductTransaction - Price Updates', () => {
 
     // Get the current default price
     const currentPrice = await adminTransaction(async (ctx) => {
-      return await selectPriceById(regularPriceId, ctx.transaction)
+      return (
+        await selectPriceById(regularPriceId, ctx.transaction)
+      ).unwrap()
     })
 
     if (!currentPrice) {
@@ -3259,16 +3279,17 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify product slug is updated
       const updatedProduct = await adminTransaction(async (ctx) => {
-        return await selectProductById(
-          regularProductId,
-          ctx.transaction
-        )
+        return (
+          await selectProductById(regularProductId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedProduct?.slug).toBe('new-product-slug')
 
       // Verify active default price slug is updated
       const updatedPrice = await adminTransaction(async (ctx) => {
-        return await selectPriceById(regularPriceId, ctx.transaction)
+        return (
+          await selectPriceById(regularPriceId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedPrice?.slug).toBe('new-product-slug')
 
@@ -3284,7 +3305,9 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
     it('should set new price slug to product slug when price input is provided', async () => {
       const currentPrice = await adminTransaction(async (ctx) => {
-        return await selectPriceById(regularPriceId, ctx.transaction)
+        return (
+          await selectPriceById(regularPriceId, ctx.transaction)
+        ).unwrap()
       })
       if (!currentPrice) {
         throw new Error('Price not found')
@@ -3328,10 +3351,9 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify product slug is updated
       const updatedProduct = await adminTransaction(async (ctx) => {
-        return await selectProductById(
-          regularProductId,
-          ctx.transaction
-        )
+        return (
+          await selectProductById(regularProductId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedProduct?.slug).toBe('new-product-slug')
 
@@ -3371,17 +3393,18 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify product name is updated but slug remains same
       const updatedProduct = await adminTransaction(async (ctx) => {
-        return await selectProductById(
-          regularProductId,
-          ctx.transaction
-        )
+        return (
+          await selectProductById(regularProductId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedProduct?.name).toBe('Updated Product Name')
       expect(updatedProduct?.slug).toBe('old-product-slug')
 
       // Verify price slug remains unchanged
       const updatedPrice = await adminTransaction(async (ctx) => {
-        return await selectPriceById(regularPriceId, ctx.transaction)
+        return (
+          await selectPriceById(regularPriceId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedPrice?.slug).toBe('old-price-slug')
 
@@ -3445,20 +3468,18 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify product slug is updated
       const updatedProduct = await adminTransaction(async (ctx) => {
-        return await selectProductById(
-          regularProductId,
-          ctx.transaction
-        )
+        return (
+          await selectProductById(regularProductId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedProduct?.slug).toBe('new-slug')
 
       // Verify active default price slug is updated
       const updatedActivePrice = await adminTransaction(
         async (ctx) => {
-          return await selectPriceById(
-            regularPriceId,
-            ctx.transaction
-          )
+          return (
+            await selectPriceById(regularPriceId, ctx.transaction)
+          ).unwrap()
         }
       )
       expect(updatedActivePrice?.slug).toBe('new-slug')
@@ -3466,10 +3487,9 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
       // Verify inactive price slug remains unchanged
       const updatedInactivePrice = await adminTransaction(
         async (ctx) => {
-          return await selectPriceById(
-            inactivePrice.id,
-            ctx.transaction
-          )
+          return (
+            await selectPriceById(inactivePrice.id, ctx.transaction)
+          ).unwrap()
         }
       )
       expect(updatedInactivePrice?.slug).toBe('inactive-price-slug')
@@ -3523,16 +3543,17 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify product slug was not updated
       const updatedProduct = await adminTransaction(async (ctx) => {
-        return await selectProductById(
-          regularProductId,
-          ctx.transaction
-        )
+        return (
+          await selectProductById(regularProductId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedProduct?.slug).toBe('old-product-slug')
 
       // Verify price slug was not updated
       const updatedPrice = await adminTransaction(async (ctx) => {
-        return await selectPriceById(regularPriceId, ctx.transaction)
+        return (
+          await selectPriceById(regularPriceId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedPrice?.slug).toBe('old-price-slug')
     })
@@ -3563,17 +3584,18 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify product slug was not updated
       const updatedProduct = await adminTransaction(async (ctx) => {
-        return await selectProductById(
-          defaultProductId,
-          ctx.transaction
-        )
+        return (
+          await selectProductById(defaultProductId, ctx.transaction)
+        ).unwrap()
       })
       // The default product from setupOrg doesn't have a slug initially, so we just verify it wasn't set
       expect(updatedProduct?.slug).not.toBe('new-default-slug')
 
       // Verify price slug was not updated
       const updatedPrice = await adminTransaction(async (ctx) => {
-        return await selectPriceById(defaultPriceId, ctx.transaction)
+        return (
+          await selectPriceById(defaultPriceId, ctx.transaction)
+        ).unwrap()
       })
       // Verify the price slug remains unchanged (or null if it was null)
       expect(updatedPrice?.slug).not.toBe('new-default-slug')
@@ -3629,26 +3651,29 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify product slug is updated
       const updatedProduct = await adminTransaction(async (ctx) => {
-        return await selectProductById(
-          productWithNullSlug.id,
-          ctx.transaction
-        )
+        return (
+          await selectProductById(
+            productWithNullSlug.id,
+            ctx.transaction
+          )
+        ).unwrap()
       })
       expect(updatedProduct?.slug).toBe('new-product-slug')
 
       // Verify active default price slug is updated
       const updatedPrice = await adminTransaction(async (ctx) => {
-        return await selectPriceById(
-          priceWithSlug.id,
-          ctx.transaction
-        )
+        return (
+          await selectPriceById(priceWithSlug.id, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedPrice?.slug).toBe('new-product-slug')
     })
 
     it('should sync slug when price input causes new price insertion', async () => {
       const currentPrice = await adminTransaction(async (ctx) => {
-        return await selectPriceById(regularPriceId, ctx.transaction)
+        return (
+          await selectPriceById(regularPriceId, ctx.transaction)
+        ).unwrap()
       })
       if (!currentPrice) {
         throw new Error('Price not found')
@@ -3691,10 +3716,9 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify product slug is updated
       const updatedProduct = await adminTransaction(async (ctx) => {
-        return await selectProductById(
-          regularProductId,
-          ctx.transaction
-        )
+        return (
+          await selectProductById(regularProductId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedProduct?.slug).toBe('new-slug')
 
@@ -3714,7 +3738,9 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
     it('should update existing price slug when price input does not cause new price insertion', async () => {
       const currentPrice = await adminTransaction(async (ctx) => {
-        return await selectPriceById(regularPriceId, ctx.transaction)
+        return (
+          await selectPriceById(regularPriceId, ctx.transaction)
+        ).unwrap()
       })
       if (!currentPrice) {
         throw new Error('Price not found')
@@ -3758,10 +3784,9 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify product slug is updated
       const updatedProduct = await adminTransaction(async (ctx) => {
-        return await selectProductById(
-          regularProductId,
-          ctx.transaction
-        )
+        return (
+          await selectProductById(regularProductId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedProduct?.slug).toBe('new-slug')
 
@@ -3776,7 +3801,9 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
 
       // Verify existing active price slug is updated
       const updatedPrice = await adminTransaction(async (ctx) => {
-        return await selectPriceById(regularPriceId, ctx.transaction)
+        return (
+          await selectPriceById(regularPriceId, ctx.transaction)
+        ).unwrap()
       })
       expect(updatedPrice?.slug).toBe('new-slug')
     })

@@ -444,10 +444,9 @@ export const activateSubscription = async (
     subscriptionStartDate: subscription.startDate ?? undefined,
   })
 
-  const price = await selectPriceById(
-    subscription.priceId!,
-    transaction
-  )
+  const price = (
+    await selectPriceById(subscription.priceId!, transaction)
+  ).unwrap()
   const renews = price.type === PriceType.Subscription ? true : false
   let subscriptionUpdate: Subscription.Update | null = null
 
