@@ -12,7 +12,6 @@
     "typecheck": "tsc --noEmit",
     "check": "bunx --bun @biomejs/biome check . && bun run typecheck && bun run validate:registry && bun run validate:mock-import-order",
     "validate:mock-import-order": "bun run src/scripts/validate-mock-import-order.ts",
-    "analyze:test-isolation": "NODE_ENV=test bun run src/scripts/analyze-test-isolation.ts",
     "format": "bunx --bun @biomejs/biome check --write .",
     "install-packages": "bun install",
     "test:pure-unit": "bun run src/scripts/run-bun-tests.ts ./bun.unit.setup.ts '*.unit.test.ts' src",
