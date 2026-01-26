@@ -538,6 +538,10 @@ export type CustomerPricingInfo = {
   pricingModelId: string
   organizationId: string
   livemode: boolean
+  /**
+   * Included for early validation in bulk operations to prevent
+   * processing events for archived customers before expensive lookups.
+   */
   archived: boolean
 }
 

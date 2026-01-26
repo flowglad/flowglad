@@ -701,6 +701,27 @@ export const ingestAndProcessUsageEvent = async (
     transaction
   )
 
+  // Fetch customer once for archived/pricing model validation
+  const customer = await selectCustomerById(
+    subscription.customerId,
+    transaction
+  )
+
+  // Guard: cannot create usage events for archived customers
+  if (customer.archived) {
+    return Result.err(new ArchivedCustomerError('create usage event'))
+  }
+
+  // Validate that the customer has a pricing model ID
+  if (!customer.pricingModelId) {
+    return Result.err(
+      new ValidationError(
+        'customerId',
+        `Customer ${customer.id} does not have a pricing model associated`
+      )
+    )
+  }
+
   // Determine usageMeterId and resolved priceId based on whether priceId is provided or not
   let usageMeterId: string
   let resolvedPriceId: string | null = usageEventInput.priceId ?? null
@@ -729,24 +750,6 @@ export const ingestAndProcessUsageEvent = async (
     }
 
     // Validate that the price belongs to the customer's pricing model
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
-    // Guard: cannot create usage events for archived customers
-    if (customer.archived) {
-      return Result.err(
-        new ArchivedCustomerError('create usage event')
-      )
-    }
-    if (!customer.pricingModelId) {
-      return Result.err(
-        new ValidationError(
-          'customerId',
-          `Customer ${customer.id} does not have a pricing model associated`
-        )
-      )
-    }
     if (price.pricingModelId !== customer.pricingModelId) {
       return Result.err(
         new NotFoundError(
@@ -772,28 +775,6 @@ export const ingestAndProcessUsageEvent = async (
 
   // If usageMeterId was provided directly, validate it belongs to customer's pricing model
   if (!usageEventInput.priceId) {
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
-
-    // Guard: cannot create usage events for archived customers
-    if (customer.archived) {
-      return Result.err(
-        new ArchivedCustomerError('create usage event')
-      )
-    }
-
-    // Validate that the customer has a pricing model ID
-    if (!customer.pricingModelId) {
-      return Result.err(
-        new ValidationError(
-          'customerId',
-          `Customer ${customer.id} does not have a pricing model associated`
-        )
-      )
-    }
-
     let usageMeter
     try {
       usageMeter = await selectUsageMeterById(
