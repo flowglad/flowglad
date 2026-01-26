@@ -22,6 +22,7 @@ import WebhookSecretModal from './WebhookSecretModal'
 
 export type WebhookTableRowData = {
   webhook: Webhook.ClientRecord
+  pricingModelName: string | null
 }
 
 function WebhookActionsMenu({
@@ -91,6 +92,29 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
     size: 112,
     minSize: 90,
     maxSize: 150,
+  },
+  {
+    id: 'pricingModel',
+    accessorFn: (row) => row.pricingModelName,
+    header: 'Pricing Model',
+    cell: ({ row }) => {
+      const pricingModelName = row.getValue('pricingModel') as
+        | string
+        | null
+      return (
+        <div
+          className="truncate"
+          title={pricingModelName ?? 'Legacy'}
+        >
+          {pricingModelName ?? (
+            <span className="text-muted-foreground">Legacy</span>
+          )}
+        </div>
+      )
+    },
+    size: 130,
+    minSize: 100,
+    maxSize: 180,
   },
   {
     id: 'url',

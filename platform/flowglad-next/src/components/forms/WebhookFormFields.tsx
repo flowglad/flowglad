@@ -18,6 +18,7 @@ import { Switch } from '@/components/ui/switch'
 import type { CreateWebhookInput } from '@/db/schema/webhooks'
 import { FlowgladEventType } from '@/types'
 import MultiSelect, { type Option } from './MultiSelect'
+import PricingModelSelect from './PricingModelSelect'
 
 const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
   const form = useFormContext<CreateWebhookInput>()
@@ -44,6 +45,14 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
           </FormItem>
         )}
       />
+      {!edit && (
+        <div className="w-full relative flex flex-col gap-3">
+          <PricingModelSelect
+            name="webhook.pricingModelId"
+            control={form.control}
+          />
+        </div>
+      )}
       <FormField
         control={form.control}
         name="webhook.url"

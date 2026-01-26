@@ -215,6 +215,12 @@ export function WebhooksDataTable({
           entityName="webhook"
         />
       </div>
+
+      {/* Legacy webhook note */}
+      <p className="text-xs text-muted-foreground px-4 pb-4">
+        Legacy webhooks created before January 2026 deliver events for
+        all pricing models in the current mode.
+      </p>
     </div>
   )
 }

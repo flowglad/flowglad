@@ -4,7 +4,10 @@ import type { Payment } from '@/db/schema/payments'
 import type { Purchase } from '@/db/schema/purchases'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { upsertEventByHash } from '@/db/tableMethods/eventMethods'
+import {
+  derivePricingModelIdFromEventPayload,
+  upsertEventByHash,
+} from '@/db/tableMethods/eventMethods'
 import type { DbTransaction } from '@/db/types'
 import {
   EventCategory,
@@ -28,6 +31,10 @@ export const commitEvent = async (
   transaction: DbTransaction
 ) => {
   const now = Date.now()
+  const pricingModelId = await derivePricingModelIdFromEventPayload(
+    payload.payload,
+    transaction
+  )
   return upsertEventByHash(
     {
       type: payload.type,
@@ -41,6 +48,7 @@ export const commitEvent = async (
       processedAt: null,
       organizationId: payload.organizationId,
       livemode: payload.livemode,
+      pricingModelId,
     },
     transaction
   )
