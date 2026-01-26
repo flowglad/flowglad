@@ -28,6 +28,8 @@ process.env.BETTER_AUTH_URL =
 
 // IMPORTANT: Import mocks first, before any other imports
 import './bun.mocks'
+// Block external services (Redis, Stripe, Unkey, etc.) - must come after bun.mocks
+import './bun.db.mocks'
 
 // Import consolidated global type declarations (after mocks)
 import '@/test/globals'
