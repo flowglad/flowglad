@@ -16,6 +16,7 @@ import {
 } from '@/db/tableMethods/customerMethods'
 import { insertMembership } from '@/db/tableMethods/membershipMethods'
 import { NotFoundError } from '@/db/tableUtils'
+import { MembershipRole } from '@/types'
 
 /**
  * Reference suite for merchant-facing RLS isolation using `authenticatedTransaction`.
@@ -59,6 +60,7 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
           userId: userA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
