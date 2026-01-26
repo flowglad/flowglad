@@ -6,6 +6,7 @@ import {
   constructUniqueIndex,
   livemodePolicyTable,
   merchantPolicy,
+  notNullStringForeignKey,
   nullableStringForeignKey,
   orgIdEqualsCurrentSQL,
   pgEnumColumn,
@@ -17,6 +18,7 @@ import { EventNoun, FlowgladEventType } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { organizations } from './organizations'
+import { pricingModels } from './pricingModels'
 
 const TABLE_NAME = 'events'
 
@@ -63,6 +65,10 @@ export const events = pgTable(
       'organization_id',
       organizations
     ).notNull(),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.type]),
@@ -75,6 +81,7 @@ export const events = pgTable(
     //   table.subjectId,
     // ]),
     constructIndex(TABLE_NAME, [table.objectEntity, table.objectId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     constructUniqueIndex(TABLE_NAME, [table.hash]),
     merchantPolicy('Enable insert for own organizations', {
       as: 'permissive',
@@ -115,12 +122,22 @@ const columnRefinements = {
   // objectId: core.safeZodPositiveInteger.nullable(),
 }
 
+const readOnlyColumns = {
+  pricingModelId: true,
+} as const
+
 export const {
   insert: eventsInsertSchema,
   select: eventsSelectSchema,
   update: eventsUpdateSchema,
 } = buildSchemas(events, {
   refine: columnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    readOnlyColumns,
+  },
 })
 
 export namespace Event {
