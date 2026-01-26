@@ -259,14 +259,13 @@ describe('customersRouter.update', () => {
     const caller = createCaller(organization, apiKeyToken)
 
     // Action: call update with archived: true
-    // The archived field should be omitted from the schema, so it should be ignored
+    // The archived field should be omitted from the schema, so it should be ignored at runtime
     const result = await caller.update({
       externalId: customer.externalId!,
       customer: {
         name: 'Updated Name',
-        // Note: archived should not be settable via the update endpoint
-        // If the schema properly omits it, TypeScript would error here
-        // We're testing runtime behavior
+        // @ts-expect-error - archived is omitted from the schema, testing runtime behavior
+        archived: true,
       },
     })
 
