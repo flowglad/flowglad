@@ -29,9 +29,9 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
       toast.success('Webhook created successfully')
     },
     onError: (error) => {
-      toast.error(
-        'Failed to create webhook. Please check your settings and try again.'
-      )
+      const errorMessage =
+        error.message || 'Failed to create webhook. Please try again.'
+      toast.error(errorMessage)
       console.error('Webhook creation error:', error)
     },
   })

@@ -232,12 +232,28 @@ const createSvixEndpointCore = async (
     webhook,
     livemode: webhook.livemode,
   })
-  const endpoint = await svix().endpoint.create(applicationId, {
-    uid: endpointId,
-    url: webhook.url,
-    filterTypes: webhook.filterTypes,
-  })
-  return endpoint
+  try {
+    const endpoint = await svix().endpoint.create(applicationId, {
+      uid: endpointId,
+      url: webhook.url,
+      filterTypes: webhook.filterTypes,
+    })
+    return endpoint
+  } catch (error) {
+    // Extract user-friendly error message from Svix response
+    const svixError = error as {
+      code?: number
+      body?: { detail?: Array<{ msg?: string; loc?: string[] }> }
+    }
+    if (svixError.code === 422 && svixError.body?.detail?.length) {
+      const messages = svixError.body.detail
+        .map((d) => d.msg)
+        .filter(Boolean)
+        .join('; ')
+      throw new Error(messages || 'Invalid webhook configuration')
+    }
+    throw error
+  }
 }
 
 /**
