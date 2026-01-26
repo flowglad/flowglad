@@ -1,11 +1,7 @@
 import { DefaultLogger } from 'drizzle-orm/logger'
-import {
-  drizzle,
-  type PostgresJsDatabase,
-} from 'drizzle-orm/postgres-js'
+import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { format } from 'sql-formatter'
-import type { FileTestContext } from '@/test/globals'
 import core from '@/utils/core'
 
 const dbUrl = core.IS_TEST
@@ -61,153 +57,9 @@ if (core.IS_PROD) {
 
 /**
  * The main database instance.
- *
- * In test mode (db.test files), this can be redirected to a test-specific
- * connection that uses savepoints for isolation. Set `globalThis.__testDb`
- * to redirect queries.
  */
-const _db = drizzle(client, {
+export const db = drizzle(client, {
   logger,
-})
-
-// Import shared test file detection utility
-// Note: This import is lazy-loaded only in test mode to avoid bundling test code in production
-let getCurrentTestFileOrNull: (() => string | null) | undefined
-let UNKNOWN_TEST_FILE: string | undefined
-
-/**
- * Get the test context for the current file.
- * Looks up the correct context based on the calling test file.
- * Falls back to any available context with an active transaction.
- *
- * The lookup strategy is:
- * 1. Try to find context by detected file path
- * 2. Fall back to UNKNOWN_TEST_FILE (shared context)
- * 3. Fall back to ANY context with inTransaction=true
- *
- * This aggressive fallback ensures that if test isolation is active,
- * all db operations go through the isolated connection.
- */
-function getTestContextForCurrentFile(): FileTestContext | null {
-  // Only attempt test context lookup in test mode
-  if (!core.IS_TEST) {
-    return null
-  }
-
-  // Lazy-load the test file detection function and fallback key
-  if (!getCurrentTestFileOrNull) {
-    try {
-      // Dynamic import to avoid bundling test utilities in production
-      // eslint-disable-next-line @typescript-eslint/no-require-imports
-      const testFileDetection = require('@/test/db/testFileDetection')
-      getCurrentTestFileOrNull =
-        testFileDetection.getCurrentTestFileOrNull
-      UNKNOWN_TEST_FILE = testFileDetection.UNKNOWN_TEST_FILE
-    } catch {
-      // Module not available (e.g., in production bundle)
-      return null
-    }
-  }
-
-  // Access the global contexts map (set by transactionIsolation.ts)
-  const contexts = globalThis.__testContexts as
-    | Map<string, FileTestContext>
-    | undefined
-  if (!contexts || contexts.size === 0) {
-    return null
-  }
-
-  // Strategy 1: Find context by detected file path
-  const filePath = getCurrentTestFileOrNull?.()
-  if (filePath) {
-    const ctx = contexts.get(filePath)
-    if (ctx?.db && ctx.inTransaction) {
-      return ctx
-    }
-  }
-
-  // Strategy 2: Fall back to the shared context key (UNKNOWN_TEST_FILE)
-  if (UNKNOWN_TEST_FILE) {
-    const fallbackCtx = contexts.get(UNKNOWN_TEST_FILE)
-    if (fallbackCtx?.db && fallbackCtx.inTransaction) {
-      return fallbackCtx
-    }
-  }
-
-  // Strategy 3: Fall back to ANY context with an active transaction
-  // This handles edge cases where file detection fails but isolation is active
-  for (const ctx of contexts.values()) {
-    if (ctx?.db && ctx.inTransaction) {
-      return ctx
-    }
-  }
-
-  return null
-}
-
-// Track nesting depth for savepoint transactions
-// When we're already inside a savepoint wrapper, we don't need another level
-let savepointNestingDepth = 0
-
-/**
- * Creates a transaction wrapper that uses the test DB directly.
- *
- * When code calls db.transaction() inside a test, we're already inside the test's
- * outer transaction (managed by transactionIsolation.ts). We don't want Drizzle to
- * issue BEGIN/COMMIT because that would end the test isolation.
- *
- * Instead of creating nested savepoints (which cause issues with error propagation
- * in concurrent operations), we simply run the callback directly with the test DB.
- * The test's outer savepoint (sp_1, sp_2, etc.) provides the isolation boundary.
- *
- * This approach:
- * - Avoids nested savepoint complexity
- * - Lets errors propagate naturally
- * - Relies on the test framework's rollback to clean up
- */
-function createSavepointTransaction(ctx: FileTestContext) {
-  return async function savepointTransaction<T>(
-    callback: (tx: PostgresJsDatabase) => Promise<T>
-  ): Promise<T> {
-    savepointNestingDepth++
-    try {
-      // Run the callback with the test DB (which is already transactional)
-      // The callback expects a "transaction" object, which in Drizzle is just
-      // a DB instance scoped to the transaction - our test DB works for this
-      return await callback(ctx.db)
-    } finally {
-      savepointNestingDepth--
-    }
-  }
-}
-
-/**
- * Proxy that redirects to test DB when available.
- * This enables savepoint-based test isolation in *.db.test.ts files.
- * Dynamically looks up the correct DB context based on the call stack.
- *
- * Special handling for db.transaction():
- * When test isolation is active, calling db.transaction() would normally issue
- * BEGIN/COMMIT which would end the test's outer transaction. Instead, we
- * intercept and use savepoints for nested transaction semantics.
- */
-export const db: PostgresJsDatabase = new Proxy(_db, {
-  get(target, prop, receiver) {
-    // Try to find the test context for the current file
-    const testCtx = getTestContextForCurrentFile()
-
-    if (testCtx) {
-      // Special handling for transaction() - use savepoints instead of BEGIN/COMMIT
-      if (prop === 'transaction') {
-        return createSavepointTransaction(testCtx)
-      }
-
-      // For all other properties, redirect to the test DB
-      return Reflect.get(testCtx.db, prop, receiver)
-    }
-
-    return Reflect.get(target, prop, receiver)
-  },
 })
 
 export default db

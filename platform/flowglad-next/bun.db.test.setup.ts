@@ -1,23 +1,20 @@
 /**
  * DB-Backed Test Setup
  *
- * This setup file is for tests that need database access but should be isolated.
- * Each test runs within a savepoint that rolls back after the test completes.
+ * This setup file is for tests that need database access.
  *
  * Use for: Table methods, business logic with DB, service layer tests
  * File pattern: *.db.test.ts
  *
  * Features:
- * - Database access via auto-rollback savepoints
- * - Each test starts clean (changes don't persist between tests)
+ * - Database access (seeded once in beforeAll)
  * - MSW in STRICT mode (errors on unhandled requests)
  * - Environment variables auto-tracked and restored
  * - Spies auto-restored via globalSpyManager
  * - Global mock state reset after each test
  *
- * Note: The database is seeded ONCE in beforeAll. Each test then creates
- * a savepoint and rolls back at the end, so tests see the seeded data
- * but don't affect each other.
+ * Note: Tests share the database state. Use unique identifiers (nanoid)
+ * to avoid collisions between tests.
  */
 
 /// <reference types="@testing-library/jest-dom" />
@@ -40,12 +37,6 @@ globalThis.__mockedAuthSession = null
 
 import { afterAll, afterEach, beforeAll, beforeEach } from 'bun:test'
 import { cleanup } from '@testing-library/react'
-import {
-  beginOuterTransaction,
-  beginTestTransaction,
-  cleanupTestDb,
-  rollbackTestTransaction,
-} from '@/test/db/transactionIsolation'
 import { createAutoEnvTracker } from '@/test/isolation/envTracker'
 import {
   initializeGlobalMockState,
@@ -64,26 +55,16 @@ beforeAll(async () => {
   // MSW STRICT mode - fail on unhandled external requests
   server.listen({ onUnhandledRequest: 'error' })
 
-  // Seed database once (this commits and persists via normal db client)
+  // Seed database once
   await seedDatabase()
-
-  // Start outer transaction for this file's test isolation
-  // Each file gets its own dedicated connection
-  await beginOuterTransaction()
 })
 
-beforeEach(async () => {
+beforeEach(() => {
   // Capture environment state at test start
   envTracker.startTracking()
-
-  // Start a savepoint - all DB changes in this test will be rolled back
-  await beginTestTransaction()
 })
 
-afterEach(async () => {
-  // Rollback all DB changes made during the test
-  await rollbackTestTransaction()
-
+afterEach(() => {
   // Reset MSW handlers
   server.resetHandlers()
 
@@ -100,7 +81,6 @@ afterEach(async () => {
   resetAllGlobalMocks()
 })
 
-afterAll(async () => {
+afterAll(() => {
   server.close()
-  await cleanupTestDb()
 })

@@ -5,7 +5,6 @@
  * 1. Environment variables are restored between tests
  * 2. Spies are cleaned up between tests
  * 3. Global mock state is reset between tests
- * 4. Database changes are rolled back between tests
  *
  * IMPORTANT: Test order matters here. The tests are designed as pairs where
  * the first test modifies state and the second test verifies it was reset.
@@ -20,11 +19,7 @@ import {
   it,
   spyOn,
 } from 'bun:test'
-import { eq } from 'drizzle-orm'
-import { db } from '@/db/client'
-import { countries } from '@/db/schema/countries'
 import { trackSpy } from '@/test/isolation'
-import core from '@/utils/core'
 
 describe('Test Infrastructure Isolation', () => {
   describe('Environment Variable Isolation', () => {
@@ -129,73 +124,6 @@ describe('Test Infrastructure Isolation', () => {
       const value = (globalThis as Record<string, unknown>)
         .__mockTestIsolationValue
       expect(value === undefined || value === null).toBe(true)
-    })
-  })
-
-  describe('Database Transaction Isolation', () => {
-    // Use a longer unique code that won't conflict with seeded ISO alpha-2 codes
-    const uniqueCode = `XT${core.nanoid().slice(0, 4).toUpperCase()}`
-    const uniqueName = `Test Country ${core.nanoid()}`
-
-    it('test A: inserts a record into the database', async () => {
-      // Insert a country (simple table with minimal required fields)
-      await db.insert(countries).values({
-        id: `country_${core.nanoid()}`,
-        code: uniqueCode,
-        name: uniqueName,
-      })
-
-      // Verify it exists within this test
-      const results = await db
-        .select()
-        .from(countries)
-        .where(eq(countries.code, uniqueCode))
-
-      expect(results.length).toBe(1)
-      expect(results[0].name).toBe(uniqueName)
-    })
-
-    it('test B: verifies inserted record was rolled back', async () => {
-      // The country from test A should NOT exist because
-      // the savepoint was rolled back
-      const results = await db
-        .select()
-        .from(countries)
-        .where(eq(countries.code, uniqueCode))
-
-      expect(results.length).toBe(0)
-    })
-  })
-
-  describe('Multiple Database Operations Isolation', () => {
-    // Use a longer unique prefix that won't match seeded countries
-    // Country codes in seeds are typically 2-letter ISO codes (US, UK, etc.)
-    const uniquePrefix = `X${core.nanoid().slice(0, 5).toUpperCase()}`
-
-    it('test A: performs multiple inserts', async () => {
-      // Insert multiple countries
-      for (let i = 0; i < 3; i++) {
-        await db.insert(countries).values({
-          id: `country_${core.nanoid()}`,
-          code: `${uniquePrefix}${i}`,
-          name: `Test Multi ${i} ${core.nanoid()}`,
-        })
-      }
-
-      // Verify all exist - use exact code matching, not prefix matching
-      const results = await db.select().from(countries)
-      const matchingCountries = results.filter((c) =>
-        c.code.startsWith(uniquePrefix)
-      )
-      expect(matchingCountries.length).toBe(3)
-    })
-
-    it('test B: verifies all inserts were rolled back', async () => {
-      const results = await db.select().from(countries)
-      const matchingCountries = results.filter((c) =>
-        c.code.startsWith(uniquePrefix)
-      )
-      expect(matchingCountries.length).toBe(0)
     })
   })
 
