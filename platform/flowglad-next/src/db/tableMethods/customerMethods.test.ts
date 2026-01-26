@@ -9,8 +9,10 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { Customer, customers } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { User } from '@/db/schema/users'
+import { ArchivedCustomerError } from '@/errors'
 import core from '@/utils/core'
 import {
+  assertCustomerNotArchived,
   assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
   insertCustomer,
   selectCustomerById,
@@ -1702,5 +1704,57 @@ describe('selectCustomerPricingInfoBatch', () => {
     expect(result.size).toBe(2)
     expect(result.get(customerLive.id)?.livemode).toBe(true)
     expect(result.get(customerTest.id)?.livemode).toBe(false)
+  })
+})
+
+describe('assertCustomerNotArchived', () => {
+  it('throws ArchivedCustomerError for archived customer with the provided operation description', () => {
+    const customer = {
+      id: 'cust_test_123',
+      archived: true,
+    } as Customer.Record
+
+    expect(() =>
+      assertCustomerNotArchived(customer, 'create payment method')
+    ).toThrow(ArchivedCustomerError)
+    expect(() =>
+      assertCustomerNotArchived(customer, 'create payment method')
+    ).toThrow('Cannot create payment method for archived customer')
+  })
+
+  it('throws ArchivedCustomerError with different operation descriptions', () => {
+    const customer = {
+      id: 'cust_test_456',
+      archived: true,
+    } as Customer.Record
+
+    expect(() =>
+      assertCustomerNotArchived(customer, 'record usage event')
+    ).toThrow('Cannot record usage event for archived customer')
+
+    expect(() =>
+      assertCustomerNotArchived(customer, 'create subscription')
+    ).toThrow('Cannot create subscription for archived customer')
+  })
+
+  it('does not throw for non-archived customer (archived: false)', () => {
+    const customer = {
+      id: 'cust_test_789',
+      archived: false,
+    } as Customer.Record
+
+    expect(() =>
+      assertCustomerNotArchived(customer, 'create payment method')
+    ).not.toThrow()
+  })
+
+  it('does not throw for customer with undefined archived field (coerces to falsy)', () => {
+    const customer = {
+      id: 'cust_test_101',
+    } as Customer.Record
+
+    expect(() =>
+      assertCustomerNotArchived(customer, 'create payment method')
+    ).not.toThrow()
   })
 })

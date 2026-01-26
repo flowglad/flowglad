@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'bun:test'
 import {
+  ArchivedCustomerError,
   AuthorizationError,
   ConflictError,
   DomainError,
@@ -7,6 +8,7 @@ import {
   NotFoundError,
   PaymentError,
   RateLimitError,
+  SubscriptionTerminalStateError,
   TerminalStateError,
   ValidationError,
 } from '@/errors'
@@ -183,5 +185,39 @@ describe('ExternalServiceError', () => {
     expect(error).toBeInstanceOf(Error)
     expect(error).toBeInstanceOf(DomainError)
     expect(error).toBeInstanceOf(ExternalServiceError)
+  })
+})
+
+describe('SubscriptionTerminalStateError', () => {
+  it('constructs with subscriptionId and state, sets correct _tag, name, and message format', () => {
+    const error = new SubscriptionTerminalStateError(
+      'sub_123',
+      'canceled'
+    )
+    expect(error._tag).toBe('SubscriptionTerminalStateError')
+    expect(error.name).toBe('SubscriptionTerminalStateError')
+    expect(error.message).toBe(
+      'Cannot mutate subscription sub_123 in terminal state: canceled'
+    )
+    expect(error.subscriptionId).toBe('sub_123')
+    expect(error.state).toBe('canceled')
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(DomainError)
+    expect(error).toBeInstanceOf(SubscriptionTerminalStateError)
+  })
+})
+
+describe('ArchivedCustomerError', () => {
+  it('constructs with operation, sets correct _tag, name, and message format', () => {
+    const error = new ArchivedCustomerError('create payment method')
+    expect(error._tag).toBe('ArchivedCustomerError')
+    expect(error.name).toBe('ArchivedCustomerError')
+    expect(error.message).toBe(
+      'Cannot create payment method for archived customer'
+    )
+    expect(error.operation).toBe('create payment method')
+    expect(error).toBeInstanceOf(Error)
+    expect(error).toBeInstanceOf(DomainError)
+    expect(error).toBeInstanceOf(ArchivedCustomerError)
   })
 })

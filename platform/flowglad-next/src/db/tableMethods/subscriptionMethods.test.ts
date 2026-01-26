@@ -17,16 +17,20 @@ import {
   Subscription,
   subscriptions,
 } from '@/db/schema/subscriptions'
+import { SubscriptionTerminalStateError } from '@/errors'
 import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
 import { core } from '@/utils/core'
 import {
+  assertSubscriptionNotTerminal,
   bulkInsertOrDoNothingSubscriptionsByExternalId,
   derivePricingModelIdFromSubscription,
   insertSubscription,
+  isSubscriptionInTerminalState,
   type SubscriptionTableFilters,
   selectDistinctSubscriptionProductNames,
   selectSubscriptions,
   selectSubscriptionsTableRowData,
+  TERMINAL_SUBSCRIPTION_STATES,
 } from './subscriptionMethods'
 
 describe('selectDistinctSubscriptionProductNames', () => {
@@ -1630,5 +1634,133 @@ describe('derivePricingModelIdFromSubscription', () => {
         )
       ).rejects.toThrow()
     })
+  })
+})
+
+describe('TERMINAL_SUBSCRIPTION_STATES', () => {
+  it('includes Canceled and IncompleteExpired statuses', () => {
+    expect(TERMINAL_SUBSCRIPTION_STATES).toContain(
+      SubscriptionStatus.Canceled
+    )
+    expect(TERMINAL_SUBSCRIPTION_STATES).toContain(
+      SubscriptionStatus.IncompleteExpired
+    )
+    expect(TERMINAL_SUBSCRIPTION_STATES.length).toBe(2)
+  })
+})
+
+describe('isSubscriptionInTerminalState', () => {
+  it('returns true for Canceled status', () => {
+    expect(
+      isSubscriptionInTerminalState(SubscriptionStatus.Canceled)
+    ).toBe(true)
+  })
+
+  it('returns true for IncompleteExpired status', () => {
+    expect(
+      isSubscriptionInTerminalState(
+        SubscriptionStatus.IncompleteExpired
+      )
+    ).toBe(true)
+  })
+
+  it('returns false for Active status', () => {
+    expect(
+      isSubscriptionInTerminalState(SubscriptionStatus.Active)
+    ).toBe(false)
+  })
+
+  it('returns false for Trialing status', () => {
+    expect(
+      isSubscriptionInTerminalState(SubscriptionStatus.Trialing)
+    ).toBe(false)
+  })
+
+  it('returns false for PastDue status', () => {
+    expect(
+      isSubscriptionInTerminalState(SubscriptionStatus.PastDue)
+    ).toBe(false)
+  })
+
+  it('returns false for CancellationScheduled status', () => {
+    expect(
+      isSubscriptionInTerminalState(
+        SubscriptionStatus.CancellationScheduled
+      )
+    ).toBe(false)
+  })
+})
+
+describe('assertSubscriptionNotTerminal', () => {
+  it('throws SubscriptionTerminalStateError for subscription with Canceled status', () => {
+    const subscription = {
+      id: 'sub_test_123',
+      status: SubscriptionStatus.Canceled,
+    } as Subscription.Record
+
+    expect(() => assertSubscriptionNotTerminal(subscription)).toThrow(
+      SubscriptionTerminalStateError
+    )
+    expect(() => assertSubscriptionNotTerminal(subscription)).toThrow(
+      'Cannot mutate subscription sub_test_123 in terminal state: canceled'
+    )
+  })
+
+  it('throws SubscriptionTerminalStateError for subscription with IncompleteExpired status', () => {
+    const subscription = {
+      id: 'sub_test_456',
+      status: SubscriptionStatus.IncompleteExpired,
+    } as Subscription.Record
+
+    expect(() => assertSubscriptionNotTerminal(subscription)).toThrow(
+      SubscriptionTerminalStateError
+    )
+    expect(() => assertSubscriptionNotTerminal(subscription)).toThrow(
+      'Cannot mutate subscription sub_test_456 in terminal state: incomplete_expired'
+    )
+  })
+
+  it('does not throw for subscription with Active status', () => {
+    const subscription = {
+      id: 'sub_test_789',
+      status: SubscriptionStatus.Active,
+    } as Subscription.Record
+
+    expect(() =>
+      assertSubscriptionNotTerminal(subscription)
+    ).not.toThrow()
+  })
+
+  it('does not throw for subscription with Trialing status', () => {
+    const subscription = {
+      id: 'sub_test_101',
+      status: SubscriptionStatus.Trialing,
+    } as Subscription.Record
+
+    expect(() =>
+      assertSubscriptionNotTerminal(subscription)
+    ).not.toThrow()
+  })
+
+  it('does not throw for subscription with PastDue status', () => {
+    const subscription = {
+      id: 'sub_test_102',
+      status: SubscriptionStatus.PastDue,
+    } as Subscription.Record
+
+    expect(() =>
+      assertSubscriptionNotTerminal(subscription)
+    ).not.toThrow()
+  })
+
+  it('does not throw for subscription with CancellationScheduled status', () => {
+    const subscription = {
+      id: 'sub_test_103',
+      status: SubscriptionStatus.CancellationScheduled,
+    } as Subscription.Record
+
+    expect(() =>
+      assertSubscriptionNotTerminal(subscription)
+    ).not.toThrow()
   })
 })
