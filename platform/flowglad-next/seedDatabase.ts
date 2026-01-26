@@ -170,6 +170,7 @@ export const seedDatabase = async () => {
 export const dropDatabase = async () => {
   console.log('drop database....')
   await db.delete(countries)
+  isSeeded = false // Reset so seedDatabase() can reseed after drop
 }
 
 export const setupOrg = async (params?: {

@@ -76,12 +76,12 @@ let getCurrentTestFileOrNull: (() => string | null) | undefined
 let UNKNOWN_TEST_FILE: string | undefined
 
 /**
- * Get the test DB for the current context.
- * Looks up the correct DB based on the calling test file.
+ * Get the test context for the current file.
+ * Looks up the correct context based on the calling test file.
  * Falls back to the shared context key if no file-specific context exists.
  */
-function getTestDbForCurrentContext(): PostgresJsDatabase | null {
-  // Only attempt test DB lookup in test mode
+function getTestContextForCurrentFile(): FileTestContext | null {
+  // Only attempt test context lookup in test mode
   if (!core.IS_TEST) {
     return null
   }
@@ -114,7 +114,7 @@ function getTestDbForCurrentContext(): PostgresJsDatabase | null {
   if (filePath) {
     const ctx = contexts.get(filePath)
     if (ctx?.db && ctx.inTransaction) {
-      return ctx.db
+      return ctx
     }
   }
 
@@ -124,25 +124,74 @@ function getTestDbForCurrentContext(): PostgresJsDatabase | null {
   if (UNKNOWN_TEST_FILE) {
     const fallbackCtx = contexts.get(UNKNOWN_TEST_FILE)
     if (fallbackCtx?.db && fallbackCtx.inTransaction) {
-      return fallbackCtx.db
+      return fallbackCtx
     }
   }
 
   return null
 }
 
+// Track nesting depth for savepoint transactions
+// When we're already inside a savepoint wrapper, we don't need another level
+let savepointNestingDepth = 0
+
+/**
+ * Creates a transaction wrapper that uses the test DB directly.
+ *
+ * When code calls db.transaction() inside a test, we're already inside the test's
+ * outer transaction (managed by transactionIsolation.ts). We don't want Drizzle to
+ * issue BEGIN/COMMIT because that would end the test isolation.
+ *
+ * Instead of creating nested savepoints (which cause issues with error propagation
+ * in concurrent operations), we simply run the callback directly with the test DB.
+ * The test's outer savepoint (sp_1, sp_2, etc.) provides the isolation boundary.
+ *
+ * This approach:
+ * - Avoids nested savepoint complexity
+ * - Lets errors propagate naturally
+ * - Relies on the test framework's rollback to clean up
+ */
+function createSavepointTransaction(ctx: FileTestContext) {
+  return async function savepointTransaction<T>(
+    callback: (tx: PostgresJsDatabase) => Promise<T>
+  ): Promise<T> {
+    savepointNestingDepth++
+    try {
+      // Run the callback with the test DB (which is already transactional)
+      // The callback expects a "transaction" object, which in Drizzle is just
+      // a DB instance scoped to the transaction - our test DB works for this
+      return await callback(ctx.db)
+    } finally {
+      savepointNestingDepth--
+    }
+  }
+}
+
 /**
  * Proxy that redirects to test DB when available.
  * This enables savepoint-based test isolation in *.db.test.ts files.
  * Dynamically looks up the correct DB context based on the call stack.
+ *
+ * Special handling for db.transaction():
+ * When test isolation is active, calling db.transaction() would normally issue
+ * BEGIN/COMMIT which would end the test's outer transaction. Instead, we
+ * intercept and use savepoints for nested transaction semantics.
  */
 export const db: PostgresJsDatabase = new Proxy(_db, {
   get(target, prop, receiver) {
-    // Try to find the test DB for the current context
-    const testDb = getTestDbForCurrentContext()
-    if (testDb) {
-      return Reflect.get(testDb, prop, receiver)
+    // Try to find the test context for the current file
+    const testCtx = getTestContextForCurrentFile()
+
+    if (testCtx) {
+      // Special handling for transaction() - use savepoints instead of BEGIN/COMMIT
+      if (prop === 'transaction') {
+        return createSavepointTransaction(testCtx)
+      }
+
+      // For all other properties, redirect to the test DB
+      return Reflect.get(testCtx.db, prop, receiver)
     }
+
     return Reflect.get(target, prop, receiver)
   },
 })

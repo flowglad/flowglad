@@ -133,8 +133,8 @@ describe('Test Infrastructure Isolation', () => {
   })
 
   describe('Database Transaction Isolation', () => {
-    // Use a unique country code that won't conflict with seeded data
-    const uniqueCode = `Z${core.nanoid().slice(0, 1).toUpperCase()}`
+    // Use a longer unique code that won't conflict with seeded ISO alpha-2 codes
+    const uniqueCode = `XT${core.nanoid().slice(0, 4).toUpperCase()}`
     const uniqueName = `Test Country ${core.nanoid()}`
 
     it('test A: inserts a record into the database', async () => {
