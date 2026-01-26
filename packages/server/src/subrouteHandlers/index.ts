@@ -59,6 +59,16 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.ClaimResource]: claimResource,
   [FlowgladActionKey.ReleaseResource]: releaseResource,
   [FlowgladActionKey.ListResourceClaims]: listResourceClaims,
+  [FlowgladActionKey.GetUsageMeterBalances]: async () => {
+    return {
+      data: {},
+      status: 501,
+      error: {
+        code: 'Not Implemented',
+        json: {},
+      },
+    }
+  },
 }
 
 export const hybridRouteToHandlerMap: {

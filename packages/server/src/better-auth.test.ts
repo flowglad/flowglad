@@ -187,6 +187,7 @@ describe('flowgladPlugin', () => {
       'claimResource',
       'releaseResource',
       'listResourceClaims',
+      'getUsageMeterBalances',
       'getPricingModel',
     ]
 
