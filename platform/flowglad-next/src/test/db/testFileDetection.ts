@@ -13,17 +13,6 @@
 import type {} from '@/test/globals'
 
 /**
- * Debug logging helper. Enabled by DEBUG_TEST_DB=1 environment variable.
- * Use for troubleshooting test isolation issues.
- */
-function debugLog(message: string, ...args: unknown[]): void {
-  if (process.env.DEBUG_TEST_DB === '1') {
-    // eslint-disable-next-line no-console
-    console.log(`[testFileDetection] ${message}`, ...args)
-  }
-}
-
-/**
  * Fallback key used when test file cannot be detected from stack trace.
  * This happens when beforeAll/beforeEach are defined in a setup file
  * rather than in the test file itself.
@@ -56,16 +45,12 @@ export function getCurrentTestFile(): string {
   const stack = new Error().stack || ''
   const lines = stack.split('\n')
 
-  debugLog('Parsing stack trace with %d lines', lines.length)
-
   // Find the first line that contains a .db.test.ts file
   for (const line of lines) {
     // Format: "    at functionName (/path/to/file.db.test.ts:123:45)"
     const matchWithParens = line.match(/\(([^)]+\.db\.test\.ts)/)
     if (matchWithParens) {
-      const filePath = matchWithParens[1]
-      debugLog('Found file path (parens format): %s', filePath)
-      return filePath
+      return matchWithParens[1]
     }
 
     // Format: "    at /path/to/file.db.test.ts:123:45" (no function name)
@@ -73,20 +58,12 @@ export function getCurrentTestFile(): string {
       /at\s+([^\s]+\.db\.test\.ts)/
     )
     if (matchWithoutParens) {
-      const filePath = matchWithoutParens[1]
-      debugLog('Found file path (no-parens format): %s', filePath)
-      return filePath
+      return matchWithoutParens[1]
     }
   }
 
   // No .db.test.ts file found in stack - use fallback
   // This typically happens when beforeAll/beforeEach are defined in a setup file
-  debugLog(
-    'No .db.test.ts file found in stack, using fallback: %s. ' +
-      'This is normal when hooks are defined in a setup file.',
-    UNKNOWN_TEST_FILE
-  )
-
   return UNKNOWN_TEST_FILE
 }
 

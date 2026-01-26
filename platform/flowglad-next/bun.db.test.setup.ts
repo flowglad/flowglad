@@ -61,11 +61,6 @@ const envTracker = createAutoEnvTracker()
 initializeGlobalMockState()
 
 beforeAll(async () => {
-  if (process.env.DEBUG_TEST_DB === '1') {
-    // eslint-disable-next-line no-console
-    console.log('[bun.db.test.setup] beforeAll starting')
-  }
-
   // MSW STRICT mode - fail on unhandled external requests
   server.listen({ onUnhandledRequest: 'error' })
 
@@ -75,11 +70,6 @@ beforeAll(async () => {
   // Start outer transaction for this file's test isolation
   // Each file gets its own dedicated connection
   await beginOuterTransaction()
-
-  if (process.env.DEBUG_TEST_DB === '1') {
-    // eslint-disable-next-line no-console
-    console.log('[bun.db.test.setup] beforeAll completed')
-  }
 })
 
 beforeEach(async () => {
@@ -111,16 +101,6 @@ afterEach(async () => {
 })
 
 afterAll(async () => {
-  if (process.env.DEBUG_TEST_DB === '1') {
-    // eslint-disable-next-line no-console
-    console.log('[bun.db.test.setup] afterAll starting')
-  }
-
   server.close()
   await cleanupTestDb()
-
-  if (process.env.DEBUG_TEST_DB === '1') {
-    // eslint-disable-next-line no-console
-    console.log('[bun.db.test.setup] afterAll completed')
-  }
 })
