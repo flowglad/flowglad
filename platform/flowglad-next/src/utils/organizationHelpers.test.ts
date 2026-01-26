@@ -212,11 +212,13 @@ describe('createOrganizationTransaction', () => {
         { name: organizationName },
         transaction
       )
+      expect(typeof organization).toBe('object')
 
       const [membership] = await selectMemberships(
         { organizationId: organization.id, userId },
         transaction
       )
+      expect(typeof membership).toBe('object')
 
       expect(membership.role).toBe(MembershipRole.Owner)
     })
