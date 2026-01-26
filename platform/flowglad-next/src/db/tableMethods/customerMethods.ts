@@ -538,6 +538,7 @@ export type CustomerPricingInfo = {
   pricingModelId: string
   organizationId: string
   livemode: boolean
+  archived: boolean
 }
 
 /**
@@ -563,6 +564,7 @@ export const selectCustomerPricingInfoBatch = async (
       pricingModelId: customers.pricingModelId,
       organizationId: customers.organizationId,
       livemode: customers.livemode,
+      archived: customers.archived,
     })
     .from(customers)
     .where(inArray(customers.id, customerIds))

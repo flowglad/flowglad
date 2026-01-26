@@ -27,6 +27,7 @@ import {
 } from '@/db/schema/subscriptions'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import {
+  assertCustomerNotArchived,
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
 } from '@/db/tableMethods/customerMethods'
@@ -41,6 +42,7 @@ import {
 } from '@/db/tableMethods/priceMethods'
 import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
+  assertSubscriptionNotTerminal,
   isSubscriptionCurrent,
   selectDistinctSubscriptionProductNames,
   selectSubscriptionById,
@@ -668,6 +670,9 @@ const createSubscriptionProcedure = protectedProcedure
             transaction,
           })
 
+        // Guard: cannot create subscriptions for archived customers
+        assertCustomerNotArchived(customer, 'create subscription')
+
         const { price, product, organization } =
           await validateAndResolvePriceForSubscription({
             priceId: input.priceId,
@@ -807,6 +812,9 @@ const updatePaymentMethodProcedure = protectedProcedure
           input.id,
           transaction
         )
+
+        // Guard: cannot update payment method on terminal subscriptions
+        assertSubscriptionNotTerminal(subscription)
 
         // Verify the payment method exists and belongs to the same customer
         const paymentMethod = await selectPaymentMethodById(

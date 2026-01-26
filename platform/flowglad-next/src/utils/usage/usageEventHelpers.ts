@@ -10,7 +10,10 @@ import {
   selectBillingPeriodsForSubscriptions,
   selectCurrentBillingPeriodForSubscription,
 } from '@/db/tableMethods/billingPeriodMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import {
+  assertCustomerNotArchived,
+  selectCustomerById,
+} from '@/db/tableMethods/customerMethods'
 import {
   selectDefaultPriceForUsageMeter,
   selectPriceById,
@@ -34,6 +37,7 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import {
+  ArchivedCustomerError,
   ConflictError,
   type DomainError,
   NotFoundError,
@@ -729,6 +733,12 @@ export const ingestAndProcessUsageEvent = async (
       subscription.customerId,
       transaction
     )
+    // Guard: cannot create usage events for archived customers
+    if (customer.archived) {
+      return Result.err(
+        new ArchivedCustomerError('create usage event')
+      )
+    }
     if (!customer.pricingModelId) {
       return Result.err(
         new ValidationError(
@@ -766,6 +776,13 @@ export const ingestAndProcessUsageEvent = async (
       subscription.customerId,
       transaction
     )
+
+    // Guard: cannot create usage events for archived customers
+    if (customer.archived) {
+      return Result.err(
+        new ArchivedCustomerError('create usage event')
+      )
+    }
 
     // Validate that the customer has a pricing model ID
     if (!customer.pricingModelId) {

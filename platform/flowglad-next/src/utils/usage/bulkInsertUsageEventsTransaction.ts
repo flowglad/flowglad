@@ -23,6 +23,7 @@ import { bulkInsertOrDoNothingUsageEventsByTransactionId } from '@/db/tableMetho
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import {
+  ArchivedCustomerError,
   DomainError,
   NotFoundError,
   panic,
@@ -223,6 +224,15 @@ async function collectSlugResolutionEvents(
     uniqueCustomerIds,
     transaction
   )
+
+  // Guard: check for archived customers before proceeding
+  for (const [customerId, customerInfo] of customersInfo.entries()) {
+    if (customerInfo.archived) {
+      return Result.err(
+        new ArchivedCustomerError('create usage event')
+      )
+    }
+  }
 
   // Cache for pricing models
   const pricingModelCache = new Map<
