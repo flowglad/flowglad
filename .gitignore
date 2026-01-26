@@ -18,6 +18,8 @@ dist
 
 # TypeScript declaration files in source directories (should only be in dist/)
 **/src/**/*.d.ts
+# Exception: test globals declaration needed for test infrastructure
+!platform/flowglad-next/src/test/globals.d.ts
 
 generated/styles.ts
 .turbo
