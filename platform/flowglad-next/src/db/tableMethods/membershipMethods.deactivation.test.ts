@@ -288,6 +288,7 @@ describe('membership deactivation filtering', () => {
         await adminTransaction(async ({ transaction }) => {
           const user = await insertUser(
             {
+              id: `user_${core.nanoid()}`,
               email: `test+${core.nanoid()}@test.com`,
               name: 'Test User',
               betterAuthId: betterAuthUserId,
@@ -369,6 +370,7 @@ describe('membership deactivation filtering', () => {
         async ({ transaction }) => {
           const newUser = await insertUser(
             {
+              id: `user_${core.nanoid()}`,
               email: `test+${core.nanoid()}@test.com`,
               name: 'Test User',
             },
