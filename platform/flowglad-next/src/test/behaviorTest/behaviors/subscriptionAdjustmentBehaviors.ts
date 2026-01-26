@@ -26,6 +26,11 @@
  * 6. adjustSubscriptionBehavior (calls adjustSubscription)
  */
 
+// Note: Trigger.dev task mocking for behavior tests
+// The mocks must be defined in the behavior TEST file (adjustSubscription.behavior.test.ts),
+// not here, because vi.mock() hoisting only works within the test file that vitest processes.
+// Mocks defined in imported modules are not hoisted correctly.
+
 import { Result } from 'better-result'
 import { addDays, subDays } from 'date-fns'
 import {
