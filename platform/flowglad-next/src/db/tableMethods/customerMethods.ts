@@ -94,16 +94,34 @@ export const updateCustomer = createUpdateFunction(
 )
 
 export const selectCustomerByExternalIdAndOrganizationId = async (
-  params: { externalId: string; organizationId: string },
+  params: {
+    externalId: string
+    organizationId: string
+    /**
+     * When false (default), only returns non-archived customers.
+     * When true, returns customers regardless of archived status.
+     * Use includeArchived=true when you need to handle idempotency
+     * (e.g., archiving an already-archived customer).
+     */
+    includeArchived?: boolean
+  },
   transaction: DbTransaction
 ) => {
+  const {
+    externalId,
+    organizationId,
+    includeArchived = false,
+  } = params
   const result = await transaction
     .select()
     .from(customersTable)
     .where(
       and(
-        eq(customersTable.externalId, params.externalId),
-        eq(customersTable.organizationId, params.organizationId)
+        eq(customersTable.externalId, externalId),
+        eq(customersTable.organizationId, organizationId),
+        includeArchived
+          ? undefined
+          : eq(customersTable.archived, false)
       )
     )
     .limit(1)

@@ -13,6 +13,7 @@ import core from '@/utils/core'
 import {
   assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
   insertCustomer,
+  selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
   selectCustomerPricingInfoBatch,
   selectCustomers,
@@ -549,6 +550,186 @@ describe('setUserIdForCustomerRecords', () => {
 
     expect(org1Customer?.userId).toBe(user1.id)
     expect(org2Customer?.userId).toBe(user1.id)
+  })
+})
+
+describe('selectCustomerByExternalIdAndOrganizationId', () => {
+  let organization: Organization.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+  })
+
+  it('should not return archived customers by default', async () => {
+    const externalId = `ext_${core.nanoid()}`
+
+    // Create a customer and then archive it
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      externalId,
+    })
+
+    // Archive the customer
+    await adminTransaction(async ({ transaction }) => {
+      await updateCustomer(
+        { id: customer.id, archived: true },
+        transaction
+      )
+    })
+
+    // Lookup without includeArchived should return null
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerByExternalIdAndOrganizationId(
+        {
+          externalId,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('should return archived customers when includeArchived=true', async () => {
+    const externalId = `ext_${core.nanoid()}`
+
+    // Create a customer and then archive it
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      externalId,
+    })
+
+    // Archive the customer
+    await adminTransaction(async ({ transaction }) => {
+      await updateCustomer(
+        { id: customer.id, archived: true },
+        transaction
+      )
+    })
+
+    // Lookup with includeArchived=true should return the archived customer
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerByExternalIdAndOrganizationId(
+        {
+          externalId,
+          organizationId: organization.id,
+          includeArchived: true,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toMatchObject({
+      id: customer.id,
+      externalId,
+      archived: true,
+    })
+  })
+
+  it('should return non-archived customers regardless of includeArchived setting', async () => {
+    const externalId = `ext_${core.nanoid()}`
+
+    // Create an active (non-archived) customer
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      externalId,
+    })
+
+    // Lookup without includeArchived should return the customer
+    const resultDefault = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomerByExternalIdAndOrganizationId(
+          {
+            externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultDefault).toMatchObject({
+      id: customer.id,
+      archived: false,
+    })
+
+    // Lookup with includeArchived=true should also return the customer
+    const resultIncludeArchived = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomerByExternalIdAndOrganizationId(
+          {
+            externalId,
+            organizationId: organization.id,
+            includeArchived: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultIncludeArchived).toMatchObject({
+      id: customer.id,
+      archived: false,
+    })
+  })
+
+  it('should return null for non-existent externalId', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerByExternalIdAndOrganizationId(
+        {
+          externalId: `non_existent_${core.nanoid()}`,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('should respect organization isolation when filtering archived customers', async () => {
+    const externalId = `ext_${core.nanoid()}`
+
+    // Create customer in org1
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      externalId,
+    })
+
+    // Create a second organization
+    const { organization: organization2 } = await setupOrg()
+
+    // Lookup in org2 should return null (customer doesn't exist in org2)
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerByExternalIdAndOrganizationId(
+        {
+          externalId,
+          organizationId: organization2.id,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toBeNull()
+
+    // Lookup in org1 should return the customer
+    const resultOrg1 = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomerByExternalIdAndOrganizationId(
+          {
+            externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultOrg1).toMatchObject({
+      id: customer.id,
+    })
   })
 })
 
