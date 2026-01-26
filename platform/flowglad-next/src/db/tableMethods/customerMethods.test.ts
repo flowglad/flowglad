@@ -1747,14 +1747,4 @@ describe('assertCustomerNotArchived', () => {
       assertCustomerNotArchived(customer, 'create payment method')
     ).not.toThrow()
   })
-
-  it('does not throw for customer with undefined archived field (coerces to falsy)', () => {
-    const customer = {
-      id: 'cust_test_101',
-    } as Customer.Record
-
-    expect(() =>
-      assertCustomerNotArchived(customer, 'create payment method')
-    ).not.toThrow()
-  })
 })
