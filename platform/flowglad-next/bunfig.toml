@@ -11,6 +11,10 @@ autoInstall = false
 # - Integration tests: --preload ./bun.integration.setup.ts (real Stripe/Redis)
 # - RLS tests: --preload ./bun.rls.setup.ts (real DB, stub Redis)
 
+# 5 second timeout for unit tests - forces identification of tests that need
+# to be integration tests or need better mocking
+timeout = 5000
+
 # Include only .test.ts files in src/ (not .test.tsx - those run via vitest)
 # Integration, flow, and RLS tests live in integration-tests/ and are run separately
 include = ["src/**/*.test.ts"]
