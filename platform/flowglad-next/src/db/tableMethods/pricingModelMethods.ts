@@ -775,8 +775,14 @@ export const selectPricingModelForCustomer = async (
         transaction
       )
     } catch (error) {
-      // If the specific pricing model isn't found, fall back to default
-      if (!(error instanceof NotFoundError)) {
+      // If the specific pricing model isn't found, fall back to default.
+      // Check for both NotFoundError directly and Panic errors that wrap NotFoundError
+      // (from Result.unwrap() calls in the chain).
+      const isNotFoundError =
+        error instanceof NotFoundError ||
+        (error instanceof Error &&
+          error.message.includes('NotFoundError'))
+      if (!isNotFoundError) {
         throw error
       }
     }

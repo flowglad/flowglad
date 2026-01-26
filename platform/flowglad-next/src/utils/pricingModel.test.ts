@@ -473,10 +473,12 @@ describe('clonePricingModelTransaction', () => {
     it('should not modify the original pricing model, its products, or prices', async () => {
       const originalPricingModel = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            sourcePricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              sourcePricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
 
@@ -501,10 +503,12 @@ describe('clonePricingModelTransaction', () => {
 
       const pricingModelAfterClone = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            sourcePricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              sourcePricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
 
@@ -1424,10 +1428,12 @@ describe('clonePricingModelTransaction', () => {
       // Verify the original livemode default is still default (unchanged by cloning)
       const refreshedLivemodeDefault = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            livemodeDefaultPricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              livemodeDefaultPricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
       expect(refreshedLivemodeDefault.isDefault).toBe(true)
@@ -1436,10 +1442,12 @@ describe('clonePricingModelTransaction', () => {
       // Verify the testmode default is still default (unchanged by cloning to testmode)
       const refreshedTestmodeDefault = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            testmodeDefaultPricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              testmodeDefaultPricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
       expect(refreshedTestmodeDefault.isDefault).toBe(true)
@@ -1466,10 +1474,12 @@ describe('clonePricingModelTransaction', () => {
       // Verify both original defaults are still default
       const finalLivemodeDefault = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            livemodeDefaultPricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              livemodeDefaultPricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
       expect(finalLivemodeDefault.isDefault).toBe(true)
@@ -1477,10 +1487,12 @@ describe('clonePricingModelTransaction', () => {
 
       const finalTestmodeDefault = await adminTransaction(
         async (ctx) => {
-          return selectPricingModelById(
-            testmodeDefaultPricingModel.id,
-            ctx.transaction
-          )
+          return (
+            await selectPricingModelById(
+              testmodeDefaultPricingModel.id,
+              ctx.transaction
+            )
+          ).unwrap()
         }
       )
       expect(finalTestmodeDefault.isDefault).toBe(true)

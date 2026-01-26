@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import {
   setupBillingPeriod,
@@ -1260,11 +1261,9 @@ describe('Pricing Model Migration Test Suite', async () => {
   })
 
   describe('Validation', () => {
-    it('should throw when new pricing model does not exist', async () => {
-      // Note: selectPricingModelById throws NotFoundError, which is not
-      // converted to Result.err (database methods throw for not found)
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+    it('should return Result.err when new pricing model does not exist', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return await migratePricingModelForCustomer(
             {
               customer,
@@ -1273,8 +1272,14 @@ describe('Pricing Model Migration Test Suite', async () => {
             },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('No pricing models found with id')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Pricing model non-existent-id not found'
+        )
+      }
     })
 
     it('should return Result.err when new pricing model belongs to different organization', async () => {
@@ -1440,7 +1445,9 @@ describe('Pricing Model Migration Test Suite', async () => {
             }
           )
         })
-      ).rejects.toThrow('No pricing models found with id')
+      ).rejects.toThrow(
+        'Pricing model non-existent-pricing-model not found'
+      )
     })
 
     it('should throw FORBIDDEN when pricing model belongs to different organization', async () => {

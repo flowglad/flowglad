@@ -434,16 +434,15 @@ describe('getPricingModelIntegrationMarkdown', () => {
     )
   })
 
-  it('should throw an error when pricing model is not found', async () => {
+  it('should return null when pricing model is not found', async () => {
     const nonExistentPricingModelId = 'pm_nonexistent'
     mockGetMarkdownFile.mockClear()
 
-    await expect(
-      getPricingModelIntegrationMarkdown({
-        organizationId: organization.id,
-        pricingModelId: nonExistentPricingModelId,
-      })
-    ).rejects.toThrow(/No pricing models found with id/)
+    const result = await getPricingModelIntegrationMarkdown({
+      organizationId: organization.id,
+      pricingModelId: nonExistentPricingModelId,
+    })
+    expect(result).toBeNull()
   })
 
   it('should return null immediately when integrationGuideHash is null', async () => {
