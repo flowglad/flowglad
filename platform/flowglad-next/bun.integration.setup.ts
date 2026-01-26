@@ -5,8 +5,10 @@
  * Unlike unit tests, integration tests make real API calls to Stripe and other services.
  */
 
-// Import mocks first (required for bun:test)
-import './bun.mocks'
+// Import integration-specific mocks first (required for bun:test)
+// Uses bun.integration.mocks.ts which does NOT mock redis/svix
+// so integration tests can use real implementations with _setTestRedisClient
+import './bun.integration.mocks'
 
 import { beforeAll } from 'bun:test'
 import { seedDatabase } from './seedDatabase'
