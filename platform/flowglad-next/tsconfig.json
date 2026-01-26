@@ -30,7 +30,7 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "trigger.config.ts",
-    "src/test/globals.d.ts"
+    "src/test/globals.ts"
   ],
   "exclude": [
     "node_modules",

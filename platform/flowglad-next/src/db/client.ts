@@ -5,7 +5,7 @@ import {
 } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { format } from 'sql-formatter'
-import type { FileTestContext } from '@/test/globals.d'
+import type { FileTestContext } from '@/test/globals'
 import core from '@/utils/core'
 
 const dbUrl = core.IS_TEST

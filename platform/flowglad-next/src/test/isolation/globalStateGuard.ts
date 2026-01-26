@@ -11,7 +11,7 @@
  */
 
 // Import consolidated global type declarations
-import '@/test/globals.d'
+import '@/test/globals'
 
 /**
  * Set of __mock* global keys that existed at initialization time.

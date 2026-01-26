@@ -27,7 +27,7 @@ import {
 import postgres from 'postgres'
 import { getCurrentTestFile } from '@/test/db/testFileDetection'
 // Import consolidated global types and shared utilities
-import type { FileTestContext } from '@/test/globals.d'
+import type { FileTestContext } from '@/test/globals'
 
 // Ensure global contexts map exists
 function getContextsMap(): Map<string, FileTestContext> {
