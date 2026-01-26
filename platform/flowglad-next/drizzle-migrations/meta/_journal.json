@@ -1975,6 +1975,13 @@
       "when": 1769456881203,
       "tag": "0282_hard_queen_noir",
       "breakpoints": true
+    },
+    {
+      "idx": 283,
+      "version": "7",
+      "when": 1769458892205,
+      "tag": "0283_sturdy_oracle",
+      "breakpoints": true
     }
   ]
 }
