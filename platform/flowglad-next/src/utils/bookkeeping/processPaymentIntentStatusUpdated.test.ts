@@ -48,6 +48,7 @@ import {
   selectUsageCreditById,
   selectUsageCredits,
 } from '@/db/tableMethods/usageCreditMethods'
+import { NotFoundError } from '@/errors'
 import {
   createMockPaymentIntent,
   createMockStripeCharge,
@@ -1751,14 +1752,9 @@ describe('Process payment intent status updated', async () => {
         )
         await expect(
           comprehensiveAdminTransaction(async (ctx) => {
-            const { transaction } = ctx
-            const res = await processPaymentIntentStatusUpdated(
-              fakePI,
-              ctx
-            )
-            return Result.ok(res.unwrap())
+            return processPaymentIntentStatusUpdated(fakePI, ctx)
           })
-        ).rejects.toThrow('No billing runs found with id: br_err')
+        ).rejects.toThrow('BillingRun not found: br_err')
       })
     })
 
