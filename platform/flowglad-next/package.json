@@ -38,6 +38,7 @@
     "trigger:dev": "NODE_ENV=development bunx --bun trigger.dev@4.3.2 dev",
     "migrations:drop": "drizzle-kit drop",
     "migrations:generate": "drizzle-kit generate",
+    "migrations:generate-custom": "drizzle-kit generate --custom",
     "migrations:push": "bun run src/scripts/migrate.ts",
     "seed:countries": "bun run src/scripts/seed-countries.ts",
     "shadcn:build": "shadcn build --output 'public/ui'",
