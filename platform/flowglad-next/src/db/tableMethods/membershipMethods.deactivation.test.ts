@@ -4,13 +4,19 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { Membership } from '@/db/schema/memberships'
 import type { Organization } from '@/db/schema/organizations'
 import {
+  insertMembership,
+  selectFocusedMembershipAndOrganization,
   selectMembershipAndOrganizations,
+  selectMembershipAndOrganizationsByBetterAuthUserId,
   selectMembershipByIdIncludingDeactivated,
   selectMemberships,
   selectMembershipsAndOrganizationsByMembershipWhere,
   selectMembershipsAndUsersByMembershipWhere,
   updateMembership,
 } from '@/db/tableMethods/membershipMethods'
+import { insertUser } from '@/db/tableMethods/userMethods'
+import { MembershipRole } from '@/types'
+import core from '@/utils/core'
 
 /**
  * Integration tests for deactivated membership filtering.
@@ -268,6 +274,156 @@ describe('membership deactivation filtering', () => {
       )
 
       expect(result).toBeNull()
+    })
+  })
+
+  describe('selectMembershipAndOrganizationsByBetterAuthUserId', () => {
+    it('excludes deactivated memberships by default and includes them when includeDeactivated is true', async () => {
+      // Create a second org for the deactivated membership
+      const org2Data = await setupOrg()
+
+      // Create a user with betterAuthId and memberships
+      const betterAuthUserId = `ba_${core.nanoid()}`
+      const { activeUserMembership, deactivatedUserMembership } =
+        await adminTransaction(async ({ transaction }) => {
+          const user = await insertUser(
+            {
+              email: `test+${core.nanoid()}@test.com`,
+              name: 'Test User',
+              betterAuthId: betterAuthUserId,
+            },
+            transaction
+          )
+
+          const activeMembership = await insertMembership(
+            {
+              organizationId: org.id,
+              userId: user.id,
+              focused: true,
+              livemode: true,
+              role: MembershipRole.Member,
+            },
+            transaction
+          )
+
+          const deactivatedMembership = await insertMembership(
+            {
+              organizationId: org2Data.organization.id,
+              userId: user.id,
+              focused: false,
+              livemode: true,
+              role: MembershipRole.Member,
+              deactivatedAt: new Date(),
+            },
+            transaction
+          )
+
+          return {
+            activeUserMembership: activeMembership,
+            deactivatedUserMembership: deactivatedMembership,
+          }
+        })
+
+      // Test default behavior - should exclude deactivated
+      const defaultResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipAndOrganizationsByBetterAuthUserId(
+            betterAuthUserId,
+            transaction
+          )
+        }
+      )
+
+      // Should only return the active membership
+      expect(defaultResults).toHaveLength(1)
+      expect(defaultResults[0].membership.id).toBe(
+        activeUserMembership.id
+      )
+
+      // Test with includeDeactivated: true
+      const allResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipAndOrganizationsByBetterAuthUserId(
+            betterAuthUserId,
+            transaction,
+            { includeDeactivated: true }
+          )
+        }
+      )
+
+      // Should return both memberships
+      expect(allResults).toHaveLength(2)
+      const membershipIds = allResults
+        .map((r) => r.membership.id)
+        .sort()
+      expect(membershipIds).toEqual(
+        [activeUserMembership.id, deactivatedUserMembership.id].sort()
+      )
+    })
+  })
+
+  describe('selectFocusedMembershipAndOrganization', () => {
+    it('returns undefined when the focused membership is deactivated', async () => {
+      // Create a user whose only focused membership will be deactivated
+      const { user, focusedMembership } = await adminTransaction(
+        async ({ transaction }) => {
+          const newUser = await insertUser(
+            {
+              email: `test+${core.nanoid()}@test.com`,
+              name: 'Test User',
+            },
+            transaction
+          )
+
+          const membership = await insertMembership(
+            {
+              organizationId: org.id,
+              userId: newUser.id,
+              focused: true,
+              livemode: true,
+              role: MembershipRole.Member,
+            },
+            transaction
+          )
+
+          return { user: newUser, focusedMembership: membership }
+        }
+      )
+
+      // Verify we can get the focused membership before deactivation
+      const beforeDeactivation = await adminTransaction(
+        async ({ transaction }) => {
+          return selectFocusedMembershipAndOrganization(
+            user.id,
+            transaction
+          )
+        }
+      )
+      expect(beforeDeactivation?.membership.id).toBe(
+        focusedMembership.id
+      )
+
+      // Deactivate the membership
+      await adminTransaction(async ({ transaction }) => {
+        return updateMembership(
+          {
+            id: focusedMembership.id,
+            deactivatedAt: new Date(),
+          },
+          transaction
+        )
+      })
+
+      // After deactivation, should return undefined
+      const afterDeactivation = await adminTransaction(
+        async ({ transaction }) => {
+          return selectFocusedMembershipAndOrganization(
+            user.id,
+            transaction
+          )
+        }
+      )
+      expect(afterDeactivation).toBeUndefined()
     })
   })
 })

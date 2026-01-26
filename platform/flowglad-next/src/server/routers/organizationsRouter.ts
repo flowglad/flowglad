@@ -571,6 +571,7 @@ const getMembersTableRowData = protectedProcedure
           filters: {
             ...args.input.filters,
             organizationId: focusedMembership.organization.id,
+            deactivatedAt: null,
           },
         },
         transaction,
