@@ -7,6 +7,7 @@
     "prebuild": "bun run src/scripts/removeDevRoutes.ts && bun run build:preview-css",
     "build": "bun run check && next build",
     "build:preview-css": "bun run src/scripts/build-preview-css.ts",
+    "build:docker": "next build --no-lint",
     "user": "bun run src/scripts/setup-env-user.ts",
     "start": "next start",
     "typecheck": "tsc --noEmit",
