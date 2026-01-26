@@ -49,7 +49,7 @@ export interface SyncEvent {
   /** Auto-generated unique ID for this event */
   id: string
   /** Namespace matching cache dependency (e.g., 'customerSubscriptions') */
-  namespace: string
+  namespace: SyncNamespace
   /** Primary entity ID (e.g., customerId for customerSubscriptions) */
   entityId: string
   /** Scope identifier from API key (currently organizationId, will become pricingModelId) */
@@ -71,7 +71,7 @@ export interface SyncEvent {
  */
 export const syncEventSchema = z.object({
   id: z.string().min(1),
-  namespace: z.string().min(1),
+  namespace: syncNamespaceSchema,
   entityId: z.string().min(1),
   scopeId: z.string().min(1),
   eventType: syncEventTypeSchema,
@@ -86,7 +86,7 @@ export const syncEventSchema = z.object({
  * Omits auto-generated fields (id, sequence, timestamp).
  */
 export interface SyncEventInsert {
-  namespace: string
+  namespace: SyncNamespace
   entityId: string
   scopeId: string
   eventType: 'update' | 'delete'
@@ -98,7 +98,7 @@ export interface SyncEventInsert {
  * Zod schema for validating SyncEventInsert objects
  */
 export const syncEventInsertSchema = z.object({
-  namespace: z.string().min(1),
+  namespace: syncNamespaceSchema,
   entityId: z.string().min(1),
   scopeId: z.string().min(1),
   eventType: syncEventTypeSchema,
