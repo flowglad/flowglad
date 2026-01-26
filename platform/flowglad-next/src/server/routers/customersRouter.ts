@@ -57,6 +57,7 @@ import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
+import { CacheDependency } from '@/utils/cache'
 import { organizationBillingPortalURL } from '@/utils/core'
 import { createCustomersCsv } from '@/utils/csv-export'
 import {
@@ -871,6 +872,15 @@ const archiveCustomerProcedure = protectedProcedure
         const archivedCustomer = await updateCustomerDb(
           { id: customer.id, archived: true },
           transaction
+        )
+
+        // 5. Invalidate customer subscriptions cache
+        // This ensures cached billing data reflects the archived status.
+        // While cancelSubscriptionImmediately also invalidates this cache for each
+        // canceled subscription, this explicit call handles edge cases where
+        // the customer has no active subscriptions.
+        invalidateCache(
+          CacheDependency.customerSubscriptions(customer.id)
         )
 
         return Result.ok({ customer: archivedCustomer })
