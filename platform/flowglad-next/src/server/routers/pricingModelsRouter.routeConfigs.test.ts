@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import {
   getDefaultPricingModelRouteConfig,
   pricingModelsRouteConfigs,
@@ -390,16 +390,27 @@ describe('pricingModelsRouteConfigs', () => {
   describe('Route config completeness', () => {
     it('should have all expected CRUD route configs', () => {
       const routeKeys = getAllRouteKeys()
+      const expectedCrudRoutes = [
+        'POST /pricing-models', // create
+        'PUT /pricing-models/:id', // update
+        'GET /pricing-models/:id', // get
+        'GET /pricing-models', // list
+        'DELETE /pricing-models/:id', // delete
+      ] as const
 
       // Check that all expected routes exist
-      expect(routeKeys).toContain('POST /pricing-models') // create
-      expect(routeKeys).toContain('PUT /pricing-models/:id') // update
-      expect(routeKeys).toContain('GET /pricing-models/:id') // get
-      expect(routeKeys).toContain('GET /pricing-models') // list
-      expect(routeKeys).toContain('DELETE /pricing-models/:id') // delete
+      expectedCrudRoutes.forEach((routeKey) => {
+        expect(routeKeys).toContain(routeKey)
+      })
 
-      // Check that we have exactly the expected number of routes
-      expect(routeKeys).toHaveLength(5) // Standard CRUD operations
+      // Check that we have exactly the expected number of CRUD routes
+      expect(
+        routeKeys.filter((routeKey) =>
+          expectedCrudRoutes.includes(
+            routeKey as unknown as (typeof expectedCrudRoutes)[number]
+          )
+        )
+      ).toHaveLength(expectedCrudRoutes.length)
     })
 
     it('should have the custom default route config', () => {
@@ -411,6 +422,33 @@ describe('pricingModelsRouteConfigs', () => {
         'GET /pricing-models/default'
       )
       expect(defaultRouteKeys).toHaveLength(1) // Only one custom route
+    })
+
+    it('should have the custom clone route config', () => {
+      const routeKeys = getAllRouteKeys()
+      expect(routeKeys).toContain('POST /pricing-models/:id/clone')
+
+      const routeConfig = findRouteConfig(
+        'POST /pricing-models/:id/clone'
+      )
+      expect(routeConfig).toMatchObject({
+        procedure: 'pricingModels.clone',
+      })
+      expect(
+        routeConfig!.pattern.test('pricing-models/test-id/clone')
+      ).toBe(true)
+
+      const testBody = {
+        pricingModel: {
+          name: 'Cloned Pricing Model',
+        },
+      }
+      // simulate route handler slicing
+      const result = routeConfig!.mapParams(['test-id'], testBody)
+      expect(result).toEqual({
+        ...testBody,
+        id: 'test-id',
+      })
     })
 
     it('should have consistent id parameter usage', () => {

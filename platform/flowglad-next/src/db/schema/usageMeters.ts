@@ -164,7 +164,7 @@ export namespace UsageMeter {
 // Schema for price fields in usage meter forms
 const usageMeterPriceFieldsSchema = z
   .object({
-    type: z.nativeEnum(PriceType).optional(),
+    type: z.enum(PriceType).optional(),
     unitPrice: z.number().optional(),
     usageEventsPerUnit: z.number().optional(),
   })

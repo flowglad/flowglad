@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupInvoice,
@@ -23,6 +23,7 @@ import {
   derivePricingModelIdForInvoiceLineItem,
   insertInvoiceLineItem,
   insertInvoiceLineItems,
+  selectCustomerFacingInvoicesWithLineItems,
 } from './invoiceLineItemMethods'
 
 describe('pricingModelId derivation', () => {
@@ -344,6 +345,139 @@ describe('pricingModelId derivation', () => {
           )
         ).rejects.toThrow()
       })
+    })
+  })
+})
+
+describe('selectCustomerFacingInvoicesWithLineItems', () => {
+  let organization: Organization.Record
+  let pricingModel: PricingModel.Record
+  let product: Product.Record
+  let price: Price.Record
+  let customer: Customer.Record
+  let invoice: Invoice.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+    pricingModel = orgData.pricingModel
+    product = orgData.product
+
+    price = await setupPrice({
+      productId: product.id,
+      name: 'Test Price',
+      unitPrice: 1000,
+      type: PriceType.SinglePayment,
+      livemode: true,
+      isDefault: false,
+      currency: CurrencyCode.USD,
+    })
+
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `test+${core.nanoid()}@test.com`,
+      livemode: true,
+    })
+
+    // Create invoice with customer-facing status (Paid)
+    invoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: InvoiceStatus.Paid,
+    })
+  })
+
+  it('should return invoices with line items for a customer with customer-facing statuses', async () => {
+    await adminTransaction(async ({ transaction }) => {
+      const result = await selectCustomerFacingInvoicesWithLineItems(
+        customer.id,
+        transaction,
+        true
+      )
+
+      expect(result.length).toBeGreaterThanOrEqual(1)
+      const foundInvoice = result.find(
+        (item) => item.invoice.id === invoice.id
+      )
+      expect(foundInvoice).toMatchObject({
+        invoice: {
+          id: invoice.id,
+          customerId: customer.id,
+          pricingModelId: pricingModel.id,
+          status: InvoiceStatus.Paid,
+        },
+        invoiceLineItems: expect.any(Array),
+      })
+    })
+  })
+
+  it('should return empty array when customer has no invoices', async () => {
+    const customerWithNoInvoices = await setupCustomer({
+      organizationId: organization.id,
+      email: `empty+${core.nanoid()}@test.com`,
+      livemode: true,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await selectCustomerFacingInvoicesWithLineItems(
+        customerWithNoInvoices.id,
+        transaction,
+        true
+      )
+
+      expect(result).toEqual([])
+    })
+  })
+
+  it('should not return invoices with Draft status', async () => {
+    // Create a draft invoice (not customer-facing)
+    const draftInvoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      status: InvoiceStatus.Draft,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await selectCustomerFacingInvoicesWithLineItems(
+        customer.id,
+        transaction,
+        true
+      )
+
+      const invoiceIds = result.map((item) => item.invoice.id)
+      // Should include the Paid invoice
+      expect(invoiceIds).toContain(invoice.id)
+      // Should NOT include the Draft invoice
+      expect(invoiceIds).not.toContain(draftInvoice.id)
+    })
+  })
+
+  it('should only return invoices for the specified customer', async () => {
+    const otherCustomer = await setupCustomer({
+      organizationId: organization.id,
+      email: `other+${core.nanoid()}@test.com`,
+      livemode: true,
+    })
+
+    const otherInvoice = await setupInvoice({
+      organizationId: organization.id,
+      customerId: otherCustomer.id,
+      priceId: price.id,
+      status: InvoiceStatus.Paid,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const result = await selectCustomerFacingInvoicesWithLineItems(
+        customer.id,
+        transaction,
+        true
+      )
+
+      const invoiceIds = result.map((item) => item.invoice.id)
+      expect(invoiceIds).toContain(invoice.id)
+      expect(invoiceIds).not.toContain(otherInvoice.id)
     })
   })
 })

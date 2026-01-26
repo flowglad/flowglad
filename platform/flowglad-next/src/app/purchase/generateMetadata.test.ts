@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import type { Metadata } from 'next'
-import { beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg } from '@/../seedDatabase'
 import { generateMetadata as generateMetadataForPrice } from '@/app/price/[priceId]/purchase/page'
 import { generateMetadata as generateMetadataForProduct } from '@/app/product/[productId]/purchase/page'

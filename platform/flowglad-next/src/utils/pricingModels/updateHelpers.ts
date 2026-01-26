@@ -9,6 +9,7 @@ import type { Feature } from '@/db/schema/features'
 import type { Price } from '@/db/schema/prices'
 import type { ProductFeature } from '@/db/schema/productFeatures'
 import type { Product } from '@/db/schema/products'
+import type { Resource } from '@/db/schema/resources'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { selectFeatures } from '@/db/tableMethods/featureMethods'
 import { selectPrices } from '@/db/tableMethods/priceMethods'
@@ -19,8 +20,14 @@ import {
   selectProductFeatures,
 } from '@/db/tableMethods/productFeatureMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
+import { selectResources } from '@/db/tableMethods/resourceMethods'
 import { selectUsageMeters } from '@/db/tableMethods/usageMeterMethods'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
+import { PriceType } from '@/types'
+import { buildSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**
  * Maps of slugs to database IDs for all child entities of a pricing model.
@@ -30,11 +37,19 @@ export type ResolvedPricingModelIds = {
   features: Map<string, string>
   /** Product slug -> product ID */
   products: Map<string, string>
-  /** Price slug -> price ID */
+  /** Price slug -> price ID (includes synthetic slugs for prices without real slugs) */
   prices: Map<string, string>
   /** Usage meter slug -> usage meter ID */
   usageMeters: Map<string, string>
+  /** Resource slug -> resource ID */
+  resources: Map<string, string>
 }
+
+/**
+ * Re-export buildSyntheticUsagePriceSlug as generateSyntheticUsagePriceSlug for backwards compatibility.
+ * This function generates a synthetic slug for a usage price that doesn't have a real slug.
+ */
+export { buildSyntheticUsagePriceSlug as generateSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**
  * Fetches all child entities of a pricing model and creates slug->id maps
@@ -55,18 +70,33 @@ export const resolveExistingIds = async (
   transaction: DbTransaction
 ): Promise<ResolvedPricingModelIds> => {
   // Fetch all child entities in parallel for better performance
-  const [features, products, usageMeters] = await Promise.all([
-    selectFeatures({ pricingModelId }, transaction),
-    selectProducts({ pricingModelId }, transaction),
-    selectUsageMeters({ pricingModelId }, transaction),
-  ])
+  const [features, products, usageMeters, resources] =
+    await Promise.all([
+      selectFeatures({ pricingModelId }, transaction),
+      selectProducts({ pricingModelId }, transaction),
+      selectUsageMeters({ pricingModelId }, transaction),
+      selectResources({ pricingModelId }, transaction),
+    ])
 
   // Fetch prices for all products
   const productIds = products.map((p) => p.id)
-  const prices =
+  const productPrices =
     productIds.length > 0
       ? await selectPrices({ productId: productIds }, transaction)
       : []
+
+  // Fetch prices for all usage meters
+  const usageMeterIds = usageMeters.map((m) => m.id)
+  const usageMeterPrices =
+    usageMeterIds.length > 0
+      ? await selectPrices(
+          { usageMeterId: usageMeterIds },
+          transaction
+        )
+      : []
+
+  // Combine all prices
+  const prices = [...productPrices, ...usageMeterPrices]
 
   // Build slug->id maps
   const featureMap = new Map<string, string>()
@@ -81,11 +111,34 @@ export const resolveExistingIds = async (
     }
   }
 
+  // Build meter ID -> meter slug map for synthetic slug generation
+  const meterIdToSlug = new Map<string, string>()
+  for (const meter of usageMeters) {
+    meterIdToSlug.set(meter.id, meter.slug)
+  }
+
   const priceMap = new Map<string, string>()
   for (const price of prices) {
     if (price.slug) {
+      // Map by real slug
       priceMap.set(price.slug, price.id)
+    } else if (price.type === PriceType.Usage) {
+      // For usage prices without slugs, generate a synthetic slug
+      // This mirrors the logic in diffing.ts to ensure consistent lookup
+      const usagePrice = price as Price.UsageRecord
+      const meterSlug = meterIdToSlug.get(usagePrice.usageMeterId)
+      if (meterSlug) {
+        const syntheticSlug = buildSyntheticUsagePriceSlug(
+          usagePrice,
+          meterSlug
+        )
+        priceMap.set(syntheticSlug, price.id)
+      }
+      // If meter slug not found, skip - the price can't be looked up anyway
     }
+    // Note: Product prices (Subscription/SinglePayment) without slugs
+    // are currently handled by the "silently skip" pattern in updateTransaction.
+    // If needed, synthetic slug generation could be added here for those too.
   }
 
   const usageMeterMap = new Map<string, string>()
@@ -93,11 +146,17 @@ export const resolveExistingIds = async (
     usageMeterMap.set(meter.slug, meter.id)
   }
 
+  const resourceMap = new Map<string, string>()
+  for (const resource of resources) {
+    resourceMap.set(resource.slug, resource.id)
+  }
+
   return {
     features: featureMap,
     products: productMap,
     prices: priceMap,
     usageMeters: usageMeterMap,
+    resources: resourceMap,
   }
 }
 
@@ -157,11 +216,12 @@ export const syncProductFeaturesForMultipleProducts = async (
     organizationId: string
     livemode: boolean
   },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<{
   added: ProductFeature.Record[]
   removed: ProductFeature.Record[]
 }> => {
+  const { transaction, invalidateCache } = ctx
   // Early return if no products to sync
   if (productsWithFeatures.length === 0) {
     return { added: [], removed: [] }
@@ -243,11 +303,12 @@ export const syncProductFeaturesForMultipleProducts = async (
   }
 
   // Step 3: Batch expire unwanted product features
+  // Note: expireProductFeaturesByFeatureId calls invalidateCache directly
   let expiredProductFeatures: ProductFeature.Record[] = []
   if (productFeatureIdsToExpire.length > 0) {
     const expireResult = await expireProductFeaturesByFeatureId(
       productFeatureIdsToExpire,
-      transaction
+      { transaction, invalidateCache }
     )
     expiredProductFeatures = expireResult.expiredProductFeature
   }
@@ -257,7 +318,7 @@ export const syncProductFeaturesForMultipleProducts = async (
   if (productFeatureIdsToUnexpire.length > 0) {
     unexpiredProductFeatures = await batchUnexpireProductFeatures(
       productFeatureIdsToUnexpire,
-      transaction
+      { transaction, invalidateCache }
     )
   }
 
@@ -267,7 +328,7 @@ export const syncProductFeaturesForMultipleProducts = async (
     createdProductFeatures =
       await bulkInsertOrDoNothingProductFeaturesByProductIdAndFeatureId(
         productFeatureInserts,
-        transaction
+        ctx
       )
   }
 

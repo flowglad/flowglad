@@ -47,7 +47,7 @@ const getTableRows = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
-        status: z.nativeEnum(PurchaseStatus).optional(),
+        status: z.enum(PurchaseStatus).optional(),
         customerId: z.string().optional(),
         organizationId: z.string().optional(),
       })
@@ -57,7 +57,12 @@ const getTableRows = protectedProcedure
     createPaginatedTableRowOutputSchema(purchasesTableRowDataSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectPurchasesTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectPurchasesTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const purchasesRouter = router({

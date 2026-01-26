@@ -31,6 +31,7 @@ import {
 import { attemptDiscountCode } from '@/server/mutations/attemptDiscountCode'
 import { clearDiscountCode } from '@/server/mutations/clearDiscountCode'
 import { protectedProcedure } from '@/server/trpc'
+import { validateAndResolvePricingModelId } from '@/utils/discountValidation'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 import { router } from '../trpc'
 
@@ -54,9 +55,21 @@ export const createDiscount = protectedProcedure
             },
             transaction
           )
+
+        // Validate and resolve pricingModelId (uses default if not provided)
+        const pricingModelId = await validateAndResolvePricingModelId(
+          {
+            pricingModelId: input.discount.pricingModelId,
+            organizationId: organization.id,
+            livemode,
+            transaction,
+          }
+        )
+
         return insertDiscount(
           {
             ...input.discount,
+            pricingModelId,
             organizationId: organization.id,
             livemode,
           },
@@ -111,6 +124,7 @@ const getTableRowsProcedure = protectedProcedure
     createPaginatedTableRowInputSchema(
       z.object({
         active: z.boolean().optional(),
+        pricingModelId: z.string().optional(),
       })
     )
   )
@@ -118,7 +132,12 @@ const getTableRowsProcedure = protectedProcedure
     createPaginatedTableRowOutputSchema(discountsTableRowDataSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectDiscountsTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectDiscountsTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const updateDiscount = protectedProcedure
@@ -164,10 +183,9 @@ export const getDiscount = protectedProcedure
   .query(async ({ input, ctx }) => {
     const discount = await authenticatedTransaction(
       async ({ transaction }) => {
-        const discountRecord = await selectDiscountById(
-          input.id,
-          transaction
-        )
+        const discountRecord = (
+          await selectDiscountById(input.id, transaction)
+        ).unwrap()
         const [enriched] = await enrichDiscountsWithRedemptionCounts(
           [discountRecord],
           transaction

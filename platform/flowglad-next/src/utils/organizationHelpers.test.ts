@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CreateOrganizationInput } from '@/db/schema/organizations'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
@@ -128,7 +128,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
     await adminTransaction(async ({ transaction }) => {
@@ -197,7 +198,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
 
@@ -217,7 +219,7 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(liveDefaultPricingModel?.id).toMatchObject({})
+      expect(liveDefaultPricingModel?.id).toMatch(/^pricing_model_/)
 
       const [liveDefaultProduct] = await selectProducts(
         {
@@ -260,7 +262,7 @@ describe('createOrganizationTransaction', () => {
         },
         transaction
       )
-      expect(testDefaultPricingModel?.id).toMatchObject({})
+      expect(testDefaultPricingModel?.id).toMatch(/^pricing_model_/)
 
       const [testDefaultProduct] = await selectProducts(
         {
@@ -318,7 +320,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
 
@@ -353,7 +356,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
 
@@ -390,7 +394,8 @@ describe('createOrganizationTransaction', () => {
           email: `test+${core.nanoid()}@test.com`,
           fullName: 'Test User',
         },
-        transaction
+        transaction,
+        { type: 'admin', livemode: true }
       )
     })
 
@@ -421,7 +426,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
       })
 
@@ -460,7 +466,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
       })
 
@@ -504,7 +511,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
 
         const [organization] = await selectOrganizations(
@@ -552,7 +560,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
 
         const [organization] = await selectOrganizations(
@@ -588,7 +597,8 @@ describe('createOrganizationTransaction', () => {
             email: `test+${core.nanoid()}@test.com`,
             fullName: 'Test User',
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
       })
 

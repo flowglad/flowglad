@@ -56,6 +56,101 @@ Please use the following guidelines when implementing new tests:
 
 **Behavior Tests** - Test behaviors across the cartesian product of dependency implementations, asserting universal invariants. Good for ensuring behavior is consistent across all valid configurations, catching regressions when new implementations are added, and reducing test boilerplate when the same behavior must hold for many variants. See `src/test/behaviorTest/` for the framework.
 
+### Test Environments
+
+The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
+
+**Tests using React or DOM APIs** must include this directive at the top of the file:
+```typescript
+/**
+ * @vitest-environment jsdom
+ */
+```
+
+This includes:
+- React component tests (`.test.tsx` files)
+- React hook tests using `renderHook` from `@testing-library/react`
+- Any test that needs DOM APIs like `document` or `window`
+
+This tells Vitest to run that specific test file in a jsdom environment.
+
+## Result Types and Error Handling
+
+This codebase uses the `better-result` library for type-safe error handling. When working with Result types:
+
+### Using Result.gen() for Multi-Step Operations
+
+Use `Result.gen()` to compose multiple Result-returning operations:
+
+```typescript
+import { Result } from 'better-result'
+
+const myFunction = async (): Promise<Result<Output, Error>> =>
+  Result.gen(async function* () {
+    // Use yield* Result.await() to unwrap async Results
+    const value1 = yield* Result.await(asyncResultOperation1())
+    const value2 = yield* Result.await(asyncResultOperation2(value1))
+
+    // Return success
+    return Result.ok(value2)
+  })
+```
+
+### Important: Use `Result.await()` for Async Operations
+
+**Always use `yield* Result.await(...)` instead of `yield* await ...`** inside `Result.gen()` async generators:
+
+```typescript
+// ✅ Correct - use Result.await()
+const value = yield* Result.await(someAsyncResultFunction())
+
+// ❌ Incorrect - don't use plain await
+const value = yield* await someAsyncResultFunction()
+```
+
+Per the better-result library documentation: "Use Result.await to yield Promise in async generators - required for async operations inside Result.gen".
+
+### Checking Result Types
+
+Use static methods to check Result types:
+
+```typescript
+import { Result } from 'better-result'
+
+// ✅ Correct - use static methods
+if (Result.isOk(result)) {
+  console.log(result.value)
+}
+if (Result.isError(result)) {
+  console.log(result.error)
+}
+
+// ❌ Incorrect - instance methods don't exist
+if (result.isOk()) { ... }
+if (result.isErr()) { ... }
+```
+
+### Unwrapping Results
+
+Use `.unwrap()` to extract the value (throws on error):
+
+```typescript
+const result = await someResultFunction()
+const value = result.unwrap() // Throws if result is an error
+```
+
+### Tagged Error Types
+
+Use tagged error classes from `@/errors` for Result errors:
+
+```typescript
+import { ValidationError, NotFoundError, ConflictError } from '@/errors'
+
+// Return typed errors
+return Result.err(new ValidationError('field', 'reason'))
+return Result.err(new NotFoundError('Resource', 'id'))
+return Result.err(new ConflictError('Resource', 'conflict description'))
+```
 
 ## After Finishing Edits
 

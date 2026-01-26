@@ -1,5 +1,8 @@
+import type { Mock } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type Stripe from 'stripe'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -45,10 +48,12 @@ import {
   selectUsageCreditById,
   selectUsageCredits,
 } from '@/db/tableMethods/usageCreditMethods'
+import { NotFoundError } from '@/errors'
 import {
   createMockPaymentIntent,
   createMockStripeCharge,
 } from '@/test/helpers/stripeMocks'
+import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -70,6 +75,7 @@ import {
   UsageCreditStatus,
 } from '@/types'
 import {
+  type CoreStripePaymentIntent,
   chargeStatusToPaymentStatus,
   ledgerCommandForPaymentSucceeded,
   processPaymentIntentStatusUpdated,
@@ -78,20 +84,25 @@ import {
   upsertPaymentForStripeCharge,
 } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import core from '../core'
+// Import actual stripe module before mocking
+import * as actualStripeModule from '../stripe'
 import {
-  getStripeCharge,
   IntentMetadataType,
   type StripeIntentMetadata,
 } from '../stripe'
 
+// Create mock for getStripeCharge
+const mockGetStripeCharge =
+  mock<typeof actualStripeModule.getStripeCharge>()
+
 // Mock getStripeCharge
-vi.mock('../stripe', async () => {
-  const actual = await vi.importActual('../stripe')
-  return {
-    ...actual,
-    getStripeCharge: vi.fn(),
-  }
-})
+mock.module('../stripe', () => ({
+  ...actualStripeModule,
+  getStripeCharge: mockGetStripeCharge,
+}))
+
+// Import the mocked version for assertions
+import { getStripeCharge } from '../stripe'
 
 describe('ledgerCommandForPaymentSucceeded', () => {
   // Shared globals for setup reused across tests
@@ -160,23 +171,31 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     })
   })
   it('returns undefined when price type is not SinglePayment', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return ledgerCommandForPaymentSucceeded(
         { priceId: subscriptionPrice.id, payment },
         transaction
       )
     })
-    expect(result).toBeUndefined()
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value).toBeUndefined()
+    }
   })
 
   it('returns undefined when product has no features', async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return ledgerCommandForPaymentSucceeded(
         { priceId: singlePaymentPrice.id, payment },
         transaction
       )
     })
-    expect(result).toBeUndefined()
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value).toBeUndefined()
+    }
   })
 
   it('returns undefined when product has only non-UsageCredit features', async () => {
@@ -188,13 +207,17 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         { name: 'Toggle Only', type: FeatureType.Toggle },
       ],
     })
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return ledgerCommandForPaymentSucceeded(
         { priceId: singlePaymentPrice.id, payment },
         transaction
       )
     })
-    expect(result).toBeUndefined()
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value).toBeUndefined()
+    }
   })
 
   it('returns undefined when customer has no current subscription', async () => {
@@ -228,13 +251,17 @@ describe('ledgerCommandForPaymentSucceeded', () => {
       customerId: altCustomer.id,
       invoiceId: altInvoice.id,
     })
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       return ledgerCommandForPaymentSucceeded(
         { priceId: singlePaymentPrice.id, payment: altPayment },
         transaction
       )
     })
-    expect(result).toBeUndefined()
+    expect(Result.isOk(result)).toBe(true)
+    if (Result.isOk(result)) {
+      expect(result.value).toBeUndefined()
+    }
   })
 
   it('creates UsageCredit and returns CreditGrantRecognized ledger command (happy path)', async () => {
@@ -251,14 +278,16 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         },
       ],
     })
-    const command = await adminTransaction(
-      async ({ transaction }) => {
-        return ledgerCommandForPaymentSucceeded(
-          { priceId: singlePaymentPrice.id, payment },
-          transaction
-        )
-      }
-    )
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return ledgerCommandForPaymentSucceeded(
+        { priceId: singlePaymentPrice.id, payment },
+        transaction
+      )
+    })
+    expect(Result.isOk(result)).toBe(true)
+    if (!Result.isOk(result)) return
+    const command = result.value
     expect(command).toMatchObject({ organizationId: organization.id })
     expect(command!.type).toBe(
       LedgerTransactionType.CreditGrantRecognized
@@ -268,7 +297,7 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     expect(command!.livemode).toBe(true)
     const usageCredit = command!.payload.usageCredit
     expect(usageCredit.issuedAmount).toBe(777)
-    expect(usageCredit.usageMeterId).toMatchObject({})
+    expect(typeof usageCredit.usageMeterId).toBe('string')
     expect(usageCredit.sourceReferenceId).toBe(payment.invoiceId)
     expect(usageCredit.paymentId).toBe(payment.id)
     expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
@@ -297,14 +326,16 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         },
       ],
     })
-    const command = await adminTransaction(
-      async ({ transaction }) => {
-        return ledgerCommandForPaymentSucceeded(
-          { priceId: singlePaymentPrice.id, payment },
-          transaction
-        )
-      }
-    )
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return ledgerCommandForPaymentSucceeded(
+        { priceId: singlePaymentPrice.id, payment },
+        transaction
+      )
+    })
+    expect(Result.isOk(result)).toBe(true)
+    if (!Result.isOk(result)) return
+    const command = result.value
     expect(typeof command).toBe('object')
     expect(command!.payload.usageCredit.issuedAmount).toBe(111)
   })
@@ -312,7 +343,8 @@ describe('ledgerCommandForPaymentSucceeded', () => {
   it('fails when usage credit grant amount is zero', async () => {
     // Insert feature with amount: 0 using raw SQL to bypass schema validation
     // We need to ensure the feature is linked to the same product as singlePaymentPrice
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'UM-Z',
@@ -350,20 +382,22 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         `
       )
 
-      // Ensure the feature is linked to the product that singlePaymentPrice uses
+      // Ensure the feature is linked to the product that singlePaymentPrice uses.
+      // Single payment prices always have productId.
       await insertProductFeature(
         {
           organizationId: organization.id,
           livemode: true,
-          productId: singlePaymentPrice.productId,
+          productId: singlePaymentPrice.productId!,
           featureId,
         },
-        transaction
+        ctx
       )
     })
 
     await expect(
-      adminTransaction(async ({ transaction }) => {
+      adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         return ledgerCommandForPaymentSucceeded(
           { priceId: singlePaymentPrice.id, payment },
           transaction
@@ -386,22 +420,23 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         },
       ],
     })
-    const command = await adminTransaction(
-      async ({ transaction }) => {
-        return ledgerCommandForPaymentSucceeded(
-          { priceId: singlePaymentPrice.id, payment },
-          transaction
-        )
-      }
-    )
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return ledgerCommandForPaymentSucceeded(
+        { priceId: singlePaymentPrice.id, payment },
+        transaction
+      )
+    })
+    expect(Result.isOk(result)).toBe(true)
+    if (!Result.isOk(result)) return
+    const command = result.value
     expect(typeof command).toBe('object')
     // additionally re-select the usage credit to ensure it was persisted via the same transactional flow
-    const reselected = await adminTransaction(
-      async ({ transaction }) => {
-        const id = command!.payload.usageCredit.id
-        return selectUsageCreditById(id, transaction)
-      }
-    )
+    const reselected = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const id = command!.payload.usageCredit.id
+      return selectUsageCreditById(id, transaction)
+    })
     expect(reselected).toMatchObject({
       id: command!.payload.usageCredit.id,
     })
@@ -424,22 +459,26 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     })
 
     // First call should create the usage credit
-    await adminTransaction(async ({ transaction }) => {
-      return ledgerCommandForPaymentSucceeded(
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const result = await ledgerCommandForPaymentSucceeded(
         { priceId: singlePaymentPrice.id, payment },
         transaction
       )
+      return result.unwrap()
     })
 
     // Second call should no-op due to unique index and bulkInsertOrDoNothing
-    const secondLedgerCommand = await adminTransaction(
-      async ({ transaction }) => {
+    const secondLedgerCommandResult = await adminTransaction(
+      async (ctx) => {
+        const { transaction } = ctx
         return ledgerCommandForPaymentSucceeded(
           { priceId: singlePaymentPrice.id, payment },
           transaction
         )
       }
     )
+    const secondLedgerCommand = secondLedgerCommandResult.unwrap()
     expect(secondLedgerCommand).toBeUndefined()
 
     // Assert only one usage credit exists for this payment
@@ -540,27 +579,58 @@ describe('Process payment intent status updated', async () => {
       }
 
       const result = await adminTransaction(
-        async ({ transaction }) => {
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
           return updatePaymentToReflectLatestChargeStatus(
             fakePayment,
             succeededCharge,
-            transaction
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
           )
         }
       )
-      expect(result.status).toEqual(PaymentStatus.Succeeded)
+      expect(result.status).toBe('ok')
+      if (result.status === 'ok') {
+        expect(result.value.status).toEqual(PaymentStatus.Succeeded)
+      }
     })
 
     it('does not update the payment status if the current status already matches the charge status', async () => {
       fakePayment.status = PaymentStatus.Succeeded
-      const result = await adminTransaction(async ({ transaction }) =>
-        updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          succeededCharge,
-          transaction
-        )
+      const result = await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) =>
+          updatePaymentToReflectLatestChargeStatus(
+            fakePayment,
+            succeededCharge,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
+          )
       )
-      expect(result.status).toEqual(PaymentStatus.Succeeded)
+      expect(result.status).toBe('ok')
+      if (result.status === 'ok') {
+        expect(result.value.status).toEqual(PaymentStatus.Succeeded)
+      }
     })
 
     it('updates the associated invoice status when an invoiceId exists', async () => {
@@ -568,18 +638,32 @@ describe('Process payment intent status updated', async () => {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
       }
-      await adminTransaction(async ({ transaction }) => {
-        await updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          succeededCharge,
-          transaction
-        )
-        const invoice = await selectInvoiceById(
-          fakePayment.invoiceId,
-          transaction
-        )
-        expect(invoice.status).toEqual(InvoiceStatus.Paid)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          await updatePaymentToReflectLatestChargeStatus(
+            fakePayment,
+            succeededCharge,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
+          )
+          const invoice = await selectInvoiceById(
+            fakePayment.invoiceId,
+            transaction
+          )
+          expect(invoice.status).toEqual(InvoiceStatus.Paid)
+        }
+      )
     })
 
     it('updates the associated purchase status when a purchaseId exists', async () => {
@@ -594,32 +678,59 @@ describe('Process payment intent status updated', async () => {
         status: PaymentStatus.Succeeded,
         purchaseId: purchase.id,
       }
-      await adminTransaction(async ({ transaction }) => {
-        await updatePaymentToReflectLatestChargeStatus(
-          updatedPayment,
-          succeededCharge,
-          transaction
-        )
-        const updatedPurchase = await selectPurchaseById(
-          purchase.id,
-          transaction
-        )
-        expect(updatedPurchase.status).toEqual(PurchaseStatus.Paid)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          await updatePaymentToReflectLatestChargeStatus(
+            updatedPayment,
+            succeededCharge,
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
+          )
+          const updatedPurchase = await selectPurchaseById(
+            purchase.id,
+            transaction
+          )
+          expect(updatedPurchase.status).toEqual(PurchaseStatus.Paid)
+        }
+      )
     })
 
-    it('throws an error if there is no associated invoice', async () => {
+    it('returns an error if there is no associated invoice', async () => {
       // @ts-expect-error - no invoice id
       fakePayment.invoiceId = null
-      await expect(
-        adminTransaction(async ({ transaction }) =>
+      fakePayment.purchaseId = null
+      const result = await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) =>
           updatePaymentToReflectLatestChargeStatus(
             fakePayment,
             succeededCharge,
-            transaction
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache: invalidateCache!,
+              emitEvent: emitEvent!,
+              enqueueLedgerCommand: enqueueLedgerCommand!,
+            }
           )
-        )
-      ).rejects.toThrow()
+      )
+      expect(result.status).toBe('error')
     })
 
     it('handles cases gracefully when there is no associated purchase', async () => {
@@ -628,59 +739,124 @@ describe('Process payment intent status updated', async () => {
         ...fakePayment,
         status: PaymentStatus.Succeeded,
       }
-      await adminTransaction(async ({ transaction }) => {
-        const result = await updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          succeededCharge,
-          transaction
-        )
-        expect(result.status).toEqual(PaymentStatus.Succeeded)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const result = (
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              succeededCharge,
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+          ).unwrap()
+          expect(result.status).toEqual(PaymentStatus.Succeeded)
+        }
+      )
     })
 
     it('maintains idempotency when called multiple times with the same charge status', async () => {
       fakePayment.status = PaymentStatus.Succeeded
-      await adminTransaction(async ({ transaction }) => {
-        const result1 =
-          await updatePaymentToReflectLatestChargeStatus(
-            fakePayment,
-            succeededCharge,
-            transaction
-          )
-        const result2 =
-          await updatePaymentToReflectLatestChargeStatus(
-            fakePayment,
-            succeededCharge,
-            transaction
-          )
-        expect(result1).toEqual(result2)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const ctx = {
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache: invalidateCache!,
+            emitEvent: emitEvent!,
+            enqueueLedgerCommand: enqueueLedgerCommand!,
+          }
+          const result1 = (
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              succeededCharge,
+              ctx
+            )
+          ).unwrap()
+          const result2 = (
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              succeededCharge,
+              ctx
+            )
+          ).unwrap()
+          expect(result1).toEqual(result2)
+        }
+      )
     })
 
     it('updates the payment status to Failed when the charge status is failed', async () => {
       fakePayment.status = PaymentStatus.Processing
-      await adminTransaction(async ({ transaction }) => {
-        const result = await updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          failedCharge,
-          transaction
-        )
-        expect(result.status).toEqual(PaymentStatus.Failed)
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const result = (
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              failedCharge,
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+          ).unwrap()
+          expect(result.status).toEqual(PaymentStatus.Failed)
+        }
+      )
     })
 
     it('updates the failure message when the charge status is failed', async () => {
       fakePayment.status = PaymentStatus.Processing
-      await adminTransaction(async ({ transaction }) => {
-        const result = await updatePaymentToReflectLatestChargeStatus(
-          fakePayment,
-          failedCharge,
-          transaction
-        )
-        expect(result.failureMessage).toEqual(
-          failedCharge.failure_message
-        )
-      })
+      await adminTransaction(
+        async ({
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const result = (
+            await updatePaymentToReflectLatestChargeStatus(
+              fakePayment,
+              failedCharge,
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+          ).unwrap()
+          expect(result.failureMessage).toEqual(
+            failedCharge.failure_message
+          )
+        }
+      )
     })
   })
 
@@ -712,20 +888,24 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          upsertPaymentForStripeCharge(
-            {
-              charge: fakeCharge,
-              paymentIntentMetadata: fakeMetadata,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        upsertPaymentForStripeCharge(
+          {
+            charge: fakeCharge,
+            paymentIntentMetadata: fakeMetadata,
+          },
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow(/No payment intent id found/)
+      )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toMatch(
+          /PaymentIntent not found/
+        )
+      }
     })
 
-    it('throws an error if payment intent metadata is missing', async () => {
+    it('returns an error if payment intent metadata is missing', async () => {
       const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
@@ -733,20 +913,20 @@ describe('Process payment intent status updated', async () => {
         status: 'succeeded',
         billing_details: { address: { country: 'US' } } as any,
       })
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          upsertPaymentForStripeCharge(
-            {
-              charge: fakeCharge,
-              paymentIntentMetadata: null as any,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async ({ transaction }) =>
+        upsertPaymentForStripeCharge(
+          {
+            charge: fakeCharge,
+            paymentIntentMetadata:
+              null as unknown as StripeIntentMetadata,
+          },
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow()
+      )
+      expect(result.status).toBe('error')
     })
 
-    it('throws an error if metadata does not contain any of billingRunId or checkoutSessionId', async () => {
+    it('returns an error if metadata does not contain any of billingRunId or checkoutSessionId', async () => {
       const fakeCharge = createMockStripeCharge({
         id: 'ch1',
         payment_intent: 'pi_1',
@@ -758,18 +938,17 @@ describe('Process payment intent status updated', async () => {
         },
         billing_details: { address: { country: 'US' } } as any,
       })
-      const fakeMetadata: any = {}
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          upsertPaymentForStripeCharge(
-            {
-              charge: fakeCharge,
-              paymentIntentMetadata: fakeMetadata,
-            },
-            transaction
-          )
+      const fakeMetadata = {} as StripeIntentMetadata
+      const result = await adminTransaction(async ({ transaction }) =>
+        upsertPaymentForStripeCharge(
+          {
+            charge: fakeCharge,
+            paymentIntentMetadata: fakeMetadata,
+          },
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow()
+      )
+      expect(result.status).toBe('error')
     })
 
     it('throws an error if the checkout session cannot be found', async () => {
@@ -780,10 +959,10 @@ describe('Process payment intent status updated', async () => {
         status: 'succeeded',
         billing_details: { address: { country: 'US' } } as any,
       })
-      const fakeMetadata: any = {
+      const fakeMetadata = {
         checkoutSessionId: 'chckt_session_missing',
         type: IntentMetadataType.CheckoutSession,
-      }
+      } as StripeIntentMetadata
       await expect(
         adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
@@ -791,7 +970,7 @@ describe('Process payment intent status updated', async () => {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         )
       ).rejects.toThrow()
@@ -838,14 +1017,19 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const result = await adminTransaction(async ({ transaction }) =>
-        upsertPaymentForStripeCharge(
-          { charge: fakeCharge, paymentIntentMetadata: fakeMetadata },
-          transaction
+      const { payment } = (
+        await adminTransaction(async ({ transaction }) =>
+          upsertPaymentForStripeCharge(
+            {
+              charge: fakeCharge,
+              paymentIntentMetadata: fakeMetadata,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
         )
-      )
-      expect(result.payment.amount).toBe(5000)
-      expect(result.payment.stripeChargeId).toBe('ch1')
+      ).unwrap()
+      expect(payment.amount).toBe(5000)
+      expect(payment.stripeChargeId).toBe('ch1')
     })
 
     it('propagates Stripe Tax fields from fee calculation to payment for checkout sessions', async () => {
@@ -859,46 +1043,45 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
       })
 
-      const feeCalculation = await adminTransaction(
-        async ({ transaction }) => {
-          return insertFeeCalculation(
-            {
-              checkoutSessionId: checkoutSession.id,
-              organizationId: organization.id,
-              priceId: price.id,
-              purchaseId: null,
-              discountId: null,
-              livemode: checkoutSession.livemode,
-              currency: CurrencyCode.USD,
-              type: FeeCalculationType.CheckoutSessionPayment,
-              billingAddress: {
-                address: {
-                  line1: '123 Test St',
-                  line2: 'Apt 1',
-                  city: 'Test City',
-                  state: 'Test State',
-                  postal_code: '12345',
-                  country: CountryCode.US,
-                },
+      const feeCalculation = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return insertFeeCalculation(
+          {
+            checkoutSessionId: checkoutSession.id,
+            organizationId: organization.id,
+            priceId: price.id,
+            purchaseId: null,
+            discountId: null,
+            livemode: checkoutSession.livemode,
+            currency: CurrencyCode.USD,
+            type: FeeCalculationType.CheckoutSessionPayment,
+            billingAddress: {
+              address: {
+                line1: '123 Test St',
+                line2: 'Apt 1',
+                city: 'Test City',
+                state: 'Test State',
+                postal_code: '12345',
+                country: CountryCode.US,
               },
-              billingPeriodId: null,
-              paymentMethodType: PaymentMethodType.Card,
-              discountAmountFixed: 0,
-              paymentMethodFeeFixed: 0,
-              baseAmount: 1000,
-              pretaxTotal: 1000,
-              taxAmountFixed: 123,
-              stripeTaxCalculationId: 'txcalc_test_abc',
-              stripeTaxTransactionId: 'tax_txn_test_abc',
-              internationalFeePercentage: '0',
-              flowgladFeePercentage: '0.65',
-              internalNotes:
-                'Test Fee Calculation w/ Stripe Tax fields',
             },
-            transaction
-          )
-        }
-      )
+            billingPeriodId: null,
+            paymentMethodType: PaymentMethodType.Card,
+            discountAmountFixed: 0,
+            paymentMethodFeeFixed: 0,
+            baseAmount: 1000,
+            pretaxTotal: 1000,
+            taxAmountFixed: 123,
+            stripeTaxCalculationId: 'txcalc_test_abc',
+            stripeTaxTransactionId: 'tax_txn_test_abc',
+            internationalFeePercentage: '0',
+            flowgladFeePercentage: '0.65',
+            internalNotes:
+              'Test Fee Calculation w/ Stripe Tax fields',
+          },
+          transaction
+        )
+      })
 
       const fakeCharge = createMockStripeCharge({
         id: 'ch_tax_fields',
@@ -928,21 +1111,24 @@ describe('Process payment intent status updated', async () => {
         type: IntentMetadataType.CheckoutSession,
       }
 
-      const result = await adminTransaction(async ({ transaction }) =>
-        upsertPaymentForStripeCharge(
-          { charge: fakeCharge, paymentIntentMetadata: fakeMetadata },
-          transaction
+      const { payment } = (
+        await adminTransaction(async ({ transaction }) =>
+          upsertPaymentForStripeCharge(
+            {
+              charge: fakeCharge,
+              paymentIntentMetadata: fakeMetadata,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
         )
-      )
+      ).unwrap()
 
-      expect(result.payment.subtotal).toBe(feeCalculation.pretaxTotal)
-      expect(result.payment.taxAmount).toBe(
-        feeCalculation.taxAmountFixed
-      )
-      expect(result.payment.stripeTaxCalculationId).toBe(
+      expect(payment.subtotal).toBe(feeCalculation.pretaxTotal)
+      expect(payment.taxAmount).toBe(feeCalculation.taxAmountFixed)
+      expect(payment.stripeTaxCalculationId).toBe(
         feeCalculation.stripeTaxCalculationId
       )
-      expect(result.payment.stripeTaxTransactionId).toBe(
+      expect(payment.stripeTaxTransactionId).toBe(
         feeCalculation.stripeTaxTransactionId
       )
     })
@@ -959,7 +1145,8 @@ describe('Process payment intent status updated', async () => {
       })
 
       const feeCalculationOld = await adminTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return insertFeeCalculation(
             {
               checkoutSessionId: checkoutSession.id,
@@ -1001,7 +1188,8 @@ describe('Process payment intent status updated', async () => {
       await new Promise((resolve) => setTimeout(resolve, 5))
 
       const feeCalculationNew = await adminTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return insertFeeCalculation(
             {
               checkoutSessionId: checkoutSession.id,
@@ -1041,7 +1229,8 @@ describe('Process payment intent status updated', async () => {
       )
 
       const selectedFeeCalculation = await adminTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return selectFeeCalculationForPaymentIntent(
             {
               type: IntentMetadataType.CheckoutSession,
@@ -1078,7 +1267,8 @@ describe('Process payment intent status updated', async () => {
       })
 
       const feeCalculationOld = await adminTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return insertFeeCalculation(
             {
               billingPeriodId: billingPeriod.id,
@@ -1120,7 +1310,8 @@ describe('Process payment intent status updated', async () => {
       await new Promise((resolve) => setTimeout(resolve, 5))
 
       const feeCalculationNew = await adminTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return insertFeeCalculation(
             {
               billingPeriodId: billingPeriod.id,
@@ -1160,7 +1351,8 @@ describe('Process payment intent status updated', async () => {
       )
 
       const selectedFeeCalculation = await adminTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           return selectFeeCalculationForPaymentIntent(
             {
               type: IntentMetadataType.BillingRun,
@@ -1213,41 +1405,37 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const result1 = await adminTransaction(
-        async ({ transaction }) =>
+      const { payment: payment1 } = (
+        await adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
             {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
-      )
-      const result2 = await adminTransaction(
-        async ({ transaction }) =>
+        )
+      ).unwrap()
+      const { payment: payment2 } = (
+        await adminTransaction(async ({ transaction }) =>
           upsertPaymentForStripeCharge(
             {
               charge: fakeCharge,
               paymentIntentMetadata: fakeMetadata,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
+        )
+      ).unwrap()
+      expect(payment2.id).toEqual(payment1.id)
+      expect(payment2.amount).toEqual(payment1.amount)
+      expect(payment2.stripeChargeId).toEqual(payment1.stripeChargeId)
+      expect(payment2.paymentMethodId).toEqual(
+        payment1.paymentMethodId
       )
-      expect(result2.payment.id).toEqual(result1.payment.id)
-      expect(result2.payment.amount).toEqual(result1.payment.amount)
-      expect(result2.payment.stripeChargeId).toEqual(
-        result1.payment.stripeChargeId
-      )
-      expect(result2.payment.paymentMethodId).toEqual(
-        result1.payment.paymentMethodId
-      )
-      expect(result2.payment.invoiceId).toEqual(
-        result1.payment.invoiceId
-      )
-      expect(result2.payment.purchaseId).toEqual(
-        result1.payment.purchaseId
-      )
-      expect(result2.payment.status).toEqual(result1.payment.status)
+      expect(payment2.invoiceId).toEqual(payment1.invoiceId)
+      expect(payment2.purchaseId).toEqual(payment1.purchaseId)
+      expect(payment2.status).toEqual(payment1.status)
     })
 
     it('handles zero amount charges', async () => {
@@ -1286,13 +1474,18 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const result = await adminTransaction(async ({ transaction }) =>
-        upsertPaymentForStripeCharge(
-          { charge: fakeCharge, paymentIntentMetadata: fakeMetadata },
-          transaction
+      const { payment } = (
+        await adminTransaction(async ({ transaction }) =>
+          upsertPaymentForStripeCharge(
+            {
+              charge: fakeCharge,
+              paymentIntentMetadata: fakeMetadata,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
         )
-      )
-      expect(result.payment.amount).toBe(0)
+      ).unwrap()
+      expect(payment.amount).toBe(0)
     })
 
     it('handles charges with missing billing details gracefully', async () => {
@@ -1302,20 +1495,21 @@ describe('Process payment intent status updated', async () => {
         created: 1610000000,
         amount: 3000,
         status: 'succeeded',
-        billing_details: {} as any, // missing address
+        billing_details: {} as Stripe.Charge.BillingDetails,
       })
-      const fakeMetadata: any = { invoiceId: 'inv_nobilling' }
-      await expect(
-        adminTransaction(async ({ transaction }) =>
-          upsertPaymentForStripeCharge(
-            {
-              charge: fakeCharge,
-              paymentIntentMetadata: fakeMetadata,
-            },
-            transaction
-          )
+      const fakeMetadata = {
+        invoiceId: 'inv_nobilling',
+      } as unknown as StripeIntentMetadata
+      const result = await adminTransaction(async ({ transaction }) =>
+        upsertPaymentForStripeCharge(
+          {
+            charge: fakeCharge,
+            paymentIntentMetadata: fakeMetadata,
+          },
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow()
+      )
+      expect(result.status).toBe('error')
       // FIXME: test that it fails when there's no taxCountry
     })
 
@@ -1360,29 +1554,39 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
       }
-      const result = await adminTransaction(async ({ transaction }) =>
-        upsertPaymentForStripeCharge(
-          { charge: fakeCharge, paymentIntentMetadata: fakeMetadata },
-          transaction
+      const { payment } = (
+        await adminTransaction(async ({ transaction }) =>
+          upsertPaymentForStripeCharge(
+            {
+              charge: fakeCharge,
+              paymentIntentMetadata: fakeMetadata,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
         )
-      )
-      expect(result.payment.refunded).toBe(false)
+      ).unwrap()
+      expect(payment.refunded).toBe(false)
     })
   })
 
   describe('processPaymentIntentStatusUpdated', () => {
     it('throws an error when the PaymentIntent has no metadata', async () => {
-      const fakePI: any = {
+      const fakePI: CoreStripePaymentIntent = {
         id: 'pi_test',
-        metadata: null,
+        metadata: null as unknown as Stripe.Metadata,
         latest_charge: 'ch_test',
         status: 'succeeded',
       }
       await expect(
-        adminTransaction(async ({ transaction }) =>
-          processPaymentIntentStatusUpdated(fakePI, transaction)
-        )
-      ).rejects.toThrow(/No metadata found/)
+        comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
+            fakePI,
+            ctx
+          )
+          return Result.ok(res.unwrap())
+        })
+      ).rejects.toThrow(/PaymentIntentMetadata not found/)
     })
 
     it('throws an error when the PaymentIntent has no latest_charge', async () => {
@@ -1390,17 +1594,22 @@ describe('Process payment intent status updated', async () => {
         checkoutSessionId: 'inv_test',
         type: IntentMetadataType.CheckoutSession,
       }
-      const fakePI: any = {
+      const fakePI: CoreStripePaymentIntent = {
         id: 'pi_test',
         metadata,
         latest_charge: null,
         status: 'succeeded',
       }
       await expect(
-        adminTransaction(async ({ transaction }) =>
-          processPaymentIntentStatusUpdated(fakePI, transaction)
-        )
-      ).rejects.toThrow(/No latest charge/)
+        comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
+            fakePI,
+            ctx
+          )
+          return Result.ok(res.unwrap())
+        })
+      ).rejects.toThrow(/LatestCharge not found/)
     })
 
     describe('Billing Run Flow', async () => {
@@ -1480,13 +1689,20 @@ describe('Process payment intent status updated', async () => {
           invoiceId: 'inv_br',
           purchaseId: null,
         }
+
         // Mock getStripeCharge to return the fake charge
-        vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
-        const result = await adminTransaction(
-          async ({ transaction }) =>
-            processPaymentIntentStatusUpdated(fakePI, transaction)
+        ;(getStripeCharge as Mock<any>).mockResolvedValue(fakeCharge)
+        const { payment } = await comprehensiveAdminTransaction(
+          async (ctx) => {
+            const { transaction } = ctx
+            const res = await processPaymentIntentStatusUpdated(
+              fakePI,
+              ctx
+            )
+            return Result.ok(res.unwrap())
+          }
         )
-        expect(result.result.payment).toMatchObject({})
+        expect(payment).toMatchObject({})
       })
       it('throws an error when no invoice exists for the billing run', async () => {
         const metadata: StripeIntentMetadata = {
@@ -1529,15 +1745,16 @@ describe('Process payment intent status updated', async () => {
           customerId: 'cp_br_err',
           livemode: true,
         }
+
         // Mock getStripeCharge to return the fake charge so test can proceed to billing run check
-        vi.mocked(getStripeCharge).mockResolvedValue(
+        ;(getStripeCharge as Mock<any>).mockResolvedValue(
           fakeCharge as any
         )
         await expect(
-          adminTransaction(async ({ transaction }) =>
-            processPaymentIntentStatusUpdated(fakePI, transaction)
-          )
-        ).rejects.toThrow('No billing runs found with id: br_err')
+          comprehensiveAdminTransaction(async (ctx) => {
+            return processPaymentIntentStatusUpdated(fakePI, ctx)
+          })
+        ).rejects.toThrow('BillingRun not found: br_err')
       })
     })
 
@@ -1587,15 +1804,20 @@ describe('Process payment intent status updated', async () => {
             },
           } as any,
         })
-        vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
+        ;(getStripeCharge as Mock<any>).mockResolvedValue(fakeCharge)
 
-        const {
-          result: { payment },
-        } = await adminTransaction(async ({ transaction }) =>
-          processPaymentIntentStatusUpdated(fakePI, transaction)
+        const { payment } = await comprehensiveAdminTransaction(
+          async (ctx) => {
+            const { transaction } = ctx
+            const res = await processPaymentIntentStatusUpdated(
+              fakePI,
+              ctx
+            )
+            return Result.ok(res.unwrap())
+          }
         )
         expect(typeof payment).toBe('object')
-        expect(payment.taxCountry).toBe('US')
+        expect(payment.taxCountry).toBe(CountryCode.US)
       })
     })
 
@@ -1639,7 +1861,7 @@ describe('Process payment intent status updated', async () => {
     //   //     async ({ transaction }) =>
     //   //       processPaymentIntentStatusUpdated(fakePI, transaction)
     //   //   )
-    //   //   expect(result.payment).toBeDefined()
+    //   //   expect(result.payment).toMatchObject({})
     //   //   expect(result.payment.purchaseId).toBe('pur_123')
     //   // })
     // })
@@ -1676,7 +1898,7 @@ describe('Process payment intent status updated', async () => {
     //   const result = await adminTransaction(async ({ transaction }) =>
     //     processPaymentIntentStatusUpdated(fakePI, transaction)
     //   )
-    //   expect(result.payment).toBeDefined()
+    //   expect(result.payment).toMatchObject({})
     // })
 
     it('does not emit any events for PaymentIntent statuses other than "succeeded" or "canceled"', async () => {
@@ -1728,11 +1950,16 @@ describe('Process payment intent status updated', async () => {
         } as any,
         billing_details: { address: { country: 'US' } } as any,
       })
-      vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
-      const {
-        result: { payment },
-      } = await adminTransaction(async ({ transaction }) =>
-        processPaymentIntentStatusUpdated(fakePI, transaction)
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(fakeCharge)
+      const { payment } = await comprehensiveAdminTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
+            fakePI,
+            ctx
+          )
+          return Result.ok(res.unwrap())
+        }
       )
       expect(typeof payment).toBe('object')
       const events = await adminTransaction(async ({ transaction }) =>
@@ -1796,17 +2023,25 @@ describe('Process payment intent status updated', async () => {
         } as any,
         billing_details: { address: { country: 'US' } } as any,
       })
-      vi.mocked(getStripeCharge).mockResolvedValue(fakeCharge)
-      const {
-        result: { payment: payment1 },
-      } = await adminTransaction(async ({ transaction }) =>
-        processPaymentIntentStatusUpdated(fakePI, transaction)
-      )
-      const {
-        result: { payment: payment2 },
-      } = await adminTransaction(async ({ transaction }) =>
-        processPaymentIntentStatusUpdated(fakePI, transaction)
-      )
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(fakeCharge)
+      const { payment: payment1 } =
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
+            fakePI,
+            ctx
+          )
+          return Result.ok(res.unwrap())
+        })
+      const { payment: payment2 } =
+        await comprehensiveAdminTransaction(async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
+            fakePI,
+            ctx
+          )
+          return Result.ok(res.unwrap())
+        })
       expect(payment1.id).toEqual(payment2.id)
     })
   })
@@ -1907,7 +2142,7 @@ describe('Process payment intent status updated', async () => {
       })
 
       // Mock getStripeCharge to return succeeded charge
-      vi.mocked(getStripeCharge).mockResolvedValue({
+      ;(getStripeCharge as Mock<any>).mockResolvedValue({
         id: chargeId,
         amount: 1000,
         status: 'succeeded',
@@ -1940,27 +2175,28 @@ describe('Process payment intent status updated', async () => {
         metadata,
       })
 
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return await processPaymentIntentStatusUpdated(
+      const { payment } = await comprehensiveAdminTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
             paymentIntent,
-            transaction
+            ctx
           )
+          return Result.ok(res.unwrap())
         }
       )
 
-      expect(result.payment).toMatchObject({})
-      expect(result.payment.status).toBe(PaymentStatus.Succeeded)
+      expect(payment).toMatchObject({})
+      expect(payment.status).toBe(PaymentStatus.Succeeded)
 
       // Verify events were created
-      const events = await adminTransaction(
-        async ({ transaction }) => {
-          return await selectEvents(
-            { organizationId: organization.id },
-            transaction
-          )
-        }
-      )
+      const events = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return await selectEvents(
+          { organizationId: organization.id },
+          transaction
+        )
+      })
 
       expect(events).toHaveLength(2)
 
@@ -1984,7 +2220,7 @@ describe('Process payment intent status updated', async () => {
       expect(paymentSucceededEvent!.livemode).toBe(true)
       expect(paymentSucceededEvent!.payload).toEqual({
         object: EventNoun.Payment,
-        id: result.payment.id,
+        id: payment.id,
         customer: {
           id: customer.id,
           externalId: customer.externalId,
@@ -2017,7 +2253,7 @@ describe('Process payment intent status updated', async () => {
       const paymentIntentId = `pi_test_${core.nanoid()}`
 
       // Mock getStripeCharge to return succeeded charge
-      vi.mocked(getStripeCharge).mockResolvedValue({
+      ;(getStripeCharge as Mock<any>).mockResolvedValue({
         id: chargeId,
         amount: 1000,
         status: 'succeeded',
@@ -2084,28 +2320,29 @@ describe('Process payment intent status updated', async () => {
         metadata: brMetadata,
       })
 
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return await processPaymentIntentStatusUpdated(
+      const { payment } = await comprehensiveAdminTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
             paymentIntent,
-            transaction
+            ctx
           )
+          return Result.ok(res.unwrap())
         }
       )
 
-      expect(result.payment).toMatchObject({})
-      expect(result.payment.status).toBe(PaymentStatus.Succeeded)
-      expect(result.payment.purchaseId).toBeNull()
+      expect(payment).toMatchObject({})
+      expect(payment.status).toBe(PaymentStatus.Succeeded)
+      expect(payment.purchaseId).toBeNull()
 
       // Verify only PaymentSucceeded event was created
-      const events = await adminTransaction(
-        async ({ transaction }) => {
-          return await selectEvents(
-            { organizationId: organization.id },
-            transaction
-          )
-        }
-      )
+      const events = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return await selectEvents(
+          { organizationId: organization.id },
+          transaction
+        )
+      })
 
       expect(events).toHaveLength(1)
       expect(events[0].type).toBe(FlowgladEventType.PaymentSucceeded)
@@ -2117,7 +2354,7 @@ describe('Process payment intent status updated', async () => {
       const paymentIntentId = `pi_test_${core.nanoid()}`
 
       // Mock getStripeCharge to return pending charge
-      vi.mocked(getStripeCharge).mockResolvedValue({
+      ;(getStripeCharge as Mock<any>).mockResolvedValue({
         id: chargeId,
         amount: 1000,
         status: 'pending',
@@ -2170,27 +2407,28 @@ describe('Process payment intent status updated', async () => {
         metadata: processingMetadata,
       })
 
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return await processPaymentIntentStatusUpdated(
+      const { payment } = await comprehensiveAdminTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
             paymentIntent,
-            transaction
+            ctx
           )
+          return Result.ok(res.unwrap())
         }
       )
 
-      expect(result.payment).toMatchObject({})
-      expect(result.payment.status).toBe(PaymentStatus.Processing)
+      expect(payment).toMatchObject({})
+      expect(payment.status).toBe(PaymentStatus.Processing)
 
       // Verify no events were created
-      const events = await adminTransaction(
-        async ({ transaction }) => {
-          return await selectEvents(
-            { organizationId: organization.id },
-            transaction
-          )
-        }
-      )
+      const events = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return await selectEvents(
+          { organizationId: organization.id },
+          transaction
+        )
+      })
 
       expect(events).toHaveLength(0)
     })
@@ -2201,7 +2439,7 @@ describe('Process payment intent status updated', async () => {
       const paymentIntentId = `pi_test_${core.nanoid()}`
 
       // Mock getStripeCharge to return succeeded charge
-      vi.mocked(getStripeCharge).mockResolvedValue({
+      ;(getStripeCharge as Mock<any>).mockResolvedValue({
         id: chargeId,
         amount: 1000,
         status: 'succeeded',
@@ -2254,26 +2492,27 @@ describe('Process payment intent status updated', async () => {
         metadata: successMetadata,
       })
 
-      const result = await comprehensiveAdminTransaction(
-        async ({ transaction }) => {
-          return await processPaymentIntentStatusUpdated(
+      const { payment } = await comprehensiveAdminTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          const res = await processPaymentIntentStatusUpdated(
             paymentIntent,
-            transaction
+            ctx
           )
+          return Result.ok(res.unwrap())
         }
       )
 
-      expect(result.payment).toMatchObject({})
+      expect(payment).toMatchObject({})
 
       // Verify events were created with correct structure
-      const events = await adminTransaction(
-        async ({ transaction }) => {
-          return await selectEvents(
-            { organizationId: organization.id },
-            transaction
-          )
-        }
-      )
+      const events = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return await selectEvents(
+          { organizationId: organization.id },
+          transaction
+        )
+      })
 
       expect(events).toHaveLength(2)
 
@@ -2300,7 +2539,7 @@ describe('Process payment intent status updated', async () => {
       // Verify PaymentSucceeded event specific properties
       expect(paymentSucceededEvent!.payload).toEqual({
         object: EventNoun.Payment,
-        id: result.payment.id,
+        id: payment.id,
         customer: {
           id: customer.id,
           externalId: customer.externalId,
@@ -2365,22 +2604,33 @@ describe('Process payment intent status updated', async () => {
       })
 
       // Mock getStripeCharge to return our charge
-      vi.mocked(getStripeCharge).mockResolvedValue(stripeCharge)
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(stripeCharge)
 
       // Process the payment intent
-      const { result, eventsToInsert } = await adminTransaction(
-        async ({ transaction }) =>
-          processPaymentIntentStatusUpdated(
+      const { payment } = await comprehensiveAdminTransaction(
+        async (ctx) => {
+          const res = await processPaymentIntentStatusUpdated(
             mockPaymentIntent,
-            transaction
+            ctx
           )
+          return Result.ok(res.unwrap())
+        }
       )
 
       // Verify the payment has correct organizationId from checkoutSession
-      expect(result.payment.organizationId).toBe(organization.id)
+      expect(payment.organizationId).toBe(organization.id)
+
+      // Query events after transaction completes (events are inserted after callback returns)
+      const eventsCreated = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return selectEvents(
+          { organizationId: organization.id },
+          transaction
+        )
+      })
 
       // Verify events have correct organizationId
-      const paymentSucceededEvent = eventsToInsert?.find(
+      const paymentSucceededEvent = eventsCreated?.find(
         (e) => e.type === FlowgladEventType.PaymentSucceeded
       )
       expect(paymentSucceededEvent?.organizationId).toBe(
@@ -2439,31 +2689,43 @@ describe('Process payment intent status updated', async () => {
       })
 
       // Mock charge retrieval
-      vi.mocked(getStripeCharge).mockResolvedValue(
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(
         stripeCharge as any
       )
 
-      const { result, eventsToInsert } = await adminTransaction(
-        async ({ transaction }) =>
-          processPaymentIntentStatusUpdated(
-            mockPaymentIntent,
-            transaction
-          )
-      )
+      await comprehensiveAdminTransaction(async (ctx) => {
+        await processPaymentIntentStatusUpdated(
+          mockPaymentIntent,
+          ctx
+        )
+        return Result.ok(null)
+      })
+
+      // Query events after transaction completes
+      const eventsCreated = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return selectEvents(
+          { organizationId: organization.id },
+          transaction
+        )
+      })
 
       // Should have PaymentSucceeded and may have PurchaseCompleted if purchase becomes Paid
-      const paymentSucceededEvent = eventsToInsert?.find(
-        (e) => e.type === FlowgladEventType.PaymentSucceeded
+      const paymentSucceededEvent = eventsCreated?.find(
+        (e: { type: string }) =>
+          e.type === FlowgladEventType.PaymentSucceeded
       )
-      const purchaseCompletedEvent = eventsToInsert?.find(
-        (e) => e.type === FlowgladEventType.PurchaseCompleted
+      const purchaseCompletedEvent = eventsCreated?.find(
+        (e: { type: string }) =>
+          e.type === FlowgladEventType.PurchaseCompleted
       )
 
       expect(typeof paymentSucceededEvent).toBe('object')
       expect(typeof purchaseCompletedEvent).toBe('object')
 
       // Now update purchase to Paid status and process again
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updatePurchase(
           {
             id: pendingPurchase.id,
@@ -2475,17 +2737,29 @@ describe('Process payment intent status updated', async () => {
       })
 
       // Process same payment intent again
-      const { eventsToInsert: secondeventsToInsert } =
-        await adminTransaction(async ({ transaction }) =>
-          processPaymentIntentStatusUpdated(
-            mockPaymentIntent,
+      await comprehensiveAdminTransaction(async (ctx) => {
+        await processPaymentIntentStatusUpdated(
+          mockPaymentIntent,
+          ctx
+        )
+        return Result.ok(null)
+      })
+
+      // Query events after transaction completes
+      const secondEventsCreated = await adminTransaction(
+        async (ctx) => {
+          const { transaction } = ctx
+          return selectEvents(
+            { organizationId: organization.id },
             transaction
           )
-        )
+        }
+      )
 
       // Now should have PurchaseCompleted event
-      const secondPurchaseCompletedEvent = secondeventsToInsert?.find(
-        (e) => e.type === FlowgladEventType.PurchaseCompleted
+      const secondPurchaseCompletedEvent = secondEventsCreated?.find(
+        (e: { type: string }) =>
+          e.type === FlowgladEventType.PurchaseCompleted
       )
       expect(typeof secondPurchaseCompletedEvent).toBe('object')
       expect(secondPurchaseCompletedEvent?.payload.id).toBe(
@@ -2534,33 +2808,47 @@ describe('Process payment intent status updated', async () => {
       })
 
       // Mock charge retrieval
-      vi.mocked(getStripeCharge).mockResolvedValue(
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(
         stripeCharge as any
       )
 
-      const { result, eventsToInsert } = await adminTransaction(
-        async ({ transaction }) =>
-          processPaymentIntentStatusUpdated(
+      const { payment } = await comprehensiveAdminTransaction(
+        async (ctx) => {
+          const res = await processPaymentIntentStatusUpdated(
             mockPaymentIntent,
-            transaction
+            ctx
           )
+          return Result.ok(res.unwrap())
+        }
       )
 
+      // Query events after transaction completes
+      const eventsCreated = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return selectEvents(
+          { organizationId: organization.id },
+          transaction
+        )
+      })
+
       // Should have PaymentFailed event
-      const paymentFailedEvent = eventsToInsert?.find(
-        (e) => e.type === FlowgladEventType.PaymentFailed
+      const paymentFailedEvent = eventsCreated?.find(
+        (e: { type: string }) =>
+          e.type === FlowgladEventType.PaymentFailed
       )
 
       expect(typeof paymentFailedEvent).toBe('object')
-      expect(paymentFailedEvent?.payload.id).toBe(result.payment.id)
+      expect(paymentFailedEvent?.payload.id).toBe(payment.id)
       expect(typeof paymentFailedEvent?.hash).toBe('string')
 
       // Should NOT have PaymentSucceeded or PurchaseCompleted
-      const paymentSucceededEvent = eventsToInsert?.find(
-        (e) => e.type === FlowgladEventType.PaymentSucceeded
+      const paymentSucceededEvent = eventsCreated?.find(
+        (e: { type: string }) =>
+          e.type === FlowgladEventType.PaymentSucceeded
       )
-      const purchaseCompletedEvent = eventsToInsert?.find(
-        (e) => e.type === FlowgladEventType.PurchaseCompleted
+      const purchaseCompletedEvent = eventsCreated?.find(
+        (e: { type: string }) =>
+          e.type === FlowgladEventType.PurchaseCompleted
       )
 
       expect(paymentSucceededEvent).toBeUndefined()
@@ -2570,7 +2858,8 @@ describe('Process payment intent status updated', async () => {
     it('should include customer creation events when processing anonymous checkout', async () => {
       // Create an anonymous checkout session (no customer ID)
       const anonymousCheckoutSession = await adminTransaction(
-        async ({ transaction }) => {
+        async (ctx) => {
+          const { transaction } = ctx
           const session = await setupCheckoutSession({
             organizationId: organization.id,
             customerId: customer.id, // Start with a customer, then remove it
@@ -2595,7 +2884,8 @@ describe('Process payment intent status updated', async () => {
       )
 
       // Create a fee calculation for the anonymous checkout
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await setupFeeCalculation({
           checkoutSessionId: anonymousCheckoutSession.id,
           organizationId: organization.id,
@@ -2645,25 +2935,36 @@ describe('Process payment intent status updated', async () => {
           },
         },
       })
-      vi.mocked(getStripeCharge).mockResolvedValue(mockCharge)
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(mockCharge)
 
-      const { result, eventsToInsert } = await adminTransaction(
-        async ({ transaction }) =>
-          processPaymentIntentStatusUpdated(
-            mockPaymentIntent,
-            transaction
-          )
-      )
+      await comprehensiveAdminTransaction(async (ctx) => {
+        await processPaymentIntentStatusUpdated(
+          mockPaymentIntent,
+          ctx
+        )
+        return Result.ok(null)
+      })
+
+      // Query events after transaction completes
+      const eventsCreated = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return selectEvents(
+          { organizationId: organization.id },
+          transaction
+        )
+      })
 
       // Should have PaymentSucceeded event
-      const paymentSucceededEvent = eventsToInsert?.find(
-        (e) => e.type === FlowgladEventType.PaymentSucceeded
+      const paymentSucceededEvent = eventsCreated?.find(
+        (e: { type: string }) =>
+          e.type === FlowgladEventType.PaymentSucceeded
       )
       expect(typeof paymentSucceededEvent).toBe('object')
 
       // Should have CustomerCreated event from the anonymous checkout
-      const customerCreatedEvent = eventsToInsert?.find(
-        (e) => e.type === FlowgladEventType.CustomerCreated
+      const customerCreatedEvent = eventsCreated?.find(
+        (e: { type: string }) =>
+          e.type === FlowgladEventType.CustomerCreated
       )
       expect(typeof customerCreatedEvent).toBe('object')
       expect(customerCreatedEvent?.payload.object).toEqual(
@@ -2764,8 +3065,7 @@ describe('Process payment intent status updated', async () => {
         } as any,
         billing_details: { address: { country: 'US' } } as any,
       })
-
-      vi.mocked(getStripeCharge).mockResolvedValue(stripeCharge)
+      ;(getStripeCharge as Mock<any>).mockResolvedValue(stripeCharge)
 
       const metadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
@@ -2779,29 +3079,50 @@ describe('Process payment intent status updated', async () => {
         metadata,
       })
 
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          return await processPaymentIntentStatusUpdated(
+      // Track enqueued ledger commands
+      const enqueuedLedgerCommands: unknown[] = []
+      const { payment } = await comprehensiveAdminTransaction(
+        async (ctx) => {
+          const {
+            transaction,
+            emitEvent,
+            enqueueLedgerCommand,
+            invalidateCache,
+            cacheRecomputationContext,
+          } = ctx
+          const res = await processPaymentIntentStatusUpdated(
             paymentIntent,
-            transaction
+            {
+              transaction,
+              cacheRecomputationContext,
+              emitEvent,
+              enqueueLedgerCommand: (cmd) => {
+                enqueuedLedgerCommands.push(cmd)
+                enqueueLedgerCommand(cmd)
+              },
+              invalidateCache,
+            }
           )
+          return Result.ok(res.unwrap())
         }
       )
 
-      expect(result.ledgerCommand).toMatchObject({})
-      expect(result.ledgerCommand?.type).toBe(
+      // Verify ledger command was enqueued
+      expect(enqueuedLedgerCommands.length).toBeGreaterThan(0)
+      const ledgerCommand = enqueuedLedgerCommands.find(
+        (cmd) =>
+          (cmd as { type: string }).type ===
+          LedgerTransactionType.CreditGrantRecognized
+      )
+      expect(ledgerCommand).toMatchObject({})
+      expect((ledgerCommand as { type: string })?.type).toBe(
         LedgerTransactionType.CreditGrantRecognized
       )
-      expect(result.result.payment.status).toBe(
-        PaymentStatus.Succeeded
-      )
+      expect(payment.status).toBe(PaymentStatus.Succeeded)
 
       const usageCredits = await adminTransaction(
         async ({ transaction }) =>
-          selectUsageCredits(
-            { paymentId: result.result.payment.id },
-            transaction
-          )
+          selectUsageCredits({ paymentId: payment.id }, transaction)
       )
       expect(usageCredits.length).toBe(1)
       expect(usageCredits[0].issuedAmount).toBe(777)

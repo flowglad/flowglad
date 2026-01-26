@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCreditLedgerEntry,
@@ -106,7 +107,11 @@ describe('ledgerEntryMethods', () => {
   describe('bulkInsertLedgerEntries', () => {
     it('should return an empty array when given an empty array of entries', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const result = await bulkInsertLedgerEntries([], transaction)
+        const resultWrapper = await bulkInsertLedgerEntries(
+          [],
+          transaction
+        )
+        const result = resultWrapper.unwrap()
         expect(result).toEqual([])
       })
     })
@@ -150,10 +155,11 @@ describe('ledgerEntryMethods', () => {
           entryTimestamp: Date.now(),
           sourceUsageEventId: usageEvent.id,
         }
-        const result = await bulkInsertLedgerEntries(
+        const resultWrapper = await bulkInsertLedgerEntries(
           [entryData],
           transaction
         )
+        const result = resultWrapper.unwrap()
         expect(result).toHaveLength(1)
         expect(result[0]).toMatchObject(entryData)
       })
@@ -220,10 +226,11 @@ describe('ledgerEntryMethods', () => {
           sourceUsageCreditId: usageCredit.id,
           entryTimestamp: Date.now(),
         }
-        const result = await bulkInsertLedgerEntries(
+        const resultWrapper = await bulkInsertLedgerEntries(
           [entryData1, entryData2],
           transaction
         )
+        const result = resultWrapper.unwrap()
         expect(result).toHaveLength(2)
         expect(result[0]).toMatchObject(entryData1)
         expect(result[1]).toMatchObject(entryData2)
@@ -290,10 +297,11 @@ describe('ledgerEntryMethods', () => {
           entryTimestamp: Date.now(),
           sourceUsageCreditId: usageCredit.id,
         }
-        const result = await bulkInsertLedgerEntries(
+        const resultWrapper = await bulkInsertLedgerEntries(
           [entryData1, entryData2],
           transaction
         )
+        const result = resultWrapper.unwrap()
         expect(result).toHaveLength(2)
         expect(result[0].organizationId).toBe(organization.id)
         expect(result[0].livemode).toBe(true)
@@ -335,10 +343,11 @@ describe('ledgerEntryMethods', () => {
           entryTimestamp: Date.now(),
           sourceUsageEventId: usageEvent.id,
         }
-        const result = await bulkInsertLedgerEntries(
+        const resultWrapper = await bulkInsertLedgerEntries(
           [entryData],
           transaction
         )
+        const result = resultWrapper.unwrap()
         expect(result).toHaveLength(1)
         expect(typeof result[0].id).toBe('string')
       })
@@ -3247,8 +3256,19 @@ describe('ledgerEntryMethods', () => {
   })
 
   describe('aggregateOutstandingBalanceForUsageCosts', () => {
-    it('should return priceId null, unitPrice 0, usageEventsPerUnit 1, and name with "(no price)" for events with null priceId', async () => {
-      // Use the existing ledgerAccount from beforeEach setup
+    it('should return correct billing info for events with a no_charge price (unitPrice: 0)', async () => {
+      // Create a no_charge price for the usage meter
+      const noChargePrice = await setupPrice({
+        name: `${usageMeter.name} - No Charge`,
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        usageMeterId: usageMeter.id,
+      })
 
       const ledgerTransaction = await setupLedgerTransaction({
         organizationId: organization.id,
@@ -3261,9 +3281,9 @@ describe('ledgerEntryMethods', () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         amount: 5,
-        priceId: null,
+        priceId: noChargePrice.id,
         billingPeriodId: billingPeriod.id,
-        transactionId: 'dummy_txn_null_price_' + Math.random(),
+        transactionId: 'dummy_txn_no_charge_price_' + Math.random(),
         customerId: customer.id,
         usageDate: Date.now(),
       })
@@ -3282,35 +3302,36 @@ describe('ledgerEntryMethods', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await aggregateOutstandingBalanceForUsageCosts(
-          {
-            ledgerAccountId: ledgerAccount.id,
-          },
-          billingPeriod.endDate,
-          transaction
-        )
+        const resultWrapper =
+          await aggregateOutstandingBalanceForUsageCosts(
+            {
+              ledgerAccountId: ledgerAccount.id,
+            },
+            billingPeriod.endDate,
+            transaction
+          )
+        const result = resultWrapper.unwrap()
 
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
         expect(billingInfo).toEqual<UsageBillingInfo>({
-          priceId: null,
+          priceId: noChargePrice.id,
           unitPrice: 0,
           usageEventsPerUnit: 1,
           usageMeterId: usageMeter.id,
           balance: 100,
-          name: `Usage: ${usageMeter.name} (no price)`,
-          usageMeterIdPriceId: `${usageMeter.id}-null`,
+          name: `Usage: ${usageMeter.name} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(organization.defaultCurrency as CurrencyCode, 0)} per 1`,
+          usageMeterIdPriceId: `${usageMeter.id}-${noChargePrice.id}`,
           usageEventIds: expect.arrayContaining([usageEvent.id]),
           ledgerAccountId: ledgerAccount.id,
           livemode: true,
-          description: `priceId: null, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEvent.id}`,
+          description: `priceId: ${noChargePrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEvent.id}`,
         })
       })
     })
 
     it('should return actual price info and formatted currency name for events with priceId', async () => {
       const usageBasedPrice = await setupPrice({
-        productId: product.id,
         name: 'Test Usage Price',
         type: PriceType.Usage,
         unitPrice: 10,
@@ -3354,13 +3375,15 @@ describe('ledgerEntryMethods', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await aggregateOutstandingBalanceForUsageCosts(
-          {
-            ledgerAccountId: ledgerAccount.id,
-          },
-          billingPeriod.endDate,
-          transaction
-        )
+        const resultWrapper =
+          await aggregateOutstandingBalanceForUsageCosts(
+            {
+              ledgerAccountId: ledgerAccount.id,
+            },
+            billingPeriod.endDate,
+            transaction
+          )
+        const result = resultWrapper.unwrap()
 
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
@@ -3380,12 +3403,23 @@ describe('ledgerEntryMethods', () => {
       })
     })
 
-    it('should return separate billing info entries for events with prices and events without prices', async () => {
+    it('should return separate billing info entries for events with different prices', async () => {
       const usageBasedPrice = await setupPrice({
-        productId: product.id,
         name: 'Test Usage Price',
         type: PriceType.Usage,
         unitPrice: 10,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        usageMeterId: usageMeter.id,
+      })
+
+      const noChargePrice = await setupPrice({
+        name: `${usageMeter.name} - No Charge`,
+        type: PriceType.Usage,
+        unitPrice: 0,
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
         livemode: true,
@@ -3400,7 +3434,7 @@ describe('ledgerEntryMethods', () => {
         type: LedgerTransactionType.UsageEventProcessed,
       })
 
-      // Event with price
+      // Event with regular price
       const usageEventWithPrice = await setupUsageEvent({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -3413,15 +3447,15 @@ describe('ledgerEntryMethods', () => {
         usageDate: Date.now(),
       })
 
-      // Event without price
-      const usageEventWithoutPrice = await setupUsageEvent({
+      // Event with no_charge price
+      const usageEventWithNoChargePrice = await setupUsageEvent({
         organizationId: organization.id,
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         amount: 3,
-        priceId: null,
+        priceId: noChargePrice.id,
         billingPeriodId: billingPeriod.id,
-        transactionId: 'dummy_txn_null_price_' + Math.random(),
+        transactionId: 'dummy_txn_no_charge_price_' + Math.random(),
         customerId: customer.id,
         usageDate: Date.now(),
       })
@@ -3446,29 +3480,33 @@ describe('ledgerEntryMethods', () => {
         ledgerAccountId: ledgerAccount.id,
         amount: 100,
         entryType: LedgerEntryType.UsageCost,
-        sourceUsageEventId: usageEventWithoutPrice.id,
+        sourceUsageEventId: usageEventWithNoChargePrice.id,
         status: LedgerEntryStatus.Posted,
         usageMeterId: usageMeter.id,
         entryTimestamp: billingPeriod.endDate - 1000,
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await aggregateOutstandingBalanceForUsageCosts(
-          {
-            ledgerAccountId: ledgerAccount.id,
-          },
-          billingPeriod.endDate,
-          transaction
-        )
+        const resultWrapper =
+          await aggregateOutstandingBalanceForUsageCosts(
+            {
+              ledgerAccountId: ledgerAccount.id,
+            },
+            billingPeriod.endDate,
+            transaction
+          )
+        const result = resultWrapper.unwrap()
 
         expect(result).toHaveLength(2)
 
-        const withPrice = result.find(
+        const withRegularPrice = result.find(
           (r) => r.priceId === usageBasedPrice.id
         )
-        const withoutPrice = result.find((r) => r.priceId === null)
+        const withNoChargePrice = result.find(
+          (r) => r.priceId === noChargePrice.id
+        )
 
-        expect(withPrice).toEqual<UsageBillingInfo>({
+        expect(withRegularPrice).toEqual<UsageBillingInfo>({
           priceId: usageBasedPrice.id,
           unitPrice: 10,
           usageEventsPerUnit: 1,
@@ -3484,25 +3522,38 @@ describe('ledgerEntryMethods', () => {
           description: `priceId: ${usageBasedPrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 10, usageEventIds: ${usageEventWithPrice.id}`,
         })
 
-        expect(withoutPrice).toEqual<UsageBillingInfo>({
-          priceId: null,
+        expect(withNoChargePrice).toEqual<UsageBillingInfo>({
+          priceId: noChargePrice.id,
           unitPrice: 0,
           usageEventsPerUnit: 1,
           usageMeterId: usageMeter.id,
           balance: 100,
-          name: `Usage: ${usageMeter.name} (no price)`,
-          usageMeterIdPriceId: `${usageMeter.id}-null`,
+          name: `Usage: ${usageMeter.name} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(organization.defaultCurrency as CurrencyCode, 0)} per 1`,
+          usageMeterIdPriceId: `${usageMeter.id}-${noChargePrice.id}`,
           usageEventIds: expect.arrayContaining([
-            usageEventWithoutPrice.id,
+            usageEventWithNoChargePrice.id,
           ]),
           ledgerAccountId: ledgerAccount.id,
           livemode: true,
-          description: `priceId: null, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEventWithoutPrice.id}`,
+          description: `priceId: ${noChargePrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds: ${usageEventWithNoChargePrice.id}`,
         })
       })
     })
 
-    it('should group multiple events with null priceId under the same key', async () => {
+    it('should group multiple events with the same no_charge price under the same key', async () => {
+      // Create a no_charge price (unitPrice: 0) for testing
+      const noChargePrice = await setupPrice({
+        name: `${usageMeter.name} - No Charge`,
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        usageMeterId: usageMeter.id,
+      })
+
       const ledgerTransaction = await setupLedgerTransaction({
         organizationId: organization.id,
         subscriptionId: subscription.id,
@@ -3514,9 +3565,9 @@ describe('ledgerEntryMethods', () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         amount: 5,
-        priceId: null,
+        priceId: noChargePrice.id,
         billingPeriodId: billingPeriod.id,
-        transactionId: 'dummy_txn_null_1_' + Math.random(),
+        transactionId: 'dummy_txn_no_charge_1_' + Math.random(),
         customerId: customer.id,
         usageDate: Date.now(),
       })
@@ -3526,9 +3577,9 @@ describe('ledgerEntryMethods', () => {
         subscriptionId: subscription.id,
         usageMeterId: usageMeter.id,
         amount: 3,
-        priceId: null,
+        priceId: noChargePrice.id,
         billingPeriodId: billingPeriod.id,
-        transactionId: 'dummy_txn_null_2_' + Math.random(),
+        transactionId: 'dummy_txn_no_charge_2_' + Math.random(),
         customerId: customer.id,
         usageDate: Date.now(),
       })
@@ -3560,24 +3611,26 @@ describe('ledgerEntryMethods', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await aggregateOutstandingBalanceForUsageCosts(
-          {
-            ledgerAccountId: ledgerAccount.id,
-          },
-          billingPeriod.endDate,
-          transaction
-        )
+        const resultWrapper =
+          await aggregateOutstandingBalanceForUsageCosts(
+            {
+              ledgerAccountId: ledgerAccount.id,
+            },
+            billingPeriod.endDate,
+            transaction
+          )
+        const result = resultWrapper.unwrap()
 
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
         expect(billingInfo).toEqual<UsageBillingInfo>({
-          priceId: null,
+          priceId: noChargePrice.id,
           unitPrice: 0,
           usageEventsPerUnit: 1,
           usageMeterId: usageMeter.id,
           balance: 300, // 100 + 200
-          name: `Usage: ${usageMeter.name} (no price)`,
-          usageMeterIdPriceId: `${usageMeter.id}-null`,
+          name: `Usage: ${usageMeter.name} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(organization.defaultCurrency as CurrencyCode, 0)} per 1`,
+          usageMeterIdPriceId: `${usageMeter.id}-${noChargePrice.id}`,
           usageEventIds: expect.arrayContaining([
             usageEvent1.id,
             usageEvent2.id,
@@ -3585,7 +3638,7 @@ describe('ledgerEntryMethods', () => {
           ledgerAccountId: ledgerAccount.id,
           livemode: true,
           description: expect.stringContaining(
-            `priceId: null, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds:`
+            `priceId: ${noChargePrice.id}, usageMeterId: ${usageMeter.id}, usageEventsPerUnit: 1, unitPrice: 0, usageEventIds:`
           ),
         })
         expect(billingInfo.description).toContain(usageEvent1.id)
@@ -3618,13 +3671,13 @@ describe('ledgerEntryMethods', () => {
     describe('derivePricingModelIdForLedgerEntry', () => {
       it('should derive pricingModelId from subscription when subscriptionId is provided', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const pricingModelId =
-            await derivePricingModelIdForLedgerEntry(
-              {
-                subscriptionId: subscription.id,
-              },
-              transaction
-            )
+          const result = await derivePricingModelIdForLedgerEntry(
+            {
+              subscriptionId: subscription.id,
+            },
+            transaction
+          )
+          const pricingModelId = result.unwrap()
 
           expect(pricingModelId).toBe(subscription.pricingModelId)
           expect(pricingModelId).toBe(pricingModel.id)
@@ -3633,13 +3686,13 @@ describe('ledgerEntryMethods', () => {
 
       it('should derive pricingModelId from usage meter when usageMeterId is provided', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const pricingModelId =
-            await derivePricingModelIdForLedgerEntry(
-              {
-                usageMeterId: usageMeter.id,
-              },
-              transaction
-            )
+          const result = await derivePricingModelIdForLedgerEntry(
+            {
+              usageMeterId: usageMeter.id,
+            },
+            transaction
+          )
+          const pricingModelId = result.unwrap()
 
           expect(pricingModelId).toBe(usageMeter.pricingModelId)
           expect(pricingModelId).toBe(pricingModel.id)
@@ -3648,40 +3701,41 @@ describe('ledgerEntryMethods', () => {
 
       it('should prioritize subscriptionId over usageMeterId when both are provided', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const pricingModelId =
-            await derivePricingModelIdForLedgerEntry(
-              {
-                subscriptionId: subscription.id,
-                usageMeterId: usageMeter.id,
-              },
-              transaction
-            )
+          const result = await derivePricingModelIdForLedgerEntry(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+            },
+            transaction
+          )
+          const pricingModelId = result.unwrap()
 
           // Should use subscription's pricingModelId, not usage meter's
           expect(pricingModelId).toBe(subscription.pricingModelId)
         })
       })
 
-      it('should throw error when usage meter does not exist and no subscriptionId is provided', async () => {
+      it('should return Result.err when usage meter does not exist and no subscriptionId is provided', async () => {
         await adminTransaction(async ({ transaction }) => {
           const nonExistentUsageMeterId = `um_${core.nanoid()}`
 
-          await expect(
-            derivePricingModelIdForLedgerEntry(
-              {
-                usageMeterId: nonExistentUsageMeterId,
-              },
-              transaction
-            )
-          ).rejects.toThrow()
+          const result = await derivePricingModelIdForLedgerEntry(
+            {
+              usageMeterId: nonExistentUsageMeterId,
+            },
+            transaction
+          )
+          expect(Result.isError(result)).toBe(true)
         })
       })
 
-      it('should throw error when neither subscriptionId nor usageMeterId is provided', async () => {
+      it('should return Result.err when neither subscriptionId nor usageMeterId is provided', async () => {
         await adminTransaction(async ({ transaction }) => {
-          await expect(
-            derivePricingModelIdForLedgerEntry({}, transaction)
-          ).rejects.toThrow()
+          const result = await derivePricingModelIdForLedgerEntry(
+            {},
+            transaction
+          )
+          expect(Result.isError(result)).toBe(true)
         })
       })
     })
@@ -3689,7 +3743,7 @@ describe('ledgerEntryMethods', () => {
     describe('insertLedgerEntry', () => {
       it('should insert ledger entry and derive pricingModelId from subscription', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const entry = await insertLedgerEntry(
+          const entryResult = await insertLedgerEntry(
             {
               ...ledgerEntryNulledSourceIdColumns,
               metadata: {},
@@ -3710,6 +3764,7 @@ describe('ledgerEntryMethods', () => {
             },
             transaction
           )
+          const entry = entryResult.unwrap()
 
           expect(entry.pricingModelId).toBe(
             subscription.pricingModelId
@@ -3732,7 +3787,7 @@ describe('ledgerEntryMethods', () => {
             customerId: customer.id,
           })
 
-          const entry = await insertLedgerEntry(
+          const entryResult = await insertLedgerEntry(
             {
               ...ledgerEntryNulledSourceIdColumns,
               metadata: {},
@@ -3752,6 +3807,7 @@ describe('ledgerEntryMethods', () => {
             },
             transaction
           )
+          const entry = entryResult.unwrap()
 
           expect(entry.pricingModelId).toBe(usageMeter.pricingModelId)
           expect(entry.pricingModelId).toBe(pricingModel.id)
@@ -3760,7 +3816,7 @@ describe('ledgerEntryMethods', () => {
 
       it('should prioritize subscriptionId over usageMeterId', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const entry = await insertLedgerEntry(
+          const entryResult = await insertLedgerEntry(
             {
               ...ledgerEntryNulledSourceIdColumns,
               metadata: {},
@@ -3781,6 +3837,7 @@ describe('ledgerEntryMethods', () => {
             },
             transaction
           )
+          const entry = entryResult.unwrap()
 
           // Should use subscription's pricingModelId
           expect(entry.pricingModelId).toBe(
@@ -3791,7 +3848,7 @@ describe('ledgerEntryMethods', () => {
 
       it('should honor provided pricingModelId', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const entry = await insertLedgerEntry(
+          const entryResult = await insertLedgerEntry(
             {
               ...ledgerEntryNulledSourceIdColumns,
               metadata: {},
@@ -3813,6 +3870,7 @@ describe('ledgerEntryMethods', () => {
             },
             transaction
           )
+          const entry = entryResult.unwrap()
 
           expect(entry.pricingModelId).toBe(pricingModel.id)
         })
@@ -3834,7 +3892,7 @@ describe('ledgerEntryMethods', () => {
             customerId: customer.id,
           })
 
-          const entries = await bulkInsertLedgerEntries(
+          const entriesResult = await bulkInsertLedgerEntries(
             [
               {
                 ...ledgerEntryNulledSourceIdColumns,
@@ -3874,6 +3932,7 @@ describe('ledgerEntryMethods', () => {
             ],
             transaction
           )
+          const entries = entriesResult.unwrap()
 
           expect(entries).toHaveLength(2)
           expect(entries[0].pricingModelId).toBe(
@@ -3899,7 +3958,7 @@ describe('ledgerEntryMethods', () => {
             customerId: customer.id,
           })
 
-          const entries = await bulkInsertLedgerEntries(
+          const entriesResult = await bulkInsertLedgerEntries(
             [
               {
                 ...ledgerEntryNulledSourceIdColumns,
@@ -3957,6 +4016,7 @@ describe('ledgerEntryMethods', () => {
             ],
             transaction
           )
+          const entries = entriesResult.unwrap()
 
           expect(entries).toHaveLength(3)
           expect(entries[0].pricingModelId).toBe(
@@ -3973,10 +4033,11 @@ describe('ledgerEntryMethods', () => {
 
       it('should handle empty array', async () => {
         await adminTransaction(async ({ transaction }) => {
-          const entries = await bulkInsertLedgerEntries(
+          const entriesResult = await bulkInsertLedgerEntries(
             [],
             transaction
           )
+          const entries = entriesResult.unwrap()
           expect(entries).toEqual([])
         })
       })

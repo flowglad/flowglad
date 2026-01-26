@@ -17,18 +17,33 @@ export const attemptBillingPeriodTransitionTask = task({
       'attemptBillingPeriodTransition',
       async () => {
         const { billingRun } = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
-            const billingPeriod = await selectBillingPeriodById(
-              payload.billingPeriod.id,
-              transaction
-            )
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            const ctx = {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+            const billingPeriod = (
+              await selectBillingPeriodById(
+                payload.billingPeriod.id,
+                transaction
+              )
+            ).unwrap()
             logger.log('Attempting to transition billing period', {
               billingPeriod: payload.billingPeriod,
               ctx,
             })
             return attemptToTransitionSubscriptionBillingPeriod(
               billingPeriod,
-              transaction
+              ctx
             )
           }
         )

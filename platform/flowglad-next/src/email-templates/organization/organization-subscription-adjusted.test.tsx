@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { CurrencyCode } from '@/types'
@@ -34,15 +38,16 @@ describe('OrganizationSubscriptionAdjustedEmail', () => {
     prorationAmount: null,
   }
 
-  it('renders upgrade email with title, message, customer details, plan items, proration, effective date, and customer profile link', () => {
+  it('renders unified update email with title, message, customer details, plan items, proration, effective date, and customer profile link', () => {
     const { getByText, getByRole } = render(
       <OrganizationSubscriptionAdjustedEmail {...baseUpgradeProps} />
     )
 
-    // Title and message
-    expect(getByText('Subscription Upgraded')).toBeInTheDocument()
+    // Title and message - now uses unified "Subscription Updated" for all cases
+    // per Apple-inspired patterns in subscription-email-improvements.md
+    expect(getByText('Subscription Updated')).toBeInTheDocument()
     expect(
-      getByText('John Doe has upgraded their subscription.')
+      getByText('John Doe has updated their subscription.')
     ).toBeInTheDocument()
 
     // Customer details
@@ -89,17 +94,18 @@ describe('OrganizationSubscriptionAdjustedEmail', () => {
     ).toBeInTheDocument()
   })
 
-  it('renders downgrade email with title, message, no charge indicator, and plan items', () => {
+  it('renders downgrade email with unified title, message, no charge indicator, and plan items', () => {
     const { getByText, queryByText } = render(
       <OrganizationSubscriptionAdjustedEmail
         {...baseDowngradeProps}
       />
     )
 
-    // Title and message
-    expect(getByText('Subscription Downgraded')).toBeInTheDocument()
+    // Title and message - now uses unified "Subscription Updated" for all cases
+    // per Apple-inspired patterns in subscription-email-improvements.md
+    expect(getByText('Subscription Updated')).toBeInTheDocument()
     expect(
-      getByText('John Doe has downgraded their subscription.')
+      getByText('John Doe has updated their subscription.')
     ).toBeInTheDocument()
 
     // No charge indicator instead of proration
@@ -200,7 +206,7 @@ describe('OrganizationSubscriptionAdjustedEmail', () => {
     expect(getByText('£15.00')).toBeInTheDocument()
   })
 
-  it('displays provided customer name in details and upgrade message', () => {
+  it('displays provided customer name in details and update message', () => {
     const customProps = {
       ...baseUpgradeProps,
       customerName: 'Jane Smith',
@@ -211,8 +217,9 @@ describe('OrganizationSubscriptionAdjustedEmail', () => {
     )
 
     expect(getByText('Jane Smith')).toBeInTheDocument()
+    // Now uses unified "updated" message per Apple-inspired patterns
     expect(
-      getByText('Jane Smith has upgraded their subscription.')
+      getByText('Jane Smith has updated their subscription.')
     ).toBeInTheDocument()
   })
 })

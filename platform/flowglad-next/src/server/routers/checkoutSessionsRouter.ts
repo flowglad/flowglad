@@ -2,7 +2,7 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
-  authenticatedProcedureTransaction,
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
@@ -57,8 +57,9 @@ export const createCheckoutSession = protectedProcedure
   .input(createCheckoutSessionInputSchema)
   .output(singleCheckoutSessionOutputSchema)
   .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, ctx, transaction }) => {
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const { checkoutSession: checkoutSessionInput } = input
         const checkoutSessionType = checkoutSessionInput.type
         if (
@@ -74,7 +75,7 @@ export const createCheckoutSession = protectedProcedure
           })
         }
 
-        return await createCheckoutSessionTransaction(
+        const result = await createCheckoutSessionTransaction(
           {
             checkoutSessionInput,
             organizationId: ctx.organizationId!,
@@ -82,6 +83,7 @@ export const createCheckoutSession = protectedProcedure
           },
           transaction
         )
+        return result
       }
     )
   )
@@ -184,7 +186,7 @@ export const setPaymentMethodTypeProcedure = publicProcedure
   .input(
     z.object({
       id: z.string(),
-      paymentMethodType: z.nativeEnum(PaymentMethodType),
+      paymentMethodType: z.enum(PaymentMethodType),
     })
   )
   .mutation(async ({ input, ctx }) => {
@@ -207,10 +209,12 @@ export const setCustomerEmailProcedure = publicProcedure
   .input(z.object({ id: z.string(), customerEmail: z.string() }))
   .mutation(async ({ input, ctx }) => {
     return adminTransaction(async ({ transaction }) => {
-      const checkoutSession =
-        await updateCheckoutSessionCustomerEmail(input, transaction)
+      const result = await updateCheckoutSessionCustomerEmail(
+        input,
+        transaction
+      )
       return {
-        checkoutSession,
+        checkoutSession: result.unwrap(),
       }
     })
   })
@@ -252,12 +256,12 @@ export const setAutomaticallyUpdateSubscriptionsProcedure =
     )
     .mutation(async ({ input, ctx }) => {
       return adminTransaction(async ({ transaction }) => {
-        const checkoutSession =
+        const result =
           await updateCheckoutSessionAutomaticallyUpdateSubscriptions(
             input,
             transaction
           )
-        return { checkoutSession }
+        return { checkoutSession: result.unwrap() }
       })
     })
 

@@ -1,7 +1,11 @@
 # This workflow runs the unit tests
-# for flowglad-next in a sharded manner.
-# It runs the bun test command across 4 shards,
-# and then merges the reports together.
+# for flowglad-next with bun test (backend) and vitest (frontend).
+#
+# Backend tests (.test.ts) run via bun test with file-based sharding.
+# Frontend tests (.test.tsx) run via vitest with jsdom environment.
+#
+# Note: RLS tests run as part of test:integration in the merge queue only,
+# since they require sequential execution due to shared database connection pools.
 name: Flowglad Next Unit Tests
 
 # This workflow is designed to be called by other workflows
@@ -10,19 +14,16 @@ on:
   workflow_call:
 
 jobs:
-  # Main job that runs tests across multiple shards in parallel
-  # Each shard runs a subset of tests to improve performance
-  flowglad-next-sharded-tests:
+  # Backend tests (.test.ts) run via bun test with file-based sharding
+  # Each shard runs a subset of test files for better performance
+  flowglad-next-backend-tests:
     runs-on: ubuntu-latest
-    # Matrix strategy creates 4 parallel jobs (shards)
-    # Each shard gets a different shardIndex (1-4) but same shardTotal (4)
     strategy:
       matrix:
-        shardIndex: [1, 2, 3, 4]  # Individual shard identifier
-        shardTotal: [4]           # Total number of shards
-      fail-fast: false            # Don't stop other shards if one fails
+        shardIndex: [1, 2, 3, 4]
+        shardTotal: [4]
+      fail-fast: false
 
-    # PostgreSQL service container - replaces docker-compose for reliability
     services:
       postgres:
         image: postgres:15
@@ -32,7 +33,6 @@ jobs:
           POSTGRES_DB: test_db
         ports:
           - 5432:5432
-        # Health check ensures postgres is ready before steps run
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -44,78 +44,113 @@ jobs:
       run:
         working-directory: platform/flowglad-next
     steps:
-      # Standard setup steps for each shard
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
-          # Use branch from input if provided, otherwise use current ref
           ref: ${{ github.event.inputs.branch || github.ref }}
       - name: Setup Node.js
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
         with:
           node-version: '18'
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.2.14'
+          bun-version: '1.3.6'
       - name: Install dependencies
         run: bun run install-packages --no-progress
-      # Run database migrations (service container is already healthy)
       - name: Run database migrations
         run: bun run migrations:push
         env:
           NODE_ENV: test
-      - name: Create vitest reports directory
-        run: mkdir -p .vitest-reports
-      # Run tests for this specific shard
-      # Each shard runs a subset of tests based on shardIndex/shardTotal
-      # Verbose output will show detailed test results in the CI logs
-      - name: Run sharded tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-        run: bunx vitest run --reporter=verbose --reporter=blob --outputFile=.vitest-reports/blob-${{ matrix.shardIndex }}.json --shard=${{ matrix.shardIndex }}/${{ matrix.shardTotal }} --no-silent
+      - name: Run sharded backend tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
+        run: |
+          # Get sorted list of backend test files (exclude integration and RLS tests)
+          files=$(find src -name "*.test.ts" ! -name "*.integration.test.ts" ! -name "*.rls.test.ts" | sort)
+          total=$(echo "$files" | wc -l | tr -d ' ')
+
+          # Calculate shard size and file range
+          shard_size=$(( (total + ${{ matrix.shardTotal }} - 1) / ${{ matrix.shardTotal }} ))
+          start=$(( (${{ matrix.shardIndex }} - 1) * shard_size + 1 ))
+          end=$(( start + shard_size - 1 ))
+
+          # Get files for this shard
+          shard_files=$(echo "$files" | sed -n "${start},${end}p" | tr '\n' ' ')
+
+          echo "Running shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}: files $start to $end of $total"
+          echo "Files: $shard_files"
+
+          # Run bun test with the selected files
+          if [ -n "$shard_files" ]; then
+            echo "$shard_files" | xargs bun test --preload ./bun.setup.ts
+          else
+            echo "No files to test in this shard"
+          fi
         env:
           NODE_ENV: test
-      # Upload test results as artifacts for later merging
-      - name: Upload blob report to GitHub Actions Artifacts
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v6
-        with:
-          name: blob-report-${{ matrix.shardIndex }}
-          path: platform/flowglad-next/.vitest-reports/blob-${{ matrix.shardIndex }}.json
-          include-hidden-files: true
-          retention-days: 1  # Short retention since we merge immediately
+          CLAUDECODE: 1
 
-  # Merges the reports from the sharded tests into a single report.
-  # This job runs after all shards complete and combines their results
-  merge-reports:
-    if: ${{ !cancelled() }}  # Only run if workflow wasn't cancelled
-    needs: [flowglad-next-sharded-tests]  # Wait for all shards to finish
+  # Frontend tests (.test.tsx) run via vitest with jsdom environment
+  # These are React component tests that need DOM APIs
+  flowglad-next-frontend-tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 10s
+
     defaults:
       run:
         working-directory: platform/flowglad-next
     steps:
-      # Setup steps for merge job (similar to shard setup)
       - name: Checkout repository
         uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
           ref: ${{ github.event.inputs.branch || github.ref }}
       - name: Setup Node.js
-        uses: actions/setup-node@395ad3262231945c25e8478fd5baf05154b1d79f # v3
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
         with:
           node-version: '18'
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.2.14'
+          bun-version: '1.3.6'
       - name: Install dependencies
         run: bun run install-packages --no-progress
-      # Download all shard reports from artifacts
-      - name: Download blob reports from GitHub Actions Artifacts
-        uses: actions/download-artifact@v7
-        with:
-          path: platform/flowglad-next/.vitest-reports
-          pattern: blob-report-*  # Download all shard reports
-          merge-multiple: true    # Merge into single directory
-      # Combine all shard reports into a single comprehensive report
-      - name: Merge reports
-        run: bunx vitest run --merge-reports
+      - name: Run database migrations
+        run: bun run migrations:push
+        env:
+          NODE_ENV: test
+      - name: Run frontend tests
+        run: bun run test:frontend
+        env:
+          NODE_ENV: test
+
+  # Summary job that waits for all test jobs to complete
+  test-summary:
+    if: ${{ !cancelled() }}
+    needs: [flowglad-next-backend-tests, flowglad-next-frontend-tests]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check test results
+        run: |
+          echo "All test jobs completed"
+          echo "Backend tests: ${{ needs.flowglad-next-backend-tests.result }}"
+          echo "Frontend tests: ${{ needs.flowglad-next-frontend-tests.result }}"
+
+          # Fail if any job failed
+          if [ "${{ needs.flowglad-next-backend-tests.result }}" = "failure" ] || \
+             [ "${{ needs.flowglad-next-frontend-tests.result }}" = "failure" ]; then
+            echo "One or more test jobs failed"
+            exit 1
+          fi

@@ -1,5 +1,9 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedProcedureComprehensiveTransaction,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   createProductFeatureInputSchema,
   productFeatureClientSelectSchema,
@@ -22,6 +26,7 @@ import {
   createPostOpenApiMeta,
   generateOpenApiMetas,
   RouteConfig,
+  trpcToRest,
 } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -29,7 +34,9 @@ const { openApiMetas, routeConfigs } = generateOpenApiMetas({
   tags: ['Product Features'], // plural, space-separated
 })
 
-export const productFeaturesRouteConfigs = routeConfigs
+export const productFeaturesRouteConfigs: Array<
+  Record<string, RouteConfig>
+> = [...routeConfigs, trpcToRest('productFeatures.expire')]
 
 export const createOrRestoreProductFeature = protectedProcedure
   .meta(openApiMetas.POST)
@@ -39,20 +46,18 @@ export const createOrRestoreProductFeature = protectedProcedure
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         // Determine livemode from the associated product
         // The RLS on productFeatures ensures user has access to the product
         // and its organization, and that livemode matches current context.
         // Here, we need to set the livemode and organizationId fields on the productFeature record itself.
-        const product = await selectProductById(
-          input.productFeature.productId,
-          transaction
-        )
-        if (!product) {
-          throw new Error(
-            'Associated product not found or access denied.'
-          ) // TRPCError can be used here
-        }
+        const product = (
+          await selectProductById(
+            input.productFeature.productId,
+            transaction
+          )
+        ).unwrap()
 
         // Validate that toggle features cannot be associated with single payment products
         const feature = await selectFeatureById(
@@ -89,7 +94,7 @@ export const createOrRestoreProductFeature = protectedProcedure
               livemode: product.livemode,
               organizationId: product.organizationId,
             },
-            transaction
+            transactionCtx
           )
         return { productFeature }
       }
@@ -102,7 +107,8 @@ const listProductFeatures = protectedProcedure
   .output(productFeaturesPaginatedListSchema) // Output schema from productFeatures.ts
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         // selectProductFeaturesPaginated expects { cursor?, limit? } and transaction
         // The input (productFeaturesPaginatedSelectSchema) should match this structure.
         return selectProductFeaturesPaginated(input, transaction)
@@ -118,7 +124,8 @@ export const getProductFeature = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const productFeature = await selectProductFeatureById(
           input.id,
           transaction
@@ -135,7 +142,8 @@ export const getProductFeature = protectedProcedure
 export const expireProductFeature = protectedProcedure
   .meta(
     createPostOpenApiMeta({
-      resource: 'productFeature',
+      // Use the canonical plural REST resource for consistency with `productFeatures.*` routes.
+      resource: 'productFeatures',
       routeSuffix: 'expire',
       requireIdParam: true,
       summary: 'Expire Product Feature',
@@ -147,13 +155,13 @@ export const expireProductFeature = protectedProcedure
   .input(idInputSchema) // Input is the ID of the ProductFeature record
   .output(z.object({ success: z.boolean() })) // Indicate success
   .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, transactionCtx }) => {
         await expireProductFeaturesByFeatureId(
           [input.id],
-          transaction
+          transactionCtx
         )
-        return { success: true }
+        return Result.ok({ success: true })
       }
     )
   )

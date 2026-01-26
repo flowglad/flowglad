@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectOrganizationById,
@@ -130,15 +131,29 @@ export const savePricingModelIntegrationMarkdown = async ({
   })
 
   // Store hash in database after successful R2 upload
-  await adminTransaction(async ({ transaction }) => {
-    await updatePricingModel(
-      {
-        id: pricingModelId,
-        integrationGuideHash: contentHash,
-      },
-      transaction
-    )
-  })
+  await adminTransaction(
+    async ({
+      transaction,
+      cacheRecomputationContext,
+      invalidateCache,
+      emitEvent,
+      enqueueLedgerCommand,
+    }) => {
+      await updatePricingModel(
+        {
+          id: pricingModelId,
+          integrationGuideHash: contentHash,
+        },
+        {
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
+      )
+    }
+  )
 }
 
 /**
@@ -153,13 +168,15 @@ export const getPricingModelIntegrationMarkdown = async ({
   pricingModelId: string
 }): Promise<string | null> => {
   // Fetch hash from database
-  const pricingModel = await adminTransaction(
+  const pricingModelResult = await adminTransaction(
     async ({ transaction }) => {
       return selectPricingModelById(pricingModelId, transaction)
     }
   )
 
-  const contentHash = pricingModel?.integrationGuideHash ?? null
+  const contentHash = Result.isOk(pricingModelResult)
+    ? pricingModelResult.value.integrationGuideHash
+    : null
   if (!contentHash) {
     return null
   }

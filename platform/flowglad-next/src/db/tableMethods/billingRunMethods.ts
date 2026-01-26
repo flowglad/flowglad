@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { and, eq, lt } from 'drizzle-orm'
 import type { z } from 'zod'
 import {
@@ -9,17 +10,15 @@ import {
 } from '@/db/schema/billingRuns'
 import {
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { ValidationError } from '@/errors'
 import { BillingRunStatus, SubscriptionStatus } from '@/types'
-import {
-  derivePricingModelIdFromSubscription,
-  selectSubscriptionById,
-} from './subscriptionMethods'
+import { selectSubscriptionById } from './subscriptionMethods'
 
 const config: ORMMethodCreatorConfig<
   typeof billingRuns,
@@ -33,7 +32,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'billing_runs',
 }
 
-export const selectBillingRunById = createSelectById(
+export const selectBillingRunById = createSelectByIdResult(
   billingRuns,
   config
 )
@@ -46,28 +45,36 @@ const dangerouslyInsertBillingRun = createInsertFunction(
 export const safelyInsertBillingRun = async (
   insert: z.infer<typeof billingRunsInsertSchema>,
   transaction: DbTransaction
-): Promise<BillingRun.Record> => {
+): Promise<Result<BillingRun.Record, ValidationError>> => {
   const subscription = await selectSubscriptionById(
     insert.subscriptionId,
     transaction
   )
   if (subscription.status === SubscriptionStatus.Canceled) {
-    throw new Error(
-      'Cannot create billing run for canceled subscription'
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'Cannot create billing run for canceled subscription'
+      )
     )
   }
   if (subscription.doNotCharge) {
-    throw new Error(
-      'Cannot create billing run for doNotCharge subscription'
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'Cannot create billing run for doNotCharge subscription'
+      )
     )
   }
   const pricingModelId = subscription.pricingModelId
-  return dangerouslyInsertBillingRun(
-    {
-      ...insert,
-      pricingModelId,
-    },
-    transaction
+  return Result.ok(
+    await dangerouslyInsertBillingRun(
+      {
+        ...insert,
+        pricingModelId,
+      },
+      transaction
+    )
   )
 }
 

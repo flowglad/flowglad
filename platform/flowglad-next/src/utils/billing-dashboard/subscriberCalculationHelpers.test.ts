@@ -1,10 +1,10 @@
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import {
   addMonths,
   endOfMonth,
   startOfMonth,
   subMonths,
 } from 'date-fns'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -12,10 +12,12 @@ import {
   setupPrice,
   setupProduct,
   setupSubscription,
+  setupSubscriptionItem,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   IntervalUnit,
+  PriceType,
   RevenueChartIntervalUnit,
   SubscriptionStatus,
 } from '@/types'
@@ -921,5 +923,445 @@ describe('getCurrentActiveSubscribers', () => {
 
     // Subscription was active during February, so it should be counted
     expect(result).toBe(1)
+  })
+})
+
+describe('calculateActiveSubscribersByMonth with productId filter', () => {
+  it('should return count of all active subscribers when productId is null', async () => {
+    const { organization, price } = await setupOrg()
+    const startDate = new Date('2023-01-01T05:00:00.000Z')
+    const endDate = new Date('2023-01-31T05:00:00.000Z')
+
+    // Create 2 subscriptions
+    const customer1 = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pm1 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer1.id,
+    })
+    await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer1.id,
+      defaultPaymentMethodId: pm1.id,
+      priceId: price.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: null,
+      status: SubscriptionStatus.Active,
+    })
+
+    const customer2 = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pm2 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer2.id,
+    })
+    await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer2.id,
+      defaultPaymentMethodId: pm2.id,
+      priceId: price.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: null,
+      status: SubscriptionStatus.Active,
+    })
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      return calculateActiveSubscribersByMonth(
+        organization.id,
+        {
+          startDate,
+          endDate,
+          granularity: RevenueChartIntervalUnit.Month,
+          productId: undefined, // No filter
+        },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].count).toBe(2)
+  })
+
+  it('should return count of subscribers with that product when productId is specified', async () => {
+    const {
+      organization,
+      product: productA,
+      price: priceA,
+      pricingModel,
+    } = await setupOrg()
+
+    // Create a second product with its own price
+    const productB = await setupProduct({
+      organizationId: organization.id,
+      name: 'Product B',
+      pricingModelId: pricingModel.id,
+    })
+    const priceB = await setupPrice({
+      productId: productB.id,
+      name: 'Product B Price',
+      unitPrice: 200,
+      livemode: true,
+      isDefault: true,
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+    })
+
+    const startDate = new Date('2023-01-01T05:00:00.000Z')
+    const endDate = new Date('2023-01-31T05:00:00.000Z')
+
+    // Create 2 subscriptions for Product A
+    const customerA1 = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pmA1 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customerA1.id,
+    })
+    const subscriptionA1 = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customerA1.id,
+      defaultPaymentMethodId: pmA1.id,
+      priceId: priceA.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: null,
+      status: SubscriptionStatus.Active,
+    })
+    await setupSubscriptionItem({
+      subscriptionId: subscriptionA1.id,
+      name: 'Product A Item',
+      quantity: 1,
+      unitPrice: 100,
+      priceId: priceA.id,
+    })
+
+    const customerA2 = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pmA2 = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customerA2.id,
+    })
+    const subscriptionA2 = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customerA2.id,
+      defaultPaymentMethodId: pmA2.id,
+      priceId: priceA.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: null,
+      status: SubscriptionStatus.Active,
+    })
+    await setupSubscriptionItem({
+      subscriptionId: subscriptionA2.id,
+      name: 'Product A Item',
+      quantity: 1,
+      unitPrice: 100,
+      priceId: priceA.id,
+    })
+
+    // Create 1 subscription for Product B
+    const customerB = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pmB = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customerB.id,
+    })
+    const subscriptionB = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customerB.id,
+      defaultPaymentMethodId: pmB.id,
+      priceId: priceB.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: null,
+      status: SubscriptionStatus.Active,
+    })
+    await setupSubscriptionItem({
+      subscriptionId: subscriptionB.id,
+      name: 'Product B Item',
+      quantity: 1,
+      unitPrice: 200,
+      priceId: priceB.id,
+    })
+
+    // Query for Product A only
+    const resultA = await adminTransaction(
+      async ({ transaction }) => {
+        return calculateActiveSubscribersByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+            productId: productA.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultA).toHaveLength(1)
+    expect(resultA[0].count).toBe(2)
+
+    // Query for Product B only
+    const resultB = await adminTransaction(
+      async ({ transaction }) => {
+        return calculateActiveSubscribersByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+            productId: productB.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultB).toHaveLength(1)
+    expect(resultB[0].count).toBe(1)
+
+    // Query for all products (no filter)
+    const resultAll = await adminTransaction(
+      async ({ transaction }) => {
+        return calculateActiveSubscribersByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultAll).toHaveLength(1)
+    expect(resultAll[0].count).toBe(3) // 2 + 1
+  })
+
+  it('should return zero when no subscriptions have that product', async () => {
+    const { organization, price, pricingModel } = await setupOrg()
+
+    // Create a second product with no subscriptions
+    const productB = await setupProduct({
+      organizationId: organization.id,
+      name: 'Product B - No Subscriptions',
+      pricingModelId: pricingModel.id,
+    })
+
+    const startDate = new Date('2023-01-01T05:00:00.000Z')
+    const endDate = new Date('2023-01-31T05:00:00.000Z')
+
+    // Create subscription for Product A only
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pm = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+    await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      defaultPaymentMethodId: pm.id,
+      priceId: price.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: null,
+      status: SubscriptionStatus.Active,
+    })
+
+    // Query for Product B (which has no subscriptions)
+    const result = await adminTransaction(async ({ transaction }) => {
+      return calculateActiveSubscribersByMonth(
+        organization.id,
+        {
+          startDate,
+          endDate,
+          granularity: RevenueChartIntervalUnit.Month,
+          productId: productB.id,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toHaveLength(1)
+    expect(result[0].count).toBe(0)
+  })
+
+  it('should count subscription once even if it has multiple items of same product', async () => {
+    const { organization, product, price } = await setupOrg()
+
+    const startDate = new Date('2023-01-01T05:00:00.000Z')
+    const endDate = new Date('2023-01-31T05:00:00.000Z')
+
+    // Create subscription with multiple subscription items for the same product
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pm = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+    const subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      defaultPaymentMethodId: pm.id,
+      priceId: price.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: null,
+      status: SubscriptionStatus.Active,
+    })
+
+    // Add a second subscription item for the same product
+    await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Additional Item',
+      quantity: 1,
+      unitPrice: 50,
+      priceId: price.id,
+    })
+
+    // Query for this product
+    const result = await adminTransaction(async ({ transaction }) => {
+      return calculateActiveSubscribersByMonth(
+        organization.id,
+        {
+          startDate,
+          endDate,
+          granularity: RevenueChartIntervalUnit.Month,
+          productId: product.id,
+        },
+        transaction
+      )
+    })
+
+    // Should count the subscription only once, not twice
+    expect(result).toHaveLength(1)
+    expect(result[0].count).toBe(1)
+  })
+
+  it('should include subscription if any item matches product (multi-product subscription)', async () => {
+    const {
+      organization,
+      product: productA,
+      price: priceA,
+      pricingModel,
+    } = await setupOrg()
+
+    // Create a second product
+    const productB = await setupProduct({
+      organizationId: organization.id,
+      name: 'Product B',
+      pricingModelId: pricingModel.id,
+    })
+    const priceB = await setupPrice({
+      productId: productB.id,
+      name: 'Product B Price',
+      unitPrice: 200,
+      livemode: true,
+      isDefault: true,
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+    })
+
+    const startDate = new Date('2023-01-01T05:00:00.000Z')
+    const endDate = new Date('2023-01-31T05:00:00.000Z')
+
+    // Create subscription initially with Product A
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const pm = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+    const subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      defaultPaymentMethodId: pm.id,
+      priceId: priceA.id,
+      startDate: new Date('2022-12-01T05:00:00.000Z').getTime(),
+      canceledAt: null,
+      status: SubscriptionStatus.Active,
+    })
+
+    // Add subscription item for Product A
+    await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Product A Item',
+      quantity: 1,
+      unitPrice: 100,
+      priceId: priceA.id,
+    })
+
+    // Add Product B to the same subscription (multi-product)
+    await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Product B Item',
+      quantity: 1,
+      unitPrice: 200,
+      priceId: priceB.id,
+    })
+
+    // Query for Product A - should find the subscription
+    const resultA = await adminTransaction(
+      async ({ transaction }) => {
+        return calculateActiveSubscribersByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+            productId: productA.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultA).toHaveLength(1)
+    expect(resultA[0].count).toBe(1)
+
+    // Query for Product B - should also find the same subscription
+    const resultB = await adminTransaction(
+      async ({ transaction }) => {
+        return calculateActiveSubscribersByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+            productId: productB.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultB).toHaveLength(1)
+    expect(resultB[0].count).toBe(1)
+
+    // Query for all products - should count the subscription only once
+    const resultAll = await adminTransaction(
+      async ({ transaction }) => {
+        return calculateActiveSubscribersByMonth(
+          organization.id,
+          {
+            startDate,
+            endDate,
+            granularity: RevenueChartIntervalUnit.Month,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultAll).toHaveLength(1)
+    expect(resultAll[0].count).toBe(1) // Still just 1 subscription
   })
 })

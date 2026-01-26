@@ -1,6 +1,329 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { SubscriptionStatus } from '@/types'
-import { deriveSubscriptionStatus } from './helpers'
+import {
+  deriveSubscriptionStatus,
+  determineSubscriptionNotifications,
+} from './helpers'
+
+describe('determineSubscriptionNotifications', () => {
+  describe('free subscriptions (unitPrice === 0)', () => {
+    it('should return no notifications for free subscription', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 0,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: false,
+        sendCustomerNotification: false,
+        customerNotificationType: null,
+      })
+    })
+
+    it('should return no notifications for free subscription regardless of payment methods', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 0,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: false,
+        sendCustomerNotification: false,
+        customerNotificationType: null,
+      })
+    })
+
+    it('should return no notifications for free subscription even when trialing', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 0,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: false,
+        sendCustomerNotification: false,
+        customerNotificationType: null,
+      })
+    })
+  })
+
+  describe('paid subscriptions - active status', () => {
+    it('should send created notification for new paid subscription with default payment method', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+
+    it('should send created notification for new paid subscription with backup payment method', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: true,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+
+    it('should send created notification for new paid subscription with both payment methods', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 2500,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: true,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+
+    it('should send created notification for active subscription without payment method', () => {
+      // This case may occur for specific business scenarios
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 500,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+  })
+
+  describe('paid subscriptions - upgrade from free', () => {
+    it('should send upgrade notification when canceling free subscription', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: true,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'upgraded',
+      })
+    })
+
+    it('should send upgrade notification when upgrading from free with backup payment method', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 2000,
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: true,
+        canceledFreeSubscription: true,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'upgraded',
+      })
+    })
+  })
+
+  describe('paid subscriptions - trialing status', () => {
+    it('should not send customer notification for trial without any payment method', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: false,
+        customerNotificationType: null,
+      })
+    })
+
+    it('should send created notification for trial with default payment method', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+
+    it('should send created notification for trial with backup payment method', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1500,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: true,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+
+    it('should send created notification for trial with both payment methods', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: true,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+
+    it('should send upgrade notification for trial with payment method when upgrading from free', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: true,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'upgraded',
+      })
+    })
+
+    it('should not send customer notification for trial upgrade without payment method', () => {
+      // Even if upgrading from free, if no payment method exists, no customer notification
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Trialing,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: true,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: false,
+        customerNotificationType: null,
+      })
+    })
+  })
+
+  describe('paid subscriptions - incomplete status', () => {
+    it('should send created notification for incomplete subscription with payment method', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Incomplete,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+
+    it('should send created notification for incomplete subscription without payment method', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1000,
+        subscriptionStatus: SubscriptionStatus.Incomplete,
+        hasDefaultPaymentMethod: false,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+  })
+
+  describe('edge cases', () => {
+    it('should handle very small non-zero price', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 1, // 1 cent
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+
+    it('should handle very large price', () => {
+      const result = determineSubscriptionNotifications({
+        priceUnitPrice: 100000000, // $1,000,000
+        subscriptionStatus: SubscriptionStatus.Active,
+        hasDefaultPaymentMethod: true,
+        hasBackupPaymentMethod: false,
+        canceledFreeSubscription: false,
+      })
+
+      expect(result).toEqual({
+        sendOrganizationNotification: true,
+        sendCustomerNotification: true,
+        customerNotificationType: 'created',
+      })
+    })
+  })
+})
 
 describe('deriveSubscriptionStatus', () => {
   it('should return "trialing" if a trialEnd date is provided', () => {

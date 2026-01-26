@@ -1,13 +1,20 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { insertCheckoutSession } from '@/db/tableMethods/checkoutSessionMethods'
 
 // Only mock Next headers to satisfy runtime; avoid higher-level mocks
-vi.mock('next/headers', () => ({
-  headers: vi.fn(() => new Headers()),
-  cookies: vi.fn(() => ({
-    set: vi.fn(),
-    get: vi.fn(),
-    delete: vi.fn(),
+mock.module('next/headers', () => ({
+  headers: mock(() => new Headers()),
+  cookies: mock(() => ({
+    set: mock(),
+    get: mock(),
+    delete: mock(),
   })),
 }))
 
@@ -90,7 +97,6 @@ describe('checkoutHelpers', () => {
           throw new Error('Usage price requires usageMeterId')
         }
         priceParams = {
-          productId: product.id,
           name: 'X',
           type: PriceType.Usage,
           unitPrice: 1000,
@@ -152,11 +158,8 @@ describe('checkoutHelpers', () => {
         type: PriceType.Subscription,
         expected: CheckoutFlowType.Subscription,
       },
-      {
-        label: 'Usage',
-        type: PriceType.Usage,
-        expected: CheckoutFlowType.Subscription,
-      },
+      // Note: Usage prices can't go through checkout directly - they don't have products
+      // Usage prices are added to subscriptions via subscription items
     ])('active %s → success', async ({ type, expected }) => {
       const { price } = await seedPrice(type)
       const result = await checkoutInfoForPriceWhere({
@@ -228,7 +231,14 @@ describe('checkoutHelpers', () => {
         quantity: 1,
         livemode: true,
       })
-      return { organization, product, price, customer, session }
+      return {
+        organization,
+        product,
+        price,
+        customer,
+        session,
+        pricingModel,
+      }
     }
 
     it('valid session with customer → includes product/price/org and customer', async () => {
@@ -249,7 +259,7 @@ describe('checkoutHelpers', () => {
     it('valid session without customer → includes product/price/org and no customer', async () => {
       const { organization, product, price } = await makeSession()
       await adminTransaction(async ({ transaction }) => {
-        const noCustomerSession = await insertCheckoutSession(
+        const noCustomerSessionResult = await insertCheckoutSession(
           {
             status: CheckoutSessionStatus.Open,
             type: CheckoutSessionType.Product,
@@ -270,6 +280,7 @@ describe('checkoutHelpers', () => {
           },
           transaction
         )
+        const noCustomerSession = noCustomerSessionResult.unwrap()
         const result = await checkoutInfoForCheckoutSession(
           noCustomerSession.id,
           transaction
@@ -282,9 +293,11 @@ describe('checkoutHelpers', () => {
     })
 
     it('includes discount when discount is applied to checkout', async () => {
-      const { organization, session } = await makeSession()
+      const { organization, pricingModel, session } =
+        await makeSession()
       const discount = await setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'Test Discount',
         amount: 10,
         code: 'SAVE10',

@@ -1891,6 +1891,97 @@
       "when": 1768260471201,
       "tag": "0270_gigantic_goliath",
       "breakpoints": true
+    },
+    {
+      "idx": 271,
+      "version": "7",
+      "when": 1768270587804,
+      "tag": "0271_chubby_skullbuster",
+      "breakpoints": true
+    },
+    {
+      "idx": 272,
+      "version": "7",
+      "when": 1768328438117,
+      "tag": "0272_parched_cammi",
+      "breakpoints": true
+    },
+    {
+      "idx": 273,
+      "version": "7",
+      "when": 1768329864138,
+      "tag": "0273_careful_ben_urich",
+      "breakpoints": true
+    },
+    {
+      "idx": 274,
+      "version": "7",
+      "when": 1768406353238,
+      "tag": "0274_clammy_shooting_star",
+      "breakpoints": true
+    },
+    {
+      "idx": 275,
+      "version": "7",
+      "when": 1768597487756,
+      "tag": "0275_cynical_magma",
+      "breakpoints": true
+    },
+    {
+      "idx": 276,
+      "version": "7",
+      "when": 1768859500000,
+      "tag": "0276_fix_price_pricing_model_mismatch",
+      "breakpoints": true
+    },
+    {
+      "idx": 277,
+      "version": "7",
+      "when": 1768865559029,
+      "tag": "0277_productive_mojo",
+      "breakpoints": true
+    },
+    {
+      "idx": 278,
+      "version": "7",
+      "when": 1768943179069,
+      "tag": "0278_lovely_goliath",
+      "breakpoints": true
+    },
+    {
+      "idx": 279,
+      "version": "7",
+      "when": 1768948359543,
+      "tag": "0279_funny_namor",
+      "breakpoints": true
+    },
+    {
+      "idx": 280,
+      "version": "7",
+      "when": 1769127787044,
+      "tag": "0280_fresh_gressill",
+      "breakpoints": true
+    },
+    {
+      "idx": 281,
+      "version": "7",
+      "when": 1769208875317,
+      "tag": "0281_condemned_hellcat",
+      "breakpoints": true
+    },
+    {
+      "idx": 282,
+      "version": "7",
+      "when": 1769456881203,
+      "tag": "0282_hard_queen_noir",
+      "breakpoints": true
+    },
+    {
+      "idx": 283,
+      "version": "7",
+      "when": 1769458892205,
+      "tag": "0283_sturdy_oracle",
+      "breakpoints": true
     }
   ]
 }

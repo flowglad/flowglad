@@ -8,6 +8,7 @@ import {
   DetailItem,
   DetailSection,
   EmailLayout,
+  Footer,
   Header,
   Paragraph,
   Signature,
@@ -110,11 +111,11 @@ export const CustomerSubscriptionAdjustedEmail = ({
   effectiveDate: Date
   nextBillingDate?: Date
 }) => {
+  // Keep isUpgrade for proration display logic, but use neutral title for all cases
+  // per Apple-inspired patterns in subscription-email-improvements.md
   const isUpgrade = adjustmentType === 'upgrade'
-  const title = isUpgrade
-    ? 'Your subscription has been upgraded'
-    : 'Your subscription has been updated'
-  const previewText = title
+  const title = 'Subscription Updated'
+  const previewText = 'Your Subscription has been Updated'
 
   const intervalText = getIntervalText(interval)
 
@@ -154,9 +155,7 @@ export const CustomerSubscriptionAdjustedEmail = ({
       <Paragraph>Hi {customerName},</Paragraph>
 
       <Paragraph>
-        {isUpgrade
-          ? 'Your subscription has been successfully upgraded.'
-          : 'Your subscription has been successfully updated.'}
+        Your subscription has been updated. Here are the details:
       </Paragraph>
 
       <DetailSection>
@@ -188,6 +187,11 @@ export const CustomerSubscriptionAdjustedEmail = ({
       <Hr
         style={{
           borderColor: '#e6e6e6',
+          borderTop: 'none',
+          borderLeft: 'none',
+          borderRight: 'none',
+          borderBottomWidth: '1px',
+          borderBottomStyle: 'dashed',
           margin: '16px 0',
         }}
       />
@@ -248,6 +252,18 @@ export const CustomerSubscriptionAdjustedEmail = ({
         </Text>
       )}
 
+      <Text
+        style={{
+          fontSize: '14px',
+          lineHeight: '24px',
+          color: '#666',
+          marginTop: '16px',
+        }}
+        data-testid="auto-renew-notice"
+      >
+        Your subscription automatically renews until canceled.
+      </Text>
+
       <Paragraph style={{ marginTop: '16px' }}>
         You can manage your subscription and payment methods at any
         time through your billing portal.
@@ -267,6 +283,14 @@ export const CustomerSubscriptionAdjustedEmail = ({
         name={organizationName}
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
+      />
+
+      <Footer
+        organizationName={organizationName}
+        variant="customer"
+        billingPortalUrl={core.organizationBillingPortalURL({
+          organizationId,
+        })}
       />
     </EmailLayout>
   )

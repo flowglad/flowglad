@@ -26,15 +26,18 @@ import postgres from 'postgres'
 import core from '@/utils/core'
 
 function pullDevelopmentEnvVars() {
-  execSync(`vercel env pull .env.local`, {
-    stdio: 'inherit',
-  })
-  execSync('bun run postvercel:env-pull', {
+  execSync(
+    `vercel env pull .env.development --environment=development`,
+    {
+      stdio: 'inherit',
+    }
+  )
+  execSync('bun run postvercel:env-pull:dev', {
     stdio: 'inherit',
   })
   // eslint-disable-next-line no-console
   console.info(
-    '📥 Successfully pulled development environment variables'
+    '📥 Successfully pulled development environment variables to .env.development'
   )
 }
 
@@ -62,12 +65,14 @@ export default async function runScript(
     console.info(`🔍 Set VERCEL_GIT_COMMIT_SHA to ${gitCommitSha}`)
     if (!skipEnvPull) {
       rmDevelopmentEnvVars()
-      execSync(`vercel env pull --environment=${env}`, {
+      const envFile =
+        env === 'production' ? '.env.production' : '.env.development'
+      execSync(`vercel env pull ${envFile} --environment=${env}`, {
         stdio: 'inherit',
       })
       // eslint-disable-next-line no-console
       console.info(
-        `📥 Successfully ran vercel env pull command for ${env}`
+        `📥 Successfully pulled ${env} environment variables to ${envFile}`
       )
     } else {
       // eslint-disable-next-line no-console

@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import type { Mock } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -45,7 +47,18 @@ import { selectLedgerTransactions } from '@/db/tableMethods/ledgerTransactionMet
 import { selectPaymentById } from '@/db/tableMethods/paymentMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
-import { createMockPaymentIntentEventResponse } from '@/test/helpers/stripeMocks'
+import { NotFoundError } from '@/errors'
+import {
+  createMockPaymentIntentEventResponse,
+  createMockStripeCharge,
+} from '@/test/helpers/stripeMocks'
+import {
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
+  createProcessingEffectsContext,
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -60,7 +73,23 @@ import {
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
+// Import actual stripe module before mocking
+import * as actualStripeModule from '@/utils/stripe'
 import { IntentMetadataType } from '@/utils/stripe'
+
+// Create mock for getStripeCharge
+const mockGetStripeCharge =
+  mock<typeof actualStripeModule.getStripeCharge>()
+
+// Mock getStripeCharge
+mock.module('@/utils/stripe', () => ({
+  ...actualStripeModule,
+  getStripeCharge: mockGetStripeCharge,
+}))
+
+// Import the mocked version for assertions
+import { getStripeCharge } from '@/utils/stripe'
+
 import { isFirstPayment } from './billingRunHelpers'
 import { createSubscriptionWorkflow } from './createSubscription/workflow'
 import { processOutcomeForBillingRun } from './processBillingRunPaymentIntents'
@@ -80,6 +109,47 @@ describe('processOutcomeForBillingRun integration tests', async () => {
   let billingPeriodItem: BillingPeriodItem.Record
   let subscription: Subscription.Record
   beforeEach(async () => {
+    // Configure mock to return a charge object based on the ID passed
+    // The status is determined by patterns in the charge ID
+    ;(getStripeCharge as Mock<any>).mockImplementation(
+      async (chargeId: string) => {
+        // Determine status based on charge ID pattern
+        let status: 'succeeded' | 'pending' | 'failed' = 'succeeded'
+        let paid = true
+        if (chargeId.includes('failed')) {
+          status = 'failed'
+          paid = false
+        } else if (
+          chargeId.includes('pending') ||
+          chargeId.includes('processing')
+        ) {
+          status = 'pending'
+          paid = false
+        }
+
+        return createMockStripeCharge({
+          id: chargeId,
+          status,
+          amount: 1000,
+          paid,
+          captured: status === 'succeeded',
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+              exp_month: 12,
+              exp_year: 2030,
+              fingerprint: 'test_fingerprint',
+              funding: 'credit',
+              country: 'US',
+              network: 'visa',
+            },
+          } as any,
+        })
+      }
+    )
+
     customer = await setupCustomer({
       organizationId: organization.id,
     })
@@ -168,10 +238,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
 
       // The function should simply skip processing and return undefined.
-      const { result } = await processOutcomeForBillingRun(
-        { input: event },
-        transaction
-      )
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: event },
+          createDiscardingEffectsContext(transaction)
+        )
+      ).unwrap()
       expect(result?.processingSkipped).toBe(true)
     })
   })
@@ -207,6 +279,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       const event = createMockPaymentIntentEventResponse(
         'succeeded',
         {
@@ -226,16 +300,13 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      const { result, ledgerCommands } =
-        await processOutcomeForBillingRun(
-          { input: event },
-          transaction
-        )
+      const result = (
+        await processOutcomeForBillingRun({ input: event }, ctx)
+      ).unwrap()
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = await selectInvoiceById(
         invoice.id,
         transaction
@@ -249,14 +320,13 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
 
-      expect(result?.billingRun.id).toBe(billingRun.id)
-      expect(result?.invoice.id).toBe(invoice.id)
+      expect(result.billingRun.id).toBe(billingRun.id)
+      expect(result.invoice.id).toBe(invoice.id)
 
-      expect(typeof ledgerCommands).toBe('object')
-      expect(ledgerCommands?.length).toBeGreaterThan(0)
+      expect(effects.ledgerCommands.length).toBeGreaterThan(0)
       const invoiceLedgerCommand =
         settleInvoiceUsageCostsLedgerCommandSchema.parse(
-          ledgerCommands?.find(
+          effects.ledgerCommands.find(
             (cmd) =>
               cmd.type ===
               LedgerTransactionType.SettleInvoiceUsageCosts
@@ -323,22 +393,17 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     )
 
     await adminTransaction(async ({ transaction }) => {
-      const { ledgerCommands: firstLedgerCommands } =
-        await processOutcomeForBillingRun(
-          { input: event },
-          transaction
-        )
+      const { ctx: ctx1, effects: effects1 } =
+        createCapturingEffectsContext(transaction)
+      await processOutcomeForBillingRun({ input: event }, ctx1)
 
-      expect(typeof firstLedgerCommands).toBe('object')
-      expect(firstLedgerCommands?.length).toBeGreaterThan(0)
+      expect(effects1.ledgerCommands.length).toBeGreaterThan(0)
 
-      const { ledgerCommands: secondLedgerCommands } =
-        await processOutcomeForBillingRun(
-          { input: event },
-          transaction
-        )
+      const { ctx: ctx2, effects: effects2 } =
+        createCapturingEffectsContext(transaction)
+      await processOutcomeForBillingRun({ input: event }, ctx2)
 
-      expect(secondLedgerCommands).toBeUndefined()
+      expect(effects2.ledgerCommands.length).toBe(0)
     })
   })
 
@@ -372,6 +437,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       invoiceId: failedInvoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       const event = createMockPaymentIntentEventResponse(
         'requires_payment_method',
         {
@@ -389,15 +456,11 @@ describe('processOutcomeForBillingRun integration tests', async () => {
           livemode: true,
         }
       )
-      const { ledgerCommands } = await processOutcomeForBillingRun(
-        { input: event },
-        transaction
-      )
+      await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        failedBillingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(failedBillingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = await selectInvoiceById(
         failedInvoice.id,
         transaction
@@ -405,8 +468,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
       expect(typeof updatedInvoice).toBe('object')
-      expect(ledgerCommands).toMatchObject({ length: 0 })
-      expect(ledgerCommands?.length).toBe(0)
+      expect(effects.ledgerCommands.length).toBe(0)
     })
   })
 
@@ -443,7 +505,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
 
     await adminTransaction(async ({ transaction }) => {
-      const invoice = await setupInvoice({
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
+      const canceledInvoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
         customerId: customer.id,
         organizationId: organization.id,
@@ -471,17 +535,13 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      const { ledgerCommands } = await processOutcomeForBillingRun(
-        { input: event },
-        transaction
-      )
+      await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = await selectInvoiceById(
-        invoice.id,
+        canceledInvoice.id,
         transaction
       )
       const updatedPayment = await selectPaymentById(
@@ -499,8 +559,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       expect(updatedSubscription.status).toBe(
         SubscriptionStatus.PastDue
       )
-      expect(ledgerCommands).toMatchObject({ length: 0 })
-      expect(ledgerCommands?.length).toBe(0)
+      expect(effects.ledgerCommands.length).toBe(0)
     })
   })
 
@@ -531,6 +590,8 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       invoiceId: invoice.id,
     })
     await adminTransaction(async ({ transaction }) => {
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
       const event = createMockPaymentIntentEventResponse(
         'processing',
         {
@@ -550,15 +611,11 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      const { ledgerCommands } = await processOutcomeForBillingRun(
-        { input: event },
-        transaction
-      )
+      await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = await selectInvoiceById(
         invoice.id,
         transaction
@@ -575,8 +632,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         InvoiceStatus.AwaitingPaymentConfirmation
       )
       expect(updatedPayment.status).toBe(PaymentStatus.Processing)
-      expect(ledgerCommands).toMatchObject({ length: 0 })
-      expect(ledgerCommands?.length).toBe(0)
+      expect(effects.ledgerCommands.length).toBe(0)
     })
   })
 
@@ -611,7 +667,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       organizationId: organization.id,
     })
     await adminTransaction(async ({ transaction }) => {
-      const invoice = await setupInvoice({
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
+      const requiresActionInvoice = await setupInvoice({
         billingPeriodId: billingPeriod.id,
         customerId: customer.id,
         organizationId: organization.id,
@@ -639,17 +697,13 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      const { ledgerCommands } = await processOutcomeForBillingRun(
-        { input: event },
-        transaction
-      )
+      await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = await selectInvoiceById(
-        invoice.id,
+        requiresActionInvoice.id,
         transaction
       )
       const updatedPayment = await selectPaymentById(
@@ -662,12 +716,11 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       expect(updatedInvoice.status).toBe(InvoiceStatus.Open)
       expect(updatedPayment.status).toBe(PaymentStatus.Processing)
-      expect(ledgerCommands).toMatchObject({ length: 0 })
-      expect(ledgerCommands?.length).toBe(0)
+      expect(effects.ledgerCommands.length).toBe(0)
     })
   })
 
-  it('throws an error if no invoice is found for the billing period', async () => {
+  it('returns NotFoundError when no invoice is found for the billing period', async () => {
     const paymentIntentId = `pi_${Date.now()}_no_invoice`
     const billingRun = await setupBillingRun({
       stripePaymentIntentId: paymentIntentId,
@@ -698,15 +751,19 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      await expect(
-        processOutcomeForBillingRun({ input: event }, transaction)
-      ).rejects.toThrow(
-        `Invoice for billing period ${billingRun.billingPeriodId} not found.`
+      const result = await processOutcomeForBillingRun(
+        { input: event },
+        createDiscardingEffectsContext(transaction)
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(NotFoundError)
+        expect(result.error.message).toContain('Invoice not found')
+      }
     })
   })
 
-  it('throws an error if no latest charge is found in the event', async () => {
+  it('returns Result.err when no latest charge is found in the event', async () => {
     const billingRun = await setupBillingRun({
       stripePaymentIntentId: 'pi_no_charge',
       lastPaymentIntentEventTimestamp: 0,
@@ -716,7 +773,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       livemode: true,
     })
     await adminTransaction(async ({ transaction }) => {
-      const invoice = await setupInvoice({
+      await setupInvoice({
         billingPeriodId: billingPeriod.id,
         customerId: customer.id,
         organizationId: organization.id,
@@ -744,11 +801,16 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         }
       )
 
-      await expect(
-        processOutcomeForBillingRun({ input: event }, transaction)
-      ).rejects.toThrow(
-        /No latest charge found for payment intent pi_no_charge/
+      const result = await processOutcomeForBillingRun(
+        { input: event },
+        createDiscardingEffectsContext(transaction)
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toMatch(
+          /LatestCharge not found: pi_no_charge/
+        )
+      }
     })
   })
   // FIXME: restore this test once we have a way to set up payment intents with associated charges
@@ -869,7 +931,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
 
     // Process the failed payment intent
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const event = createMockPaymentIntentEventResponse(
         'requires_payment_method',
         {
@@ -890,7 +952,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       return await processOutcomeForBillingRun(
         { input: event },
-        transaction
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -1018,7 +1080,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     })
 
     // Process the failed payment intent
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const event = createMockPaymentIntentEventResponse(
         'requires_payment_method',
         {
@@ -1039,7 +1101,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       return await processOutcomeForBillingRun(
         { input: event },
-        transaction
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -1153,40 +1215,42 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     const initialInvoiceStatus = adjustmentInvoice.status
     const initialSubscriptionStatus = testSubscription.status
 
-    const result = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
-        const event = createMockPaymentIntentEventResponse(
-          'requires_payment_method',
-          {
-            id: stripePaymentIntentId,
-            status: 'requires_payment_method',
-            metadata: {
-              billingRunId: adjustmentBillingRun.id,
-              type: IntentMetadataType.BillingRun,
-              billingPeriodId: testBillingPeriod.id,
-            },
-            latest_charge: stripeChargeId,
-            livemode: true,
+    const result = await adminTransaction(async ({ transaction }) => {
+      const event = createMockPaymentIntentEventResponse(
+        'requires_payment_method',
+        {
+          id: stripePaymentIntentId,
+          status: 'requires_payment_method',
+          metadata: {
+            billingRunId: adjustmentBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
           },
-          {
-            created: Date.now() / 1000,
-            livemode: true,
-          }
-        )
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: Date.now() / 1000,
+          livemode: true,
+        }
+      )
 
-        return await processOutcomeForBillingRun(
+      return (
+        await processOutcomeForBillingRun(
           { input: event },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
-      }
-    )
+      ).unwrap()
+    })
 
     // Assertions after transaction
     await adminTransaction(async ({ transaction }) => {
-      const updatedBillingRun = await selectBillingRunById(
-        adjustmentBillingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        )
+      ).unwrap()
       const updatedInvoice = await selectInvoiceById(
         adjustmentInvoice.id,
         transaction
@@ -1305,7 +1369,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     // Create subscription with autoStart (creates billing run)
     const workflowResult = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async (params) => {
         const stripeSetupIntentId = `setupintent_once_grant_${core.nanoid()}`
         return await createSubscriptionWorkflow(
           {
@@ -1322,7 +1386,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          transaction
+          createProcessingEffectsContext(params)
         )
       }
     )
@@ -1348,7 +1412,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         return selectBillingPeriodById(
           testBillingRun.billingPeriodId,
           transaction
-        )
+        ).then((r) => r.unwrap())
       }
     )
 
@@ -1375,7 +1439,8 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Process payment intent event (this should grant credits)
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    // Use comprehensiveAdminTransaction so ledger commands are processed
+    await comprehensiveAdminTransaction(async (params) => {
       const event = createMockPaymentIntentEventResponse(
         'succeeded',
         {
@@ -1395,10 +1460,13 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(
-        { input: event },
-        transaction
-      )
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: event },
+          createProcessingEffectsContext(params)
+        )
+      ).unwrap()
+      return Result.ok(result)
     })
 
     // Assertions
@@ -1489,7 +1557,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     // Create subscription with autoStart (creates billing run)
     const workflowResult = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async (params) => {
         const stripeSetupIntentId = `setupintent_recurring_grant_${core.nanoid()}`
         return await createSubscriptionWorkflow(
           {
@@ -1506,7 +1574,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          transaction
+          createProcessingEffectsContext(params)
         )
       }
     )
@@ -1531,7 +1599,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         return selectBillingPeriodById(
           testBillingRun.billingPeriodId,
           transaction
-        )
+        ).then((r) => r.unwrap())
       }
     )
 
@@ -1558,7 +1626,8 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Process payment intent event (this should grant credits)
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    // Use comprehensiveAdminTransaction so ledger commands are processed
+    await comprehensiveAdminTransaction(async (params) => {
       const event = createMockPaymentIntentEventResponse(
         'succeeded',
         {
@@ -1578,10 +1647,13 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(
-        { input: event },
-        transaction
-      )
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: event },
+          createProcessingEffectsContext(params)
+        )
+      ).unwrap()
+      return Result.ok(result)
     })
 
     // Assertions: similar to "Once" grant, as the first grant is always issued.
@@ -1668,7 +1740,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     const workflowResult = await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async (params) => {
         const stripeSetupIntentId = `setupintent_idempotent_${core.nanoid()}`
         return await createSubscriptionWorkflow(
           {
@@ -1685,7 +1757,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
             stripeSetupIntentId,
             autoStart: true,
           },
-          transaction
+          createProcessingEffectsContext(params)
         )
       }
     )
@@ -1708,7 +1780,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         return selectBillingPeriodById(
           testBillingRun.billingPeriodId,
           transaction
-        )
+        ).then((r) => r.unwrap())
       }
     )
 
@@ -1745,7 +1817,8 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // 1. First payment succeeds - should grant credits and create transition
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    // Use comprehensiveAdminTransaction so ledger commands are processed
+    await comprehensiveAdminTransaction(async (params) => {
       const firstEvent = createMockPaymentIntentEventResponse(
         'succeeded',
         {
@@ -1765,10 +1838,13 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
         }
       )
 
-      return await processOutcomeForBillingRun(
-        { input: firstEvent },
-        transaction
-      )
+      const result = (
+        await processOutcomeForBillingRun(
+          { input: firstEvent },
+          createProcessingEffectsContext(params)
+        )
+      ).unwrap()
+      return Result.ok(result)
     })
 
     // Verify credits were granted after first payment
@@ -1799,7 +1875,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // 2. Second payment fails - should NOT create new transition or revoke credits
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
+    await adminTransaction(async ({ transaction }) => {
       const secondEvent = createMockPaymentIntentEventResponse(
         'requires_payment_method',
         {
@@ -1821,7 +1897,7 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
       return await processOutcomeForBillingRun(
         { input: secondEvent },
-        transaction
+        createDiscardingEffectsContext(transaction)
       )
     })
 
@@ -1862,5 +1938,314 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     )
     expect(transition.initiatingSourceId).toBe(testBillingPeriod.id)
     expect(transition.subscriptionId).toBe(testSubscription.id)
+  })
+})
+
+describe('processOutcomeForBillingRun - effects callbacks', async () => {
+  const { organization, price, product } = await setupOrg()
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let billingPeriod: BillingPeriod.Record
+  let subscription: Subscription.Record
+
+  beforeEach(async () => {
+    customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      paymentMethodId: paymentMethod.id,
+    })
+
+    billingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: subscription.currentBillingPeriodStart!,
+      endDate: subscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+  })
+
+  it('calls enqueueLedgerCommand with SettleInvoiceUsageCostsLedgerCommand for usage-based billing', async () => {
+    // Setup usage meter and price
+    const usageMeter = await setupUsageMeter({
+      organizationId: organization.id,
+      name: 'Test Usage Meter',
+    })
+    const usagePrice = await setupPrice({
+      name: 'Usage Price',
+      type: PriceType.Usage,
+      unitPrice: 10,
+      usageMeterId: usageMeter.id,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+      isDefault: false,
+      currency: organization.defaultCurrency,
+    })
+
+    const usageSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: usagePrice.id,
+      paymentMethodId: paymentMethod.id,
+      status: SubscriptionStatus.Active,
+    })
+
+    const usageBillingPeriod = await setupBillingPeriod({
+      subscriptionId: usageSubscription.id,
+      startDate: usageSubscription.currentBillingPeriodStart!,
+      endDate: usageSubscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+
+    const stripePaymentIntentId = `pi_usage_test_${core.nanoid()}`
+    const stripeChargeId = `ch_usage_test_${core.nanoid()}`
+    const usageBillingRun = await setupBillingRun({
+      stripePaymentIntentId,
+      lastPaymentIntentEventTimestamp: 0,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: usageBillingPeriod.id,
+      subscriptionId: usageSubscription.id,
+      livemode: true,
+    })
+
+    const usageInvoice = await setupInvoice({
+      billingPeriodId: usageBillingPeriod.id,
+      customerId: customer.id,
+      organizationId: organization.id,
+      status: InvoiceStatus.Open,
+      priceId: usagePrice.id,
+      billingRunId: usageBillingRun.id,
+    })
+
+    await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: usageInvoice.id,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: usageBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: usageBillingPeriod.id,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: 3000,
+          livemode: true,
+        }
+      )
+
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
+      await processOutcomeForBillingRun({ input: event }, ctx)
+
+      // Verify enqueueLedgerCommand was called with SettleInvoiceUsageCosts command
+      expect(effects.ledgerCommands.length).toBeGreaterThan(0)
+      const settleInvoiceCommand = effects.ledgerCommands.find(
+        (cmd: { type: string }) =>
+          cmd.type === LedgerTransactionType.SettleInvoiceUsageCosts
+      )
+
+      // Validate the command structure using the schema
+      const parsedCommand =
+        settleInvoiceUsageCostsLedgerCommandSchema.safeParse(
+          settleInvoiceCommand
+        )
+      expect(parsedCommand.success).toBe(true)
+
+      // Assert parsed command has expected structure using type narrowing
+      if (!parsedCommand.success) {
+        throw new Error('Expected parsedCommand to be successful')
+      }
+      expect(parsedCommand.data.payload.invoice.id).toBe(
+        usageInvoice.id
+      )
+      expect(parsedCommand.data.livemode).toBe(true)
+      expect(parsedCommand.data.organizationId).toBe(organization.id)
+    })
+  })
+
+  it('calls invalidateCache with customerSubscriptions after subscription status change to PastDue', async () => {
+    // Setup a subscription that will be updated to PastDue on payment failure
+    const testCustomer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const testPaymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+    })
+    const testSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: testCustomer.id,
+      priceId: price.id,
+      paymentMethodId: testPaymentMethod.id,
+      status: SubscriptionStatus.Active,
+    })
+
+    const testBillingPeriod = await setupBillingPeriod({
+      subscriptionId: testSubscription.id,
+      startDate: testSubscription.currentBillingPeriodStart!,
+      endDate: testSubscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+
+    // Create a succeeded billing run first so this isn't considered "first payment"
+    await setupBillingRun({
+      billingPeriodId: testBillingPeriod.id,
+      paymentMethodId: testPaymentMethod.id,
+      subscriptionId: testSubscription.id,
+      status: BillingRunStatus.Succeeded,
+    })
+
+    // Now create the billing run that will fail
+    const stripePaymentIntentId = `pi_cache_test_${core.nanoid()}`
+    const stripeChargeId = `ch_cache_test_${core.nanoid()}`
+    const failingBillingRun = await setupBillingRun({
+      stripePaymentIntentId,
+      lastPaymentIntentEventTimestamp: 0,
+      paymentMethodId: testPaymentMethod.id,
+      billingPeriodId: testBillingPeriod.id,
+      subscriptionId: testSubscription.id,
+      livemode: true,
+    })
+
+    const testInvoice = await setupInvoice({
+      billingPeriodId: testBillingPeriod.id,
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      status: InvoiceStatus.Open,
+      priceId: price.id,
+      billingRunId: failingBillingRun.id,
+    })
+
+    await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      customerId: testCustomer.id,
+      organizationId: organization.id,
+      invoiceId: testInvoice.id,
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const event = createMockPaymentIntentEventResponse(
+        'canceled',
+        {
+          id: stripePaymentIntentId,
+          status: 'canceled',
+          metadata: {
+            billingRunId: failingBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: testBillingPeriod.id,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: Date.now() / 1000,
+          livemode: true,
+        }
+      )
+
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
+      await processOutcomeForBillingRun({ input: event }, ctx)
+
+      // Verify subscription is now PastDue
+      const updatedSubscription = await selectSubscriptionById(
+        testSubscription.id,
+        transaction
+      )
+      expect(updatedSubscription.status).toBe(
+        SubscriptionStatus.PastDue
+      )
+
+      // Verify invalidateCache was called with customerSubscriptions for the customer
+      const customerSubscriptionsKey = `customerSubscriptions:${testCustomer.id}`
+      expect(effects.cacheInvalidations).toContain(
+        customerSubscriptionsKey
+      )
+    })
+  })
+
+  it('calls invalidateCache with customerSubscriptions after successful payment', async () => {
+    const stripePaymentIntentId =
+      `pi_cache_success_${Date.now()}` + core.nanoid()
+    const stripeChargeId =
+      `ch_${Date.now()}__cache_success` + core.nanoid()
+    const successBillingRun = await setupBillingRun({
+      stripePaymentIntentId,
+      lastPaymentIntentEventTimestamp: 0,
+      paymentMethodId: paymentMethod.id,
+      billingPeriodId: billingPeriod.id,
+      subscriptionId: subscription.id,
+      livemode: true,
+    })
+
+    const successInvoice = await setupInvoice({
+      billingPeriodId: billingPeriod.id,
+      customerId: customer.id,
+      organizationId: organization.id,
+      status: InvoiceStatus.Open,
+      priceId: price.id,
+      billingRunId: successBillingRun.id,
+    })
+    await setupPayment({
+      stripeChargeId,
+      status: PaymentStatus.Processing,
+      amount: 1000,
+      customerId: customer.id,
+      organizationId: organization.id,
+      invoiceId: successInvoice.id,
+    })
+    await adminTransaction(async ({ transaction }) => {
+      const event = createMockPaymentIntentEventResponse(
+        'succeeded',
+        {
+          id: stripePaymentIntentId,
+          status: 'succeeded',
+          metadata: {
+            billingRunId: successBillingRun.id,
+            type: IntentMetadataType.BillingRun,
+            billingPeriodId: successBillingRun.billingPeriodId,
+          },
+          latest_charge: stripeChargeId,
+          livemode: true,
+        },
+        {
+          created: 3000,
+          livemode: true,
+        }
+      )
+
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
+      await processOutcomeForBillingRun({ input: event }, ctx)
+
+      // Verify invalidateCache was called with customerSubscriptions
+      const customerSubscriptionsKey = `customerSubscriptions:${customer.id}`
+      expect(effects.cacheInvalidations).toContain(
+        customerSubscriptionsKey
+      )
+    })
   })
 })

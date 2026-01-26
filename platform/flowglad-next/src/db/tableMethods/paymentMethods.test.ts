@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupInvoice,
@@ -10,6 +10,11 @@ import {
   setupSubscription,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
+import {
+  NotFoundError,
+  TerminalStateError,
+  ValidationError,
+} from '@/errors'
 import {
   CurrencyCode,
   IntervalUnit,
@@ -79,16 +84,18 @@ describe('paymentMethods.ts', () => {
   describe('safelyUpdatePaymentForRefund', () => {
     it('successfully updates a payment for refund', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const updatedPayment = await safelyUpdatePaymentForRefund(
-          {
-            id: payment.id,
-            refunded: true,
-            refundedAt: Date.now(),
-            refundedAmount: payment.amount,
-            status: PaymentStatus.Refunded,
-          },
-          transaction
-        )
+        const updatedPaymentResult =
+          await safelyUpdatePaymentForRefund(
+            {
+              id: payment.id,
+              refunded: true,
+              refundedAt: Date.now(),
+              refundedAmount: payment.amount,
+              status: PaymentStatus.Refunded,
+            },
+            transaction
+          )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.refunded).toBe(true)
         expect(updatedPayment.refundedAmount).toBe(payment.amount)
@@ -97,34 +104,40 @@ describe('paymentMethods.ts', () => {
     })
     it('fails if refund status is not explicitly set', async () => {
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          safelyUpdatePaymentForRefund(
-            { id: payment.id, refunded: true },
-            transaction
-          )
-        ).rejects.toThrow(
-          `Failed to update payment ${payment.id}: Only refund or succeeded status is supported`
+        const result = await safelyUpdatePaymentForRefund(
+          { id: payment.id, refunded: true },
+          transaction
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toContain(
+            `Failed to update payment ${payment.id}: Only refund or succeeded status is supported`
+          )
+        }
       })
     })
 
     it('fails if refund is for more than the payment amount', async () => {
       await adminTransaction(async ({ transaction }) => {
         const refundAmount = 1001
-        await expect(
-          safelyUpdatePaymentForRefund(
-            {
-              id: payment.id,
-              refunded: true,
-              refundedAt: Date.now(),
-              refundedAmount: refundAmount,
-              status: PaymentStatus.Refunded,
-            },
-            transaction
-          )
-        ).rejects.toThrow(
-          `Failed to update payment ${payment.id}: Refunded amount cannot exceed the original payment amount`
+        const result = await safelyUpdatePaymentForRefund(
+          {
+            id: payment.id,
+            refunded: true,
+            refundedAt: Date.now(),
+            refundedAmount: refundAmount,
+            status: PaymentStatus.Refunded,
+          },
+          transaction
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toContain(
+            `Failed to update payment ${payment.id}: Refunded amount cannot exceed the original payment amount`
+          )
+        }
       })
     })
 
@@ -132,16 +145,18 @@ describe('paymentMethods.ts', () => {
       await adminTransaction(async ({ transaction }) => {
         const partialRefundAmount = 500 // 50% refund
         const refundedAt = Date.now()
-        const updatedPayment = await safelyUpdatePaymentForRefund(
-          {
-            id: payment.id,
-            refunded: false,
-            refundedAt,
-            refundedAmount: partialRefundAmount,
-            status: PaymentStatus.Succeeded,
-          },
-          transaction
-        )
+        const updatedPaymentResult =
+          await safelyUpdatePaymentForRefund(
+            {
+              id: payment.id,
+              refunded: false,
+              refundedAt,
+              refundedAmount: partialRefundAmount,
+              status: PaymentStatus.Succeeded,
+            },
+            transaction
+          )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.refunded).toBe(false)
         expect(updatedPayment.refundedAmount).toBe(
@@ -161,45 +176,51 @@ describe('paymentMethods.ts', () => {
     it('fails if refunded amount is not positive', async () => {
       await adminTransaction(async ({ transaction }) => {
         for (const refundedAmount of [0, -1]) {
-          await expect(
-            safelyUpdatePaymentForRefund(
-              {
-                id: payment.id,
-                refunded: false,
-                refundedAt: Date.now(),
-                refundedAmount,
-                status: PaymentStatus.Succeeded,
-              },
-              transaction
+          const result = await safelyUpdatePaymentForRefund(
+            {
+              id: payment.id,
+              refunded: false,
+              refundedAt: Date.now(),
+              refundedAmount,
+              status: PaymentStatus.Succeeded,
+            },
+            transaction
+          )
+          expect(result.status).toBe('error')
+          if (result.status === 'error') {
+            expect(result.error).toBeInstanceOf(ValidationError)
+            expect(result.error.message).toContain(
+              `Failed to update payment ${payment.id}: Refunded amount must be greater than 0`
             )
-          ).rejects.toThrow(
-            `Failed to update payment ${payment.id}: Refunded amount must be greater than 0`
+          }
+        }
+      })
+    })
+
+    it('returns error when payment is not found', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const nonExistentPaymentId = nanoid()
+
+        const result = await safelyUpdatePaymentForRefund(
+          {
+            id: nonExistentPaymentId,
+            refunded: true,
+            refundedAt: Date.now(),
+            refundedAmount: 500,
+          },
+          transaction
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(NotFoundError)
+          expect(result.error.message).toBe(
+            `Payment not found: ${nonExistentPaymentId}`
           )
         }
       })
     })
 
-    it('throws error when payment is not found', async () => {
-      await adminTransaction(async ({ transaction }) => {
-        const nonExistentPaymentId = nanoid()
-
-        await expect(
-          safelyUpdatePaymentForRefund(
-            {
-              id: nonExistentPaymentId,
-              refunded: true,
-              refundedAt: Date.now(),
-              refundedAmount: 500,
-            },
-            transaction
-          )
-        ).rejects.toThrow(
-          `No payments found with id: ${nonExistentPaymentId}`
-        )
-      })
-    })
-
-    it('throws error when payment is not in a valid state for refund', async () => {
+    it('returns error when payment is not in a valid state for refund', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Create a payment in a non-refundable state
         const nonRefundablePayment = await setupPayment({
@@ -213,26 +234,29 @@ describe('paymentMethods.ts', () => {
           paymentMethod: PaymentMethodType.Card,
         })
 
-        await expect(
-          safelyUpdatePaymentForRefund(
-            {
-              id: nonRefundablePayment.id,
-              refunded: true,
-              refundedAt: Date.now(),
-              refundedAmount: 500,
-            },
-            transaction
-          )
-        ).rejects.toThrow(
-          `Payment ${nonRefundablePayment.id} is not in a state to be updated. Its status: ${nonRefundablePayment.status})`
+        const result = await safelyUpdatePaymentForRefund(
+          {
+            id: nonRefundablePayment.id,
+            refunded: true,
+            refundedAt: Date.now(),
+            refundedAmount: 500,
+          },
+          transaction
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toContain(
+            `Payment ${nonRefundablePayment.id} is not in a state to be updated. Its status: ${nonRefundablePayment.status})`
+          )
+        }
       })
     })
 
     it('allows updating an already refunded payment', async () => {
       await adminTransaction(async ({ transaction }) => {
         // First refund the payment
-        await safelyUpdatePaymentForRefund(
+        const firstRefundResult = await safelyUpdatePaymentForRefund(
           {
             id: payment.id,
             refunded: true,
@@ -242,18 +266,21 @@ describe('paymentMethods.ts', () => {
           },
           transaction
         )
+        firstRefundResult.unwrap()
 
         // Then update it again
-        const updatedPayment = await safelyUpdatePaymentForRefund(
-          {
-            id: payment.id,
-            refunded: true,
-            refundedAt: Date.now(),
-            refundedAmount: payment.amount,
-            status: PaymentStatus.Refunded,
-          },
-          transaction
-        )
+        const updatedPaymentResult =
+          await safelyUpdatePaymentForRefund(
+            {
+              id: payment.id,
+              refunded: true,
+              refundedAt: Date.now(),
+              refundedAmount: payment.amount,
+              status: PaymentStatus.Refunded,
+            },
+            transaction
+          )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.refunded).toBe(true)
         expect(updatedPayment.refundedAmount).toBe(1000)
@@ -274,11 +301,12 @@ describe('paymentMethods.ts', () => {
         paymentMethod: PaymentMethodType.Card,
       })
       await adminTransaction(async ({ transaction }) => {
-        const updatedPayment = await safelyUpdatePaymentStatus(
+        const updatedPaymentResult = await safelyUpdatePaymentStatus(
           processingPayment,
           PaymentStatus.Succeeded,
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
 
@@ -305,18 +333,19 @@ describe('paymentMethods.ts', () => {
           paymentMethod: PaymentMethodType.Card,
         })
 
-        const result = await safelyUpdatePaymentStatus(
+        const paymentResult = await safelyUpdatePaymentStatus(
           terminalPayment,
           PaymentStatus.Failed,
           transaction
         )
+        const result = paymentResult.unwrap()
 
         expect(result.id).toBe(terminalPayment.id)
         expect(result.status).toBe(PaymentStatus.Failed)
       })
     })
 
-    it('throws error when payment is updated to different terminal state', async () => {
+    it('returns error when payment is updated to different terminal state', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Create a payment in a terminal state
         const terminalPayment = await setupPayment({
@@ -330,15 +359,18 @@ describe('paymentMethods.ts', () => {
           paymentMethod: PaymentMethodType.Card,
         })
 
-        await expect(
-          safelyUpdatePaymentStatus(
-            terminalPayment,
-            PaymentStatus.Succeeded,
-            transaction
-          )
-        ).rejects.toThrow(
-          `Payment ${terminalPayment.id} is in a terminal state: ${terminalPayment.status}; cannot update to ${PaymentStatus.Succeeded}`
+        const result = await safelyUpdatePaymentStatus(
+          terminalPayment,
+          PaymentStatus.Succeeded,
+          transaction
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(TerminalStateError)
+          expect(result.error.message).toBe(
+            `Payment ${terminalPayment.id} is in terminal state: ${terminalPayment.status}`
+          )
+        }
       })
     })
 
@@ -356,11 +388,12 @@ describe('paymentMethods.ts', () => {
           paymentMethod: PaymentMethodType.Card,
         })
 
-        const updatedPayment = await safelyUpdatePaymentStatus(
+        const updatedPaymentResult = await safelyUpdatePaymentStatus(
           pendingPayment,
           PaymentStatus.Processing,
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.status).toBe(PaymentStatus.Processing)
       })
@@ -380,11 +413,12 @@ describe('paymentMethods.ts', () => {
           paymentMethod: PaymentMethodType.Card,
         })
 
-        const updatedPayment = await safelyUpdatePaymentStatus(
+        const updatedPaymentResult = await safelyUpdatePaymentStatus(
           processingPayment,
           PaymentStatus.Succeeded,
           transaction
         )
+        const updatedPayment = updatedPaymentResult.unwrap()
 
         expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
       })
@@ -1638,6 +1672,172 @@ describe('selectRevenueDataForOrganization', () => {
       expect(revenueData.length).toBe(0) // Expect an empty array
     })
   })
+
+  describe('Scenario 9: Payment status filtering', () => {
+    it('should only include Succeeded and Refunded payments in revenue calculations', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const fromDate = new Date('2023-09-01T00:00:00.000Z')
+        const toDate = new Date('2023-09-30T23:59:59.999Z')
+        const revenueChartIntervalUnit =
+          RevenueChartIntervalUnit.Month
+        const chargeDate = new Date('2023-09-15T10:00:00.000Z')
+
+        const invoice = await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+
+        // Payment 1: Succeeded - SHOULD be included ($100)
+        await setupPayment({
+          stripeChargeId: `ch_status_succeeded_${nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 10000,
+          refundedAmount: 0,
+          refunded: false,
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Payment 2: Refunded - SHOULD be included ($50 - $50 refund = $0 net)
+        await setupPayment({
+          stripeChargeId: `ch_status_refunded_${nanoid()}`,
+          status: PaymentStatus.Refunded,
+          amount: 5000,
+          refundedAmount: 5000,
+          refunded: true,
+          refundedAt: Date.now(),
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Payment 3: Failed - should NOT be included
+        await setupPayment({
+          stripeChargeId: `ch_status_failed_${nanoid()}`,
+          status: PaymentStatus.Failed,
+          amount: 20000, // $200 - should be excluded
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Payment 4: Processing - should NOT be included
+        await setupPayment({
+          stripeChargeId: `ch_status_processing_${nanoid()}`,
+          status: PaymentStatus.Processing,
+          amount: 15000, // $150 - should be excluded
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Payment 5: Canceled - should NOT be included
+        await setupPayment({
+          stripeChargeId: `ch_status_canceled_${nanoid()}`,
+          status: PaymentStatus.Canceled,
+          amount: 8000, // $80 - should be excluded
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        const revenueData = await selectRevenueDataForOrganization(
+          {
+            organizationId: organization.id,
+            revenueChartIntervalUnit,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
+            productId: null,
+          },
+          transaction
+        )
+
+        expect(revenueData).toBeInstanceOf(Array)
+        expect(revenueData.length).toBe(1) // One item for September
+
+        const resultItem = revenueData[0]
+        expect(
+          resultItem.date.toISOString().startsWith('2023-09-01T')
+        ).toBe(true)
+
+        // Expected: Only Succeeded ($100) + Refunded ($50 - $50 = $0) = $100
+        // Failed ($200), Processing ($150), Canceled ($80) should all be excluded
+        expect(resultItem.revenue).toBe(10000) // 10000 cents = $100
+      })
+    })
+
+    it('should include partial refunds correctly with Succeeded status', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const fromDate = new Date('2023-10-01T00:00:00.000Z')
+        const toDate = new Date('2023-10-31T23:59:59.999Z')
+        const revenueChartIntervalUnit =
+          RevenueChartIntervalUnit.Month
+        const chargeDate = new Date('2023-10-15T10:00:00.000Z')
+
+        const invoice = await setupInvoice({
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: price.id,
+          livemode: true,
+        })
+
+        // Payment with partial refund (still Succeeded status)
+        // $100 payment with $30 refund = $70 net revenue
+        await setupPayment({
+          stripeChargeId: `ch_partial_refund_${nanoid()}`,
+          status: PaymentStatus.Succeeded,
+          amount: 10000,
+          refundedAmount: 3000,
+          refunded: false, // Partial refund keeps refunded=false
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        // Failed payment should not be included
+        await setupPayment({
+          stripeChargeId: `ch_failed_payment_${nanoid()}`,
+          status: PaymentStatus.Failed,
+          amount: 50000, // $500 - should be excluded
+          livemode: true,
+          customerId: customer.id,
+          organizationId: organization.id,
+          invoiceId: invoice.id,
+          chargeDate: chargeDate.getTime(),
+        })
+
+        const revenueData = await selectRevenueDataForOrganization(
+          {
+            organizationId: organization.id,
+            revenueChartIntervalUnit,
+            fromDate: fromDate.getTime(),
+            toDate: toDate.getTime(),
+            productId: null,
+          },
+          transaction
+        )
+
+        expect(revenueData.length).toBe(1)
+        // Expected: $100 - $30 = $70 net (Failed payment excluded)
+        expect(revenueData[0].revenue).toBe(7000) // 7000 cents = $70
+      })
+    })
+  })
 })
 
 describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
@@ -2233,22 +2433,24 @@ describe('pricingModelId derivation', () => {
   describe('insertPayment', () => {
     it('should derive pricingModelId from subscription', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const payment = await insertPayment(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            invoiceId: invoice.id,
-            subscriptionId: subscription.id,
-            amount: 1000,
-            paymentMethod: PaymentMethodType.Card,
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            chargeDate: Date.now(),
-            stripePaymentIntentId: `pi_${nanoid()}`,
-            livemode: true,
-          },
-          transaction
-        )
+        const payment = (
+          await insertPayment(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              invoiceId: invoice.id,
+              subscriptionId: subscription.id,
+              amount: 1000,
+              paymentMethod: PaymentMethodType.Card,
+              currency: CurrencyCode.USD,
+              status: PaymentStatus.Succeeded,
+              chargeDate: Date.now(),
+              stripePaymentIntentId: `pi_${nanoid()}`,
+              livemode: true,
+            },
+            transaction
+          )
+        ).unwrap()
 
         expect(payment.pricingModelId).toBe(
           subscription.pricingModelId
@@ -2259,22 +2461,24 @@ describe('pricingModelId derivation', () => {
 
     it('should derive pricingModelId from purchase', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const payment = await insertPayment(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            invoiceId: invoice.id,
-            purchaseId: purchase.id,
-            amount: 1000,
-            paymentMethod: PaymentMethodType.Card,
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            chargeDate: Date.now(),
-            stripePaymentIntentId: `pi_${nanoid()}`,
-            livemode: true,
-          },
-          transaction
-        )
+        const payment = (
+          await insertPayment(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              invoiceId: invoice.id,
+              purchaseId: purchase.id,
+              amount: 1000,
+              paymentMethod: PaymentMethodType.Card,
+              currency: CurrencyCode.USD,
+              status: PaymentStatus.Succeeded,
+              chargeDate: Date.now(),
+              stripePaymentIntentId: `pi_${nanoid()}`,
+              livemode: true,
+            },
+            transaction
+          )
+        ).unwrap()
 
         expect(payment.pricingModelId).toBe(purchase.pricingModelId)
         expect(payment.pricingModelId).toBe(pricingModel.id)
@@ -2283,21 +2487,23 @@ describe('pricingModelId derivation', () => {
 
     it('should derive pricingModelId from invoice', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const payment = await insertPayment(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            invoiceId: invoice.id,
-            amount: 1000,
-            paymentMethod: PaymentMethodType.Card,
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            chargeDate: Date.now(),
-            stripePaymentIntentId: `pi_${nanoid()}`,
-            livemode: true,
-          },
-          transaction
-        )
+        const payment = (
+          await insertPayment(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              invoiceId: invoice.id,
+              amount: 1000,
+              paymentMethod: PaymentMethodType.Card,
+              currency: CurrencyCode.USD,
+              status: PaymentStatus.Succeeded,
+              chargeDate: Date.now(),
+              stripePaymentIntentId: `pi_${nanoid()}`,
+              livemode: true,
+            },
+            transaction
+          )
+        ).unwrap()
 
         expect(payment.pricingModelId).toBe(invoice.pricingModelId)
         expect(payment.pricingModelId).toBe(pricingModel.id)
@@ -2306,22 +2512,24 @@ describe('pricingModelId derivation', () => {
 
     it('should use provided pricingModelId without derivation', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const payment = await insertPayment(
-          {
-            organizationId: organization.id,
-            customerId: customer.id,
-            invoiceId: invoice.id,
-            amount: 1000,
-            paymentMethod: PaymentMethodType.Card,
-            currency: CurrencyCode.USD,
-            status: PaymentStatus.Succeeded,
-            chargeDate: Date.now(),
-            stripePaymentIntentId: `pi_${nanoid()}`,
-            livemode: true,
-            pricingModelId: pricingModel.id,
-          },
-          transaction
-        )
+        const payment = (
+          await insertPayment(
+            {
+              organizationId: organization.id,
+              customerId: customer.id,
+              invoiceId: invoice.id,
+              amount: 1000,
+              paymentMethod: PaymentMethodType.Card,
+              currency: CurrencyCode.USD,
+              status: PaymentStatus.Succeeded,
+              chargeDate: Date.now(),
+              stripePaymentIntentId: `pi_${nanoid()}`,
+              livemode: true,
+              pricingModelId: pricingModel.id,
+            },
+            transaction
+          )
+        ).unwrap()
 
         expect(payment.pricingModelId).toBe(pricingModel.id)
       })
@@ -2332,7 +2540,7 @@ describe('pricingModelId derivation', () => {
     it('should derive pricingModelId when upserting payment', async () => {
       await adminTransaction(async ({ transaction }) => {
         const stripeChargeId = `ch_${nanoid()}`
-        const payment = await upsertPaymentByStripeChargeId(
+        const paymentResult = await upsertPaymentByStripeChargeId(
           {
             organizationId: organization.id,
             customerId: customer.id,
@@ -2348,6 +2556,7 @@ describe('pricingModelId derivation', () => {
           },
           transaction
         )
+        const payment = paymentResult.unwrap()
 
         expect(payment.pricingModelId).toBe(invoice.pricingModelId)
         expect(payment.pricingModelId).toBe(pricingModel.id)

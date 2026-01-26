@@ -1,4 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import type { Mock } from 'bun:test'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
+import { Result } from 'better-result'
 // Test database setup functions
 import {
   setupBillingPeriod,
@@ -10,7 +19,10 @@ import {
   setupSubscription,
   setupSubscriptionItem,
 } from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
 import type { Invoice } from '@/db/schema/invoices'
@@ -39,10 +51,10 @@ import { adjustSubscription } from './adjustSubscription'
 // Mock the trigger task - we test that it's called with correct parameters
 // The actual billing run execution is tested in billingRunHelpers.test.ts
 // Create the mock function inside the factory to avoid hoisting issues
-vi.mock('@/trigger/attempt-billing-run', () => {
-  const mockTriggerFn = vi
-    .fn()
-    .mockResolvedValue({ id: 'mock-billing-run-handle-id' })
+mock.module('@/trigger/attempt-billing-run', () => {
+  const mockTriggerFn = mock().mockResolvedValue({
+    id: 'mock-billing-run-handle-id',
+  })
   // Store reference so we can access it in tests
   ;(globalThis as any).__mockAttemptBillingRunTrigger = mockTriggerFn
   return {
@@ -55,7 +67,7 @@ vi.mock('@/trigger/attempt-billing-run', () => {
 // Get the mock function for use in tests
 const getMockTrigger = () => {
   return (globalThis as any)
-    .__mockAttemptBillingRunTrigger as ReturnType<typeof vi.fn>
+    .__mockAttemptBillingRunTrigger as Mock<any>
 }
 
 describe('Proration Logic - Payment Status Scenarios', () => {
@@ -83,7 +95,8 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     price = orgData.price
 
     // Enable feature flag for immediate adjustments
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       organization = await updateOrganization(
         {
           id: organization.id,
@@ -93,6 +106,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         },
         transaction
       )
+      return Result.ok(null)
     })
 
     // Set up customer
@@ -156,7 +170,8 @@ describe('Proration Logic - Payment Status Scenarios', () => {
   })
 
   it('should handle processing payment + upgrade mid-cycle with proper proration adjustments', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Create payment with Processing status for $9.99
       await setupPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
@@ -188,18 +203,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: upgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: upgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items to examine proration breakdown
       const bpItems = await selectBillingPeriodItems(
@@ -242,11 +259,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
 
       // Should have net positive charge since upgrading from $9.99 to $49.99
       expect(totalProrationAmount).toBeGreaterThan(0)
+      return Result.ok(null)
     })
   })
 
   it('should treat succeeded payment + upgrade mid-cycle the same as processing payment', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Create payment with Succeeded status (instead of Processing)
       await setupPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
@@ -278,18 +297,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: upgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: upgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -323,11 +344,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         0
       )
       expect(999 + totalProrationAmount).toBeCloseTo(2999, 2) // Total ~$29.99, allow 2 cent tolerance
+      return Result.ok(null)
     })
   })
 
   it('should ignore failed payment amount when calculating proration for upgrade', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Create payment with Failed status
       await setupPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
@@ -359,18 +382,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: upgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: upgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -408,11 +433,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       // Customer should pay full $29.99 since no successful payment exists
       // This means proration adjustments alone should equal ~$29.99
       expect(totalProrationAmount / 100).toBeCloseTo(2999 / 100, 0) // ~$29.99 from proration alone, allow 2 cent tolerance
+      return Result.ok(null)
     })
   })
 
   it('should add new subscription items without removing existing items', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Create payment for existing plan
       await setupPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
@@ -465,18 +492,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: addOnlyItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: addOnlyItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify if billing run was triggered
       const mockTrigger = getMockTrigger()
@@ -521,11 +550,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         // Net charge === 0: subscription name updated immediately
         expect(result.subscription.name).toBe('Add-on Feature')
       }
+      return Result.ok(null)
     })
   })
 
   it('should remove existing subscription items without adding new items', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Create payment for existing plan
       await setupPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
@@ -546,18 +577,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: removeOnlyItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: removeOnlyItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Should have 0 subscription items (all removed)
       expect(result.subscriptionItems).toHaveLength(0)
@@ -581,11 +614,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       // Verify subscription record name remains unchanged when no active items
       // (The sync logic doesn't update when there are no active items)
       expect(result.subscription.name).toBe(subscription.name)
+      return Result.ok(null)
     })
   })
 
   it('should apply downgrade protection to zero out negative charges and prevent credits', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Update the existing subscription item to $49.99 plan first
       // First expire the original Base Plan item
       await updateSubscriptionItem(
@@ -637,18 +672,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: downgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: downgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -687,11 +724,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         // Net charge === 0: subscription name updated immediately (downgrade with no refund)
         expect(result.subscription.name).toBe('Basic Plan')
       }
+      return Result.ok(null)
     })
   })
 
   it('should replace existing subscription items with new ones and create proper proration adjustments', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Create payment for existing plan
       await setupPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
@@ -724,18 +763,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: replaceItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: replaceItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify if billing run was triggered
       const mockTrigger = getMockTrigger()
@@ -791,11 +832,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       } else {
         expect(result.subscription.name).toBe('Replacement Plan')
       }
+      return Result.ok(null)
     })
   })
 
   it('should apply downgrade protection when downgrading to free plan with zero additional charges', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Create payment for $19.99 plan
       await setupPayment({
         stripeChargeId: `ch_${core.nanoid()}`,
@@ -838,18 +881,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: freePlanItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: freePlanItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -874,11 +919,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
 
       // Verify subscription record reflects new plan
       expect(result.subscription.name).toBe('Free Plan')
+      return Result.ok(null)
     })
   })
 
   it('should process multiple subscription items with complex pricing and create appropriate proration adjustments', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Create second subscription item
       const secondItem = await setupSubscriptionItem({
         subscriptionId: subscription.id,
@@ -932,18 +979,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: singleItem,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: singleItem,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify if billing run was triggered
       const mockTrigger = getMockTrigger()
@@ -1012,11 +1061,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         // Net charge === 0: subscription name updated immediately
         expect(result.subscription.name).toBe('Premium Plan')
       }
+      return Result.ok(null)
     })
   })
 
   it('should calculate full fair value proration when no existing payments exist', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Update subscription item to $15.00 plan
       await updateSubscriptionItem(
         {
@@ -1047,18 +1098,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: upgradeItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: upgradeItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -1108,11 +1161,13 @@ describe('Proration Logic - Payment Status Scenarios', () => {
         // Net charge === 0: subscription name updated immediately
         expect(result.subscription.name).toBe('Standard Plan')
       }
+      return Result.ok(null)
     })
   })
 
   it('should process zero unit price items without arithmetic errors and apply downgrade protection', async () => {
-    await adminTransaction(async ({ transaction }) => {
+    await comprehensiveAdminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Setup: Update subscription item to $19.99 plan
       await updateSubscriptionItem(
         {
@@ -1155,18 +1210,20 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       ]
 
       // Execute: Perform subscription adjustment with proration
-      const result = await adjustSubscription(
-        {
-          id: subscription.id,
-          adjustment: {
-            newSubscriptionItems: freePlanItems,
-            timing: SubscriptionAdjustmentTiming.Immediately,
-            prorateCurrentBillingPeriod: true,
+      const result = (
+        await adjustSubscription(
+          {
+            id: subscription.id,
+            adjustment: {
+              newSubscriptionItems: freePlanItems,
+              timing: SubscriptionAdjustmentTiming.Immediately,
+              prorateCurrentBillingPeriod: true,
+            },
           },
-        },
-        organization,
-        transaction
-      )
+          organization,
+          ctx
+        )
+      ).unwrap()
 
       // Verify: Get billing period items
       const bpItems = await selectBillingPeriodItems(
@@ -1205,6 +1262,7 @@ describe('Proration Logic - Payment Status Scenarios', () => {
       // Verify no arithmetic errors occurred (test should complete without throwing)
       // With no proration items created, bpItems.length should be 0
       expect(bpItems.length).toBe(0)
+      return Result.ok(null)
     })
   })
 })

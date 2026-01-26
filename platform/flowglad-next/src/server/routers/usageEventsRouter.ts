@@ -53,15 +53,32 @@ export const createUsageEvent = protectedProcedure
   .output(z.object({ usageEvent: usageEventsClientSelectSchema }))
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transaction }) => {
-        const resolvedInput = await resolveUsageEventInput(
+      async ({ input, ctx, transactionCtx }) => {
+        const {
+          transaction,
+          cacheRecomputationContext,
+          emitEvent,
+          invalidateCache,
+          enqueueLedgerCommand,
+        } = transactionCtx
+        const resolvedInputResult = await resolveUsageEventInput(
           input,
           transaction
         )
 
+        // Unwrap at router boundary - converts Result errors to thrown errors for TRPC
+        const resolvedInput = resolvedInputResult.unwrap()
+
+        // Return Result directly - wrapper handles error conversion
         return ingestAndProcessUsageEvent(
           { input: resolvedInput, livemode: ctx.livemode },
-          transaction
+          {
+            transaction,
+            cacheRecomputationContext,
+            emitEvent,
+            invalidateCache,
+            enqueueLedgerCommand,
+          }
         )
       }
     )
@@ -98,13 +115,13 @@ export const bulkInsertUsageEventsProcedure = protectedProcedure
   )
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
-      async ({ input, ctx, transaction }) => {
+      async ({ input, ctx, transactionCtx }) => {
         return bulkInsertUsageEventsTransaction(
           {
             input,
             livemode: ctx.livemode,
           },
-          transaction
+          transactionCtx
         )
       }
     )
@@ -123,9 +140,10 @@ const listUsageEventsProcedure = protectedProcedure
           transaction
         )
         return {
-          items: result.data,
+          data: result.data,
           total: result.total,
           hasMore: result.hasMore,
+          currentCursor: result.currentCursor,
           nextCursor: result.nextCursor,
         }
       },
@@ -140,7 +158,12 @@ const getTableRowsProcedure = protectedProcedure
   .input(usageEventsPaginatedTableRowInputSchema)
   .output(usageEventsPaginatedTableRowOutputSchema)
   .query(
-    authenticatedProcedureTransaction(selectUsageEventsTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectUsageEventsTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const usageEventsRouter = router({

@@ -25,9 +25,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# local env files
+# env files
 .env*.local
-.env
+.env.development
+.env.production
 .env_user
 
 # vercel
@@ -54,3 +55,10 @@ public/preview/preview.*.css
 public/ui/*.json
 
 prompts/*.ts
+
+# Supabase local
+supabase/.branches
+supabase/.temp
+
+# Database dump files
+.supabase-dumps/

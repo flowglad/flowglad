@@ -14,6 +14,8 @@ import {
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
+  createDerivePricingModelId,
+  createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
   createSelectById,
@@ -24,6 +26,7 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { ArchivedCustomerError } from '@/errors'
 import { PaymentStatus } from '@/types'
 import { invoices } from '../schema/invoices'
 import {
@@ -62,6 +65,25 @@ export const selectCustomers = createSelectFunction(
   config
 )
 
+/**
+ * Derives pricingModelId from a customer.
+ * Used for payment methods.
+ */
+export const derivePricingModelIdFromCustomer =
+  createDerivePricingModelId(
+    customersTable,
+    config,
+    selectCustomerById
+  )
+
+/**
+ * Batch fetch pricingModelIds for multiple customers.
+ * More efficient than calling derivePricingModelIdFromCustomer individually.
+ * Used by bulk insert operations in payment methods.
+ */
+export const pricingModelIdsForCustomers =
+  createDerivePricingModelIds(customersTable, config)
+
 export const insertCustomer = createInsertFunction(
   customersTable,
   config
@@ -73,16 +95,34 @@ export const updateCustomer = createUpdateFunction(
 )
 
 export const selectCustomerByExternalIdAndOrganizationId = async (
-  params: { externalId: string; organizationId: string },
+  params: {
+    externalId: string
+    organizationId: string
+    /**
+     * When false (default), only returns non-archived customers.
+     * When true, returns customers regardless of archived status.
+     * Use includeArchived=true when you need to handle idempotency
+     * (e.g., archiving an already-archived customer).
+     */
+    includeArchived?: boolean
+  },
   transaction: DbTransaction
 ) => {
+  const {
+    externalId,
+    organizationId,
+    includeArchived = false,
+  } = params
   const result = await transaction
     .select()
     .from(customersTable)
     .where(
       and(
-        eq(customersTable.externalId, params.externalId),
-        eq(customersTable.organizationId, params.organizationId)
+        eq(customersTable.externalId, externalId),
+        eq(customersTable.organizationId, organizationId),
+        includeArchived
+          ? undefined
+          : eq(customersTable.archived, false)
       )
     )
     .limit(1)
@@ -485,4 +525,65 @@ export const setUserIdForCustomerRecords = async (
         eq(customersTable.livemode, true)
       )
     )
+}
+
+/**
+ * Minimal customer data needed for pricing model resolution in bulk operations.
+ * Only fetches the fields required to determine which pricing model applies to each customer.
+ *
+ * Note: pricingModelId is NOT NULL in the database schema, so it will always be a string.
+ */
+export type CustomerPricingInfo = {
+  id: string
+  pricingModelId: string
+  organizationId: string
+  livemode: boolean
+}
+
+/**
+ * Performance-optimized batch fetch of customer pricing info.
+ * Only selects the minimal fields needed for pricing model resolution.
+ * replacing N individual selectCustomerById calls with a single query.
+ *
+ * @param customerIds - Array of customer IDs to fetch
+ * @param transaction - Database transaction
+ * @returns Map of customerId to CustomerPricingInfo
+ */
+export const selectCustomerPricingInfoBatch = async (
+  customerIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, CustomerPricingInfo>> => {
+  if (customerIds.length === 0) {
+    return new Map()
+  }
+
+  const results = await transaction
+    .select({
+      id: customers.id,
+      pricingModelId: customers.pricingModelId,
+      organizationId: customers.organizationId,
+      livemode: customers.livemode,
+    })
+    .from(customers)
+    .where(inArray(customers.id, customerIds))
+
+  return new Map(results.map((c) => [c.id, c]))
+}
+
+/**
+ * Guard function that throws if the customer is archived.
+ * Use this to block operations on archived customers such as
+ * creating payment methods or usage events.
+ *
+ * @param customer - The customer to check
+ * @param operation - Description of the operation being attempted (for error message)
+ * @throws ArchivedCustomerError if customer is archived
+ */
+export const assertCustomerNotArchived = (
+  customer: Customer.Record,
+  operation: string
+): void => {
+  if (customer.archived) {
+    throw new ArchivedCustomerError(operation)
+  }
 }

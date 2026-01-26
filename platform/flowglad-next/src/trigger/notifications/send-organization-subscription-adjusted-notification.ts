@@ -1,13 +1,19 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
+import type { Customer } from '@/db/schema/customers'
+import type { Membership } from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
+import type { Subscription } from '@/db/schema/subscriptions'
+import type { User } from '@/db/schema/users'
 import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError } from '@/db/tableUtils'
 import {
   OrganizationSubscriptionAdjustedEmail,
   type SubscriptionItem,
 } from '@/email-templates/organization/organization-subscription-adjusted'
+import { ValidationError } from '@/errors'
 import type { CurrencyCode } from '@/types'
 import {
   createTriggerIdempotencyKey,
@@ -19,6 +25,8 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
+import { filterEligibleRecipients } from '@/utils/notifications'
 
 export interface SendOrganizationSubscriptionAdjustedNotificationPayload {
   subscriptionId: string
@@ -32,17 +40,18 @@ export interface SendOrganizationSubscriptionAdjustedNotificationPayload {
   currency: CurrencyCode
 }
 
-const sendOrganizationSubscriptionAdjustedNotificationTask = task({
-  id: 'send-organization-subscription-adjusted-notification',
-  run: async (
-    payload: SendOrganizationSubscriptionAdjustedNotificationPayload,
-    { ctx }
+/**
+ * Core run function for send-organization-subscription-adjusted-notification task.
+ * Exported for testing purposes.
+ */
+export const runSendOrganizationSubscriptionAdjustedNotification =
+  async (
+    payload: SendOrganizationSubscriptionAdjustedNotificationPayload
   ) => {
     logger.log(
       'Sending organization subscription adjusted notification',
       {
         payload,
-        ctx,
       }
     )
 
@@ -58,43 +67,97 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
       currency,
     } = payload
 
+    let dataResult: Result<
+      {
+        organization: Organization.Record
+        customer: Customer.Record
+        subscription: Subscription.Record
+        usersAndMemberships: Array<{
+          user: User.Record
+          membership: Membership.Record
+        }>
+      },
+      NotFoundError | ValidationError
+    >
+    try {
+      const data = await adminTransaction(async ({ transaction }) => {
+        const [context, usersAndMemberships, subscriptionRecord] =
+          await Promise.all([
+            buildNotificationContext(
+              {
+                organizationId,
+                customerId,
+              },
+              transaction
+            ),
+            selectMembershipsAndUsersByMembershipWhere(
+              { organizationId },
+              transaction
+            ),
+            selectSubscriptionById(subscriptionId, transaction),
+          ])
+
+        if (!subscriptionRecord) {
+          throw new NotFoundError('Subscription', subscriptionId)
+        }
+
+        return {
+          ...context,
+          subscription: subscriptionRecord,
+          usersAndMemberships,
+        }
+      })
+      dataResult = Result.ok(data)
+    } catch (error) {
+      // Only convert NotFoundError to Result.err; rethrow other errors
+      // for Trigger.dev to retry (e.g., transient DB failures)
+      if (error instanceof NotFoundError) {
+        dataResult = Result.err(error)
+      } else if (
+        error instanceof Error &&
+        error.message.includes('not found')
+      ) {
+        // Handle errors from buildNotificationContext
+        dataResult = Result.err(
+          new NotFoundError('Resource', error.message)
+        )
+      } else {
+        throw error
+      }
+    }
+
+    if (Result.isError(dataResult)) {
+      return dataResult
+    }
     const {
       organization,
       customer,
       subscription,
       usersAndMemberships,
-    } = await adminTransaction(async ({ transaction }) => {
-      const organization = await selectOrganizationById(
-        organizationId,
-        transaction
-      )
-      const customer = await selectCustomerById(
-        customerId,
-        transaction
-      )
-      const subscription = await selectSubscriptionById(
-        subscriptionId,
-        transaction
-      )
-      const usersAndMemberships =
-        await selectMembershipsAndUsersByMembershipWhere(
-          {
-            organizationId,
-          },
-          transaction
-        )
-      return {
-        organization,
-        customer,
-        subscription,
-        usersAndMemberships,
-      }
-    })
+    } = dataResult.value
 
-    if (!organization || !customer || !subscription) {
-      throw new Error(
-        'Organization, customer, or subscription not found'
+    const eligibleRecipients = filterEligibleRecipients(
+      usersAndMemberships,
+      'subscriptionAdjusted',
+      subscription.livemode
+    )
+
+    if (eligibleRecipients.length === 0) {
+      return Result.ok({
+        message: 'No recipients opted in for this notification',
+      })
+    }
+
+    const recipientEmails = eligibleRecipients
+      .map(({ user }) => user.email)
+      .filter(
+        (email): email is string => !isNil(email) && email !== ''
       )
+
+    if (recipientEmails.length === 0) {
+      return Result.ok({
+        message: 'No valid email addresses for eligible recipients',
+      })
     }
 
     const previousTotalPrice = previousItems.reduce(
@@ -106,17 +169,14 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
       0
     )
 
-    const isUpgrade = adjustmentType === 'upgrade'
-    const subjectAction = isUpgrade ? 'upgraded' : 'downgraded'
-
+    // Unified subject line with customer name for all adjustments
+    // per Apple-inspired patterns in subscription-email-improvements.md
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       bcc: getBccForLivemode(subscription.livemode),
-      to: usersAndMemberships
-        .map(({ user }) => user.email)
-        .filter((email) => !isNil(email)),
+      to: recipientEmails,
       subject: formatEmailSubject(
-        `Subscription ${subjectAction}: ${customer.name} ${subjectAction} their subscription`,
+        `Subscription Updated - ${customer.name || customer.email}`,
         subscription.livemode
       ),
       react: await OrganizationSubscriptionAdjustedEmail({
@@ -136,10 +196,22 @@ const sendOrganizationSubscriptionAdjustedNotificationTask = task({
       }),
     })
 
-    return {
+    return Result.ok({
       message:
         'Organization subscription adjusted notification sent successfully',
-    }
+    })
+  }
+
+const sendOrganizationSubscriptionAdjustedNotificationTask = task({
+  id: 'send-organization-subscription-adjusted-notification',
+  run: async (
+    payload: SendOrganizationSubscriptionAdjustedNotificationPayload,
+    { ctx }
+  ) => {
+    logger.log('Task context', { ctx })
+    return runSendOrganizationSubscriptionAdjustedNotification(
+      payload
+    )
   },
 })
 

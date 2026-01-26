@@ -24,7 +24,7 @@ export default async function RootLayout({
     data: { user }
   } = await supabase.auth.getUser();
   return (
-    <FlowgladProvider loadBilling={!!user}>
+    <FlowgladProvider>
     { /* ... existing layout JSX ... */}
       {children}
     { /* ... existing layout JSX ... */}
@@ -34,18 +34,18 @@ export default async function RootLayout({
 ```
 
 **Note For Better Auth Apps**
-If you use `better-auth`, you need you use a client-side `Providers` file that mounts `useSession` to determine whether to load billing. Otherwise you may hit an edge case where `loadBilling`'s value does not change when the user authenticates.
+If you use `better-auth`, consider a client-side `Providers` file that mounts `useSession` so client UI can respond to auth changes. FlowgladProvider no longer accepts a `loadBilling` prop.
 ```tsx
 export function ProviderWrapper(props: { children: React.ReactNode }) {
   // Use BetterAuth's useSession to watch for session changes reactively
   const { data: session } = authClient.useSession();
 
-  // Derive loadBilling from session state reactively
-  // This ensures billing loads when session becomes available, even if layout didn't re-render
-  const loadBilling = !!session?.user;
+  if (!session?.user) {
+    return <>{props.children}</>;
+  }
 
   return (
-    <FlowgladProvider loadBilling={loadBilling}>
+    <FlowgladProvider>
       {props.children}
     </FlowgladProvider>
   );
@@ -58,7 +58,7 @@ Use **@flowglad/react**, which has the `useBilling` hook.
 **Setup**
 ```tsx
 //
-<FlowgladProvider loadBilling={!!isAuthed}>
+<FlowgladProvider>
 
 </FlowgladProvider>
 ```

@@ -30,7 +30,7 @@ export const refundPayment = protectedProcedure
     if (!payment) {
       throw new Error('Payment not found')
     }
-    const updatedPayment = await adminTransaction(
+    const updatedPaymentResult = await adminTransaction(
       async ({ transaction }) => {
         return await refundPaymentTransaction(
           {
@@ -41,5 +41,5 @@ export const refundPayment = protectedProcedure
         )
       }
     )
-    return { payment: updatedPayment }
+    return { payment: updatedPaymentResult.unwrap() }
   })

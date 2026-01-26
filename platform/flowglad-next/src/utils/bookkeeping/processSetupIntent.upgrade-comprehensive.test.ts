@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupCheckoutSession,
@@ -35,6 +36,10 @@ import {
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
+import {
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   CancellationReason,
   CheckoutSessionStatus,
@@ -233,7 +238,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -272,7 +277,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(
           canceledFreeSubscription.replacedBySubscriptionId
-        ).toBe(newSubscriptionId)
+        ).toBe(newSubscriptionId!)
         expect(typeof canceledFreeSubscription.canceledAt).toBe(
           'number'
         )
@@ -325,7 +330,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -397,7 +402,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -478,7 +483,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -507,7 +512,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           CancellationReason.UpgradedToPaid
         )
         expect(canceledSubscription.replacedBySubscriptionId).toBe(
-          newSubscriptionId
+          newSubscriptionId!
         )
 
         // The older free subscription should remain canceled with original reason
@@ -541,7 +546,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             firstSetupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -583,19 +588,25 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         stripeCustomerId: customer.stripeCustomerId!,
       })
 
-      // This should throw an error
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      // This should return an error Result
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             secondCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
           return await processSetupIntentSucceeded(
             secondSetupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('already has an active subscription')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'already has an active subscription'
+        )
+      }
 
       // Verify that only one paid subscription exists
       await adminTransaction(async ({ transaction }) => {
@@ -610,7 +621,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(activePaidSubscriptions.length).toBe(1)
         expect(activePaidSubscriptions[0].id).toBe(
-          firstPaidSubscriptionId
+          firstPaidSubscriptionId!
         )
       })
     })
@@ -653,7 +664,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -682,7 +693,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(
           canceledFreeSubscription.replacedBySubscriptionId
-        ).toBe(newSubscriptionId)
+        ).toBe(newSubscriptionId!)
 
         // Existing paid subscription should remain active and unchanged
         const existingPaidSub = await selectSubscriptionById(
@@ -712,30 +723,32 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       // This should fail because only one free subscription is allowed per customer
       await adminTransaction(async ({ transaction }) => {
         const stripeSetupIntentId = `setupintent_free_test_${core.nanoid()}`
-        await expect(
-          createSubscriptionWorkflow(
-            {
-              organization,
-              customer,
-              product: {
-                ...freeProduct,
-                default: freeProduct.default ?? false,
-              },
-              price: freePrice,
-              quantity: 1,
-              livemode: true,
-              startDate: Date.now(),
-              interval: IntervalUnit.Month,
-              intervalCount: 1,
-              defaultPaymentMethod: paymentMethod,
-              stripeSetupIntentId,
-              autoStart: true,
+        const secondFreeResult = await createSubscriptionWorkflow(
+          {
+            organization,
+            customer,
+            product: {
+              ...freeProduct,
+              default: freeProduct.default ?? false,
             },
-            transaction
-          )
-        ).rejects.toThrow(
-          'already has an active free subscription. Only one free subscription is allowed per customer.'
+            price: freePrice,
+            quantity: 1,
+            livemode: true,
+            startDate: Date.now(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
         )
+        expect(Result.isError(secondFreeResult)).toBe(true)
+        if (Result.isError(secondFreeResult)) {
+          expect(secondFreeResult.error.message).toContain(
+            'already has an active free subscription. Only one free subscription is allowed per customer.'
+          )
+        }
       })
 
       await adminTransaction(async ({ transaction }) => {
@@ -784,7 +797,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -806,7 +819,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           // Note: Fee calculation already exists, so this shouldn't cause issues
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -837,7 +850,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(activePaidSubscriptions.length).toBe(1)
         expect(activePaidSubscriptions[0].id).toBe(
-          firstSubscriptionId
+          firstSubscriptionId!
         )
       })
     })
@@ -881,7 +894,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             firstSetupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -898,18 +911,24 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof firstSubscriptionId).toBe('string')
 
       // Attempt to process the second setup intent (should fail)
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const concurrentResult = await adminTransaction(
+        async ({ transaction }) => {
           await createFeeCalculationForCheckoutSession(
             secondCheckoutSession as CheckoutSession.FeeReadyRecord,
             transaction
           )
           return await processSetupIntentSucceeded(
             secondSetupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('already has an active subscription')
+        }
+      )
+      expect(Result.isError(concurrentResult)).toBe(true)
+      if (Result.isError(concurrentResult)) {
+        expect(concurrentResult.error.message).toContain(
+          'already has an active subscription'
+        )
+      }
 
       // Verify only one paid subscription exists
       await adminTransaction(async ({ transaction }) => {
@@ -924,7 +943,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
         expect(activePaidSubscriptions.length).toBe(1)
         expect(activePaidSubscriptions[0].id).toBe(
-          firstSubscriptionId
+          firstSubscriptionId!
         )
       })
     })
@@ -957,7 +976,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1027,7 +1046,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1098,7 +1117,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1170,7 +1189,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1218,7 +1237,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1244,7 +1263,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
         // Should only return the new paid subscription, not the canceled free one
         expect(activeSubscriptions.length).toBe(1)
-        expect(activeSubscriptions[0].id).toBe(newSubscriptionId)
+        expect(activeSubscriptions[0].id).toBe(newSubscriptionId!)
         expect(activeSubscriptions[0].isFreePlan).toBe(false)
 
         // The canceled free subscription should not be in the results
@@ -1270,7 +1289,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           )
           return await processSetupIntentSucceeded(
             firstSetupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -1298,7 +1317,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(currentSubscription).toMatchObject({
           id: paidSubscriptionId,
         })
-        expect(currentSubscription!.id).toBe(paidSubscriptionId)
+        expect(currentSubscription!.id).toBe(paidSubscriptionId!)
         expect(currentSubscription!.isFreePlan).toBe(false)
 
         // Verify the chain is set up correctly
@@ -1307,7 +1326,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           transaction
         )
         expect(freeSubscriptionRecord.replacedBySubscriptionId).toBe(
-          paidSubscriptionId
+          paidSubscriptionId!
         )
       })
     })
@@ -1357,11 +1376,11 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
         // Should return terminal result without creating new subscription
-        expect(result.result.type).toBe(CheckoutSessionType.Product)
+        expect(result.unwrap().type).toBe(CheckoutSessionType.Product)
 
         // Verify no new subscription was created
         const subscriptions = await selectSubscriptions(
@@ -1428,10 +1447,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
-        expect(result.result.type).toBe(CheckoutSessionType.Product)
+        expect(result.unwrap().type).toBe(CheckoutSessionType.Product)
 
         // No new subscription should be created
         const subscriptions = await selectSubscriptions(
@@ -1497,7 +1516,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
         // Check the updated checkout session status
@@ -1558,7 +1577,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
         // Get the created subscription
@@ -1637,7 +1656,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
 
         // Get the new subscription
@@ -1708,14 +1727,16 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         },
       }
 
-      await comprehensiveAdminTransaction(async ({ transaction }) => {
-        await expect(
-          processSetupIntentSucceeded(setupIntentNoPM, transaction)
-        ).rejects.toThrow(
-          'Payment method required for subscription activation'
-        )
-        return { eventsToInsert: [], result: null }
-      })
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) => {
+          return processSetupIntentSucceeded(
+            setupIntentNoPM,
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).rejects.toThrow(
+        /Payment method required for subscription activation/
+      )
     })
   })
 
@@ -1762,7 +1783,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           type: PaymentMethodType.Card,
         })
 
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
 
         // Verify the subscription was updated
         const updatedSub = await selectSubscriptionById(
@@ -1772,7 +1796,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(updatedSub.defaultPaymentMethodId).toBe(newPM.id)
         // Verify renews is preserved
         expect(updatedSub.renews).toBe(targetSub.renews)
-        return { eventsToInsert: [], result: null }
+        return Result.ok(null)
       })
     })
 
@@ -1822,7 +1846,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         organizationId: organization.id,
       })
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
 
         // Verify all subscriptions were updated
         const updatedSub1 = await selectSubscriptionById(
@@ -1836,7 +1863,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
         expect(updatedSub1.defaultPaymentMethodId).toBe(newPM.id)
         expect(updatedSub2.defaultPaymentMethodId).toBe(newPM.id)
-        return { eventsToInsert: [], result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -1871,7 +1898,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: checkoutSession.livemode,
       })
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
         const paymentMethods = await selectPaymentMethods(
           { stripePaymentMethodId: pmId },
           transaction
@@ -1891,7 +1921,7 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(subscriptions[0].defaultPaymentMethodId).toBe(
           paymentMethods[0].id
         )
-        return { eventsToInsert: [], result: null }
+        return Result.ok(null)
       })
     })
   })
@@ -1920,7 +1950,10 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: checkoutSession.livemode,
       })
       await comprehensiveAdminTransaction(async ({ transaction }) => {
-        await processSetupIntentSucceeded(setupIntent, transaction)
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
+        )
 
         const subscriptions = await selectSubscriptions(
           {
@@ -1934,13 +1967,13 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         expect(subscriptions[0].name).toBe(
           'Premium Plan - Special Edition'
         )
-        return { eventsToInsert: [], result: null }
+        return Result.ok(null)
       })
     })
   })
 
   describe('Events Logging Validation', () => {
-    it('should return appropriate events in eventsToInsert', async () => {
+    it('should emit appropriate events via callback', async () => {
       const checkoutSession = await setupCheckoutSession({
         organizationId: organization.id,
         customerId: customer.id,
@@ -1962,18 +1995,15 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         livemode: checkoutSession.livemode,
       })
       await comprehensiveAdminTransaction(async ({ transaction }) => {
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
         const result = await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          ctx
         )
 
-        // Check eventsToInsert structure
-        expect(result.eventsToInsert).toMatchObject({})
-        expect(Array.isArray(result.eventsToInsert)).toBe(true)
-
-        const events = result.eventsToInsert ?? []
-        // Exactly one SubscriptionCreated event per new subscription
-        const subscriptionCreatedEvents = events.filter(
+        // SubscriptionCreated events are emitted via callback, check captured effects
+        const subscriptionCreatedEvents = effects.events.filter(
           (event) =>
             event.type === FlowgladEventType.SubscriptionCreated
         )
@@ -1983,8 +2013,8 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
           subscriptionCreatedEvents[0].occurredAt
         )
 
-        // And exactly one PurchaseCompleted event for the paid checkout
-        const purchaseCompletedEvents = events.filter(
+        // PurchaseCompleted event is emitted via callback, check captured effects
+        const purchaseCompletedEvents = effects.events.filter(
           (event) =>
             event.type === FlowgladEventType.PurchaseCompleted
         )

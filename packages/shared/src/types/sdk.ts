@@ -1,5 +1,5 @@
 import type { Flowglad as FlowgladNode } from '@flowglad/node'
-import type { Price } from './catalog'
+import type { Price } from './pricingModel'
 
 export enum FlowgladActionKey {
   GetCustomerBilling = 'customers/billing',
@@ -13,7 +13,30 @@ export enum FlowgladActionKey {
   CreateSubscription = 'subscriptions/create',
   UpdateCustomer = 'customers/update',
   CreateUsageEvent = 'usage-events/create',
+  GetResourceUsages = 'resources/usages',
+  GetResourceUsage = 'resources/usages/retrieve',
+  ClaimResource = 'resources/claim',
+  ReleaseResource = 'resources/release',
+  ListResourceClaims = 'resources/claims',
+  GetPricingModel = 'pricing-models/retrieve',
+  GetUsageMeterBalances = 'usage-meters/balances',
 }
+
+/**
+ * Action keys that require authentication.
+ * These routes will return 401 if no valid session exists.
+ */
+export type AuthenticatedActionKey = Exclude<
+  FlowgladActionKey,
+  HybridActionKey
+>
+
+/**
+ * Action keys that attempt authentication but gracefully fall back.
+ * These routes return customer-specific data if authenticated,
+ * or default data if not.
+ */
+export type HybridActionKey = typeof FlowgladActionKey.GetPricingModel
 
 export enum HTTPMethod {
   GET = 'GET',
@@ -81,19 +104,19 @@ export type BillingWithChecks = CustomerRetrieveBillingResponse & {
 
   /**
    * @experimental
-   * Gets a product from the catalog
+   * Gets a product from the pricing model
    * @param productSlug - The slug of the product to get
    * @returns The product, or null if the product is not found
    */
   getProduct: (
     productSlug: string
   ) =>
-    | CustomerRetrieveBillingResponse['catalog']['products'][number]
+    | CustomerRetrieveBillingResponse['pricingModel']['products'][number]
     | null
 
   /**
    * @experimental
-   * Gets a price from the catalog
+   * Gets a price from the pricing model
    * @param priceSlug - The slug of the price to get
    * @returns The price, or null if the price is not found
    */

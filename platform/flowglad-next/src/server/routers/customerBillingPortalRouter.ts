@@ -1,11 +1,15 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { headers } from 'next/headers'
 import { z } from 'zod'
 import {
   adminTransaction,
   comprehensiveAdminTransaction,
 } from '@/db/adminTransaction'
-import { authenticatedTransaction } from '@/db/authenticatedTransaction'
+import {
+  authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
+} from '@/db/authenticatedTransaction'
 import {
   checkoutSessionClientSelectSchema,
   customerBillingCreatePricedCheckoutSessionInputSchema,
@@ -23,6 +27,7 @@ import {
   setUserIdForCustomerRecords,
 } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import {
   isSubscriptionCurrent,
   isSubscriptionInTerminalState,
@@ -132,13 +137,14 @@ const getBillingProcedure = customerProtectedProcedure
       purchases,
       subscriptions,
     } = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, cacheRecomputationContext }) => {
         return customerBillingTransaction(
           {
             externalId: customer.externalId,
             organizationId,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       },
       {
@@ -275,23 +281,32 @@ const cancelSubscriptionProcedure = customerProtectedProcedure
     // Second transaction: Actually perform the cancellation (admin-scoped, bypasses RLS)
     // Note: Validation above ensures only AtEndOfCurrentBillingPeriod reaches here
     return await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
-        const subscription = await scheduleSubscriptionCancellation(
-          input,
-          transaction
-        )
-        return {
-          result: {
-            subscription: {
-              ...subscription,
-              current: isSubscriptionCurrent(
-                subscription.status,
-                subscription.cancellationReason
-              ),
-            },
-          },
-          eventsToInsert: [],
+      async ({
+        transaction,
+        cacheRecomputationContext,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        const ctx = {
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
         }
+        const subscriptionResult =
+          await scheduleSubscriptionCancellation(input, ctx)
+        const subscription = subscriptionResult.unwrap()
+        return Result.ok({
+          subscription: {
+            ...subscription,
+            current: isSubscriptionCurrent(
+              subscription.status,
+              subscription.cancellationReason
+            ),
+          },
+        })
       },
       {
         livemode,
@@ -358,25 +373,38 @@ const uncancelSubscriptionProcedure = customerProtectedProcedure
 
     // Second transaction: Actually perform the uncancel (admin-scoped, bypasses RLS)
     return await comprehensiveAdminTransaction(
-      async ({ transaction }) => {
+      async ({
+        transaction,
+        cacheRecomputationContext,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        const ctx = {
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
         const subscription = await selectSubscriptionById(
           input.id,
           transaction
         )
-        const { result: updatedSubscription } =
-          await uncancelSubscription(subscription, transaction)
-        return {
-          result: {
-            subscription: {
-              ...updatedSubscription,
-              current: isSubscriptionCurrent(
-                updatedSubscription.status,
-                updatedSubscription.cancellationReason
-              ),
-            },
+        const uncancelResult = await uncancelSubscription(
+          subscription,
+          ctx
+        )
+        const updatedSubscription = uncancelResult.unwrap()
+        return Result.ok({
+          subscription: {
+            ...updatedSubscription,
+            current: isSubscriptionCurrent(
+              updatedSubscription.status,
+              updatedSubscription.cancellationReason
+            ),
           },
-          eventsToInsert: [],
-        }
+        })
       },
       {
         livemode,
@@ -560,17 +588,20 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
     const { customer } = ctx
     const { paymentMethodId } = input
 
-    return authenticatedTransaction(
-      async ({ transaction }) => {
-        const { paymentMethod } =
-          await setDefaultPaymentMethodForCustomer(
-            {
-              paymentMethodId,
-            },
-            transaction
-          )
-
-        if (paymentMethod.customerId !== customer.id) {
+    return comprehensiveAuthenticatedTransaction(
+      async ({
+        transaction,
+        cacheRecomputationContext,
+        invalidateCache,
+        emitEvent,
+        enqueueLedgerCommand,
+      }) => {
+        // Verify ownership BEFORE making any mutations
+        const existingPaymentMethod = await selectPaymentMethodById(
+          paymentMethodId,
+          transaction
+        )
+        if (existingPaymentMethod.customerId !== customer.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',
             message:
@@ -578,10 +609,25 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
           })
         }
 
-        return {
+        const effectsCtx = {
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }
+        const { paymentMethod } =
+          await setDefaultPaymentMethodForCustomer(
+            {
+              paymentMethodId,
+            },
+            effectsCtx
+          )
+
+        return Result.ok({
           success: true,
           paymentMethod,
-        }
+        })
       },
       {
         apiKey: ctx.apiKey,

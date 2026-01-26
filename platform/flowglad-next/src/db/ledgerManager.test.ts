@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupBillingPeriod,
   setupCreditLedgerEntry,
@@ -887,10 +887,9 @@ describe('Ledger Management System', async () => {
             }
 
             // First processing
-            const firstResult = await processLedgerCommand(
-              command,
-              transaction
-            )
+            const firstResult = (
+              await processLedgerCommand(command, transaction)
+            ).unwrap()
 
             expect(firstResult.ledgerTransaction.type).toBe(
               LedgerTransactionType.UsageEventProcessed
@@ -906,10 +905,9 @@ describe('Ledger Management System', async () => {
             )
 
             // Second processing with the same command
-            const secondResult = await processLedgerCommand(
-              command,
-              transaction
-            )
+            const secondResult = (
+              await processLedgerCommand(command, transaction)
+            ).unwrap()
 
             // Should return the same transaction
             expect(secondResult.ledgerTransaction.id).toBe(
@@ -968,10 +966,9 @@ describe('Ledger Management System', async () => {
             }
 
             // First processing
-            const firstResult = await processLedgerCommand(
-              command,
-              transaction
-            )
+            const firstResult = (
+              await processLedgerCommand(command, transaction)
+            ).unwrap()
 
             expect(firstResult.ledgerTransaction.type).toBe(
               LedgerTransactionType.BillingPeriodTransition
@@ -981,10 +978,9 @@ describe('Ledger Management System', async () => {
             ).toBe(newBillingPeriod.id)
 
             // Second processing with the same command
-            const secondResult = await processLedgerCommand(
-              command,
-              transaction
-            )
+            const secondResult = (
+              await processLedgerCommand(command, transaction)
+            ).unwrap()
 
             // Should return the same transaction
             expect(secondResult.ledgerTransaction.id).toBe(
@@ -1044,10 +1040,9 @@ describe('Ledger Management System', async () => {
               }
 
             // First processing
-            const firstResult = await processLedgerCommand(
-              firstCommand,
-              transaction
-            )
+            const firstResult = (
+              await processLedgerCommand(firstCommand, transaction)
+            ).unwrap()
 
             expect(
               firstResult.ledgerTransaction.initiatingSourceId
@@ -1078,10 +1073,9 @@ describe('Ledger Management System', async () => {
               }
 
             // Second processing with different billing period
-            const secondResult = await processLedgerCommand(
-              secondCommand,
-              transaction
-            )
+            const secondResult = (
+              await processLedgerCommand(secondCommand, transaction)
+            ).unwrap()
 
             // Should create a new transaction (different billing period)
             expect(

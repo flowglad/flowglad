@@ -1,5 +1,7 @@
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
 } from '@/db/authenticatedTransaction'
@@ -49,22 +51,18 @@ export const createFeature = protectedProcedure
   .output(z.object({ feature: featuresClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
+      async ({ input, ctx, transactionCtx }) => {
+        const { livemode, organizationId } = ctx
+        if (!organizationId) {
+          throw new Error('organizationId is required')
+        }
         const feature = await insertFeature(
           {
             ...input.feature,
-            organizationId: organization.id,
+            organizationId,
             livemode,
           },
-          transaction
+          transactionCtx
         )
         return { feature }
       }
@@ -91,16 +89,16 @@ export const updateFeature = protectedProcedure
   .input(editFeatureSchema)
   .output(z.object({ feature: featuresClientSelectSchema }))
   .mutation(
-    authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, transactionCtx }) => {
         const feature = await updateFeatureTransaction(
           {
             ...input.feature,
             id: input.id,
           },
-          transaction
+          transactionCtx
         )
-        return { feature }
+        return Result.ok({ feature })
       }
     )
   )
@@ -111,7 +109,8 @@ export const getFeature = protectedProcedure
   .output(z.object({ feature: featuresClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const feature = await selectFeatureById(input.id, transaction)
         return { feature }
       }
@@ -131,7 +130,12 @@ export const getTableRows = protectedProcedure
     createPaginatedTableRowOutputSchema(featuresTableRowOutputSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectFeaturesTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectFeaturesTableRowData({ input, transaction })
+      }
+    )
   )
 
 const getFeaturesForPricingModel = protectedProcedure
@@ -147,7 +151,8 @@ const getFeaturesForPricingModel = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const features = await selectFeatures(
           {
             pricingModelId: input.pricingModelId,

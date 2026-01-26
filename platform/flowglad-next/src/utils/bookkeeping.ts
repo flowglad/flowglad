@@ -1,7 +1,7 @@
+import { Result } from 'better-result'
 import * as R from 'ramda'
 import { createDefaultPriceConfig } from '@/constants/defaultPlanConfig'
 import type { Customer } from '@/db/schema/customers'
-import type { Event } from '@/db/schema/events'
 import type { Payment } from '@/db/schema/payments'
 import type { Price } from '@/db/schema/prices'
 import type { PricingModel } from '@/db/schema/pricingModels'
@@ -35,10 +35,9 @@ import {
   selectPurchaseById,
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import type {
-  AuthenticatedTransactionParams,
   DbTransaction,
+  TransactionEffectsContext,
 } from '@/db/types'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
 import {
@@ -51,14 +50,16 @@ import {
   PriceType,
   PurchaseStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { constructCustomerCreatedEventHash } from '@/utils/eventHelpers'
 import { createInitialInvoiceForPurchase } from './bookkeeping/invoices'
 import { createStripeCustomer } from './stripe'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   const paymentStatus = payment.status
   let purchaseStatus: PurchaseStatus = PurchaseStatus.Pending
   if (paymentStatus === PaymentStatus.Succeeded) {
@@ -82,17 +83,20 @@ export const updatePurchaseStatusToReflectLatestPayment = async (
       },
       transaction
     )
+    // Invalidate purchase cache after updating purchase content (status)
+    invalidateCache(CacheDependency.purchase(payment.purchaseId))
   }
 }
 /**
  * An idempotent method to update an invoice's status to reflect the latest payment.
  * @param payment
- * @param transaction
+ * @param ctx
  */
 export const updateInvoiceStatusToReflectLatestPayment = async (
   payment: Payment.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   /**
    * Only update the invoice status if the payment intent status is succeeded
    */
@@ -136,6 +140,8 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
       InvoiceStatus.Paid,
       transaction
     )
+    // Invalidate invoice cache after updating invoice content (status)
+    invalidateCache(CacheDependency.invoice(invoice.id))
     // await generatePaymentReceiptPdfTask.trigger({
     //   paymentId: payment.id,
     // })
@@ -236,20 +242,28 @@ export const createFreePlanPriceInsert = (
 }
 export const createCustomerBookkeeping = async (
   payload: {
-    customer: Omit<Customer.Insert, 'livemode'>
+    customer: Omit<Customer.Insert, 'livemode' | 'pricingModelId'> & {
+      pricingModelId?: string
+    }
   },
-  {
+  ctx: TransactionEffectsContext & {
+    organizationId: string
+    livemode: boolean
+  }
+): Promise<{
+  customer: Customer.Record
+  subscription?: Subscription.Record
+  subscriptionItems?: SubscriptionItem.Record[]
+}> => {
+  const {
     transaction,
+    cacheRecomputationContext,
     organizationId,
     livemode,
-  }: Omit<AuthenticatedTransactionParams, 'userId'>
-): Promise<
-  TransactionOutput<{
-    customer: Customer.Record
-    subscription?: Subscription.Record
-    subscriptionItems?: SubscriptionItem.Record[]
-  }>
-> => {
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = ctx
   // Security: Validate that customer organizationId matches auth context
   if (
     payload.customer.organizationId &&
@@ -260,19 +274,28 @@ export const createCustomerBookkeeping = async (
     )
   }
   const pricingModel = payload.customer.pricingModelId
-    ? await selectPricingModelById(
-        payload.customer.pricingModelId,
-        transaction
-      )
+    ? (
+        await selectPricingModelById(
+          payload.customer.pricingModelId,
+          transaction
+        )
+      ).unwrap()
     : await selectDefaultPricingModel(
         { organizationId: payload.customer.organizationId, livemode },
         transaction
       )
+
+  if (!pricingModel) {
+    throw new Error(
+      `No pricing model found for customer. Organization: ${payload.customer.organizationId}, livemode: ${livemode}`
+    )
+  }
+
   let customer = await insertCustomer(
     {
       ...payload.customer,
       livemode,
-      pricingModelId: pricingModel?.id ?? null,
+      pricingModelId: pricingModel.id,
     },
     transaction
   )
@@ -294,10 +317,9 @@ export const createCustomerBookkeeping = async (
   }
 
   const timestamp = Date.now()
-  const eventsToInsert: Event.Insert[] = []
 
-  // Create customer created event
-  eventsToInsert.push({
+  // Emit customer created event via callback
+  emitEvent({
     type: FlowgladEventType.CustomerCreated,
     occurredAt: timestamp,
     organizationId: customer.organizationId,
@@ -316,21 +338,11 @@ export const createCustomerBookkeeping = async (
     processedAt: null,
   })
 
-  const pricingModelToUse =
-    pricingModel ??
-    (await selectDefaultPricingModel(
-      {
-        organizationId: customer.organizationId,
-        livemode: customer.livemode,
-      },
-      transaction
-    ))
-
   // Create default subscription for the customer
   // Use customer's organizationId to ensure consistency
   try {
-    // Determine which pricing model to use
-    const pricingModelId = pricingModelToUse!.id
+    // Use the pricing model from customer creation
+    const pricingModelId = pricingModel.id
     // Get the default product for this pricing model
     const [product] = await selectPricesAndProductsByProductWhere(
       {
@@ -350,50 +362,51 @@ export const createCustomerBookkeeping = async (
           transaction
         )
 
-        // Create the subscription
-        const subscriptionResult = await createSubscriptionWorkflow(
-          {
-            organization,
-            customer: {
-              id: customer.id,
-              stripeCustomerId: customer.stripeCustomerId,
+        // Create the subscription - pass callbacks directly
+        const subscriptionResult = (
+          await createSubscriptionWorkflow(
+            {
+              organization,
+              customer: {
+                id: customer.id,
+                stripeCustomerId: customer.stripeCustomerId,
+                livemode: customer.livemode,
+                organizationId: customer.organizationId,
+              },
+              product: defaultProduct,
+              price: defaultPrice,
+              quantity: 1,
               livemode: customer.livemode,
-              organizationId: customer.organizationId,
+              startDate: new Date(),
+              interval: defaultPrice.intervalUnit,
+              intervalCount: defaultPrice.intervalCount,
+              trialEnd: defaultPrice.trialPeriodDays
+                ? new Date(
+                    Date.now() +
+                      defaultPrice.trialPeriodDays *
+                        24 *
+                        60 *
+                        60 *
+                        1000
+                  )
+                : undefined,
+              autoStart: true,
+              name: `${defaultProduct.name} Subscription`,
             },
-            product: defaultProduct,
-            price: defaultPrice,
-            quantity: 1,
-            livemode: customer.livemode,
-            startDate: new Date(),
-            interval: defaultPrice.intervalUnit,
-            intervalCount: defaultPrice.intervalCount,
-            trialEnd: defaultPrice.trialPeriodDays
-              ? new Date(
-                  Date.now() +
-                    defaultPrice.trialPeriodDays * 24 * 60 * 60 * 1000
-                )
-              : undefined,
-            autoStart: true,
-            name: `${defaultProduct.name} Subscription`,
-          },
-          transaction
-        )
+            {
+              transaction,
+              cacheRecomputationContext,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            }
+          )
+        ).unwrap()
 
-        // Merge events from subscription creation
-        if (subscriptionResult.eventsToInsert) {
-          eventsToInsert.push(...subscriptionResult.eventsToInsert)
-        }
-
-        // Return combined result with all events and ledger commands
         return {
-          result: {
-            customer,
-            subscription: subscriptionResult.result.subscription,
-            subscriptionItems:
-              subscriptionResult.result.subscriptionItems,
-          },
-          eventsToInsert,
-          ledgerCommand: subscriptionResult.ledgerCommand,
+          customer,
+          subscription: subscriptionResult.subscription,
+          subscriptionItems: subscriptionResult.subscriptionItems,
         }
       }
     }
@@ -405,11 +418,8 @@ export const createCustomerBookkeeping = async (
     )
   }
 
-  // Return just the customer with events
-  return {
-    result: { customer },
-    eventsToInsert,
-  }
+  // Return just the customer
+  return { customer }
 }
 
 /**
@@ -423,18 +433,21 @@ export const createPricingModelBookkeeping = async (
     >
     defaultPlanIntervalUnit?: IntervalUnit
   },
-  {
-    transaction,
-    organizationId,
-    livemode,
-  }: Omit<AuthenticatedTransactionParams, 'userId'>
+  ctx: TransactionEffectsContext & {
+    organizationId: string
+    livemode: boolean
+  }
 ): Promise<
-  TransactionOutput<{
-    pricingModel: PricingModel.Record
-    defaultProduct: Product.Record
-    defaultPrice: Price.Record
-  }>
+  Result<
+    {
+      pricingModel: PricingModel.Record
+      defaultProduct: Product.Record
+      defaultPrice: Price.Record
+    },
+    Error
+  >
 > => {
+  const { transaction, organizationId, livemode } = ctx
   // 1. Create the pricing model
   const pricingModel = await safelyInsertPricingModel(
     {
@@ -442,13 +455,13 @@ export const createPricingModelBookkeeping = async (
       organizationId,
       livemode,
     },
-    transaction
+    ctx
   )
 
   // 2. Create the default "Base Plan" product
   const defaultProduct = await insertProduct(
     createFreePlanProductInsert(pricingModel),
-    transaction
+    ctx
   )
 
   // 3. Get organization for default currency
@@ -464,19 +477,12 @@ export const createPricingModelBookkeeping = async (
       organization.defaultCurrency,
       payload.defaultPlanIntervalUnit
     ),
-    transaction
+    ctx
   )
 
-  // 5. Create events
-  const timestamp = new Date()
-  const eventsToInsert: Event.Insert[] = []
-
-  return {
-    result: {
-      pricingModel,
-      defaultProduct,
-      defaultPrice,
-    },
-    eventsToInsert,
-  }
+  return Result.ok({
+    pricingModel,
+    defaultProduct,
+    defaultPrice,
+  })
 }

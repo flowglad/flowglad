@@ -1,11 +1,13 @@
+import type { Mock } from 'bun:test'
 import {
   afterEach,
   beforeEach,
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+} from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -43,6 +45,7 @@ import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import {
   createMockConfirmationResult,
   createMockPaymentIntentResponse,
+  createMockStripeCharge,
 } from '@/test/helpers/stripeMocks'
 import {
   BillingPeriodStatus,
@@ -54,22 +57,34 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
+
+// Import actual stripe module before mocking
+import * as actualStripe from '@/utils/stripe'
+
+// Create mock functions
+const mockCreatePaymentIntentForBillingRun =
+  mock<typeof actualStripe.createPaymentIntentForBillingRun>()
+const mockConfirmPaymentIntentForBillingRun =
+  mock<typeof actualStripe.confirmPaymentIntentForBillingRun>()
+const mockGetStripeCharge =
+  mock<typeof actualStripe.getStripeCharge>()
+
+// Mock Stripe functions
+mock.module('@/utils/stripe', () => ({
+  ...actualStripe,
+  createPaymentIntentForBillingRun:
+    mockCreatePaymentIntentForBillingRun,
+  confirmPaymentIntentForBillingRun:
+    mockConfirmPaymentIntentForBillingRun,
+  getStripeCharge: mockGetStripeCharge,
+}))
+
 import {
   confirmPaymentIntentForBillingRun,
   createPaymentIntentForBillingRun,
+  getStripeCharge,
 } from '@/utils/stripe'
 import { executeBillingRun } from './billingRunHelpers'
-
-// Mock Stripe functions
-vi.mock('@/utils/stripe', async (importOriginal) => {
-  const actual =
-    await importOriginal<typeof import('@/utils/stripe')>()
-  return {
-    ...actual,
-    createPaymentIntentForBillingRun: vi.fn(),
-    confirmPaymentIntentForBillingRun: vi.fn(),
-  }
-})
 
 describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
   let organization: Organization.Record
@@ -85,6 +100,44 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
   let subscriptionItem: SubscriptionItem.Record
 
   beforeEach(async () => {
+    // Reset mocks before each test (reset clears both history AND implementations)
+    mockCreatePaymentIntentForBillingRun.mockReset()
+    mockConfirmPaymentIntentForBillingRun.mockReset()
+    mockGetStripeCharge.mockReset()
+
+    // Set default mock implementations
+    // Tests can override with mockResolvedValueOnce or mockImplementation
+    ;(
+      createPaymentIntentForBillingRun as Mock<any>
+    ).mockImplementation(
+      async (params: {
+        amount: number
+        stripeCustomerId: string
+        stripePaymentMethodId: string
+        billingRunId: string
+        billingPeriodId: string
+      }) => {
+        return createMockPaymentIntentResponse({
+          amount: params.amount,
+          customer: params.stripeCustomerId,
+          payment_method: params.stripePaymentMethodId,
+          metadata: {
+            billingRunId: params.billingRunId,
+            type: 'billing_run',
+            billingPeriodId: params.billingPeriodId,
+          },
+        })
+      }
+    )
+
+    ;(
+      confirmPaymentIntentForBillingRun as Mock<any>
+    ).mockImplementation(async (paymentIntentId: string) => {
+      return createMockConfirmationResult(paymentIntentId, {
+        status: 'succeeded',
+      })
+    })
+
     const orgData = await setupOrg()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
@@ -138,6 +191,31 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       type: SubscriptionItemType.Static,
       description: 'Test Description',
     })
+
+    // Configure getStripeCharge mock to return a succeeded charge
+    ;(getStripeCharge as Mock<any>).mockImplementation(
+      async (chargeId: string) => {
+        return createMockStripeCharge({
+          id: chargeId,
+          status: 'succeeded',
+          amount: 1000,
+          paid: true,
+          captured: true,
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+              exp_month: 12,
+              exp_year: 2025,
+              country: 'US',
+              fingerprint: 'fingerprint_test',
+              funding: 'credit',
+            },
+          } as any,
+        })
+      }
+    )
   })
 
   afterEach(async () => {
@@ -158,7 +236,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     await executeBillingRun(adjustmentBillingRun.id)
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
     expect(typeof updatedBillingRun.errorDetails).toBe('object')
@@ -205,12 +286,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-      mockPaymentIntent
+    mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+      Result.ok(mockPaymentIntent)
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -219,7 +300,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
@@ -280,12 +364,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-      mockPaymentIntent
+    mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+      Result.ok(mockPaymentIntent)
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     // Get subscription items before adjustment
     const itemsBefore = await adminTransaction(({ transaction }) =>
@@ -307,7 +391,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     // Verify billing run succeeded
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
 
@@ -383,8 +470,8 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       },
     })
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-      mockPaymentIntent
+    mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+      Result.ok(mockPaymentIntent)
     )
 
     // Mock payment confirmation to fail (requires_payment_method)
@@ -395,9 +482,9 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
         metadata: mockPaymentIntent.metadata,
       }
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     // Get items before
     const itemsBefore = await adminTransaction(({ transaction }) =>
@@ -420,7 +507,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     // Verify billing run status (should be Failed after processOutcomeForBillingRun)
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
 
@@ -536,12 +626,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-      mockPaymentIntent
+    mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+      Result.ok(mockPaymentIntent)
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -549,13 +639,14 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Verify the payment intent was created (amount will be calculated from billing period items)
-    expect(
-      vi.mocked(createPaymentIntentForBillingRun)
-    ).toHaveBeenCalled()
+    expect(mockCreatePaymentIntentForBillingRun).toHaveBeenCalled()
 
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
@@ -648,12 +739,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-      mockPaymentIntent
+    mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+      Result.ok(mockPaymentIntent)
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -664,7 +755,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     // Since amount is 0, executeBillingRun should handle it without creating payment intent
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
 
     // If amount is 0, billing run should succeed without payment
@@ -747,12 +841,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-      mockPaymentIntent
+    mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+      Result.ok(mockPaymentIntent)
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -762,7 +856,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     // Verify billing run succeeded
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
 
@@ -877,12 +974,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-      mockPaymentIntent
+    mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+      Result.ok(mockPaymentIntent)
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -890,13 +987,14 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Verify payment intent was created (amount calculated from billing period items)
-    expect(
-      vi.mocked(createPaymentIntentForBillingRun)
-    ).toHaveBeenCalled()
+    expect(mockCreatePaymentIntentForBillingRun).toHaveBeenCalled()
 
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
@@ -950,12 +1048,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-      mockPaymentIntent
+    mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+      Result.ok(mockPaymentIntent)
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -1030,12 +1128,12 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       { metadata: mockPaymentIntent.metadata }
     )
 
-    vi.mocked(createPaymentIntentForBillingRun).mockResolvedValueOnce(
-      mockPaymentIntent
+    mockCreatePaymentIntentForBillingRun.mockResolvedValueOnce(
+      Result.ok(mockPaymentIntent)
     )
-    vi.mocked(
-      confirmPaymentIntentForBillingRun
-    ).mockResolvedValueOnce(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValueOnce(
+      mockConfirmationResult
+    )
 
     await executeBillingRun(adjustmentBillingRun.id, {
       newSubscriptionItems,
@@ -1056,7 +1154,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })

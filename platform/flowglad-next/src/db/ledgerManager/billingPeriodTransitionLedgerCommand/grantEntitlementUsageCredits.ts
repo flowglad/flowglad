@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import {
   type BillingPeriodTransitionLedgerCommand,
   StandardBillingPeriodTransitionPayload,
@@ -13,6 +14,7 @@ import { findOrCreateLedgerAccountsForSubscriptionAndUsageMeters } from '@/db/ta
 import { bulkInsertLedgerEntries } from '@/db/tableMethods/ledgerEntryMethods'
 import { bulkInsertUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import {
   FeatureUsageGrantFrequency,
   LedgerEntryDirection,
@@ -23,6 +25,11 @@ import {
   UsageCreditType,
 } from '@/types'
 
+interface GrantEntitlementUsageCreditsResult {
+  usageCredits: UsageCredit.Record[]
+  ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
+}
+
 export const grantEntitlementUsageCredits = async (
   params: {
     ledgerAccountsByUsageMeterId: Map<string, LedgerAccount.Record>
@@ -30,10 +37,9 @@ export const grantEntitlementUsageCredits = async (
     command: BillingPeriodTransitionLedgerCommand
   },
   transaction: DbTransaction
-): Promise<{
-  usageCredits: UsageCredit.Record[]
-  ledgerEntries: LedgerEntry.CreditGrantRecognizedRecord[]
-}> => {
+): Promise<
+  Result<GrantEntitlementUsageCreditsResult, NotFoundError>
+> => {
   const { ledgerAccountsByUsageMeterId, ledgerTransaction, command } =
     params
   const subscriptionFeatureItemsWithUsageMeters =
@@ -112,16 +118,20 @@ export const grantEntitlementUsageCredits = async (
     })
 
   if (usageCreditInserts.length === 0) {
-    return {
+    return Result.ok({
       usageCredits: [],
       ledgerEntries: [],
-    }
+    })
   }
 
-  const usageCredits = await bulkInsertUsageCredits(
+  const usageCreditsResult = await bulkInsertUsageCredits(
     usageCreditInserts,
     transaction
   )
+  if (Result.isError(usageCreditsResult)) {
+    return Result.err(usageCreditsResult.error)
+  }
+  const usageCredits = usageCreditsResult.value
   const entitlementCreditLedgerInserts: LedgerEntry.CreditGrantRecognizedInsert[] =
     usageCredits.map((usageCredit) => {
       const entitlementCreditLedgerEntry: LedgerEntry.CreditGrantRecognizedInsert =
@@ -152,14 +162,17 @@ export const grantEntitlementUsageCredits = async (
       return entitlementCreditLedgerEntry
     })
 
-  const entitlementCreditLedgerEntries =
+  const entitlementCreditLedgerEntriesResult =
     await bulkInsertLedgerEntries(
       entitlementCreditLedgerInserts,
       transaction
     )
-  return {
+  if (Result.isError(entitlementCreditLedgerEntriesResult)) {
+    return Result.err(entitlementCreditLedgerEntriesResult.error)
+  }
+  return Result.ok({
     usageCredits,
     ledgerEntries:
-      entitlementCreditLedgerEntries as LedgerEntry.CreditGrantRecognizedRecord[],
-  }
+      entitlementCreditLedgerEntriesResult.value as LedgerEntry.CreditGrantRecognizedRecord[],
+  })
 }

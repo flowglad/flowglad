@@ -1,0 +1,60 @@
+isDefault: false
+name: "Seat-Based Billing Demo"
+
+resources:
+  - slug: "seats"
+    name: "Team Seats"
+    active: true
+
+features:
+  - type: "resource"
+    slug: "seat_allocation"
+    name: "Team Seats"
+    description: "Seats for team members"
+    resourceSlug: "seats"
+    amount: 1
+    active: true
+
+products:
+  - product:
+      name: "Free"
+      description: "Try it out - no seats included"
+      active: true
+      default: true
+      slug: "free"
+    price:
+      intervalUnit: "month"
+      name: "Free Plan"
+      intervalCount: 1
+      type: "subscription"
+      isDefault: true
+      unitPrice: 0
+      usageEventsPerUnit: null
+      active: true
+      slug: "free_monthly"
+      usageMeterId: null
+    features: []
+
+  - product:
+      name: "Pro"
+      description: "$10 per seat per month"
+      active: true
+      default: false
+      slug: "pro"
+      singularQuantityLabel: "seat"
+      pluralQuantityLabel: "seats"
+    price:
+      intervalUnit: "month"
+      name: "Pro Plan"
+      intervalCount: 1
+      type: "subscription"
+      isDefault: true
+      unitPrice: 1000
+      usageEventsPerUnit: null
+      active: true
+      slug: "pro_monthly"
+      usageMeterId: null
+    features:
+      - "seat_allocation"
+
+usageMeters: []

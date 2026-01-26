@@ -5,13 +5,21 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import type React from 'react'
-import {
-  FlowgladContextProvider,
-  type RequestConfig,
-} from './FlowgladContext'
+import { FlowgladConfigProvider } from './FlowgladConfigContext'
+import { type RequestConfig } from './FlowgladContext'
 import { validateUrl } from './utils'
 
-const queryClient = new QueryClient()
+let clientQueryClientSingleton: QueryClient | undefined = undefined
+
+const getQueryClient = () => {
+  if (typeof window === 'undefined') {
+    return new QueryClient()
+  }
+  if (!clientQueryClientSingleton) {
+    clientQueryClientSingleton = new QueryClient()
+  }
+  return clientQueryClientSingleton
+}
 
 export interface LoadedFlowgladProviderProps {
   children: React.ReactNode
@@ -26,7 +34,6 @@ export interface LoadedFlowgladProviderProps {
    * Better Auth basePath, you must update this prop to match.
    */
   betterAuthBasePath?: string
-  loadBilling: boolean
 }
 
 interface DevModeFlowgladProviderProps {
@@ -40,26 +47,22 @@ export type FlowgladProviderProps =
   | DevModeFlowgladProviderProps
 
 export const FlowgladProvider = (props: FlowgladProviderProps) => {
+  const queryClient = getQueryClient()
   if ('__devMode' in props) {
     return (
       <QueryClientProvider client={queryClient}>
-        <FlowgladContextProvider
+        <FlowgladConfigProvider
           __devMode
           billingMocks={props.billingMocks}
         >
           {props.children}
-        </FlowgladContextProvider>
+        </FlowgladConfigProvider>
       </QueryClientProvider>
     )
   }
 
-  const {
-    baseURL,
-    betterAuthBasePath,
-    loadBilling,
-    requestConfig,
-    children,
-  } = props as LoadedFlowgladProviderProps
+  const { baseURL, betterAuthBasePath, requestConfig, children } =
+    props
   if (baseURL) {
     validateUrl(baseURL, 'baseURL', true)
   }
@@ -68,14 +71,13 @@ export const FlowgladProvider = (props: FlowgladProviderProps) => {
   }
   return (
     <QueryClientProvider client={queryClient}>
-      <FlowgladContextProvider
+      <FlowgladConfigProvider
         baseURL={baseURL}
         betterAuthBasePath={betterAuthBasePath}
-        loadBilling={loadBilling}
         requestConfig={requestConfig}
       >
         {children}
-      </FlowgladContextProvider>
+      </FlowgladConfigProvider>
     </QueryClientProvider>
   )
 }

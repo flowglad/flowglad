@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { CurrencyCode, IntervalUnit } from '@/types'
@@ -5,7 +9,8 @@ import core from '@/utils/core'
 import { CustomerSubscriptionUpgradedEmail } from './customer-subscription-upgraded'
 
 describe('CustomerSubscriptionUpgradedEmail', () => {
-  const baseProps = {
+  // Base props for Free → Paid upgrade
+  const freeToPaidProps = {
     customerName: 'Jane Smith',
     organizationName: 'Tech Solutions',
     organizationLogoUrl: 'https://example.com/logo.png',
@@ -21,437 +26,392 @@ describe('CustomerSubscriptionUpgradedEmail', () => {
     interval: IntervalUnit.Month,
     nextBillingDate: new Date('2025-02-15'),
     paymentMethodLast4: '1234',
+    dateConfirmed: new Date('2025-01-15'),
   }
+
+  // Props for Paid → Paid upgrade
+  const paidToPaidProps = {
+    ...freeToPaidProps,
+    previousPlanName: 'Basic Plan',
+    previousPlanPrice: 1900, // $19.00
+    previousPlanCurrency: CurrencyCode.USD,
+    previousPlanInterval: IntervalUnit.Month,
+  }
+
   const trialingProps = {
-    ...baseProps,
-    nextBillingDate: new Date('2025-01-15'),
+    ...freeToPaidProps,
+    nextBillingDate: new Date('2025-01-29'),
     trialing: true,
   }
 
-  it('renders upgrade-specific subject line', () => {
-    const { getByText, getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
+  describe('Free to Paid upgrade', () => {
+    it('renders subscription confirmed title and message', () => {
+      const { getByText, getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
 
-    // Check that key text content is present
-    expect(
-      getByText('Your subscription has been successfully upgraded.')
-    ).toBeInTheDocument()
-    expect(getByTestId('email-title')).toHaveTextContent(
-      'Subscription upgraded'
-    )
-  })
-
-  it('shows previous plan name clearly', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    expect(getByTestId('previous-plan')).toHaveTextContent(
-      'Previous plan: Free Plan (Free)'
-    )
-  })
-
-  it('shows new plan name and pricing', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    expect(getByTestId('new-plan')).toHaveTextContent(
-      'New plan: Pro Plan'
-    )
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: $49.00/month'
-    )
-  })
-
-  it('displays transition arrow or similar visual indicator', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    // Check that both plans are shown in order
-    const previousPlan = getByTestId('previous-plan')
-    const newPlan = getByTestId('new-plan')
-
-    expect(previousPlan).toBeInTheDocument()
-    expect(newPlan).toBeInTheDocument()
-
-    // They should be shown in a detail section that implies transition
-    expect(previousPlan.parentElement).toBe(newPlan.parentElement)
-  })
-
-  it('includes next charge date if not trialing', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    // Date formatting may vary based on locale/timezone
-    const dateElement = getByTestId('first-charge-date')
-    expect(dateElement.textContent).toContain('Next charge:')
-    expect(dateElement.textContent).toContain('2025')
-    expect(dateElement.textContent).toContain(
-      core.formatDate(baseProps.nextBillingDate)
-    )
-  })
-
-  it('includes first charge date if trialing', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...trialingProps} />
-    )
-
-    // Date formatting may vary based on locale/timezone
-    const dateElement = getByTestId('first-charge-date')
-    expect(dateElement.textContent).toContain('First charge:')
-    expect(dateElement.textContent).toContain('2025')
-    expect(dateElement.textContent).toContain(
-      core.formatDate(trialingProps.nextBillingDate)
-    )
-  })
-
-  it('formats pricing for monthly subscriptions', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: $49.00/month'
-    )
-  })
-
-  it('formats pricing for yearly subscriptions', () => {
-    const yearlyProps = {
-      ...baseProps,
-      interval: IntervalUnit.Year,
-      price: 50000, // $500.00
-    }
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...yearlyProps} />
-    )
-
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: $500.00/year'
-    )
-  })
-
-  it('shows paid previous plan with pricing', () => {
-    const paidToPaidProps = {
-      ...baseProps,
-      previousPlanName: 'Basic Plan',
-      previousPlanPrice: 1900, // $19.00
-      previousPlanCurrency: CurrencyCode.USD,
-      previousPlanInterval: IntervalUnit.Month,
-    }
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...paidToPaidProps} />
-    )
-
-    expect(getByTestId('previous-plan')).toHaveTextContent(
-      'Previous plan: Basic Plan ($19.00/month)'
-    )
-  })
-
-  it('handles yearly previous plan correctly', () => {
-    const yearlyPreviousProps = {
-      ...baseProps,
-      previousPlanName: 'Basic Yearly',
-      previousPlanPrice: 20000, // $200.00
-      previousPlanCurrency: CurrencyCode.USD,
-      previousPlanInterval: IntervalUnit.Year,
-    }
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...yearlyPreviousProps} />
-    )
-
-    expect(getByTestId('previous-plan')).toHaveTextContent(
-      'Previous plan: Basic Yearly ($200.00/year)'
-    )
-  })
-
-  it('handles different currencies for previous plan', () => {
-    const differentCurrencyProps = {
-      ...baseProps,
-      previousPlanName: 'Euro Basic',
-      previousPlanPrice: 2500, // €25.00
-      previousPlanCurrency: CurrencyCode.EUR,
-      previousPlanInterval: IntervalUnit.Month,
-      currency: CurrencyCode.EUR,
-      price: 4500, // €45.00
-    }
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail
-        {...differentCurrencyProps}
-      />
-    )
-
-    expect(getByTestId('previous-plan')).toHaveTextContent(
-      'Previous plan: Euro Basic (€25.00/month)'
-    )
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: €45.00/month'
-    )
-  })
-
-  it('includes payment method confirmation', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    expect(getByTestId('payment-method')).toHaveTextContent(
-      'Payment method: •••• 1234'
-    )
-  })
-
-  it('includes billing portal link for management', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    const button = getByTestId('manage-subscription-button')
-    const expectedUrl = core.organizationBillingPortalURL({
-      organizationId: baseProps.organizationId,
-    })
-
-    expect(button).toHaveAttribute('href', expectedUrl)
-    expect(button).toHaveTextContent('Manage Subscription →')
-  })
-
-  it('displays upgrade-specific header title', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    expect(getByTestId('email-title')).toHaveTextContent(
-      'Subscription upgraded'
-    )
-  })
-
-  it('shows clear message about the upgrade in body', () => {
-    const { getByText } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    expect(
-      getByText('Your subscription has been successfully upgraded.')
-    ).toBeInTheDocument()
-  })
-
-  it('includes next charge information in body text if not trialing', () => {
-    const { getByText } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
-
-    // Check for the charge text - the date formatting may vary
-    const chargeText = getByText((content, element) => {
-      return (
-        element?.tagName === 'P' &&
-        content.includes(
-          'Your next charge of $49.00 will be processed'
+      expect(
+        getByText(
+          "You've successfully subscribed to the following plan:"
         )
+      ).toBeInTheDocument()
+      expect(getByTestId('email-title')).toHaveTextContent(
+        'Subscription Confirmed'
       )
     })
-    expect(chargeText).toBeInTheDocument()
-  })
 
-  it('includes first charge information in body text if trialing', () => {
-    const { getByText } = render(
-      <CustomerSubscriptionUpgradedEmail {...trialingProps} />
-    )
+    it('does NOT show previous plan when upgrading from free', () => {
+      const { queryByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
 
-    // Check for the charge text - the date formatting may vary
-    const chargeText = getByText((content, element) => {
-      return (
-        element?.tagName === 'P' &&
-        content.includes(
-          'Your first charge of $49.00 will be processed'
-        )
+      // Previous plan should not be shown for free → paid upgrades
+      expect(queryByTestId('previous-plan')).not.toBeInTheDocument()
+    })
+
+    it('shows "Plan" label (not "New Plan") when upgrading from free', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
+
+      const planRow = getByTestId('new-plan')
+      expect(planRow).toHaveTextContent('Plan')
+      expect(planRow).not.toHaveTextContent('New Plan')
+      expect(planRow).toHaveTextContent('Pro Plan')
+    })
+
+    it('shows price in Apple-style table row', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
+
+      const priceRow = getByTestId('price')
+      expect(priceRow).toHaveTextContent('Price')
+      expect(priceRow).toHaveTextContent('$49.00/month')
+    })
+
+    it('shows Next Billing Date for non-trial subscriptions', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
+
+      const dateRow = getByTestId('next-billing-date')
+      expect(dateRow).toHaveTextContent('Next Billing Date')
+      expect(dateRow).toHaveTextContent('2025')
+    })
+
+    it('shows date confirmed', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
+
+      const dateRow = getByTestId('date-confirmed')
+      expect(dateRow).toHaveTextContent('Date Confirmed')
+      expect(dateRow).toHaveTextContent('2025')
+    })
+
+    it('displays payment method', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
+
+      const paymentRow = getByTestId('payment-method')
+      expect(paymentRow).toHaveTextContent('Payment Method')
+      expect(paymentRow).toHaveTextContent('•••• 1234')
+    })
+
+    it('shows auto-renewal notice', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
+
+      const notice = getByTestId('auto-renew-notice')
+      expect(notice).toHaveTextContent(
+        'Your subscription automatically renews until canceled.'
       )
     })
-    expect(chargeText).toBeInTheDocument()
   })
 
-  it('handles missing payment method gracefully', () => {
-    const propsWithoutPayment = {
-      ...baseProps,
-      paymentMethodLast4: undefined,
-    }
-    const { queryByTestId, getByText } = render(
-      <CustomerSubscriptionUpgradedEmail {...propsWithoutPayment} />
-    )
+  describe('Paid to Paid upgrade', () => {
+    it('shows previous plan when upgrading from paid plan', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...paidToPaidProps} />
+      )
 
-    expect(queryByTestId('payment-method')).not.toBeInTheDocument()
-    // Should still show first charge date without payment method details
-    const chargeText = getByText((content, element) => {
-      return (
-        element?.tagName === 'P' &&
-        content.includes(
-          'Your next charge of $49.00 will be processed'
-        )
+      const previousPlanRow = getByTestId('previous-plan')
+      expect(previousPlanRow).toHaveTextContent('Previous Plan')
+      expect(previousPlanRow).toHaveTextContent(
+        'Basic Plan ($19.00/month)'
       )
     })
-    expect(chargeText).toBeInTheDocument()
+
+    it('shows "New Plan" label when upgrading from paid plan', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...paidToPaidProps} />
+      )
+
+      const newPlanRow = getByTestId('new-plan')
+      expect(newPlanRow).toHaveTextContent('New Plan')
+      expect(newPlanRow).toHaveTextContent('Pro Plan')
+    })
+
+    it('displays both plans for paid-to-paid transitions', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...paidToPaidProps} />
+      )
+
+      expect(getByTestId('previous-plan')).toBeInTheDocument()
+      expect(getByTestId('new-plan')).toBeInTheDocument()
+    })
+
+    it('handles yearly previous plan correctly', () => {
+      const yearlyPreviousProps = {
+        ...paidToPaidProps,
+        previousPlanName: 'Basic Yearly',
+        previousPlanPrice: 20000, // $200.00
+        previousPlanInterval: IntervalUnit.Year,
+      }
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...yearlyPreviousProps} />
+      )
+
+      expect(getByTestId('previous-plan')).toHaveTextContent(
+        'Basic Yearly ($200.00/year)'
+      )
+    })
+
+    it('handles different currencies for previous plan', () => {
+      const differentCurrencyProps = {
+        ...paidToPaidProps,
+        previousPlanName: 'Euro Basic',
+        previousPlanPrice: 2500, // €25.00
+        previousPlanCurrency: CurrencyCode.EUR,
+        currency: CurrencyCode.EUR,
+        price: 4500, // €45.00
+      }
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail
+          {...differentCurrencyProps}
+        />
+      )
+
+      expect(getByTestId('previous-plan')).toHaveTextContent(
+        'Euro Basic (€25.00/month)'
+      )
+      expect(getByTestId('price')).toHaveTextContent('€45.00/month')
+    })
+
+    it('handles previous plan with weekly interval', () => {
+      const weeklyPreviousProps = {
+        ...paidToPaidProps,
+        previousPlanName: 'Weekly Basic',
+        previousPlanPrice: 700, // $7.00
+        previousPlanInterval: IntervalUnit.Week,
+      }
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...weeklyPreviousProps} />
+      )
+
+      expect(getByTestId('previous-plan')).toHaveTextContent(
+        'Weekly Basic ($7.00/week)'
+      )
+    })
+
+    it('handles non-renewing previous plan', () => {
+      const nonRenewingPreviousProps = {
+        ...paidToPaidProps,
+        previousPlanName: 'One-time Plan',
+        previousPlanPrice: 9900, // $99.00
+        previousPlanInterval: undefined,
+      }
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail
+          {...nonRenewingPreviousProps}
+        />
+      )
+
+      expect(getByTestId('previous-plan')).toHaveTextContent(
+        'One-time Plan ($99.00)'
+      )
+    })
   })
 
-  it('displays customer greeting correctly', () => {
-    const { getByText } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
+  describe('Trial subscriptions', () => {
+    it('shows Renewal Price with embedded date for trials (Apple-style)', () => {
+      const { getByTestId, queryByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...trialingProps} />
+      )
 
-    expect(
-      getByText(`Hi ${baseProps.customerName},`)
-    ).toBeInTheDocument()
+      // Trial subscriptions show "Renewal Price" with embedded date
+      const renewalRow = getByTestId('renewal-price')
+      expect(renewalRow).toHaveTextContent('Renewal Price')
+      expect(renewalRow).toHaveTextContent('$49.00/month')
+      expect(renewalRow).toHaveTextContent('starting')
+      expect(renewalRow).toHaveTextContent('2025')
+
+      // Trial subscriptions should NOT have separate price or next-billing-date rows
+      expect(queryByTestId('price')).not.toBeInTheDocument()
+      expect(
+        queryByTestId('next-billing-date')
+      ).not.toBeInTheDocument()
+    })
+
+    it('shows trial auto-renewal notice with cancellation deadline', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...trialingProps} />
+      )
+
+      const notice = getByTestId('trial-auto-renew-notice')
+      expect(notice).toHaveTextContent(
+        'Your subscription automatically renews until canceled'
+      )
+      expect(notice).toHaveTextContent(
+        'To avoid being charged, you must cancel at least a day before'
+      )
+    })
   })
 
-  it('shows organization name in signature', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
+  describe('Pricing formats', () => {
+    it('formats monthly pricing correctly', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
 
-    expect(getByTestId('signature-thanks')).toHaveTextContent(
-      'Thanks,'
-    )
-    expect(getByTestId('signature-org-name')).toHaveTextContent(
-      baseProps.organizationName
-    )
+      expect(getByTestId('price')).toHaveTextContent('$49.00/month')
+    })
+
+    it('formats yearly pricing correctly', () => {
+      const yearlyProps = {
+        ...freeToPaidProps,
+        interval: IntervalUnit.Year,
+        price: 50000, // $500.00
+      }
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...yearlyProps} />
+      )
+
+      expect(getByTestId('price')).toHaveTextContent('$500.00/year')
+    })
+
+    it('handles weekly interval', () => {
+      const weeklyProps = {
+        ...freeToPaidProps,
+        interval: IntervalUnit.Week,
+        price: 700, // $7.00
+      }
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...weeklyProps} />
+      )
+
+      expect(getByTestId('price')).toHaveTextContent('$7.00/week')
+    })
+
+    it('handles daily interval', () => {
+      const dailyProps = {
+        ...freeToPaidProps,
+        interval: IntervalUnit.Day,
+        price: 199, // $1.99
+      }
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...dailyProps} />
+      )
+
+      expect(getByTestId('price')).toHaveTextContent('$1.99/day')
+    })
+
+    it('handles different currency codes correctly', () => {
+      const gbpProps = {
+        ...freeToPaidProps,
+        previousPlanCurrency: CurrencyCode.GBP,
+        currency: CurrencyCode.GBP,
+        price: 3500, // £35.00
+      }
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...gbpProps} />
+      )
+
+      expect(getByTestId('price')).toHaveTextContent('£35.00/month')
+    })
   })
 
-  it('handles different currency codes correctly', () => {
-    const gbpProps = {
-      ...baseProps,
-      previousPlanCurrency: CurrencyCode.GBP,
-      currency: CurrencyCode.GBP,
-      price: 3500, // £35.00
-    }
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...gbpProps} />
-    )
+  describe('Edge cases', () => {
+    it('includes inline manage subscription link', () => {
+      const { getByText } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
 
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: £35.00/month'
-    )
-  })
+      const expectedUrl = core.organizationBillingPortalURL({
+        organizationId: freeToPaidProps.organizationId,
+      })
 
-  it('shows Free label for zero-price previous plan', () => {
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
+      const link = getByText('manage your subscription')
+      expect(link).toHaveAttribute('href', expectedUrl)
+    })
 
-    // Previous plan should clearly indicate it was free when price is 0
-    expect(getByTestId('previous-plan')).toHaveTextContent('(Free)')
-  })
+    it('handles missing payment method gracefully', () => {
+      const propsWithoutPayment = {
+        ...freeToPaidProps,
+        paymentMethodLast4: undefined,
+      }
+      const { queryByTestId, getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...propsWithoutPayment} />
+      )
 
-  it('includes payment method info in charge description when provided', () => {
-    const { getByText } = render(
-      <CustomerSubscriptionUpgradedEmail {...baseProps} />
-    )
+      expect(queryByTestId('payment-method')).not.toBeInTheDocument()
+      expect(getByTestId('auto-renew-notice')).toHaveTextContent(
+        'Your subscription automatically renews until canceled.'
+      )
+    })
 
-    expect(
-      getByText(/The payment method ending in 1234 will be used/)
-    ).toBeInTheDocument()
-  })
+    it('displays customer greeting correctly', () => {
+      const { getByText } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
 
-  it('excludes payment method from charge description when not provided', () => {
-    const propsWithoutPayment = {
-      ...baseProps,
-      paymentMethodLast4: undefined,
-    }
-    const { container } = render(
-      <CustomerSubscriptionUpgradedEmail {...propsWithoutPayment} />
-    )
+      expect(
+        getByText(`Hi ${freeToPaidProps.customerName},`)
+      ).toBeInTheDocument()
+    })
 
-    const content = container.textContent
-    expect(content).not.toContain('The payment method ending in')
-  })
+    it('shows organization name in signature', () => {
+      const { getByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...freeToPaidProps} />
+      )
 
-  it('renders without organization logo when not provided', () => {
-    const propsWithoutLogo = {
-      ...baseProps,
-      organizationLogoUrl: undefined,
-    }
-    const { queryByAltText } = render(
-      <CustomerSubscriptionUpgradedEmail {...propsWithoutLogo} />
-    )
+      expect(getByTestId('signature-thanks')).toHaveTextContent(
+        'Thanks,'
+      )
+      expect(getByTestId('signature-org-name')).toHaveTextContent(
+        freeToPaidProps.organizationName
+      )
+    })
 
-    expect(queryByAltText('Logo')).not.toBeInTheDocument()
-  })
+    it('renders without organization logo when not provided', () => {
+      const propsWithoutLogo = {
+        ...freeToPaidProps,
+        organizationLogoUrl: undefined,
+      }
+      const { queryByAltText } = render(
+        <CustomerSubscriptionUpgradedEmail {...propsWithoutLogo} />
+      )
 
-  it('handles non-renewing upgraded subscription without interval', () => {
-    const nonRenewingProps = {
-      ...baseProps,
-      interval: undefined,
-      nextBillingDate: undefined,
-    }
-    const { getByTestId, queryByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...nonRenewingProps} />
-    )
+      expect(queryByAltText('Logo')).not.toBeInTheDocument()
+    })
 
-    // Should show price without interval
-    expect(getByTestId('price')).toHaveTextContent('Price: $49.00')
-    // Should not show first charge date
-    expect(queryByTestId('first-charge-date')).not.toBeInTheDocument()
-  })
+    it('handles non-renewing upgraded subscription without interval', () => {
+      const nonRenewingProps = {
+        ...freeToPaidProps,
+        interval: undefined,
+        nextBillingDate: undefined,
+      }
+      const { getByTestId, queryByTestId } = render(
+        <CustomerSubscriptionUpgradedEmail {...nonRenewingProps} />
+      )
 
-  it('handles weekly interval for upgraded subscription', () => {
-    const weeklyProps = {
-      ...baseProps,
-      interval: IntervalUnit.Week,
-      price: 700, // $7.00
-    }
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...weeklyProps} />
-    )
-
-    expect(getByTestId('price')).toHaveTextContent(
-      'Price: $7.00/week'
-    )
-  })
-
-  it('handles daily interval for upgraded subscription', () => {
-    const dailyProps = {
-      ...baseProps,
-      interval: IntervalUnit.Day,
-      price: 199, // $1.99
-    }
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...dailyProps} />
-    )
-
-    expect(getByTestId('price')).toHaveTextContent('Price: $1.99/day')
-  })
-
-  it('handles previous plan with weekly interval', () => {
-    const weeklyPreviousProps = {
-      ...baseProps,
-      previousPlanName: 'Weekly Basic',
-      previousPlanPrice: 700, // $7.00
-      previousPlanCurrency: CurrencyCode.USD,
-      previousPlanInterval: IntervalUnit.Week,
-    }
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail {...weeklyPreviousProps} />
-    )
-
-    expect(getByTestId('previous-plan')).toHaveTextContent(
-      'Previous plan: Weekly Basic ($7.00/week)'
-    )
-  })
-
-  it('handles non-renewing previous plan', () => {
-    const nonRenewingPreviousProps = {
-      ...baseProps,
-      previousPlanName: 'One-time Plan',
-      previousPlanPrice: 9900, // $99.00
-      previousPlanCurrency: CurrencyCode.USD,
-      previousPlanInterval: undefined,
-    }
-    const { getByTestId } = render(
-      <CustomerSubscriptionUpgradedEmail
-        {...nonRenewingPreviousProps}
-      />
-    )
-
-    expect(getByTestId('previous-plan')).toHaveTextContent(
-      'Previous plan: One-time Plan ($99.00)'
-    )
+      expect(getByTestId('price')).toHaveTextContent('$49.00')
+      expect(
+        queryByTestId('next-billing-date')
+      ).not.toBeInTheDocument()
+    })
   })
 })

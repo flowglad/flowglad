@@ -1,6 +1,10 @@
 import type { Flowglad } from '@flowglad/node'
 import { type ZodType, z } from 'zod'
-import { FlowgladActionKey, HTTPMethod } from './types/sdk'
+import {
+  FlowgladActionKey,
+  HTTPMethod,
+  UsageMeterBalance,
+} from './types/sdk'
 
 export type FlowgladActionValidatorMap = {
   [K in FlowgladActionKey]: {
@@ -91,19 +95,29 @@ export const uncancelSubscriptionSchema = z.object({
 })
 
 /**
- * Subscription adjustment timing options for the terse SDK API.
+ * Subscription adjustment timing options.
  * - 'immediately': Apply change now with proration
- * - 'at_end_of_period': Apply change at next billing period
+ * - 'at_end_of_current_billing_period': Apply change at next billing period
  * - 'auto': Upgrades happen immediately, downgrades at end of period
  */
 export const subscriptionAdjustmentTiming = {
   Immediately: 'immediately',
-  AtEndOfCurrentBillingPeriod: 'at_end_of_period',
+  AtEndOfCurrentBillingPeriod: 'at_end_of_current_billing_period',
   Auto: 'auto',
 } as const
 
 export type SubscriptionAdjustmentTiming =
   (typeof subscriptionAdjustmentTiming)[keyof typeof subscriptionAdjustmentTiming]
+
+/**
+ * Zod schema for subscription adjustment timing.
+ * Use this schema to validate timing values consistently across SDK and backend.
+ */
+export const subscriptionAdjustmentTimingSchema = z.enum([
+  subscriptionAdjustmentTiming.Immediately,
+  subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
+  subscriptionAdjustmentTiming.Auto,
+])
 
 /**
  * Terse subscription item for multi-item adjustments.
@@ -135,12 +149,7 @@ export type TerseSubscriptionItem = z.input<
  */
 const adjustmentCommonOptions = {
   subscriptionId: z.string().optional(),
-  timing: z
-    .enum([
-      subscriptionAdjustmentTiming.Immediately,
-      subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod,
-      subscriptionAdjustmentTiming.Auto,
-    ])
+  timing: subscriptionAdjustmentTimingSchema
     .optional()
     .default(subscriptionAdjustmentTiming.Auto),
   prorate: z.boolean().optional(),
@@ -416,6 +425,176 @@ export const updateCustomerSchema = z.object({
   externalId: z.string(),
 })
 
+/**
+ * Schema for fetching all resources for a customer's subscription.
+ * Returns capacity, claimed count, and available count for all resources.
+ */
+export const getResourcesSchema = z.object({
+  subscriptionId: z.string().optional(),
+})
+
+export type GetResourcesParams = z.infer<typeof getResourcesSchema>
+
+/**
+ * Schema for claiming resources from a subscription's capacity.
+ *
+ * Supports three mutually exclusive modes:
+ * - `quantity`: Create N anonymous claims without external identifiers
+ * - `externalId`: Create a named claim with a single external identifier (idempotent)
+ * - `externalIds`: Create multiple named claims with external identifiers (idempotent)
+ */
+export const claimResourceSchema = z
+  .object({
+    resourceSlug: z.string(),
+    subscriptionId: z.string().optional(),
+    metadata: z
+      .record(
+        z.string(),
+        z.union([z.string().max(500), z.number(), z.boolean()])
+      )
+      .optional(),
+    quantity: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe(
+        'Create N anonymous claims without external identifiers'
+      ),
+    externalId: z
+      .string()
+      .max(255)
+      .optional()
+      .describe('Create a named claim with this external identifier'),
+    externalIds: z
+      .array(z.string().max(255))
+      .nonempty()
+      .optional()
+      .describe(
+        'Create multiple named claims with these external identifiers'
+      ),
+  })
+  .refine(
+    (data) => {
+      const provided = [
+        data.quantity,
+        data.externalId,
+        data.externalIds,
+      ].filter((v) => v !== undefined)
+      return provided.length === 1
+    },
+    {
+      message:
+        'Exactly one of quantity, externalId, or externalIds must be provided',
+    }
+  )
+
+export type ClaimResourceParams = z.infer<typeof claimResourceSchema>
+
+/**
+ * Schema for releasing claimed resources back to the subscription's available pool.
+ *
+ * Supports four mutually exclusive modes:
+ * - `quantity`: Release N anonymous claims in FIFO order (oldest first)
+ * - `externalId`: Release a named claim by its external identifier
+ * - `externalIds`: Release multiple named claims by their external identifiers
+ * - `claimIds`: Release specific claims by their database IDs
+ */
+export const releaseResourceSchema = z
+  .object({
+    resourceSlug: z.string(),
+    subscriptionId: z.string().optional(),
+    quantity: z
+      .number()
+      .int()
+      .positive()
+      .optional()
+      .describe('Release N anonymous claims (FIFO)'),
+    externalId: z
+      .string()
+      .max(255)
+      .optional()
+      .describe('Release a named claim by external identifier'),
+    externalIds: z
+      .array(z.string().max(255))
+      .nonempty()
+      .optional()
+      .describe(
+        'Release multiple named claims by external identifiers'
+      ),
+    claimIds: z
+      .array(z.string())
+      .nonempty()
+      .optional()
+      .describe('Release specific claims by their IDs'),
+  })
+  .refine(
+    (data) => {
+      const provided = [
+        data.quantity,
+        data.externalId,
+        data.externalIds,
+        data.claimIds,
+      ].filter((v) => v !== undefined)
+      return provided.length === 1
+    },
+    {
+      message:
+        'Exactly one of quantity, externalId, externalIds, or claimIds must be provided',
+    }
+  )
+
+export type ReleaseResourceParams = z.infer<
+  typeof releaseResourceSchema
+>
+
+/**
+ * Schema for listing active resource claims for a subscription.
+ * Can optionally filter by resource type.
+ */
+export const listResourceClaimsSchema = z.object({
+  subscriptionId: z.string().optional(),
+  resourceSlug: z.string().optional(),
+})
+
+export const getResourceUsageSchema = z
+  .object({
+    subscriptionId: z.string().optional(),
+  })
+  .and(
+    z.union([
+      z.object({ resourceSlug: z.string() }),
+      z.object({ resourceId: z.string() }),
+    ])
+  )
+
+export type GetResourceUsageParams = z.infer<
+  typeof getResourceUsageSchema
+>
+
+export type ListResourceClaimsParams = z.infer<
+  typeof listResourceClaimsSchema
+>
+
+/**
+ * Schema for fetching usage meter balances for a customer.
+ * Returns usage meter balances for current subscriptions, optionally filtered by subscriptionId.
+ * The customer externalId is derived server-side from the authenticated session.
+ */
+export const getUsageMeterBalancesSchema = z
+  .object({
+    subscriptionId: z.string().optional(),
+  })
+  .strict()
+
+export type GetUsageMeterBalancesParams = z.infer<
+  typeof getUsageMeterBalancesSchema
+>
+
+export type GetUsageMeterBalancesResponse = {
+  usageMeterBalances: UsageMeterBalance[]
+}
+
 export const flowgladActionValidators = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
@@ -464,5 +643,33 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.CreateUsageEvent]: {
     method: HTTPMethod.POST,
     inputValidator: clientCreateUsageEventSchema,
+  },
+  [FlowgladActionKey.GetResourceUsages]: {
+    method: HTTPMethod.POST,
+    inputValidator: getResourcesSchema,
+  },
+  [FlowgladActionKey.ClaimResource]: {
+    method: HTTPMethod.POST,
+    inputValidator: claimResourceSchema,
+  },
+  [FlowgladActionKey.ReleaseResource]: {
+    method: HTTPMethod.POST,
+    inputValidator: releaseResourceSchema,
+  },
+  [FlowgladActionKey.ListResourceClaims]: {
+    method: HTTPMethod.POST,
+    inputValidator: listResourceClaimsSchema,
+  },
+  [FlowgladActionKey.GetResourceUsage]: {
+    method: HTTPMethod.POST,
+    inputValidator: getResourceUsageSchema,
+  },
+  [FlowgladActionKey.GetPricingModel]: {
+    method: HTTPMethod.POST,
+    inputValidator: z.object({}).strict(),
+  },
+  [FlowgladActionKey.GetUsageMeterBalances]: {
+    method: HTTPMethod.POST,
+    inputValidator: getUsageMeterBalancesSchema,
   },
 } as const satisfies FlowgladActionValidatorMap

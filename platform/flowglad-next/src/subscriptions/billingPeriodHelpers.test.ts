@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -12,6 +13,10 @@ import {
   setupPayment,
   setupPaymentMethod,
   setupProductFeature,
+  setupResource,
+  setupResourceClaim,
+  setupResourceFeature,
+  setupResourceSubscriptionItemFeature,
   setupSubscription,
   setupSubscriptionItem,
   setupSubscriptionItemFeature,
@@ -47,6 +52,7 @@ import {
   aggregateBalanceForLedgerAccountFromEntries,
   selectLedgerEntries,
 } from '@/db/tableMethods/ledgerEntryMethods'
+import { selectResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { insertSubscriptionItem } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   safelyUpdateSubscriptionStatus,
@@ -58,6 +64,11 @@ import {
   billingPeriodAndItemsInsertsFromSubscription,
   createBillingPeriodAndItems,
 } from '@/subscriptions/billingPeriodHelpers'
+import {
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
+  createProcessingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -142,15 +153,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
       // Call the transition function
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        transaction
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       // Expect that the subscription's current billing period dates are updated (i.e. a new period was created)
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -161,20 +170,26 @@ describe('Subscription Billing Period Transition', async () => {
     })
   })
 
-  // Test 2: Billing period endDate in the future should throw an error
-  it('should throw an error if the billing period endDate is in the future', async () => {
+  // Test 2: Billing period endDate in the future should return an error Result
+  it('should return Result.err if the billing period endDate is in the future', async () => {
     await adminTransaction(async ({ transaction }) => {
       // Create a copy of billingPeriod with an endDate in the future
       const futureBillingPeriod = {
         ...billingPeriod,
         endDate: Date.now() + 24 * 60 * 60 * 1000,
       }
-      await expect(
-        attemptToTransitionSubscriptionBillingPeriod(
+      const result =
+        await attemptToTransitionSubscriptionBillingPeriod(
           futureBillingPeriod,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow(/Cannot close billing period/)
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(
+          /Cannot close billing period/
+        )
+      }
     })
   })
 
@@ -199,12 +214,12 @@ describe('Subscription Billing Period Transition', async () => {
     // Create a paid invoice for the billing period (simulate full payment)
     await adminTransaction(async ({ transaction }) => {
       // Set the billing period endDate in the past so closure logic runs
-      const {
-        result: { subscription: updatedSub },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        billingPeriod,
-        transaction
-      )
+      const { subscription: updatedSub } = (
+        await attemptToTransitionSubscriptionBillingPeriod(
+          billingPeriod,
+          createDiscardingEffectsContext(transaction)
+        )
+      ).unwrap()
 
       // Verify that the current (old) billing period is now Completed
       const allBPeriods = await selectBillingPeriods(
@@ -232,15 +247,13 @@ describe('Subscription Billing Period Transition', async () => {
         SubscriptionStatus.Canceled,
         transaction
       )
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        billingPeriod,
-        transaction
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            billingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       expect(newBillingRun).toBeNull()
       expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
@@ -266,15 +279,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
 
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        transaction
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       expect(updatedSub.status).toBe(SubscriptionStatus.Canceled)
       expect(typeof updatedSub.canceledAt).toBe('number')
@@ -295,15 +306,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
 
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        transaction
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       // Verify that subscription billing period dates have been updated to new period values
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
@@ -316,7 +325,7 @@ describe('Subscription Billing Period Transition', async () => {
       // And a billing run was created with scheduledFor equal to the new period's start date
       expect(typeof newBillingRun).toBe('object')
       expect(newBillingRun?.scheduledFor).toEqual(
-        updatedSub.currentBillingPeriodStart
+        updatedSub.currentBillingPeriodStart!
       )
     })
   })
@@ -346,15 +355,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
 
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        transaction
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       // Expect no billing run is created and subscription status is updated to PastDue
       expect(newBillingRun).toBeNull()
@@ -389,15 +396,13 @@ describe('Subscription Billing Period Transition', async () => {
         },
         transaction
       )
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        transaction
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
       // Since attemptToCreateFutureBillingPeriodForSubscription returns null,
       // billingRun remains null and subscription status is set to PastDue.
@@ -441,15 +446,13 @@ describe('Subscription Billing Period Transition', async () => {
         },
         transaction
       )
-      const {
-        result: {
-          subscription: updatedSub,
-          updatedBillingPeriod: uBP,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        transaction
-      )
+      const { subscription: updatedSub, updatedBillingPeriod: uBP } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
       const allBPeriods = await selectBillingPeriods(
         { subscriptionId: subscription.id },
         transaction
@@ -461,20 +464,20 @@ describe('Subscription Billing Period Transition', async () => {
     })
   })
 
-  // Test 13: When required billing period data is missing (e.g. endDate), throw an error.
-  it('should throw an error when billing period endDate is missing', async () => {
+  // Test 13: When required billing period data is missing (e.g. endDate), return an error Result.
+  it('should return Result.err when billing period endDate is missing', async () => {
     await adminTransaction(async ({ transaction }) => {
       const invalidBillingPeriod = {
         ...billingPeriod,
         endDate: null,
       }
-      await expect(
-        attemptToTransitionSubscriptionBillingPeriod(
-          // @ts-expect-error
-          invalidBillingPeriod,
-          transaction
+      const result =
+        await attemptToTransitionSubscriptionBillingPeriod(
+          invalidBillingPeriod as unknown as BillingPeriod.Record,
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow()
+
+      expect(Result.isError(result)).toBe(true)
     })
   })
 
@@ -489,15 +492,13 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
       // Call the transition function
-      const {
-        result: {
-          subscription: updatedSub,
-          billingRun: newBillingRun,
-        },
-      } = await attemptToTransitionSubscriptionBillingPeriod(
-        updatedBillingPeriod,
-        transaction
-      )
+      const { subscription: updatedSub, billingRun: newBillingRun } =
+        (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
       // Expect that the subscription's current billing period dates are updated.
       expect(updatedSub.currentBillingPeriodStart).not.toEqual(
         updatedBillingPeriod.startDate
@@ -507,19 +508,38 @@ describe('Subscription Billing Period Transition', async () => {
     })
   })
 
-  it('should throw an error when billing period endDate is missing', async () => {
+  it('calls enqueueLedgerCommand with BillingPeriodTransitionLedgerCommand when transitioning to a new billing period', async () => {
     await adminTransaction(async ({ transaction }) => {
-      const invalidBillingPeriod = {
-        ...billingPeriod,
-        endDate: null,
-      }
-      await expect(
-        attemptToTransitionSubscriptionBillingPeriod(
-          // @ts-expect-error
-          invalidBillingPeriod,
-          transaction
-        )
-      ).rejects.toThrow()
+      // Mark the current billing period as completed (terminal state)
+      const completedBillingPeriod = await updateBillingPeriod(
+        {
+          id: billingPeriod.id,
+          status: BillingPeriodStatus.Completed,
+        },
+        transaction
+      )
+
+      // Create a capturing context to verify the ledger command
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
+
+      // Call the transition function
+      await attemptToTransitionSubscriptionBillingPeriod(
+        completedBillingPeriod,
+        ctx
+      )
+
+      // Verify that enqueueLedgerCommand was called with a BillingPeriodTransition command
+      expect(effects.ledgerCommands.length).toBe(1)
+      expect(effects.ledgerCommands[0].type).toBe(
+        LedgerTransactionType.BillingPeriodTransition
+      )
+      expect(effects.ledgerCommands[0].subscriptionId).toBe(
+        subscription.id
+      )
+      expect(effects.ledgerCommands[0].organizationId).toBe(
+        organization.id
+      )
     })
   })
 
@@ -568,7 +588,7 @@ describe('Subscription Billing Period Transition', async () => {
 
     it('should create a trial billing period in the database with no billing period items', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const { billingPeriod, billingPeriodItems } =
+        const { billingPeriod, billingPeriodItems } = (
           await createBillingPeriodAndItems(
             {
               subscription,
@@ -578,6 +598,7 @@ describe('Subscription Billing Period Transition', async () => {
             },
             transaction
           )
+        ).unwrap()
         expect(billingPeriod.trialPeriod).toBe(true)
         expect(billingPeriodItems).toHaveLength(0)
       })
@@ -606,14 +627,18 @@ describe('Subscription Billing Period Transition', async () => {
         transaction
       )
 
-      await expect(
-        attemptToTransitionSubscriptionBillingPeriod(
+      const result =
+        await attemptToTransitionSubscriptionBillingPeriod(
           billingPeriod,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
-      ).rejects.toThrow(
-        `Cannot transition subscription ${subscription.id} in credit trial status`
-      )
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          `Cannot transition subscription ${subscription.id} in credit trial status`
+        )
+      }
     })
   })
 
@@ -686,14 +711,14 @@ describe('Subscription Billing Period Transition', async () => {
         )
 
         const {
-          result: {
-            subscription: updatedSub,
-            billingRun: newBillingRun,
-          },
-        } = await attemptToTransitionSubscriptionBillingPeriod(
-          updatedBillingPeriod,
-          transaction
-        )
+          subscription: updatedSub,
+          billingRun: newBillingRun,
+        } = (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         // doNotCharge subscription should remain Active (not PastDue)
         expect(updatedSub.status).toBe(SubscriptionStatus.Active)
@@ -730,14 +755,14 @@ describe('Subscription Billing Period Transition', async () => {
         )
 
         const {
-          result: {
-            subscription: updatedSub,
-            billingRun: newBillingRun,
-          },
-        } = await attemptToTransitionSubscriptionBillingPeriod(
-          updatedBillingPeriod,
-          transaction
-        )
+          subscription: updatedSub,
+          billingRun: newBillingRun,
+        } = (
+          await attemptToTransitionSubscriptionBillingPeriod(
+            updatedBillingPeriod,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
 
         // Should remain Active
         expect(updatedSub.status).toBe(SubscriptionStatus.Active)
@@ -839,10 +864,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -877,8 +902,8 @@ describe('Ledger Interactions', () => {
             le.amount === grantAmount
         )
 
-        expect(creditEntry).toMatchObject({})
-        expect(creditEntry?.ledgerTransactionId).toMatchObject({})
+        expect(typeof creditEntry).toBe('object')
+        expect(typeof creditEntry?.ledgerTransactionId).toBe('string')
 
         const balance =
           await aggregateBalanceForLedgerAccountFromEntries(
@@ -901,10 +926,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -943,10 +968,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -984,10 +1009,10 @@ describe('Ledger Interactions', () => {
 
       // execution:
       const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async ({ transaction }) =>
+        await comprehensiveAdminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
-            transaction
+            createProcessingEffectsContext(params)
           )
         )
       canceledSub = updatedSub
@@ -1013,10 +1038,10 @@ describe('Ledger Interactions', () => {
 
     it('should not grant usage credits if the subscription has no credit entitlements', async () => {
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1086,10 +1111,10 @@ describe('Ledger Interactions', () => {
 
       // execution:
       const { subscription: updatedSub } =
-        await comprehensiveAdminTransaction(async ({ transaction }) =>
+        await comprehensiveAdminTransaction(async (params) =>
           attemptToTransitionSubscriptionBillingPeriod(
             pastBillingPeriod,
-            transaction
+            createProcessingEffectsContext(params)
           )
         )
       pastDueSub = updatedSub
@@ -1178,10 +1203,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1265,10 +1290,10 @@ describe('Ledger Interactions', () => {
       })
 
       // execution:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1367,10 +1392,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action: Transition the billing period. Since pastBillingPeriod exists, this is a subsequent transition.
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1383,10 +1408,10 @@ describe('Ledger Interactions', () => {
         )
         expect(usageCredits.length).toBe(1)
         const newCredit = usageCredits[0]
-        expect(newCredit).toMatchObject({})
+        expect(typeof newCredit).toBe('object')
         expect(newCredit.issuedAmount).toBe(everyGrantAmount)
         expect(newCredit.usageMeterId).toBe(otherUsageMeter.id)
-        expect(newCredit.expiresAt).toMatchObject({}) // Recurring grants should expire
+        expect(typeof newCredit.expiresAt).toBe('number') // Recurring grants should expire
 
         // Verify balances
         const balanceForOnceMeter =
@@ -1438,10 +1463,10 @@ describe('Ledger Interactions', () => {
           },
         ],
       })
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1546,10 +1571,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1653,10 +1678,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1719,10 +1744,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1785,10 +1810,10 @@ describe('Ledger Interactions', () => {
         ],
       })
 
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -1911,10 +1936,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
       // Assertions
@@ -2035,10 +2060,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -2185,10 +2210,10 @@ describe('Ledger Interactions', () => {
       })
 
       // Action:
-      await comprehensiveAdminTransaction(async ({ transaction }) =>
+      await comprehensiveAdminTransaction(async (params) =>
         attemptToTransitionSubscriptionBillingPeriod(
           pastBillingPeriod,
-          transaction
+          createProcessingEffectsContext(params)
         )
       )
 
@@ -2239,5 +2264,162 @@ describe('Ledger Interactions', () => {
         expect(finalBalance).toBe(evergreenAmount + grantAmount)
       })
     })
+  })
+})
+
+describe('Resource claim expiration during billing period transition', async () => {
+  const { organization, price, pricingModel } = await setupOrg()
+
+  it('releases resource claims with expiredAt set during billing period transition', async () => {
+    // Setup customer and payment method
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+    })
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    // Create subscription with billing period in the past (ready for transition)
+    const now = Date.now()
+    const subscription = (await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: price.id,
+      paymentMethodId: paymentMethod.id,
+      currentBillingPeriodEnd: now - 3000, // 3 seconds ago
+      currentBillingPeriodStart: now - 30 * 24 * 60 * 60 * 1000, // 30 days ago
+      renews: true,
+    })) as Subscription.StandardRecord
+
+    const billingPeriod = await setupBillingPeriod({
+      subscriptionId: subscription.id,
+      startDate: subscription.currentBillingPeriodStart!,
+      endDate: subscription.currentBillingPeriodEnd!,
+      status: BillingPeriodStatus.Active,
+    })
+
+    await setupBillingRun({
+      billingPeriodId: billingPeriod.id,
+      paymentMethodId: paymentMethod.id,
+      subscriptionId: subscription.id,
+      status: BillingRunStatus.Scheduled,
+    })
+
+    await setupBillingPeriodItem({
+      billingPeriodId: billingPeriod.id,
+      quantity: 1,
+      unitPrice: 100,
+    })
+
+    // Create a resource for claims
+    const resource = await setupResource({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      slug: 'seats',
+      name: 'Seats',
+    })
+
+    // Create resource feature with capacity
+    const resourceFeature = await setupResourceFeature({
+      organizationId: organization.id,
+      name: 'Seats Feature',
+      resourceId: resource.id,
+      livemode: true,
+      pricingModelId: pricingModel.id,
+      amount: 10,
+    })
+
+    // Create subscription item
+    const subscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      priceId: price.id,
+      name: price.name ?? 'Basic Plan',
+      quantity: 1,
+      unitPrice: price.unitPrice,
+      type: SubscriptionItemType.Static,
+    })
+
+    // Link feature to subscription item
+    await setupResourceSubscriptionItemFeature({
+      subscriptionItemId: subscriptionItem.id,
+      featureId: resourceFeature.id,
+      resourceId: resource.id,
+      pricingModelId: pricingModel.id,
+      amount: 10,
+    })
+
+    // Create two resource claims:
+    // 1. A normal claim without expiration
+    // 2. A claim with expiredAt set (simulating a claim made during interim period before a downgrade)
+    const normalClaim = await setupResourceClaim({
+      organizationId: organization.id,
+      resourceId: resource.id,
+      subscriptionId: subscription.id,
+      pricingModelId: pricingModel.id,
+      externalId: 'user_normal',
+    })
+
+    const expiredClaim = await setupResourceClaim({
+      organizationId: organization.id,
+      resourceId: resource.id,
+      subscriptionId: subscription.id,
+      pricingModelId: pricingModel.id,
+      externalId: 'user_expired',
+      expiredAt: now - 60 * 1000, // Expired 1 minute ago
+    })
+
+    // Verify initial state: both claims exist and are not released
+    const claimsBefore = await adminTransaction(
+      async ({ transaction }) => {
+        return selectResourceClaims(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+    expect(claimsBefore.length).toBe(2)
+    expect(claimsBefore.every((c) => c.releasedAt === null)).toBe(
+      true
+    )
+
+    // Transition the billing period
+    await comprehensiveAdminTransaction(async (params) =>
+      attemptToTransitionSubscriptionBillingPeriod(
+        billingPeriod,
+        createProcessingEffectsContext(params)
+      )
+    )
+
+    // Verify claims after transition
+    const claimsAfter = await adminTransaction(
+      async ({ transaction }) => {
+        return selectResourceClaims(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+      }
+    )
+    expect(claimsAfter.length).toBe(2)
+
+    // The normal claim should still be active (not released)
+    const normalClaimAfter = claimsAfter.find(
+      (c) => c.id === normalClaim.id
+    )
+    expect(normalClaimAfter).toMatchObject({
+      id: normalClaim.id,
+      releasedAt: null,
+      releaseReason: null,
+    })
+
+    // The expired claim should be released with reason 'expired'
+    const expiredClaimAfter = claimsAfter.find(
+      (c) => c.id === expiredClaim.id
+    )
+    expect(expiredClaimAfter).toMatchObject({
+      id: expiredClaim.id,
+      releaseReason: 'expired',
+    })
+    expect(expiredClaimAfter!.releasedAt).toBeGreaterThan(0)
   })
 })

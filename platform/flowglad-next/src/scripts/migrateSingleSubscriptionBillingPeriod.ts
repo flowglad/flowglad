@@ -135,6 +135,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       {
         organizationId: flowgladOrganizationId,
         livemode: true,
+        pricingModelId: customer.pricingModelId,
       },
       stripe
     )
@@ -230,7 +231,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
   }
 
   // Create the initial billing period
-  const { billingPeriod, billingPeriodItems } =
+  const { billingPeriod, billingPeriodItems } = (
     await createBillingPeriodAndItems(
       {
         subscription,
@@ -240,6 +241,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       },
       transaction
     )
+  ).unwrap()
 
   console.log(
     `Created billing period ${billingPeriod.id} for subscription ${subscription.id}`

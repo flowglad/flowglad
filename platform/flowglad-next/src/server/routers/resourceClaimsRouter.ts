@@ -1,10 +1,14 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
-import { authenticatedProcedureTransaction } from '@/db/authenticatedTransaction'
+import {
+  type AuthenticatedProcedureTransactionParams,
+  authenticatedProcedureTransaction,
+} from '@/db/authenticatedTransaction'
 import { resourceClaimsClientSelectSchema } from '@/db/schema/resourceClaims'
 import type { SubscriptionItemFeature } from '@/db/schema/subscriptionItemFeatures'
 import {
-  countActiveClaimsForSubscriptionItemFeatures,
+  countActiveResourceClaims,
+  countActiveResourceClaimsBatch,
   selectActiveResourceClaims,
 } from '@/db/tableMethods/resourceClaimMethods'
 import { selectResources } from '@/db/tableMethods/resourceMethods'
@@ -15,11 +19,13 @@ import type { DbTransaction } from '@/db/types'
 import {
   claimResourceInputSchema,
   claimResourceTransaction,
+  getAggregatedResourceCapacity,
+  getAggregatedResourceCapacityBatch,
   getResourceUsageInputSchema,
   releaseResourceInputSchema,
   releaseResourceTransaction,
 } from '@/resources/resourceClaimHelpers'
-import { devOnlyProcedure, router } from '@/server/trpc'
+import { protectedProcedure, router } from '@/server/trpc'
 import { FeatureType } from '@/types'
 import { trpcToRest } from '@/utils/openapi'
 
@@ -32,6 +38,10 @@ export const resourceClaimsRouteConfigs = [
   }),
   trpcToRest('resourceClaims.getUsage', {
     routeParams: ['subscriptionId'],
+  }),
+  trpcToRest('resourceClaims.listResourceUsages', {
+    routeParams: ['subscriptionId'],
+    routeSuffix: 'usages',
   }),
   trpcToRest('resourceClaims.listClaims', {
     routeParams: ['subscriptionId'],
@@ -56,18 +66,24 @@ const releaseOutputSchema = z.object({
   usage: resourceUsageOutputSchema,
 })
 
-const getUsageOutputSchema = z.object({
-  usage: z.array(
-    z.object({
-      resourceSlug: z.string(),
-      resourceId: z.string(),
-      capacity: z.number().int(),
-      claimed: z.number().int(),
-      available: z.number().int(),
-    })
-  ),
-  claims: z.array(resourceClaimsClientSelectSchema),
-})
+const getUsageOutputSchema = z
+  .object({
+    usage: resourceUsageOutputSchema.meta({
+      id: 'ResourceUsageData',
+    }),
+    claims: z.array(resourceClaimsClientSelectSchema),
+  })
+  .meta({
+    id: 'ResourceUsage',
+    description: 'The usage data for a resource.',
+  })
+
+const listResourceUsagesOutputSchema = z
+  .array(getUsageOutputSchema)
+  .meta({
+    id: 'ResourceUsageList',
+    description: 'List of resource usage data for the subscription.',
+  })
 
 const listClaimsInputSchema = z.object({
   subscriptionId: z.string(),
@@ -121,7 +137,7 @@ const releaseInputSchemaWithRequiredSubscription =
     )
 
 const getUsageInputSchemaWithRequiredSubscription =
-  getResourceUsageInputSchema.extend({
+  getResourceUsageInputSchema.safeExtend({
     subscriptionId: z.string(),
   })
 
@@ -129,20 +145,28 @@ const getUsageInputSchemaWithRequiredSubscription =
  * Validates that a subscription belongs to the authenticated organization.
  * Returns the subscription and its customerId if valid.
  */
-async function validateSubscriptionOwnership(
-  subscriptionId: string,
-  organizationId: string,
+const validateSubscriptionOwnership = async (
+  {
+    subscriptionId,
+    organizationId,
+  }: {
+    subscriptionId: string
+    organizationId: string
+  },
   transaction: DbTransaction
 ): Promise<{
   subscription: Awaited<ReturnType<typeof selectSubscriptionById>>
   customerId: string
-}> {
+}> => {
   const subscription = await selectSubscriptionById(
     subscriptionId,
     transaction
   )
 
-  if (subscription.organizationId !== organizationId) {
+  if (
+    !subscription ||
+    subscription.organizationId !== organizationId
+  ) {
     throw new TRPCError({
       code: 'FORBIDDEN',
       message: 'Subscription not found',
@@ -152,7 +176,7 @@ async function validateSubscriptionOwnership(
   return { subscription, customerId: subscription.customerId }
 }
 
-const claimProcedure = devOnlyProcedure
+const claimProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'POST',
@@ -168,10 +192,18 @@ const claimProcedure = devOnlyProcedure
   .output(claimOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const { customerId } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
+          { subscriptionId: input.subscriptionId, organizationId },
           transaction
         )
 
@@ -189,7 +221,7 @@ const claimProcedure = devOnlyProcedure
     )
   )
 
-const releaseProcedure = devOnlyProcedure
+const releaseProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'POST',
@@ -205,10 +237,18 @@ const releaseProcedure = devOnlyProcedure
   .output(releaseOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const { customerId } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
+          { subscriptionId: input.subscriptionId, organizationId },
           transaction
         )
 
@@ -226,14 +266,14 @@ const releaseProcedure = devOnlyProcedure
     )
   )
 
-const getUsageProcedure = devOnlyProcedure
+const getUsageProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'GET',
       path: '/api/v1/resource-claims/{subscriptionId}/usage',
       summary: 'Get Resource Usage',
       description:
-        'Get resource usage information for a subscription. Optionally filter by resourceSlug.',
+        'Get resource usage information for a subscription. Exactly one of resourceSlug or resourceId must be provided.',
       tags: ['Resource Claims'],
       protect: true,
     },
@@ -242,24 +282,79 @@ const getUsageProcedure = devOnlyProcedure
   .output(getUsageOutputSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const { subscription } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
+          { subscriptionId: input.subscriptionId, organizationId },
           transaction
         )
 
-        // Get all subscription items for this subscription
+        let resourceLookup:
+          | {
+              slug: string
+              pricingModelId: string
+              organizationId: string
+            }
+          | {
+              id: string
+              pricingModelId: string
+              organizationId: string
+            }
+
+        if (input.resourceSlug !== undefined) {
+          resourceLookup = {
+            slug: input.resourceSlug,
+            pricingModelId: subscription.pricingModelId,
+            organizationId,
+          }
+        } else {
+          if (input.resourceId === undefined) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Exactly one of resourceSlug or resourceId must be provided',
+            })
+          }
+
+          resourceLookup = {
+            id: input.resourceId,
+            pricingModelId: subscription.pricingModelId,
+            organizationId,
+          }
+        }
+
+        const [resource] = await selectResources(
+          resourceLookup,
+          transaction
+        )
+
+        if (!resource) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Resource not found',
+          })
+        }
+
         const subscriptionItemsList = await selectSubscriptionItems(
           { subscriptionId: input.subscriptionId },
           transaction
         )
 
         if (subscriptionItemsList.length === 0) {
-          return { usage: [], claims: [] }
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Subscription has no items',
+          })
         }
 
-        // Batch fetch all subscription item features for all items at once
         const subscriptionItemIds = subscriptionItemsList.map(
           (item) => item.id
         )
@@ -268,7 +363,129 @@ const getUsageProcedure = devOnlyProcedure
           transaction
         )
 
-        // Filter to only resource features
+        const resourceFeature = allFeatures.find(
+          (
+            feature
+          ): feature is SubscriptionItemFeature.ResourceRecord =>
+            feature.type === FeatureType.Resource &&
+            feature.resourceId === resource.id
+        )
+
+        if (!resourceFeature) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Resource is not available on this subscription',
+          })
+        }
+
+        // Get aggregated capacity across all active features for this resource
+        const { totalCapacity } = await getAggregatedResourceCapacity(
+          {
+            subscriptionId: input.subscriptionId,
+            resourceId: resource.id,
+          },
+          transaction
+        )
+
+        // Count claims by (subscriptionId, resourceId)
+        const claimed = await countActiveResourceClaims(
+          {
+            subscriptionId: input.subscriptionId,
+            resourceId: resource.id,
+          },
+          transaction
+        )
+
+        const usage = {
+          resourceSlug: resource.slug,
+          resourceId: resource.id,
+          capacity: totalCapacity,
+          claimed,
+          available: totalCapacity - claimed,
+        }
+
+        const claims = await selectActiveResourceClaims(
+          {
+            subscriptionId: input.subscriptionId,
+            resourceId: resource.id,
+          },
+          transaction
+        )
+
+        return { usage, claims }
+      }
+    )
+  )
+
+const listResourceUsagesInputSchema = z
+  .object({
+    subscriptionId: z.string(),
+    resourceSlugs: z
+      .array(z.string())
+      .max(100)
+      .optional()
+      .describe(
+        'List of resource slugs to filter by. If not provided, will return usage for all resources on the subscription.'
+      ),
+    resourceIds: z
+      .array(z.string())
+      .optional()
+      .describe(
+        'List of resource IDs to filter by. If not provided, will return usage for all resources on the subscription.'
+      ),
+  })
+  .meta({
+    id: 'ListResourceUsagesInput',
+  })
+
+const listResourceUsagesProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'GET',
+      path: '/api/v1/resource-claims/{subscriptionId}/usages',
+      summary: 'List Resource Usages',
+      description:
+        'List resource usage information for all resources on the subscription.',
+      tags: ['Resource Claims'],
+      protect: true,
+    },
+  })
+  .input(listResourceUsagesInputSchema)
+  .output(listResourceUsagesOutputSchema)
+  .query(
+    authenticatedProcedureTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
+        const { subscription } = await validateSubscriptionOwnership(
+          { subscriptionId: input.subscriptionId, organizationId },
+          transaction
+        )
+
+        const subscriptionItemsList = await selectSubscriptionItems(
+          { subscriptionId: input.subscriptionId },
+          transaction
+        )
+
+        if (subscriptionItemsList.length === 0) {
+          return []
+        }
+
+        const subscriptionItemIds = subscriptionItemsList.map(
+          (item) => item.id
+        )
+        const allFeatures = await selectSubscriptionItemFeatures(
+          { subscriptionItemId: subscriptionItemIds },
+          transaction
+        )
+
         const resourceFeatures = allFeatures.filter(
           (
             feature
@@ -278,105 +495,113 @@ const getUsageProcedure = devOnlyProcedure
         )
 
         if (resourceFeatures.length === 0) {
-          return { usage: [], claims: [] }
+          return []
         }
 
-        // Collect unique resource IDs
-        const resourceIds = [
-          ...new Set(resourceFeatures.map((f) => f.resourceId!)),
-        ]
+        const resourceIds = Array.from(
+          new Set(resourceFeatures.map((f) => f.resourceId!))
+        )
 
-        // Batch fetch all resources at once
         const resourcesResult = await selectResources(
-          { id: resourceIds },
+          {
+            id: resourceIds,
+            pricingModelId: subscription.pricingModelId,
+            organizationId,
+          },
           transaction
         )
-        const resourcesById = new Map(
-          resourcesResult.map((r) => [r.id, r])
-        )
 
-        // If a specific resourceSlug is requested, filter
-        let featuresToQuery = resourceFeatures
-        if (input.resourceSlug) {
-          const matchingResource = resourcesResult.find(
-            (r) =>
-              r.slug === input.resourceSlug &&
-              r.pricingModelId === subscription.pricingModelId &&
-              r.organizationId === organizationId
+        // Apply filtering based on input parameters
+        let filteredResources = resourcesResult
+        if (input.resourceSlugs && input.resourceSlugs.length > 0) {
+          const slugSet = new Set(input.resourceSlugs)
+          filteredResources = resourcesResult.filter((r) =>
+            slugSet.has(r.slug)
           )
-
-          if (!matchingResource) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: 'Resource not found',
-            })
-          }
-
-          featuresToQuery = resourceFeatures.filter(
-            (rf) => rf.resourceId === matchingResource.id
+        } else if (
+          input.resourceIds &&
+          input.resourceIds.length > 0
+        ) {
+          const idSet = new Set(input.resourceIds)
+          filteredResources = resourcesResult.filter((r) =>
+            idSet.has(r.id)
           )
         }
 
-        // Batch fetch active claim counts for all features in a single query
-        const featureIds = featuresToQuery.map((f) => f.id)
-        const claimCountsByFeatureId =
-          await countActiveClaimsForSubscriptionItemFeatures(
-            featureIds,
+        // Get unique resource IDs from filtered resources
+        const filteredResourceIds = filteredResources.map((r) => r.id)
+        const resourcesById = new Map(
+          filteredResources.map((r) => [r.id, r])
+        )
+
+        // Batch count claims by (subscriptionId, resourceId)
+        const claimCountsByResourceId =
+          await countActiveResourceClaimsBatch(
+            {
+              subscriptionId: input.subscriptionId,
+              resourceIds: filteredResourceIds,
+            },
             transaction
           )
 
-        // Build usage results by combining feature capacity with batched claim counts
-        const usageResults = featuresToQuery
-          .map((feature) => {
-            const resource = resourcesById.get(feature.resourceId!)
-            if (!resource) {
-              return null
-            }
-
-            const capacity = feature.amount
-            const claimed =
-              claimCountsByFeatureId.get(feature.id) ?? 0
-            const available = capacity - claimed
-
-            return {
-              resourceSlug: resource.slug,
-              resourceId: resource.id,
-              capacity,
-              claimed,
-              available,
-            }
-          })
-          .filter(
-            (
-              result
-            ): result is {
-              resourceSlug: string
-              resourceId: string
-              capacity: number
-              claimed: number
-              available: number
-            } => result !== null
+        // Batch fetch aggregated capacity for all resources (avoids N+1 queries)
+        const capacityByResourceId =
+          await getAggregatedResourceCapacityBatch(
+            {
+              subscriptionId: input.subscriptionId,
+              resourceIds: filteredResourceIds,
+            },
+            transaction
           )
 
-        // Fetch active claims for the resources being returned
+        // Build usage results from the batched data
+        const usageResults = filteredResources.map((resource) => {
+          const { totalCapacity } = capacityByResourceId.get(
+            resource.id
+          ) ?? { totalCapacity: 0 }
+          const claimed =
+            claimCountsByResourceId.get(resource.id) ?? 0
+
+          return {
+            resourceSlug: resource.slug,
+            resourceId: resource.id,
+            capacity: totalCapacity,
+            claimed,
+            available: totalCapacity - claimed,
+          }
+        })
+
         const usageResourceIds = usageResults.map((u) => u.resourceId)
         const claims =
-          usageResourceIds.length > 0
-            ? await selectActiveResourceClaims(
+          usageResourceIds.length === 0
+            ? []
+            : await selectActiveResourceClaims(
                 {
                   subscriptionId: input.subscriptionId,
                   resourceId: usageResourceIds,
                 },
                 transaction
               )
-            : []
 
-        return { usage: usageResults, claims }
+        const claimsByResourceId = new Map<string, typeof claims>()
+        for (const claim of claims) {
+          const existing = claimsByResourceId.get(claim.resourceId)
+          if (existing) {
+            existing.push(claim)
+          } else {
+            claimsByResourceId.set(claim.resourceId, [claim])
+          }
+        }
+
+        return usageResults.map((usage) => ({
+          usage,
+          claims: claimsByResourceId.get(usage.resourceId) ?? [],
+        }))
       }
     )
   )
 
-const listClaimsProcedure = devOnlyProcedure
+const listClaimsProcedure = protectedProcedure
   .meta({
     openapi: {
       method: 'GET',
@@ -392,10 +617,18 @@ const listClaimsProcedure = devOnlyProcedure
   .output(listClaimsOutputSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const { subscription } = await validateSubscriptionOwnership(
-          input.subscriptionId,
-          organizationId,
+          { subscriptionId: input.subscriptionId, organizationId },
           transaction
         )
 
@@ -443,5 +676,6 @@ export const resourceClaimsRouter = router({
   claim: claimProcedure,
   release: releaseProcedure,
   getUsage: getUsageProcedure,
+  listResourceUsages: listResourceUsagesProcedure,
   listClaims: listClaimsProcedure,
 })

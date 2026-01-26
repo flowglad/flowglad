@@ -21,7 +21,7 @@ import type { TooltipProps } from '@/components/charts/LineChart'
  * // Access current tooltip value
  * const currentValue = tooltipData?.payload?.[0]?.value
  */
-export function useChartTooltip() {
+export function useChartTooltip(resetKey?: string) {
   const [tooltipData, setTooltipData] = useState<TooltipProps | null>(
     null
   )
@@ -32,6 +32,16 @@ export function useChartTooltip() {
   const pendingTooltipData = useRef<TooltipProps | null | undefined>(
     undefined
   )
+
+  // Reset tooltip state when switching metrics / filters / ranges.
+  // This prevents stale or transient tooltip payloads from leaking into
+  // the next metric and incorrectly driving the header value display.
+  useEffect(() => {
+    if (resetKey === undefined) return
+
+    pendingTooltipData.current = undefined
+    setTooltipData(null)
+  }, [resetKey])
 
   // Use useEffect to safely update tooltip state after render
   // eslint-disable-next-line react-hooks/exhaustive-deps

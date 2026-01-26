@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import {
@@ -24,6 +25,7 @@ import {
   purchaseClientSelectSchema,
 } from '@/db/schema/purchases'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
@@ -32,6 +34,7 @@ import {
   selectCustomersPaginated,
   updateCustomer as updateCustomerDb,
 } from '@/db/tableMethods/customerMethods'
+import { selectUsageMeterBalancesForSubscriptions } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import {
   selectPricingModelById,
@@ -40,10 +43,11 @@ import {
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import {
   isSubscriptionCurrent,
+  selectSubscriptionById,
+  selectSubscriptionsByCustomerId,
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import { externalIdInputSchema } from '@/db/tableUtils'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
 import { protectedProcedure } from '@/server/trpc'
 import { migrateCustomerPricingModelProcedureTransaction } from '@/subscriptions/migratePricingModel'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
@@ -84,6 +88,21 @@ export const customerBillingRouteConfig: Record<string, RouteConfig> =
     },
   }
 
+export const customerUsageBalancesRouteConfig: Record<
+  string,
+  RouteConfig
+> = {
+  'GET /customers/:externalId/usage-balances': {
+    procedure: 'customers.getUsageBalances',
+    pattern: /^customers\/([^\\/]+)\/usage-balances$/,
+    mapParams: (matches) => {
+      return {
+        externalId: matches[0],
+      }
+    },
+  },
+}
+
 const createCustomerProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createCustomerInputSchema)
@@ -92,15 +111,17 @@ const createCustomerProcedure = protectedProcedure
     authenticatedProcedureComprehensiveTransaction(
       async ({
         input,
-        transaction,
-        userId,
-        livemode,
         ctx,
-        organizationId,
-      }): Promise<TransactionOutput<CreateCustomerOutputSchema>> => {
+        transactionCtx,
+      }): Promise<Result<CreateCustomerOutputSchema, Error>> => {
+        const { transaction } = transactionCtx
+        const { livemode, organizationId } = ctx
         try {
           if (!organizationId) {
-            throw new Error('organizationId is required')
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message: 'organizationId is required',
+            })
           }
 
           const { customer } = input
@@ -115,31 +136,37 @@ const createCustomerProcedure = protectedProcedure
                   organizationId,
                 },
               },
-              { transaction, livemode, organizationId }
+              {
+                transaction,
+                cacheRecomputationContext:
+                  transactionCtx.cacheRecomputationContext,
+                livemode,
+                organizationId,
+                invalidateCache: transactionCtx.invalidateCache,
+                emitEvent: transactionCtx.emitEvent,
+                enqueueLedgerCommand:
+                  transactionCtx.enqueueLedgerCommand,
+              }
             )
 
           if (ctx.path) {
             await revalidatePath(ctx.path)
           }
 
-          const subscription = createdCustomerOutput.result
-            .subscription
-            ? subscriptionWithCurrent(
-                createdCustomerOutput.result.subscription
-              )
-            : undefined
-          return {
-            result: {
-              data: {
-                customer: createdCustomerOutput.result.customer,
-                subscription,
-                subscriptionItems:
-                  createdCustomerOutput.result.subscriptionItems,
-              },
+          const {
+            customer: createdCustomer,
+            subscription,
+            subscriptionItems,
+          } = createdCustomerOutput
+          return Result.ok({
+            data: {
+              customer: createdCustomer,
+              subscription: subscription
+                ? subscriptionWithCurrent(subscription)
+                : undefined,
+              subscriptionItems,
             },
-            eventsToInsert: createdCustomerOutput.eventsToInsert,
-            ledgerCommand: createdCustomerOutput.ledgerCommand,
-          }
+          })
         } catch (error) {
           errorHandlers.customer.handle(error, {
             operation: 'create',
@@ -157,7 +184,15 @@ export const updateCustomer = protectedProcedure
   .output(editCustomerOutputSchema)
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, organizationId }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
         try {
           const { customer } = input
           const customerRecord =
@@ -206,7 +241,8 @@ export const getCustomerById = protectedProcedure
   .output(z.object({ customer: customerClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         try {
           const customer = await selectCustomerById(
             input.id,
@@ -233,7 +269,8 @@ export const getPricingModelForCustomer = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         try {
           const customer = await selectCustomerById(
             input.customerId,
@@ -356,13 +393,14 @@ export const getCustomerBilling = protectedProcedure
       purchases,
       subscriptions,
     } = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, cacheRecomputationContext }) => {
         return customerBillingTransaction(
           {
             externalId: input.externalId,
             organizationId,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       },
       {
@@ -392,13 +430,128 @@ export const getCustomerBilling = protectedProcedure
     }
   })
 
+const getUsageBalancesInputSchema = z.object({
+  externalId: z.string().describe('The external ID of the customer'),
+  subscriptionId: z
+    .string()
+    .optional()
+    .describe(
+      'Optional subscription ID to filter balances. If provided, returns balances only for the specified subscription (regardless of its status). If not provided, returns balances for all current subscriptions (active, past_due, trialing, cancellation_scheduled, unpaid, or credit_trial), excluding canceled or upgraded subscriptions.'
+    ),
+})
+
+/**
+ * Get usage meter balances for a customer.
+ * By default, returns balances for current subscriptions only.
+ * Optionally filter by a specific subscriptionId.
+ */
+export const getCustomerUsageBalances = protectedProcedure
+  .meta(
+    createGetOpenApiMeta({
+      resource: 'customers',
+      routeSuffix: 'usage-balances',
+      summary: 'Get Usage Balances',
+      tags: ['Customer', 'Usage Meters'],
+      idParamOverride: 'externalId',
+    })
+  )
+  .input(getUsageBalancesInputSchema)
+  .output(
+    z.object({
+      usageMeterBalances: usageMeterBalanceClientSelectSchema.array(),
+    })
+  )
+  .query(async ({ input, ctx }) => {
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        // Resolve customer by externalId and organizationId
+        const customer =
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId: input.externalId,
+              organizationId,
+            },
+            transaction
+          )
+
+        if (!customer) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Customer with externalId ${input.externalId} not found`,
+          })
+        }
+
+        // Get all subscriptions for this customer
+        const subscriptions = await selectSubscriptionsByCustomerId(
+          customer.id,
+          customer.livemode,
+          transaction
+        )
+
+        let subscriptionIds: string[]
+
+        if (input.subscriptionId) {
+          // Validate that the subscription belongs to this customer
+          const subscription = subscriptions.find(
+            (s) => s.id === input.subscriptionId
+          )
+
+          if (!subscription) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Subscription with id ${input.subscriptionId} not found for customer ${input.externalId}`,
+            })
+          }
+
+          subscriptionIds = [input.subscriptionId]
+        } else {
+          // Filter to current subscriptions only (aligning with billing's currentSubscriptions)
+          const currentSubscriptions = subscriptions.filter((s) =>
+            isSubscriptionCurrent(s.status, s.cancellationReason)
+          )
+
+          subscriptionIds = currentSubscriptions.map((s) => s.id)
+        }
+
+        if (subscriptionIds.length === 0) {
+          return { usageMeterBalances: [] }
+        }
+
+        // Fetch usage meter balances for the subscriptions
+        const balances =
+          await selectUsageMeterBalancesForSubscriptions(
+            { subscriptionId: subscriptionIds },
+            transaction
+          )
+
+        return {
+          usageMeterBalances: balances.map(
+            (b) => b.usageMeterBalance
+          ),
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
+  })
+
 const listCustomersProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(customersPaginatedSelectSchema)
   .output(customersPaginatedListSchema)
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         return selectCustomersPaginated(input, transaction)
       }
     )
@@ -409,7 +562,13 @@ const getTableRowsProcedure = protectedProcedure
   .output(customersPaginatedTableRowOutputSchema)
   .query(
     authenticatedProcedureTransaction(
-      selectCustomersCursorPaginatedWithTableRowData
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectCustomersCursorPaginatedWithTableRowData({
+          input,
+          transaction,
+        })
+      }
     )
   )
 
@@ -435,13 +594,10 @@ const exportCsvProcedure = protectedProcedure
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({
-        input,
-        transaction,
-        userId,
-        organizationId,
-        livemode,
-      }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode, organizationId } = ctx
+        const userId = ctx.user?.id
         const { filters, searchQuery } = input
         // Maximum number of customers that can be exported via CSV without async export
         const CUSTOMER_LIMIT = 1000
@@ -487,6 +643,7 @@ const exportCsvProcedure = protectedProcedure
                   livemode,
                 },
                 {
+                  // biome-ignore lint/plugin: CSV exports are intentionally non-idempotent - each request generates a new export
                   idempotencyKey: await createTriggerIdempotencyKey(
                     `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
                   ),
@@ -585,6 +742,7 @@ export const customersRouter = router({
    */
   update: updateCustomer,
   getBilling: getCustomerBilling,
+  getUsageBalances: getCustomerUsageBalances,
   get: getCustomer,
   internal__getById: getCustomerById,
   getPricingModelForCustomer: getPricingModelForCustomer,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { trpcToRest } from './openapi'
 
 describe('trpcToRest', () => {
@@ -232,6 +232,68 @@ describe('trpcToRest', () => {
         amount: 100,
       })
     })
+
+    it('should use custom routeParams for POST custom actions', () => {
+      // When routeParams specifies a custom param name like 'subscriptionId',
+      // the route should use that instead of the default 'id'
+      const result = trpcToRest('resourceClaims.claim', {
+        routeParams: ['subscriptionId'],
+      })
+
+      // Should create POST /resource-claims/:subscriptionId/claim
+      expect(result).toEqual({
+        'POST /resource-claims/:subscriptionId/claim': {
+          procedure: 'resourceClaims.claim',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const routeKey = 'POST /resource-claims/:subscriptionId/claim'
+      const pattern = result[routeKey].pattern
+
+      // Pattern should match the expected path
+      expect(pattern.test('resource-claims/sub_123/claim')).toBe(true)
+      expect(pattern.test('resource-claims/sub_123')).toBe(false)
+      expect(pattern.test('resource-claims/claim')).toBe(false)
+
+      // mapParams should use the custom param name
+      const matches = pattern
+        .exec('resource-claims/sub_123/claim')!
+        .slice(1)
+      const testBody = { resourceSlug: 'seats', quantity: 5 }
+      const params = result[routeKey].mapParams(matches, testBody)
+
+      expect(params).toEqual({
+        subscriptionId: 'sub_123',
+        resourceSlug: 'seats',
+        quantity: 5,
+      })
+    })
+
+    it('should default to id when routeParams is not provided for POST custom actions', () => {
+      // When no routeParams is provided, should default to 'id'
+      const result = trpcToRest('subscriptions.cancel')
+
+      expect(result).toEqual({
+        'POST /subscriptions/:id/cancel': {
+          procedure: 'subscriptions.cancel',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const routeKey = 'POST /subscriptions/:id/cancel'
+      const pattern = result[routeKey].pattern
+      const matches = pattern
+        .exec('subscriptions/sub_abc/cancel')!
+        .slice(1)
+      const params = result[routeKey].mapParams(matches, {})
+
+      expect(params).toEqual({
+        id: 'sub_abc',
+      })
+    })
   })
 
   describe('Parameter extraction edge cases', () => {
@@ -287,6 +349,128 @@ describe('trpcToRest', () => {
       expect(() => trpcToRest('')).toThrow(
         'Invalid procedure name: . Expected format: entity.action'
       )
+    })
+  })
+
+  describe('routeSuffix parameter', () => {
+    it('uses the derived resource name from action when routeSuffix is not provided for getX actions', () => {
+      const result = trpcToRest('subscriptions.getUsage')
+
+      expect(result).toEqual({
+        'GET /subscriptions/:id/usage': {
+          procedure: 'subscriptions.getUsage',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern = result['GET /subscriptions/:id/usage'].pattern
+      expect(pattern.test('subscriptions/sub_123/usage')).toBe(true)
+      expect(pattern.test('subscriptions/sub_123/other')).toBe(false)
+    })
+
+    it('uses routeSuffix to override the route path for getX actions', () => {
+      const result = trpcToRest('subscriptions.getUsage', {
+        routeSuffix: 'usages',
+      })
+
+      expect(result).toEqual({
+        'GET /subscriptions/:id/usages': {
+          procedure: 'subscriptions.getUsage',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern = result['GET /subscriptions/:id/usages'].pattern
+      expect(pattern.test('subscriptions/sub_123/usages')).toBe(true)
+      expect(pattern.test('subscriptions/sub_123/usage')).toBe(false)
+
+      const matches = pattern
+        .exec('subscriptions/sub_123/usages')!
+        .slice(1)
+      expect(
+        result['GET /subscriptions/:id/usages'].mapParams(matches)
+      ).toEqual({
+        subscriptionsId: 'sub_123',
+      })
+    })
+
+    it('uses the derived resource name from action when routeSuffix is not provided for listX actions', () => {
+      const result = trpcToRest('resources.listClaims')
+
+      expect(result).toEqual({
+        'GET /resources/:id/claims': {
+          procedure: 'resources.listClaims',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern = result['GET /resources/:id/claims'].pattern
+      expect(pattern.test('resources/res_123/claims')).toBe(true)
+      expect(pattern.test('resources/res_123/other')).toBe(false)
+    })
+
+    it('uses routeSuffix to override the route path for listX actions', () => {
+      const result = trpcToRest('resources.listClaims', {
+        routeSuffix: 'active-claims',
+      })
+
+      expect(result).toEqual({
+        'GET /resources/:id/active-claims': {
+          procedure: 'resources.listClaims',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern =
+        result['GET /resources/:id/active-claims'].pattern
+      expect(pattern.test('resources/res_123/active-claims')).toBe(
+        true
+      )
+      expect(pattern.test('resources/res_123/claims')).toBe(false)
+
+      const matches = pattern
+        .exec('resources/res_123/active-claims')!
+        .slice(1)
+      expect(
+        result['GET /resources/:id/active-claims'].mapParams(matches)
+      ).toEqual({
+        resourcesId: 'res_123',
+      })
+    })
+
+    it('combines routeSuffix with custom routeParams for nested resource routes', () => {
+      const result = trpcToRest('customers.getBilling', {
+        routeParams: ['externalId'],
+        routeSuffix: 'billing',
+      })
+
+      expect(result).toEqual({
+        'GET /customers/:externalId/billing': {
+          procedure: 'customers.getBilling',
+          pattern: expect.any(RegExp),
+          mapParams: expect.any(Function),
+        },
+      })
+
+      const pattern =
+        result['GET /customers/:externalId/billing'].pattern
+      expect(pattern.test('customers/cust_123/billing')).toBe(true)
+      expect(pattern.test('customers/cust_123/other')).toBe(false)
+
+      const matches = pattern
+        .exec('customers/cust_123/billing')!
+        .slice(1)
+      expect(
+        result['GET /customers/:externalId/billing'].mapParams(
+          matches
+        )
+      ).toEqual({
+        externalId: 'cust_123',
+      })
     })
   })
 

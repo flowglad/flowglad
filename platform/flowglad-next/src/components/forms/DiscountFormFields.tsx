@@ -2,7 +2,7 @@
 
 import { Percent } from 'lucide-react'
 import { Controller, useFormContext } from 'react-hook-form'
-import StatusBadge from '@/components/StatusBadge'
+import PricingModelSelect from '@/components/forms/PricingModelSelect'
 import { CurrencyInput } from '@/components/ui/currency-input'
 import {
   FormControl,
@@ -20,6 +20,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
 import { useAuthenticatedContext } from '@/contexts/authContext'
 import {
@@ -86,6 +90,12 @@ export default function DiscountFormFields({
           </FormItem>
         )}
       />
+      {!edit && (
+        <PricingModelSelect
+          name="discount.pricingModelId"
+          control={control}
+        />
+      )}
       <div className="flex flex-col md:flex-row gap-4">
         <Controller
           control={control}
@@ -307,11 +317,11 @@ export default function DiscountFormFields({
                   htmlFor="discount-active"
                   className="cursor-pointer w-full"
                 >
-                  {field.value ? (
-                    <StatusBadge active={true} />
-                  ) : (
-                    <StatusBadge active={false} />
-                  )}
+                  <ActiveStatusTag
+                    status={booleanToActiveStatus(
+                      field.value ?? false
+                    )}
+                  />
                 </Label>
               </div>
             )}

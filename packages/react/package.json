@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/react",
-  "version": "0.16.2",
+  "version": "0.17.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -11,13 +11,14 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "check": "biome check . && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check . && bun run typecheck",
     "build:declarations": "tsc -p tsconfig.declarations.json",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest --passWithNoTests"
   },
   "dependencies": {
-    "@flowglad/node": "0.24.0",
+    "@flowglad/node": "0.29.0",
     "@flowglad/shared": "workspace:*",
     "@tanstack/react-query": "5.66.0",
     "clsx": "2.1.1",
@@ -26,9 +27,13 @@
     "zod": "4.1.5"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.1",
     "@types/autoprefixer": "^10.2.0",
     "@types/react": "18.3.12",
+    "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.18",
+    "jsdom": "^27.4.0",
     "postcss": "^8.4.35",
     "tailwindcss": "^3.4.1",
     "typescript": "5.8.2",

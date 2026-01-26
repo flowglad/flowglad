@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import type {
   CheckoutSession,
   CreateCheckoutSessionInput,
@@ -14,12 +15,15 @@ import {
 import { selectCustomerByExternalIdAndOrganizationId } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
+  selectPriceById,
   selectPriceBySlugAndCustomerId,
   selectPriceBySlugForDefaultPricingModel,
   selectPriceProductAndOrganizationByPriceWhere,
 } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { ValidationError } from '@/errors'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -89,6 +93,7 @@ export const checkoutSessionInsertFromInput = ({
       customerName: isAnonymous ? null : customer!.name,
       preserveBillingCycleAnchor:
         checkoutSessionInput.preserveBillingCycleAnchor ?? false,
+      quantity: checkoutSessionInput.quantity ?? 1,
     }
   } else if (
     checkoutSessionInput.type === CheckoutSessionType.AddPaymentMethod
@@ -155,7 +160,15 @@ export const createCheckoutSessionTransaction = async (
     livemode: boolean
   },
   transaction: DbTransaction
-) => {
+): Promise<
+  Result<
+    {
+      checkoutSession: CheckoutSession.Record
+      url: string
+    },
+    ValidationError
+  >
+> => {
   // Only query for customer if customerExternalId is provided
   let customer: Customer.Record | null = null
   if (checkoutSessionInput.customerExternalId) {
@@ -197,16 +210,22 @@ export const createCheckoutSessionTransaction = async (
             transaction
           )
         if (!priceFromSlug) {
-          throw new Error(
-            `Price with slug "${checkoutSessionInput.priceSlug}" not found in organization's default pricing model`
+          return Result.err(
+            new ValidationError(
+              'priceSlug',
+              `Price with slug "${checkoutSessionInput.priceSlug}" not found in organization's default pricing model`
+            )
           )
         }
         resolvedPriceId = priceFromSlug.id
       } else {
         // Identified customer: use customer's pricing model
         if (!customer) {
-          throw new Error(
-            'Customer is required to resolve price slug for identified checkout sessions'
+          return Result.err(
+            new ValidationError(
+              'customer',
+              'Customer is required to resolve price slug for identified checkout sessions'
+            )
           )
         }
         const priceFromSlug = await selectPriceBySlugAndCustomerId(
@@ -217,8 +236,11 @@ export const createCheckoutSessionTransaction = async (
           transaction
         )
         if (!priceFromSlug) {
-          throw new Error(
-            `Price with slug "${checkoutSessionInput.priceSlug}" not found for customer's pricing model`
+          return Result.err(
+            new ValidationError(
+              'priceSlug',
+              `Price with slug "${checkoutSessionInput.priceSlug}" not found for customer's pricing model`
+            )
           )
         }
         resolvedPriceId = priceFromSlug.id
@@ -227,26 +249,61 @@ export const createCheckoutSessionTransaction = async (
       resolvedPriceId = checkoutSessionInput.priceId
     }
 
+    const priceResult = await selectPriceById(
+      resolvedPriceId!,
+      transaction
+    )
+    if (Result.isError(priceResult)) {
+      return Result.err(
+        new ValidationError(
+          'priceId',
+          `Invalid or not-found price ID: no matching price found for id "${resolvedPriceId}"`
+        )
+      )
+    }
+    const resolvedPriceRecord = priceResult.unwrap()
+    {
+    }
+
+    if (resolvedPriceRecord.type === PriceType.Usage) {
+      return Result.err(
+        new ValidationError(
+          'priceId',
+          'Checkout sessions are only supported for product prices (subscription/single payment), not usage prices'
+        )
+      )
+    }
+
     const [result] =
       await selectPriceProductAndOrganizationByPriceWhere(
         { id: resolvedPriceId! },
         transaction
       )
+
+    // When no result is found, the price doesn't exist or doesn't have a product attached.
+    // Checkout sessions only support product prices (subscription/single_payment), so we expect
+    // all valid checkout prices to have a product.
+    if (!result) {
+      return Result.err(
+        new ValidationError(
+          'priceId',
+          `Invalid or not-found price ID: no matching price found for id "${resolvedPriceId}"`
+        )
+      )
+    }
+
     price = result.price
     product = result.product
     organization = result.organization
 
     if (product.default) {
-      throw new Error(
-        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+      return Result.err(
+        new ValidationError(
+          'product',
+          'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+        )
       )
     }
-    // FIXME: Re-enable this once usage prices are deprecated
-    // if (price.type === PriceType.Usage) {
-    //   throw new Error(
-    //     `Price id: ${price.id} has usage price. Usage prices are not supported for checkout sessions.`
-    //   )
-    // }
   } else {
     organization = await selectOrganizationById(
       organizationId,
@@ -256,50 +313,82 @@ export const createCheckoutSessionTransaction = async (
       checkoutSessionInput.type ===
       CheckoutSessionType.ActivateSubscription
     ) {
-      const targetSubscription = await selectSubscriptionById(
-        checkoutSessionInput.targetSubscriptionId,
-        transaction
-      ).catch((error) => {
-        throw new Error(
-          `Target subscription ${checkoutSessionInput.targetSubscriptionId} not found`,
-          { cause: error }
+      let targetSubscription
+      try {
+        targetSubscription = await selectSubscriptionById(
+          checkoutSessionInput.targetSubscriptionId,
+          transaction
         )
-      })
+      } catch (error) {
+        return Result.err(
+          new ValidationError(
+            'targetSubscriptionId',
+            `Target subscription ${checkoutSessionInput.targetSubscriptionId} not found`
+          )
+        )
+      }
       if (!customer) {
-        throw new Error(
-          'Customer is required for activate subscription checkout sessions'
+        return Result.err(
+          new ValidationError(
+            'customer',
+            'Customer is required for activate subscription checkout sessions'
+          )
         )
       }
       if (targetSubscription.organizationId !== organizationId) {
-        throw new Error(
-          `Target subscription ${targetSubscription.id} does not belong to organization ${organizationId}`
+        return Result.err(
+          new ValidationError(
+            'targetSubscriptionId',
+            `Target subscription ${targetSubscription.id} does not belong to organization ${organizationId}`
+          )
         )
       }
       if (targetSubscription.customerId !== customer.id) {
-        throw new Error(
-          `Target subscription ${targetSubscription.id} does not belong to customer ${customer.id}`
+        return Result.err(
+          new ValidationError(
+            'targetSubscriptionId',
+            `Target subscription ${targetSubscription.id} does not belong to customer ${customer.id}`
+          )
         )
       }
       if (!targetSubscription.priceId) {
-        throw new Error(
-          `Target subscription ${targetSubscription.id} does not have an associated price`
+        return Result.err(
+          new ValidationError(
+            'targetSubscriptionId',
+            `Target subscription ${targetSubscription.id} does not have an associated price`
+          )
         )
       }
       activateSubscriptionPriceId = targetSubscription.priceId
     }
   }
 
-  const checkoutSession = await insertCheckoutSession(
-    checkoutSessionInsertFromInput({
+  let checkoutSessionInsert: CheckoutSession.Insert
+  try {
+    checkoutSessionInsert = checkoutSessionInsertFromInput({
       checkoutSessionInput,
       customer,
       organizationId,
       livemode,
       activateSubscriptionPriceId,
       resolvedPriceId,
-    }),
+    })
+  } catch (error) {
+    return Result.err(
+      new ValidationError(
+        'checkoutSession',
+        error instanceof Error ? error.message : String(error)
+      )
+    )
+  }
+  const checkoutSessionResult = await insertCheckoutSession(
+    checkoutSessionInsert,
     transaction
   )
+  if (checkoutSessionResult.status === 'error') {
+    return Result.err(checkoutSessionResult.error)
+  }
+  const checkoutSession = checkoutSessionResult.value
 
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null
@@ -318,7 +407,7 @@ export const createCheckoutSessionTransaction = async (
       })
     stripeSetupIntentId = stripeSetupIntent.id
   } else if (price?.type === PriceType.SinglePayment && product) {
-    const stripePaymentIntent =
+    const paymentIntentResult =
       await createPaymentIntentForCheckoutSession({
         price,
         product,
@@ -326,7 +415,10 @@ export const createCheckoutSessionTransaction = async (
         checkoutSession,
         ...(customer ? { customer } : {}),
       })
-    stripePaymentIntentId = stripePaymentIntent.id
+    if (Result.isError(paymentIntentResult)) {
+      return Result.err(paymentIntentResult.error)
+    }
+    stripePaymentIntentId = paymentIntentResult.value.id
   }
   const updatedCheckoutSession = await updateCheckoutSession(
     {
@@ -341,8 +433,8 @@ export const createCheckoutSessionTransaction = async (
     CheckoutSessionType.AddPaymentMethod
       ? `${core.NEXT_PUBLIC_APP_URL}/add-payment-method/${checkoutSession.id}`
       : `${core.NEXT_PUBLIC_APP_URL}/checkout/${checkoutSession.id}`
-  return {
+  return Result.ok({
     checkoutSession: updatedCheckoutSession,
     url,
-  }
+  })
 }

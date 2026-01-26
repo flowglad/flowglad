@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -44,7 +45,10 @@ import {
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
+import {
+  createCapturingEffectsContext,
+  createDiscardingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -61,10 +65,6 @@ import {
 } from '@/types'
 import { CacheDependency } from '@/utils/cache'
 import { core } from '@/utils/core'
-import type {
-  NonRenewingCreateSubscriptionResult,
-  StandardCreateSubscriptionResult,
-} from './types'
 import { createSubscriptionWorkflow } from './workflow'
 
 describe('createSubscriptionWorkflow', async () => {
@@ -110,7 +110,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId,
             autoStart: true, // Ensures billingRun is created for the first test
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       }
     )
@@ -158,29 +158,31 @@ describe('createSubscriptionWorkflow', async () => {
     })
 
     const stripeSetupIntentIdNew = `setupintent_new_${core.nanoid()}`
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(
-          {
-            organization, // from beforeEach
-            product, // from beforeEach
-            price: defaultPrice, // from beforeEach
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod, // from beforeEach
-            customer, // IMPORTANT: Use the same customer from beforeEach
-            stripeSetupIntentId: stripeSetupIntentIdNew, // New intent ID
-            // autoStart behavior for the second subscription attempt can be default or true
-          },
-          transaction
-        )
-      })
-    ).rejects.toThrow(
-      `Customer ${customer.id} already has an active subscription`
-    )
+    const result = await adminTransaction(async ({ transaction }) => {
+      return createSubscriptionWorkflow(
+        {
+          organization, // from beforeEach
+          product, // from beforeEach
+          price: defaultPrice, // from beforeEach
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod, // from beforeEach
+          customer, // IMPORTANT: Use the same customer from beforeEach
+          stripeSetupIntentId: stripeSetupIntentIdNew, // New intent ID
+          // autoStart behavior for the second subscription attempt can be default or true
+        },
+        createDiscardingEffectsContext(transaction)
+      )
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        `Customer ${customer.id} already has an active subscription`
+      )
+    }
   })
 
   it('does not throw an error if creating a subscription for a customer with no active subscriptions, but past non-active subscriptions', async () => {
@@ -196,25 +198,25 @@ describe('createSubscriptionWorkflow', async () => {
     // Create a past subscription that is now canceled for newCustomer
     await adminTransaction(async ({ transaction }) => {
       const stripeSetupIntentIdPast = `setupintent_past_${core.nanoid()}`
-      const {
-        result: { subscription: subPast },
-      } = await createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: defaultPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date('2023-01-01'),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: newPaymentMethod,
-          customer: newCustomer,
-          stripeSetupIntentId: stripeSetupIntentIdPast,
-          autoStart: true,
-        },
-        transaction
-      )
+      const { subscription: subPast } = (
+        await createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date('2023-01-01'),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: newPaymentMethod,
+            customer: newCustomer,
+            stripeSetupIntentId: stripeSetupIntentIdPast,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      ).unwrap()
 
       await updateSubscription(
         {
@@ -247,7 +249,7 @@ describe('createSubscriptionWorkflow', async () => {
             stripeSetupIntentId: stripeSetupIntentIdCurrent,
             autoStart: true,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
     ).resolves.toMatchObject({})
@@ -268,30 +270,30 @@ describe('createSubscriptionWorkflow', async () => {
     const stripeSetupIntentIdTrial = `setupintent_trial_${core.nanoid()}`
 
     const {
-      result: {
-        subscription: trialSubscription,
-        billingPeriod: trialBillingPeriod,
-      },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: defaultPrice,
-          quantity: 1,
-          livemode: true,
-          startDate,
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: trialPaymentMethod,
-          customer: trialCustomer,
-          trialEnd,
-          stripeSetupIntentId: stripeSetupIntentIdTrial,
-          autoStart: true, // autoStart influences initial status
-        },
-        transaction
-      )
-    })
+      subscription: trialSubscription,
+      billingPeriod: trialBillingPeriod,
+    } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: true,
+            startDate,
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: trialPaymentMethod,
+            customer: trialCustomer,
+            trialEnd,
+            stripeSetupIntentId: stripeSetupIntentIdTrial,
+            autoStart: true, // autoStart influences initial status
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(trialSubscription.trialEnd).toBe(trialEnd)
     expect(trialBillingPeriod).toMatchObject({ startDate: startDate })
@@ -327,7 +329,6 @@ describe('createSubscriptionWorkflow', async () => {
         pricingModelId: product.pricingModelId,
       })
       const usagePrice = await setupPrice({
-        productId: product.id,
         type: PriceType.Usage,
         name: 'Usage Price',
         unitPrice: 100,
@@ -339,8 +340,8 @@ describe('createSubscriptionWorkflow', async () => {
         usageMeterId: usageMeter.id,
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           const stripeSetupIntentIdUsage = `setupintent_usage_price_${core.nanoid()}`
           return createSubscriptionWorkflow(
             {
@@ -357,12 +358,16 @@ describe('createSubscriptionWorkflow', async () => {
               stripeSetupIntentId: stripeSetupIntentIdUsage,
               autoStart: true,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow(
-        `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for subscription creation.`
+        }
       )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          `Price id: ${usagePrice.id} has usage price. Usage prices are not supported for subscription creation.`
+        )
+      }
     })
 
     it('creates a subscription with usage price if the feature flag is enabled', async () => {
@@ -392,7 +397,6 @@ describe('createSubscriptionWorkflow', async () => {
         pricingModelId: product.pricingModelId,
       })
       const usageFeaturePrice = await setupPrice({
-        productId: product.id,
         type: PriceType.Usage,
         name: 'Feature Usage Price',
         unitPrice: 150,
@@ -404,28 +408,28 @@ describe('createSubscriptionWorkflow', async () => {
         usageMeterId: usageFeatureMeter.id,
       })
 
-      const {
-        result: { subscription: createdSub },
-      } = await adminTransaction(async ({ transaction }) => {
-        const stripeSetupIntentId = `setupintent_usage_feature_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization: orgWithFeatureFlag,
-            product,
-            price: usageFeaturePrice,
-            quantity: 2,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: usageFeaturePaymentMethod,
-            customer: usageFeatureCustomer,
-            stripeSetupIntentId,
-            autoStart: true,
-          },
-          transaction
-        )
-      })
+      const { subscription: createdSub } = (
+        await adminTransaction(async ({ transaction }) => {
+          const stripeSetupIntentId = `setupintent_usage_feature_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization: orgWithFeatureFlag,
+              product,
+              price: usageFeaturePrice,
+              quantity: 2,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: usageFeaturePaymentMethod,
+              customer: usageFeatureCustomer,
+              stripeSetupIntentId,
+              autoStart: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
 
       expect(typeof createdSub).toBe('object')
       expect(createdSub.priceId).toBe(usageFeaturePrice.id)
@@ -444,28 +448,28 @@ describe('createSubscriptionWorkflow', async () => {
       })
 
       // defaultPrice from outer beforeEach is already a subscription type
-      const {
-        result: { subscription: subTypeSubscription },
-      } = await adminTransaction(async ({ transaction }) => {
-        const stripeSetupIntentIdSubType = `setupintent_sub_type_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price: defaultPrice, // Use defaultPrice (subscription type)
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: subPricePaymentMethod,
-            customer: subPriceCustomer,
-            stripeSetupIntentId: stripeSetupIntentIdSubType,
-            autoStart: true,
-          },
-          transaction
-        )
-      })
+      const { subscription: subTypeSubscription } = (
+        await adminTransaction(async ({ transaction }) => {
+          const stripeSetupIntentIdSubType = `setupintent_sub_type_${core.nanoid()}`
+          return createSubscriptionWorkflow(
+            {
+              organization,
+              product,
+              price: defaultPrice, // Use defaultPrice (subscription type)
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: subPricePaymentMethod,
+              customer: subPriceCustomer,
+              stripeSetupIntentId: stripeSetupIntentIdSubType,
+              autoStart: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        })
+      ).unwrap()
       expect(subTypeSubscription.runBillingAtPeriodStart).toBe(true)
     })
 
@@ -493,8 +497,8 @@ describe('createSubscriptionWorkflow', async () => {
         isDefault: false,
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           const stripeSetupIntentIdSingle = `setupintent_single_pay_${core.nanoid()}`
           return createSubscriptionWorkflow(
             {
@@ -511,10 +515,16 @@ describe('createSubscriptionWorkflow', async () => {
               stripeSetupIntentId: stripeSetupIntentIdSingle,
               // autoStart: true, // Not relevant for this check
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow('Price is not a subscription')
+        }
+      )
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Price is not a subscription'
+        )
+      }
     })
 
     it('creates a non-renewing subscription if provided a default product and non-subscribable price', async () => {
@@ -553,33 +563,34 @@ describe('createSubscriptionWorkflow', async () => {
               customer: defaultProductCustomer,
               autoStart: true, // Enable autoStart to get an active subscription
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
 
       // Verify a subscription was created successfully
-      expect(result.result.subscription).toMatchObject({})
-      expect(result.result.subscription.customerId).toBe(
+      const unwrappedResult = result.unwrap()
+      expect(unwrappedResult.subscription).toMatchObject({})
+      expect(unwrappedResult.subscription.customerId).toBe(
         defaultProductCustomer.id
       )
-      expect(result.result.subscription.priceId).toBe(
+      expect(unwrappedResult.subscription.priceId).toBe(
         singlePaymentPrice.id
       )
       // Since it's a single payment price with default product, it should create a non-renewing subscription
-      expect(result.result.subscription.renews).toBe(false) // Non-renewing subscriptions do not renew
-      expect(result.result.subscription.status).toBe(
+      expect(unwrappedResult.subscription.renews).toBe(false) // Non-renewing subscriptions do not renew
+      expect(unwrappedResult.subscription.status).toBe(
         SubscriptionStatus.Active
       )
 
       // Verify billing period was created
-      expect(result.result.billingPeriod).toBeNull()
+      expect(unwrappedResult.billingPeriod).toBeNull()
 
       // Verify subscription items were created
-      expect(result.result.subscriptionItems).toMatchObject({})
-      expect(result.result.subscriptionItems.length).toBeGreaterThan(
-        0
-      )
+      expect(unwrappedResult.subscriptionItems).toMatchObject({})
+      expect(
+        unwrappedResult.subscriptionItems.length
+      ).toBeGreaterThan(0)
     })
   })
 
@@ -625,8 +636,8 @@ describe('createSubscriptionWorkflow', async () => {
     })
 
     // Store the first billing run
-    const { result: firstResult } = await adminTransaction(
-      async ({ transaction }) => {
+    const firstResult = (
+      await adminTransaction(async ({ transaction }) => {
         return createSubscriptionWorkflow(
           {
             organization,
@@ -643,14 +654,14 @@ describe('createSubscriptionWorkflow', async () => {
               firstSubscription.stripeSetupIntentId!,
             autoStart: true, // Or false, depending on what it should do with incomplete
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
-      }
-    )
+      })
+    ).unwrap()
 
     // Attempt second creation with same setup intent
-    const { result: secondResult } = await adminTransaction(
-      async ({ transaction }) => {
+    const secondResult = (
+      await adminTransaction(async ({ transaction }) => {
         return createSubscriptionWorkflow(
           {
             organization,
@@ -667,10 +678,10 @@ describe('createSubscriptionWorkflow', async () => {
               firstSubscription.stripeSetupIntentId!,
             autoStart: true,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
-      }
-    )
+      })
+    ).unwrap()
 
     expect(secondResult.subscription.id).toBe(firstSubscription.id)
     expect(secondResult.billingRun?.id).toBe(
@@ -685,27 +696,27 @@ describe('createSubscriptionWorkflow', async () => {
     })
     const stripeSetupIntentIdNoPM = `setupintent_no_pm_${core.nanoid()}`
 
-    const {
-      result: { billingRun: noPmBillingRun },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: defaultPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          customer: customerWithoutPM,
-          stripeSetupIntentId: stripeSetupIntentIdNoPM,
-          // defaultPaymentMethod is omitted
-          // autoStart can be true or false, outcome should be no billing run
-        },
-        transaction
-      )
-    })
+    const { billingRun: noPmBillingRun } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            customer: customerWithoutPM,
+            stripeSetupIntentId: stripeSetupIntentIdNoPM,
+            // defaultPaymentMethod is omitted
+            // autoStart can be true or false, outcome should be no billing run
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
     expect(noPmBillingRun).toBeNull()
   })
 
@@ -722,27 +733,27 @@ describe('createSubscriptionWorkflow', async () => {
     const stripeSetupIntentIdCustPM = `setupintent_cust_pm_${core.nanoid()}`
     expect(defaultPrice.trialPeriodDays).toBe(0)
     expect(defaultPrice.type).toBe(PriceType.Subscription)
-    const {
-      result: { billingRun: custPmBillingRun },
-    } = await adminTransaction(async ({ transaction }) => {
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: defaultPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          customer: customerWithDefaultPM,
-          stripeSetupIntentId: stripeSetupIntentIdCustPM,
-          // defaultPaymentMethod is omitted in params to createSubscriptionWorkflow
-          autoStart: true, // Important for billing run creation
-        },
-        transaction
-      )
-    })
+    const { billingRun: custPmBillingRun } = (
+      await adminTransaction(async ({ transaction }) => {
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: defaultPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            customer: customerWithDefaultPM,
+            stripeSetupIntentId: stripeSetupIntentIdCustPM,
+            // defaultPaymentMethod is omitted in params to createSubscriptionWorkflow
+            autoStart: true, // Important for billing run creation
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
     expect(custPmBillingRun).toMatchObject({
       status: BillingRunStatus.Scheduled,
     })
@@ -752,7 +763,7 @@ describe('createSubscriptionWorkflow', async () => {
     )
   })
 
-  it('throws an error if defaultPaymentMethod customerId does not match customer id', async () => {
+  it('returns an error if defaultPaymentMethod customerId does not match customer id', async () => {
     // Setup a different customer for the payment method
     const anotherCustomer = await setupCustomer({
       organizationId: organization.id, // Use org from beforeEach
@@ -760,29 +771,31 @@ describe('createSubscriptionWorkflow', async () => {
     })
     const stripeSetupIntentIdMismatch = `setupintent_mismatch_${core.nanoid()}`
 
-    await expect(
-      adminTransaction(async ({ transaction }) => {
-        return createSubscriptionWorkflow(
-          {
-            organization, // from beforeEach
-            product, // from beforeEach
-            price: defaultPrice, // from beforeEach
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod, // Belongs to anotherCustomer
-            customer: anotherCustomer, // The main customer for the subscription (from beforeEach)
-            stripeSetupIntentId: stripeSetupIntentIdMismatch,
-            autoStart: true,
-          },
-          transaction
-        )
-      })
-    ).rejects.toThrow(
-      `Customer ${anotherCustomer.id} does not match default payment method ${paymentMethod.customerId}`
-    )
+    const result = await adminTransaction(async ({ transaction }) => {
+      return createSubscriptionWorkflow(
+        {
+          organization, // from beforeEach
+          product, // from beforeEach
+          price: defaultPrice, // from beforeEach
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod, // Belongs to anotherCustomer
+          customer: anotherCustomer, // The main customer for the subscription (from beforeEach)
+          stripeSetupIntentId: stripeSetupIntentIdMismatch,
+          autoStart: true,
+        },
+        createDiscardingEffectsContext(transaction)
+      )
+    })
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        `Customer ${anotherCustomer.id} does not match default payment method ${paymentMethod.customerId}`
+      )
+    }
   })
 })
 
@@ -815,28 +828,28 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
       type: PriceType.Subscription,
     } as Price.Record // Asserting as Record, assuming no update needed if already correct type
 
-    const {
-      result: { billingRun },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_br_sub_pm_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization, // from beforeEach
-          product, // from beforeEach
-          price: subscriptionPrice, // Use the explicitly typed subscription price
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
+    const { billingRun } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_br_sub_pm_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization, // from beforeEach
+            product, // from beforeEach
+            price: subscriptionPrice, // Use the explicitly typed subscription price
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
     expect(billingRun).toMatchObject({
       status: BillingRunStatus.Scheduled,
     })
@@ -854,28 +867,28 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
       type: PriceType.Subscription,
     } as Price.Record
 
-    const {
-      result: { billingRun },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_br_sub_nopm_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: subscriptionPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: undefined,
-          customer: customerWithoutPM,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
+    const { billingRun } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_br_sub_nopm_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: subscriptionPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: undefined,
+            customer: customerWithoutPM,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
     expect(billingRun).toBeNull()
   })
 
@@ -894,29 +907,28 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
       type: PriceType.Subscription,
     } as Price.Record
 
-    const {
-      result: { billingRun, subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_br_no_autostart_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: subscriptionPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: false, // Key for this test
-        },
-        transaction
-      )
-    })
-    // expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
+    const { billingRun } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_br_no_autostart_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: subscriptionPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: false, // Key for this test
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
     expect(billingRun).toBeNull()
   })
 
@@ -935,28 +947,28 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
       type: PriceType.Subscription,
     } as Price.Record
 
-    const {
-      result: { billingRun, subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_br_no_autostart_param_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: subscriptionPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          // autoStart is not provided (defaults to false in createSubscriptionWorkflow logic)
-        },
-        transaction
-      )
-    })
+    const { billingRun, subscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_br_no_autostart_param_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: subscriptionPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            // autoStart is not provided (defaults to false in createSubscriptionWorkflow logic)
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
     expect(subscription.status).toBe(SubscriptionStatus.Incomplete)
     expect(billingRun).toBeNull()
   })
@@ -998,28 +1010,28 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
         featureSpecs,
       })
 
-    const {
-      result: { subscription, subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product, // This product now has features linked via createdFeaturesAndPfs
-          price,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
+    const { subscription, subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product, // This product now has features linked via createdFeaturesAndPfs
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(typeof subscription).toBe('object')
     expect(typeof subscriptionItems).toBe('object')
@@ -1056,12 +1068,14 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       expect(sif!.livemode).toBe(true) // explicit check for this test
 
       if (sif!.type === FeatureType.UsageCreditGrant) {
-        expect(sif!.amount).toBe(originalFeatureSetup!.feature.amount)
+        expect(sif!.amount).toBe(
+          originalFeatureSetup!.feature.amount!
+        )
         expect(sif!.renewalFrequency).toBe(
-          originalFeatureSetup!.feature.renewalFrequency
+          originalFeatureSetup!.feature.renewalFrequency!
         )
         expect(sif!.usageMeterId).toBe(
-          originalFeatureSetup!.feature.usageMeterId
+          originalFeatureSetup!.feature.usageMeterId!
         )
       } else if (sif!.type === FeatureType.Toggle) {
         expect(sif!.amount).toBeNull()
@@ -1099,28 +1113,28 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
         featureSpecs,
       })
 
-    const {
-      result: { subscription, subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price,
-          quantity: 1,
-          livemode: false, // livemode: false for subscription
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
+    const { subscription, subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: false, // livemode: false for subscription
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(subscription.livemode).toBe(false)
     expect(subscriptionItems.length).toBe(1)
@@ -1176,28 +1190,28 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     })
 
     // Action
-    const {
-      result: { subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
+    const { subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Assertions
     expect(subscriptionItems.length).toBe(1)
@@ -1231,28 +1245,28 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
       customerId: customer.id,
     })
 
-    const {
-      result: { subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product, // This product has no features
-          price,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
+    const { subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product, // This product has no features
+            price,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(subscriptionItems.length).toBe(1)
     const subItem = subscriptionItems[0]
@@ -1300,28 +1314,28 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
 
     const quantity = 3
 
-    const {
-      result: { subscriptionItems },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price,
-          quantity,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
+    const { subscriptionItems } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price,
+            quantity,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     expect(subscriptionItems.length).toBe(1)
     const subItem = subscriptionItems[0]
@@ -1422,28 +1436,28 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
     expect(defaultSubscriptionPrice.type).not.toBe(PriceType.Usage)
     expect(defaultSubscriptionPrice.usageMeterId).toBeNull()
 
-    const {
-      result: { subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_ledger_nonusage_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product: defaultProduct,
-          price: defaultSubscriptionPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
+    const { subscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_ledger_nonusage_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product: defaultProduct,
+            price: defaultSubscriptionPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     const ledgerAccounts = await adminTransaction(
       async ({ transaction }) => {
@@ -1485,6 +1499,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     // Create a discount first
     const discount = await setupDiscount({
       organizationId: organization.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Discount',
       amount: 10, // 10% off
       amountType: DiscountAmountType.Percent,
@@ -1523,7 +1538,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             autoStart: true,
             discountRedemption,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       }
     )
@@ -1561,6 +1576,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     const discounts = await Promise.all([
       setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'Test Discount 1',
         amount: 10,
         amountType: DiscountAmountType.Percent,
@@ -1569,6 +1585,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       }),
       setupDiscount({
         organizationId: organization.id,
+        pricingModelId: pricingModel.id,
         name: 'Test Discount 2',
         amount: 15,
         amountType: DiscountAmountType.Percent,
@@ -1611,7 +1628,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             autoStart: true,
             discountRedemption: discountRedemptions[0], // Currently only supports one discount
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       }
     )
@@ -1650,6 +1667,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     const trialEnd = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
     const discount = await setupDiscount({
       organizationId: organization.id,
+      pricingModelId: pricingModel.id,
       name: 'Test Discount',
       amount: 10,
       amountType: DiscountAmountType.Percent,
@@ -1680,7 +1698,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
           },
           transaction
         )
-        const { result } = await createSubscriptionWorkflow(
+        return createSubscriptionWorkflow(
           {
             organization,
             product,
@@ -1697,11 +1715,8 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
             trialEnd,
             discountRedemption,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
-        return {
-          result,
-        }
       })
 
     expect(typeof subscription).toBe('object')
@@ -1715,13 +1730,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
 
   describe('createSubscriptionWorkflow - Ledger Command Creation', () => {
     it('should create billing period transition ledger command for non-renewing subscription', async () => {
+      // Use livemode=false to avoid conflict with setupOrg's livemode=true pricing model
       const newPricingModel = await adminTransaction(
         async ({ transaction }) => {
           return insertPricingModel(
             {
               name: 'Test Pricing Model',
               organizationId: organization.id,
-              livemode: true,
+              livemode: false,
               isDefault: false,
             },
             transaction
@@ -1734,7 +1750,7 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         name: 'Default Product',
         pricingModelId: newPricingModel.id,
         default: true,
-        livemode: true,
+        livemode: false,
       })
 
       const singlePaymentPrice = await setupPrice({
@@ -1742,13 +1758,14 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         name: 'Single Payment Price',
         type: PriceType.SinglePayment,
         unitPrice: 1000,
-        livemode: true,
+        livemode: false,
         isDefault: false,
         currency: organization.defaultCurrency,
       })
 
       const newCustomer = await setupCustomer({
         organizationId: organization.id,
+        livemode: false, // Must match pricing model livemode
       })
       const newPaymentMethod = await setupPaymentMethod({
         organizationId: organization.id,
@@ -1756,22 +1773,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_nonrenewing_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product: defaultProduct,
               price: singlePaymentPrice,
               quantity: 1,
-              livemode: true,
+              livemode: false, // Must match test data livemode
               startDate: new Date(),
               interval: IntervalUnit.Month,
               intervalCount: 1,
@@ -1780,17 +1792,19 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            transaction
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
-      expect(typeof workflowResult.ledgerCommand).toBe('object')
-      expect(workflowResult.ledgerCommand?.type).toBe(
+      expect(effects.ledgerCommands).toHaveLength(1)
+      expect(effects.ledgerCommands[0].type).toBe(
         LedgerTransactionType.BillingPeriodTransition
       )
-      expect(workflowResult.result.subscription).toMatchObject({})
-      expect(workflowResult.result.subscription.renews).toBe(false)
+      const result = workflowResult.unwrap()
+      expect(result.subscription).toMatchObject({})
+      expect(result.subscription.renews).toBe(false)
     })
 
     it('should create billing period transition ledger command for free plan subscription', async () => {
@@ -1815,16 +1829,11 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_free_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product: {
@@ -1842,16 +1851,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            transaction
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
       // Check if subscription is marked as free plan
-      const createdSubscription = workflowResult.result.subscription
+      const createdSubscription = workflowResult.unwrap().subscription
       expect(createdSubscription.isFreePlan).toBe(true)
-      expect(typeof workflowResult.ledgerCommand).toBe('object')
-      expect(workflowResult.ledgerCommand?.type).toBe(
+      expect(effects.ledgerCommands).toHaveLength(1)
+      expect(effects.ledgerCommands[0].type).toBe(
         LedgerTransactionType.BillingPeriodTransition
       )
     })
@@ -1866,16 +1876,11 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_standard_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product,
@@ -1890,15 +1895,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: true,
             },
-            transaction
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
-      expect(workflowResult.ledgerCommand).toBeUndefined()
-      expect(workflowResult.result.subscription).toMatchObject({})
+      expect(effects.ledgerCommands).toHaveLength(0)
+      const result = workflowResult.unwrap()
+      expect(result.subscription).toMatchObject({})
       // Standard subscriptions should renew by default (unless they're default products with non-subscription prices)
-      expect(workflowResult.result.subscription.renews).toBe(true)
+      expect(result.subscription.renews).toBe(true)
     })
 
     it('should NOT create billing period transition ledger command when subscription status is Incomplete', async () => {
@@ -1911,16 +1918,11 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
       })
 
       const stripeSetupIntentId = `setupintent_incomplete_${core.nanoid()}`
-      const workflowResult = await adminTransaction(
-        async ({
-          transaction,
-        }): Promise<
-          TransactionOutput<
-            | StandardCreateSubscriptionResult
-            | NonRenewingCreateSubscriptionResult
-          >
-        > => {
-          return createSubscriptionWorkflow(
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
             {
               organization,
               product,
@@ -1935,16 +1937,85 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
               stripeSetupIntentId,
               autoStart: false, // Don't auto-start, which will create Incomplete status
             },
-            transaction
+            ctx
           )
+          return { workflowResult, effects }
         }
       )
 
-      const createdSubscription = workflowResult.result.subscription
+      const createdSubscription = workflowResult.unwrap().subscription
       expect(createdSubscription.status).toBe(
         SubscriptionStatus.Incomplete
       )
-      expect(workflowResult.ledgerCommand).toBeUndefined()
+      expect(effects.ledgerCommands).toHaveLength(0)
+    })
+
+    it('should create billing period transition ledger command for trial subscription', async () => {
+      const newCustomer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      const newPaymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: newCustomer.id,
+      })
+
+      // Create a price with trial period
+      const trialPrice = await setupPrice({
+        productId: product.id,
+        name: 'Trial Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
+        trialPeriodDays: 14,
+      })
+
+      const stripeSetupIntentId = `setupintent_trial_${core.nanoid()}`
+      const { workflowResult, effects } = await adminTransaction(
+        async ({ transaction }) => {
+          const { ctx, effects } =
+            createCapturingEffectsContext(transaction)
+          const workflowResult = await createSubscriptionWorkflow(
+            {
+              organization,
+              product: {
+                ...product,
+                default: false, // Not default plan
+              },
+              price: trialPrice,
+              quantity: 1,
+              livemode: true,
+              startDate: new Date(),
+              interval: IntervalUnit.Month,
+              intervalCount: 1,
+              defaultPaymentMethod: newPaymentMethod,
+              customer: newCustomer,
+              stripeSetupIntentId,
+              autoStart: true,
+              trialEnd: new Date(
+                Date.now() + 14 * 24 * 60 * 60 * 1000
+              ), // 14 days from now
+            },
+            ctx
+          )
+          return { workflowResult, effects }
+        }
+      )
+
+      // Verify subscription is in trial status
+      const createdSubscription = workflowResult.unwrap().subscription
+      expect(createdSubscription.status).toBe(
+        SubscriptionStatus.Trialing
+      )
+
+      // Trial subscriptions should call enqueueLedgerCommand with BillingPeriodTransition
+      expect(effects.ledgerCommands).toHaveLength(1)
+      expect(effects.ledgerCommands[0].type).toBe(
+        LedgerTransactionType.BillingPeriodTransition
+      )
     })
   })
 })
@@ -2015,29 +2086,29 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
     // We should consider this as it gets us closer to a "pure" function
     const beforeWorkflow = Date.now()
 
-    const {
-      result: { subscription: paidSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_free_upgrade_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: paidPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: upgradeStartDate,
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          preserveBillingCycleAnchor: true,
-        },
-        transaction
-      )
-    })
+    const { subscription: paidSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_free_upgrade_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: paidPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: upgradeStartDate,
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            preserveBillingCycleAnchor: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
     // FIXME: we have to do this bc createSubscriptionWorkflow doesn't accept a time argument.
     // We should consider this as it gets us closer to a "pure" function
     const afterWorkflow = Date.now()
@@ -2143,29 +2214,29 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
 
     const upgradeStartDate = now
 
-    const {
-      result: { subscription: paidSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_free_upgrade_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: paidPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: upgradeStartDate,
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          // preserveBillingCycleAnchor is not set (falsey)
-        },
-        transaction
-      )
-    })
+    const { subscription: paidSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_free_upgrade_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: paidPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: upgradeStartDate,
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            // preserveBillingCycleAnchor is not set (falsey)
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const canceledFree = await selectSubscriptionById(
@@ -2225,32 +2296,39 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
       livemode: true,
     })
 
-    const workflowResult = await adminTransaction(
-      async ({ transaction }) => {
-        const stripeSetupIntentId = `setupintent_cache_test_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price,
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod,
-            customer,
-            stripeSetupIntentId,
-            autoStart: true,
-          },
-          transaction
-        )
-      }
-    )
+    let capturedEffects: {
+      cacheInvalidations: string[]
+      events: unknown[]
+      ledgerCommands: unknown[]
+    } | null = null
+
+    await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_cache_test_${core.nanoid()}`
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
+      capturedEffects = effects
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod,
+          customer,
+          stripeSetupIntentId,
+          autoStart: true,
+        },
+        ctx
+      )
+    })
 
     // Verify cacheInvalidations contains customerSubscriptions dependency
-    expect(workflowResult.cacheInvalidations).toHaveLength(1)
-    expect(workflowResult.cacheInvalidations).toContain(
+    expect(capturedEffects!.cacheInvalidations).toHaveLength(1)
+    expect(capturedEffects!.cacheInvalidations).toContain(
       CacheDependency.customerSubscriptions(customer.id)
     )
   })
@@ -2271,34 +2349,41 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
       livemode: true,
     })
 
-    const workflowResult = await adminTransaction(
-      async ({ transaction }) => {
-        const stripeSetupIntentId = `setupintent_cache_cust_${core.nanoid()}`
-        return createSubscriptionWorkflow(
-          {
-            organization,
-            product,
-            price,
-            quantity: 1,
-            livemode: true,
-            startDate: new Date(),
-            interval: IntervalUnit.Month,
-            intervalCount: 1,
-            defaultPaymentMethod: paymentMethod1,
-            customer: customer1,
-            stripeSetupIntentId,
-            autoStart: true,
-          },
-          transaction
-        )
-      }
-    )
+    let capturedEffects: {
+      cacheInvalidations: string[]
+      events: unknown[]
+      ledgerCommands: unknown[]
+    } | null = null
+
+    await adminTransaction(async ({ transaction }) => {
+      const stripeSetupIntentId = `setupintent_cache_cust_${core.nanoid()}`
+      const { ctx, effects } =
+        createCapturingEffectsContext(transaction)
+      capturedEffects = effects
+      return createSubscriptionWorkflow(
+        {
+          organization,
+          product,
+          price,
+          quantity: 1,
+          livemode: true,
+          startDate: new Date(),
+          interval: IntervalUnit.Month,
+          intervalCount: 1,
+          defaultPaymentMethod: paymentMethod1,
+          customer: customer1,
+          stripeSetupIntentId,
+          autoStart: true,
+        },
+        ctx
+      )
+    })
 
     // Should invalidate customer1's cache, not customer2's
-    expect(workflowResult.cacheInvalidations).toContain(
+    expect(capturedEffects!.cacheInvalidations).toContain(
       CacheDependency.customerSubscriptions(customer1.id)
     )
-    expect(workflowResult.cacheInvalidations).not.toContain(
+    expect(capturedEffects!.cacheInvalidations).not.toContain(
       CacheDependency.customerSubscriptions(customer2.id)
     )
   })
@@ -2333,29 +2418,29 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
     const trialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
 
-    const {
-      result: { subscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_new_trial_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: priceWithTrial,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          trialEnd,
-        },
-        transaction
-      )
-    })
+    const { subscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_new_trial_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: priceWithTrial,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            trialEnd,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Customer should get the trial since they never used one before
     expect(subscription.trialEnd).toBe(trialEnd)
@@ -2390,29 +2475,29 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
     // First, create a subscription with a trial for this customer
     const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
-    const {
-      result: { subscription: firstSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_first_trial_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: priceWithTrial,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          trialEnd: firstTrialEnd,
-        },
-        transaction
-      )
-    })
+    const { subscription: firstSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_first_trial_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: priceWithTrial,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            trialEnd: firstTrialEnd,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Cancel the first subscription before creating the second one
     await adminTransaction(async ({ transaction }) => {
@@ -2430,29 +2515,29 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
     // Now try to create another subscription with a trial
     const secondTrialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000
 
-    const {
-      result: { subscription: secondSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_second_trial_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: priceWithTrial,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          trialEnd: secondTrialEnd, // Explicitly provide trialEnd
-        },
-        transaction
-      )
-    })
+    const { subscription: secondSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_second_trial_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: priceWithTrial,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            trialEnd: secondTrialEnd, // Explicitly provide trialEnd
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Customer should NOT get the trial since they've already used one
     expect(secondSubscription.trialEnd).toBeNull()
@@ -2487,29 +2572,29 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
     // Create and then cancel a subscription with a trial
     const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
-    const {
-      result: { subscription: firstSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_canceled_trial_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: priceWithTrial,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          trialEnd: firstTrialEnd,
-        },
-        transaction
-      )
-    })
+    const { subscription: firstSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_canceled_trial_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: priceWithTrial,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            trialEnd: firstTrialEnd,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Cancel the first subscription
     await adminTransaction(async ({ transaction }) => {
@@ -2527,29 +2612,29 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
     // Now try to create another subscription with a trial
     const secondTrialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000
 
-    const {
-      result: { subscription: secondSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_after_canceled_trial_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: priceWithTrial,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          trialEnd: secondTrialEnd,
-        },
-        transaction
-      )
-    })
+    const { subscription: secondSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_after_canceled_trial_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: priceWithTrial,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            trialEnd: secondTrialEnd,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Customer should NOT get the trial since they've already used one (even though it was canceled)
     expect(secondSubscription.trialEnd).toBeNull()
@@ -2584,29 +2669,29 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
     // First, create a subscription with a trial (using explicit trialEnd)
     const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
-    const {
-      result: { subscription: firstSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_first_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: priceWithTrial,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          trialEnd: firstTrialEnd,
-        },
-        transaction
-      )
-    })
+    const { subscription: firstSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_first_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: priceWithTrial,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            trialEnd: firstTrialEnd,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Cancel the first subscription before creating the second one
     await adminTransaction(async ({ transaction }) => {
@@ -2623,29 +2708,29 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
     // Now try to create another subscription without explicit trialEnd
     // The price has trialPeriodDays, so workflow should check eligibility
-    const {
-      result: { subscription: secondSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_second_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: priceWithTrial,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          // trialEnd not provided, but price has trialPeriodDays
-        },
-        transaction
-      )
-    })
+    const { subscription: secondSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_second_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: priceWithTrial,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            // trialEnd not provided, but price has trialPeriodDays
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Since customer already used a trial, they should not get another one
     // even though the price has trialPeriodDays
@@ -2691,29 +2776,29 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
     })
 
     const firstTrialEnd = Date.now() + 14 * 24 * 60 * 60 * 1000
-    const {
-      result: { subscription: firstSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_with_trial_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: priceWithTrial,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          interval: IntervalUnit.Month,
-          intervalCount: 1,
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-          trialEnd: firstTrialEnd,
-        },
-        transaction
-      )
-    })
+    const { subscription: firstSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_with_trial_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: priceWithTrial,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            interval: IntervalUnit.Month,
+            intervalCount: 1,
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+            trialEnd: firstTrialEnd,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // Cancel the first subscription before creating the second one
     await adminTransaction(async ({ transaction }) => {
@@ -2732,26 +2817,26 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
     // This should work without checking trial eligibility
     // (since single payment prices don't have trials)
     // Use the existing product and single payment price that were already created
-    const {
-      result: { subscription: nonRenewingSubscription },
-    } = await adminTransaction(async ({ transaction }) => {
-      const stripeSetupIntentId = `setupintent_single_pay_${core.nanoid()}`
-      return createSubscriptionWorkflow(
-        {
-          organization,
-          product,
-          price: singlePaymentPrice,
-          quantity: 1,
-          livemode: true,
-          startDate: new Date(),
-          defaultPaymentMethod: paymentMethod,
-          customer,
-          stripeSetupIntentId,
-          autoStart: true,
-        },
-        transaction
-      )
-    })
+    const { subscription: nonRenewingSubscription } = (
+      await adminTransaction(async ({ transaction }) => {
+        const stripeSetupIntentId = `setupintent_single_pay_${core.nanoid()}`
+        return createSubscriptionWorkflow(
+          {
+            organization,
+            product,
+            price: singlePaymentPrice,
+            quantity: 1,
+            livemode: true,
+            startDate: new Date(),
+            defaultPaymentMethod: paymentMethod,
+            customer,
+            stripeSetupIntentId,
+            autoStart: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      })
+    ).unwrap()
 
     // This should succeed without issues - trial eligibility doesn't apply
     expect(typeof nonRenewingSubscription).toBe('object')

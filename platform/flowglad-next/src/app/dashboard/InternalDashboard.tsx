@@ -1,15 +1,14 @@
 'use client'
 
-import { startOfDay, subMonths } from 'date-fns'
+import { endOfDay, startOfDay, subMonths } from 'date-fns'
 import { useEffect, useState } from 'react'
-import { ActiveSubscribersChart } from '@/components/ActiveSubscribersChart'
 import { ChartDivider, ChartGrid } from '@/components/charts'
+import { DashboardChart } from '@/components/DashboardChart'
 import PageContainer from '@/components/PageContainer'
-import { RecurringRevenueChart } from '@/components/RecurringRevenueChart'
-import { RevenueChart } from '@/components/RevenueChart'
 import { DateRangePicker } from '@/components/ui/date-range-picker'
 import { IntervalPicker } from '@/components/ui/interval-picker'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
+import { ProductPicker } from '@/components/ui/product-picker'
 import { useAuthContext } from '@/contexts/authContext'
 import { RevenueChartIntervalUnit } from '@/types'
 import { getIntervalConfig } from '@/utils/chartIntervalUtils'
@@ -27,18 +26,22 @@ function InternalDashboardPage({
     ? `Hello, ${firstName}`
     : 'Hello there :)'
   const today = startOfDay(new Date())
+  const todayEnd = endOfDay(new Date())
   const [range, setRange] = useState<{
     from: Date
     to: Date
   }>({
     from: subMonths(today, 12),
-    to: today,
+    to: todayEnd,
   })
 
   // Global interval state for all charts
   const [interval, setInterval] = useState<RevenueChartIntervalUnit>(
     () => getIntervalConfig(range.from, range.to).default
   )
+
+  // Product filter state (local only, not persisted to URL)
+  const [productId, setProductId] = useState<string | null>(null)
 
   // Auto-correct interval when date range changes if it becomes invalid
   useEffect(() => {
@@ -54,7 +57,7 @@ function InternalDashboardPage({
         title={greeting}
         className="pb-2"
         description={
-          <div className="flex items-center gap-2">
+          <div className="-ml-4 flex items-center">
             <DateRangePicker
               fromDate={range.from}
               toDate={range.to}
@@ -71,6 +74,10 @@ function InternalDashboardPage({
               fromDate={range.from}
               toDate={range.to}
             />
+            <ProductPicker
+              value={productId}
+              onValueChange={setProductId}
+            />
           </div>
         }
       />
@@ -81,31 +88,40 @@ function InternalDashboardPage({
         - Allows ChartDivider to span full width while content is inset
       */}
       <div className="w-full flex flex-col pb-16">
-        {/* Primary Chart - Full Size with bottom padding */}
+        {/* Primary Chart - Full Size with metric selector */}
         <div className="py-6">
-          <RevenueChart
+          <DashboardChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
+            productId={productId}
             size="lg"
+            availableMetrics={['revenue', 'mrr', 'subscribers']}
+            defaultMetric="revenue"
           />
         </div>
 
         <ChartDivider />
 
-        {/* Secondary Charts - Compact Grid with top padding */}
+        {/* Secondary Charts - Compact Grid with metric selectors */}
         <ChartGrid>
-          <RecurringRevenueChart
+          <DashboardChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
+            productId={productId}
             size="sm"
+            availableMetrics={['mrr', 'subscribers']}
+            defaultMetric="mrr"
           />
-          <ActiveSubscribersChart
+          <DashboardChart
             fromDate={range.from}
             toDate={range.to}
             interval={interval}
+            productId={productId}
             size="sm"
+            availableMetrics={['subscribers', 'mrr']}
+            defaultMetric="subscribers"
           />
         </ChartGrid>
       </div>

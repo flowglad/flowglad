@@ -149,6 +149,10 @@
           "type": "registry:component"
         },
         {
+          "path": "src/registry/base/subscription-card/uncancel-subscription-dialog.tsx",
+          "type": "registry:component"
+        },
+        {
           "path": "src/registry/base/subscription-card/types.ts",
           "type": "registry:lib"
         },

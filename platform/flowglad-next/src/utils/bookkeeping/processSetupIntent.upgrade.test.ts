@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCheckoutSession,
   setupCustomer,
@@ -25,6 +25,11 @@ import {
   selectSubscriptionById,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
+import {
+  createDiscardingEffectsContext,
+  noopEmitEvent,
+  noopInvalidateCache,
+} from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -192,7 +197,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         async ({ transaction }) => {
           return await processSetupIntentSucceeded(
             setupIntent,
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -294,7 +299,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -386,7 +391,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -502,7 +507,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -634,7 +639,7 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       await comprehensiveAdminTransaction(async ({ transaction }) => {
         return await processSetupIntentSucceeded(
           setupIntent,
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 

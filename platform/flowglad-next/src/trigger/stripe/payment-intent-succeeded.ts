@@ -1,22 +1,22 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
-import type { Event } from '@/db/schema/events'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
 import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
-import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPurchaseById } from '@/db/tableMethods/purchaseMethods'
+import type { TransactionEffectsContext } from '@/db/types'
 import { processOutcomeForBillingRun } from '@/subscriptions/processBillingRunPaymentIntents'
 import { InvoiceStatus } from '@/types'
 import { safelyIncrementDiscountRedemptionSubscriptionPayment } from '@/utils/bookkeeping/discountRedemptionTracking'
 import { processPaymentIntentStatusUpdated } from '@/utils/bookkeeping/processPaymentIntentStatusUpdated'
 import { createStripeTaxTransactionIfNeededForPayment } from '@/utils/bookkeeping/stripeTaxTransactions'
-import { sendOrganizationPaymentNotificationEmail } from '@/utils/email'
 import { storeTelemetry } from '@/utils/redis'
 import { tracedTaskRun } from '@/utils/triggerTracing'
 import { generateInvoicePdfIdempotently } from '../generate-invoice-pdf'
 import { sendCustomerPaymentSucceededNotificationIdempotently } from '../notifications/send-customer-payment-succeeded-notification'
+import { sendOrganizationPaymentSucceededNotificationIdempotently } from '../notifications/send-organization-payment-succeeded-notification'
 
 export const stripePaymentIntentSucceededTask = task({
   id: 'stripe-payment-intent-succeeded',
@@ -35,45 +35,44 @@ export const stripePaymentIntentSucceededTask = task({
          */
         if ('billingRunId' in metadata) {
           const result = await comprehensiveAdminTransaction(
-            async ({ transaction }) => {
+            async (params) => {
+              const effectsCtx: TransactionEffectsContext = {
+                transaction: params.transaction,
+                cacheRecomputationContext:
+                  params.cacheRecomputationContext,
+                invalidateCache: params.invalidateCache,
+                emitEvent: params.emitEvent,
+                enqueueLedgerCommand: params.enqueueLedgerCommand,
+              }
               return await processOutcomeForBillingRun(
                 { input: payload },
-                transaction
+                effectsCtx
               )
             }
           )
           return result
         }
 
-        const {
-          invoice,
-          membersForOrganization,
-          organization,
-          customer,
-          payment,
-        } = await comprehensiveAdminTransaction(
-          async ({ transaction }) => {
+        const { invoice, organization, customer, payment, purchase } =
+          await comprehensiveAdminTransaction(async (ctx) => {
+            const { transaction } = ctx
             const paymentResult =
               await processPaymentIntentStatusUpdated(
                 payload.data.object,
-                transaction
+                ctx
               )
-            const {
-              result: { payment },
-              eventsToInsert,
-              ledgerCommand,
-            } = paymentResult
-
-            if (!payment.purchaseId) {
-              throw new Error(
-                `Payment ${payment.id} has no purchaseId, cannot process payment intent succeeded event`
-              )
+            if (paymentResult.status === 'error') {
+              return Result.err(paymentResult.error)
             }
+            const { payment } = paymentResult.value
 
-            const purchase = await selectPurchaseById(
-              payment.purchaseId,
-              transaction
-            )
+            // Only fetch purchase if purchaseId exists
+            const purchase = payment.purchaseId
+              ? await selectPurchaseById(
+                  payment.purchaseId,
+                  transaction
+                )
+              : null
 
             const [invoice] =
               await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
@@ -81,23 +80,18 @@ export const stripePaymentIntentSucceededTask = task({
                 transaction
               )
 
+            // Use purchase IDs if available, otherwise fall back to payment IDs
             const [customer] = await selectCustomers(
               {
-                id: purchase.customerId,
+                id: purchase?.customerId ?? payment.customerId,
               },
               transaction
             )
 
             const organization = await selectOrganizationById(
-              purchase.organizationId,
+              purchase?.organizationId ?? payment.organizationId,
               transaction
             )
-
-            const membersForOrganization =
-              await selectMembershipsAndUsersByMembershipWhere(
-                { organizationId: organization.id },
-                transaction
-              )
 
             await safelyIncrementDiscountRedemptionSubscriptionPayment(
               payment,
@@ -109,21 +103,11 @@ export const stripePaymentIntentSucceededTask = task({
               purchase,
               organization,
               customer,
-              membersForOrganization,
               payment,
             }
-            const eventInserts: Event.Insert[] = [
-              ...(eventsToInsert ?? []),
-            ]
 
-            return {
-              result,
-              eventsToInsert: eventInserts,
-              ledgerCommand,
-            }
-          },
-          {}
-        )
+            return Result.ok(result)
+          }, {})
 
         await comprehensiveAdminTransaction(
           async ({ transaction }) => {
@@ -131,7 +115,7 @@ export const stripePaymentIntentSucceededTask = task({
               { organization, payment, invoice },
               transaction
             )
-            return { result: null }
+            return Result.ok(null)
           }
         )
 
@@ -148,20 +132,17 @@ export const stripePaymentIntentSucceededTask = task({
         /**
          * Send the organization payment notification email
          */
-        logger.info('Sending organization payment notification email')
-        await sendOrganizationPaymentNotificationEmail({
-          to: membersForOrganization.map(
-            ({ user }) => user.email ?? ''
-          ),
-          amount: payload.data.object.amount,
-          invoiceNumber: invoice.invoiceNumber,
-          customerId: customer.id,
-          organizationName: organization.name,
-          currency: invoice.currency,
-          customerName: customer.name,
-          customerEmail: customer.email,
-          livemode: invoice.livemode,
-        })
+        await sendOrganizationPaymentSucceededNotificationIdempotently(
+          {
+            organizationId: organization.id,
+            customerId: customer.id,
+            paymentId: payment.id,
+            amount: payload.data.object.amount,
+            currency: invoice.currency,
+            invoiceNumber: invoice.invoiceNumber,
+            livemode: invoice.livemode,
+          }
+        )
 
         await storeTelemetry('payment', payment.id, ctx.run.id)
 

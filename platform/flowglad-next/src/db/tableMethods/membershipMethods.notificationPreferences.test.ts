@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { setupMemberships, setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -32,19 +32,18 @@ describe('memberships notificationPreferences', () => {
           transaction
         )
 
-        // getMembershipNotificationPreferences should return testModeNotifications = false
+        // getMembershipNotificationPreferences should return testModeNotifications = true (default)
         const prefs =
           getMembershipNotificationPreferences(freshMembership)
-        expect(prefs.testModeNotifications).toBe(false)
+        expect(prefs.testModeNotifications).toBe(true)
 
-        // getMembershipNotificationPreferences should return all 7 notification types as true
+        // getMembershipNotificationPreferences should return all 6 notification types as true
         expect(prefs.subscriptionCreated).toBe(true)
         expect(prefs.subscriptionAdjusted).toBe(true)
         expect(prefs.subscriptionCanceled).toBe(true)
         expect(prefs.subscriptionCancellationScheduled).toBe(true)
         expect(prefs.paymentFailed).toBe(true)
-        expect(prefs.onboardingCompleted).toBe(true)
-        expect(prefs.payoutsEnabled).toBe(true)
+        expect(prefs.paymentSuccessful).toBe(true)
 
         // Verify the full shape matches defaults
         expect(prefs).toEqual(DEFAULT_NOTIFICATION_PREFERENCES)
@@ -83,13 +82,12 @@ describe('memberships notificationPreferences', () => {
         // subscriptionCreated should be false (from stored value)
         expect(prefs.subscriptionCreated).toBe(false)
 
-        // All other 6 notification type preferences should return true (from defaults)
+        // All other 5 notification type preferences should return true (from defaults)
         expect(prefs.subscriptionAdjusted).toBe(true)
         expect(prefs.subscriptionCanceled).toBe(true)
         expect(prefs.subscriptionCancellationScheduled).toBe(true)
         expect(prefs.paymentFailed).toBe(true)
-        expect(prefs.onboardingCompleted).toBe(true)
-        expect(prefs.payoutsEnabled).toBe(true)
+        expect(prefs.paymentSuccessful).toBe(true)
       })
     })
 
@@ -103,17 +101,16 @@ describe('memberships notificationPreferences', () => {
         const prefs =
           getMembershipNotificationPreferences(freshMembership)
 
-        // testModeNotifications should be false (default)
-        expect(prefs.testModeNotifications).toBe(false)
+        // testModeNotifications should be true (default)
+        expect(prefs.testModeNotifications).toBe(true)
 
-        // All 7 notification type preferences should be true (defaults)
+        // All 6 notification type preferences should be true (defaults)
         expect(prefs.subscriptionCreated).toBe(true)
         expect(prefs.subscriptionAdjusted).toBe(true)
         expect(prefs.subscriptionCanceled).toBe(true)
         expect(prefs.subscriptionCancellationScheduled).toBe(true)
         expect(prefs.paymentFailed).toBe(true)
-        expect(prefs.onboardingCompleted).toBe(true)
-        expect(prefs.payoutsEnabled).toBe(true)
+        expect(prefs.paymentSuccessful).toBe(true)
       })
     })
 
@@ -146,12 +143,11 @@ describe('memberships notificationPreferences', () => {
         expect(prefs.subscriptionCreated).toBe(false)
         expect(prefs.paymentFailed).toBe(false)
 
-        // All 5 other notification types should be true (defaults)
+        // All 4 other notification types should be true (defaults)
         expect(prefs.subscriptionAdjusted).toBe(true)
         expect(prefs.subscriptionCanceled).toBe(true)
         expect(prefs.subscriptionCancellationScheduled).toBe(true)
-        expect(prefs.onboardingCompleted).toBe(true)
-        expect(prefs.payoutsEnabled).toBe(true)
+        expect(prefs.paymentSuccessful).toBe(true)
       })
     })
 
@@ -170,14 +166,13 @@ describe('memberships notificationPreferences', () => {
     it('successfully parses an empty object and returns all defaults', () => {
       const result = notificationPreferencesSchema.parse({})
 
-      expect(result.testModeNotifications).toBe(false)
+      expect(result.testModeNotifications).toBe(true)
       expect(result.subscriptionCreated).toBe(true)
       expect(result.subscriptionAdjusted).toBe(true)
       expect(result.subscriptionCanceled).toBe(true)
       expect(result.subscriptionCancellationScheduled).toBe(true)
       expect(result.paymentFailed).toBe(true)
-      expect(result.onboardingCompleted).toBe(true)
-      expect(result.payoutsEnabled).toBe(true)
+      expect(result.paymentSuccessful).toBe(true)
     })
 
     it('DEFAULT_NOTIFICATION_PREFERENCES equals notificationPreferencesSchema.parse({})', () => {
