@@ -23,7 +23,6 @@ import {
   fetchPricingModel,
   getFlowgladRoute,
   useBilling,
-  useCatalog,
   usePricing,
   usePricingModel,
 } from './FlowgladContext'
@@ -915,33 +914,6 @@ describe('usePricing', () => {
       pricingModelResult.current?.defaultCurrency
     )
     expect(pricingResult.current?.products?.length).toBe(
-      pricingModelResult.current?.products?.length
-    )
-  })
-})
-
-describe('useCatalog', () => {
-  it('returns the same value as usePricingModel (backward compatibility)', async () => {
-    const mockBillingData = createMockBillingData()
-
-    const wrapper = createWrapper({
-      devMode: true,
-      billingMocks: mockBillingData,
-    })
-
-    const { result: catalogResult } = renderHook(() => useCatalog(), {
-      wrapper,
-    })
-    const { result: pricingModelResult } = renderHook(
-      () => usePricingModel(),
-      { wrapper }
-    )
-
-    // useCatalog should be functionally identical to usePricingModel
-    expect(catalogResult.current?.defaultCurrency).toBe(
-      pricingModelResult.current?.defaultCurrency
-    )
-    expect(catalogResult.current?.products?.length).toBe(
       pricingModelResult.current?.products?.length
     )
   })
