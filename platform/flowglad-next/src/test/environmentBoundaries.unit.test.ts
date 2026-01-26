@@ -145,9 +145,12 @@ describe('Environment boundaries', () => {
     })
   })
 
-  describe('db tests (*.dbtest.ts)', () => {
-    it('should use bun.dbtest.setup.ts with transaction isolation', () => {
-      const setupPath = path.join(PROJECT_ROOT, 'bun.dbtest.setup.ts')
+  describe('db tests (*.db.test.ts)', () => {
+    it('should use bun.db.test.setup.ts with transaction isolation', () => {
+      const setupPath = path.join(
+        PROJECT_ROOT,
+        'bun.db.test.setup.ts'
+      )
       const content = fs.readFileSync(setupPath, 'utf-8')
 
       // Verify savepoint-based isolation is configured

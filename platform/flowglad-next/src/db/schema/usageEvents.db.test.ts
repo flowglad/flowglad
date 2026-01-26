@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test'
+import { beforeAll, beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -28,18 +28,22 @@ import core from '@/utils/core'
 // NOTE: RLS tests have been moved to integration-tests/db/usageEventsRLS.rls.test.ts
 
 describe('usageEvents schema - priceId NOT NULL constraint', () => {
+  // Shared setup - created once in beforeAll (immutable across tests)
   let orgData: Awaited<ReturnType<typeof setupOrg>>
   let apiKeyToken: string
-  let customer: Customer.Record
-  let paymentMethod: PaymentMethod.Record
   let usageMeter: UsageMeter.Record
   let usageMeter2: UsageMeter.Record
   let price: Price.Record
   let price2: Price.Record
+
+  // Per-test setup - created fresh in beforeEach (mutable/test-specific)
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
   let subscription: Subscription.Record
   let billingPeriod: BillingPeriod.Record
 
-  beforeEach(async () => {
+  // beforeAll: Set up shared data that doesn't change between tests
+  beforeAll(async () => {
     orgData = await setupOrg()
     const userApiKey = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
@@ -49,15 +53,6 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
       throw new Error('API key token not found')
     }
     apiKeyToken = userApiKey.apiKey.token
-
-    customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-    })
 
     usageMeter = await setupUsageMeter({
       organizationId: orgData.organization.id,
@@ -91,6 +86,18 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
       livemode: true,
       isDefault: false,
       usageMeterId: usageMeter2.id,
+    })
+  })
+
+  // beforeEach: Create fresh customer/subscription data for test isolation
+  beforeEach(async () => {
+    customer = await setupCustomer({
+      organizationId: orgData.organization.id,
+    })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: orgData.organization.id,
+      customerId: customer.id,
+      type: PaymentMethodType.Card,
     })
 
     subscription = await setupSubscription({
