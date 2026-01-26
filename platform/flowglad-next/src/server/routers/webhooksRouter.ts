@@ -8,7 +8,6 @@ import {
 } from '@/db/schema/webhooks'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
-  insertWebhook,
   selectWebhookAndOrganizationByWebhookId,
   selectWebhookById,
   selectWebhooksTableRowData,
@@ -22,10 +21,10 @@ import {
 import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {
-  createSvixEndpoint,
   getSvixSigningSecret,
   updateSvixEndpoint,
 } from '@/utils/svix'
+import { createWebhookTransaction } from '@/utils/webhooks'
 import { router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -53,23 +52,13 @@ export const createWebhook = protectedProcedure
         if (!organization) {
           throw new Error('Organization not found')
         }
-        const webhook = await insertWebhook(
-          {
-            ...input.webhook,
-            organizationId: organization.id,
-            livemode,
-          },
-          transaction
-        )
-        await createSvixEndpoint({
-          webhook,
+
+        return createWebhookTransaction({
+          webhook: input.webhook,
           organization,
+          livemode,
+          transaction,
         })
-        const secret = await getSvixSigningSecret({
-          webhook,
-          organization,
-        })
-        return { webhook, secret: secret.key }
       }
     )
   )
