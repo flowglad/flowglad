@@ -43,12 +43,14 @@ import {
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import {
   isSubscriptionCurrent,
+  selectActiveSubscriptionsForCustomer,
   selectSubscriptionById,
   selectSubscriptionsByCustomerId,
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import { externalIdInputSchema } from '@/db/tableUtils'
 import { protectedProcedure } from '@/server/trpc'
+import { cancelSubscriptionImmediately } from '@/subscriptions/cancelSubscription'
 import { migrateCustomerPricingModelProcedureTransaction } from '@/subscriptions/migratePricingModel'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
@@ -59,6 +61,7 @@ import { organizationBillingPortalURL } from '@/utils/core'
 import { createCustomersCsv } from '@/utils/csv-export'
 import {
   createGetOpenApiMeta,
+  createPostOpenApiMetaWithIdParam,
   generateOpenApiMetas,
   type RouteConfig,
   trpcToRest,
@@ -102,6 +105,19 @@ export const customerUsageBalancesRouteConfig: Record<
     },
   },
 }
+
+export const customerArchiveRouteConfig: Record<string, RouteConfig> =
+  {
+    'POST /customers/:externalId/archive': {
+      procedure: 'customers.archive',
+      pattern: /^customers\/([^\\/]+)\/archive$/,
+      mapParams: (matches) => {
+        return {
+          externalId: matches[0],
+        }
+      },
+    },
+  }
 
 const createCustomerProcedure = protectedProcedure
   .meta(openApiMetas.POST)
@@ -733,6 +749,135 @@ const migrateCustomerPricingModelProcedure = protectedProcedure
     )
   )
 
+const archiveCustomerInputSchema = z.object({
+  externalId: z
+    .string()
+    .describe(
+      'The external ID of the customer to archive, as defined in your application'
+    ),
+})
+
+const archiveCustomerOutputSchema = z.object({
+  customer: customerClientSelectSchema,
+})
+
+/**
+ * Archives a customer by setting archived=true and canceling all active subscriptions.
+ *
+ * This is a dedicated endpoint for archiving customers because archiving is a significant
+ * state change with cascade effects (subscription cancellation), not just a field update.
+ *
+ * Behavior:
+ * - Fetches the customer (includes archived customers for idempotency)
+ * - If customer is already archived, returns immediately (idempotent)
+ * - Cancels all active subscriptions with reason 'customer_archived'
+ * - Sets archived=true on the customer
+ *
+ * After archiving:
+ * - The customer's externalId is freed for reuse by a new customer (via partial unique index)
+ * - ExternalId lookups will not return this customer by default
+ * - Operations that create records attached to this customer will be blocked
+ */
+const archiveCustomerProcedure = protectedProcedure
+  .meta(
+    createPostOpenApiMetaWithIdParam({
+      resource: 'customer',
+      routeSuffix: 'archive',
+      summary: 'Archive Customer',
+      tags: ['Customer'],
+      idParamOverride: 'externalId',
+      description:
+        'Archives a customer, canceling all active subscriptions and freeing the externalId for reuse.',
+    })
+  )
+  .input(archiveCustomerInputSchema)
+  .output(archiveCustomerOutputSchema)
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const {
+          transaction,
+          invalidateCache,
+          emitEvent,
+          cacheRecomputationContext,
+          enqueueLedgerCommand,
+        } = transactionCtx
+        const { organizationId } = ctx
+
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: 'organizationId is required',
+          })
+        }
+
+        // 1. Fetch customer (include archived for idempotency)
+        const customer =
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId: input.externalId,
+              organizationId,
+              includeArchived: true,
+            },
+            transaction
+          )
+
+        if (!customer) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Customer with externalId ${input.externalId} not found`,
+          })
+        }
+
+        // 2. Idempotent - already archived
+        if (customer.archived) {
+          return Result.ok({ customer })
+        }
+
+        // 3. Cancel all active subscriptions
+        const activeSubscriptions =
+          await selectActiveSubscriptionsForCustomer(
+            customer.id,
+            transaction
+          )
+
+        for (const subscription of activeSubscriptions) {
+          const cancelResult = await cancelSubscriptionImmediately(
+            {
+              subscription,
+              customer,
+              skipNotifications: true,
+              skipReassignDefaultSubscription: true,
+              cancellationReason: 'customer_archived',
+            },
+            {
+              transaction,
+              invalidateCache,
+              emitEvent,
+              cacheRecomputationContext,
+              enqueueLedgerCommand,
+            }
+          )
+
+          if (Result.isError(cancelResult)) {
+            throw new TRPCError({
+              code: 'INTERNAL_SERVER_ERROR',
+              message: `Failed to cancel subscription ${subscription.id}: ${cancelResult.error.message}`,
+            })
+          }
+        }
+
+        // 4. Set archived = true
+        const archivedCustomer = await updateCustomerDb(
+          { id: customer.id, archived: true },
+          transaction
+        )
+
+        return Result.ok({ customer: archivedCustomer })
+      }
+    )
+  )
+
 export const customersRouter = router({
   create: createCustomerProcedure,
   /**
@@ -748,4 +893,5 @@ export const customersRouter = router({
   getTableRows: getTableRowsProcedure,
   exportCsv: exportCsvProcedure,
   migratePricingModel: migrateCustomerPricingModelProcedure,
+  archive: archiveCustomerProcedure,
 })
