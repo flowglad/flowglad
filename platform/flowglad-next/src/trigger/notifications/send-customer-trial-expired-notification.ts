@@ -67,13 +67,17 @@ export const runSendCustomerTrialExpiredNotification =
           )
 
         const price = subscription.priceId
-          ? await selectPriceById(subscription.priceId, transaction)
+          ? (
+              await selectPriceById(subscription.priceId, transaction)
+            ).unwrap()
           : null
 
         // Fetch the product associated with the price for user-friendly naming
         const product =
           price && Price.hasProductId(price)
-            ? await selectProductById(price.productId, transaction)
+            ? (
+                await selectProductById(price.productId, transaction)
+              ).unwrap()
             : null
 
         return {

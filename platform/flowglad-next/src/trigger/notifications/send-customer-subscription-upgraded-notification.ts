@@ -86,10 +86,12 @@ export const runSendCustomerSubscriptionUpgradedNotification =
         }
 
         const previousPrice = previousSubscription.priceId
-          ? await selectPriceById(
-              previousSubscription.priceId,
-              transaction
-            )
+          ? (
+              await selectPriceById(
+                previousSubscription.priceId,
+                transaction
+              )
+            ).unwrap()
           : null
 
         return {

@@ -87,16 +87,17 @@ export async function getPricingModelSetupData(
 > {
   return Result.gen(async function* () {
     // Fetch the pricing model
-    const pricingModel = await selectPricingModelById(
+    const pricingModelResult = await selectPricingModelById(
       pricingModelId,
       transaction
     )
 
-    if (!pricingModel) {
+    if (Result.isError(pricingModelResult)) {
       return yield* Result.err(
         new NotFoundError('PricingModel', pricingModelId)
       )
     }
+    const pricingModel = pricingModelResult.unwrap()
 
     // Fetch all usage meters for this pricing model
     const usageMeters = await selectUsageMeters(

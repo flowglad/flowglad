@@ -119,14 +119,15 @@ describe('pricesRouter - Default Price Constraints', () => {
       await expect(
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          const existingPrice = await selectPriceById(
-            defaultPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+          const existingPrice = (
+            await selectPriceById(defaultPriceId, transaction)
+          ).unwrap()
+          const product = (
+            await selectProductById(
+              existingPrice.productId!,
+              transaction
+            )
+          ).unwrap()
 
           // This should throw an error
           validateDefaultPriceUpdate(
@@ -143,10 +144,9 @@ describe('pricesRouter - Default Price Constraints', () => {
     it('should allow unitPrice of 0 for default price on default product', async () => {
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const existingPrice = await selectPriceById(
-          defaultPriceId,
-          transaction
-        )
+        const existingPrice = (
+          await selectPriceById(defaultPriceId, transaction)
+        ).unwrap()
         const product = await selectProductById(
           existingPrice.productId!,
           transaction
@@ -188,14 +188,15 @@ describe('pricesRouter - Default Price Constraints', () => {
       await expect(
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          const existingPrice = await selectPriceById(
-            defaultPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+          const existingPrice = (
+            await selectPriceById(defaultPriceId, transaction)
+          ).unwrap()
+          const product = (
+            await selectProductById(
+              existingPrice.productId!,
+              transaction
+            )
+          ).unwrap()
 
           // This should throw an error
           validateDefaultPriceUpdate(
@@ -213,14 +214,15 @@ describe('pricesRouter - Default Price Constraints', () => {
       await expect(
         adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          const existingPrice = await selectPriceById(
-            defaultPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+          const existingPrice = (
+            await selectPriceById(defaultPriceId, transaction)
+          ).unwrap()
+          const product = (
+            await selectProductById(
+              existingPrice.productId!,
+              transaction
+            )
+          ).unwrap()
 
           // This should throw an error
           validateDefaultPriceUpdate(
@@ -240,10 +242,9 @@ describe('pricesRouter - Default Price Constraints', () => {
     it('should allow updating non-financial fields on default price of default product', async () => {
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const existingPrice = await selectPriceById(
-          defaultPriceId,
-          transaction
-        )
+        const existingPrice = (
+          await selectPriceById(defaultPriceId, transaction)
+        ).unwrap()
         const product = await selectProductById(
           existingPrice.productId!,
           transaction
@@ -413,10 +414,9 @@ describe('pricesRouter - Default Price Constraints', () => {
     it('should allow updating unitPrice on regular prices', async () => {
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const existingPrice = await selectPriceById(
-          regularPriceId,
-          transaction
-        )
+        const existingPrice = (
+          await selectPriceById(regularPriceId, transaction)
+        ).unwrap()
         const product = await selectProductById(
           existingPrice.productId!,
           transaction
@@ -471,10 +471,9 @@ describe('pricesRouter - Default Price Constraints', () => {
           ctx
         )
 
-        const existingPrice = await selectPriceById(
-          regularPriceId,
-          transaction
-        )
+        const existingPrice = (
+          await selectPriceById(regularPriceId, transaction)
+        ).unwrap()
         const product = await selectProductById(
           existingPrice.productId!,
           transaction
@@ -1646,7 +1645,9 @@ describe('pricesRouter.replaceUsagePrice', () => {
     // Verify second price is still active (not affected by the replacement)
     const secondPriceAfter = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectPriceById(secondPrice.id, transaction)
+      return (
+        await selectPriceById(secondPrice.id, transaction)
+      ).unwrap()
     })
 
     expect(secondPriceAfter.active).toBe(true)

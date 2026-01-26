@@ -158,17 +158,15 @@ describe('priceMethods.ts', () => {
         )
 
         // Verify the previous default price is no longer default
-        const updatedSecondPrice = await selectPriceById(
-          secondPrice.id,
-          transaction
-        )
+        const updatedSecondPrice = (
+          await selectPriceById(secondPrice.id, transaction)
+        ).unwrap()
         expect(updatedSecondPrice.isDefault).toBe(false)
 
         // Verify the original price is no longer default
-        const updatedOriginalPrice = await selectPriceById(
-          price.id,
-          transaction
-        )
+        const updatedOriginalPrice = (
+          await selectPriceById(price.id, transaction)
+        ).unwrap()
         expect(updatedOriginalPrice.isDefault).toBe(false)
       })
     })
@@ -225,10 +223,9 @@ describe('priceMethods.ts', () => {
         expect(updatedSecondPrice.isDefault).toBe(true)
 
         // Verify the original price is no longer default
-        const updatedOriginalPrice = await selectPriceById(
-          price.id,
-          transaction
-        )
+        const updatedOriginalPrice = (
+          await selectPriceById(price.id, transaction)
+        ).unwrap()
         expect(updatedOriginalPrice.isDefault).toBe(false)
       })
     })
@@ -271,10 +268,9 @@ describe('priceMethods.ts', () => {
         expect(updatedSecondPrice.unitPrice).toBe(2000)
 
         // Verify the original price is no longer active & default
-        const updatedOriginalPrice = await selectPriceById(
-          price.id,
-          transaction
-        )
+        const updatedOriginalPrice = (
+          await selectPriceById(price.id, transaction)
+        ).unwrap()
         expect(updatedOriginalPrice.active).toBe(false)
         expect(updatedOriginalPrice.isDefault).toBe(false)
       })
@@ -468,14 +464,12 @@ describe('priceMethods.ts', () => {
         expect(defaultPrices[0].active).toBe(true)
         expect(defaultPrices[0].id).toBe(lastPrice.id)
 
-        const updatedPrice = await selectPriceById(
-          price.id,
-          transaction
-        )
-        const updatedSecondPrice = await selectPriceById(
-          secondPrice.id,
-          transaction
-        )
+        const updatedPrice = (
+          await selectPriceById(price.id, transaction)
+        ).unwrap()
+        const updatedSecondPrice = (
+          await selectPriceById(secondPrice.id, transaction)
+        ).unwrap()
         expect(updatedSecondPrice.active).toBe(false)
         expect(updatedSecondPrice.isDefault).toBe(false)
         expect(updatedPrice.active).toBe(false)
@@ -515,10 +509,9 @@ describe('priceMethods.ts', () => {
         )
 
         // Verify the original price is still default for its product
-        const originalPrice = await selectPriceById(
-          price.id,
-          transaction
-        )
+        const originalPrice = (
+          await selectPriceById(price.id, transaction)
+        ).unwrap()
         expect(originalPrice.isDefault).toBe(true)
         expect(originalPrice.productId).toBe(product.id)
       })
@@ -2940,14 +2933,12 @@ describe('priceMethods.ts', () => {
           )
 
           // Verify both prices are now non-default
-          const updatedPrice1 = await selectPriceById(
-            price1.id,
-            transaction
-          )
-          const updatedPrice2 = await selectPriceById(
-            price2.id,
-            transaction
-          )
+          const updatedPrice1 = (
+            await selectPriceById(price1.id, transaction)
+          ).unwrap()
+          const updatedPrice2 = (
+            await selectPriceById(price2.id, transaction)
+          ).unwrap()
 
           expect(updatedPrice1.isDefault).toBe(false)
           expect(updatedPrice2.isDefault).toBe(false)
@@ -3062,10 +3053,9 @@ describe('priceMethods.ts', () => {
           )
 
           // Verify no_charge price is now default
-          const updatedNoChargePrice = await selectPriceById(
-            noChargePrice.id,
-            transaction
-          )
+          const updatedNoChargePrice = (
+            await selectPriceById(noChargePrice.id, transaction)
+          ).unwrap()
           expect(updatedNoChargePrice.isDefault).toBe(true)
         })
       })
@@ -3115,17 +3105,15 @@ describe('priceMethods.ts', () => {
           )
 
           // Verify the original default is still default
-          const updatedDefaultPrice = await selectPriceById(
-            defaultPrice.id,
-            transaction
-          )
+          const updatedDefaultPrice = (
+            await selectPriceById(defaultPrice.id, transaction)
+          ).unwrap()
           expect(updatedDefaultPrice.isDefault).toBe(true)
 
           // Verify no_charge price is still non-default
-          const updatedNoChargePrice = await selectPriceById(
-            noChargePrice.id,
-            transaction
-          )
+          const updatedNoChargePrice = (
+            await selectPriceById(noChargePrice.id, transaction)
+          ).unwrap()
           expect(updatedNoChargePrice.isDefault).toBe(false)
         })
       })
@@ -3180,10 +3168,9 @@ describe('priceMethods.ts', () => {
           expect(updatedPrice2.isDefault).toBe(true)
 
           // Verify price1 is no longer default
-          const updatedPrice1 = await selectPriceById(
-            price1.id,
-            transaction
-          )
+          const updatedPrice1 = (
+            await selectPriceById(price1.id, transaction)
+          ).unwrap()
           expect(updatedPrice1.isDefault).toBe(false)
         })
       })

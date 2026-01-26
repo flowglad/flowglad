@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { Result } from 'better-result'
 import { setupOrg, setupPricingModel } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -347,12 +348,15 @@ describe('savePricingModelIntegrationMarkdown', () => {
     )
 
     // Verify database was updated with the hash
-    const updatedPricingModel = await adminTransaction(
+    const updatedPricingModelResult = await adminTransaction(
       async (ctx) => {
         const { transaction } = ctx
         return selectPricingModelById(pricingModel.id, transaction)
       }
     )
+    const updatedPricingModel = Result.isOk(updatedPricingModelResult)
+      ? updatedPricingModelResult.value
+      : null
     expect(typeof updatedPricingModel?.integrationGuideHash).toBe(
       'string'
     )
@@ -469,10 +473,11 @@ describe('getPricingModelIntegrationMarkdown', () => {
   it('should return null immediately when integrationGuideHash is undefined', async () => {
     // Pricing model starts with integrationGuideHash as undefined (not set)
     // Verify it's undefined or null
-    const pm = await adminTransaction(async (ctx) => {
+    const pmResult = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return selectPricingModelById(pricingModel.id, transaction)
     })
+    const pm = Result.isOk(pmResult) ? pmResult.value : null
     expect(pm?.integrationGuideHash).toBeNull()
 
     mockGetMarkdownFile.mockClear()

@@ -27,12 +27,16 @@ const PurchasePage = async ({
       )
 
       const price = purchase.priceId
-        ? await selectPriceById(purchase.priceId, transaction)
+        ? (
+            await selectPriceById(purchase.priceId, transaction)
+          ).unwrap()
         : null
 
       const product =
         price && Price.hasProductId(price)
-          ? await selectProductById(price.productId, transaction)
+          ? (
+              await selectProductById(price.productId, transaction)
+            ).unwrap()
           : null
 
       return {

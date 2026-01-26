@@ -293,7 +293,9 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       // Select via authenticated transaction
       const selected = await authenticatedTransaction(
         async ({ transaction }) => {
-          return selectPriceById(subscriptionPrice.id, transaction)
+          return (
+            await selectPriceById(subscriptionPrice.id, transaction)
+          ).unwrap()
         },
         { apiKey: apiKey.token }
       )
@@ -321,7 +323,9 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
       const selected = await authenticatedTransaction(
         async (ctx) => {
           const { transaction } = ctx
-          return selectPriceById(usagePrice.id, transaction)
+          return (
+            await selectPriceById(usagePrice.id, transaction)
+          ).unwrap()
         },
         { apiKey: apiKey.token }
       )

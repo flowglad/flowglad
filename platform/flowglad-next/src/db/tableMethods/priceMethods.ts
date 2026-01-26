@@ -25,7 +25,7 @@ import {
   createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -131,7 +131,7 @@ export const derivePricingModelIdForPrice = async (
   return pricingModelId
 }
 
-export const selectPriceById = createSelectById(prices, config)
+export const selectPriceById = createSelectByIdResult(prices, config)
 
 /**
  * Derives pricingModelId from a price by reading directly from the price table.
@@ -139,7 +139,9 @@ export const selectPriceById = createSelectById(prices, config)
  * Note: Changed from going through product to reading directly from price.
  */
 export const derivePricingModelIdFromPrice =
-  createDerivePricingModelId(prices, config, selectPriceById)
+  createDerivePricingModelId(prices, config, async (id, tx) =>
+    (await selectPriceById(id, tx)).unwrap()
+  )
 
 /**
  * Batch fetch pricingModelIds for multiple prices.
@@ -790,7 +792,7 @@ export const makePriceDefault = async (
 ) => {
   const newDefaultPrice =
     typeof priceOrId === 'string'
-      ? await selectPriceById(priceOrId, ctx.transaction)
+      ? (await selectPriceById(priceOrId, ctx.transaction)).unwrap()
       : priceOrId
 
   const { price: oldDefaultPrice } = (
@@ -1134,10 +1136,9 @@ export const safelyUpdatePrice = async (
    * If price is being set as default, reset other prices for the same product/meter
    */
   if (price.isDefault) {
-    const existingPrice = await selectPriceById(
-      price.id,
-      ctx.transaction
-    )
+    const existingPrice = (
+      await selectPriceById(price.id, ctx.transaction)
+    ).unwrap()
     // For non-usage prices, reset other prices for the same product
     if (Price.hasProductId(existingPrice)) {
       await setPricesForProductToNonDefault(
@@ -1203,7 +1204,7 @@ export const selectResourceFeaturesForPrice = async (
   transaction: DbTransaction
 ): Promise<Feature.ResourceRecord[]> => {
   // Get the price to find its productId
-  const price = await selectPriceById(priceId, transaction)
+  const price = (await selectPriceById(priceId, transaction)).unwrap()
 
   // Usage prices don't have products, so they can't have resource features
   if (price.productId === null) {

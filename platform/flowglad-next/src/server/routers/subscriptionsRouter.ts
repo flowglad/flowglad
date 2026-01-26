@@ -146,18 +146,14 @@ export const validateAndResolvePriceForSubscription = async (params: {
   let resolvedPriceId: string
   if (priceId) {
     // Early validation: fetch price and reject usage prices before the heavier query
-    let price: Price.Record
-    try {
-      price = await selectPriceById(priceId, transaction)
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        throw new TRPCError({
-          code: 'NOT_FOUND',
-          message: `Price with id "${priceId}" not found`,
-        })
-      }
-      throw error
+    const priceResult = await selectPriceById(priceId, transaction)
+    if (Result.isError(priceResult)) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: `Price with id "${priceId}" not found`,
+      })
     }
+    const price = priceResult.unwrap()
     if (!Price.hasProductId(price)) {
       throw new TRPCError({
         code: 'BAD_REQUEST',

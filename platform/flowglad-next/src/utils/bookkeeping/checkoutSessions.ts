@@ -505,10 +505,9 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     transaction
   )
   if (feeCalculation.discountId) {
-    discount = await selectDiscountById(
-      feeCalculation.discountId,
-      transaction
-    )
+    discount = (
+      await selectDiscountById(feeCalculation.discountId, transaction)
+    ).unwrap()
     discountRedemption =
       await upsertDiscountRedemptionForPurchaseAndDiscount(
         purchase,

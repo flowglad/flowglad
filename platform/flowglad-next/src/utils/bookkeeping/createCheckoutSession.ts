@@ -249,22 +249,20 @@ export const createCheckoutSessionTransaction = async (
       resolvedPriceId = checkoutSessionInput.priceId
     }
 
-    let resolvedPriceRecord
-    try {
-      resolvedPriceRecord = await selectPriceById(
-        resolvedPriceId!,
-        transaction
-      )
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        return Result.err(
-          new ValidationError(
-            'priceId',
-            `Invalid or not-found price ID: no matching price found for id "${resolvedPriceId}"`
-          )
+    const priceResult = await selectPriceById(
+      resolvedPriceId!,
+      transaction
+    )
+    if (Result.isError(priceResult)) {
+      return Result.err(
+        new ValidationError(
+          'priceId',
+          `Invalid or not-found price ID: no matching price found for id "${resolvedPriceId}"`
         )
-      }
-      throw error
+      )
+    }
+    const resolvedPriceRecord = priceResult.unwrap()
+    {
     }
 
     if (resolvedPriceRecord.type === PriceType.Usage) {

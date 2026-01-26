@@ -25,7 +25,7 @@ import {
   createDateNotPassedFilter,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   NotFoundError,
@@ -73,7 +73,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'pricingModels',
 }
 
-export const selectPricingModelById = createSelectById(
+export const selectPricingModelById = createSelectByIdResult(
   pricingModels,
   config
 )
@@ -96,10 +96,9 @@ const selectPricingModelClientRecordById = cached(
     pricingModelId: string,
     transaction: DbTransaction
   ): Promise<PricingModel.ClientRecord> => {
-    const pricingModel = await selectPricingModelById(
-      pricingModelId,
-      transaction
-    )
+    const pricingModel = (
+      await selectPricingModelById(pricingModelId, transaction)
+    ).unwrap()
     return pricingModelsClientSelectSchema.parse(pricingModel)
   }
 )
@@ -197,10 +196,12 @@ export const makePricingModelDefault = async (
 ) => {
   const newDefaultPricingModel =
     typeof newDefaultPricingModelOrId === 'string'
-      ? await selectPricingModelById(
-          newDefaultPricingModelOrId,
-          ctx.transaction
-        )
+      ? (
+          await selectPricingModelById(
+            newDefaultPricingModelOrId,
+            ctx.transaction
+          )
+        ).unwrap()
       : newDefaultPricingModelOrId
   const oldDefaultPricingModel = await selectDefaultPricingModel(
     {
@@ -259,10 +260,9 @@ export const safelyUpdatePricingModel = async (
    * If price is default
    */
   if (pricingModel.isDefault) {
-    const existingPricingModel = await selectPricingModelById(
-      pricingModel.id,
-      ctx.transaction
-    )
+    const existingPricingModel = (
+      await selectPricingModelById(pricingModel.id, ctx.transaction)
+    ).unwrap()
     await setPricingModelsForOrganizationToNonDefault(
       {
         organizationId: existingPricingModel.organizationId,

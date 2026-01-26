@@ -472,16 +472,17 @@ export const processOutcomeForBillingRun = async (
     )
 
     // Send upgrade notifications AFTER payment succeeded and items updated
-    const price = await selectPriceById(
+    const priceResult = await selectPriceById(
       subscription.priceId,
       transaction
     )
 
-    if (!price) {
+    if (Result.isError(priceResult)) {
       return Result.err(
         new NotFoundError('Price', subscription.priceId)
       )
     }
+    const price = priceResult.unwrap()
 
     // Calculate proration amount from billing period items
     // Proration items are created in adjustSubscription.ts with name "Proration: Net charge adjustment"

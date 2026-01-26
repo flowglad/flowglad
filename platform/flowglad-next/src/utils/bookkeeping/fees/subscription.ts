@@ -168,10 +168,9 @@ export const createAndFinalizeSubscriptionFeeCalculation = async (
     params.billingPeriod.subscriptionId,
     transaction
   )
-  const price = await selectPriceById(
-    subscription.priceId,
-    transaction
-  )
+  const price = (
+    await selectPriceById(subscription.priceId, transaction)
+  ).unwrap()
   const insert = await createSubscriptionFeeCalculationInsert({
     ...params,
     discountRedemption: redemption,
