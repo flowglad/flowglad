@@ -1,0 +1,273 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { setupMemberships, setupOrg } from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Membership } from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
+import {
+  selectMembershipAndOrganizations,
+  selectMembershipByIdIncludingDeactivated,
+  selectMemberships,
+  selectMembershipsAndOrganizationsByMembershipWhere,
+  selectMembershipsAndUsersByMembershipWhere,
+  updateMembership,
+} from '@/db/tableMethods/membershipMethods'
+
+/**
+ * Integration tests for deactivated membership filtering.
+ *
+ * These tests verify that membership query methods correctly filter out
+ * deactivated memberships by default, and include them when explicitly
+ * requested via the includeDeactivated option.
+ */
+describe('membership deactivation filtering', () => {
+  let org: Organization.Record
+  let activeMembership: Membership.Record
+  let deactivatedMembership: Membership.Record
+
+  beforeEach(async () => {
+    // Setup organization
+    const orgData = await setupOrg()
+    org = orgData.organization
+
+    // Create two memberships - one active, one to be deactivated
+    activeMembership = await setupMemberships({
+      organizationId: org.id,
+    })
+
+    const membershipToDeactivate = await setupMemberships({
+      organizationId: org.id,
+    })
+
+    // Deactivate one membership
+    deactivatedMembership = await adminTransaction(
+      async ({ transaction }) => {
+        return updateMembership(
+          {
+            id: membershipToDeactivate.id,
+            deactivatedAt: new Date(),
+          },
+          transaction
+        )
+      }
+    )
+  })
+
+  describe('selectMemberships', () => {
+    it('excludes deactivated memberships by default and includes them when includeDeactivated is true', async () => {
+      // Test default behavior - should exclude deactivated
+      const defaultResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMemberships(
+            { organizationId: org.id },
+            transaction
+          )
+        }
+      )
+
+      // Should only return the active membership
+      expect(defaultResults).toHaveLength(1)
+      expect(defaultResults[0].id).toBe(activeMembership.id)
+      expect(defaultResults[0].deactivatedAt).toBeNull()
+
+      // Test with includeDeactivated: true - should include both
+      const allResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMemberships(
+            { organizationId: org.id },
+            transaction,
+            {
+              includeDeactivated: true,
+            }
+          )
+        }
+      )
+
+      // Should return both memberships
+      expect(allResults).toHaveLength(2)
+      const ids = allResults.map((m) => m.id).sort()
+      expect(ids).toEqual(
+        [activeMembership.id, deactivatedMembership.id].sort()
+      )
+
+      // Verify one is deactivated and one is not
+      const activeResult = allResults.find(
+        (m) => m.id === activeMembership.id
+      )
+      const deactivatedResult = allResults.find(
+        (m) => m.id === deactivatedMembership.id
+      )
+      expect(activeResult?.deactivatedAt).toBeNull()
+      expect(typeof deactivatedResult?.deactivatedAt).toBe('number')
+    })
+  })
+
+  describe('selectMembershipAndOrganizations', () => {
+    it('excludes deactivated memberships by default and includes them when includeDeactivated is true', async () => {
+      // Test default behavior - should exclude deactivated
+      const defaultResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipAndOrganizations(
+            { organizationId: org.id },
+            transaction
+          )
+        }
+      )
+
+      // Should only return the active membership with organization
+      expect(defaultResults).toHaveLength(1)
+      expect(defaultResults[0].membership.id).toBe(
+        activeMembership.id
+      )
+      expect(defaultResults[0].organization.id).toBe(org.id)
+
+      // Test with includeDeactivated: true
+      const allResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipAndOrganizations(
+            { organizationId: org.id },
+            transaction,
+            { includeDeactivated: true }
+          )
+        }
+      )
+
+      // Should return both memberships with organizations
+      expect(allResults).toHaveLength(2)
+      const membershipIds = allResults
+        .map((r) => r.membership.id)
+        .sort()
+      expect(membershipIds).toEqual(
+        [activeMembership.id, deactivatedMembership.id].sort()
+      )
+      // All should have the same organization
+      allResults.forEach((r) => {
+        expect(r.organization.id).toBe(org.id)
+      })
+    })
+  })
+
+  describe('selectMembershipsAndUsersByMembershipWhere', () => {
+    it('excludes deactivated memberships by default and includes them when includeDeactivated is true', async () => {
+      // Test default behavior - should exclude deactivated
+      const defaultResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipsAndUsersByMembershipWhere(
+            { organizationId: org.id },
+            transaction
+          )
+        }
+      )
+
+      // Should only return the active membership with user
+      expect(defaultResults).toHaveLength(1)
+      expect(defaultResults[0].membership.id).toBe(
+        activeMembership.id
+      )
+      expect(defaultResults[0].user.id).toBe(activeMembership.userId)
+
+      // Test with includeDeactivated: true
+      const allResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipsAndUsersByMembershipWhere(
+            { organizationId: org.id },
+            transaction,
+            { includeDeactivated: true }
+          )
+        }
+      )
+
+      // Should return both memberships with users
+      expect(allResults).toHaveLength(2)
+      const membershipIds = allResults
+        .map((r) => r.membership.id)
+        .sort()
+      expect(membershipIds).toEqual(
+        [activeMembership.id, deactivatedMembership.id].sort()
+      )
+    })
+  })
+
+  describe('selectMembershipsAndOrganizationsByMembershipWhere', () => {
+    it('excludes deactivated memberships by default and includes them when includeDeactivated is true', async () => {
+      // Test default behavior - should exclude deactivated
+      const defaultResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipsAndOrganizationsByMembershipWhere(
+            { organizationId: org.id },
+            transaction
+          )
+        }
+      )
+
+      // Should only return the active membership with organization
+      expect(defaultResults).toHaveLength(1)
+      expect(defaultResults[0].membership.id).toBe(
+        activeMembership.id
+      )
+      expect(defaultResults[0].organization.id).toBe(org.id)
+
+      // Test with includeDeactivated: true
+      const allResults = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipsAndOrganizationsByMembershipWhere(
+            { organizationId: org.id },
+            transaction,
+            { includeDeactivated: true }
+          )
+        }
+      )
+
+      // Should return both memberships with organizations
+      expect(allResults).toHaveLength(2)
+      const membershipIds = allResults
+        .map((r) => r.membership.id)
+        .sort()
+      expect(membershipIds).toEqual(
+        [activeMembership.id, deactivatedMembership.id].sort()
+      )
+    })
+  })
+
+  describe('selectMembershipByIdIncludingDeactivated', () => {
+    it('returns active memberships when queried by ID', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipByIdIncludingDeactivated(
+            activeMembership.id,
+            transaction
+          )
+        }
+      )
+
+      expect(result?.id).toBe(activeMembership.id)
+      expect(result?.deactivatedAt).toBeNull()
+    })
+
+    it('returns deactivated memberships when queried by ID', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipByIdIncludingDeactivated(
+            deactivatedMembership.id,
+            transaction
+          )
+        }
+      )
+
+      expect(result?.id).toBe(deactivatedMembership.id)
+      expect(typeof result?.deactivatedAt).toBe('number')
+    })
+
+    it('returns null for non-existent membership IDs', async () => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return selectMembershipByIdIncludingDeactivated(
+            'memb_nonexistent123',
+            transaction
+          )
+        }
+      )
+
+      expect(result).toBeNull()
+    })
+  })
+})
