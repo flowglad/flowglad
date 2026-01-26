@@ -1067,14 +1067,12 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Verify all scheduled billing runs are now aborted
       await adminTransaction(async ({ transaction }) => {
-        const updatedBillingRun1 = await selectBillingRunById(
-          billingRun1.id,
-          transaction
-        )
-        const updatedBillingRun2 = await selectBillingRunById(
-          billingRun2.id,
-          transaction
-        )
+        const updatedBillingRun1 = (
+          await selectBillingRunById(billingRun1.id, transaction)
+        ).unwrap()
+        const updatedBillingRun2 = (
+          await selectBillingRunById(billingRun2.id, transaction)
+        ).unwrap()
 
         expect(updatedBillingRun1.status).toBe(
           BillingRunStatus.Aborted
@@ -1234,14 +1232,12 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Verify billing period updates
       await adminTransaction(async ({ transaction }) => {
-        const updatedActiveBP = await selectBillingPeriodById(
-          activeBP.id,
-          transaction
-        )
-        const updatedFutureBP = await selectBillingPeriodById(
-          futureBP.id,
-          transaction
-        )
+        const updatedActiveBP = (
+          await selectBillingPeriodById(activeBP.id, transaction)
+        ).unwrap()
+        const updatedFutureBP = (
+          await selectBillingPeriodById(futureBP.id, transaction)
+        ).unwrap()
 
         // Active period should be completed and end date should be set to cancellation time
         expect(updatedActiveBP.status).toBe(

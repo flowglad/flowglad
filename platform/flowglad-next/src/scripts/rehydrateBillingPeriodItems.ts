@@ -40,10 +40,9 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
     )
   }
   await db.transaction(async (transaction) => {
-    const billingPeriod = await selectBillingPeriodById(
-      billingPeriodId,
-      transaction
-    )
+    const billingPeriod = (
+      await selectBillingPeriodById(billingPeriodId, transaction)
+    ).unwrap()
     const result = await selectSubscriptionAndItems(
       { id: billingPeriod.subscriptionId },
       transaction

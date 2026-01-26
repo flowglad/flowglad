@@ -31,10 +31,12 @@ export const attemptBillingPeriodTransitionTask = task({
               emitEvent,
               enqueueLedgerCommand,
             }
-            const billingPeriod = await selectBillingPeriodById(
-              payload.billingPeriod.id,
-              transaction
-            )
+            const billingPeriod = (
+              await selectBillingPeriodById(
+                payload.billingPeriod.id,
+                transaction
+              )
+            ).unwrap()
             logger.log('Attempting to transition billing period', {
               billingPeriod: payload.billingPeriod,
               ctx,

@@ -128,13 +128,14 @@ const createCreditApplicationsForOutstandingUsageCosts = async (
       `Invoice ${invoice.id} does not have a billing run ID.`
     )
   }
-  const billingRun = await selectBillingRunById(
+  const billingRunResult = await selectBillingRunById(
     invoice.billingRunId,
     transaction
   )
-  if (!billingRun) {
+  if (Result.isError(billingRunResult)) {
     throw new Error(`Billing run ${invoice.billingRunId} not found.`)
   }
+  const billingRun = billingRunResult.value
   const ledgerAccountIds = invoiceLineItems
     .map((lineItem) => lineItem.ledgerAccountId)
     .filter((id) => !core.isNil(id))

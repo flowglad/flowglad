@@ -850,10 +850,12 @@ const retryBillingRunProcedure = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const result = await authenticatedTransaction(
       async ({ transaction }) => {
-        const billingPeriod = await selectBillingPeriodById(
-          input.billingPeriodId,
-          transaction
-        )
+        const billingPeriod = (
+          await selectBillingPeriodById(
+            input.billingPeriodId,
+            transaction
+          )
+        ).unwrap()
         if (billingPeriod.status === BillingPeriodStatus.Completed) {
           throw new TRPCError({
             code: 'BAD_REQUEST',

@@ -245,10 +245,9 @@ export const processOutcomeForBillingRun = async (
     event.metadata
   )
 
-  let billingRun = await selectBillingRunById(
-    metadata.billingRunId,
-    transaction
-  )
+  let billingRun = (
+    await selectBillingRunById(metadata.billingRunId, transaction)
+  ).unwrap()
 
   const eventTimestamp = dateFromStripeTimestamp(timestamp)
   const eventPrecedesLastPaymentIntentEvent =
