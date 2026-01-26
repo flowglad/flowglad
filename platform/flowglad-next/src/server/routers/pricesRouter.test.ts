@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { TRPCError } from '@trpc/server'
-import { beforeEach, describe, expect, it } from 'vitest'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import * as orgSetup from '@/db/tableMethods/organizationMethods'
@@ -33,11 +33,11 @@ describe('pricesRouter - Default Price Constraints', () => {
   let defaultPriceId: string
   let regularProductId: string
   let regularPriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
     // Set up organization and pricing model with default product and price
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
       const { organization } = await setupOrg()
 
       // Create pricing model with default product using the new bookkeeping function
@@ -49,7 +49,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           },
         },
         {
-          transaction,
+          ...ctx,
           organizationId: organization.id,
           livemode,
         }
@@ -71,7 +71,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const regularPrice = await insertPrice(
@@ -92,7 +92,7 @@ describe('pricesRouter - Default Price Constraints', () => {
           externalId: null,
           slug: null,
         },
-        transaction
+        ctx
       )
 
       return {
@@ -117,7 +117,8 @@ describe('pricesRouter - Default Price Constraints', () => {
   describe('editPrice - Default Price on Default Product', () => {
     it('should throw error when attempting to change unitPrice of default price on default product to non-zero', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           const existingPrice = await selectPriceById(
             defaultPriceId,
             transaction
@@ -140,44 +141,43 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should allow unitPrice of 0 for default price on default product', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          const existingPrice = await selectPriceById(
-            defaultPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const existingPrice = await selectPriceById(
+          defaultPriceId,
+          transaction
+        )
+        const product = await selectProductById(
+          existingPrice.productId!,
+          transaction
+        )
 
-          // This should not throw
-          validateDefaultPriceUpdate(
-            {
-              unitPrice: 0,
-              type: PriceType.Subscription,
-              name: 'Updated Base Plan Price',
-            },
-            existingPrice,
-            product
-          )
+        // This should not throw
+        validateDefaultPriceUpdate(
+          {
+            unitPrice: 0,
+            type: PriceType.Subscription,
+            name: 'Updated Base Plan Price',
+          },
+          existingPrice,
+          product
+        )
 
-          // Actually update the price
-          const updatedPrice = await safelyUpdatePrice(
-            {
-              id: defaultPriceId,
-              type: PriceType.Subscription,
-              unitPrice: 0,
-              name: 'Updated Base Plan Price',
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-            },
-            transaction
-          )
+        // Actually update the price
+        const updatedPrice = await safelyUpdatePrice(
+          {
+            id: defaultPriceId,
+            type: PriceType.Subscription,
+            unitPrice: 0,
+            name: 'Updated Base Plan Price',
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+          },
+          ctx
+        )
 
-          return updatedPrice
-        }
-      )
+        return updatedPrice
+      })
 
       expect(result).toMatchObject({})
       expect(result.unitPrice).toBe(0)
@@ -186,7 +186,8 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should throw error when attempting to change isDefault status of default price on default product', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           const existingPrice = await selectPriceById(
             defaultPriceId,
             transaction
@@ -210,7 +211,8 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should throw error when attempting to change intervalUnit of default price on default product', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           const existingPrice = await selectPriceById(
             defaultPriceId,
             transaction
@@ -236,44 +238,43 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should allow updating non-financial fields on default price of default product', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          const existingPrice = await selectPriceById(
-            defaultPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const existingPrice = await selectPriceById(
+          defaultPriceId,
+          transaction
+        )
+        const product = await selectProductById(
+          existingPrice.productId!,
+          transaction
+        )
 
-          // This should not throw
-          validateDefaultPriceUpdate(
-            {
-              name: 'Updated Default Price Name',
-              active: false,
-              type: PriceType.Subscription,
-            },
-            existingPrice,
-            product
-          )
+        // This should not throw
+        validateDefaultPriceUpdate(
+          {
+            name: 'Updated Default Price Name',
+            active: false,
+            type: PriceType.Subscription,
+          },
+          existingPrice,
+          product
+        )
 
-          // Actually update the price
-          const updatedPrice = await safelyUpdatePrice(
-            {
-              id: existingPrice.id,
-              type: PriceType.Subscription,
-              name: 'Updated Default Price Name',
-              active: false,
-              intervalUnit: IntervalUnit.Month,
-              intervalCount: 1,
-            },
-            transaction
-          )
+        // Actually update the price
+        const updatedPrice = await safelyUpdatePrice(
+          {
+            id: existingPrice.id,
+            type: PriceType.Subscription,
+            name: 'Updated Default Price Name',
+            active: false,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+          },
+          ctx
+        )
 
-          return updatedPrice
-        }
-      )
+        return updatedPrice
+      })
 
       expect(result).toMatchObject({})
       expect(result.name).toBe('Updated Default Price Name')
@@ -313,7 +314,7 @@ describe('pricesRouter - Default Price Constraints', () => {
         organizationId,
         livemode,
       })
-      const ctx = {
+      const apiCtx = {
         organizationId,
         apiKey: apiKey.token!,
         livemode,
@@ -322,7 +323,8 @@ describe('pricesRouter - Default Price Constraints', () => {
         path: '',
       }
       // create another product with its own price
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const otherProduct = await insertProduct(
           {
             name: 'Another Product',
@@ -338,7 +340,7 @@ describe('pricesRouter - Default Price Constraints', () => {
             livemode,
             active: true,
           },
-          transaction
+          ctx
         )
         const org = await orgSetup.selectOrganizationById(
           organizationId,
@@ -362,15 +364,17 @@ describe('pricesRouter - Default Price Constraints', () => {
             externalId: null,
             slug: null,
           },
-          transaction
+          ctx
         )
         await expect(
-          productsRouter.createCaller(ctx as TRPCApiContext).update({
-            // @ts-expect-error - Intentionally providing minimal product object for cross-product price guard test
-            product: { id: defaultProductId },
-            // @ts-expect-error - Intentionally providing minimal price object for cross-product price guard test
-            price: { id: otherPrice.id },
-          })
+          productsRouter
+            .createCaller(apiCtx as TRPCApiContext)
+            .update({
+              // @ts-expect-error - Intentionally providing minimal product object for cross-product price guard test
+              product: { id: defaultProductId },
+              // @ts-expect-error - Intentionally providing minimal price object for cross-product price guard test
+              price: { id: otherPrice.id },
+            })
         ).rejects.toThrow(TRPCError)
       })
     })
@@ -407,96 +411,94 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('editPrice - Regular Prices', () => {
     it('should allow updating unitPrice on regular prices', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          const existingPrice = await selectPriceById(
-            regularPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const existingPrice = await selectPriceById(
+          regularPriceId,
+          transaction
+        )
+        const product = await selectProductById(
+          existingPrice.productId!,
+          transaction
+        )
 
-          // This should not throw for regular prices
-          validateDefaultPriceUpdate(
-            { unitPrice: 2000, type: PriceType.Subscription },
-            existingPrice,
-            product
-          )
+        // This should not throw for regular prices
+        validateDefaultPriceUpdate(
+          { unitPrice: 2000, type: PriceType.Subscription },
+          existingPrice,
+          product
+        )
 
-          // Actually update the price
-          const updatedPrice = await safelyUpdatePrice(
-            {
-              id: regularPriceId,
-              type: PriceType.Subscription,
-              unitPrice: 2000,
-            },
-            transaction
-          )
+        // Actually update the price
+        const updatedPrice = await safelyUpdatePrice(
+          {
+            id: regularPriceId,
+            type: PriceType.Subscription,
+            unitPrice: 2000,
+          },
+          ctx
+        )
 
-          return updatedPrice
-        }
-      )
+        return updatedPrice
+      })
 
       expect(result).toMatchObject({})
       expect(result.unitPrice).toBe(2000)
     })
 
     it('should allow changing isDefault status on regular prices', async () => {
-      const result = await adminTransaction(
-        async ({ transaction }) => {
-          // First create another price to be the new default
-          await insertPrice(
-            {
-              productId: regularProductId,
-              unitPrice: 3000,
-              isDefault: false,
-              type: PriceType.Subscription,
-              intervalUnit: IntervalUnit.Year,
-              intervalCount: 1,
-              currency: CurrencyCode.USD,
-              livemode,
-              active: true,
-              name: 'Another Price',
-              trialPeriodDays: null,
-              usageEventsPerUnit: null,
-              usageMeterId: null,
-              externalId: null,
-              slug: null,
-            },
-            transaction
-          )
+      const result = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        // First create another price to be the new default
+        await insertPrice(
+          {
+            productId: regularProductId,
+            unitPrice: 3000,
+            isDefault: false,
+            type: PriceType.Subscription,
+            intervalUnit: IntervalUnit.Year,
+            intervalCount: 1,
+            currency: CurrencyCode.USD,
+            livemode,
+            active: true,
+            name: 'Another Price',
+            trialPeriodDays: null,
+            usageEventsPerUnit: null,
+            usageMeterId: null,
+            externalId: null,
+            slug: null,
+          },
+          ctx
+        )
 
-          const existingPrice = await selectPriceById(
-            regularPriceId,
-            transaction
-          )
-          const product = await selectProductById(
-            existingPrice.productId!,
-            transaction
-          )
+        const existingPrice = await selectPriceById(
+          regularPriceId,
+          transaction
+        )
+        const product = await selectProductById(
+          existingPrice.productId!,
+          transaction
+        )
 
-          // This should not throw for regular prices
-          validateDefaultPriceUpdate(
-            { isDefault: false, type: PriceType.Subscription },
-            existingPrice,
-            product
-          )
+        // This should not throw for regular prices
+        validateDefaultPriceUpdate(
+          { isDefault: false, type: PriceType.Subscription },
+          existingPrice,
+          product
+        )
 
-          // Actually update the price
-          const updatedPrice = await safelyUpdatePrice(
-            {
-              id: regularPriceId,
-              type: PriceType.Subscription,
-              isDefault: false,
-            },
-            transaction
-          )
+        // Actually update the price
+        const updatedPrice = await safelyUpdatePrice(
+          {
+            id: regularPriceId,
+            type: PriceType.Subscription,
+            isDefault: false,
+          },
+          ctx
+        )
 
-          return updatedPrice
-        }
-      )
+        return updatedPrice
+      })
 
       expect(result).toMatchObject({})
       expect(result.isDefault).toBe(false)
@@ -553,43 +555,41 @@ describe('pricesRouter - Default Price Constraints', () => {
       }
 
       // First, create a new product without any prices in the same organization
-      const newProduct = await adminTransaction(
-        async ({ transaction }) => {
-          const pricingModel = await createPricingModelBookkeeping(
-            {
-              pricingModel: {
-                name: 'Test Pricing Model 2',
-                isDefault: false,
-              },
+      const newProduct = await adminTransaction(async (ctx) => {
+        const pricingModel = await createPricingModelBookkeeping(
+          {
+            pricingModel: {
+              name: 'Test Pricing Model 2',
+              isDefault: false,
             },
-            {
-              transaction,
-              organizationId,
-              livemode,
-            }
-          )
+          },
+          {
+            ...ctx,
+            organizationId,
+            livemode,
+          }
+        )
 
-          const product = await insertProduct(
-            {
-              name: 'New Product',
-              slug: 'new-product',
-              default: false,
-              description: null,
-              imageURL: null,
-              singularQuantityLabel: null,
-              pluralQuantityLabel: null,
-              externalId: null,
-              pricingModelId: pricingModel.unwrap().pricingModel.id,
-              organizationId,
-              livemode,
-              active: true,
-            },
-            transaction
-          )
+        const product = await insertProduct(
+          {
+            name: 'New Product',
+            slug: 'new-product',
+            default: false,
+            description: null,
+            imageURL: null,
+            singularQuantityLabel: null,
+            pluralQuantityLabel: null,
+            externalId: null,
+            pricingModelId: pricingModel.unwrap().pricingModel.id,
+            organizationId,
+            livemode,
+            active: true,
+          },
+          ctx
+        )
 
-          return product
-        }
-      )
+        return product
+      })
 
       // This should succeed - default price on non-default product with non-zero price
       const result = await pricesRouter
@@ -616,7 +616,8 @@ describe('pricesRouter - Default Price Constraints', () => {
 
     it('should enforce single default price per product constraint', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           // Try to create another default price for the default product
           await insertPrice(
             {
@@ -636,7 +637,7 @@ describe('pricesRouter - Default Price Constraints', () => {
               externalId: null,
               slug: null,
             },
-            transaction
+            ctx
           )
         })
       ).rejects.toThrow() // Database constraint will throw an error
@@ -698,10 +699,11 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   let usagePriceBId: string
   let subscriptionPriceId: string
   let inactiveUsagePriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const { organization } = await setupOrg()
 
       // Create pricing model with default product
@@ -713,7 +715,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           },
         },
         {
-          transaction,
+          ...ctx,
           organizationId: organization.id,
           livemode,
         }
@@ -732,7 +734,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       const usageMeterB = await insertUsageMeter(
@@ -744,7 +746,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       // Create products for usage prices
@@ -763,7 +765,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const usageProductB = await insertProduct(
@@ -781,7 +783,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const usageProductC = await insertProduct(
@@ -799,7 +801,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const subscriptionProduct = await insertProduct(
@@ -817,7 +819,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       // Create usage price for meter A (active)
@@ -841,7 +843,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           externalId: null,
           slug: 'usage-price-a',
         },
-        transaction
+        ctx
       )
 
       // Create usage price for meter B (active)
@@ -865,7 +867,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           externalId: null,
           slug: 'usage-price-b',
         },
-        transaction
+        ctx
       )
 
       // Create inactive usage price for meter A.
@@ -889,7 +891,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           externalId: null,
           slug: 'inactive-usage-price',
         },
-        transaction
+        ctx
       )
 
       // Create a subscription price (not usage)
@@ -911,7 +913,7 @@ describe('prices.getTableRows (usage-meter filters)', () => {
           externalId: null,
           slug: 'subscription-price',
         },
-        transaction
+        ctx
       )
 
       return {
@@ -1072,10 +1074,10 @@ describe('pricesRouter - API Contract Updates', () => {
   let pricingModelId: string
   let usageMeterId: string
   let regularProductId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
       const { organization } = await setupOrg()
 
       // Create pricing model with default product
@@ -1087,7 +1089,7 @@ describe('pricesRouter - API Contract Updates', () => {
           },
         },
         {
-          transaction,
+          ...ctx,
           organizationId: organization.id,
           livemode,
         }
@@ -1106,7 +1108,7 @@ describe('pricesRouter - API Contract Updates', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       // Create a regular product (for testing subscription prices)
@@ -1125,7 +1127,7 @@ describe('pricesRouter - API Contract Updates', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       return {
@@ -1296,10 +1298,10 @@ describe('pricesRouter.replaceUsagePrice', () => {
   let usageMeterId: string
   let usagePriceId: string
   let subscriptionPriceId: string
-  const livemode = true
+  const livemode = false
 
   beforeEach(async () => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
       const { organization } = await setupOrg()
 
       // Create pricing model with default product
@@ -1311,7 +1313,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
           },
         },
         {
-          transaction,
+          ...ctx,
           organizationId: organization.id,
           livemode,
         }
@@ -1330,7 +1332,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
           livemode,
           aggregationType: UsageMeterAggregationType.Sum,
         },
-        transaction
+        ctx
       )
 
       // Create a usage price
@@ -1353,7 +1355,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
           externalId: null,
           slug: 'original-usage-price',
         },
-        transaction
+        ctx
       )
 
       // Create a regular product with subscription price (for negative test)
@@ -1372,7 +1374,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
           livemode,
           active: true,
         },
-        transaction
+        ctx
       )
 
       const subscriptionPrice = await insertPrice(
@@ -1393,7 +1395,7 @@ describe('pricesRouter.replaceUsagePrice', () => {
           externalId: null,
           slug: 'subscription-price-replace-test',
         },
-        transaction
+        ctx
       )
 
       return {
@@ -1587,35 +1589,34 @@ describe('pricesRouter.replaceUsagePrice', () => {
     }
 
     // Create a second usage price for the same meter
-    const secondPrice = await adminTransaction(
-      async ({ transaction }) => {
-        const org = await orgSetup.selectOrganizationById(
-          organizationId,
-          transaction
-        )
-        return insertPrice(
-          {
-            productId: null,
-            pricingModelId,
-            unitPrice: 500,
-            isDefault: false,
-            type: PriceType.Usage,
-            intervalUnit: IntervalUnit.Month,
-            intervalCount: 1,
-            currency: org.defaultCurrency,
-            livemode,
-            active: true,
-            name: 'Second Usage Price',
-            trialPeriodDays: null,
-            usageEventsPerUnit: 50,
-            usageMeterId,
-            externalId: null,
-            slug: 'second-usage-price',
-          },
-          transaction
-        )
-      }
-    )
+    const secondPrice = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      const org = await orgSetup.selectOrganizationById(
+        organizationId,
+        transaction
+      )
+      return insertPrice(
+        {
+          productId: null,
+          pricingModelId,
+          unitPrice: 500,
+          isDefault: false,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: org.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Second Usage Price',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 50,
+          usageMeterId,
+          externalId: null,
+          slug: 'second-usage-price',
+        },
+        ctx
+      )
+    })
 
     // Replace the first usage price
     const result = await pricesRouter
@@ -1643,14 +1644,727 @@ describe('pricesRouter.replaceUsagePrice', () => {
     expect(result.newPrice.active).toBe(true)
 
     // Verify second price is still active (not affected by the replacement)
-    const secondPriceAfter = await adminTransaction(
-      async ({ transaction }) => {
-        return selectPriceById(secondPrice.id, transaction)
-      }
-    )
+    const secondPriceAfter = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectPriceById(secondPrice.id, transaction)
+    })
 
     expect(secondPriceAfter.active).toBe(true)
     expect(secondPriceAfter.unitPrice).toBe(500)
     expect(secondPriceAfter.usageEventsPerUnit).toBe(50)
+  })
+})
+
+describe('pricesRouter - Reserved Slug Validation', () => {
+  let organizationId: string
+  let pricingModelId: string
+  let usageMeterId: string
+  let regularProductId: string
+  let existingUsagePriceId: string
+  const livemode = false
+
+  beforeEach(async () => {
+    const result = await adminTransaction(async (ctx) => {
+      const { organization } = await setupOrg()
+
+      // Create pricing model with default product
+      const bookkeepingResult = await createPricingModelBookkeeping(
+        {
+          pricingModel: {
+            name: 'Test Pricing Model for Reserved Slug Validation',
+            isDefault: false,
+          },
+        },
+        {
+          ...ctx,
+          organizationId: organization.id,
+          livemode,
+        }
+      )
+
+      const pricingModelId =
+        bookkeepingResult.unwrap().pricingModel.id
+
+      // Create a usage meter
+      const usageMeter = await insertUsageMeter(
+        {
+          name: 'API Calls Reserved Test',
+          slug: 'api-calls-reserved-test',
+          organizationId: organization.id,
+          pricingModelId,
+          livemode,
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        ctx
+      )
+
+      // Create a regular product (for testing subscription prices)
+      const regularProduct = await insertProduct(
+        {
+          name: 'Regular Product Reserved Test',
+          slug: 'regular-product-reserved-test',
+          default: false,
+          description: null,
+          imageURL: null,
+          singularQuantityLabel: null,
+          pluralQuantityLabel: null,
+          externalId: null,
+          pricingModelId,
+          organizationId: organization.id,
+          livemode,
+          active: true,
+        },
+        ctx
+      )
+
+      // Create an existing usage price for replacement tests
+      const existingUsagePrice = await insertPrice(
+        {
+          productId: null,
+          pricingModelId,
+          unitPrice: 100,
+          isDefault: true,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Existing Usage Price',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 10,
+          usageMeterId: usageMeter.id,
+          externalId: null,
+          slug: 'existing-usage-price',
+        },
+        ctx
+      )
+
+      return {
+        organizationId: organization.id,
+        pricingModelId,
+        usageMeterId: usageMeter.id,
+        regularProductId: regularProduct.id,
+        existingUsagePriceId: existingUsagePrice.id,
+      }
+    })
+
+    organizationId = result.organizationId
+    pricingModelId = result.pricingModelId
+    usageMeterId = result.usageMeterId
+    regularProductId = result.regularProductId
+    existingUsagePriceId = result.existingUsagePriceId
+  })
+
+  describe('createPrice - reserved slug validation', () => {
+    it('rejects usage price creation with _no_charge suffix via API', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true as const,
+        path: '',
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx as TRPCApiContext).create({
+          price: {
+            type: PriceType.Usage,
+            usageMeterId,
+            productId: null,
+            slug: 'meter_no_charge',
+            unitPrice: 100,
+            isDefault: false,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            name: 'Reserved Slug Price',
+            usageEventsPerUnit: 1,
+          },
+        })
+      ).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+        message: expect.stringContaining('_no_charge'),
+      })
+    })
+
+    it('allows usage price creation with slug not ending in _no_charge', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true as const,
+        path: '',
+      }
+
+      const result = await pricesRouter
+        .createCaller(ctx as TRPCApiContext)
+        .create({
+          price: {
+            type: PriceType.Usage,
+            usageMeterId,
+            productId: null,
+            slug: 'meter_custom_price',
+            unitPrice: 100,
+            isDefault: false,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            name: 'Custom Usage Price',
+            usageEventsPerUnit: 1,
+          },
+        })
+
+      expect(result.price.slug).toBe('meter_custom_price')
+    })
+
+    it('allows subscription price creation with _no_charge suffix', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true as const,
+        path: '',
+      }
+
+      const result = await pricesRouter
+        .createCaller(ctx as TRPCApiContext)
+        .create({
+          price: {
+            type: PriceType.Subscription,
+            productId: regularProductId,
+            slug: 'promo_no_charge',
+            unitPrice: 0,
+            isDefault: true,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            name: 'Promo Subscription',
+            trialPeriodDays: 0,
+          },
+        })
+
+      expect(result.price.slug).toBe('promo_no_charge')
+    })
+
+    it('allows usage price creation with slug containing _no_charge but not at the end', async () => {
+      const { apiKey } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        isApi: true as const,
+        path: '',
+      }
+
+      const result = await pricesRouter
+        .createCaller(ctx as TRPCApiContext)
+        .create({
+          price: {
+            type: PriceType.Usage,
+            usageMeterId,
+            productId: null,
+            slug: 'no_charge_extra_meter',
+            unitPrice: 100,
+            isDefault: false,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            name: 'No Charge Extra Meter',
+            usageEventsPerUnit: 1,
+          },
+        })
+
+      expect(result.price.slug).toBe('no_charge_extra_meter')
+    })
+  })
+
+  describe('replaceUsagePrice - reserved slug validation', () => {
+    it('throws BAD_REQUEST when new price has reserved _no_charge slug suffix', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx).replaceUsagePrice({
+          newPrice: {
+            type: PriceType.Usage,
+            productId: null,
+            usageMeterId,
+            unitPrice: 200,
+            usageEventsPerUnit: 20,
+            isDefault: true,
+            name: 'Reserved Slug Replacement',
+            slug: 'meter_no_charge',
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+          },
+          oldPriceId: existingUsagePriceId,
+        })
+      ).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+        message: expect.stringContaining('_no_charge'),
+      })
+    })
+
+    it('allows replacement with slug not ending in _no_charge', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      const result = await pricesRouter
+        .createCaller(ctx)
+        .replaceUsagePrice({
+          newPrice: {
+            type: PriceType.Usage,
+            productId: null,
+            usageMeterId,
+            unitPrice: 200,
+            usageEventsPerUnit: 20,
+            isDefault: true,
+            name: 'Valid Replacement',
+            slug: 'meter_custom_replacement',
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+          },
+          oldPriceId: existingUsagePriceId,
+        })
+
+      expect(result.newPrice.slug).toBe('meter_custom_replacement')
+      expect(result.archivedPrice.id).toBe(existingUsagePriceId)
+      expect(result.archivedPrice.active).toBe(false)
+    })
+  })
+
+  describe('updatePrice - reserved slug validation', () => {
+    it('throws BAD_REQUEST when updating usage price slug to reserved _no_charge suffix', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      // Attempt to update existing usage price's slug to a reserved suffix
+      await expect(
+        pricesRouter.createCaller(ctx).update({
+          price: {
+            id: existingUsagePriceId,
+            type: PriceType.Usage,
+            isDefault: true,
+            slug: 'updated_no_charge',
+          },
+          id: existingUsagePriceId,
+        })
+      ).rejects.toMatchObject({
+        code: 'BAD_REQUEST',
+        message: expect.stringContaining('_no_charge'),
+      })
+    })
+
+    it('allows updating usage price slug to valid slug not ending in _no_charge', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      const result = await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: existingUsagePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+          slug: 'updated_valid_slug',
+        },
+        id: existingUsagePriceId,
+      })
+
+      expect(result.price.slug).toBe('updated_valid_slug')
+    })
+
+    it('allows updating usage price fields other than slug without triggering slug validation', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      // Update name without changing slug - should not trigger reserved slug validation
+      const result = await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: existingUsagePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+          name: 'Updated Name',
+        },
+        id: existingUsagePriceId,
+      })
+
+      expect(result.price.name).toBe('Updated Name')
+      expect(result.price.slug).toBe('existing-usage-price')
+    })
+  })
+})
+
+describe('pricesRouter - No Charge Price Protection', () => {
+  let organizationId: string
+  let pricingModelId: string
+  let usageMeterId: string
+  let noChargePriceId: string
+  let regularUsagePriceId: string
+  const livemode = false
+
+  beforeEach(async () => {
+    const result = await adminTransaction(async (ctx) => {
+      const { organization } = await setupOrg()
+
+      // Create pricing model
+      const bookkeepingResult = await createPricingModelBookkeeping(
+        {
+          pricingModel: {
+            name: 'Test Pricing Model',
+            isDefault: false,
+          },
+        },
+        {
+          ...ctx,
+          organizationId: organization.id,
+          livemode,
+        }
+      )
+
+      // Create a usage meter
+      const usageMeter = await insertUsageMeter(
+        {
+          name: 'Test Usage Meter',
+          slug: 'test-usage-meter',
+          organizationId: organization.id,
+          pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
+          livemode,
+          aggregationType: UsageMeterAggregationType.Sum,
+        },
+        ctx
+      )
+
+      // Create a no_charge price (system-generated fallback price)
+      const noChargePrice = await insertPrice(
+        {
+          usageMeterId: usageMeter.id,
+          unitPrice: 0,
+          isDefault: true,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Test Usage Meter - No Charge',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 1,
+          productId: null,
+          externalId: null,
+          slug: 'test-usage-meter_no_charge', // Reserved suffix
+        },
+        ctx
+      )
+
+      // Create a regular usage price
+      const regularUsagePrice = await insertPrice(
+        {
+          usageMeterId: usageMeter.id,
+          unitPrice: 100,
+          isDefault: false,
+          type: PriceType.Usage,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          currency: organization.defaultCurrency,
+          livemode,
+          active: true,
+          name: 'Regular Usage Price',
+          trialPeriodDays: null,
+          usageEventsPerUnit: 1,
+          productId: null,
+          externalId: null,
+          slug: 'regular-usage-price',
+        },
+        ctx
+      )
+
+      return {
+        organizationId: organization.id,
+        pricingModelId: bookkeepingResult.unwrap().pricingModel.id,
+        usageMeterId: usageMeter.id,
+        noChargePriceId: noChargePrice.id,
+        regularUsagePriceId: regularUsagePrice.id,
+      }
+    })
+
+    organizationId = result.organizationId
+    pricingModelId = result.pricingModelId
+    usageMeterId = result.usageMeterId
+    noChargePriceId = result.noChargePriceId
+    regularUsagePriceId = result.regularUsagePriceId
+  })
+
+  describe('updatePrice - No Charge Protection', () => {
+    it('rejects archiving (active: false) for no_charge prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx).update({
+          price: {
+            id: noChargePriceId,
+            type: PriceType.Usage,
+            isDefault: true,
+            active: false,
+          },
+          id: noChargePriceId,
+        })
+      ).rejects.toThrow(
+        'No charge prices cannot be archived. They are protected as fallback prices.'
+      )
+    })
+
+    it('rejects slug changes for no_charge prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx).update({
+          price: {
+            id: noChargePriceId,
+            type: PriceType.Usage,
+            isDefault: true,
+            slug: 'different-slug',
+          },
+          id: noChargePriceId,
+        })
+      ).rejects.toThrow(
+        'The slug of a no charge price is immutable. Only the name can be changed.'
+      )
+    })
+
+    it('allows name changes for no_charge prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      const result = await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: noChargePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+          name: 'New Name for No Charge Price',
+        },
+        id: noChargePriceId,
+      })
+
+      expect(result.price.name).toBe('New Name for No Charge Price')
+    })
+
+    it('allows setting isDefault to true on no_charge prices when slug is unchanged in payload', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      // First set the regular price as default (so no_charge becomes non-default)
+      await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: regularUsagePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+        },
+        id: regularUsagePriceId,
+      })
+
+      // Verify no_charge price is now non-default before we test setting it back
+      const intermediateState = await pricesRouter
+        .createCaller(ctx)
+        .get({ id: noChargePriceId })
+      expect(intermediateState.price.isDefault).toBe(false)
+
+      // Now update the no_charge price including the unchanged slug in the payload
+      // This should NOT trigger the reserved slug validation since the slug is unchanged
+      const result = await pricesRouter.createCaller(ctx).update({
+        price: {
+          id: noChargePriceId,
+          type: PriceType.Usage,
+          isDefault: true,
+          slug: 'test-usage-meter_no_charge', // Same slug as before - unchanged
+        },
+        id: noChargePriceId,
+      })
+
+      expect(result.price.isDefault).toBe(true)
+      expect(result.price.slug).toBe('test-usage-meter_no_charge')
+    })
+
+    it('rejects unsetting isDefault on no_charge prices that are currently default', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx).update({
+          price: {
+            id: noChargePriceId,
+            type: PriceType.Usage,
+            isDefault: false,
+          },
+          id: noChargePriceId,
+        })
+      ).rejects.toThrow(
+        'Default no_charge prices cannot be unset; isDefault is immutable for fallback prices.'
+      )
+    })
+  })
+
+  describe('archivePrice - No Charge Protection', () => {
+    it('rejects archiving no_charge prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      await expect(
+        pricesRouter.createCaller(ctx).archive({
+          id: noChargePriceId,
+        })
+      ).rejects.toThrow(
+        'No charge prices cannot be archived. They are protected as fallback prices.'
+      )
+    })
+
+    it('allows archiving regular usage prices', async () => {
+      const { apiKey, user } = await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+      const ctx = {
+        organizationId,
+        apiKey: apiKey.token!,
+        livemode,
+        environment: 'live' as const,
+        path: '',
+        user,
+      }
+
+      const result = await pricesRouter.createCaller(ctx).archive({
+        id: regularUsagePriceId,
+      })
+
+      expect(result.price.active).toBe(false)
+    })
   })
 })

@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { currencyCodeSchema } from '@/db/commonZodSchema'
@@ -7,6 +8,8 @@ import {
   usageCreditGrantFeatureClientInsertSchema,
 } from '@/db/schema/features'
 import {
+  isReservedPriceSlug,
+  RESERVED_USAGE_PRICE_SLUG_SUFFIX,
   singlePaymentPriceClientInsertSchema,
   subscriptionPriceClientInsertSchema,
   usagePriceClientInsertSchema,
@@ -15,7 +18,8 @@ import { pricingModelsClientInsertSchema } from '@/db/schema/pricingModels'
 import { productsClientInsertSchema } from '@/db/schema/products'
 import { resourcesClientInsertSchema } from '@/db/schema/resources'
 import { usageMetersClientInsertSchema } from '@/db/schema/usageMeters'
-import { FeatureType, PriceType } from '@/types'
+import { NotFoundError, ValidationError } from '@/errors'
+import { FeatureType } from '@/types'
 import core, { safeZodSanitizedString } from '../core'
 
 /**
@@ -137,6 +141,23 @@ export const setupUsageMeterPriceInputSchema =
     .extend({
       ...priceOptionalFieldSchema,
     })
+    .refine(
+      // Only validate if slug is provided - undefined/null slugs are allowed
+      (data) => !data.slug || !isReservedPriceSlug(data.slug),
+      {
+        message: `Usage price slugs ending with "${RESERVED_USAGE_PRICE_SLUG_SUFFIX}" are reserved for auto-generated fallback prices`,
+        path: ['slug'],
+      }
+    )
+    .refine(
+      // An inactive price cannot be the default - this would leave no active default
+      (data) => !(data.isDefault === true && data.active === false),
+      {
+        message:
+          'An inactive price cannot be set as default. Set active=true or isDefault=false.',
+        path: ['isDefault'],
+      }
+    )
 
 export type SetupUsageMeterPriceInput = z.infer<
   typeof setupUsageMeterPriceInputSchema
@@ -253,133 +274,162 @@ export type SetupPricingModelInput = z.infer<
 
 export const validateSetupPricingModelInput = (
   input: SetupPricingModelInput
-) => {
-  const result = setupPricingModelSchema.safeParse(input)
-  if (!result.success) {
-    if (
-      process.env.NODE_ENV === 'test' &&
-      result.error instanceof z.ZodError
-    ) {
-      for (const issue of result.error.issues) {
-        const { path, message } = issue
-        // Try to extract the problematic value and its type from the input
-        let value: unknown
-        let valueType: string = 'unknown'
-        // The input to safeParse is `input`
-        let current: any = input
-        for (const key of path) {
-          if (
-            current &&
-            typeof current === 'object' &&
-            key in current
-          ) {
-            current = current[key]
-          } else {
-            current = undefined
-            break
+): Result<
+  SetupPricingModelInput,
+  ValidationError | NotFoundError
+> => {
+  return Result.gen(function* () {
+    const result = setupPricingModelSchema.safeParse(input)
+    if (!result.success) {
+      if (
+        process.env.NODE_ENV === 'test' &&
+        result.error instanceof z.ZodError
+      ) {
+        for (const issue of result.error.issues) {
+          const { path, message } = issue
+          // Try to extract the problematic value and its type from the input
+          let value: unknown
+          let valueType: string = 'unknown'
+          // The input to safeParse is `input`
+          let current: unknown = input
+          for (const key of path) {
+            if (
+              current &&
+              typeof current === 'object' &&
+              key in current
+            ) {
+              current = (current as Record<PropertyKey, unknown>)[key]
+            } else {
+              current = undefined
+              break
+            }
           }
-        }
-        if (current !== undefined) {
-          value = current
-          valueType = Object.prototype.toString.call(current)
-        }
-        // Print debug info
-        // eslint-disable-next-line no-console
-        console.info(
-          '[validateSetupPricingModelInput][TEST] ZodError at path:',
-          path.join('.'),
-          '| value:',
-          value,
-          '| type:',
-          valueType,
-          '| message:',
-          message
-        )
-      }
-    }
-    throw result.error
-  }
-
-  const parsed = result.data
-
-  const featuresBySlug = core.groupBy(R.prop('slug'), parsed.features)
-  const usageMetersBySlug = core.groupBy(
-    (m) => m.usageMeter.slug,
-    parsed.usageMeters
-  )
-  const resourcesBySlug = core.groupBy(
-    R.prop('slug'),
-    parsed.resources ?? []
-  )
-
-  // Collect all price slugs for uniqueness validation
-  const allPriceSlugs = new Set<string>()
-
-  // Validate product prices
-  parsed.products.forEach((product) => {
-    // Validate features
-    product.features.forEach((featureSlug) => {
-      const featureArr = featuresBySlug[featureSlug] || []
-      const feature = featureArr[0]
-      if (!feature) {
-        throw new Error(
-          `Feature with slug ${featureSlug} does not exist`
-        )
-      }
-      if (feature.type === FeatureType.UsageCreditGrant) {
-        if (!usageMetersBySlug[feature.usageMeterSlug]) {
-          throw new Error(
-            `Usage meter with slug ${feature.usageMeterSlug} does not exist`
+          if (current !== undefined) {
+            value = current
+            valueType = Object.prototype.toString.call(current)
+          }
+          // Print debug info
+          // eslint-disable-next-line no-console
+          console.info(
+            '[validateSetupPricingModelInput][TEST] ZodError at path:',
+            path.join('.'),
+            '| value:',
+            value,
+            '| type:',
+            valueType,
+            '| message:',
+            message
           )
         }
       }
-      if (feature.type === FeatureType.Resource) {
-        const resourceArr =
-          resourcesBySlug[feature.resourceSlug] || []
-        if (!resourceArr[0]) {
-          throw new Error(
-            `Resource with slug ${feature.resourceSlug} does not exist`
-          )
-        }
-      }
-    })
-
-    // Validate product price (subscription or single payment)
-    const price = product.price
-    if (!price.slug) {
-      throw new Error(
-        `Price slug is required. Received ${JSON.stringify(price)}`
+      return yield* Result.err(
+        new ValidationError(
+          'setupPricingModelInput',
+          result.error.message
+        )
       )
     }
-    if (allPriceSlugs.has(price.slug)) {
-      throw new Error(`Price with slug ${price.slug} already exists`)
-    }
-    allPriceSlugs.add(price.slug)
-  })
 
-  // Validate usage meter prices and implement implicit default logic
-  parsed.usageMeters.forEach((meterWithPrices) => {
-    const prices = meterWithPrices.prices || []
+    const parsed = result.data
 
-    // Validate each price in the meter
-    prices.forEach((price) => {
-      if (price.slug) {
-        if (allPriceSlugs.has(price.slug)) {
-          throw new Error(
-            `Price with slug ${price.slug} already exists`
+    const featuresBySlug = core.groupBy(
+      R.prop('slug'),
+      parsed.features
+    )
+    const usageMetersBySlug = core.groupBy(
+      (m) => m.usageMeter.slug,
+      parsed.usageMeters
+    )
+    const resourcesBySlug = core.groupBy(
+      R.prop('slug'),
+      parsed.resources ?? []
+    )
+
+    // Collect all price slugs for uniqueness validation
+    const allPriceSlugs = new Set<string>()
+
+    // Validate product prices (using for loops to allow yield*)
+    for (const product of parsed.products) {
+      // Validate features
+      for (const featureSlug of product.features) {
+        const featureArr = featuresBySlug[featureSlug] || []
+        const feature = featureArr[0]
+        if (!feature) {
+          return yield* Result.err(
+            new NotFoundError('Feature', featureSlug)
           )
         }
-        allPriceSlugs.add(price.slug)
+        if (feature.type === FeatureType.UsageCreditGrant) {
+          if (!usageMetersBySlug[feature.usageMeterSlug]) {
+            return yield* Result.err(
+              new NotFoundError('UsageMeter', feature.usageMeterSlug)
+            )
+          }
+        }
+        if (feature.type === FeatureType.Resource) {
+          const resourceArr =
+            resourcesBySlug[feature.resourceSlug] || []
+          if (!resourceArr[0]) {
+            return yield* Result.err(
+              new NotFoundError('Resource', feature.resourceSlug)
+            )
+          }
+        }
       }
-    })
 
-    // Usage prices don't use isDefault - always set to false
-    // This avoids unique constraint issues and aligns with the data model where
-    // usage prices don't have a "default" concept (unlike product prices)
-    prices.forEach((price) => {
-      price.isDefault = false
-    })
+      // Validate product price (subscription or single payment)
+      const price = product.price
+      if (!price.slug) {
+        return yield* Result.err(
+          new ValidationError(
+            'price.slug',
+            `Price slug is required. Received ${JSON.stringify(price)}`
+          )
+        )
+      }
+      if (allPriceSlugs.has(price.slug)) {
+        return yield* Result.err(
+          new ValidationError(
+            'price.slug',
+            `Price with slug ${price.slug} already exists`
+          )
+        )
+      }
+      allPriceSlugs.add(price.slug)
+    }
+
+    // Validate usage meter prices
+    for (const meterWithPrices of parsed.usageMeters) {
+      const prices = meterWithPrices.prices || []
+
+      // Validate each price in the meter
+      for (const price of prices) {
+        if (price.slug) {
+          if (allPriceSlugs.has(price.slug)) {
+            return yield* Result.err(
+              new ValidationError(
+                'price.slug',
+                `Price with slug ${price.slug} already exists`
+              )
+            )
+          }
+          allPriceSlugs.add(price.slug)
+        }
+      }
+
+      // Validate at most one price per usage meter has isDefault: true
+      const defaultPrices = prices.filter((p) => p.isDefault)
+      if (defaultPrices.length > 1) {
+        return yield* Result.err(
+          new ValidationError(
+            'usageMeter.prices',
+            `Usage meter "${meterWithPrices.usageMeter.slug}" has multiple prices with isDefault=true. ` +
+              `At most one price per usage meter can be the default.`
+          )
+        )
+      }
+    }
+
+    return Result.ok(parsed)
   })
-
-  return parsed
 }

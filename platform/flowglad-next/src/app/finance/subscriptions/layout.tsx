@@ -1,5 +1,16 @@
 import SidebarLayout from '@/components/SidebarLayout'
+import { TooltipProvider } from '@/components/ui/tooltip'
 
-const PaymentsLayout = SidebarLayout
-
-export default PaymentsLayout
+export default function SubscriptionsLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <SidebarLayout>
+      <TooltipProvider delayDuration={300}>
+        {children}
+      </TooltipProvider>
+    </SidebarLayout>
+  )
+}

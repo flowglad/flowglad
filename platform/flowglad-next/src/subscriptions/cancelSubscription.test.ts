@@ -1,6 +1,13 @@
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -49,6 +56,7 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError, ValidationError } from '@/errors'
 import {
   abortScheduledBillingRuns,
   cancelSubscriptionImmediately,
@@ -65,6 +73,7 @@ import {
   createDiscardingEffectsContext,
   noopEmitEvent,
   noopInvalidateCache,
+  withAdminCacheContext,
 } from '@/test-utils/transactionCallbacks'
 import * as subscriptionCancellationNotifications from '@/trigger/notifications/send-organization-subscription-cancellation-scheduled-notification'
 import {
@@ -159,7 +168,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         isFreePlan: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // need to update defaultPrice as setupOrg create default price at $10
         await updatePrice(
           {
@@ -167,7 +177,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             unitPrice: 0,
             type: PriceType.Subscription,
           },
-          transaction
+          ctx
         )
 
         await reassignDefaultSubscription(
@@ -230,7 +240,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         isFreePlan: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // need to update defaultPrice as setupOrg create default price at $10
         await updatePrice(
           {
@@ -238,7 +249,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             unitPrice: 0,
             type: PriceType.Subscription,
           },
-          transaction
+          ctx
         )
 
         await reassignDefaultSubscription(
@@ -301,7 +312,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         isFreePlan: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateOrganization(
           {
             id: organization.id,
@@ -345,7 +357,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         isFreePlan: true,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await reassignDefaultSubscription(
           canceledSubscription,
           createDiscardingEffectsContext(transaction)
@@ -395,7 +408,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         isFreePlan: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await reassignDefaultSubscription(
           canceledSubscription,
           createDiscardingEffectsContext(transaction)
@@ -450,13 +464,14 @@ describe('Subscription Cancellation Test Suite', async () => {
         isFreePlan: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateProduct(
           {
             id: product.id,
             active: false,
           },
-          transaction
+          ctx
         )
 
         await reassignDefaultSubscription(
@@ -509,7 +524,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         isFreePlan: false,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await transaction
           .delete(prices)
           .where(eq(prices.productId, product.id))
@@ -575,7 +591,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         endDate: periodEnd,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // need to update defaultPrice as setupOrg create default price at $10
         await updatePrice(
           {
@@ -583,7 +600,7 @@ describe('Subscription Cancellation Test Suite', async () => {
             unitPrice: 0,
             type: PriceType.Subscription,
           },
-          transaction
+          ctx
         )
 
         const canceledSubscription = (
@@ -678,7 +695,8 @@ describe('Subscription Cancellation Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updateOrganization(
           {
             id: organization.id,
@@ -735,7 +753,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should cancel an active subscription and update billing periods', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Set up a subscription and two billing periods:
         // – one currently active (cancellation time lies between its start and end)
         // – one that starts in the future.
@@ -790,7 +809,7 @@ describe('Subscription Cancellation Test Suite', async () => {
           BillingPeriodStatus.Completed
         )
         expect(updatedActiveBP.endDate).toBe(
-          updatedSubscription.canceledAt
+          updatedSubscription.canceledAt!
         )
         expect(updatedFutureBP.status).toBe(
           BillingPeriodStatus.Canceled
@@ -799,7 +818,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should not modify a subscription already in a terminal state', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const subscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -807,14 +827,14 @@ describe('Subscription Cancellation Test Suite', async () => {
           priceId: price.id,
           status: SubscriptionStatus.Canceled,
         })
-        const { ctx, effects } =
+        const { ctx: effectsCtx, effects } =
           createCapturingEffectsContext(transaction)
         const result = (
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
-            ctx
+            effectsCtx
           )
         ).unwrap()
         expect(result.status).toBe(SubscriptionStatus.Canceled)
@@ -835,7 +855,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('normalizes subscriptions that already have a canceledAt timestamp but non-terminal status', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const canceledAt = Date.now()
         const subscriptionWithTimestamp = await setupSubscription({
           organizationId: organization.id,
@@ -845,14 +866,14 @@ describe('Subscription Cancellation Test Suite', async () => {
           canceledAt,
           status: SubscriptionStatus.Active,
         })
-        const { ctx, effects } =
+        const { ctx: effectsCtx, effects } =
           createCapturingEffectsContext(transaction)
         const result = (
           await cancelSubscriptionImmediately(
             {
               subscription: subscriptionWithTimestamp,
             },
-            ctx
+            effectsCtx
           )
         ).unwrap()
         expect(result.status).toBe(SubscriptionStatus.Canceled)
@@ -865,7 +886,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should cancel subscription with CancellationScheduled status immediately', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const subscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -884,20 +906,20 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        const { ctx, effects } =
+        const { ctx: effectsCtx, effects } =
           createCapturingEffectsContext(transaction)
         const result = (
           await cancelSubscriptionImmediately(
             {
               subscription,
             },
-            ctx
+            effectsCtx
           )
         ).unwrap()
 
         // Verify subscription was canceled immediately
         expect(result.status).toBe(SubscriptionStatus.Canceled)
-        expect(result.canceledAt).toMatchObject({})
+        expect(typeof result.canceledAt).toBe('number')
         expect(effects.events).toHaveLength(1)
         expect(effects.events[0]).toMatchObject({
           type: FlowgladEventType.SubscriptionCanceled,
@@ -924,7 +946,8 @@ describe('Subscription Cancellation Test Suite', async () => {
       ]
 
       for (const status of statusesToTest) {
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           const subscription = await setupSubscription({
             organizationId: organization.id,
             customerId: customer.id,
@@ -941,20 +964,20 @@ describe('Subscription Cancellation Test Suite', async () => {
             endDate: periodEnd,
           })
 
-          const { ctx, effects } =
+          const { ctx: effectsCtx, effects } =
             createCapturingEffectsContext(transaction)
           const result = (
             await cancelSubscriptionImmediately(
               {
                 subscription,
               },
-              ctx
+              effectsCtx
             )
           ).unwrap()
 
           // Verify subscription was canceled regardless of initial status
           expect(result.status).toBe(SubscriptionStatus.Canceled)
-          expect(result.canceledAt).toMatchObject({})
+          expect(typeof result.canceledAt).toBe('number')
           expect(effects.events).toHaveLength(1)
           expect(effects.events[0]).toMatchObject({
             type: FlowgladEventType.SubscriptionCanceled,
@@ -971,7 +994,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should throw an error if the cancellation date is before the subscription start date', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Create a subscription whose billing period starts in the future.
         const now = new Date()
         const futureStart = new Date(now.getTime() + 60 * 60 * 1000) // 1 hour later
@@ -987,21 +1011,25 @@ describe('Subscription Cancellation Test Suite', async () => {
           endDate: new Date(futureStart.getTime() + 60 * 60 * 1000),
         })
         // Because the current time is before the billing period start, expect an error.
-        await expect(
-          cancelSubscriptionImmediately(
-            {
-              subscription,
-            },
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          /Cannot end a subscription before its start date/
+        const result = await cancelSubscriptionImmediately(
+          {
+            subscription,
+          },
+          createDiscardingEffectsContext(transaction)
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot end a subscription before its start date/
+          )
+        }
       })
     })
 
     it('should handle subscriptions with no billing periods gracefully', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Create a subscription without billing periods.
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -1028,7 +1056,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should correctly handle boundary conditions for billing period dates', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // To test boundaries, we force a known "current" time.
         const fixedNow = new Date('2025-02-02T12:00:00Z')
         const subscription = await setupSubscription({
@@ -1075,7 +1104,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should set PastDue billing periods to Canceled when subscription is canceled', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Create a subscription with multiple billing periods:
         // - one PastDue billing period (e.g., from 2 months ago)
         // - one active billing period (current)
@@ -1159,7 +1189,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should handle multiple PastDue billing periods when subscription is canceled', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Create a subscription with multiple PastDue billing periods
         const now = new Date()
         const subscription = await setupSubscription({
@@ -1232,7 +1263,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should abort all scheduled billing runs when subscription is canceled immediately', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = new Date()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -1292,7 +1324,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should only abort scheduled billing runs and not affect other statuses', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = new Date()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -1370,7 +1403,8 @@ describe('Subscription Cancellation Test Suite', async () => {
   --------------------------------------------------------------------------- */
   describe('scheduleSubscriptionCancellation', () => {
     it('should schedule cancellation at the end of the current billing period', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -1398,11 +1432,12 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        const updatedSubscription =
+        const updatedSubscription = (
           await scheduleSubscriptionCancellation(
             params,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
@@ -1421,7 +1456,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should make no update if the subscription is already in a terminal state', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const subscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -1447,16 +1483,19 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        const result = await scheduleSubscriptionCancellation(
-          params,
-          createDiscardingEffectsContext(transaction)
-        )
+        const result = (
+          await scheduleSubscriptionCancellation(
+            params,
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
         expect(result.status).toBe(SubscriptionStatus.Canceled)
       })
     })
 
-    it('throws when scheduling cancellation for a non-renewing subscription', async () => {
-      await adminTransaction(async ({ transaction }) => {
+    it('returns ValidationError when scheduling cancellation for a non-renewing subscription', async () => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const nonRenewing = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -1475,17 +1514,23 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        await expect(
-          scheduleSubscriptionCancellation(
-            params,
-            createDiscardingEffectsContext(transaction)
+        const result = await scheduleSubscriptionCancellation(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /non-renewing subscription/
           )
-        ).rejects.toThrow(/non-renewing subscription/)
+        }
       })
     })
 
-    it('should throw an error if no current billing period exists for `AtEndOfCurrentBillingPeriod`', async () => {
-      await adminTransaction(async ({ transaction }) => {
+    it('returns NotFoundError if no current billing period exists for `AtEndOfCurrentBillingPeriod`', async () => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const subscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -1500,17 +1545,23 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        await expect(
-          scheduleSubscriptionCancellation(
-            params,
-            createDiscardingEffectsContext(transaction)
+        const result = await scheduleSubscriptionCancellation(
+          params,
+          createDiscardingEffectsContext(transaction)
+        )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(NotFoundError)
+          expect(result.error.message).toMatch(
+            /Current billing period not found: subscription/
           )
-        ).rejects.toThrow('No current billing period found')
+        }
       })
     })
 
     it('should handle boundary conditions for billing period dates correctly', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Use a fixed cancellation time.
         const fixedNow = new Date()
         const subscription = await setupSubscription({
@@ -1534,11 +1585,12 @@ describe('Subscription Cancellation Test Suite', async () => {
               SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
           },
         }
-        const updatedSubscription =
+        const updatedSubscription = (
           await scheduleSubscriptionCancellation(
             params,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
         )
@@ -1555,7 +1607,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should abort all scheduled billing runs when subscription cancellation is scheduled', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = new Date()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -1621,7 +1674,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('handles immediate timing by canceling future billing periods and aborting scheduled runs', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -1652,11 +1706,12 @@ describe('Subscription Cancellation Test Suite', async () => {
             timing: SubscriptionCancellationArrangement.Immediately,
           },
         }
-        const updatedSubscription =
+        const updatedSubscription = (
           await scheduleSubscriptionCancellation(
             params,
             createDiscardingEffectsContext(transaction)
           )
+        ).unwrap()
 
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.CancellationScheduled
@@ -1694,14 +1749,13 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('invokes the subscription-cancellation-scheduled notification exactly once per schedule call', async () => {
-      const notificationSpy = vi
-        .spyOn(
-          subscriptionCancellationNotifications,
-          'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
-        )
-        .mockResolvedValue(undefined)
+      const notificationSpy = spyOn(
+        subscriptionCancellationNotifications,
+        'idempotentSendOrganizationSubscriptionCancellationScheduledNotification'
+      ).mockResolvedValue(undefined)
       try {
-        await adminTransaction(async ({ transaction }) => {
+        await adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           const subscription = await setupSubscription({
             organizationId: organization.id,
             customerId: customer.id,
@@ -1720,10 +1774,12 @@ describe('Subscription Cancellation Test Suite', async () => {
                 SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
             },
           }
-          await scheduleSubscriptionCancellation(
-            params,
-            createDiscardingEffectsContext(transaction)
-          )
+          ;(
+            await scheduleSubscriptionCancellation(
+              params,
+              createDiscardingEffectsContext(transaction)
+            )
+          ).unwrap()
         })
         expect(notificationSpy).toHaveBeenCalledTimes(1)
       } finally {
@@ -1734,7 +1790,8 @@ describe('Subscription Cancellation Test Suite', async () => {
 
   describe('cancelSubscriptionProcedureTransaction', () => {
     it('returns the updated subscription and events for immediate cancellations', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const immediateSubscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -1757,12 +1814,13 @@ describe('Subscription Cancellation Test Suite', async () => {
               },
             },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
+              livemode: true,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
+            }),
           }
         )
 
@@ -1779,7 +1837,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('returns scheduled cancellations without events for non-immediate timing', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const scheduledSubscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -1805,12 +1864,13 @@ describe('Subscription Cancellation Test Suite', async () => {
             ctx: {
               apiKey: undefined,
             },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
+              livemode: true,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
+            }),
           }
         )
 
@@ -1832,7 +1892,8 @@ describe('Subscription Cancellation Test Suite', async () => {
   --------------------------------------------------------------------------- */
   describe('Edge Cases and Error Handling', () => {
     it('should handle subscriptions with no billing periods gracefully', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Test with a subscription that has no billing periods.
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -1857,7 +1918,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should handle overlapping billing periods correctly', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = new Date()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -1951,7 +2013,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should throw an error for invalid subscription input', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Passing a null subscription should result in an error.
         await expect(
           cancelSubscriptionImmediately(
@@ -1970,7 +2033,8 @@ describe('Subscription Cancellation Test Suite', async () => {
   --------------------------------------------------------------------------- */
   describe('Integration Tests (Partial Scope)', () => {
     it('should integrate correctly with subscription lifecycle operations', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Simulate an activation phase followed by an immediate cancellation.
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -2014,7 +2078,8 @@ describe('Subscription Cancellation Test Suite', async () => {
   --------------------------------------------------------------------------- */
   describe('abortScheduledBillingRuns', () => {
     it('should be idempotent when called multiple times', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = new Date()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -2161,22 +2226,22 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
 
       // Cancel subscription
-      const canceledAt = await adminTransaction(
-        async ({ transaction }) => {
-          const result = (
-            await cancelSubscriptionImmediately(
-              {
-                subscription,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
-          ).unwrap()
-          return result.canceledAt
-        }
-      )
+      const canceledAt = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = (
+          await cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
+        return result.canceledAt
+      })
 
       // Verify subscription items are expired
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const items = await selectSubscriptionItems(
           { subscriptionId: subscription.id },
           transaction
@@ -2323,22 +2388,22 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
 
       // Cancel subscription
-      const canceledAt = await adminTransaction(
-        async ({ transaction }) => {
-          const result = (
-            await cancelSubscriptionImmediately(
-              {
-                subscription,
-              },
-              createDiscardingEffectsContext(transaction)
-            )
-          ).unwrap()
-          return result.canceledAt
-        }
-      )
+      const canceledAt = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = (
+          await cancelSubscriptionImmediately(
+            {
+              subscription,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        ).unwrap()
+        return result.canceledAt
+      })
 
       // Verify all subscription items are expired
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const items = await selectSubscriptionItems(
           { subscriptionId: subscription.id },
           transaction
@@ -2369,7 +2434,7 @@ describe('Subscription Cancellation Test Suite', async () => {
      Free Plan Protection
   --------------------------------------------------------------------------- */
   describe('Free Plan Protection', () => {
-    it('should throw an error when attempting to cancel a free plan subscription', async () => {
+    it('returns ValidationError when attempting to cancel a free plan subscription', async () => {
       const {
         organization,
         price: freePrice,
@@ -2384,14 +2449,15 @@ describe('Subscription Cancellation Test Suite', async () => {
         customerId: customer.id,
       })
       // Ensure the price is free (unitPrice = 0)
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updatePrice(
           {
             id: freePrice.id,
             unitPrice: 0,
             type: PriceType.Subscription,
           },
-          transaction
+          ctx
         )
       })
       const freeSubscription = await setupSubscription({
@@ -2408,26 +2474,32 @@ describe('Subscription Cancellation Test Suite', async () => {
         endDate: Date.now() + 60 * 60 * 1000,
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return cancelSubscriptionProcedureTransaction({
-            input: {
-              id: freeSubscription.id,
-              cancellation: {
-                timing:
-                  SubscriptionCancellationArrangement.Immediately,
-              },
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await cancelSubscriptionProcedureTransaction({
+          input: {
+            id: freeSubscription.id,
+            cancellation: {
+              timing: SubscriptionCancellationArrangement.Immediately,
             },
-            ctx: { apiKey: undefined },
-            transactionCtx: {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: () => {},
-            },
-          })
+          },
+          ctx: { apiKey: undefined },
+          transactionCtx: withAdminCacheContext({
+            transaction,
+            livemode: true,
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
+          }),
         })
-      ).rejects.toThrow(/Cannot cancel the default free plan/)
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot cancel the default free plan/
+          )
+        }
+      })
     })
 
     it('should allow cancellation of paid plan subscriptions', async () => {
@@ -2468,33 +2540,32 @@ describe('Subscription Cancellation Test Suite', async () => {
         endDate: Date.now() + 60 * 60 * 1000,
       })
 
-      const response = await adminTransaction(
-        async ({ transaction }) => {
-          return cancelSubscriptionProcedureTransaction({
-            input: {
-              id: paidSubscription.id,
-              cancellation: {
-                timing:
-                  SubscriptionCancellationArrangement.Immediately,
-              },
+      const response = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        return cancelSubscriptionProcedureTransaction({
+          input: {
+            id: paidSubscription.id,
+            cancellation: {
+              timing: SubscriptionCancellationArrangement.Immediately,
             },
-            ctx: { apiKey: undefined },
-            transactionCtx: {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: () => {},
-            },
-          })
-        }
-      )
+          },
+          ctx: { apiKey: undefined },
+          transactionCtx: withAdminCacheContext({
+            transaction,
+            livemode: true,
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
+          }),
+        })
+      })
 
       expect(response.unwrap().subscription.status).toBe(
         SubscriptionStatus.Canceled
       )
     })
 
-    it('should throw an error when attempting to schedule cancellation of a free plan', async () => {
+    it('returns ValidationError when attempting to schedule cancellation of a free plan', async () => {
       const {
         organization,
         price: freePrice,
@@ -2508,14 +2579,15 @@ describe('Subscription Cancellation Test Suite', async () => {
         organizationId: organization.id,
         customerId: customer.id,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         await updatePrice(
           {
             id: freePrice.id,
             unitPrice: 0,
             type: PriceType.Subscription,
           },
-          transaction
+          ctx
         )
       })
       const freeSubscription = await setupSubscription({
@@ -2532,26 +2604,33 @@ describe('Subscription Cancellation Test Suite', async () => {
         endDate: Date.now() + 60 * 60 * 1000,
       })
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return cancelSubscriptionProcedureTransaction({
-            input: {
-              id: freeSubscription.id,
-              cancellation: {
-                timing:
-                  SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-              },
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await cancelSubscriptionProcedureTransaction({
+          input: {
+            id: freeSubscription.id,
+            cancellation: {
+              timing:
+                SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
             },
-            ctx: { apiKey: undefined },
-            transactionCtx: {
-              transaction,
-              invalidateCache: noopInvalidateCache,
-              emitEvent: noopEmitEvent,
-              enqueueLedgerCommand: () => {},
-            },
-          })
+          },
+          ctx: { apiKey: undefined },
+          transactionCtx: withAdminCacheContext({
+            transaction,
+            livemode: true,
+            invalidateCache: noopInvalidateCache,
+            emitEvent: noopEmitEvent,
+            enqueueLedgerCommand: () => {},
+          }),
         })
-      ).rejects.toThrow(/Cannot cancel the default free plan/)
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot cancel the default free plan/
+          )
+        }
+      })
     })
   })
 
@@ -2560,7 +2639,8 @@ describe('Subscription Cancellation Test Suite', async () => {
   --------------------------------------------------------------------------- */
   describe('uncancelSubscription', () => {
     it('should uncancel a subscription in CancellationScheduled status and revert to Active', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const subscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -2585,7 +2665,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should uncancel a subscription with future trialEnd and revert to Trialing', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const futureTrialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days in future
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -2612,7 +2693,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should silently succeed if subscription is not in CancellationScheduled status (idempotent)', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const subscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -2636,7 +2718,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should silently succeed if subscription is in terminal state (idempotent)', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const subscription = await setupSubscription({
           organizationId: organization.id,
           customerId: customer.id,
@@ -2660,7 +2743,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should revert billing periods from ScheduledToCancel to Upcoming', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -2693,7 +2777,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should revert current billing period from ScheduledToCancel to Active', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -2726,7 +2811,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should clear cancelScheduledAt when uncanceling', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -2748,8 +2834,9 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('should throw error for paid subscription without payment method (security)', async () => {
-      await adminTransaction(async ({ transaction }) => {
+    it('returns ValidationError when paid subscription has no payment method (security)', async () => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         // Create subscription first, then clear payment method
         const tempSubscription = await setupSubscription({
@@ -2779,19 +2866,23 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        await expect(
-          uncancelSubscription(
-            paidSubscription,
-            createDiscardingEffectsContext(transaction)
-          )
-        ).rejects.toThrow(
-          /Cannot uncancel paid subscription without an active payment method/
+        const result = await uncancelSubscription(
+          paidSubscription,
+          createDiscardingEffectsContext(transaction)
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot uncancel paid subscription without an active payment method/
+          )
+        }
       })
     })
 
     it('should succeed for free subscription without payment method', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         // Create free subscription first, then clear payment method
         const tempSubscription = await setupSubscription({
@@ -2835,7 +2926,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should succeed for doNotCharge subscription without payment method', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         // Create doNotCharge subscription without payment method
         const doNotChargeSubscription = await setupSubscription({
@@ -2871,7 +2963,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should create NEW billing runs for periods with Aborted runs', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -2918,7 +3011,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should NOT create billing runs for Stripe-aborted runs (with lastPaymentIntentEventTimestamp)', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -2968,7 +3062,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should create billing runs for cancellation-aborted runs (without lastPaymentIntentEventTimestamp)', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const tempSubscription = await setupSubscription({
           organizationId: organization.id,
@@ -3028,7 +3123,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should NOT create billing runs when InProgress run exists', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -3075,7 +3171,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should NOT create billing runs when AwaitingPaymentConfirmation run exists', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -3122,7 +3219,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should leave Scheduled runs as-is (already valid)', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -3167,7 +3265,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should skip terminal runs (Succeeded/Failed)', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -3212,7 +3311,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should skip billing runs for trial periods', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -3253,7 +3353,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should be idempotent - calling multiple times has no side effects', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -3292,7 +3393,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should handle subscription with runBillingAtPeriodStart = true', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         // Create subscription first
         const tempSubscription = await setupSubscription({
@@ -3342,7 +3444,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should handle subscription with runBillingAtPeriodStart = false', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         // Create subscription first
         const tempSubscription = await setupSubscription({
@@ -3392,7 +3495,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should only create billing runs for future dates', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -3427,7 +3531,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should create billing run for current period when runBillingAtPeriodStart = false and period end is in future', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const tempSubscription = await setupSubscription({
           organizationId: organization.id,
@@ -3486,7 +3591,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should NOT create billing run for current period when runBillingAtPeriodStart = true (start date is in past)', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const tempSubscription = await setupSubscription({
           organizationId: organization.id,
@@ -3543,7 +3649,8 @@ describe('Subscription Cancellation Test Suite', async () => {
     })
 
     it('should handle both current and future billing periods correctly on uncancel', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const tempSubscription = await setupSubscription({
           organizationId: organization.id,
@@ -3655,7 +3762,8 @@ describe('Subscription Cancellation Test Suite', async () => {
   --------------------------------------------------------------------------- */
   describe('uncancelSubscriptionProcedureTransaction', () => {
     it('should return the updated subscription when uncanceling', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         const subscription = await setupSubscription({
           organizationId: organization.id,
@@ -3677,12 +3785,13 @@ describe('Subscription Cancellation Test Suite', async () => {
           await uncancelSubscriptionProcedureTransaction({
             input: { id: subscription.id },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
+              livemode: true,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
+            }),
           })
 
         expect(response.unwrap().subscription.id).toBe(
@@ -3697,8 +3806,9 @@ describe('Subscription Cancellation Test Suite', async () => {
       })
     })
 
-    it('should handle authentication correctly and return proper error for paid subscription without payment method', async () => {
-      await adminTransaction(async ({ transaction }) => {
+    it('returns ValidationError when paid subscription has no payment method via procedure transaction', async () => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const now = Date.now()
         // Create subscription first
         const tempSubscription = await setupSubscription({
@@ -3727,20 +3837,26 @@ describe('Subscription Cancellation Test Suite', async () => {
           status: BillingPeriodStatus.ScheduledToCancel,
         })
 
-        await expect(
-          uncancelSubscriptionProcedureTransaction({
+        const result = await uncancelSubscriptionProcedureTransaction(
+          {
             input: { id: paidSubscription.id },
             ctx: { apiKey: undefined },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
+              livemode: true,
               invalidateCache: noopInvalidateCache,
               emitEvent: noopEmitEvent,
               enqueueLedgerCommand: () => {},
-            },
-          })
-        ).rejects.toThrow(
-          /Cannot uncancel paid subscription without an active payment method/
+            }),
+          }
         )
+        expect(result.status).toBe('error')
+        if (result.status === 'error') {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toMatch(
+            /Cannot uncancel paid subscription without an active payment method/
+          )
+        }
       })
     })
   })
@@ -3831,7 +3947,6 @@ describe('cancelSubscription with resources', async () => {
     // Create 3 cattle claims (no externalId)
     const cattleClaim1 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -3840,7 +3955,6 @@ describe('cancelSubscription with resources', async () => {
 
     const cattleClaim2 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -3849,7 +3963,6 @@ describe('cancelSubscription with resources', async () => {
 
     const cattleClaim3 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -3859,7 +3972,6 @@ describe('cancelSubscription with resources', async () => {
     // Create 2 pet claims (with externalId)
     const petClaim1 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -3868,7 +3980,6 @@ describe('cancelSubscription with resources', async () => {
 
     const petClaim2 = await setupResourceClaim({
       organizationId: organization.id,
-      subscriptionItemFeatureId: subscriptionItemFeature.id,
       resourceId: resource.id,
       subscriptionId: subscription.id,
       pricingModelId: pricingModel.id,
@@ -3876,21 +3987,21 @@ describe('cancelSubscription with resources', async () => {
     })
 
     // Verify we have 5 active claims before cancellation
-    const claimsBefore = await adminTransaction(
-      async ({ transaction }) => {
-        return selectResourceClaims(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-      }
-    )
+    const claimsBefore = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectResourceClaims(
+        { subscriptionId: subscription.id },
+        transaction
+      )
+    })
     const activeClaimsBefore = claimsBefore.filter(
       (c) => c.releasedAt === null
     )
     expect(activeClaimsBefore.length).toBe(5)
 
     // Cancel the subscription immediately
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       await cancelSubscriptionImmediately(
         { subscription, customer, skipNotifications: true },
         createDiscardingEffectsContext(transaction)
@@ -3898,14 +4009,13 @@ describe('cancelSubscription with resources', async () => {
     })
 
     // Verify all claims are now released with subscription_canceled reason
-    const claimsAfter = await adminTransaction(
-      async ({ transaction }) => {
-        return selectResourceClaims(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-      }
-    )
+    const claimsAfter = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectResourceClaims(
+        { subscriptionId: subscription.id },
+        transaction
+      )
+    })
 
     const activeClaimsAfter = claimsAfter.filter(
       (c) => c.releasedAt === null
@@ -4028,7 +4138,6 @@ describe('cancelSubscription with resources', async () => {
     for (let i = 0; i < 5; i++) {
       await setupResourceClaim({
         organizationId: organization.id,
-        subscriptionItemFeatureId: subscriptionItemFeature.id,
         resourceId: resource.id,
         subscriptionId: subscription.id,
         pricingModelId: pricingModel.id,
@@ -4037,42 +4146,43 @@ describe('cancelSubscription with resources', async () => {
     }
 
     // Verify we have 5 active claims before scheduling cancellation
-    const claimsBefore = await adminTransaction(
-      async ({ transaction }) => {
-        return selectResourceClaims(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-      }
-    )
+    const claimsBefore = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectResourceClaims(
+        { subscriptionId: subscription.id },
+        transaction
+      )
+    })
     const activeClaimsBefore = claimsBefore.filter(
       (c) => c.releasedAt === null
     )
     expect(activeClaimsBefore.length).toBe(5)
 
     // Schedule the subscription cancellation for end of billing period
-    await adminTransaction(async ({ transaction }) => {
-      await scheduleSubscriptionCancellation(
-        {
-          id: subscription.id,
-          cancellation: {
-            timing:
-              SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      ;(
+        await scheduleSubscriptionCancellation(
+          {
+            id: subscription.id,
+            cancellation: {
+              timing:
+                SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
+            },
           },
-        },
-        createDiscardingEffectsContext(transaction)
-      )
+          createDiscardingEffectsContext(transaction)
+        )
+      ).unwrap()
     })
 
     // Verify claims remain active (should NOT be released)
-    const claimsAfter = await adminTransaction(
-      async ({ transaction }) => {
-        return selectResourceClaims(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-      }
-    )
+    const claimsAfter = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectResourceClaims(
+        { subscriptionId: subscription.id },
+        transaction
+      )
+    })
 
     const activeClaimsAfter = claimsAfter.filter(
       (c) => c.releasedAt === null
@@ -4102,20 +4212,19 @@ describe('Subscription cancellation cache invalidations', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const effects = await adminTransaction(
-        async ({ transaction }) => {
-          const { ctx, effects } =
-            createCapturingEffectsContext(transaction)
-          await cancelSubscriptionImmediately(
-            {
-              subscription,
-              customer,
-            },
-            ctx
-          )
-          return effects
-        }
-      )
+      const effects = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const { ctx: effectsCtx, effects } =
+          createCapturingEffectsContext(transaction)
+        await cancelSubscriptionImmediately(
+          {
+            subscription,
+            customer,
+          },
+          effectsCtx
+        )
+        return effects
+      })
 
       expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
@@ -4137,20 +4246,19 @@ describe('Subscription cancellation cache invalidations', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const effects = await adminTransaction(
-        async ({ transaction }) => {
-          const { ctx, effects } =
-            createCapturingEffectsContext(transaction)
-          await cancelSubscriptionImmediately(
-            {
-              subscription,
-              customer: customer1,
-            },
-            ctx
-          )
-          return effects
-        }
-      )
+      const effects = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const { ctx: effectsCtx, effects } =
+          createCapturingEffectsContext(transaction)
+        await cancelSubscriptionImmediately(
+          {
+            subscription,
+            customer: customer1,
+          },
+          effectsCtx
+        )
+        return effects
+      })
 
       expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer1.id)
@@ -4185,28 +4293,28 @@ describe('Subscription cancellation cache invalidations', async () => {
         status: BillingPeriodStatus.Active,
       })
 
-      const effects = await adminTransaction(
-        async ({ transaction }) => {
-          const { callbacks, effects } = createCapturingCallbacks()
-          await cancelSubscriptionProcedureTransaction({
-            input: {
-              id: subscription.id,
-              cancellation: {
-                timing:
-                  SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
-              },
+      const effects = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const { callbacks, effects } = createCapturingCallbacks()
+        await cancelSubscriptionProcedureTransaction({
+          input: {
+            id: subscription.id,
+            cancellation: {
+              timing:
+                SubscriptionCancellationArrangement.AtEndOfCurrentBillingPeriod,
             },
-            ctx: { apiKey: undefined },
-            transactionCtx: {
-              transaction,
-              invalidateCache: callbacks.invalidateCache,
-              emitEvent: callbacks.emitEvent,
-              enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
-          })
-          return effects
-        }
-      )
+          },
+          ctx: { apiKey: undefined },
+          transactionCtx: withAdminCacheContext({
+            transaction,
+            livemode: true,
+            invalidateCache: callbacks.invalidateCache,
+            emitEvent: callbacks.emitEvent,
+            enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
+          }),
+        })
+        return effects
+      })
 
       expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(subscription.customerId)
@@ -4233,14 +4341,13 @@ describe('Subscription cancellation cache invalidations', async () => {
         cancelScheduledAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
       })
 
-      const effects = await adminTransaction(
-        async ({ transaction }) => {
-          const { ctx, effects } =
-            createCapturingEffectsContext(transaction)
-          await uncancelSubscription(subscription, ctx)
-          return effects
-        }
-      )
+      const effects = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const { ctx: effectsCtx, effects } =
+          createCapturingEffectsContext(transaction)
+        await uncancelSubscription(subscription, effectsCtx)
+        return effects
+      })
 
       expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer.id)
@@ -4268,14 +4375,13 @@ describe('Subscription cancellation cache invalidations', async () => {
         cancelScheduledAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
       })
 
-      const effects = await adminTransaction(
-        async ({ transaction }) => {
-          const { ctx, effects } =
-            createCapturingEffectsContext(transaction)
-          await uncancelSubscription(subscription, ctx)
-          return effects
-        }
-      )
+      const effects = await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const { ctx: effectsCtx, effects } =
+          createCapturingEffectsContext(transaction)
+        await uncancelSubscription(subscription, effectsCtx)
+        return effects
+      })
 
       expect(effects.cacheInvalidations).toContain(
         CacheDependency.customerSubscriptions(customer1.id)

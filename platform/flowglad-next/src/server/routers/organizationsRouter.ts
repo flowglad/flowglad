@@ -1,6 +1,10 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
-import { adminTransaction } from '@/db/adminTransaction'
+import {
+  adminTransaction,
+  comprehensiveAdminTransaction,
+} from '@/db/adminTransaction'
 import {
   authenticatedProcedureTransaction,
   authenticatedTransaction,
@@ -313,7 +317,7 @@ const getCurrentSubscribers = protectedProcedure.query(
 const getUsageVolumeInputSchema = z.object({
   startDate: z.date(),
   endDate: z.date(),
-  granularity: z.nativeEnum(RevenueChartIntervalUnit),
+  granularity: z.enum(RevenueChartIntervalUnit),
   usageMeterId: z.string(),
   productId: z.string().nullish(),
 })
@@ -370,7 +374,7 @@ const getUsageMetersWithEventsOutput = z.array(
   z.object({
     id: z.string(),
     name: z.string(),
-    aggregationType: z.nativeEnum(UsageMeterAggregationType),
+    aggregationType: z.enum(UsageMeterAggregationType),
     pricingModelId: z.string(), // For future UX enhancements
   })
 )
@@ -430,23 +434,28 @@ const createOrganization = protectedProcedure
       throw new Error('User not found')
     }
 
-    const result = await adminTransaction(async ({ transaction }) => {
-      const [user] = await selectUsers(
-        {
-          betterAuthId: session.user.id,
-        },
-        transaction
-      )
-      return createOrganizationTransaction(
-        input,
-        {
-          id: user.id,
-          email: user.email!,
-          fullName: user.name ?? undefined,
-        },
-        transaction
-      )
-    })
+    const result = await comprehensiveAdminTransaction(
+      async ({ transaction, cacheRecomputationContext }) => {
+        const [user] = await selectUsers(
+          {
+            betterAuthId: session.user.id,
+          },
+          transaction
+        )
+        const organizationResult =
+          await createOrganizationTransaction(
+            input,
+            {
+              id: user.id,
+              email: user.email!,
+              fullName: user.name ?? undefined,
+            },
+            transaction,
+            cacheRecomputationContext
+          )
+        return Result.ok(organizationResult)
+      }
+    )
     if (input.codebaseMarkdown) {
       await saveOrganizationCodebaseMarkdown({
         organizationId: result.organization.id,

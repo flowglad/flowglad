@@ -233,11 +233,11 @@ interface ResourceClaim {
   id: string                                      // Claim ID
   resourceId: string                              // Resource UUID
   subscriptionId: string                          // Subscription UUID
-  subscriptionItemFeatureId: string               // Link to subscription feature
   externalId: string | null                       // Your identifier (null for anonymous)
   claimedAt: number                               // Unix timestamp (ms)
   releasedAt: number | null                       // null = active
   releaseReason: string | null                    // Why it was released
+  expiredAt: number | null                        // Auto-expires at this time (for interim claims)
   metadata: Record<string, string | number | boolean> | null
   createdAt: number                               // Unix timestamp (ms)
   updatedAt: number                               // Unix timestamp (ms)
@@ -276,11 +276,32 @@ if (usage.available < 1) {
 await server.claimResource({ resourceSlug: 'seats', externalId: userId })
 ```
 
+### Capacity Aggregation
+
+When a subscription has multiple items that provide capacity for the same resource (e.g., a base plan + add-on), the total capacity is **aggregated** across all subscription items. For example:
+
+- Pro Plan provides 10 seats
+- Seat Add-On provides 5 additional seats
+- Total capacity = 15 seats
+
+This aggregation happens automatically when calculating usage. The `getResourceUsages` endpoint returns one entry per resource with the total aggregated capacity, not per subscription item.
+
 ### Subscription Lifecycle
 
-When a subscription is canceled, all associated resource claims are automatically released. This ensures clean capacity management without manual cleanup.
+**On Cancellation:** When a subscription is canceled, all associated resource claims are automatically released with a `releaseReason` of `"subscription_canceled"`. This ensures clean capacity management without manual cleanup.
 
-When downgrading to a plan with lower capacity, Flowglad prevents the change if the current claimed count exceeds the new capacity. The customer must first release enough resources before downgrading.
+**Claims Persist Across Adjustments:** Resource claims are scoped to the subscription and resource, not to individual subscription items. This means claims survive subscription adjustments—when you upgrade or downgrade plans, existing claims are preserved as long as they fit within the new capacity.
+
+**On Downgrade:** When adjusting a subscription to a plan with lower capacity, Flowglad validates that existing claims fit within the new capacity. If the current claimed count exceeds the new capacity, the adjustment is blocked with an error message:
+
+```
+Cannot reduce seats capacity to 5. 8 resources are currently claimed.
+Release 3 claims before downgrading.
+```
+
+The customer must first release enough resources before the downgrade can proceed.
+
+**Scheduled Downgrade Interim Period:** When a downgrade is scheduled for the end of the billing period (rather than immediately), customers retain their current capacity until the change takes effect. During this interim, new claims that exceed the *future* capacity are allowed but marked as temporary—they have an `expiredAt` timestamp set to the billing period end and automatically expire when the downgrade executes.
 
 ### Auto-Resolution
 
@@ -389,9 +410,165 @@ export async function listTeamMembers(orgId: string) {
 }
 ```
 
+## Adjusting Subscriptions with Resources
+
+When customers upgrade or downgrade plans, resource claims are preserved—but capacity validation ensures you can't reduce capacity below active claims.
+
+### Upgrade Flow: Adding More Seats
+
+The most common upgrade is adding more seats to an existing plan. Use the `quantity` parameter to set the exact number of seats:
+
+```typescript lib/add-seats.ts
+import { flowglad } from './flowglad'
+
+export async function addSeats(params: {
+  customerExternalId: string
+  newSeatCount: number
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  // Increase seats from current amount to newSeatCount
+  const result = await server.adjustSubscription({
+    priceSlug: 'team_seats', // Your per-seat price
+    quantity: params.newSeatCount,
+    // timing defaults to 'auto' - upgrades apply immediately with proration
+  })
+
+  // After adjustment:
+  // - All existing seat claims are preserved
+  // - Additional seats are immediately available
+  return result.subscription
+}
+```
+
+You can also upgrade to an entirely different plan:
+
+```typescript lib/upgrade-plan.ts
+import { flowglad } from './flowglad'
+
+export async function upgradeToProPlan(customerExternalId: string) {
+  const server = flowglad(customerExternalId)
+
+  // Current plan: Starter (5 seats)
+  // New plan: Pro (25 seats)
+  const result = await server.adjustSubscription({
+    priceSlug: 'pro_monthly',
+    // timing defaults to 'auto' - upgrades apply immediately
+  })
+
+  // After upgrade:
+  // - All existing seat claims are preserved
+  // - 20 additional seats are now available
+  return result.subscription
+}
+```
+
+### Downgrade Flow
+
+Downgrading requires releasing excess claims first. Flowglad validates capacity before allowing the change:
+
+```typescript lib/downgrade-with-seats.ts
+import { flowglad } from './flowglad'
+
+export async function downgradeToStarterPlan(params: {
+  customerExternalId: string
+  seatsToRelease: string[]  // User IDs of members to remove
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  // Step 1: Check current usage
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  // The new plan's capacity - in production, fetch this from your pricing config
+  const newCapacity = 5
+  const excessClaims = usage.claimed - newCapacity
+
+  if (excessClaims > 0) {
+    // Step 2: Validate enough seats are selected for release
+    if (params.seatsToRelease.length < excessClaims) {
+      throw new Error(
+        `Must release at least ${excessClaims} seats, but only ${params.seatsToRelease.length} selected.`
+      )
+    }
+
+    // Step 3: Release excess claims before downgrading
+    await server.releaseResource({
+      resourceSlug: 'seats',
+      externalIds: params.seatsToRelease
+    })
+  }
+
+  // Step 4: Now the downgrade will succeed
+  const result = await server.adjustSubscription({
+    priceSlug: 'starter_monthly',
+    // timing defaults to 'auto' - downgrades apply at end of period
+  })
+
+  return result.subscription
+}
+```
+
+<Note>
+Both immediate and scheduled downgrades are blocked if claimed resources exceed the new capacity. The `expiredAt` mechanism only applies to *new* claims made during an interim period after a valid downgrade is scheduled—not to allowing downgrades when excess claims already exist.
+</Note>
+
+### Building a Seat Adjustment UI
+
+Here's how to build a UI that handles seat-aware plan changes:
+
+```typescript lib/plan-change-handler.ts
+import { flowglad } from './flowglad'
+
+interface PlanChangeResult {
+  success: boolean
+  error?: string
+  seatsToRelease?: number
+  affectedMembers?: Array<{ userId: string; email: string }>
+}
+
+export async function validatePlanChange(params: {
+  customerExternalId: string
+  newPriceSlug: string
+  newSeatCapacity: number
+}): Promise<PlanChangeResult> {
+  const server = flowglad(params.customerExternalId)
+
+  // Get current seat usage
+  const { usage, claims } = await server.getResourceUsage({
+    resourceSlug: 'seats'
+  })
+
+  // Check if downgrade would exceed new capacity
+  if (usage.claimed > params.newSeatCapacity) {
+    const seatsToRelease = usage.claimed - params.newSeatCapacity
+
+    // Identify which members would need to be removed.
+    // This example uses FIFO order—customize this logic based on your needs
+    // (e.g., let admins choose, exclude certain roles, use last-in-first-out, etc.)
+    const affectedMembers = claims
+      .filter(c => c.externalId !== null)
+      .slice(0, seatsToRelease)
+      .map(c => ({
+        userId: c.externalId!,
+        email: (c.metadata?.email as string) ?? 'unknown'
+      }))
+
+    return {
+      success: false,
+      error: `This plan includes ${params.newSeatCapacity} seats, but you have ${usage.claimed} members.`,
+      seatsToRelease,
+      affectedMembers
+    }
+  }
+
+  return { success: true }
+}
+```
+
 ## Related
 
 - [Subscriptions](/features/subscriptions) - Resources are attached to subscription features
+- [Subscription Management](/sdks/subscription-management) - Adjusting subscriptions with `adjustSubscription`
 - [Usage](/features/usage) - For consumption-based tracking instead of allocation
 - [Products](/features/products) - Define resource capacity in product features
-- [SDK Reference](/sdks/server) - Full SDK documentation
+- [SDK Reference](/sdks/resources) - Full SDK documentation for resources

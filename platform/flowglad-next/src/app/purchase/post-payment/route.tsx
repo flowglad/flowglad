@@ -55,10 +55,14 @@ const processPaymentIntent = async ({
   const { payment, purchase, invoice, checkoutSession } =
     await comprehensiveAdminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const { payment } = await processPaymentIntentStatusUpdated(
+      const paymentResult = await processPaymentIntentStatusUpdated(
         paymentIntent,
         ctx
       )
+      if (paymentResult.status === 'error') {
+        return Result.err(paymentResult.error)
+      }
+      const { payment } = paymentResult.value
       if (!payment.purchaseId) {
         throw new Error(
           `No purchase id found for payment ${payment.id}`
@@ -148,6 +152,7 @@ const processCheckoutSession = async ({
       const { purchase, invoice } =
         await processNonPaymentCheckoutSession(checkoutSession, {
           transaction,
+          cacheRecomputationContext: params.cacheRecomputationContext,
           invalidateCache: params.invalidateCache,
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,
@@ -200,7 +205,7 @@ const processSetupIntent = async ({
     }
   )
 
-  const { purchase, checkoutSession, type } = setupSuceededResult
+  const { purchase, checkoutSession } = setupSuceededResult
   if (
     isCheckoutSessionSubscriptionCreating(checkoutSession) &&
     setupSuceededResult.billingRun?.id

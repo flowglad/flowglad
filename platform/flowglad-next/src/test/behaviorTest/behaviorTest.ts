@@ -5,7 +5,7 @@
  * dependency implementations, asserting universal invariants.
  */
 
-import { afterAll, describe, it } from 'vitest'
+import { afterAll, describe, it } from 'bun:test'
 import {
   combinationMatches,
   formatCombination,

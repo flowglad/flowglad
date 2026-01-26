@@ -12,6 +12,7 @@ import {
   createUsageEventSchema,
   flowgladActionValidators,
   getResourcesSchema,
+  getUsageMeterBalancesSchema,
   listResourceClaimsSchema,
   releaseResourceSchema,
   subscriptionAdjustmentTiming,
@@ -1340,6 +1341,33 @@ describe('listResourceClaimsSchema', () => {
   })
 })
 
+describe('getUsageMeterBalancesSchema', () => {
+  it('accepts empty object', () => {
+    const result = getUsageMeterBalancesSchema.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts subscriptionId filter', () => {
+    const result = getUsageMeterBalancesSchema.safeParse({
+      subscriptionId: 'sub_1',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.subscriptionId).toBe('sub_1')
+    }
+  })
+
+  it('rejects unknown keys (strict)', () => {
+    const result = getUsageMeterBalancesSchema.safeParse({
+      unknown: 'x',
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe('unrecognized_keys')
+    }
+  })
+})
+
 describe('flowgladActionValidators', () => {
   it('has validators for all FlowgladActionKey values', () => {
     const expectedKeys = [
@@ -1359,6 +1387,8 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.ClaimResource,
       FlowgladActionKey.ReleaseResource,
       FlowgladActionKey.ListResourceClaims,
+      FlowgladActionKey.GetPricingModel,
+      FlowgladActionKey.GetUsageMeterBalances,
     ]
 
     for (const key of expectedKeys) {
@@ -1443,6 +1473,65 @@ describe('flowgladActionValidators', () => {
       timing: 'immediately',
     })
     expect(result.success).toBe(true)
+  })
+})
+
+describe('GetPricingModel validator', () => {
+  it('uses POST method and accepts empty object as input', () => {
+    // Setup: Get validator for FlowgladActionKey.GetPricingModel
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.GetPricingModel]
+
+    // Assert: validator.method === HTTPMethod.POST
+    expect(validator.method).toBe(HTTPMethod.POST)
+
+    // Assert: validator.inputValidator.safeParse({}).success === true
+    const result = validator.inputValidator.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects unknown fields due to strict() validation', () => {
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.GetPricingModel]
+        .inputValidator
+    const result = validator.safeParse({
+      unknownField: 'should be rejected',
+      anotherField: 123,
+    })
+    // strict() causes validation to fail when unknown fields are present
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe('unrecognized_keys')
+    }
+  })
+})
+
+describe('flowgladActionValidators coverage', () => {
+  it('includes GetUsageMeterBalances', () => {
+    const validator =
+      flowgladActionValidators[
+        FlowgladActionKey.GetUsageMeterBalances
+      ]
+
+    // Verify entry exists and has expected structure
+    expect(validator).toEqual(
+      expect.objectContaining({
+        method: HTTPMethod.POST,
+        inputValidator: expect.objectContaining({
+          safeParse: expect.any(Function),
+        }),
+      })
+    )
+
+    // Verify validator accepts empty object
+    const emptyResult = validator.inputValidator.safeParse({})
+    expect(emptyResult.success).toBe(true)
+
+    // Verify validator accepts subscriptionId
+    const withSubResult = validator.inputValidator.safeParse({
+      subscriptionId: 'sub_123',
+    })
+    expect(withSubResult.success).toBe(true)
   })
 })
 

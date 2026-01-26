@@ -1,5 +1,4 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import { comprehensiveAdminTransaction } from '@/db/adminTransaction'
 import type { TransactionEffectsContext } from '@/db/types'
@@ -20,15 +19,16 @@ export const stripePaymentIntentPaymentFailedTask = task({
           return comprehensiveAdminTransaction(async (params) => {
             const effectsCtx: TransactionEffectsContext = {
               transaction: params.transaction,
+              cacheRecomputationContext:
+                params.cacheRecomputationContext,
               invalidateCache: params.invalidateCache,
               emitEvent: params.emitEvent,
               enqueueLedgerCommand: params.enqueueLedgerCommand,
             }
-            const result = await processOutcomeForBillingRun(
+            return await processOutcomeForBillingRun(
               { input: payload },
               effectsCtx
             )
-            return Result.ok(result)
           })
         } else {
           logger.log(

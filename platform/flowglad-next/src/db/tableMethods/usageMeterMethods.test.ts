@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupCustomer,
   setupOrg,
@@ -13,6 +13,7 @@ import {
   selectUsageMeterById,
   selectUsageMeterBySlugAndCustomerId,
   selectUsageMeters,
+  selectUsageMetersByPricingModelId,
   selectUsageMetersCursorPaginated,
   selectUsageMetersPaginated,
   updateUsageMeter,
@@ -42,7 +43,8 @@ describe('usageMeterMethods', () => {
         name: 'Meter A',
         pricingModelId,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const result = await selectUsageMeterById(
           meter.id,
           transaction
@@ -55,7 +57,8 @@ describe('usageMeterMethods', () => {
 
     it('should throw an error for a non-existent ID', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return selectUsageMeterById('non-existent-id', transaction)
         })
       ).rejects.toThrow()
@@ -64,7 +67,8 @@ describe('usageMeterMethods', () => {
 
   describe('insertUsageMeter', () => {
     it('should insert a new usage meter and return it', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const newMeter = await insertUsageMeter(
           {
             organizationId,
@@ -73,7 +77,7 @@ describe('usageMeterMethods', () => {
             pricingModelId,
             slug: 'new-meter',
           },
-          transaction
+          ctx
         )
         expect(typeof newMeter.id).toBe('string')
         expect(newMeter.name).toBe('New Meter')
@@ -91,10 +95,11 @@ describe('usageMeterMethods', () => {
         pricingModelId,
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const updated = await updateUsageMeter(
           { id: meter.id, name: 'New Name' },
-          transaction
+          ctx
         )
         expect(updated.id).toBe(meter.id)
         expect(updated.name).toBe('New Name')
@@ -103,10 +108,11 @@ describe('usageMeterMethods', () => {
 
     it('should throw an error when updating a non-existent usage meter', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           return updateUsageMeter(
             { id: 'non-existent-id', name: 'Name' },
-            transaction
+            ctx
           )
         })
       ).rejects.toThrow()
@@ -132,7 +138,8 @@ describe('usageMeterMethods', () => {
         name: 'Other',
         pricingModelId: otherOrg.pricingModel.id,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const result = await selectUsageMeters(
           { organizationId },
           transaction
@@ -157,7 +164,8 @@ describe('usageMeterMethods', () => {
         pricingModelId,
         slug: 'slug-b',
       })
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const result = await selectUsageMeters(
           { slug: 'slug-a', organizationId },
           transaction
@@ -177,7 +185,8 @@ describe('usageMeterMethods', () => {
           pricingModelId,
         })
       }
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const result = await selectUsageMetersPaginated(
           { limit: 2 },
           transaction
@@ -196,7 +205,8 @@ describe('usageMeterMethods', () => {
         name: 'E1',
         pricingModelId,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const result = await selectUsageMetersCursorPaginated({
           input: {
             pageSize: 10,
@@ -225,7 +235,8 @@ describe('usageMeterMethods', () => {
         name: 'New',
         pricingModelId,
       })
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const result = await selectUsageMetersCursorPaginated({
           input: { pageSize: 10, filters: { organizationId } },
           transaction,
@@ -237,7 +248,8 @@ describe('usageMeterMethods', () => {
 
     it('should throw an error when inserting a usage meter with a non-existent pricingModelId', async () => {
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           await insertUsageMeter(
             {
               organizationId,
@@ -246,7 +258,7 @@ describe('usageMeterMethods', () => {
               pricingModelId: 'fake',
               slug: 'bad',
             },
-            transaction
+            ctx
           )
           await selectUsageMetersCursorPaginated({
             input: { pageSize: 10 },
@@ -270,7 +282,8 @@ describe('usageMeterMethods', () => {
         slug: 'test-meter',
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const result = await selectUsageMeterBySlugAndCustomerId(
           { slug: 'test-meter', customerId: customer.id },
           transaction
@@ -294,7 +307,8 @@ describe('usageMeterMethods', () => {
         slug: 'test-meter',
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const result = await selectUsageMeterBySlugAndCustomerId(
           { slug: 'non-existent-slug', customerId: customer.id },
           transaction
@@ -328,7 +342,8 @@ describe('usageMeterMethods', () => {
       // Insert this fake customer record to make selectCustomerById work
       // but with a pricingModelId that doesn't exist
       await expect(
-        adminTransaction(async ({ transaction }) => {
+        adminTransaction(async (ctx) => {
+          const { transaction } = ctx
           // Note: selectUsageMeterBySlugAndCustomerId internally looks up the customer
           // and then their pricing model. We're testing the case where both:
           // - the customer's pricingModelId doesn't exist
@@ -356,7 +371,8 @@ describe('usageMeterMethods', () => {
         slug: 'api-calls-meter',
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         // Search by name (case-insensitive)
         const byName = await selectUsageMetersCursorPaginated({
           input: {
@@ -404,7 +420,8 @@ describe('usageMeterMethods', () => {
         name: 'Test Meter',
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const resultEmpty = await selectUsageMetersCursorPaginated({
           input: {
             pageSize: 10,
@@ -445,7 +462,8 @@ describe('usageMeterMethods', () => {
         name: 'Test Meter 2',
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const pricingModelIdMap = await pricingModelIdsForUsageMeters(
           [usageMeter1.id, usageMeter2.id],
           transaction
@@ -462,7 +480,8 @@ describe('usageMeterMethods', () => {
     })
 
     it('should return empty map when no usage meter IDs are provided', async () => {
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const pricingModelIdMap = await pricingModelIdsForUsageMeters(
           [],
           transaction
@@ -479,7 +498,8 @@ describe('usageMeterMethods', () => {
         name: 'Test Meter',
       })
 
-      await adminTransaction(async ({ transaction }) => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
         const nonExistentUsageMeterId = `um_nonexistent`
         const pricingModelIdMap = await pricingModelIdsForUsageMeters(
           [usageMeter.id, nonExistentUsageMeterId],
@@ -493,6 +513,90 @@ describe('usageMeterMethods', () => {
         expect(pricingModelIdMap.has(nonExistentUsageMeterId)).toBe(
           false
         )
+      })
+    })
+  })
+
+  describe('selectUsageMetersByPricingModelId', () => {
+    it('should return client-safe usage meter records for a pricing model', async () => {
+      const meter1 = await setupUsageMeter({
+        organizationId,
+        name: 'API Calls',
+        pricingModelId,
+        slug: 'api-calls',
+      })
+      const meter2 = await setupUsageMeter({
+        organizationId,
+        name: 'Storage',
+        pricingModelId,
+        slug: 'storage',
+      })
+
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await selectUsageMetersByPricingModelId(
+          pricingModelId,
+          transaction
+        )
+
+        expect(result.length).toBe(2)
+        const ids = result.map((m) => m.id)
+        expect(ids).toContain(meter1.id)
+        expect(ids).toContain(meter2.id)
+
+        // Verify client-safe schema is returned (no internal fields exposed)
+        const meterResult = result.find((m) => m.id === meter1.id)!
+        expect(meterResult.name).toBe('API Calls')
+        expect(meterResult.slug).toBe('api-calls')
+        expect(meterResult.pricingModelId).toBe(pricingModelId)
+      })
+    })
+
+    it('should return empty array when pricing model has no usage meters', async () => {
+      // Create a pricing model with no meters
+      const emptyPricingModel = await setupPricingModel({
+        organizationId,
+      })
+
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await selectUsageMetersByPricingModelId(
+          emptyPricingModel.id,
+          transaction
+        )
+
+        expect(result).toEqual([])
+      })
+    })
+
+    it('should only return meters for the specified pricing model', async () => {
+      // Create meters for the test pricing model
+      const meter1 = await setupUsageMeter({
+        organizationId,
+        name: 'PM1 Meter',
+        pricingModelId,
+      })
+
+      // Create meters for a different pricing model
+      const otherPricingModel = await setupPricingModel({
+        organizationId,
+      })
+      await setupUsageMeter({
+        organizationId,
+        name: 'Other PM Meter',
+        pricingModelId: otherPricingModel.id,
+      })
+
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await selectUsageMetersByPricingModelId(
+          pricingModelId,
+          transaction
+        )
+
+        expect(result.length).toBe(1)
+        expect(result[0].id).toBe(meter1.id)
+        expect(result[0].name).toBe('PM1 Meter')
       })
     })
   })

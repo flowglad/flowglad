@@ -61,7 +61,8 @@
               "features/invoices",
               "features/usage",
               "features/resources",
-              "features/webhooks"
+              "features/webhooks",
+              "features/notifications"
             ]
           },
           {
@@ -118,6 +119,12 @@
             "group": "Tanstack Start",
             "pages": [
               "guides/tanstack-start/generation-based-subscription"
+            ]
+          },
+          {
+            "group": "React + Vite",
+            "pages": [
+              "guides/react-vite/generation-based-subscription"
             ]
           }
         ]

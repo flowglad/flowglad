@@ -8,6 +8,15 @@ export type PricingModel =
  */
 export type Catalog = PricingModel
 
+/**
+ * Standard response shape for GetPricingModel endpoint.
+ * Both authenticated and unauthenticated paths MUST return this exact shape.
+ */
+export interface GetPricingModelResponse {
+  pricingModel: PricingModel
+  source: 'customer' | 'default'
+}
+
 export type Product = Flowglad.ProductRetrieveResponse
 
 export type SinglePaymentPrice =

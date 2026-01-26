@@ -5,6 +5,7 @@ import type {
   ComprehensiveAuthenticatedTransactionParams,
   TransactionEffectsContext,
 } from '@/db/types'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { traced } from '@/utils/tracing'
 import db from './client'
@@ -34,7 +35,9 @@ interface AuthenticatedTransactionOptions {
  * Delegates to comprehensiveAuthenticatedTransaction by wrapping the result.
  */
 export async function authenticatedTransaction<T>(
-  fn: (params: AuthenticatedTransactionParams) => Promise<T>,
+  fn: (
+    params: ComprehensiveAuthenticatedTransactionParams
+  ) => Promise<T>,
   options?: AuthenticatedTransactionOptions
 ): Promise<T> {
   return comprehensiveAuthenticatedTransaction(async (params) => {
@@ -98,12 +101,37 @@ const executeComprehensiveAuthenticatedTransaction = async <T>(
     }
 
     return withRLS(transaction, { jwtClaim, livemode }, async () => {
+      // Construct transaction context based on JWT role, not the optional customerId parameter.
+      // This is important because customer billing portal auth sets role='customer' in the JWT
+      // even when customerId is not explicitly passed as a parameter.
+      const cacheRecomputationContext: CacheRecomputationContext =
+        jwtClaim.role === 'customer'
+          ? {
+              type: 'customer',
+              livemode,
+              organizationId,
+              userId,
+              // Prefer explicit customerId parameter, fall back to JWT metadata
+              customerId:
+                customerId ??
+                (jwtClaim.user_metadata.app_metadata?.customer_id as
+                  | string
+                  | undefined) ??
+                '',
+            }
+          : {
+              type: 'merchant',
+              livemode,
+              organizationId,
+              userId,
+            }
       const paramsForFn: ComprehensiveAuthenticatedTransactionParams =
         {
           transaction,
           userId,
           livemode,
           organizationId,
+          cacheRecomputationContext,
           effects,
           invalidateCache,
           emitEvent,
@@ -237,6 +265,7 @@ export const authenticatedProcedureComprehensiveTransaction = <
       (params) => {
         const transactionCtx: TransactionEffectsContext = {
           transaction: params.transaction,
+          cacheRecomputationContext: params.cacheRecomputationContext,
           invalidateCache: params.invalidateCache,
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,
@@ -253,4 +282,41 @@ export const authenticatedProcedureComprehensiveTransaction = <
       }
     )
   }
+}
+
+/**
+ * Convenience wrapper for authenticatedTransaction that takes a Result-returning
+ * function and automatically unwraps the result.
+ *
+ * Use this at boundaries (routers, API routes, SSR components) where throwing is acceptable.
+ *
+ * For multi-transaction procedures where you need to handle errors gracefully between
+ * transactions, use authenticatedTransaction directly and handle the Result.
+ *
+ * @param fn - Function that receives TransactionEffectsContext and returns a Result
+ * @param options - Authentication options including apiKey
+ * @returns The unwrapped value, throwing on error
+ *
+ * @example
+ * ```ts
+ * const data = await authenticatedTransactionUnwrap(
+ *   async (ctx) => fetchData(ctx),
+ *   { apiKey }
+ * )
+ * ```
+ */
+export async function authenticatedTransactionUnwrap<T>(
+  fn: (ctx: TransactionEffectsContext) => Promise<Result<T, Error>>,
+  options: AuthenticatedTransactionOptions
+): Promise<T> {
+  return comprehensiveAuthenticatedTransaction(async (params) => {
+    const ctx: TransactionEffectsContext = {
+      transaction: params.transaction,
+      cacheRecomputationContext: params.cacheRecomputationContext,
+      invalidateCache: params.invalidateCache,
+      emitEvent: params.emitEvent,
+      enqueueLedgerCommand: params.enqueueLedgerCommand,
+    }
+    return fn(ctx)
+  }, options)
 }

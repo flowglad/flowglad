@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -12,7 +13,6 @@ import type { Customer } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { DbTransaction } from '@/db/types'
 import {
   CancellationReason,
   IntervalUnit,
@@ -110,11 +110,16 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).rejects.toThrow(
-          /already has an active free subscription.*Only one free subscription is allowed per customer/
+        const result = await verifyCanCreateSubscription(
+          params,
+          transaction
         )
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toMatch(
+            /already has an active free subscription.*Only one free subscription is allowed per customer/
+          )
+        }
       })
     })
 
@@ -165,10 +170,12 @@ describe('Single Free Subscription Constraint', () => {
           transaction
         )
 
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should succeed
+        const result = await verifyCanCreateSubscription(
+          params,
+          transaction
+        )
+        expect(Result.isOk(result)).toBe(true)
       })
     })
 
@@ -203,10 +210,12 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should succeed
+        const result = await verifyCanCreateSubscription(
+          params,
+          transaction
+        )
+        expect(Result.isOk(result)).toBe(true)
       })
     })
 
@@ -259,10 +268,12 @@ describe('Single Free Subscription Constraint', () => {
       }
 
       await adminTransaction(async ({ transaction }) => {
-        // This should not throw
-        await expect(
-          verifyCanCreateSubscription(params, transaction)
-        ).resolves.not.toThrow()
+        // This should succeed
+        const result = await verifyCanCreateSubscription(
+          params,
+          transaction
+        )
+        expect(Result.isOk(result)).toBe(true)
       })
     })
   })

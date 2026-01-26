@@ -25,6 +25,7 @@ import {
   purchaseClientSelectSchema,
 } from '@/db/schema/purchases'
 import { subscriptionClientSelectSchema } from '@/db/schema/subscriptions'
+import { usageMeterBalanceClientSelectSchema } from '@/db/schema/usageMeters'
 import {
   selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
@@ -33,6 +34,7 @@ import {
   selectCustomersPaginated,
   updateCustomer as updateCustomerDb,
 } from '@/db/tableMethods/customerMethods'
+import { selectUsageMeterBalancesForSubscriptions } from '@/db/tableMethods/ledgerEntryMethods'
 import { selectFocusedMembershipAndOrganization } from '@/db/tableMethods/membershipMethods'
 import {
   selectPricingModelById,
@@ -41,6 +43,8 @@ import {
 import { createCustomerInputSchema } from '@/db/tableMethods/purchaseMethods'
 import {
   isSubscriptionCurrent,
+  selectSubscriptionById,
+  selectSubscriptionsByCustomerId,
   subscriptionWithCurrent,
 } from '@/db/tableMethods/subscriptionMethods'
 import { externalIdInputSchema } from '@/db/tableUtils'
@@ -84,6 +88,24 @@ export const customerBillingRouteConfig: Record<string, RouteConfig> =
     },
   }
 
+export const customerUsageBalancesRouteConfig: Record<
+  string,
+  RouteConfig
+> = {
+  'GET /customers/:externalId/usage-balances': {
+    procedure: 'customers.getUsageBalances',
+    pattern: /^customers\/([^\\/]+)\/usage-balances$/,
+    mapParams: (matches, body) => {
+      return {
+        externalId: matches[0],
+        ...(body?.subscriptionId
+          ? { subscriptionId: body.subscriptionId }
+          : {}),
+      }
+    },
+  },
+}
+
 const createCustomerProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createCustomerInputSchema)
@@ -119,6 +141,8 @@ const createCustomerProcedure = protectedProcedure
               },
               {
                 transaction,
+                cacheRecomputationContext:
+                  transactionCtx.cacheRecomputationContext,
                 livemode,
                 organizationId,
                 invalidateCache: transactionCtx.invalidateCache,
@@ -372,13 +396,14 @@ export const getCustomerBilling = protectedProcedure
       purchases,
       subscriptions,
     } = await authenticatedTransaction(
-      async ({ transaction }) => {
+      async ({ transaction, cacheRecomputationContext }) => {
         return customerBillingTransaction(
           {
             externalId: input.externalId,
             organizationId,
           },
-          transaction
+          transaction,
+          cacheRecomputationContext
         )
       },
       {
@@ -406,6 +431,120 @@ export const getCustomerBilling = protectedProcedure
       }),
       experimental: {},
     }
+  })
+
+const getUsageBalancesInputSchema = z.object({
+  externalId: z.string().describe('The external ID of the customer'),
+  subscriptionId: z
+    .string()
+    .optional()
+    .describe(
+      'Optional subscription ID to filter balances. If provided, returns balances only for the specified subscription (regardless of its status). If not provided, returns balances for all current subscriptions (active, past_due, trialing, cancellation_scheduled, unpaid, or credit_trial), excluding canceled or upgraded subscriptions.'
+    ),
+})
+
+/**
+ * Get usage meter balances for a customer.
+ * By default, returns balances for current subscriptions only.
+ * Optionally filter by a specific subscriptionId.
+ */
+export const getCustomerUsageBalances = protectedProcedure
+  .meta(
+    createGetOpenApiMeta({
+      resource: 'customers',
+      routeSuffix: 'usage-balances',
+      summary: 'Get Usage Balances',
+      tags: ['Customer', 'Usage Meters'],
+      idParamOverride: 'externalId',
+    })
+  )
+  .input(getUsageBalancesInputSchema)
+  .output(
+    z.object({
+      usageMeterBalances: usageMeterBalanceClientSelectSchema.array(),
+    })
+  )
+  .query(async ({ input, ctx }) => {
+    const organizationId = ctx.organizationId
+    if (!organizationId) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: 'organizationId is required',
+      })
+    }
+
+    return authenticatedTransaction(
+      async ({ transaction }) => {
+        // Resolve customer by externalId and organizationId
+        const customer =
+          await selectCustomerByExternalIdAndOrganizationId(
+            {
+              externalId: input.externalId,
+              organizationId,
+            },
+            transaction
+          )
+
+        if (!customer) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Customer with externalId ${input.externalId} not found`,
+          })
+        }
+
+        // Get all subscriptions for this customer
+        const subscriptions = await selectSubscriptionsByCustomerId(
+          customer.id,
+          customer.livemode,
+          transaction
+        )
+
+        let subscriptionIds: string[]
+
+        if (input.subscriptionId) {
+          // Validate that the subscription belongs to this customer
+          const subscription = subscriptions.find(
+            (s) => s.id === input.subscriptionId
+          )
+
+          if (!subscription) {
+            throw new TRPCError({
+              code: 'NOT_FOUND',
+              message: `Subscription with id ${input.subscriptionId} not found for customer ${input.externalId}`,
+            })
+          }
+
+          subscriptionIds = [input.subscriptionId]
+        } else {
+          // Filter to current subscriptions only (aligning with billing's currentSubscriptions)
+          const currentSubscriptions = subscriptions.filter((s) =>
+            isSubscriptionCurrent(s.status, s.cancellationReason)
+          )
+
+          subscriptionIds = currentSubscriptions.map((s) => s.id)
+        }
+
+        if (subscriptionIds.length === 0) {
+          return { usageMeterBalances: [] }
+        }
+
+        // Fetch usage meter balances for the subscriptions
+        const balances =
+          await selectUsageMeterBalancesForSubscriptions(
+            { subscriptionId: subscriptionIds },
+            transaction
+          )
+
+        return {
+          usageMeterBalances: balances.map(
+            (b) => b.usageMeterBalance
+          ),
+        }
+      },
+      {
+        apiKey: ctx.apiKey,
+      }
+    )
   })
 
 const listCustomersProcedure = protectedProcedure
@@ -507,6 +646,7 @@ const exportCsvProcedure = protectedProcedure
                   livemode,
                 },
                 {
+                  // biome-ignore lint/plugin: CSV exports are intentionally non-idempotent - each request generates a new export
                   idempotencyKey: await createTriggerIdempotencyKey(
                     `generate-csv-export-${organizationId}-${userId}-${Date.now()}`
                   ),
@@ -605,6 +745,7 @@ export const customersRouter = router({
    */
   update: updateCustomer,
   getBilling: getCustomerBilling,
+  getUsageBalances: getCustomerUsageBalances,
   get: getCustomer,
   internal__getById: getCustomerById,
   getPricingModelForCustomer: getPricingModelForCustomer,

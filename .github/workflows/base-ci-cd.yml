@@ -32,8 +32,7 @@ jobs:
         run: bun run check
 
   flowglad-next-unit-tests:
-    # Only run unit tests in the merge queue as the final pre-merge check.
-    if: github.event_name == 'merge_group'
+    # Run unit tests on every CI run (PRs and merge queue)
     uses: ./.github/workflows/flowglad-next-sharded-unit-tests.yml
 
   flowglad-next-docker-build:
@@ -98,6 +97,11 @@ jobs:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
         run: bun run test:integration
+      - name: Run slow tests
+        env:
+          NODE_ENV: test
+          CLAUDECODE: 1
+        run: bun run test:slow
       - name: Run test teardown
         if: always()
         run: bun run test:teardown
@@ -128,8 +132,7 @@ jobs:
         run: bun run build
 
   packages-test:
-    # Only run unit tests in the merge queue as the final pre-merge check.
-    if: github.event_name == 'merge_group'
+    # Run unit tests on every CI run (PRs and merge queue)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository

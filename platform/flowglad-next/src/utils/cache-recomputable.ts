@@ -5,8 +5,12 @@
  * for recomputation. It should only be imported by server-side code.
  *
  * For client-safe caching utilities, import from './cache' instead.
+ *
+ * NOTE: We don't use 'server-only' import here because this module is also
+ * imported by scripts (e.g., openApiDoc.ts) that run outside Next.js context.
+ * The server-only constraint is enforced by Next.js bundling for actual
+ * client/server code splitting.
  */
-import 'server-only'
 
 import { SpanKind, trace } from '@opentelemetry/api'
 import { z } from 'zod'
@@ -18,13 +22,13 @@ import {
 import type { DbTransaction } from '@/db/types'
 import {
   type CacheDependencyKey,
+  type CacheRecomputationContext,
   type CacheRecomputeMetadata,
   getTtlForNamespace,
   logCacheStats,
   type RecomputeHandler,
   registerRecomputeHandler,
   type SerializableParams,
-  type TransactionContext,
 } from './cache'
 import { logger } from './logger'
 import { RedisKeyNamespace, redis, trackAndEvictLRU } from './redis'
@@ -73,7 +77,7 @@ interface PopulateRecomputableCacheParams {
   namespace: RedisKeyNamespace
   recomputable: boolean
   params: SerializableParams
-  transactionContext: TransactionContext
+  cacheRecomputationContext: CacheRecomputationContext
 }
 
 /**
@@ -91,7 +95,7 @@ async function populateRecomputableCache(
     dependencies,
     namespace,
     params,
-    transactionContext,
+    cacheRecomputationContext,
   } = cacheParams
   const span = trace.getActiveSpan()
 
@@ -109,7 +113,7 @@ async function populateRecomputableCache(
     const metadata: CacheRecomputeMetadata = {
       namespace,
       params,
-      transactionContext,
+      cacheRecomputationContext,
       createdAt: Date.now(),
     }
     await redisClient.set(metadataKey, JSON.stringify(metadata), {
@@ -222,23 +226,23 @@ async function tryGetFromCache<T>(
 
 /**
  * Signature constraint for recomputable cached functions.
- * Enforces (params, transaction, transactionContext) pattern for clean serialization.
+ * Enforces (params, transaction, cacheRecomputationContext) pattern for clean serialization.
  *
  * Why this pattern?
  * - Params are always serializable (enforced by SerializableParams)
  * - Transaction is ephemeral and reconstructed during recomputation
- * - TransactionContext is explicitly passed to avoid AsyncLocalStorage dependency
+ * - CacheRecomputationContext is explicitly passed to avoid AsyncLocalStorage dependency
  * - No need for serializeArgsFn - params are inherently serializable
  */
 type RecomputableFn<TParams extends SerializableParams, TResult> = (
   params: TParams,
   transaction: DbTransaction,
-  transactionContext: TransactionContext
+  cacheRecomputationContext: CacheRecomputationContext
 ) => Promise<TResult>
 
 /**
  * Configuration for recomputable cached functions.
- * Similar to CacheConfig but enforces the (params, transaction, transactionContext) signature.
+ * Similar to CacheConfig but enforces the (params, transaction, cacheRecomputationContext) signature.
  */
 export interface RecomputableCacheConfig<
   TParams extends SerializableParams,
@@ -251,15 +255,26 @@ export interface RecomputableCacheConfig<
   keyFn: (params: TParams) => string
   /** Zod schema for validating cached data */
   schema: z.ZodType<TResult>
-  /** Declare dependency keys for invalidation */
-  dependenciesFn: (params: TParams) => CacheDependencyKey[]
+  /**
+   * Declare dependency keys for invalidation.
+   *
+   * Receives both params and result, allowing for comprehensive dependency tracking:
+   * - SET MEMBERSHIP: Dependencies based on params (e.g., CacheDependency.subscriptionItems(subscriptionId))
+   * - CONTENT: Dependencies based on result items (e.g., CacheDependency.subscriptionItem(item.id))
+   *
+   * Note: On cache hits, result comes from cache. On misses, result comes from the database fetch.
+   */
+  dependenciesFn: (
+    params: TParams,
+    result: TResult
+  ) => CacheDependencyKey[]
 }
 
 /**
  * Combinator that adds caching with automatic recomputation support.
  *
  * Unlike `cached()`, this combinator:
- * 1. Enforces a (params, transaction, transactionContext) signature for clean serialization
+ * 1. Enforces a (params, transaction, cacheRecomputationContext) signature for clean serialization
  * 2. Auto-registers a recomputation handler in the registry
  * 3. Stores recomputation metadata alongside cache entries
  *
@@ -274,7 +289,7 @@ export interface RecomputableCacheConfig<
  * in server-side code. For client-safe caching, use `cached()` from './cache'.
  *
  * @param config - Cache configuration
- * @param fn - The underlying function (params, transaction, transactionContext) => Promise<TResult>
+ * @param fn - The underlying function (params, transaction, cacheRecomputationContext) => Promise<TResult>
  * @returns A cached version that auto-registers recomputation
  */
 export function cachedRecomputable<
@@ -290,7 +305,7 @@ export function cachedRecomputable<
       options: (
         params: TParams,
         _transaction: DbTransaction,
-        _transactionContext: TransactionContext
+        _cacheRecomputationContext: CacheRecomputationContext
       ) => ({
         spanName: `cache.recomputable.${config.namespace}`,
         tracerName: 'cache',
@@ -306,11 +321,10 @@ export function cachedRecomputable<
     async (
       params: TParams,
       transaction: DbTransaction,
-      transactionContext: TransactionContext
+      cacheRecomputationContext: CacheRecomputationContext
     ): Promise<TResult> => {
       const key = config.keyFn(params)
       const fullKey = `${config.namespace}:${key}`
-      const dependencies = config.dependenciesFn(params)
 
       // Try to get from cache
       const cacheResult = await tryGetFromCache(
@@ -324,7 +338,17 @@ export function cachedRecomputable<
       }
 
       // Cache miss - call wrapped function
-      const result = await fn(params, transaction, transactionContext)
+      const result = await fn(
+        params,
+        transaction,
+        cacheRecomputationContext
+      )
+
+      // Compute dependencies using both params and result
+      // This enables comprehensive dependency tracking:
+      // - SET MEMBERSHIP: based on params (invalidate when items added/removed)
+      // - CONTENT: based on result (invalidate when individual item properties change)
+      const dependencies = config.dependenciesFn(params, result)
 
       // Store in cache, metadata, and register dependencies (fire-and-forget)
       await populateRecomputableCache({
@@ -334,7 +358,7 @@ export function cachedRecomputable<
         namespace: config.namespace,
         recomputable: true,
         params,
-        transactionContext,
+        cacheRecomputationContext,
       })
 
       return result
@@ -345,43 +369,43 @@ export function cachedRecomputable<
   // All processes import the same modules, so all registries will have the same handlers.
   const handler: RecomputeHandler = async (
     params,
-    transactionContext
+    cacheRecomputationContext
   ) => {
     // Validate params using the schema to ensure type safety
     const validatedParams = config.paramsSchema.parse(params)
 
     // Set up transaction context and call the cached wrapper (not fn directly)
     // so cache repopulation and TTL refresh occur
-    if (transactionContext.type === 'admin') {
+    if (cacheRecomputationContext.type === 'admin') {
       return adminTransaction(
         async ({ transaction }) => {
           return cachedWrapper(
             validatedParams,
             transaction,
-            transactionContext
+            cacheRecomputationContext
           )
         },
-        { livemode: transactionContext.livemode }
+        { livemode: cacheRecomputationContext.livemode }
       )
-    } else if (transactionContext.type === 'merchant') {
+    } else if (cacheRecomputationContext.type === 'merchant') {
       return recomputeWithMerchantContext(
-        transactionContext,
+        cacheRecomputationContext,
         async (transaction) =>
           cachedWrapper(
             validatedParams,
             transaction,
-            transactionContext
+            cacheRecomputationContext
           )
       )
     } else {
-      // transactionContext.type === 'customer'
+      // cacheRecomputationContext.type === 'customer'
       return recomputeWithCustomerContext(
-        transactionContext,
+        cacheRecomputationContext,
         async (transaction) =>
           cachedWrapper(
             validatedParams,
             transaction,
-            transactionContext
+            cacheRecomputationContext
           )
       )
     }

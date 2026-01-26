@@ -311,15 +311,14 @@ const adjustSubscriptionProcedure = protectedProcedure
     // Step 1: Perform the adjustment in a transaction
     // This triggers the billing run but doesn't wait for it
     // Cache invalidations are handled automatically by the comprehensive transaction
+    // Domain errors are automatically converted to TRPCErrors by domainErrorMiddleware
     const adjustmentResult =
       await comprehensiveAuthenticatedTransaction(
         async (transactionCtx) => {
-          return Result.ok(
-            await adjustSubscription(
-              input,
-              ctx.organization!,
-              transactionCtx
-            )
+          return adjustSubscription(
+            input,
+            ctx.organization!,
+            transactionCtx
           )
         },
         {
@@ -552,7 +551,7 @@ export const createSubscriptionInputSchema = z
         'The time when the subscription starts. If not provided, defaults to current time.'
       ),
     interval: z
-      .nativeEnum(IntervalUnit)
+      .enum(IntervalUnit)
       .optional()
       .describe(
         'The interval of the subscription. If not provided, defaults to the interval of the price provided by ' +
@@ -649,6 +648,7 @@ const createSubscriptionProcedure = protectedProcedure
       async ({ input, ctx, transactionCtx }) => {
         const {
           transaction,
+          cacheRecomputationContext,
           invalidateCache,
           emitEvent,
           enqueueLedgerCommand,
@@ -719,6 +719,7 @@ const createSubscriptionProcedure = protectedProcedure
           },
           {
             transaction,
+            cacheRecomputationContext,
             invalidateCache,
             emitEvent,
             enqueueLedgerCommand,
@@ -906,7 +907,7 @@ const retryBillingRunProcedure = protectedProcedure
           })
         }
 
-        return createBillingRun(
+        const billingRunResult = await createBillingRun(
           {
             billingPeriod,
             scheduledFor: new Date(),
@@ -914,6 +915,7 @@ const retryBillingRunProcedure = protectedProcedure
           },
           transaction
         )
+        return billingRunResult.unwrap()
       },
       { apiKey: ctx.apiKey }
     )

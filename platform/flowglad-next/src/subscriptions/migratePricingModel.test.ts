@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { eq } from 'drizzle-orm'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupBillingPeriod,
   setupBillingRun,
@@ -50,6 +50,7 @@ import {
   noopEmitEvent,
   noopEnqueueLedgerCommand,
   noopInvalidateCache,
+  withAdminCacheContext,
 } from '@/test-utils/transactionCallbacks'
 import {
   BillingPeriodStatus,
@@ -66,7 +67,12 @@ import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
 import { CacheDependency } from '@/utils/cache'
 
 describe('Pricing Model Migration Test Suite', async () => {
-  const { organization, price: orgDefaultPrice } = await setupOrg()
+  const {
+    organization,
+    price: orgDefaultPrice,
+    pricingModel: orgLivePricingModel,
+    product: orgDefaultProduct,
+  } = await setupOrg()
   let customer: Customer.Record
   let pricingModel1: PricingModel.Record
   let pricingModel2: PricingModel.Record
@@ -128,6 +134,7 @@ describe('Pricing Model Migration Test Suite', async () => {
     customer = await setupCustomer({
       organizationId: organization.id,
       pricingModelId: pricingModel1.id,
+      livemode: false, // Must match pricing model livemode
     })
   })
 
@@ -524,6 +531,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         customerId: customer.id,
         priceId: price1.id,
         status: SubscriptionStatus.Active,
+        livemode: false, // Must match test data livemode
       })
 
       // Setup: Add a paid subscription on pricing model 1
@@ -550,6 +558,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         customerId: customer.id,
         priceId: paidPrice.id,
         status: SubscriptionStatus.Active,
+        livemode: false, // Must match test data livemode
       })
 
       // Execute migration (automatically updates customer's pricingModelId)
@@ -573,15 +582,17 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Verify billing state via customerBillingTransaction
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false } // Must match test data livemode
       )
 
       // Verify the new pricing model is returned
@@ -674,15 +685,17 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Get billing state
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false } // Must match test data livemode
       )
 
       // Verify the pricing model is pricingModel2
@@ -719,6 +732,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const feature1 = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
         name: 'Old Pricing Model Feature',
         usageMeterId: usageMeter1.id,
         amount: 1000,
@@ -741,6 +755,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const feature2 = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel2.id,
         name: 'New Pricing Model Feature',
         usageMeterId: usageMeter2.id,
         amount: 2000,
@@ -801,15 +816,17 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Get billing state
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false } // Must match test data livemode
       )
 
       // Verify the pricing model is pricingModel2
@@ -842,6 +859,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const oldFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
         name: 'Old Feature for Experimental',
         usageMeterId: oldUsageMeter.id,
         amount: 500,
@@ -865,6 +883,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const newFeature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel2.id,
         name: 'New Feature for Experimental',
         usageMeterId: newUsageMeter.id,
         amount: 1500,
@@ -885,6 +904,7 @@ describe('Pricing Model Migration Test Suite', async () => {
         customerId: customer.id,
         priceId: price1.id,
         status: SubscriptionStatus.Active,
+        livemode: false, // Must match test data livemode
       })
 
       const oldSubscriptionItem = await setupSubscriptionItem({
@@ -925,15 +945,17 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       // Get billing state
       const billingState = await adminTransaction(
-        async ({ transaction }) => {
+        async ({ transaction, livemode }) => {
           return await customerBillingTransaction(
             {
               externalId: customer.externalId,
               organizationId: organization.id,
             },
-            transaction
+            transaction,
+            { type: 'admin', livemode }
           )
-        }
+        },
+        { livemode: false } // Must match test data livemode
       )
 
       // Verify currentSubscriptions has only the new subscription
@@ -1108,6 +1130,7 @@ describe('Pricing Model Migration Test Suite', async () => {
 
       const feature = await setupUsageCreditGrantFeature({
         organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
         name: 'Test Feature',
         usageMeterId: usageMeter.id,
         amount: 1000,
@@ -1307,12 +1330,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         }
@@ -1352,12 +1376,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: undefined as unknown as string,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1377,12 +1402,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1404,12 +1430,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1436,12 +1463,13 @@ describe('Pricing Model Migration Test Suite', async () => {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1451,69 +1479,26 @@ describe('Pricing Model Migration Test Suite', async () => {
     })
 
     it('should throw BAD_REQUEST when customer livemode does not match pricing model livemode', async () => {
-      // Setup: Ensure customer has livemode=false
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            livemode: false,
-          },
-          transaction
-        )
-      })
-
-      // Setup: Create a live pricing model with a default product
-      const livePricingModel = await setupPricingModel({
-        organizationId: organization.id,
-        name: 'Live Pricing Model',
-      })
-
-      // Update pricing model to livemode=true
-      await adminTransaction(async ({ transaction }) => {
-        await transaction
-          .update(pricingModels)
-          .set({ livemode: true })
-          .where(eq(pricingModels.id, livePricingModel.id))
-      })
-
-      // Create a default product with default price for the live pricing model
-      const liveProduct = await setupProduct({
-        organizationId: organization.id,
-        pricingModelId: livePricingModel.id,
-        name: 'Live Product',
-        default: true,
-      })
-
-      await setupPrice({
-        name: 'Live Free Plan',
-        livemode: true,
-        productId: liveProduct.id,
-        type: PriceType.Subscription,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        unitPrice: 0,
-        isDefault: true,
-      })
-
-      // customer.livemode is false, livePricingModel.livemode is true
+      // customer.livemode is false, orgLivePricingModel.livemode is true
       await expect(
         adminTransaction(async ({ transaction }) => {
           return await migrateCustomerPricingModelProcedureTransaction(
             {
               input: {
                 externalId: customer.externalId,
-                newPricingModelId: livePricingModel.id,
+                newPricingModelId: orgLivePricingModel.id,
               },
               ctx: {
                 apiKey: undefined,
                 organizationId: organization.id,
               },
-              transactionCtx: {
+              transactionCtx: withAdminCacheContext({
                 transaction,
+                livemode: true,
                 invalidateCache: noopInvalidateCache,
                 emitEvent: noopEmitEvent,
                 enqueueLedgerCommand: noopEnqueueLedgerCommand,
-              },
+              }),
             }
           )
         })
@@ -1571,6 +1556,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const otherCustomer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel1.id,
+        livemode: false, // Must match pricing model livemode
       })
 
       const otherSubscription = await setupSubscription({
@@ -1681,6 +1667,7 @@ describe('Pricing Model Migration Test Suite', async () => {
       const otherCustomer = await setupCustomer({
         organizationId: organization.id,
         pricingModelId: pricingModel1.id,
+        livemode: false, // Must match pricing model livemode
       })
 
       await setupSubscription({
@@ -1736,12 +1723,13 @@ describe('Pricing Model Migration Test Suite', async () => {
               apiKey: undefined,
               organizationId: organization.id,
             },
-            transactionCtx: {
+            transactionCtx: withAdminCacheContext({
               transaction,
+              livemode: true,
               invalidateCache: callbacks.invalidateCache,
               emitEvent: callbacks.emitEvent,
               enqueueLedgerCommand: callbacks.enqueueLedgerCommand,
-            },
+            }),
           })
           return effects
         }

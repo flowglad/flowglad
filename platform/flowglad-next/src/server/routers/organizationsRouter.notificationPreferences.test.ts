@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type {

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { z } from 'zod'
 import { createCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
 import { CheckoutSessionType } from '@/types'

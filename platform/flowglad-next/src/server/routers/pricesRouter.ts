@@ -12,11 +12,12 @@ import {
   pricesPaginatedListSchema,
   pricesPaginatedSelectSchema,
   pricesTableRowDataSchema,
+  validateUsagePriceSlug,
 } from '@/db/schema/prices'
 import {
+  ensureUsageMeterHasDefaultPrice,
   safelyUpdatePrice,
   selectPriceById,
-  selectPrices,
   selectPricesPaginated,
   selectPricesTableRowData,
 } from '@/db/tableMethods/priceMethods'
@@ -32,6 +33,7 @@ import { PriceType } from '@/types'
 import { validateDefaultPriceUpdate } from '@/utils/defaultProductValidation'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createPriceTransaction } from '@/utils/pricingModel'
+import { isNoChargePrice } from '@/utils/usage/noChargePriceHelpers'
 import { validatePriceImmutableFields } from '@/utils/validateImmutableFields'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -66,16 +68,14 @@ export const createPrice = protectedProcedure
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({ transaction, livemode, organizationId, userId }) => {
+      async (transactionCtx) => {
         const { price } = input
+
+        validateUsagePriceSlug(price)
+
         const newPrice = await createPriceTransaction(
           { price },
-          {
-            transaction,
-            livemode,
-            organizationId,
-            userId,
-          }
+          transactionCtx
         )
         return {
           price: newPrice,
@@ -93,7 +93,8 @@ export const updatePrice = protectedProcedure
   .output(singlePriceOutputSchema)
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({ transaction }) => {
+      async (transactionCtx) => {
+        const { transaction } = transactionCtx
         const { price } = input
 
         // Fetch the existing price and its product to check if it's a default price on a default product
@@ -106,6 +107,48 @@ export const updatePrice = protectedProcedure
             code: 'NOT_FOUND',
             message: 'Price not found',
           })
+        }
+
+        // No_charge price protection - these checks must come BEFORE other validation
+        // No_charge prices can only have their name changed
+        // Note: Only usage prices can be no_charge prices
+        const existingIsNoCharge =
+          existingPrice.type === PriceType.Usage &&
+          existingPrice.slug &&
+          isNoChargePrice(existingPrice.slug)
+        if (existingIsNoCharge) {
+          // Reject archiving (setting active to false)
+          if (price.active === false) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'No charge prices cannot be archived. They are protected as fallback prices.',
+            })
+          }
+          // Reject slug changes
+          if (
+            price.slug !== undefined &&
+            price.slug !== existingPrice.slug
+          ) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'The slug of a no charge price is immutable. Only the name can be changed.',
+            })
+          }
+          // Reject unsetting isDefault on a no_charge price that is currently default
+          // Note: Internal cascade logic (setPricesForUsageMeterToNonDefault) bypasses this,
+          // so setting another price as default still works correctly
+          if (
+            price.isDefault === false &&
+            existingPrice.isDefault === true
+          ) {
+            throw new TRPCError({
+              code: 'BAD_REQUEST',
+              message:
+                'Default no_charge prices cannot be unset; isDefault is immutable for fallback prices.',
+            })
+          }
         }
 
         // Product validation only applies to non-usage prices.
@@ -141,6 +184,20 @@ export const updatePrice = protectedProcedure
           }
         }
 
+        // Validate reserved slug for usage prices being updated
+        // Only validate if the slug is actually changing - existing _no_charge prices
+        // should be editable for other fields without triggering slug validation
+        if (
+          existingPrice.type === PriceType.Usage &&
+          price.slug !== undefined &&
+          price.slug !== existingPrice.slug
+        ) {
+          validateUsagePriceSlug({
+            type: existingPrice.type,
+            slug: price.slug,
+          })
+        }
+
         // Validate immutable fields for ALL prices
         validatePriceImmutableFields({
           update: price,
@@ -152,8 +209,27 @@ export const updatePrice = protectedProcedure
             ...price,
             type: existingPrice.type,
           },
-          transaction
+          transactionCtx
         )
+
+        // Default cascade logic for usage prices:
+        // When a usage price is unset as default (isDefault: false) or deactivated (active: false),
+        // ensure the usage meter still has a default price by falling back to no_charge
+        if (
+          existingPrice.type === PriceType.Usage &&
+          existingPrice.usageMeterId
+        ) {
+          const wasDefault = existingPrice.isDefault
+          const isNoLongerDefault =
+            price.isDefault === false || price.active === false
+          if (wasDefault && isNoLongerDefault) {
+            await ensureUsageMeterHasDefaultPrice(
+              existingPrice.usageMeterId,
+              transactionCtx
+            )
+          }
+        }
+
         return {
           price: updatedPrice,
         }
@@ -237,7 +313,7 @@ export const setPriceAsDefault = protectedProcedure
         const oldPrice = await selectPriceById(input.id, transaction)
         const price = await safelyUpdatePrice(
           { id: input.id, isDefault: true, type: oldPrice.type },
-          transaction
+          transactionCtx
         )
         return { price }
       }
@@ -252,10 +328,39 @@ export const archivePrice = protectedProcedure
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
         const oldPrice = await selectPriceById(input.id, transaction)
+
+        // No_charge price protection - cannot be archived
+        // Note: Only usage prices can be no_charge prices
+        if (
+          oldPrice.type === PriceType.Usage &&
+          oldPrice.slug &&
+          isNoChargePrice(oldPrice.slug)
+        ) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'No charge prices cannot be archived. They are protected as fallback prices.',
+          })
+        }
+
         const price = await safelyUpdatePrice(
           { id: input.id, active: false, type: oldPrice.type },
-          transaction
+          transactionCtx
         )
+
+        // Default cascade logic for usage prices:
+        // When archiving a default usage price, ensure the meter still has a default
+        if (
+          oldPrice.type === PriceType.Usage &&
+          oldPrice.usageMeterId &&
+          oldPrice.isDefault
+        ) {
+          await ensureUsageMeterHasDefaultPrice(
+            oldPrice.usageMeterId,
+            transactionCtx
+          )
+        }
+
         return { price }
       }
     )
@@ -284,7 +389,8 @@ export const replaceUsagePrice = protectedProcedure
   )
   .mutation(async ({ input, ctx }) => {
     return authenticatedTransaction(
-      async ({ transaction, livemode, organizationId, userId }) => {
+      async (transactionCtx) => {
+        const { transaction } = transactionCtx
         // Verify the old price exists and is a usage price
         let oldPrice
         try {
@@ -318,15 +424,12 @@ export const replaceUsagePrice = protectedProcedure
           })
         }
 
+        validateUsagePriceSlug(input.newPrice)
+
         // Create the new price
         const newPrice = await createPriceTransaction(
           { price: input.newPrice },
-          {
-            transaction,
-            livemode,
-            organizationId,
-            userId,
-          }
+          transactionCtx
         )
 
         // Archive the old price
@@ -336,7 +439,7 @@ export const replaceUsagePrice = protectedProcedure
             active: false,
             type: oldPrice.type,
           },
-          transaction
+          transactionCtx
         )
 
         return { newPrice, archivedPrice }

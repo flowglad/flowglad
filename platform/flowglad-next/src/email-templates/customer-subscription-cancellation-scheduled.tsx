@@ -6,6 +6,7 @@ import {
   DetailItem,
   DetailSection,
   EmailLayout,
+  Footer,
   Header,
   Paragraph,
   Signature,
@@ -83,6 +84,15 @@ export const CustomerSubscriptionCancellationScheduledEmail = ({
         name={organizationName}
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
+      />
+
+      <Footer
+        organizationName={organizationName}
+        variant="customer"
+        billingPortalUrl={core.customerBillingPortalURL({
+          organizationId,
+          customerId,
+        })}
       />
     </EmailLayout>
   )

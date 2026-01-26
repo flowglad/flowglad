@@ -6,15 +6,17 @@ import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import core from '@/utils/core'
 import { CustomerTrialExpiredNoPaymentEmail } from './customer-trial-expired-no-payment'
+import { suppressEmailHydrationWarnings } from './test-utils'
 
 describe('CustomerTrialExpiredNoPaymentEmail', () => {
+  suppressEmailHydrationWarnings()
   const baseProps = {
     customerName: 'John Doe',
     organizationName: 'Acme Corp',
     organizationLogoUrl: 'https://example.com/logo.png',
     organizationId: 'org_123',
     customerId: 'cus_456',
-    planName: 'Pro Plan',
+    productName: 'Pro Plan',
     livemode: true,
   }
 
@@ -33,33 +35,18 @@ describe('CustomerTrialExpiredNoPaymentEmail', () => {
       getByText(`Hi ${baseProps.customerName},`)
     ).toBeInTheDocument()
 
-    // Trial ended message with plan name
+    // Thanks message with product name
     expect(
       getByText(
-        `Your free trial for ${baseProps.planName} has ended.`
+        `Thanks for trying ${baseProps.productName}! Your trial period has ended.`
       )
     ).toBeInTheDocument()
 
-    // Plan name in details
-    expect(getByTestId('plan-name')).toHaveTextContent(
-      `Plan: ${baseProps.planName}`
-    )
-
-    // Status as trial ended
-    expect(getByTestId('status')).toHaveTextContent(
-      'Status: Trial ended - Payment required'
-    )
-
-    // Add payment method instructions
+    // Add payment method instructions with product name
     expect(
       getByText(
-        `To continue using ${baseProps.planName}, please add a payment method.`
+        /Please add a payment method to continue using Pro Plan without interruption\./
       )
-    ).toBeInTheDocument()
-
-    // Inactive subscription warning
-    expect(
-      getByText(/your subscription will remain inactive/)
     ).toBeInTheDocument()
 
     // Add payment method button with correct link

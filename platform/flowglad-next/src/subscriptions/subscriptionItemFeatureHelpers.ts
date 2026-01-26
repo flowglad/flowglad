@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { and, eq, isNull } from 'drizzle-orm'
 import * as R from 'ramda'
 import { Customer } from '@/db/schema/customers'
@@ -41,6 +42,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { NotFoundError } from '@/errors'
 import {
   FeatureType,
   LedgerTransactionType,
@@ -79,6 +81,61 @@ const getFeaturesByPriceId = async (
   >()
   if (R.isEmpty(pricesToFetchFeaturesFor)) {
     return result
+  }
+
+  /**
+   * Dedupe Resource features within a single product.
+   *
+   * A product can (accidentally or over time) have multiple active Resource features
+   * for the same `resourceId`. Those should not stack (it would double-count capacity).
+   * Instead, treat them as overrides and pick the most recently created one per resource.
+   */
+  const dedupeResourceFeaturesForProduct = (
+    dataForProduct: Array<{
+      feature: Feature.Record
+      productFeature: ProductFeature.Record
+    }>
+  ) => {
+    const nonResource = dataForProduct.filter(
+      (d) => d.feature.type !== FeatureType.Resource
+    )
+
+    const resource = dataForProduct.filter(
+      (
+        d
+      ): d is {
+        feature: Feature.ResourceRecord
+        productFeature: ProductFeature.Record
+      } => d.feature.type === FeatureType.Resource
+    )
+
+    const latestByResourceId = new Map<
+      string,
+      {
+        feature: Feature.ResourceRecord
+        productFeature: ProductFeature.Record
+      }
+    >()
+
+    for (const entry of resource) {
+      const resourceId = entry.feature.resourceId
+      if (!resourceId) {
+        continue
+      }
+      const existing = latestByResourceId.get(resourceId)
+      if (!existing) {
+        latestByResourceId.set(resourceId, entry)
+        continue
+      }
+      if (entry.feature.createdAt > existing.feature.createdAt) {
+        latestByResourceId.set(resourceId, entry)
+      }
+    }
+
+    return [
+      ...nonResource,
+      ...Array.from(latestByResourceId.values()),
+    ]
   }
 
   pricesToFetchFeaturesFor.forEach((price) => {
@@ -131,7 +188,10 @@ const getFeaturesByPriceId = async (
   for (const price of productPrices) {
     const dataForProduct = productIdToDataMap.get(price.productId)
     if (dataForProduct) {
-      result.set(price.id, dataForProduct)
+      result.set(
+        price.id,
+        dedupeResourceFeaturesForProduct(dataForProduct)
+      )
     }
   }
   return result
@@ -224,9 +284,11 @@ export const subscriptionItemFeatureInsertFromSubscriptionItemAndFeature =
 export const createSubscriptionFeatureItems = async (
   subscriptionItems: SubscriptionItem.Record[],
   transaction: DbTransaction
-): Promise<SubscriptionItemFeature.Record[]> => {
+): Promise<
+  Result<SubscriptionItemFeature.Record[], NotFoundError>
+> => {
   if (R.isEmpty(subscriptionItems)) {
-    return []
+    return Result.ok([])
   }
 
   const hasPriceId = (
@@ -244,7 +306,7 @@ export const createSubscriptionFeatureItems = async (
   )
 
   if (R.isEmpty(uniquePriceIds)) {
-    return []
+    return Result.ok([])
   }
 
   const pricesWhereClause: Price.Where = {
@@ -256,7 +318,7 @@ export const createSubscriptionFeatureItems = async (
   )
 
   if (R.isEmpty(pricesFetched)) {
-    return []
+    return Result.ok([])
   }
 
   const priceIdToFeaturesMap = await getFeaturesByPriceId(
@@ -293,7 +355,7 @@ export const createSubscriptionFeatureItems = async (
       transaction
     )
   }
-  return []
+  return Result.ok([])
 }
 
 const ensureSubscriptionItemIsActive = (
@@ -563,190 +625,205 @@ const findOrCreateManualSubscriptionItem = async (
 export const addFeatureToSubscriptionItem = async (
   input: AddFeatureToSubscriptionInput,
   ctx: TransactionEffectsContext
-): Promise<{
-  subscriptionItemFeature: SubscriptionItemFeature.Record
-}> => {
-  const { transaction } = ctx
-  const {
-    subscriptionItemId,
-    featureId,
-    grantCreditsImmediately = false,
-  } = input
+): Promise<
+  Result<
+    {
+      subscriptionItemFeature: SubscriptionItemFeature.Record
+    },
+    Error
+  >
+> => {
+  try {
+    const { transaction } = ctx
+    const {
+      subscriptionItemId,
+      featureId,
+      grantCreditsImmediately = false,
+    } = input
 
-  const providedSubscriptionItem = await selectSubscriptionItemById(
-    subscriptionItemId,
-    transaction
-  )
-  ensureSubscriptionItemIsActive(providedSubscriptionItem)
+    const providedSubscriptionItem = await selectSubscriptionItemById(
+      subscriptionItemId,
+      transaction
+    )
+    ensureSubscriptionItemIsActive(providedSubscriptionItem)
 
-  const subscription = await selectSubscriptionById(
-    providedSubscriptionItem.subscriptionId,
-    transaction
-  )
-
-  const feature = await selectFeatureById(featureId, transaction)
-  ensureFeatureIsEligible(feature)
-  ensureOrganizationAndLivemodeMatch({
-    subscription,
-    subscriptionItem: providedSubscriptionItem,
-    feature,
-  })
-
-  // Find or create manual subscription item for this sub
-  const manualSubscriptionItem =
-    await findOrCreateManualSubscriptionItem(
-      subscription.id,
-      subscription.livemode,
+    const subscription = await selectSubscriptionById(
+      providedSubscriptionItem.subscriptionId,
       transaction
     )
 
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
-  await ensureFeatureBelongsToCustomerPricingModel({
-    customer,
-    feature,
-    transaction,
-  })
-
-  if (
-    grantCreditsImmediately &&
-    feature.type !== FeatureType.UsageCreditGrant
-  ) {
-    throw new Error(
-      'grantCreditsImmediately is only supported for usage credit features.'
-    )
-  }
-
-  const featureInsert =
-    subscriptionItemFeatureInsertFromSubscriptionItemAndFeature({
-      subscriptionItem: manualSubscriptionItem,
+    const feature = await selectFeatureById(featureId, transaction)
+    ensureFeatureIsEligible(feature)
+    ensureOrganizationAndLivemodeMatch({
+      subscription,
+      subscriptionItem: providedSubscriptionItem,
       feature,
-      productFeature: undefined,
-      manuallyCreated: true, // manuallyCreated - this is a manual addition via API
     })
 
-  let usageFeatureInsert: SubscriptionItemFeature.UsageCreditGrantInsert | null =
-    null
-
-  let subscriptionItemFeature: SubscriptionItemFeature.Record
-
-  /**
-   * Adds or updates a SubscriptionItemFeature for the given subscription item and feature.
-   *
-   * Handles deduplication by checking if an appropriate SubscriptionItemFeature already exists for
-   * the given subscription item and feature. If a matching record is found (not expired), it will be
-   * updated instead of inserting a new row, ensuring feature assignment is idempotent and no duplicates
-   * are created.
-   *
-   * - For Toggle features, attempts an upsert by productFeatureId + subscriptionId. If an upserted record
-   *   is returned, it is used. Otherwise, falls back to selecting an existing Toggle feature. This ensures
-   *   toggles are not duplicated even under high concurrency (race conditions).
-   *
-   * - For UsageCreditGrant features, if one already exists and is not expired, the amount is incremented
-   *   and related fields updated. If none exists, a new feature is inserted.
-   *
-   * Throws descriptive errors if data integrity cannot be ensured.
-   */
-  if (feature.type === FeatureType.Toggle) {
-    // Upsert (insert-or-update) the toggle feature for this subscription item/product/feature.
-    // If upsert returns, use the returned record. Otherwise, fall back to fetching the existing record.
-    const [upserted] =
-      await upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
-        featureInsert,
-        transaction
-      )
-    if (upserted) {
-      subscriptionItemFeature = upserted
-    } else {
-      // The upsert didn't return a record; retrieve the (now existing) toggle feature.
-      const [existingToggle] = await selectSubscriptionItemFeatures(
-        {
-          subscriptionItemId: manualSubscriptionItem.id,
-          featureId: feature.id,
-          expiredAt: null,
-        },
-        transaction
-      )
-      if (!existingToggle) {
-        throw new Error(
-          `Failed to upsert toggle feature ${feature.id} for subscription item ${manualSubscriptionItem.id}.`
-        )
-      }
-      subscriptionItemFeature = existingToggle
-    }
-  } else {
-    // Handle usage-credit-grant features
-    const usageFeatureInsertData =
-      featureInsert as SubscriptionItemFeature.UsageCreditGrantInsert
-    usageFeatureInsert = usageFeatureInsertData
-    // Check for an existing (not expired) usage feature for these entities
-    const [existingUsageFeature] =
-      await selectSubscriptionItemFeatures(
-        {
-          subscriptionItemId: manualSubscriptionItem.id,
-          featureId: feature.id,
-          expiredAt: null,
-        },
+    // Find or create manual subscription item for this sub
+    const manualSubscriptionItem =
+      await findOrCreateManualSubscriptionItem(
+        subscription.id,
+        subscription.livemode,
         transaction
       )
 
-    if (existingUsageFeature) {
-      // If found, ensure it's the correct type and update/accumulate
-      if (
-        existingUsageFeature.type !== FeatureType.UsageCreditGrant
-      ) {
-        throw new Error(
-          `Existing feature ${existingUsageFeature.id} is not a usage credit grant.`
-        )
-      }
-      // Bump the credit amount and update other properties if necessary
-      subscriptionItemFeature = await updateSubscriptionItemFeature(
-        {
-          ...existingUsageFeature,
-          amount:
-            (existingUsageFeature.amount ?? 0) +
-            usageFeatureInsertData.amount,
-          productFeatureId: usageFeatureInsertData.productFeatureId,
-          usageMeterId: usageFeatureInsertData.usageMeterId,
-          renewalFrequency: usageFeatureInsertData.renewalFrequency,
-          expiredAt: null,
-        },
-        transaction
-      )
-    } else {
-      // No previous record, insert a new usage-credit-grant feature
-      subscriptionItemFeature = await insertSubscriptionItemFeature(
-        usageFeatureInsertData,
-        transaction
-      )
-    }
-  }
-  if (
-    feature.type === FeatureType.UsageCreditGrant &&
-    grantCreditsImmediately
-  ) {
-    if (!usageFeatureInsert) {
+    const customer = await selectCustomerById(
+      subscription.customerId,
+      transaction
+    )
+    await ensureFeatureBelongsToCustomerPricingModel({
+      customer,
+      feature,
+      transaction,
+    })
+
+    if (
+      grantCreditsImmediately &&
+      feature.type !== FeatureType.UsageCreditGrant
+    ) {
       throw new Error(
-        'Missing usage feature insert data for immediate credit grant.'
+        'grantCreditsImmediately is only supported for usage credit features.'
       )
     }
-    await grantImmediateUsageCredits(
-      {
-        subscription,
-        subscriptionItemFeature,
-        grantAmount: usageFeatureInsert.amount,
-      },
-      ctx
+
+    const featureInsert =
+      subscriptionItemFeatureInsertFromSubscriptionItemAndFeature({
+        subscriptionItem: manualSubscriptionItem,
+        feature,
+        productFeature: undefined,
+        manuallyCreated: true, // manuallyCreated - this is a manual addition via API
+      })
+
+    let usageFeatureInsert: SubscriptionItemFeature.UsageCreditGrantInsert | null =
+      null
+
+    let subscriptionItemFeature: SubscriptionItemFeature.Record
+
+    /**
+     * Adds or updates a SubscriptionItemFeature for the given subscription item and feature.
+     *
+     * Handles deduplication by checking if an appropriate SubscriptionItemFeature already exists for
+     * the given subscription item and feature. If a matching record is found (not expired), it will be
+     * updated instead of inserting a new row, ensuring feature assignment is idempotent and no duplicates
+     * are created.
+     *
+     * - For Toggle features, attempts an upsert by productFeatureId + subscriptionId. If an upserted record
+     *   is returned, it is used. Otherwise, falls back to selecting an existing Toggle feature. This ensures
+     *   toggles are not duplicated even under high concurrency (race conditions).
+     *
+     * - For UsageCreditGrant features, if one already exists and is not expired, the amount is incremented
+     *   and related fields updated. If none exists, a new feature is inserted.
+     *
+     * Throws descriptive errors if data integrity cannot be ensured.
+     */
+    if (feature.type === FeatureType.Toggle) {
+      // Upsert (insert-or-update) the toggle feature for this subscription item/product/feature.
+      // If upsert returns, use the returned record. Otherwise, fall back to fetching the existing record.
+      const upsertResult =
+        await upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
+          featureInsert,
+          transaction
+        )
+      if (Result.isError(upsertResult)) {
+        return Result.err(upsertResult.error)
+      }
+      const [upserted] = upsertResult.value
+      if (upserted) {
+        subscriptionItemFeature = upserted
+      } else {
+        // The upsert didn't return a record; retrieve the (now existing) toggle feature.
+        const [existingToggle] = await selectSubscriptionItemFeatures(
+          {
+            subscriptionItemId: manualSubscriptionItem.id,
+            featureId: feature.id,
+            expiredAt: null,
+          },
+          transaction
+        )
+        if (!existingToggle) {
+          throw new Error(
+            `Failed to upsert toggle feature ${feature.id} for subscription item ${manualSubscriptionItem.id}.`
+          )
+        }
+        subscriptionItemFeature = existingToggle
+      }
+    } else {
+      // Handle usage-credit-grant features
+      const usageFeatureInsertData =
+        featureInsert as SubscriptionItemFeature.UsageCreditGrantInsert
+      usageFeatureInsert = usageFeatureInsertData
+      // Check for an existing (not expired) usage feature for these entities
+      const [existingUsageFeature] =
+        await selectSubscriptionItemFeatures(
+          {
+            subscriptionItemId: manualSubscriptionItem.id,
+            featureId: feature.id,
+            expiredAt: null,
+          },
+          transaction
+        )
+
+      if (existingUsageFeature) {
+        // If found, ensure it's the correct type and update/accumulate
+        if (
+          existingUsageFeature.type !== FeatureType.UsageCreditGrant
+        ) {
+          throw new Error(
+            `Existing feature ${existingUsageFeature.id} is not a usage credit grant.`
+          )
+        }
+        // Bump the credit amount and update other properties if necessary
+        subscriptionItemFeature = await updateSubscriptionItemFeature(
+          {
+            ...existingUsageFeature,
+            amount:
+              (existingUsageFeature.amount ?? 0) +
+              usageFeatureInsertData.amount,
+            productFeatureId: usageFeatureInsertData.productFeatureId,
+            usageMeterId: usageFeatureInsertData.usageMeterId,
+            renewalFrequency: usageFeatureInsertData.renewalFrequency,
+            expiredAt: null,
+          },
+          transaction
+        )
+      } else {
+        // No previous record, insert a new usage-credit-grant feature
+        subscriptionItemFeature = await insertSubscriptionItemFeature(
+          usageFeatureInsertData,
+          transaction
+        )
+      }
+    }
+    if (
+      feature.type === FeatureType.UsageCreditGrant &&
+      grantCreditsImmediately
+    ) {
+      if (!usageFeatureInsert) {
+        throw new Error(
+          'Missing usage feature insert data for immediate credit grant.'
+        )
+      }
+      await grantImmediateUsageCredits(
+        {
+          subscription,
+          subscriptionItemFeature,
+          grantAmount: usageFeatureInsert.amount,
+        },
+        ctx
+      )
+    }
+
+    ctx.invalidateCache(
+      CacheDependency.subscriptionItemFeatures(
+        manualSubscriptionItem.id
+      )
+    )
+
+    return Result.ok({ subscriptionItemFeature })
+  } catch (error) {
+    return Result.err(
+      error instanceof Error ? error : new Error(String(error))
     )
   }
-
-  ctx.invalidateCache(
-    CacheDependency.subscriptionItemFeatures(
-      manualSubscriptionItem.id
-    )
-  )
-
-  return { subscriptionItemFeature }
 }

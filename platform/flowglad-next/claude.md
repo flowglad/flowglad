@@ -18,6 +18,11 @@ bun run check
 ## Running Tests
 If you are trying to run tests to see whether they pass, you must use `bun run test`. `bun run test:watch` will run the test suite in watch mode and leave you waiting for timeouts.
 
+**IMPORTANT**: Always pass `CLAUDECODE=1` when running tests to silence verbose logger output (cache stats, etc.). This produces cleaner output and consumes fewer tokens:
+```bash
+CLAUDECODE=1 bun run test:backend
+```
+
 ### Test Environments
 The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
 
@@ -35,11 +40,96 @@ This includes:
 
 This tells Vitest to run that specific test file in a jsdom environment.
 
+### Test Organization by Type
+
+Tests are organized into different directories based on their purpose:
+
+- **`src/`** - Unit tests and integration tests for regular functionality
+- **`slow-tests/`** - Tests that require significant setup time or database seeding
+- **`rls-tests/`** - Row Level Security (RLS) tests that verify PostgreSQL RLS policies
+
+**RLS Tests**: All tests that verify Row Level Security policies must:
+- Be placed in the `rls-tests/` directory
+- Follow the naming convention `foo.rls.test.ts`
+- Test organization-based data isolation via `authenticatedTransaction`
+- Verify that users cannot access data from other organizations
+
+### bun:test Patterns and Pitfalls
+
+**Mock Restoration**: When using `spyOn()` alongside `mock.module()`, restore spies individually - not with `mock.restore()`. The global `mock.restore()` can undo `mock.module()` overrides, breaking subsequent tests that rely on those module mocks.
+
+```typescript
+import { afterEach, beforeEach, spyOn } from 'bun:test'
+
+// Store spy references for cleanup
+let spies: Array<{ mockRestore: () => void }> = []
+
+beforeEach(() => {
+  spies = []
+  spies.push(spyOn(someModule, 'someFunction').mockResolvedValue(mockValue))
+  spies.push(spyOn(otherModule, 'otherFunction').mockResolvedValue(otherValue))
+})
+
+afterEach(() => {
+  // Restore each spy individually to preserve mock.module() overrides
+  spies.forEach((spy) => spy.mockRestore())
+})
+```
+
+If you have NO `mock.module()` calls in your test file, you can use `mock.restore()` globally. But when mixing `spyOn()` with `mock.module()`, always restore spies individually.
+
+**Assertion Patterns**: Avoid `.resolves.not.toThrow()` - it doesn't work correctly in bun:test for functions that return values. Instead, just await the function:
+
+```typescript
+// BAD - returns "Thrown value: undefined" even on success
+await expect(someAsyncFunction()).resolves.not.toThrow()
+
+// GOOD - if it throws, the test fails
+await someAsyncFunction()
+```
+
+**Database Result Ordering**: Never assume database query ordering unless explicitly specified. Sort results before asserting:
+
+```typescript
+// BAD - assumes database returns items in a specific order
+expect(result[0].name).toBe('Item 1')
+
+// GOOD - sort first for deterministic assertions
+const sorted = [...result].sort((a, b) => a.name.localeCompare(b.name))
+expect(sorted[0].name).toBe('Item 1')
+```
+
+**Filtering Tests**: Use `--test-name-pattern` to filter by test name:
+```bash
+bun test --test-name-pattern "should insert usage event"
+```
+
 ## When Writing TRPC Code
 1. Always specify mutation and query outputs using `.output()`
 2. If possible, do not write raw ORM code in the procedures. It's pure tech debt. Instead, use db/tableMethods/fooMethods.ts where you can.
 3. If you can't, parse the outputs using the appropriate zod schema.
 4. Speaking of zod schema, always bias towards using the zod schema found in db/schema
+
+## Client/Server Code Separation in tableMethods
+
+Some table methods files import server-only modules (e.g., `cache-recomputable.ts` which depends on postgres). When client code transitively imports these files, the build fails.
+
+**Convention:** Use `fooMethods.server.ts` for functions that depend on server-only modules like `cachedRecomputable`, direct database connections, or other Node.js APIs.
+
+- **`fooMethods.ts`** - Client-safe functions (basic CRUD, selects, inserts)
+- **`fooMethods.server.ts`** - Server-only functions (cached queries, complex joins with server deps)
+
+Example:
+```typescript
+// subscriptionItemMethods.ts - client-safe, basic operations
+export const selectSubscriptionItems = createSelectFunction(...)
+export const insertSubscriptionItem = ...
+
+// subscriptionItemMethods.server.ts - server-only, uses cachedRecomputable
+import { cachedRecomputable } from '@/utils/cache-recomputable'
+export const selectSubscriptionItemsWithPricesBySubscriptionId = cachedRecomputable(...)
+export const selectRichSubscriptionsAndActiveItems = ...
+```
 
 ## Write Tests Coverage for Changes to Backend Business Logic
 

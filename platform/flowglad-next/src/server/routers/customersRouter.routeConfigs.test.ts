@@ -1,7 +1,8 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import {
   customerBillingRouteConfig,
   customersRouteConfigs,
+  customerUsageBalancesRouteConfig,
 } from './customersRouter'
 import {
   findRouteConfigInArray,
@@ -93,6 +94,36 @@ describe('customersRouteConfigs', () => {
       // Test mapParams with matches only (simulate route handler slicing)
       const result = routeConfig!.mapParams(['test-id'])
       expect(result).toEqual({ externalId: 'test-id' })
+    })
+
+    it('should map GET /customers/:externalId/usage-balances to customers.getUsageBalances procedure', () => {
+      const routeConfig =
+        customerUsageBalancesRouteConfig[
+          'GET /customers/:externalId/usage-balances'
+        ]
+
+      expect(routeConfig).toMatchObject({
+        procedure: 'customers.getUsageBalances',
+      })
+      expect(routeConfig!.procedure).toBe(
+        'customers.getUsageBalances'
+      )
+      expect(
+        routeConfig!.pattern.test('customers/test-id/usage-balances')
+      ).toBe(true)
+
+      // Test mapParams with matches only (simulate route handler slicing)
+      const result = routeConfig!.mapParams(['test-id'])
+      expect(result).toEqual({ externalId: 'test-id' })
+
+      // Test mapParams with body (subscriptionId filter)
+      const resultWithBody = routeConfig!.mapParams(['test-id'], {
+        subscriptionId: 'sub_123',
+      })
+      expect(resultWithBody).toEqual({
+        externalId: 'test-id',
+        subscriptionId: 'sub_123',
+      })
     })
 
     it('should map GET /customers to customers.list procedure', () => {
@@ -289,6 +320,9 @@ describe('customersRouteConfigs', () => {
     it('should have all expected CRUD route configs', () => {
       const routeKeys = getAllRouteKeys()
       const billingKeys = Object.keys(customerBillingRouteConfig)
+      const usageBalancesKeys = Object.keys(
+        customerUsageBalancesRouteConfig
+      )
 
       // Check that all expected routes exist
       expect(routeKeys).toContain('POST /customers') // create
@@ -299,10 +333,14 @@ describe('customersRouteConfigs', () => {
       expect(billingKeys).toContain(
         'GET /customers/:externalId/billing'
       ) // custom billing route
+      expect(usageBalancesKeys).toContain(
+        'GET /customers/:externalId/usage-balances'
+      ) // custom usage balances route
 
       // Check that we have exactly the expected number of routes
       expect(routeKeys).toHaveLength(5) // Standard CRUD + DELETE
       expect(billingKeys).toHaveLength(1) // Just billing route
+      expect(usageBalancesKeys).toHaveLength(1) // Just usage balances route
     })
 
     it('should have consistent externalId parameter usage', () => {
@@ -346,6 +384,13 @@ describe('customersRouteConfigs', () => {
           validateRouteConfigStructure(config, 'customers')
         }
       )
+
+      // Test usage balances route configs
+      Object.entries(customerUsageBalancesRouteConfig).forEach(
+        ([routeKey, config]) => {
+          validateRouteConfigStructure(config, 'customers')
+        }
+      )
     })
 
     it('should map to correct TRPC procedures', () => {
@@ -370,6 +415,15 @@ describe('customersRouteConfigs', () => {
           'GET /customers/:externalId/billing'
         ]
       expect(billingConfig!.procedure).toBe('customers.getBilling')
+
+      // Test usage balances route separately
+      const usageBalancesConfig =
+        customerUsageBalancesRouteConfig[
+          'GET /customers/:externalId/usage-balances'
+        ]
+      expect(usageBalancesConfig!.procedure).toBe(
+        'customers.getUsageBalances'
+      )
     })
   })
 })

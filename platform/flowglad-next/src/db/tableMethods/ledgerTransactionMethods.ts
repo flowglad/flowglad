@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import {
   type LedgerTransaction,
   ledgerTransactions,
@@ -13,7 +14,9 @@ import {
   createUpdateFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
+import { NotFoundError } from '@/errors'
 import type { DbTransaction } from '../types'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromSubscription,
   pricingModelIdsForSubscriptions,
@@ -79,7 +82,7 @@ const bulkInsertOrDoNothingLedgerTransaction = async (
     typeof baseBulkInsertOrDoNothingLedgerTransaction
   >[1],
   transaction: DbTransaction
-) => {
+): Promise<Result<LedgerTransaction.Record[], NotFoundError>> => {
   // Collect unique subscriptionIds that need pricingModelId derivation
   const subscriptionIdsNeedingDerivation = Array.from(
     new Set(
@@ -96,28 +99,32 @@ const bulkInsertOrDoNothingLedgerTransaction = async (
   )
 
   // Derive pricingModelId using the batch-fetched map
-  const insertsWithPricingModelId = ledgerTransactionInserts.map(
-    (insert) => {
-      const pricingModelId =
-        insert.pricingModelId ??
-        pricingModelIdMap.get(insert.subscriptionId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Could not derive pricingModelId for subscription ${insert.subscriptionId}`
-        )
+  const insertsWithPricingModelId: LedgerTransaction.Insert[] = []
+  for (const insert of ledgerTransactionInserts) {
+    if (insert.pricingModelId) {
+      insertsWithPricingModelId.push(insert)
+    } else {
+      const pricingModelIdResult = derivePricingModelIdFromMap({
+        entityId: insert.subscriptionId,
+        entityType: 'subscription',
+        pricingModelIdMap,
+      })
+      if (Result.isError(pricingModelIdResult)) {
+        return Result.err(pricingModelIdResult.error)
       }
-      return {
+      insertsWithPricingModelId.push({
         ...insert,
-        pricingModelId,
-      }
+        pricingModelId: pricingModelIdResult.value,
+      })
     }
-  )
+  }
 
-  return baseBulkInsertOrDoNothingLedgerTransaction(
+  const result = await baseBulkInsertOrDoNothingLedgerTransaction(
     insertsWithPricingModelId,
     conflictColumns,
     transaction
   )
+  return Result.ok(result)
 }
 
 export const insertLedgerTransactionOrDoNothingByIdempotencyKey =

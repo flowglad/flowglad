@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type { BillingPeriodItem } from '@/db/schema/billingPeriodItems'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
@@ -20,18 +21,25 @@ import {
 import { countActiveResourceClaimsBatch } from '@/db/tableMethods/resourceClaimMethods'
 import {
   bulkCreateOrUpdateSubscriptionItems,
-  expireSubscriptionItems,
   selectCurrentlyActiveSubscriptionItems,
 } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
   isSubscriptionInTerminalState,
   selectSubscriptionById,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError as DbNotFoundError } from '@/db/tableUtils'
 import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import {
+  ConflictError,
+  NotFoundError,
+  TerminalStateError,
+  ValidationError,
+} from '@/errors'
 import { attemptBillingRunTask } from '@/trigger/attempt-billing-run'
 import { idempotentSendCustomerSubscriptionAdjustedNotification } from '@/trigger/notifications/send-customer-subscription-adjusted-notification'
 import { idempotentSendOrganizationSubscriptionAdjustedNotification } from '@/trigger/notifications/send-organization-subscription-adjusted-notification'
@@ -357,11 +365,19 @@ export interface AdjustSubscriptionResult {
  * @param ctx - Transaction context with database transaction and effect callbacks
  * @returns The updated subscription, subscription items, and metadata about the adjustment
  */
+export type AdjustSubscriptionError =
+  | TerminalStateError
+  | ValidationError
+  | NotFoundError
+  | ConflictError
+
 export const adjustSubscription = async (
   input: AdjustSubscriptionParams,
   organization: Organization.Record,
   ctx: TransactionEffectsContext
-): Promise<AdjustSubscriptionResult> => {
+): Promise<
+  Result<AdjustSubscriptionResult, AdjustSubscriptionError>
+> => {
   const { transaction } = ctx
   const { adjustment, id } = input
   const { newSubscriptionItems } = adjustment
@@ -371,26 +387,51 @@ export const adjustSubscription = async (
     'prorateCurrentBillingPeriod' in adjustment
       ? adjustment.prorateCurrentBillingPeriod
       : true
-  const subscription = await selectSubscriptionById(id, transaction)
+  // TODO: Remove try/catch when selectSubscriptionById is migrated to return Result
+  let subscription: Subscription.Record
+  try {
+    subscription = await selectSubscriptionById(id, transaction)
+  } catch (error) {
+    if (error instanceof DbNotFoundError) {
+      return Result.err(new NotFoundError('Subscription', id))
+    }
+    throw error
+  }
   if (isSubscriptionInTerminalState(subscription.status)) {
-    throw new Error('Subscription is in terminal state')
+    return Result.err(
+      new TerminalStateError('Subscription', id, subscription.status)
+    )
   }
   if (subscription.status === SubscriptionStatus.CreditTrial) {
-    throw new Error('Credit trial subscriptions cannot be adjusted.')
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'Credit trial subscriptions cannot be adjusted.'
+      )
+    )
   }
   if (!subscription.renews) {
-    throw new Error(
-      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be adjusted.`
+      )
     )
   }
   if (subscription.doNotCharge) {
-    throw new Error(
-      'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'Cannot adjust doNotCharge subscriptions. Cancel and create a new subscription instead.'
+      )
     )
   }
   if (subscription.isFreePlan) {
-    throw new Error(
-      'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.'
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'Cannot adjust free plan subscriptions. Use createSubscription to upgrade from a free plan instead.'
+      )
     )
   }
 
@@ -400,7 +441,12 @@ export const adjustSubscription = async (
       transaction
     )
   if (!currentBillingPeriodForSubscription) {
-    throw new Error('Current billing period not found')
+    return Result.err(
+      new NotFoundError(
+        'BillingPeriod',
+        `subscription:${subscription.id}`
+      )
+    )
   }
 
   // Get the subscription's pricing model for resolving priceSlug
@@ -466,9 +512,7 @@ export const adjustSubscription = async (
         pricesById.get(item.priceSlug)
 
       if (!resolvedPrice) {
-        throw new Error(
-          `Price "${item.priceSlug}" not found. Ensure the price exists, is active, and belongs to the subscription's pricing model.`
-        )
+        return Result.err(new NotFoundError('Price', item.priceSlug))
       }
 
       // Check if this is a terse item or a full item with priceSlug
@@ -495,9 +539,7 @@ export const adjustSubscription = async (
       // Terse item with priceId: expand to full subscription item
       const price = pricesById.get(item.priceId)
       if (!price) {
-        throw new Error(
-          `Price "${item.priceId}" not found. Ensure the price exists, is active, and belongs to the subscription's pricing model.`
-        )
+        return Result.err(new NotFoundError('Price', item.priceId))
       }
       resolvedSubscriptionItems.push({
         name: price.name,
@@ -523,35 +565,44 @@ export const adjustSubscription = async (
   )
 
   // Validate quantity and unitPrice for non-manual items
-  nonManualSubscriptionItems.forEach((item) => {
+  for (const item of nonManualSubscriptionItems) {
     if (item.quantity <= 0) {
-      throw new Error(
-        `Subscription item quantity must be greater than zero. Received: ${item.quantity}`
+      return Result.err(
+        new ValidationError(
+          'quantity',
+          `Subscription item quantity must be greater than zero. Received: ${item.quantity}`
+        )
       )
     }
     if (item.unitPrice < 0) {
-      throw new Error(
-        `Subscription item unit price cannot be negative. Received: ${item.unitPrice}`
+      return Result.err(
+        new ValidationError(
+          'unitPrice',
+          `Subscription item unit price cannot be negative. Received: ${item.unitPrice}`
+        )
       )
     }
-  })
+  }
 
   const priceIds = nonManualSubscriptionItems
     .map((item) => item.priceId)
     .filter((priceId): priceId is string => priceId != null)
   const prices = await selectPrices({ id: priceIds }, transaction)
   const priceMap = new Map(prices.map((price) => [price.id, price]))
-  nonManualSubscriptionItems.forEach((item) => {
+  for (const item of nonManualSubscriptionItems) {
     const price = priceMap.get(item.priceId!)
     if (!price) {
-      throw new Error(`Price ${item.priceId} not found`)
+      return Result.err(new NotFoundError('Price', item.priceId!))
     }
     if (price.type !== PriceType.Subscription) {
-      throw new Error(
-        `Only recurring prices can be used in subscriptions. Price ${price.id} is of type ${price.type}`
+      return Result.err(
+        new ValidationError(
+          'price',
+          `Only recurring prices can be used in subscriptions. Price ${price.id} is of type ${price.type}`
+        )
       )
     }
-  })
+  }
 
   const existingSubscriptionItems =
     await selectCurrentlyActiveSubscriptionItems(
@@ -636,10 +687,13 @@ export const adjustSubscription = async (
       const activeClaims = resourceClaimCounts.get(resourceId) ?? 0
 
       if (activeClaims > totalCapacity) {
-        throw new Error(
-          `Cannot reduce ${featureSlug} capacity to ${totalCapacity}. ` +
-            `${activeClaims} resources are currently claimed. ` +
-            `Release ${activeClaims - totalCapacity} claims before downgrading.`
+        return Result.err(
+          new ConflictError(
+            featureSlug,
+            `Cannot reduce capacity to ${totalCapacity}. ` +
+              `${activeClaims} resources are currently claimed. ` +
+              `Release ${activeClaims - totalCapacity} claims before downgrading.`
+          )
         )
       }
     }
@@ -676,16 +730,34 @@ export const adjustSubscription = async (
     )
 
   // Validate: End-of-period adjustments should only be used for downgrades (zero or negative net charge)
+  //
+  // IMPORTANT:
+  // `rawNetCharge` is derived from "fair value - already paid". It can be positive even for a downgrade
+  // if the current billing period hasn't been paid yet. For timing validation, we only care whether
+  // this adjustment is an upgrade in plan price (newPlanTotalPrice > oldPlanTotalPrice).
   if (
     resolvedTiming ===
       SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod &&
-    rawNetCharge > 0
+    newPlanTotalPrice > oldPlanTotalPrice
   ) {
-    throw new Error(
-      'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades (zero or negative net charge). ' +
-        'For upgrades or adjustments with a positive charge, use Immediately timing instead.'
+    return Result.err(
+      new ValidationError(
+        'timing',
+        'EndOfCurrentBillingPeriod adjustments are only allowed for downgrades (zero or negative net charge). ' +
+          'For upgrades or adjustments with a positive charge, use Immediately timing instead.'
+      )
     )
   }
+
+  // End-of-period adjustments never create mid-period proration charges or billing runs.
+  // Even if `calculateCorrectProrationAmount` yields a positive `netChargeAmount` (e.g. the
+  // current period hasn't been paid yet), we still should not charge immediately when the
+  // change is scheduled for the end of the current billing period.
+  const effectiveNetChargeAmount =
+    resolvedTiming ===
+    SubscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+      ? 0
+      : netChargeAmount
 
   // Create proration adjustments when there's a net charge AND proration is enabled
   const prorationAdjustments: BillingPeriodItem.Insert[] = []
@@ -693,7 +765,7 @@ export const adjustSubscription = async (
   // Track pending billing run ID for immediate adjustments with proration
   let pendingBillingRunId: string | undefined
 
-  if (netChargeAmount > 0 && shouldProrate) {
+  if (effectiveNetChargeAmount > 0 && shouldProrate) {
     // Format description similar to createSubscription pattern: single-line with key info
     const prorationPercentage = (split.afterPercentage * 100).toFixed(
       1
@@ -710,7 +782,7 @@ export const adjustSubscription = async (
     prorationAdjustments.push({
       billingPeriodId: currentBillingPeriodForSubscription.id,
       quantity: 1,
-      unitPrice: netChargeAmount,
+      unitPrice: effectiveNetChargeAmount,
       name: `Proration: Net charge adjustment`,
       description: `Prorated adjustment for ${prorationPercentage}% of billing period (${adjustmentDateStr} to ${periodEndStr})`,
       livemode: subscription.livemode,
@@ -730,8 +802,11 @@ export const adjustSubscription = async (
      * FIXME: create a more helpful message for adjustment subscriptions on trial
      */
     if (!paymentMethodId) {
-      throw new Error(
-        `Proration adjust for subscription ${subscription.id} failed. No default or backup payment method was found for the subscription`
+      return Result.err(
+        new ValidationError(
+          'paymentMethod',
+          `Proration adjust for subscription ${subscription.id} failed. No default or backup payment method was found for the subscription`
+        )
       )
     }
     const paymentMethod = await selectPaymentMethodById(
@@ -739,7 +814,7 @@ export const adjustSubscription = async (
       transaction
     )
     // TODO: maybe only create billing run if prorationAdjustments.length > 0
-    const billingRun = await createBillingRun(
+    const billingRunResult = await createBillingRun(
       {
         billingPeriod: currentBillingPeriodForSubscription,
         paymentMethod,
@@ -748,6 +823,10 @@ export const adjustSubscription = async (
       },
       transaction
     )
+    if (Result.isError(billingRunResult)) {
+      return Result.err(billingRunResult.error)
+    }
+    const billingRun = billingRunResult.value
 
     // Execute billing run immediately after creation
     // executeBillingRun uses its own transactions internally
@@ -779,7 +858,7 @@ export const adjustSubscription = async (
       livemode: subscription.livemode,
     }))
 
-    await handleSubscriptionItemAdjustment(
+    const adjustmentResult = await handleSubscriptionItemAdjustment(
       {
         subscriptionId: id,
         newSubscriptionItems: preparedItems,
@@ -787,6 +866,9 @@ export const adjustSubscription = async (
       },
       ctx
     )
+    if (Result.isError(adjustmentResult)) {
+      return Result.err(adjustmentResult.error)
+    }
 
     // For AtEndOfCurrentBillingPeriod, don't sync with future-dated items
     // Sync using current time to preserve the current subscription state
@@ -806,15 +888,17 @@ export const adjustSubscription = async (
     )
 
     // Send adjustment notifications (no proration - either downgrade or upgrade with proration disabled)
-    const price = await selectPriceById(
-      subscription.priceId,
-      transaction
-    )
-
-    if (!price) {
-      throw new Error(
-        `Price ${subscription.priceId} not found for subscription ${subscription.id}`
-      )
+    // TODO: Remove try/catch when selectPriceById is migrated to return Result
+    let price: Price.Record
+    try {
+      price = await selectPriceById(subscription.priceId, transaction)
+    } catch (error) {
+      if (error instanceof DbNotFoundError) {
+        return Result.err(
+          new NotFoundError('Price', subscription.priceId)
+        )
+      }
+      throw error
     }
 
     await idempotentSendCustomerSubscriptionAdjustedNotification({
@@ -874,7 +958,7 @@ export const adjustSubscription = async (
   // handleSubscriptionItemAdjustment (called by processOutcomeForBillingRun)
   // after the actual subscription item changes are applied.
 
-  return {
+  return Result.ok({
     subscription: standardSubscriptionSelectSchema.parse(
       updatedSubscription
     ),
@@ -882,5 +966,5 @@ export const adjustSubscription = async (
     resolvedTiming,
     isUpgrade,
     pendingBillingRunId,
-  }
+  })
 }

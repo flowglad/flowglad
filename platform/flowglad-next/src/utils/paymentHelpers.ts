@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import Stripe from 'stripe'
 import type { Payment } from '@/db/schema/payments'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
@@ -7,7 +8,9 @@ import {
   selectPaymentById,
   selectPayments,
 } from '@/db/tableMethods/paymentMethods'
+import { NotFoundError as TableUtilsNotFoundError } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError, ValidationError } from '@/errors'
 import { PaymentStatus, StripeConnectContractType } from '@/types'
 import { logger } from '@/utils/logger'
 import {
@@ -27,33 +30,55 @@ import {
 export const refundPaymentTransaction = async (
   { id, partialAmount }: { id: string; partialAmount: number | null },
   transaction: DbTransaction
-): Promise<Payment.Record> => {
+): Promise<
+  Result<Payment.Record, NotFoundError | ValidationError>
+> => {
   // =========================================================================
   // STEP 1: Validate the payment can be refunded
   // =========================================================================
-  const payment = await selectPaymentById(id, transaction)
-
-  if (!payment) {
-    throw new Error('Payment not found')
+  let payment: Payment.Record
+  try {
+    payment = await selectPaymentById(id, transaction)
+  } catch (error) {
+    if (error instanceof TableUtilsNotFoundError) {
+      return Result.err(new NotFoundError('Payment', id))
+    }
+    throw error
   }
 
   // Additional refunds are only supported until the payment is fully refunded.
   if (payment.status === PaymentStatus.Refunded) {
-    throw new Error('Payment has already been refunded')
+    return Result.err(
+      new ValidationError(
+        'status',
+        'Payment has already been refunded'
+      )
+    )
   }
 
   if (payment.status === PaymentStatus.Processing) {
-    throw new Error(
-      'Cannot refund a payment that is still processing'
+    return Result.err(
+      new ValidationError(
+        'status',
+        'Cannot refund a payment that is still processing'
+      )
     )
   }
   if (partialAmount !== null) {
     if (partialAmount <= 0) {
-      throw new Error('Partial amount must be greater than 0')
+      return Result.err(
+        new ValidationError(
+          'partialAmount',
+          'Partial amount must be greater than 0'
+        )
+      )
     }
     if (partialAmount > payment.amount) {
-      throw new Error(
-        'Partial amount cannot be greater than the payment amount'
+      return Result.err(
+        new ValidationError(
+          'partialAmount',
+          'Partial amount cannot be greater than the payment amount'
+        )
       )
     }
   }
@@ -66,47 +91,44 @@ export const refundPaymentTransaction = async (
   // Track if we created a new refund - used to determine if we should reverse tax
   let newlyCreatedRefund: Stripe.Refund | null = null
 
-  try {
-    // SUCCESS PATH: Create a new refund via Stripe API
-    const refund = await refundPayment(
-      payment.stripePaymentIntentId,
-      partialAmount,
-      payment.livemode
-    )
-    refundCreatedSeconds = refund.created
-    nextRefundedAmount = (payment.refundedAmount ?? 0) + refund.amount
-    // Mark that we created a new refund (triggers tax reversal later)
-    newlyCreatedRefund = refund
-  } catch (error) {
-    // RECOVERY PATH: Handle case where charge was already refunded
+  const refundResult = await refundPayment(
+    payment.stripePaymentIntentId,
+    partialAmount,
+    payment.livemode
+  )
+  if (Result.isError(refundResult)) {
+    // Check for recovery case: charge was already refunded
     // This can happen if:
     //   - Refund was done manually in Stripe dashboard
     //   - Previous call succeeded in Stripe but failed before DB update
     //   - Network retry after Stripe already processed the refund
     const alreadyRefundedError =
-      error instanceof Stripe.errors.StripeError &&
-      (error.raw as { code: string }).code ===
+      refundResult.error instanceof Stripe.errors.StripeError &&
+      (refundResult.error.raw as { code: string }).code ===
         'charge_already_refunded'
     if (!alreadyRefundedError) {
-      throw error
+      return Result.err(
+        new ValidationError('refund', refundResult.error.message)
+      )
     }
 
-    // Fetch the existing refund state from Stripe to sync our DB
+    // RECOVERY PATH: Fetch the existing refund state from Stripe to sync our DB
     const paymentIntent = await getPaymentIntent(
       payment.stripePaymentIntentId
     )
     if (!paymentIntent.latest_charge) {
-      throw new Error(
-        `Payment ${payment.id} has no associated Stripe charge`
-      )
+      return Result.err(new NotFoundError('StripeCharge', payment.id))
     }
 
     const charge = await getStripeCharge(
       stripeIdFromObjectOrId(paymentIntent.latest_charge!)
     )
     if (!charge.refunded) {
-      throw new Error(
-        `Payment ${payment.id} has a charge ${charge.id} that has not been refunded`
+      return Result.err(
+        new ValidationError(
+          'charge',
+          `Payment ${payment.id} has a charge ${charge.id} that has not been refunded`
+        )
       )
     }
     const refunds = await listRefundsForCharge(
@@ -114,9 +136,7 @@ export const refundPaymentTransaction = async (
       payment.livemode
     )
     if (refunds.data.length === 0) {
-      throw new Error(
-        `Payment ${payment.id} has a charge ${charge.id} marked refunded, but no refunds were returned by Stripe`
-      )
+      return Result.err(new NotFoundError('StripeRefund', charge.id))
     }
 
     // Use the most recent refund timestamp
@@ -135,6 +155,13 @@ export const refundPaymentTransaction = async (
           }, 0)
     nextRefundedAmount = amountRefundedFromStripe
     // Note: newlyCreatedRefund stays null - we didn't create a refund, just syncing state
+  } else {
+    // SUCCESS PATH: Use the newly created refund
+    const refund = refundResult.value
+    refundCreatedSeconds = refund.created
+    nextRefundedAmount = (payment.refundedAmount ?? 0) + refund.amount
+    // Mark that we created a new refund (triggers tax reversal later)
+    newlyCreatedRefund = refund
   }
 
   // =========================================================================
@@ -183,7 +210,7 @@ export const refundPaymentTransaction = async (
   // =========================================================================
   // STEP 4: Update payment record in database
   // =========================================================================
-  const updatedPayment = await safelyUpdatePaymentForRefund(
+  return safelyUpdatePaymentForRefund(
     {
       id: payment.id,
       status:
@@ -198,8 +225,6 @@ export const refundPaymentTransaction = async (
     },
     transaction
   )
-
-  return updatedPayment
 }
 
 /**

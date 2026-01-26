@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import {
   setupBillingPeriod,
   setupCustomer,
@@ -144,7 +144,7 @@ describe('createSubscriptionFeeCalculationInsert', () => {
     expect(result.baseAmount).toBe(5000)
     expect(result.discountAmountFixed).toBe(0)
     expect(result.pretaxTotal).toBe(5000)
-    expect(result.flowgladFeePercentage).toBe('2')
+    expect(result.flowgladFeePercentage).toBe('2.0')
     expect(result.morSurchargePercentage).toBe('0')
     expect(result.internationalFeePercentage).toBe('0')
     expect(result.paymentMethodFeeFixed).toBe(

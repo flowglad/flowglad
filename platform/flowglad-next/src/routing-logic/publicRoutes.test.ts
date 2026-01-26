@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { middlewareLogic } from './middlewareLogic'
 
 describe('middlewareLogic - public routes coverage', () => {

@@ -1,6 +1,6 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import * as core from 'nanoid'
-import { beforeEach, describe, expect, it } from 'vitest'
 // Setup helpers from seedDatabase.ts
 import {
   setupBillingPeriod,
@@ -131,17 +131,17 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                { input, livemode: true },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              { input, livemode: true },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -152,7 +152,7 @@ describe('usageEventHelpers', () => {
         )
 
       expect(createdUsageEvent.usageMeterId).toBe(
-        usagePrice.usageMeterId
+        usagePrice.usageMeterId!
       )
       expect(createdUsageEvent.billingPeriodId).toBe(
         mainBillingPeriod.id
@@ -164,7 +164,7 @@ describe('usageEventHelpers', () => {
       )
       expect(
         new Date(createdUsageEvent.usageDate!).getTime()
-      ).toEqual(usageEventDetails.usageDate)
+      ).toEqual(usageEventDetails.usageDate!)
 
       let ledgerTransactions: LedgerTransaction.Record[] = []
       await adminTransaction(async ({ transaction }) => {
@@ -208,20 +208,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: initialEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: initialEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -259,20 +259,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: initialEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: initialEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -362,16 +362,20 @@ describe('usageEventHelpers', () => {
         usageEvent: usageEventDetailsMainSub,
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return ingestAndProcessUsageEvent(
             { input: inputMainSub, livemode: true },
             createDiscardingEffectsContext(transaction)
           )
-        })
-      ).rejects.toThrow(
-        `A usage event already exists for transactionid ${sharedTransactionId}, but does not belong to subscription ${mainSubscription.id}.`
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          `A usage event already exists for transactionid ${sharedTransactionId}, but does not belong to subscription ${mainSubscription.id}.`
+        )
+      }
     })
 
     it('should handle usageEvent.properties (present and absent)', async () => {
@@ -391,20 +395,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: propsPresentDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: propsPresentDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -427,20 +431,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: propsAbsentDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: propsAbsentDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -465,20 +469,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: datePresentDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: datePresentDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -498,20 +502,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: dateAbsentDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: dateAbsentDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -533,20 +537,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: liveTrueDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: liveTrueDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -604,20 +608,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: liveFalseDetails },
-                  livemode: false,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: liveFalseDetails },
+                livemode: false,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -717,20 +721,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: firstEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: firstEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -781,20 +785,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: secondEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: secondEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -847,20 +851,20 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                {
-                  input: { usageEvent: thirdEventDetails },
-                  livemode: true,
-                },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              {
+                input: { usageEvent: thirdEventDetails },
+                livemode: true,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
@@ -891,9 +895,9 @@ describe('usageEventHelpers', () => {
     })
 
     it('should throw error when usageMeterId from different pricing model is provided directly', async () => {
-      // Create a usage meter in a different organization
-      const otherOrgUsageMeter = await adminTransaction(
-        async ({ transaction }) => {
+      // Create a usage meter and price in a different organization
+      const { otherOrgUsageMeter, otherOrgPrice } =
+        await adminTransaction(async ({ transaction }) => {
           const orgSetup = await setupOrg()
           const testUsageMeter = await setupUsageMeter({
             organizationId: orgSetup.organization.id,
@@ -901,44 +905,49 @@ describe('usageEventHelpers', () => {
             livemode: true,
             pricingModelId: orgSetup.pricingModel.id,
           })
-          return testUsageMeter
-        }
-      )
+          const testPrice = await setupPrice({
+            name: 'Other Org Usage Price',
+            type: PriceType.Usage,
+            unitPrice: 10,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: false,
+            currency: CurrencyCode.USD,
+            usageMeterId: testUsageMeter.id,
+          })
+          return {
+            otherOrgUsageMeter: testUsageMeter,
+            otherOrgPrice: testPrice,
+          }
+        })
 
       const input: CreateUsageEventInput = {
         usageEvent: {
           subscriptionId: mainSubscription.id, // Belongs to original org
           usageMeterId: otherOrgUsageMeter.id, // Belongs to different org
-          priceId: null, // No priceId when usageMeterId is provided directly
+          priceId: otherOrgPrice.id, // Price from different org (matches the meter)
           amount: 100,
           transactionId: `txn_wrong_pricing_model_${core.nanoid()}`,
         },
       }
 
-      await expect(
-        comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-          }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                { input, livemode: true },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
-            )
-          }
-        )
-      ).rejects.toThrow(
-        `Usage meter ${otherOrgUsageMeter.id} not found for this customer's pricing model`
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input, livemode: true },
+            createDiscardingEffectsContext(transaction)
+          )
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        // When both usageMeterId and priceId from a different org are provided,
+        // the priceId validation runs first since it's explicitly provided
+        expect(result.error.message).toContain(
+          `Price not found: ${otherOrgPrice.id} (not in customer's pricing model)`
+        )
+      }
     })
 
     it('should throw error when priceId from different pricing model is provided directly', async () => {
@@ -977,38 +986,43 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      await expect(
-        comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-          }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                { input, livemode: true },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
-            )
-          }
-        )
-      ).rejects.toThrow(
-        `Price ${otherOrgPrice.id} not found for this customer's pricing model`
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input, livemode: true },
+            createDiscardingEffectsContext(transaction)
+          )
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          `Price not found: ${otherOrgPrice.id} (not in customer's pricing model)`
+        )
+      }
     })
 
-    it('should successfully create usage event when priceId is null and valid usageMeterId is provided directly', async () => {
+    it('should use the provided default price when usageMeterId and priceId are both provided', async () => {
+      // The usagePrice created in beforeEach is associated with usageMeter but is NOT the default.
+      // We create a default price for the usage meter to test the scenario where a resolved
+      // input includes the default price (priceId resolution would have happened upstream).
+      const defaultPrice = await setupPrice({
+        name: 'Default Price for Direct Meter Test',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
       const input: CreateUsageEventInput = {
         usageEvent: {
           subscriptionId: mainSubscription.id,
           usageMeterId: usageMeter.id, // Valid usage meter from customer's pricing model
-          priceId: null, // No priceId when usageMeterId is provided directly
+          priceId: defaultPrice.id, // Default price for this meter (resolved upstream)
           amount: 100,
           transactionId: `txn_direct_usage_meter_${core.nanoid()}`,
           properties: { test_property: 'direct_usage_meter_test' },
@@ -1022,22 +1036,23 @@ describe('usageEventHelpers', () => {
             emitEvent,
             invalidateCache,
             enqueueLedgerCommand,
+            cacheRecomputationContext,
           }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                { input, livemode: true },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
+            return ingestAndProcessUsageEvent(
+              { input, livemode: true },
+              {
+                transaction,
+                cacheRecomputationContext,
+                emitEvent,
+                invalidateCache,
+                enqueueLedgerCommand,
+              }
             )
           }
         )
 
-      expect(createdUsageEvent.priceId).toBeNull()
+      // Should resolve to the default price for the usage meter
+      expect(createdUsageEvent.priceId).toBe(defaultPrice.id)
       expect(createdUsageEvent.usageMeterId).toBe(usageMeter.id)
       expect(createdUsageEvent.subscriptionId).toBe(
         mainSubscription.id
@@ -1057,7 +1072,7 @@ describe('usageEventHelpers', () => {
     })
 
     it('should throw error when CountDistinctProperties meter is used with empty properties', async () => {
-      const { distinctMeter, distinctSubscription } =
+      const { distinctMeter, distinctPrice, distinctSubscription } =
         await setupCountDistinctPropertiesMeter({
           organizationId: organization.id,
           customerId: customer.id,
@@ -1070,7 +1085,7 @@ describe('usageEventHelpers', () => {
       const undefinedPropsInput: CreateUsageEventInput = {
         usageEvent: {
           usageMeterId: distinctMeter.id,
-          priceId: null,
+          priceId: distinctPrice.id,
           subscriptionId: distinctSubscription.id,
           transactionId: `txn_empty_props_undefined_${core.nanoid()}`,
           amount: 100,
@@ -1078,34 +1093,26 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      await expect(
-        comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-          }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                { input: undefinedPropsInput, livemode: true },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
-            )
-          }
+      const result1 = await adminTransaction(
+        async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input: undefinedPropsInput, livemode: true },
+            createDiscardingEffectsContext(transaction)
+          )
+        }
+      )
+      expect(result1.status).toBe('error')
+      if (result1.status === 'error') {
+        expect(result1.error.message).toContain(
+          'Properties are required'
         )
-      ).rejects.toThrow('Properties are required')
+      }
 
       // Test with empty object properties
       const emptyPropsInput: CreateUsageEventInput = {
         usageEvent: {
           usageMeterId: distinctMeter.id,
-          priceId: null,
+          priceId: distinctPrice.id,
           subscriptionId: distinctSubscription.id,
           transactionId: `txn_empty_props_object_${core.nanoid()}`,
           amount: 100,
@@ -1113,28 +1120,20 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      await expect(
-        comprehensiveAdminTransaction(
-          async ({
-            transaction,
-            emitEvent,
-            invalidateCache,
-            enqueueLedgerCommand,
-          }) => {
-            return Result.ok(
-              await ingestAndProcessUsageEvent(
-                { input: emptyPropsInput, livemode: true },
-                {
-                  transaction,
-                  emitEvent,
-                  invalidateCache,
-                  enqueueLedgerCommand,
-                }
-              )
-            )
-          }
+      const result2 = await adminTransaction(
+        async ({ transaction }) => {
+          return ingestAndProcessUsageEvent(
+            { input: emptyPropsInput, livemode: true },
+            createDiscardingEffectsContext(transaction)
+          )
+        }
+      )
+      expect(result2.status).toBe('error')
+      if (result2.status === 'error') {
+        expect(result2.error.message).toContain(
+          'Properties are required'
         )
-      ).rejects.toThrow('Properties are required')
+      }
     })
   })
 
@@ -1315,7 +1314,11 @@ describe('usageEventHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return resolveUsageEventInput(input, transaction)
+          const resolved = await resolveUsageEventInput(
+            input,
+            transaction
+          )
+          return resolved.unwrap()
         }
       )
 
@@ -1374,7 +1377,11 @@ describe('usageEventHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return resolveUsageEventInput(input, transaction)
+          const resolved = await resolveUsageEventInput(
+            input,
+            transaction
+          )
+          return resolved.unwrap()
         }
       )
 
@@ -1394,13 +1401,17 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return resolveUsageEventInput(inputNonExistent, transaction)
-        })
-      ).rejects.toThrow(
-        "Price with slug non-existent-slug not found for this customer's pricing model"
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          "Price not found: with slug non-existent-slug (not in customer's pricing model)"
+        )
+      }
 
       // Set up a second pricing model in the same organization with a price with a slug
       await adminTransaction(async ({ transaction }) => {
@@ -1408,7 +1419,7 @@ describe('usageEventHelpers', () => {
         const secondPricingModel = await setupPricingModel({
           organizationId: organization.id,
           name: 'Second Pricing Model',
-          livemode: true,
+          livemode: false,
           isDefault: false,
         })
 
@@ -1417,14 +1428,14 @@ describe('usageEventHelpers', () => {
           organizationId: organization.id,
           pricingModelId: secondPricingModel.id,
           name: 'Second Product',
-          livemode: true,
+          livemode: false,
           active: true,
         })
 
         const secondUsageMeter = await setupUsageMeter({
           organizationId: organization.id,
           name: 'Second Usage Meter',
-          livemode: true,
+          livemode: false,
           pricingModelId: secondPricingModel.id,
         })
 
@@ -1435,7 +1446,7 @@ describe('usageEventHelpers', () => {
           unitPrice: 20,
           intervalUnit: IntervalUnit.Day,
           intervalCount: 1,
-          livemode: true,
+          livemode: false,
           isDefault: false,
           currency: CurrencyCode.USD,
           usageMeterId: secondUsageMeter.id,
@@ -1455,16 +1466,20 @@ describe('usageEventHelpers', () => {
       }
 
       // Should fail because the slug belongs to a different pricing model
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result2 = await adminTransaction(
+        async ({ transaction }) => {
           return resolveUsageEventInput(
             inputDifferentPricingModel,
             transaction
           )
-        })
-      ).rejects.toThrow(
-        "Price with slug other-pricing-model-price-slug not found for this customer's pricing model"
+        }
       )
+      expect(result2.status).toBe('error')
+      if (result2.status === 'error') {
+        expect(result2.error.message).toContain(
+          "Price not found: with slug other-pricing-model-price-slug (not in customer's pricing model)"
+        )
+      }
     })
 
     it('should throw BAD_REQUEST error when neither priceId nor priceSlug is provided', async () => {
@@ -1476,19 +1491,36 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return resolveUsageEventInput(
             inputWithoutPrice,
             transaction
           )
-        })
-      ).rejects.toThrow(
-        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+        )
+      }
     })
 
-    it('should resolve usageMeterId to usage event with null priceId', async () => {
+    it('should resolve usageMeterId to usage event with default price', async () => {
+      // Set up a default price for the usage meter
+      const defaultPrice = await setupPrice({
+        name: 'Default Price for Meter ID Resolution',
+        type: PriceType.Usage,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
       const input = {
         usageEvent: {
           subscriptionId: mainSubscription.id,
@@ -1500,17 +1532,22 @@ describe('usageEventHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return resolveUsageEventInput(input, transaction)
+          const resolved = await resolveUsageEventInput(
+            input,
+            transaction
+          )
+          return resolved.unwrap()
         }
       )
 
       expect(result.usageEvent.usageMeterId).toBe(usageMeter.id)
-      expect(result.usageEvent.priceId).toBeNull()
+      // Should resolve to the default price for the usage meter
+      expect(result.usageEvent.priceId).toBe(defaultPrice.id)
       expect(result.usageEvent).not.toHaveProperty('usageMeterSlug')
     })
 
-    it('should resolve usageMeterSlug to usageMeterId with null priceId', async () => {
-      // First, we need to set up a usage meter with a slug
+    it('should resolve usageMeterSlug to usageMeterId with default price', async () => {
+      // First, we need to set up a usage meter with a slug and a default price
       const usageMeterWithSlug = await adminTransaction(
         async ({ transaction }) => {
           const orgSetup = await setupOrg()
@@ -1529,6 +1566,19 @@ describe('usageEventHelpers', () => {
             pricingModelId: orgSetup.pricingModel.id,
             slug: 'test-usage-meter-slug',
           })
+          // Create a default price for the usage meter
+          const testDefaultPrice = await setupPrice({
+            name: 'Test Default Price',
+            type: PriceType.Usage,
+            unitPrice: 0,
+            intervalUnit: IntervalUnit.Day,
+            intervalCount: 1,
+            livemode: true,
+            isDefault: true,
+            currency: CurrencyCode.USD,
+            usageMeterId: testUsageMeter.id,
+          })
+          // Create a non-default price for the subscription
           const testPrice = await setupPrice({
             name: 'Test Usage Price',
             type: PriceType.Usage,
@@ -1546,7 +1596,12 @@ describe('usageEventHelpers', () => {
             paymentMethodId: testPaymentMethod.id,
             priceId: testPrice.id,
           })
-          return { testUsageMeter, testSubscription, testCustomer }
+          return {
+            testUsageMeter,
+            testSubscription,
+            testCustomer,
+            testDefaultPrice,
+          }
         }
       )
 
@@ -1561,14 +1616,21 @@ describe('usageEventHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return resolveUsageEventInput(input, transaction)
+          const resolved = await resolveUsageEventInput(
+            input,
+            transaction
+          )
+          return resolved.unwrap()
         }
       )
 
       expect(result.usageEvent.usageMeterId).toBe(
         usageMeterWithSlug.testUsageMeter.id
       )
-      expect(result.usageEvent.priceId).toBeNull()
+      // Should resolve to the default price for the usage meter
+      expect(result.usageEvent.priceId).toBe(
+        usageMeterWithSlug.testDefaultPrice.id
+      )
       expect(result.usageEvent).not.toHaveProperty('usageMeterSlug')
     })
 
@@ -1596,13 +1658,17 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return resolveUsageEventInput(input, transaction)
-        })
-      ).rejects.toThrow(
-        `Usage meter ${otherOrgUsageMeter.id} not found for this customer's pricing model`
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          `UsageMeter not found: ${otherOrgUsageMeter.id} (not in customer's pricing model)`
+        )
+      }
     })
 
     it('should throw NOT_FOUND error when usageMeterSlug does not exist', async () => {
@@ -1615,13 +1681,17 @@ describe('usageEventHelpers', () => {
         },
       }
 
-      await expect(
-        adminTransaction(async ({ transaction }) => {
+      const result = await adminTransaction(
+        async ({ transaction }) => {
           return resolveUsageEventInput(input, transaction)
-        })
-      ).rejects.toThrow(
-        "Usage meter with slug non-existent-usage-meter-slug not found for this customer's pricing model"
+        }
       )
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error.message).toContain(
+          "UsageMeter not found: with slug non-existent-usage-meter-slug (not in customer's pricing model)"
+        )
+      }
     })
   })
 
@@ -1654,7 +1724,7 @@ describe('usageEventHelpers', () => {
       intervalUnit: IntervalUnit.Day,
       intervalCount: 1,
       livemode: true,
-      isDefault: false,
+      isDefault: true, // Set as default so it can be resolved when events use usageMeterId without priceId
       currency: CurrencyCode.USD,
       usageMeterId: distinctMeter.id,
     })
@@ -1717,7 +1787,7 @@ describe('usageEventHelpers', () => {
           priceId: usagePrice.id,
         })
 
-        const ledgerCommands =
+        const ledgerCommandsResult =
           await generateLedgerCommandsForBulkUsageEvents(
             {
               insertedUsageEvents: [event1, event2, event3],
@@ -1725,6 +1795,7 @@ describe('usageEventHelpers', () => {
             },
             transaction
           )
+        const ledgerCommands = ledgerCommandsResult.unwrap()
 
         expect(ledgerCommands.length).toBe(3)
         expect(ledgerCommands[0].type).toBe(
@@ -1825,7 +1896,7 @@ describe('usageEventHelpers', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const ledgerCommands =
+        const ledgerCommandsResult =
           await generateLedgerCommandsForBulkUsageEvents(
             {
               insertedUsageEvents: [
@@ -1837,6 +1908,7 @@ describe('usageEventHelpers', () => {
             },
             transaction
           )
+        const ledgerCommands = ledgerCommandsResult.unwrap()
 
         // Should generate 1 command:
         // - event1 (event2 is intra-batch duplicate with different key order)
@@ -1857,7 +1929,7 @@ describe('usageEventHelpers', () => {
 
     it('should return empty array when no events provided', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const ledgerCommands =
+        const ledgerCommandsResult =
           await generateLedgerCommandsForBulkUsageEvents(
             {
               insertedUsageEvents: [],
@@ -1865,6 +1937,7 @@ describe('usageEventHelpers', () => {
             },
             transaction
           )
+        const ledgerCommands = ledgerCommandsResult.unwrap()
 
         expect(ledgerCommands.length).toBe(0)
       })
@@ -1887,16 +1960,15 @@ describe('usageEventHelpers', () => {
           subscriptionId: 'non-existent-subscription-id',
         }
 
-        await expect(
-          generateLedgerCommandsForBulkUsageEvents(
-            {
-              insertedUsageEvents: [invalidSubscriptionEvent],
-              livemode: true,
-            },
-            transaction
-          )
-        ).rejects.toThrow(
-          'Subscription non-existent-subscription-id not found'
+        const result = await generateLedgerCommandsForBulkUsageEvents(
+          {
+            insertedUsageEvents: [invalidSubscriptionEvent],
+            livemode: true,
+          },
+          transaction
+        )
+        expect(() => result.unwrap()).toThrow(
+          'Subscription not found: non-existent-subscription-id'
         )
       })
     })
@@ -1918,16 +1990,15 @@ describe('usageEventHelpers', () => {
           usageMeterId: 'non-existent-usage-meter-id',
         }
 
-        await expect(
-          generateLedgerCommandsForBulkUsageEvents(
-            {
-              insertedUsageEvents: [invalidMeterEvent],
-              livemode: true,
-            },
-            transaction
-          )
-        ).rejects.toThrow(
-          'Usage meter non-existent-usage-meter-id not found'
+        const result = await generateLedgerCommandsForBulkUsageEvents(
+          {
+            insertedUsageEvents: [invalidMeterEvent],
+            livemode: true,
+          },
+          transaction
+        )
+        expect(() => result.unwrap()).toThrow(
+          'UsageMeter not found: non-existent-usage-meter-id'
         )
       })
     })

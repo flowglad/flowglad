@@ -36,7 +36,6 @@ import {
   updatePurchase,
 } from '@/db/tableMethods/purchaseMethods'
 import type {
-  AuthenticatedTransactionParams,
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
@@ -51,14 +50,16 @@ import {
   PriceType,
   PurchaseStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import { constructCustomerCreatedEventHash } from '@/utils/eventHelpers'
 import { createInitialInvoiceForPurchase } from './bookkeeping/invoices'
 import { createStripeCustomer } from './stripe'
 
 export const updatePurchaseStatusToReflectLatestPayment = async (
   payment: Payment.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   const paymentStatus = payment.status
   let purchaseStatus: PurchaseStatus = PurchaseStatus.Pending
   if (paymentStatus === PaymentStatus.Succeeded) {
@@ -82,17 +83,20 @@ export const updatePurchaseStatusToReflectLatestPayment = async (
       },
       transaction
     )
+    // Invalidate purchase cache after updating purchase content (status)
+    invalidateCache(CacheDependency.purchase(payment.purchaseId))
   }
 }
 /**
  * An idempotent method to update an invoice's status to reflect the latest payment.
  * @param payment
- * @param transaction
+ * @param ctx
  */
 export const updateInvoiceStatusToReflectLatestPayment = async (
   payment: Payment.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   /**
    * Only update the invoice status if the payment intent status is succeeded
    */
@@ -136,6 +140,8 @@ export const updateInvoiceStatusToReflectLatestPayment = async (
       InvoiceStatus.Paid,
       transaction
     )
+    // Invalidate invoice cache after updating invoice content (status)
+    invalidateCache(CacheDependency.invoice(invoice.id))
     // await generatePaymentReceiptPdfTask.trigger({
     //   paymentId: payment.id,
     // })
@@ -251,6 +257,7 @@ export const createCustomerBookkeeping = async (
 }> => {
   const {
     transaction,
+    cacheRecomputationContext,
     organizationId,
     livemode,
     invalidateCache,
@@ -386,6 +393,7 @@ export const createCustomerBookkeeping = async (
             },
             {
               transaction,
+              cacheRecomputationContext,
               invalidateCache,
               emitEvent,
               enqueueLedgerCommand,
@@ -423,11 +431,10 @@ export const createPricingModelBookkeeping = async (
     >
     defaultPlanIntervalUnit?: IntervalUnit
   },
-  {
-    transaction,
-    organizationId,
-    livemode,
-  }: Omit<AuthenticatedTransactionParams, 'userId'>
+  ctx: TransactionEffectsContext & {
+    organizationId: string
+    livemode: boolean
+  }
 ): Promise<
   Result<
     {
@@ -438,6 +445,7 @@ export const createPricingModelBookkeeping = async (
     Error
   >
 > => {
+  const { transaction, organizationId, livemode } = ctx
   // 1. Create the pricing model
   const pricingModel = await safelyInsertPricingModel(
     {
@@ -445,13 +453,13 @@ export const createPricingModelBookkeeping = async (
       organizationId,
       livemode,
     },
-    transaction
+    ctx
   )
 
   // 2. Create the default "Base Plan" product
   const defaultProduct = await insertProduct(
     createFreePlanProductInsert(pricingModel),
-    transaction
+    ctx
   )
 
   // 3. Get organization for default currency
@@ -467,7 +475,7 @@ export const createPricingModelBookkeeping = async (
       organization.defaultCurrency,
       payload.defaultPlanIntervalUnit
     ),
-    transaction
+    ctx
   )
 
   return Result.ok({

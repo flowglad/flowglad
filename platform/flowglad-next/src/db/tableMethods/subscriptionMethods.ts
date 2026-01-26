@@ -12,6 +12,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   nonRenewingStatusSchema,
   type Subscription,
@@ -127,8 +128,7 @@ export const selectSubscriptions = createSelectFunction(
 )
 
 /**
- * Selects subscriptions by customer ID with caching enabled by default.
- * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ * Selects subscriptions by customer ID with caching.
  *
  * This cache entry depends on customerSubscriptions - invalidate when
  * subscriptions for this customer are created, updated, or deleted.
@@ -136,28 +136,30 @@ export const selectSubscriptions = createSelectFunction(
  * Cache key includes livemode to prevent cross-mode data leakage, since RLS
  * filters subscriptions by livemode and the same customer could have different
  * subscriptions in live vs test mode.
+ *
+ * Note: This function uses cached() (not cachedRecomputable) because it doesn't
+ * need automatic recomputation - subscriptions are relatively stable and
+ * invalidation-only caching is sufficient.
  */
-export const selectSubscriptionsByCustomerId = cached(
+export const selectSubscriptionsByCustomerId = cached<
+  [customerId: string, livemode: boolean, transaction: DbTransaction],
+  Subscription.Record[]
+>(
   {
     namespace: RedisKeyNamespace.SubscriptionsByCustomer,
-    keyFn: (
-      customerId: string,
-      _transaction: DbTransaction,
-      livemode: boolean
-    ) => `${customerId}:${livemode}`,
+    keyFn: (customerId, livemode) => `${customerId}:${livemode}`,
     schema: subscriptionsSelectSchema.array(),
-    dependenciesFn: (customerId: string) => [
+    dependenciesFn: (subscriptions, customerId) => [
+      // Set membership: invalidate when subscriptions are added/removed for this customer
       CacheDependency.customerSubscriptions(customerId),
+      // Content: invalidate when any subscription's properties change
+      ...subscriptions.map((subscription) =>
+        CacheDependency.subscription(subscription.id)
+      ),
     ],
   },
-  async (
-    customerId: string,
-    transaction: DbTransaction,
-    // livemode is used by keyFn for cache key generation, not in the query itself
-    // (RLS filters by livemode context set on the transaction)
-    _livemode: boolean
-  ) => {
-    return selectSubscriptions({ customerId }, transaction)
+  async (customerId, livemode, transaction) => {
+    return selectSubscriptions({ customerId, livemode }, transaction)
   }
 )
 

@@ -1,5 +1,5 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { HttpResponse, http } from 'msw'
-import { beforeEach, describe, expect, it } from 'vitest'
 import { server } from '@/../mocks/server'
 import {
   setupCustomer,
@@ -15,6 +15,7 @@ import {
 } from '@/db/tableMethods/apiKeyMethods'
 import { updateMembership } from '@/db/tableMethods/membershipMethods'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import { withAdminCacheContext } from '@/test-utils/transactionCallbacks'
 import { FlowgladApiKeyType } from '@/types'
 import core from '@/utils/core'
 import {
@@ -57,20 +58,22 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            userId,
-            livemode: false,
-            organizationId: organization.id,
-          })
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+            })
+          )
         }
       )
 
-      expect(result).toMatchObject({})
-      expect(result.apiKey).toMatchObject({})
+      expect(result.apiKey.id).toMatch(/^apikey_/)
       expect(result.apiKey.name).toBe('Test API Key')
       expect(result.apiKey.type).toBe(FlowgladApiKeyType.Secret)
-      expect(result.shownOnlyOnceKey).toMatchObject({})
+      expect(typeof result.shownOnlyOnceKey).toBe('string')
     })
 
     it('should throw an error if no focused membership is found', async () => {
@@ -95,12 +98,15 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            userId,
-            livemode: false,
-            organizationId: organization.id,
-          })
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+            })
+          )
         })
       ).rejects.toThrow('No focused membership found')
     })
@@ -126,12 +132,15 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            userId,
-            livemode: true,
-            organizationId: organization.id,
-          })
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
+              livemode: true,
+              organizationId: organization.id,
+            })
+          )
         })
       ).rejects.toThrow(
         'createApiKey: Cannot create livemode secret key'
@@ -159,17 +168,19 @@ describe('apiKeyHelpers', () => {
 
       const result = await adminTransaction(
         async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            userId,
-            livemode: false,
-            organizationId: organization.id,
-          })
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
+              livemode: false,
+              organizationId: organization.id,
+            })
+          )
         }
       )
 
-      expect(result).toMatchObject({})
-      expect(result.apiKey).toMatchObject({})
+      expect(result.apiKey.id).toMatch(/^apikey_/)
       expect(result.apiKey.name).toBe('Test API Key')
     })
 
@@ -195,12 +206,15 @@ describe('apiKeyHelpers', () => {
 
       await expect(
         adminTransaction(async ({ transaction }) => {
-          return createSecretApiKeyTransaction(input, {
-            transaction,
-            userId,
-            livemode: true,
-            organizationId: organization.id,
-          })
+          return createSecretApiKeyTransaction(
+            input,
+            withAdminCacheContext({
+              transaction,
+              userId,
+              livemode: true,
+              organizationId: organization.id,
+            })
+          )
         })
       ).rejects.toThrow(
         'createSecretApiKeyTransaction: Only secret keys are supported. Received type: publishable'
@@ -247,12 +261,12 @@ describe('apiKeyHelpers', () => {
       await adminTransaction(async ({ transaction }) => {
         await deleteSecretApiKeyTransaction(
           { id: secretApiKey.id },
-          {
+          withAdminCacheContext({
             transaction,
             userId,
             livemode: true,
             organizationId: organization.id,
-          }
+          })
         )
       })
 
@@ -271,12 +285,12 @@ describe('apiKeyHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           await deleteSecretApiKeyTransaction(
             { id: nonExistentId },
-            {
+            withAdminCacheContext({
               transaction,
               userId,
               livemode: true,
               organizationId: organization.id,
-            }
+            })
           )
         })
       ).rejects.toThrow()
@@ -304,12 +318,12 @@ describe('apiKeyHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           await deleteSecretApiKeyTransaction(
             { id: publishableApiKey.id },
-            {
+            withAdminCacheContext({
               transaction,
               userId,
               livemode: true,
               organizationId: organization.id,
-            }
+            })
           )
         })
       ).rejects.toThrow(
@@ -341,12 +355,12 @@ describe('apiKeyHelpers', () => {
       await adminTransaction(async ({ transaction }) => {
         await deleteSecretApiKeyTransaction(
           { id: legacyApiKey.id },
-          {
+          withAdminCacheContext({
             transaction,
             userId,
             livemode: true,
             organizationId: organization.id,
-          }
+          })
         )
       })
 
@@ -381,12 +395,12 @@ describe('apiKeyHelpers', () => {
       await adminTransaction(async ({ transaction }) => {
         await deleteSecretApiKeyTransaction(
           { id: apiKeyNoHash.id },
-          {
+          withAdminCacheContext({
             transaction,
             userId,
             livemode: true,
             organizationId: organization.id,
-          }
+          })
         )
       })
 
@@ -441,12 +455,12 @@ describe('apiKeyHelpers', () => {
         adminTransaction(async ({ transaction }) => {
           await deleteSecretApiKeyTransaction(
             { id: apiKeyWithUnkeyId.id },
-            {
+            withAdminCacheContext({
               transaction,
               userId,
               livemode: true,
               organizationId: organization.id,
-            }
+            })
           )
         })
       ).rejects.toThrow('Failed to delete API key from Unkey')

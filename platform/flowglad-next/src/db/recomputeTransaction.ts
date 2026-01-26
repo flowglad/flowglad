@@ -1,15 +1,15 @@
-import type { TransactionContext } from '@/utils/cache'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import db from './client'
 import type { DbTransaction } from './types'
 import { withRLS } from './withRLS'
 
-type MerchantTransactionContext = Extract<
-  TransactionContext,
+type MerchantCacheRecomputationContext = Extract<
+  CacheRecomputationContext,
   { type: 'merchant' }
 >
 
-type CustomerTransactionContext = Extract<
-  TransactionContext,
+type CustomerCacheRecomputationContext = Extract<
+  CacheRecomputationContext,
   { type: 'customer' }
 >
 
@@ -27,7 +27,7 @@ type CustomerTransactionContext = Extract<
  * It simply sets up the minimal RLS context needed to re-run a query.
  */
 export async function recomputeWithMerchantContext<T>(
-  context: MerchantTransactionContext,
+  context: MerchantCacheRecomputationContext,
   fn: (transaction: DbTransaction) => Promise<T>
 ): Promise<T> {
   return db.transaction(async (transaction) => {
@@ -70,7 +70,7 @@ export async function recomputeWithMerchantContext<T>(
  * the same RLS context as the original call.
  */
 export async function recomputeWithCustomerContext<T>(
-  context: CustomerTransactionContext,
+  context: CustomerCacheRecomputationContext,
   fn: (transaction: DbTransaction) => Promise<T>
 ): Promise<T> {
   return db.transaction(async (transaction) => {

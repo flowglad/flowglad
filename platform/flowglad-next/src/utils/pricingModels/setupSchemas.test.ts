@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { PRICING_MODEL_TEMPLATES } from '@/constants/pricingModelTemplates'
 import {
   CurrencyCode,
@@ -10,6 +11,7 @@ import {
 import type { SetupPricingModelInput } from './setupSchemas'
 import {
   setupPricingModelSchema,
+  setupUsageMeterPriceInputSchema,
   validateSetupPricingModelInput,
 } from './setupSchemas'
 
@@ -53,9 +55,13 @@ describe('validateSetupPricingModelInput', () => {
       const input = createMinimalValidInput()
       input.products[0].features = ['non-existent-feature']
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Feature with slug non-existent-feature does not exist'
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Feature not found: non-existent-feature'
+        )
+      }
     })
 
     it('should accept when all referenced features exist', () => {
@@ -72,7 +78,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['test-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -94,9 +100,13 @@ describe('validateSetupPricingModelInput', () => {
       ]
       input.products[0].features = ['credit-feature']
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Usage meter with slug non-existent-meter does not exist'
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'UsageMeter not found: non-existent-meter'
+        )
+      }
     })
 
     // Usage prices live under usage meters, not products
@@ -139,7 +149,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['credit-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -159,9 +169,11 @@ describe('validateSetupPricingModelInput', () => {
         // slug is intentionally omitted to test runtime validation
       }
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        /Price slug is required/
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toMatch(/Price slug is required/)
+      }
     })
 
     it('should accept when all prices have slugs', () => {
@@ -179,7 +191,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -212,11 +224,11 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
-    it('should set isDefault=false for all usage prices regardless of input', () => {
+    it('should preserve user-specified isDefault=true for usage prices (Patch 3)', () => {
       const input = createMinimalValidInput()
       input.usageMeters = [
         {
@@ -228,8 +240,7 @@ describe('validateSetupPricingModelInput', () => {
             {
               type: PriceType.Usage,
               slug: 'usage-price',
-              // isDefault explicitly set to true - should be changed to false
-              // because usage prices don't use the isDefault concept
+              // isDefault explicitly set to true - should be preserved (Patch 3)
               isDefault: true,
               unitPrice: 100,
               intervalUnit: IntervalUnit.Month,
@@ -242,8 +253,8 @@ describe('validateSetupPricingModelInput', () => {
         },
       ]
 
-      const result = validateSetupPricingModelInput(input)
-      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(false)
+      const result = validateSetupPricingModelInput(input).unwrap()
+      expect(result.usageMeters[0].prices?.[0].isDefault).toBe(true)
     })
 
     // Empty prices array is valid - usage meters can exist without prices
@@ -300,9 +311,13 @@ describe('validateSetupPricingModelInput', () => {
         },
       ]
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Price with slug duplicate-price-slug already exists'
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Price with slug duplicate-price-slug already exists'
+        )
+      }
     })
 
     it('should accept when all price slugs are unique across products', () => {
@@ -351,7 +366,7 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -368,9 +383,9 @@ describe('validateSetupPricingModelInput', () => {
       const input = JSON.parse(JSON.stringify(template.input))
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
-      const result = validateSetupPricingModelInput(input)
+      const result = validateSetupPricingModelInput(input).unwrap()
       expect(result.name).toBe(input.name)
     })
   })
@@ -390,7 +405,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['toggle-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -433,7 +448,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['credit-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -454,7 +469,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -469,7 +484,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -499,7 +514,7 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -543,7 +558,7 @@ describe('validateSetupPricingModelInput', () => {
       }
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
   })
@@ -572,7 +587,7 @@ describe('validateSetupPricingModelInput', () => {
       input.products[0].features = ['resource-feature']
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
     })
 
@@ -592,9 +607,13 @@ describe('validateSetupPricingModelInput', () => {
       ]
       input.products[0].features = ['resource-feature']
 
-      expect(() => validateSetupPricingModelInput(input)).toThrow(
-        'Resource with slug non-existent-resource does not exist'
-      )
+      const result = validateSetupPricingModelInput(input)
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toContain(
+          'Resource not found: non-existent-resource'
+        )
+      }
     })
 
     it('should reject Resource feature without amount', () => {
@@ -630,7 +649,7 @@ describe('validateSetupPricingModelInput', () => {
       // Ensure resources is not set
       delete (input as any).resources
 
-      const result = validateSetupPricingModelInput(input)
+      const result = validateSetupPricingModelInput(input).unwrap()
       expect(result.resources).toBeUndefined()
     })
 
@@ -650,9 +669,9 @@ describe('validateSetupPricingModelInput', () => {
       ]
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
-      const result = validateSetupPricingModelInput(input)
+      const result = validateSetupPricingModelInput(input).unwrap()
       expect(result.resources).toHaveLength(2)
       expect(result.resources?.[0]?.slug).toBe('resource-one')
       expect(result.resources?.[1]?.slug).toBe('resource-two')
@@ -739,10 +758,427 @@ describe('validateSetupPricingModelInput', () => {
       // Product keeps its default subscription price from createMinimalValidInput
 
       expect(() =>
-        validateSetupPricingModelInput(input)
+        validateSetupPricingModelInput(input).unwrap()
       ).not.toThrow()
-      const result = validateSetupPricingModelInput(input)
+      const result = validateSetupPricingModelInput(input).unwrap()
       expect(result.features).toHaveLength(3)
     })
+  })
+
+  describe('reserved slug validation for usage prices', () => {
+    it('rejects usage price with slug ending in _no_charge via Zod schema validation', () => {
+      const input = createMinimalValidInput()
+      input.usageMeters = [
+        {
+          usageMeter: { slug: 'api-calls', name: 'API Calls' },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'api-calls_no_charge',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
+        },
+      ]
+
+      const result = setupPricingModelSchema.safeParse(input)
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const hasReservedSlugError = result.error.issues.some(
+          (issue) =>
+            issue.message.includes('_no_charge') &&
+            issue.message.includes('reserved')
+        )
+        expect(hasReservedSlugError).toBe(true)
+      }
+    })
+
+    it('accepts usage price with slug containing _no_charge but not as suffix', () => {
+      const input = createMinimalValidInput()
+      input.usageMeters = [
+        {
+          usageMeter: { slug: 'api-calls', name: 'API Calls' },
+          prices: [
+            {
+              type: PriceType.Usage,
+              slug: 'meter_no_charge_extra',
+              isDefault: true,
+              unitPrice: 100,
+              intervalUnit: IntervalUnit.Month,
+              intervalCount: 1,
+              trialPeriodDays: null,
+              usageEventsPerUnit: 1,
+              active: true,
+            },
+          ],
+        },
+      ]
+
+      expect(() =>
+        validateSetupPricingModelInput(input).unwrap()
+      ).not.toThrow()
+    })
+
+    it('accepts subscription price with _no_charge suffix (restriction only for usage prices)', () => {
+      const input = createMinimalValidInput()
+      input.products[0].price = {
+        type: PriceType.Subscription,
+        slug: 'promo_no_charge',
+        isDefault: true,
+        unitPrice: 0,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        usageMeterId: null,
+        usageEventsPerUnit: null,
+        active: true,
+      }
+
+      expect(() =>
+        validateSetupPricingModelInput(input).unwrap()
+      ).not.toThrow()
+    })
+
+    it('accepts single_payment price with _no_charge suffix (restriction only for usage prices)', () => {
+      const input = createMinimalValidInput()
+      input.products[0].price = {
+        type: PriceType.SinglePayment,
+        slug: 'trial_no_charge',
+        isDefault: true,
+        unitPrice: 0,
+        active: true,
+      }
+
+      expect(() =>
+        validateSetupPricingModelInput(input).unwrap()
+      ).not.toThrow()
+    })
+  })
+})
+
+describe('setupUsageMeterPriceInputSchema', () => {
+  const createValidUsagePriceInput = () => ({
+    type: PriceType.Usage as const,
+    slug: 'api-calls-price',
+    isDefault: true,
+    unitPrice: 100,
+    intervalUnit: IntervalUnit.Month,
+    intervalCount: 1,
+    trialPeriodDays: null,
+    usageEventsPerUnit: 1,
+    active: true,
+  })
+
+  describe('reserved slug validation', () => {
+    it('rejects usage price with slug ending in _no_charge via direct schema safeParse', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        slug: 'api-calls_no_charge',
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error.issues).toHaveLength(1)
+        expect(result.error.issues[0].path).toEqual(['slug'])
+        expect(result.error.issues[0].message).toBe(
+          'Usage price slugs ending with "_no_charge" are reserved for auto-generated fallback prices'
+        )
+      }
+    })
+
+    it('accepts usage price with valid slug not ending in _no_charge', () => {
+      const input = createValidUsagePriceInput()
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.slug).toBe('api-calls-price')
+      }
+    })
+
+    it('accepts usage price with slug containing _no_charge in the middle', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        slug: 'no_charge_api_calls',
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+      if (result.success) {
+        expect(result.data.slug).toBe('no_charge_api_calls')
+      }
+    })
+
+    it('accepts usage price with undefined slug (optional field)', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        slug: undefined,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+    })
+  })
+
+  describe('inactive default price validation', () => {
+    it('rejects usage price with isDefault=true and active=false', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        isDefault: true,
+        active: false,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        const hasInactiveDefaultError = result.error.issues.some(
+          (issue) =>
+            issue.path.includes('isDefault') &&
+            issue.message.includes('inactive') &&
+            issue.message.includes('default')
+        )
+        expect(hasInactiveDefaultError).toBe(true)
+      }
+    })
+
+    it('accepts usage price with isDefault=true and active=true', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        isDefault: true,
+        active: true,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+    })
+
+    it('accepts usage price with isDefault=false and active=false', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        isDefault: false,
+        active: false,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+    })
+
+    it('accepts usage price with isDefault=false and active=true', () => {
+      const input = {
+        ...createValidUsagePriceInput(),
+        isDefault: false,
+        active: true,
+      }
+
+      const result = setupUsageMeterPriceInputSchema.safeParse(input)
+
+      expect(result.success).toBe(true)
+    })
+  })
+})
+
+describe('usage meter isDefault validation', () => {
+  // Helper function to create a minimal valid input
+  const createMinimalValidInput = (): SetupPricingModelInput => ({
+    name: 'Test Pricing Model',
+    isDefault: false,
+    features: [],
+    products: [
+      {
+        product: {
+          name: 'Test Product',
+          slug: 'test-product',
+          active: true,
+          default: false,
+        },
+        price: {
+          type: PriceType.Subscription,
+          slug: 'test-price',
+          isDefault: true,
+          unitPrice: 1000,
+          intervalUnit: IntervalUnit.Month,
+          intervalCount: 1,
+          usageMeterId: null,
+          usageEventsPerUnit: null,
+          active: true,
+        },
+        features: [],
+      },
+    ],
+    usageMeters: [],
+  })
+
+  it('throws when multiple prices have isDefault=true for the same usage meter', () => {
+    const input = createMinimalValidInput()
+    input.usageMeters = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-1',
+            isDefault: true,
+            unitPrice: 100,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-2',
+            isDefault: true, // Second default - should fail
+            unitPrice: 200,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+    ]
+
+    const result = validateSetupPricingModelInput(input)
+    expect(Result.isError(result)).toBe(true)
+    if (Result.isError(result)) {
+      expect(result.error.message).toContain(
+        'Usage meter "api-calls" has multiple prices with isDefault=true'
+      )
+    }
+  })
+
+  it('accepts when exactly one price has isDefault=true for a usage meter', () => {
+    const input = createMinimalValidInput()
+    input.usageMeters = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-1',
+            isDefault: true,
+            unitPrice: 100,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-2',
+            isDefault: false,
+            unitPrice: 200,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+    ]
+
+    expect(Result.isOk(validateSetupPricingModelInput(input))).toBe(
+      true
+    )
+  })
+
+  it('accepts when no prices have isDefault=true for a usage meter', () => {
+    const input = createMinimalValidInput()
+    input.usageMeters = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price-1',
+            isDefault: false,
+            unitPrice: 100,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+    ]
+
+    expect(Result.isOk(validateSetupPricingModelInput(input))).toBe(
+      true
+    )
+  })
+
+  it('validates each usage meter independently - different meters can each have one default', () => {
+    const input = createMinimalValidInput()
+    input.usageMeters = [
+      {
+        usageMeter: {
+          slug: 'api-calls',
+          name: 'API Calls',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'api-calls-price',
+            isDefault: true,
+            unitPrice: 100,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+      {
+        usageMeter: {
+          slug: 'storage',
+          name: 'Storage',
+        },
+        prices: [
+          {
+            type: PriceType.Usage,
+            slug: 'storage-price',
+            isDefault: true, // Different meter, so this is fine
+            unitPrice: 50,
+            intervalUnit: IntervalUnit.Month,
+            intervalCount: 1,
+            trialPeriodDays: null,
+            usageEventsPerUnit: 1,
+            active: true,
+          },
+        ],
+      },
+    ]
+
+    expect(Result.isOk(validateSetupPricingModelInput(input))).toBe(
+      true
+    )
   })
 })

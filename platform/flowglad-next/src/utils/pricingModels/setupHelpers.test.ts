@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -175,25 +175,27 @@ describe('getPricingModelSetupData', () => {
     }
 
     // Create the pricing model using setupPricingModelTransaction
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
+    const setupResult = await adminTransaction(async (ctx) =>
+      (
+        await setupPricingModelTransaction(
           {
             input: originalInput,
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          ctx
         )
+      ).unwrap()
     )
 
     // Now fetch it back using getPricingModelSetupData
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
+    const fetchedData = await adminTransaction(async (ctx) =>
+      (
+        await getPricingModelSetupData(
           setupResult.pricingModel.id,
-          transaction
+          ctx.transaction
         )
+      ).unwrap()
     )
 
     // Validate the output using the schema
@@ -304,8 +306,13 @@ describe('getPricingModelSetupData', () => {
 
   it('should throw an error if pricing model is not found', async () => {
     await expect(
-      adminTransaction(async ({ transaction }) =>
-        getPricingModelSetupData('non-existent-id', transaction)
+      adminTransaction(async (ctx) =>
+        (
+          await getPricingModelSetupData(
+            'non-existent-id',
+            ctx.transaction
+          )
+        ).unwrap()
       )
     ).rejects.toThrow()
   })
@@ -336,24 +343,26 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
+    const setupResult = await adminTransaction(async (ctx) =>
+      (
+        await setupPricingModelTransaction(
           {
             input: minimalInput,
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          ctx
         )
+      ).unwrap()
     )
 
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
+    const fetchedData = await adminTransaction(async (ctx) =>
+      (
+        await getPricingModelSetupData(
           setupResult.pricingModel.id,
-          transaction
+          ctx.transaction
         )
+      ).unwrap()
     )
 
     // Validate with schema
@@ -396,24 +405,26 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
+    const setupResult = await adminTransaction(async (ctx) =>
+      (
+        await setupPricingModelTransaction(
           {
             input,
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          ctx
         )
+      ).unwrap()
     )
 
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
+    const fetchedData = await adminTransaction(async (ctx) =>
+      (
+        await getPricingModelSetupData(
           setupResult.pricingModel.id,
-          transaction
+          ctx.transaction
         )
+      ).unwrap()
     )
 
     // Validate with schema
@@ -521,24 +532,26 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
+    const setupResult = await adminTransaction(async (ctx) =>
+      (
+        await setupPricingModelTransaction(
           {
             input,
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          ctx
         )
+      ).unwrap()
     )
 
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
+    const fetchedData = await adminTransaction(async (ctx) =>
+      (
+        await getPricingModelSetupData(
           setupResult.pricingModel.id,
-          transaction
+          ctx.transaction
         )
+      ).unwrap()
     )
 
     // Validate with schema
@@ -614,20 +627,22 @@ describe('getPricingModelSetupData', () => {
       ],
     }
 
-    const setupResult = await adminTransaction(
-      async ({ transaction }) =>
-        setupPricingModelTransaction(
+    const setupResult = await adminTransaction(async (ctx) =>
+      (
+        await setupPricingModelTransaction(
           {
             input,
             organizationId: organization.id,
             livemode: false,
           },
-          transaction
+          ctx
         )
+      ).unwrap()
     )
 
     // Now manually expire one of the product-feature associations
-    await adminTransaction(async ({ transaction }) => {
+    await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const product = setupResult.products.find(
         (p) => p.slug === 'test-product-associations'
       )
@@ -652,18 +667,19 @@ describe('getPricingModelSetupData', () => {
             id: featureBAssociation.productFeature.id,
             expiredAt: Date.now() - 1000, // Expired in the past
           },
-          transaction
+          ctx
         )
       }
     })
 
     // Fetch the pricing model data
-    const fetchedData = await adminTransaction(
-      async ({ transaction }) =>
-        getPricingModelSetupData(
+    const fetchedData = await adminTransaction(async (ctx) =>
+      (
+        await getPricingModelSetupData(
           setupResult.pricingModel.id,
-          transaction
+          ctx.transaction
         )
+      ).unwrap()
     )
 
     // Validate with schema

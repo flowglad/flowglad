@@ -1,7 +1,7 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import type Stripe from 'stripe'
-import { beforeEach, describe, expect, it } from 'vitest'
 import {
   setupCheckoutSession,
   setupCustomer,
@@ -33,11 +33,15 @@ import {
 } from '@/db/tableMethods/purchaseMethods'
 import type { DbTransaction } from '@/db/types'
 import { selectEventsByCustomer } from '@/test/helpers/databaseHelpers'
-import { createProcessingEffectsContext } from '@/test-utils/transactionCallbacks'
+import {
+  createDiscardingEffectsContext,
+  createProcessingEffectsContext,
+} from '@/test-utils/transactionCallbacks'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   DiscountAmountType,
+  EventNoun,
   FlowgladEventType,
   PaymentMethodType,
   PurchaseStatus,
@@ -269,10 +273,10 @@ describe('Checkout Sessions', async () => {
         checkoutSession.id
       )
       expect(feeCalculation.billingAddress).toEqual(
-        checkoutSession.billingAddress
+        checkoutSession.billingAddress!
       )
       expect(feeCalculation.paymentMethodType).toEqual(
-        checkoutSession.paymentMethodType
+        checkoutSession.paymentMethodType!
       )
     })
 
@@ -291,10 +295,10 @@ describe('Checkout Sessions', async () => {
         checkoutSession.id
       )
       expect(feeCalculation.billingAddress).toEqual(
-        checkoutSession.billingAddress
+        checkoutSession.billingAddress!
       )
       expect(feeCalculation.paymentMethodType).toEqual(
-        checkoutSession.paymentMethodType
+        checkoutSession.paymentMethodType!
       )
     })
   })
@@ -324,7 +328,7 @@ describe('Checkout Sessions', async () => {
                 automaticallyUpdateSubscriptions: null,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('Checkout session is not open')
@@ -357,13 +361,13 @@ describe('Checkout Sessions', async () => {
                 type: CheckoutSessionType.Product,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
 
       expect(
-        (result.checkoutSession.billingAddress as BillingAddress)
+        (result.checkoutSession.billingAddress! as BillingAddress)
           .address
       ).toEqual(newBillingAddress)
     })
@@ -390,7 +394,7 @@ describe('Checkout Sessions', async () => {
             {
               checkoutSession: updatedCheckoutSession,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -440,7 +444,7 @@ describe('Checkout Sessions', async () => {
                 priceId: price.id,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -475,7 +479,7 @@ describe('Checkout Sessions', async () => {
                 type: CheckoutSessionType.Product,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -518,7 +522,7 @@ describe('Checkout Sessions', async () => {
               },
               purchaseId: purchase.id,
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         })
       ).rejects.toThrow('Purchase is not pending')
@@ -551,7 +555,7 @@ describe('Checkout Sessions', async () => {
             },
             purchaseId: purchase.id,
           },
-          transaction
+          createDiscardingEffectsContext(transaction)
         )
       })
 
@@ -596,7 +600,7 @@ describe('Checkout Sessions', async () => {
                 automaticallyUpdateSubscriptions: null,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
           return selectLatestFeeCalculation(
             {
@@ -702,7 +706,7 @@ describe('Checkout Sessions', async () => {
                 discountId: fullDiscount.id,
               },
             },
-            transaction
+            createDiscardingEffectsContext(transaction)
           )
         }
       )
@@ -789,7 +793,9 @@ describe('Checkout Sessions', async () => {
         (e) => e.type === FlowgladEventType.CustomerCreated
       )
       expect(typeof customerCreatedEvent).toBe('object')
-      expect(customerCreatedEvent?.payload.object).toEqual('customer')
+      expect(customerCreatedEvent?.payload.object).toEqual(
+        EventNoun.Customer
+      )
       expect(typeof customerCreatedEvent?.payload.customer).toBe(
         'object'
       )
@@ -810,7 +816,7 @@ describe('Checkout Sessions', async () => {
       )
       expect(typeof subscriptionCreatedEvent).toBe('object')
       expect(subscriptionCreatedEvent?.payload.object).toEqual(
-        'subscription'
+        EventNoun.Subscription
       )
       expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(
         bookkeepingResult.customer.id
@@ -970,7 +976,7 @@ describe('Checkout Sessions', async () => {
           return Result.ok(bookkeeping)
         }
       )
-      expect(result.customer.stripeCustomerId).toMatchObject({})
+      expect(typeof result.customer.stripeCustomerId).toBe('string')
     })
 
     it('should create new purchase when none exists', async () => {
@@ -1269,7 +1275,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
         }
       )
 
-      expect(result.checkoutSession.billingAddress).toEqual(
+      expect(result.checkoutSession.billingAddress!).toEqual(
         billingAddress
       )
       expect(result.feeCalculation).toMatchObject({})
@@ -1331,7 +1337,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
         }
       )
 
-      expect(secondResult.checkoutSession.billingAddress).toEqual(
+      expect(secondResult.checkoutSession.billingAddress!).toEqual(
         orAddress
       )
       expect(typeof secondResult.feeCalculation).toBe('object')
@@ -1388,7 +1394,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
         }
       )
 
-      expect(result.checkoutSession.billingAddress).toEqual(
+      expect(result.checkoutSession.billingAddress!).toEqual(
         billingAddress
       )
       expect(result.feeCalculation).toBeNull()
@@ -1453,7 +1459,7 @@ describe('editCheckoutSessionBillingAddress', async () => {
         }
       )
 
-      expect(result.checkoutSession.billingAddress).toEqual(
+      expect(result.checkoutSession.billingAddress!).toEqual(
         billingAddress
       )
       // Platform orgs should not calculate fees/tax

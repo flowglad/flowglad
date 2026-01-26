@@ -4,34 +4,33 @@ import {
   describe,
   expect,
   it,
-  vi,
-} from 'vitest'
+  mock,
+  spyOn,
+} from 'bun:test'
 import { z } from 'zod'
 import type { DbTransaction } from '@/db/types'
 import {
   CacheDependency,
+  type CacheRecomputationContext,
   type CacheRecomputeMetadata,
   cached,
   getRecomputeHandler,
   getTtlForNamespace,
-  invalidateDependencies,
   type RecomputeHandler,
-  recomputeCacheEntry,
-  recomputeDependencies,
   registerRecomputeHandler,
   type SerializableParams,
-  type TransactionContext,
 } from './cache'
+import {
+  invalidateDependencies,
+  recomputeCacheEntry,
+  recomputeDependencies,
+} from './cache.internal'
 import { cachedRecomputable } from './cache-recomputable'
 import {
   _setTestRedisClient,
   RedisKeyNamespace,
   trackAndEvictLRU,
 } from './redis'
-import {
-  getCurrentTransactionContext,
-  runWithTransactionContext,
-} from './transactionContext'
 
 // In-memory mock Redis client for testing
 function createMockRedisClient() {
@@ -40,14 +39,16 @@ function createMockRedisClient() {
   const zsets: Record<string, Map<string, number>> = {}
 
   // Helper for LRU eviction script simulation (used by both eval and evalsha)
+  // Returns JSON string matching the real Lua script: [evictedCount, orphansRemoved]
   const executeLruScript = (
     keys: string[],
     args: (string | number)[]
-  ): number => {
+  ): string => {
     const zsetKey = keys[0]
     const cacheKey = keys[1]
     const timestamp = Number(args[0])
     const maxSize = Number(args[1])
+    // args[2] is metadataPrefix, used in real script for cleanup
 
     // ZADD
     if (!zsets[zsetKey]) {
@@ -55,7 +56,9 @@ function createMockRedisClient() {
     }
     zsets[zsetKey].set(cacheKey, timestamp)
 
-    // Check size and evict
+    // Check size and evict (simplified - doesn't simulate orphan detection)
+    let evictedCount = 0
+    const orphansRemoved = 0 // Mock doesn't simulate TTL expiration
     const size = zsets[zsetKey].size
     if (size > maxSize) {
       const toEvictCount = size - maxSize
@@ -66,10 +69,10 @@ function createMockRedisClient() {
       for (const m of toEvict) {
         delete store[m]
         zsets[zsetKey].delete(m)
+        evictedCount++
       }
-      return toEvict.length
     }
-    return 0
+    return JSON.stringify([evictedCount, orphansRemoved])
   }
 
   return {
@@ -225,9 +228,10 @@ describe('cached combinator', () => {
   })
 
   it('calls wrapped function on cache miss and returns result', async () => {
-    const wrappedFn = vi
-      .fn()
-      .mockResolvedValue({ id: 'test-123', name: 'Test' })
+    const wrappedFn = mock().mockResolvedValue({
+      id: 'test-123',
+      name: 'Test',
+    })
     const testSchema = z.object({ id: z.string(), name: z.string() })
 
     const cachedFn = cached(
@@ -235,7 +239,7 @@ describe('cached combinator', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: (customerId: string) => customerId,
         schema: testSchema,
-        dependenciesFn: (customerId: string) => [
+        dependenciesFn: (_result, customerId: string) => [
           CacheDependency.customerSubscriptions(customerId),
         ],
       },
@@ -249,7 +253,7 @@ describe('cached combinator', () => {
   })
 
   it('constructs cache key from namespace and keyFn', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ value: 42 })
+    const wrappedFn = mock().mockResolvedValue({ value: 42 })
     const testSchema = z.object({ value: z.number() })
 
     const cachedFn = cached(
@@ -257,7 +261,7 @@ describe('cached combinator', () => {
         namespace: RedisKeyNamespace.ItemsBySubscription,
         keyFn: (subId: string) => `items-${subId}`,
         schema: testSchema,
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       wrappedFn
     )
@@ -272,7 +276,7 @@ describe('cached combinator', () => {
   })
 
   it('fails open when Redis set throws error', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ result: 'success' })
+    const wrappedFn = mock().mockResolvedValue({ result: 'success' })
     const testSchema = z.object({ result: z.string() })
 
     const cachedFn = cached(
@@ -280,7 +284,7 @@ describe('cached combinator', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: () => 'key',
         schema: testSchema,
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       wrappedFn
     )
@@ -292,9 +296,10 @@ describe('cached combinator', () => {
   })
 
   it('treats schema validation failure as cache miss', async () => {
-    const wrappedFn = vi
-      .fn()
-      .mockResolvedValue({ validField: 'correct', count: 10 })
+    const wrappedFn = mock().mockResolvedValue({
+      validField: 'correct',
+      count: 10,
+    })
     const testSchema = z.object({
       validField: z.string(),
       count: z.number(),
@@ -311,7 +316,7 @@ describe('cached combinator', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: () => 'test-key',
         schema: testSchema,
-        dependenciesFn: () => [],
+        dependenciesFn: (_result) => [],
       },
       wrappedFn
     )
@@ -328,7 +333,6 @@ describe('getTtlForNamespace', () => {
   const originalEnv = process.env
 
   beforeEach(() => {
-    vi.resetModules()
     process.env = { ...originalEnv }
   })
 
@@ -353,7 +357,7 @@ describe('getTtlForNamespace', () => {
     const ttl = getTtlForNamespace(
       RedisKeyNamespace.SubscriptionsByCustomer
     )
-    expect(ttl).toBe(300) // default TTL
+    expect(ttl).toBe(600) // default TTL
   })
 
   it('returns default TTL when namespace not in CACHE_TTLS', () => {
@@ -364,7 +368,7 @@ describe('getTtlForNamespace', () => {
     const ttl = getTtlForNamespace(
       RedisKeyNamespace.SubscriptionsByCustomer
     )
-    expect(ttl).toBe(300) // default TTL
+    expect(ttl).toBe(600) // default TTL
   })
 
   it('returns default TTL when CACHE_TTLS is invalid JSON', () => {
@@ -373,7 +377,7 @@ describe('getTtlForNamespace', () => {
     const ttl = getTtlForNamespace(
       RedisKeyNamespace.SubscriptionsByCustomer
     )
-    expect(ttl).toBe(300) // default TTL
+    expect(ttl).toBe(600) // default TTL
   })
 })
 
@@ -390,7 +394,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 
   it('registers dependencies in Redis Sets when cache is populated', async () => {
-    const wrappedFn = vi.fn().mockResolvedValue({ id: 1 })
+    const wrappedFn = mock().mockResolvedValue({ id: 1 })
     const testSchema = z.object({ id: z.number() })
 
     const cachedFn = cached(
@@ -398,7 +402,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: (id: string) => id,
         schema: testSchema,
-        dependenciesFn: (id: string) => [
+        dependenciesFn: (_result, id: string) => [
           `dep:A:${id}`,
           `dep:B:${id}`,
         ],
@@ -418,9 +422,9 @@ describe('dependency-based invalidation (Redis-backed)', () => {
   })
 
   it('invalidates correct cache keys when dependency is invalidated', async () => {
-    const wrappedFn1 = vi.fn().mockResolvedValue({ entry: 1 })
-    const wrappedFn2 = vi.fn().mockResolvedValue({ entry: 2 })
-    const wrappedFn3 = vi.fn().mockResolvedValue({ entry: 3 })
+    const wrappedFn1 = mock().mockResolvedValue({ entry: 1 })
+    const wrappedFn2 = mock().mockResolvedValue({ entry: 2 })
+    const wrappedFn3 = mock().mockResolvedValue({ entry: 3 })
     const testSchema = z.object({ entry: z.number() })
 
     // Create cached functions that share dep:A
@@ -429,7 +433,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: () => 'entry1',
         schema: testSchema,
-        dependenciesFn: () => ['dep:A'],
+        dependenciesFn: (_result) => ['dep:A'],
       },
       wrappedFn1
     )
@@ -439,7 +443,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.ItemsBySubscription,
         keyFn: () => 'entry2',
         schema: testSchema,
-        dependenciesFn: () => ['dep:A'],
+        dependenciesFn: (_result) => ['dep:A'],
       },
       wrappedFn2
     )
@@ -450,7 +454,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
         keyFn: () => 'entry3',
         schema: testSchema,
-        dependenciesFn: () => ['dep:B'],
+        dependenciesFn: (_result) => ['dep:B'],
       },
       wrappedFn3
     )
@@ -495,7 +499,7 @@ describe('dependency-based invalidation (Redis-backed)', () => {
         namespace: RedisKeyNamespace.SubscriptionsByCustomer,
         keyFn: () => 'cleanup-test',
         schema: testSchema,
-        dependenciesFn: () => ['dep:cleanup'],
+        dependenciesFn: (_result) => ['dep:cleanup'],
       },
       async () => ({ val: 'test' })
     )
@@ -520,12 +524,12 @@ function createTestHandler(): {
   handler: RecomputeHandler
   calls: Array<{
     params: SerializableParams
-    context: TransactionContext
+    context: CacheRecomputationContext
   }>
 } {
   const calls: Array<{
     params: SerializableParams
-    context: TransactionContext
+    context: CacheRecomputationContext
   }> = []
   const handler: RecomputeHandler = async (params, context) => {
     calls.push({ params, context })
@@ -538,12 +542,12 @@ function createThrowingHandler(): {
   handler: RecomputeHandler
   calls: Array<{
     params: SerializableParams
-    context: TransactionContext
+    context: CacheRecomputationContext
   }>
 } {
   const calls: Array<{
     params: SerializableParams
-    context: TransactionContext
+    context: CacheRecomputationContext
   }> = []
   const handler: RecomputeHandler = async (params, context) => {
     calls.push({ params, context })
@@ -585,7 +589,7 @@ describe('invalidateDependencies with recomputation', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.SubscriptionsByCustomer,
       params: { customerId: 'cust_123' },
-      transactionContext: { type: 'admin', livemode: true },
+      cacheRecomputationContext: { type: 'admin', livemode: true },
       createdAt: Date.now(),
     }
     const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
@@ -653,13 +657,13 @@ describe('invalidateDependencies with recomputation', () => {
     const metadata1: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
       params: { featureId: 'feat_1' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
     const metadata2: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
       params: { featureId: 'feat_2' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
 
@@ -696,7 +700,7 @@ describe('invalidateDependencies with recomputation', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.BannerDismissals,
       params: { bannerId: 'banner_1' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
     mockRedis.store[
@@ -732,9 +736,7 @@ describe('CacheDependency helpers', () => {
 
 describe('recompute registry', () => {
   it('registerRecomputeHandler stores handler and getRecomputeHandler retrieves it', () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
 
     registerRecomputeHandler(
       RedisKeyNamespace.SubscriptionsByCustomer,
@@ -769,10 +771,8 @@ describe('recomputeCacheEntry', () => {
     _setTestRedisClient(null)
   })
 
-  it('calls handler with params and transactionContext from metadata', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+  it('calls handler with params and cacheRecomputationContext from metadata', async () => {
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
     registerRecomputeHandler(
       RedisKeyNamespace.ItemsBySubscription,
       mockHandler
@@ -782,14 +782,14 @@ describe('recomputeCacheEntry', () => {
       subscriptionId: 'sub_123',
       livemode: true,
     }
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'admin',
       livemode: true,
     }
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.ItemsBySubscription,
       params,
-      transactionContext,
+      cacheRecomputationContext,
       createdAt: Date.now(),
     }
 
@@ -802,14 +802,12 @@ describe('recomputeCacheEntry', () => {
     expect(mockHandler).toHaveBeenCalledTimes(1)
     expect(mockHandler).toHaveBeenCalledWith(
       params,
-      transactionContext
+      cacheRecomputationContext
     )
   })
 
   it('does nothing when metadata key does not exist', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
     registerRecomputeHandler(
       RedisKeyNamespace.FeaturesBySubscriptionItem,
       mockHandler
@@ -826,7 +824,7 @@ describe('recomputeCacheEntry', () => {
   it('logs warning when handler not registered for namespace but does not throw', async () => {
     // Use a unique namespace that definitely has no handler registered
     const params: SerializableParams = { id: 'test' }
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'merchant',
       livemode: false,
       organizationId: 'org_123',
@@ -835,7 +833,7 @@ describe('recomputeCacheEntry', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.BannerDismissals, // No handler for this
       params,
-      transactionContext,
+      cacheRecomputationContext,
       createdAt: Date.now(),
     }
 
@@ -850,9 +848,8 @@ describe('recomputeCacheEntry', () => {
   })
 
   it('logs warning when handler throws error and does not propagate', async () => {
-    const throwingHandler: RecomputeHandler = vi
-      .fn()
-      .mockRejectedValue(new Error('Handler error'))
+    const throwingHandler: RecomputeHandler =
+      mock().mockRejectedValue(new Error('Handler error'))
     registerRecomputeHandler(
       RedisKeyNamespace.StripeOAuthCsrfToken,
       throwingHandler
@@ -861,7 +858,7 @@ describe('recomputeCacheEntry', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.StripeOAuthCsrfToken,
       params: { key: 'value' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
 
@@ -890,9 +887,7 @@ describe('recomputeDependencies', () => {
   })
 
   it('recomputes all cache entries associated with dependencies', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
     registerRecomputeHandler(
       RedisKeyNamespace.CacheDependencyRegistry,
       mockHandler
@@ -909,13 +904,13 @@ describe('recomputeDependencies', () => {
     const metadata1: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.CacheDependencyRegistry,
       params: { keyId: 'key1' },
-      transactionContext: { type: 'admin', livemode: true },
+      cacheRecomputationContext: { type: 'admin', livemode: true },
       createdAt: Date.now(),
     }
     const metadata2: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.CacheDependencyRegistry,
       params: { keyId: 'key2' },
-      transactionContext: { type: 'admin', livemode: true },
+      cacheRecomputationContext: { type: 'admin', livemode: true },
       createdAt: Date.now(),
     }
 
@@ -940,9 +935,7 @@ describe('recomputeDependencies', () => {
   })
 
   it('deduplicates cache keys across dependencies', async () => {
-    const mockHandler: RecomputeHandler = vi
-      .fn()
-      .mockResolvedValue({})
+    const mockHandler: RecomputeHandler = mock().mockResolvedValue({})
     registerRecomputeHandler(RedisKeyNamespace.Telemetry, mockHandler)
 
     // Same cache key appears under two different dependencies
@@ -957,7 +950,7 @@ describe('recomputeDependencies', () => {
     const metadata: CacheRecomputeMetadata = {
       namespace: RedisKeyNamespace.Telemetry,
       params: { id: 'shared' },
-      transactionContext: { type: 'admin', livemode: false },
+      cacheRecomputationContext: { type: 'admin', livemode: false },
       createdAt: Date.now(),
     }
 
@@ -1064,7 +1057,7 @@ describe('cachedRecomputable', () => {
       wrappedFn
     )
 
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'admin',
       livemode: true,
     }
@@ -1073,7 +1066,7 @@ describe('cachedRecomputable', () => {
     await cachedFn(
       { subId: 'sub_123' },
       mockTransaction,
-      transactionContext
+      cacheRecomputationContext
     )
 
     // Verify cache value was stored
@@ -1131,7 +1124,7 @@ describe('cachedRecomputable', () => {
       tags: ['premium', 'active'],
     }
 
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'merchant',
       livemode: true,
       organizationId: 'org_123',
@@ -1139,7 +1132,11 @@ describe('cachedRecomputable', () => {
     }
 
     const mockTransaction = {} as DbTransaction
-    await cachedFn(inputParams, mockTransaction, transactionContext)
+    await cachedFn(
+      inputParams,
+      mockTransaction,
+      cacheRecomputationContext
+    )
 
     const cacheKey = `${RedisKeyNamespace.FeaturesBySubscriptionItem}:cust_1:true`
     const metadataKey = `${RedisKeyNamespace.CacheRecomputeMetadata}:${cacheKey}`
@@ -1174,7 +1171,7 @@ describe('cachedRecomputable', () => {
       wrappedFn
     )
 
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'merchant',
       livemode: false,
       organizationId: 'org_test_123',
@@ -1185,7 +1182,7 @@ describe('cachedRecomputable', () => {
     await cachedFn(
       { id: 'meter_123' },
       mockTransaction,
-      transactionContext
+      cacheRecomputationContext
     )
 
     const cacheKey = `${RedisKeyNamespace.MeterBalancesBySubscription}:meter_123`
@@ -1195,14 +1192,18 @@ describe('cachedRecomputable', () => {
     ) as CacheRecomputeMetadata
 
     // Transaction context should be preserved exactly
-    expect(metadata.transactionContext).toEqual(transactionContext)
-    expect(metadata.transactionContext.type).toBe('merchant')
-    if (metadata.transactionContext.type === 'merchant') {
-      expect(metadata.transactionContext.organizationId).toBe(
+    expect(metadata.cacheRecomputationContext).toEqual(
+      cacheRecomputationContext
+    )
+    expect(metadata.cacheRecomputationContext.type).toBe('merchant')
+    if (metadata.cacheRecomputationContext.type === 'merchant') {
+      expect(metadata.cacheRecomputationContext.organizationId).toBe(
         'org_test_123'
       )
-      expect(metadata.transactionContext.userId).toBe('user_test_456')
-      expect(metadata.transactionContext.livemode).toBe(false)
+      expect(metadata.cacheRecomputationContext.userId).toBe(
+        'user_test_456'
+      )
+      expect(metadata.cacheRecomputationContext.livemode).toBe(false)
     }
   })
 
@@ -1231,14 +1232,14 @@ describe('cachedRecomputable', () => {
     mockRedis.store[cacheKey] = JSON.stringify({ cached: true })
 
     const mockTransaction = {} as DbTransaction
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'admin',
       livemode: true,
     }
     const result = await cachedFn(
       { key: 'hit-test' },
       mockTransaction,
-      transactionContext
+      cacheRecomputationContext
     )
 
     // Should return cached value
@@ -1270,7 +1271,7 @@ describe('cachedRecomputable', () => {
       wrappedFn
     )
 
-    const transactionContext: TransactionContext = {
+    const cacheRecomputationContext: CacheRecomputationContext = {
       type: 'admin',
       livemode: true,
     }
@@ -1279,7 +1280,7 @@ describe('cachedRecomputable', () => {
     await cachedFn(
       { customerId: 'cust_deps' },
       mockTransaction,
-      transactionContext
+      cacheRecomputationContext
     )
 
     // Verify dependencies were registered
@@ -1289,30 +1290,6 @@ describe('cachedRecomputable', () => {
 
     expect(mockRedis.sets[depKey1]?.has(expectedCacheKey)).toBe(true)
     expect(mockRedis.sets[depKey2]?.has(expectedCacheKey)).toBe(true)
-  })
-})
-
-describe('transactionContext', () => {
-  it('runWithTransactionContext makes context available via getCurrentTransactionContext', () => {
-    const context: TransactionContext = {
-      type: 'merchant',
-      livemode: true,
-      organizationId: 'org_test',
-      userId: 'user_test',
-    }
-
-    let capturedContext: TransactionContext | undefined
-
-    runWithTransactionContext(context, () => {
-      capturedContext = getCurrentTransactionContext()
-    })
-
-    expect(capturedContext).toEqual(context)
-  })
-
-  it('getCurrentTransactionContext returns undefined outside of context', () => {
-    const context = getCurrentTransactionContext()
-    expect(context).toBeUndefined()
   })
 })
 

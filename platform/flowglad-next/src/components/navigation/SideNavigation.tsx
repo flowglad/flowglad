@@ -32,6 +32,7 @@ import {
 import { SIDEBAR_BANNER_SLIDES } from '@/config/sidebarBannerConfig'
 import { useAuthContext } from '@/contexts/authContext'
 import { useClickOutside } from '@/hooks/use-click-outside'
+import { useContextAwareNavigation } from '@/hooks/useContextAwareNavigation'
 import { cn } from '@/lib/utils'
 import { BusinessOnboardingStatus } from '@/types'
 import { signOut, useSession } from '@/utils/authClient'
@@ -57,19 +58,16 @@ export const SideNavigation = () => {
   const pathname = usePathname()
   const { organization } = useAuthContext()
   const { data: session } = useSession()
+  const { navigateToParentIfNeeded } = useContextAwareNavigation()
   const toggleTestMode = trpc.utils.toggleTestMode.useMutation({
     onSuccess: async () => {
       await invalidateTRPC()
       await focusedMembership.refetch()
-      /**
-       * Redirects the user back to `customers` page from
-       * `customer/id` when switching between live/test mode to avoid
-       * 404 or page crashes
-       */
-      if (pathname.startsWith('/customers/')) {
-        router.push('/customers')
+      // Navigate to parent page if on a detail page to avoid 404s after livemode switch
+      // Only refresh if staying on current page (navigation handles its own refresh)
+      if (!navigateToParentIfNeeded()) {
+        router.refresh()
       }
-      router.refresh()
     },
   })
   const { invalidate: invalidateTRPC } = trpc.useUtils()
@@ -356,12 +354,14 @@ export const SideNavigation = () => {
                           <div
                             className={cn(
                               'inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent shadow-sm transition-colors cursor-pointer',
-                              !livemode ? 'bg-foreground' : 'bg-input'
+                              !livemode
+                                ? 'bg-citrine-muted-foreground'
+                                : 'bg-input'
                             )}
                           >
                             <div
                               className={cn(
-                                'block h-4 w-4 rounded-full bg-background shadow-lg transition-transform',
+                                'block h-4 w-4 rounded-full bg-white shadow-lg transition-transform',
                                 !livemode
                                   ? 'translate-x-4'
                                   : 'translate-x-0'
@@ -390,19 +390,26 @@ export const SideNavigation = () => {
                     }
                     tooltip="Test Mode"
                   >
-                    <span className="transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap max-w-xs opacity-100 truncate">
+                    <span
+                      className={cn(
+                        'transition-all duration-300 ease-in-out overflow-hidden whitespace-nowrap max-w-xs opacity-100 truncate',
+                        !livemode && 'text-citrine-foreground'
+                      )}
+                    >
                       Test Mode
                     </span>
                     <span className="ml-auto shrink-0">
                       <div
                         className={cn(
                           'inline-flex h-5 w-9 shrink-0 items-center rounded-full border-2 border-transparent shadow-sm transition-colors',
-                          !livemode ? 'bg-foreground' : 'bg-input'
+                          !livemode
+                            ? 'bg-citrine-muted-foreground'
+                            : 'bg-input'
                         )}
                       >
                         <div
                           className={cn(
-                            'block h-4 w-4 rounded-full bg-background shadow-lg transition-transform',
+                            'block h-4 w-4 rounded-full bg-white shadow-lg transition-transform',
                             !livemode
                               ? 'translate-x-4'
                               : 'translate-x-0'

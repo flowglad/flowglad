@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS "pricing_models_organization_id_livemode_unique_idx" ON "pricing_models" USING btree ("organization_id") WHERE "pricing_models"."livemode" = true;

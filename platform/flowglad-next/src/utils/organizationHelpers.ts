@@ -14,7 +14,10 @@ import {
   selectOrganizations,
 } from '@/db/tableMethods/organizationMethods'
 import { upsertUserById } from '@/db/tableMethods/userMethods'
-import type { DbTransaction } from '@/db/types'
+import {
+  createTransactionEffectsContext,
+  type DbTransaction,
+} from '@/db/types'
 import {
   BusinessOnboardingStatus,
   CurrencyCode,
@@ -24,6 +27,7 @@ import {
 } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import core from '@/utils/core'
 import { getEligibleFundsFlowsForCountry } from '@/utils/countries'
 import { defaultCurrencyForCountry } from '@/utils/stripe'
@@ -66,7 +70,8 @@ const defaultStripeConnectContractTypeForCountry = (
 export const createOrganizationTransaction = async (
   input: CreateOrganizationInput,
   user: { id: string; fullName?: string; email: string },
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  cacheRecomputationContext: CacheRecomputationContext
 ) => {
   const userId = user.id
   const { organization } = input
@@ -187,6 +192,13 @@ export const createOrganizationTransaction = async (
     transaction
   )
 
+  // Create TransactionEffectsContext with noop callbacks for organization setup.
+  // This is valid because new entities don't have anything to invalidate in the cache.
+  const ctx = createTransactionEffectsContext(
+    transaction,
+    cacheRecomputationContext
+  )
+
   const { pricingModel: defaultLivePricingModel } = (
     await createPricingModelBookkeeping(
       {
@@ -195,11 +207,7 @@ export const createOrganizationTransaction = async (
           isDefault: true,
         },
       },
-      {
-        transaction,
-        organizationId,
-        livemode: true,
-      }
+      { ...ctx, organizationId, livemode: true }
     )
   ).unwrap()
 
@@ -211,11 +219,7 @@ export const createOrganizationTransaction = async (
           isDefault: true,
         },
       },
-      {
-        transaction,
-        organizationId,
-        livemode: false,
-      }
+      { ...ctx, organizationId, livemode: false }
     )
   ).unwrap()
 
@@ -231,6 +235,7 @@ export const createOrganizationTransaction = async (
     },
     {
       transaction,
+      cacheRecomputationContext,
       livemode: false,
       userId,
       organizationId,

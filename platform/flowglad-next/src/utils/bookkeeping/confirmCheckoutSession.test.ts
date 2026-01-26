@@ -1,6 +1,14 @@
+import type { Mock } from 'bun:test'
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCheckoutSession,
   setupCustomer,
@@ -36,6 +44,7 @@ import {
   CheckoutSessionStatus,
   CheckoutSessionType,
   DiscountAmountType,
+  EventNoun,
   FlowgladEventType,
   IntervalUnit,
   PaymentMethodType,
@@ -54,17 +63,17 @@ import {
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
 
 // Mock Stripe functions
-vi.mock('@/utils/stripe', () => ({
-  cancelPaymentIntent: vi.fn(),
-  createStripeCustomer: vi.fn(),
-  getPaymentIntent: vi.fn(async () => ({
+mock.module('@/utils/stripe', () => ({
+  cancelPaymentIntent: mock(),
+  createStripeCustomer: mock(),
+  getPaymentIntent: mock(async () => ({
     id: 'pi_test',
     object: 'payment_intent',
     customer: null,
   })),
-  getSetupIntent: vi.fn(),
-  updatePaymentIntent: vi.fn(),
-  updateSetupIntent: vi.fn(),
+  getSetupIntent: mock(),
+  updatePaymentIntent: mock(),
+  updateSetupIntent: mock(),
 }))
 
 describe('confirmCheckoutSessionTransaction', () => {
@@ -127,8 +136,8 @@ describe('confirmCheckoutSessionTransaction', () => {
         return Result.ok(result)
       }
     )
-    // Reset mocks
-    vi.resetAllMocks()
+    // Reset mocks - clearAllMocks clears call counts on all mock functions
+    mock.clearAllMocks()
   })
 
   describe('Checkout Session Validation', () => {
@@ -147,12 +156,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session is not open')
       await comprehensiveAdminTransaction(async ({ transaction }) => {
@@ -168,12 +176,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session is not open')
 
@@ -190,12 +197,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session is not open')
     })
@@ -217,16 +223,22 @@ describe('confirmCheckoutSessionTransaction', () => {
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
           const { transaction } = ctx
-          const confirmResult =
+          const confirmResultResult =
             await confirmCheckoutSessionTransaction(
               { id: addPaymentMethodCheckoutSession.id },
               ctx
             )
+          if (confirmResultResult.status === 'error') {
+            return Result.err(confirmResultResult.error)
+          }
           const feeCalculations = await selectFeeCalculations(
             { checkoutSessionId: addPaymentMethodCheckoutSession.id },
             transaction
           )
-          return Result.ok({ confirmResult, feeCalculations })
+          return Result.ok({
+            confirmResult: confirmResultResult.value,
+            feeCalculations,
+          })
         }
       )
 
@@ -264,7 +276,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -294,7 +306,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -321,7 +333,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         email: 'newcustomer@example.com',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -333,7 +345,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -379,7 +391,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -391,7 +403,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -414,7 +426,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       })
 
       // Verify pricing model was associated with the correct default pricing model
-      expect(result.customer.pricingModelId).toMatchObject({})
+      expect(typeof result.customer.pricingModelId).toBe('string')
       expect(result.customer.pricingModelId).toEqual(pricingModel.id)
     })
 
@@ -473,7 +485,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -485,7 +497,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -509,7 +521,9 @@ describe('confirmCheckoutSessionTransaction', () => {
         (e) => e.type === FlowgladEventType.CustomerCreated
       )
       expect(typeof customerCreatedEvent).toBe('object')
-      expect(customerCreatedEvent!.payload.object).toEqual('customer')
+      expect(customerCreatedEvent!.payload.object).toEqual(
+        EventNoun.Customer
+      )
       expect(typeof customerCreatedEvent!.payload.customer).toBe(
         'object'
       )
@@ -527,7 +541,7 @@ describe('confirmCheckoutSessionTransaction', () => {
       )
       expect(typeof subscriptionCreatedEvent).toBe('object')
       expect(subscriptionCreatedEvent?.payload.object).toEqual(
-        'subscription'
+        EventNoun.Subscription
       )
       expect(subscriptionCreatedEvent?.payload.customer?.id).toEqual(
         result.customer.id
@@ -569,7 +583,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -581,7 +595,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -636,7 +650,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         name: 'Test Customer',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -648,7 +662,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -678,12 +692,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session has no customer email')
     })
@@ -712,10 +725,10 @@ describe('confirmCheckoutSessionTransaction', () => {
         }
       )
 
-      expect(result.confirmResult.customer).toMatchObject({})
-      expect(result.confirmResult.customer?.stripeCustomerId).toEqual(
-        result.updatedCustomer.stripeCustomerId
-      )
+      expect(result.confirmResult.unwrap().customer).toMatchObject({})
+      expect(
+        result.confirmResult.unwrap().customer?.stripeCustomerId
+      ).toEqual(result.updatedCustomer.stripeCustomerId)
       // Verify that createStripeCustomer was not called
       expect(createStripeCustomer).not.toHaveBeenCalled()
     })
@@ -735,7 +748,7 @@ describe('confirmCheckoutSessionTransaction', () => {
         email: 'newcustomer@example.com',
         livemode: true,
       })
-      vi.mocked(createStripeCustomer).mockResolvedValue(
+      ;(createStripeCustomer as Mock<any>).mockResolvedValue(
         mockStripeCustomer
       )
 
@@ -747,7 +760,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -780,12 +793,11 @@ describe('confirmCheckoutSessionTransaction', () => {
 
       await expect(
         comprehensiveAdminTransaction(async (ctx) => {
-          const { transaction } = ctx
           const result = await confirmCheckoutSessionTransaction(
             { id: checkoutSession.id },
             ctx
           )
-          return Result.ok(result)
+          return result
         })
       ).rejects.toThrow('Checkout session has no customer email')
     })
@@ -844,7 +856,9 @@ describe('confirmCheckoutSessionTransaction', () => {
           parent: 'pm_123',
         },
       } as Stripe.SetupIntent
-      vi.mocked(getSetupIntent).mockResolvedValue(mockSetupIntent)
+      ;(getSetupIntent as Mock<any>).mockResolvedValue(
+        mockSetupIntent
+      )
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -854,7 +868,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -919,7 +933,9 @@ describe('confirmCheckoutSessionTransaction', () => {
           parent: 'pm_123',
         },
       } as Stripe.SetupIntent
-      vi.mocked(getSetupIntent).mockResolvedValue(mockSetupIntent)
+      ;(getSetupIntent as Mock<any>).mockResolvedValue(
+        mockSetupIntent
+      )
 
       const result = await comprehensiveAdminTransaction(
         async (ctx) => {
@@ -929,7 +945,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -968,7 +984,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1014,7 +1030,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1059,7 +1075,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1116,7 +1132,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1173,7 +1189,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1206,7 +1222,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: updatedCheckoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 
@@ -1227,7 +1243,7 @@ describe('confirmCheckoutSessionTransaction', () => {
               { id: checkoutSession.id },
               ctx
             )
-          return Result.ok(confirmResult)
+          return confirmResult
         }
       )
 

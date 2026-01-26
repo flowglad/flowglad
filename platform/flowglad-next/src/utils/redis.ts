@@ -156,8 +156,18 @@ export enum RedisKeyNamespace {
   ItemsBySubscription = 'itemsBySubscription',
   FeaturesBySubscriptionItem = 'featuresBySubscriptionItem',
   MeterBalancesBySubscription = 'meterBalancesBySubscription',
+  PaymentMethodsByCustomer = 'paymentMethodsByCustomer',
+  PurchasesByCustomer = 'purchasesByCustomer',
+  InvoicesByCustomer = 'invoicesByCustomer',
+  UsageMetersByPricingModel = 'usageMetersByPricingModel',
   CacheDependencyRegistry = 'cacheDeps',
   CacheRecomputeMetadata = 'cacheRecompute',
+  // Pricing model cache atoms
+  PricingModel = 'pricingModel',
+  ProductsByPricingModel = 'productsByPricingModel',
+  PricesByPricingModel = 'pricesByPricingModel',
+  FeaturesByPricingModel = 'featuresByPricingModel',
+  ProductFeaturesByPricingModel = 'productFeaturesByPricingModel',
 }
 
 const evictionPolicy: Record<
@@ -196,6 +206,18 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.MeterBalancesBySubscription]: {
     max: 100000,
   },
+  [RedisKeyNamespace.PaymentMethodsByCustomer]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.PurchasesByCustomer]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.InvoicesByCustomer]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.UsageMetersByPricingModel]: {
+    max: 50000, // Usage meters are config data, typically 5-20 per pricing model
+  },
   [RedisKeyNamespace.CacheDependencyRegistry]: {
     max: 500000, // Higher limit - these are small Sets mapping deps to cache keys
     ttl: 86400, // 24 hours
@@ -203,6 +225,22 @@ const evictionPolicy: Record<
   [RedisKeyNamespace.CacheRecomputeMetadata]: {
     max: 500000, // One metadata entry per recomputable cache key
     ttl: 86400, // 24 hours - same as dependency registry
+  },
+  // Pricing model cache atoms - keyed by pricingModelId
+  [RedisKeyNamespace.PricingModel]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.ProductsByPricingModel]: {
+    max: 50000,
+  },
+  [RedisKeyNamespace.PricesByPricingModel]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.FeaturesByPricingModel]: {
+    max: 100000,
+  },
+  [RedisKeyNamespace.ProductFeaturesByPricingModel]: {
+    max: 100000,
   },
 }
 
@@ -417,25 +455,32 @@ export const resetDismissedBanners = async (
 }
 
 /**
- * Lua script for atomic LRU cache eviction.
+ * Lua script for atomic LRU cache eviction with orphan cleanup.
  *
  * This script:
  * 1. Adds the cache key to a namespace's sorted set (score = timestamp)
  * 2. Checks if the set size exceeds the max
- * 3. If so, evicts the oldest entries (lowest scores)
+ * 3. If so, iterates through oldest entries and:
+ *    - For orphans (expired TTL): removes from sorted set only
+ *    - For real entries: deletes cache key, metadata key, and removes from sorted set
+ *
+ * This lazy cleanup ensures that TTL-expired entries don't accumulate in the
+ * LRU sorted set, which would otherwise degrade eviction accuracy.
  *
  * KEYS[1] = ZSET key (namespace:lru)
  * KEYS[2] = cache key to add
  * ARGV[1] = current timestamp
  * ARGV[2] = max size
+ * ARGV[3] = metadata key prefix (e.g., "cacheRecompute:")
  *
- * Returns: number of entries evicted
+ * Returns: JSON array [evictedCount, orphansRemoved]
  */
 const LRU_EVICTION_SCRIPT = `
 local zsetKey = KEYS[1]
 local cacheKey = KEYS[2]
 local timestamp = tonumber(ARGV[1])
 local maxSize = tonumber(ARGV[2])
+local metadataPrefix = ARGV[3]
 
 -- Add the cache key with current timestamp as score
 redis.call('ZADD', zsetKey, timestamp, cacheKey)
@@ -443,21 +488,41 @@ redis.call('ZADD', zsetKey, timestamp, cacheKey)
 -- Check current size
 local size = redis.call('ZCARD', zsetKey)
 
-if size > maxSize then
-  -- Calculate how many to evict
-  local toEvictCount = size - maxSize
-  -- Get the oldest entries (lowest scores)
-  local toEvict = redis.call('ZRANGE', zsetKey, 0, toEvictCount - 1)
-  if #toEvict > 0 then
-    -- Delete the cache entries
-    redis.call('DEL', unpack(toEvict))
-    -- Remove from the ZSET
-    redis.call('ZREM', zsetKey, unpack(toEvict))
+local evictedCount = 0
+local orphansRemoved = 0
+local maxIterations = 100 -- Safety limit to prevent infinite loops
+
+-- While over max size and haven't hit iteration limit
+while size > maxSize and maxIterations > 0 do
+  maxIterations = maxIterations - 1
+
+  -- Get the oldest entry (lowest score)
+  local oldest = redis.call('ZRANGE', zsetKey, 0, 0)
+  if #oldest == 0 then
+    break
   end
-  return #toEvict
+
+  local oldestKey = oldest[1]
+
+  -- Check if the cache key still exists (not expired by TTL)
+  local exists = redis.call('EXISTS', oldestKey)
+
+  if exists == 1 then
+    -- Real entry - delete cache key and its metadata
+    redis.call('DEL', oldestKey)
+    redis.call('DEL', metadataPrefix .. oldestKey)
+    evictedCount = evictedCount + 1
+  else
+    -- Orphan (TTL expired) - just clean up the sorted set entry
+    orphansRemoved = orphansRemoved + 1
+  end
+
+  -- Remove from sorted set
+  redis.call('ZREM', zsetKey, oldestKey)
+  size = size - 1
 end
 
-return 0
+return cjson.encode({evictedCount, orphansRemoved})
 `
 
 /**
@@ -517,14 +582,19 @@ export function getMaxSizeForNamespace(
  * This function atomically:
  * 1. Adds the cache key to a sorted set (score = current timestamp)
  * 2. Checks if the set exceeds max size
- * 3. Evicts oldest entries (by score) if needed
+ * 3. Evicts oldest entries (by score) if needed, cleaning up orphans along the way
+ *
+ * Orphan cleanup: When iterating through oldest entries, the script checks if each
+ * cache key still exists. TTL-expired entries (orphans) are removed from the sorted
+ * set without attempting to delete the already-gone cache key. This prevents the
+ * LRU sorted set from accumulating stale entries over time.
  *
  * Uses EVALSHA to avoid sending the full script on every call. Falls back to
  * EVAL if the script isn't cached in Redis (which also caches it for future calls).
  *
  * @param namespace - The cache namespace
  * @param cacheKey - The full cache key being written
- * @returns Number of entries evicted (0 if none)
+ * @returns Number of real entries evicted (0 if none)
  */
 export async function trackAndEvictLRU(
   namespace: RedisKeyNamespace,
@@ -534,21 +604,32 @@ export async function trackAndEvictLRU(
     const zsetKey = `${namespace}:lru`
     const maxSize = getMaxSizeForNamespace(namespace)
     const timestamp = Date.now()
+    const metadataPrefix = `${RedisKeyNamespace.CacheRecomputeMetadata}:`
 
-    const evicted = await evalWithShaFallback<unknown>(
+    const result = await evalWithShaFallback<string>(
       LRU_EVICTION_SCRIPT,
       LRU_EVICTION_SCRIPT_SHA,
       [zsetKey, cacheKey],
-      [timestamp, maxSize]
+      [timestamp, maxSize, metadataPrefix]
     )
 
-    const evictedCount =
-      typeof evicted === 'number' ? evicted : Number(evicted) || 0
+    // Parse the JSON array result [evictedCount, orphansRemoved]
+    let evictedCount = 0
+    let orphansRemoved = 0
+    try {
+      const parsed = JSON.parse(result) as [number, number]
+      evictedCount = parsed[0] ?? 0
+      orphansRemoved = parsed[1] ?? 0
+    } catch {
+      // Fallback for unexpected format
+      evictedCount = typeof result === 'number' ? result : 0
+    }
 
-    if (evictedCount > 0) {
+    if (evictedCount > 0 || orphansRemoved > 0) {
       logger.debug('LRU eviction performed', {
         namespace,
         evictedCount,
+        orphansRemoved,
         maxSize,
       })
     }
