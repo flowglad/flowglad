@@ -97,6 +97,11 @@ export const getCreatorRoleFromOrgOptions = (
  * Returns null if the current user is not a member of the organization.
  * If the org exists but owner email can't be determined, email may be "".
  *
+ * Parallelizes the first three queries (member check, org lookup, owner members)
+ * to reduce database round trips from 3 to 2 in the worst case. This trades
+ * potentially executing unnecessary queries (if user isn't a member) for
+ * reduced latency in the common case.
+ *
  * Exported for testing.
  */
 export const getOrganizationDetails = async (params: {
@@ -107,54 +112,55 @@ export const getOrganizationDetails = async (params: {
 }): Promise<{ id: string; name: string; email: string } | null> => {
   const creatorRole = params.creatorRole ?? 'owner'
 
-  const memberResult = await params.adapter.findOne({
-    model: 'member',
-    where: [
-      { field: 'userId', value: params.userId },
-      { field: 'organizationId', value: params.organizationId },
-    ],
-  })
+  // Parallel: member check, org lookup, owner members (round trip 1)
+  const [memberResult, organizationResult, ownerMembersResult] =
+    await Promise.all([
+      params.adapter.findOne({
+        model: 'member',
+        where: [
+          { field: 'userId', value: params.userId },
+          { field: 'organizationId', value: params.organizationId },
+        ],
+      }),
+      params.adapter.findOne({
+        model: 'organization',
+        where: [{ field: 'id', value: params.organizationId }],
+      }),
+      params.adapter.findMany({
+        model: 'member',
+        where: [
+          { field: 'organizationId', value: params.organizationId },
+          { field: 'role', value: creatorRole },
+        ],
+      }),
+    ])
 
+  // Early exit if not a member (queries 2&3 were "wasted" but no extra round trip)
   if (!isRecord(memberResult)) {
     return null
   }
 
+  // Determine owner user ID
   const memberRole = getStringProp(memberResult, 'role')
   const memberUserId =
     getStringProp(memberResult, 'userId') ?? params.userId
-
   let ownerUserId: string | null =
     memberRole === creatorRole ? memberUserId : null
 
-  if (!ownerUserId) {
-    const ownerMembersResult = await params.adapter.findMany({
-      model: 'member',
-      where: [
-        { field: 'organizationId', value: params.organizationId },
-        { field: 'role', value: creatorRole },
-      ],
-    })
-
-    if (Array.isArray(ownerMembersResult)) {
-      const firstOwner = ownerMembersResult.find(isRecord) ?? null
-      ownerUserId = firstOwner
-        ? getStringProp(firstOwner, 'userId')
-        : null
-    }
+  if (!ownerUserId && Array.isArray(ownerMembersResult)) {
+    const firstOwner = ownerMembersResult.find(isRecord) ?? null
+    ownerUserId = firstOwner
+      ? getStringProp(firstOwner, 'userId')
+      : null
   }
 
-  const [organizationResult, ownerUserResult] = await Promise.all([
-    params.adapter.findOne({
-      model: 'organization',
-      where: [{ field: 'id', value: params.organizationId }],
-    }),
-    ownerUserId
-      ? params.adapter.findOne({
-          model: 'user',
-          where: [{ field: 'id', value: ownerUserId }],
-        })
-      : Promise.resolve(null),
-  ])
+  // Single additional query for owner user if needed (round trip 2)
+  const ownerUserResult = ownerUserId
+    ? await params.adapter.findOne({
+        model: 'user',
+        where: [{ field: 'id', value: ownerUserId }],
+      })
+    : null
 
   const organizationName = isRecord(organizationResult)
     ? (getStringProp(organizationResult, 'name') ??
@@ -363,6 +369,36 @@ const createFlowgladBillingEndpoint = <
           { error: customerResult.error },
           { status: 400 }
         )
+      }
+
+      // 2b. Defense-in-depth: verify user membership for organization billing
+      // Better Auth should enforce this when setting activeOrganizationId,
+      // but explicit verification guards against session manipulation or bugs
+      if (
+        params.options.customerType === 'organization' &&
+        isAdapterLike(ctx.context.adapter)
+      ) {
+        const membership = await ctx.context.adapter.findOne({
+          model: 'member',
+          where: [
+            { field: 'userId', value: session.user.id },
+            {
+              field: 'organizationId',
+              value: customerResult.externalId,
+            },
+          ],
+        })
+        if (!isRecord(membership)) {
+          return ctx.json(
+            {
+              error: {
+                code: 'NOT_ORGANIZATION_MEMBER',
+                message: 'You are not a member of this organization',
+              },
+            },
+            { status: 403 }
+          )
+        }
       }
 
       // 3. Get request body (already parsed by Better Call due to body schema)
