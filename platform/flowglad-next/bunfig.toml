@@ -5,18 +5,20 @@ preload = ["./src/scripts/db-safety-preload.ts"]
 autoInstall = false
 
 [test]
-# NOTE: No default preload here - each test script specifies its own preload
-# to avoid conflicts between unit tests (MSW mocking) and integration tests (real APIs)
-# - Unit tests: --preload ./bun.setup.ts (MSW + happy-dom)
-# - Integration tests: --preload ./bun.integration.setup.ts (real Stripe/Redis)
-# - RLS tests: --preload ./bun.rls.setup.ts (real DB, stub Redis)
+# NOTE: No default preload here - each test category specifies its own preload
+# to avoid conflicts between test types:
+# - Pure unit: --preload ./bun.unit.setup.ts (MSW strict, no DB)
+# - DB tests: --preload ./bun.db.test.setup.ts (MSW strict, real DB)
+# - Integration: --preload ./bun.integration.setup.ts (real APIs)
+# - RLS: --preload ./bun.rls.setup.ts (real DB, stub Redis)
+# - Legacy: --preload ./bun.setup.ts (MSW warn mode)
 
 # 5 second timeout for unit tests - forces identification of tests that need
-# to be integration tests or need better mocking
+# database access or better mocking
 timeout = 5000
 
 # Include only .test.ts files in src/ (not .test.tsx - those run via vitest)
-# Integration, flow, and RLS tests live in integration-tests/ and are run separately
+# All test categories (unit, db, integration, rls) live in src/
 include = ["src/**/*.test.ts"]
 # Exclude .test.tsx files (run via vitest for frontend tests)
 exclude = ["**/*.test.tsx"]

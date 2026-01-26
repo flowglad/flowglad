@@ -254,7 +254,6 @@ All tests live in `src/` with different file patterns:
 - **`*.db.test.ts`** - DB-backed tests (external services blocked)
 - **`*.integration.test.ts`** - Integration tests (real external APIs)
 - **`*.rls.test.ts`** - Row Level Security tests (in `src/db/`)
-- **`slow-tests/`** - Tests that require significant setup time
 
 **RLS Tests**: All tests that verify Row Level Security policies must:
 - Follow the naming convention `*.rls.test.ts`
