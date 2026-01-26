@@ -142,10 +142,10 @@ export const {
       .partial()
       .nullable()
       .optional(),
-    role: z.enum([MembershipRole.Owner, MembershipRole.Member]),
   },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
+    role: z.enum([MembershipRole.Owner, MembershipRole.Member]),
   },
   client: {
     hiddenColumns: {
