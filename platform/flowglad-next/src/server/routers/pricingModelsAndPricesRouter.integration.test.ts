@@ -56,7 +56,7 @@ describe('beforeEach setup', () => {
 // pricingModelsRouter.create
 describe('pricingModelsRouter.create', () => {
   it('creates pricing model, default product, and default price (subscription when interval provided)', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -98,7 +98,7 @@ describe('pricingModelsRouter.create', () => {
   })
 
   it('creates pricing model with single-payment default price when no interval provided', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -131,7 +131,7 @@ describe('pricingModelsRouter.create', () => {
   })
 
   it('handles isDefault=true semantics per safelyInsertPricingModel', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -165,7 +165,7 @@ describe('pricingModelsRouter.create', () => {
 // pricesRouter.create
 describe('pricesRouter.create', () => {
   it('auto-defaults the first price for a product when isDefault=false provided', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -221,7 +221,7 @@ describe('pricesRouter.create', () => {
   })
 
   it('allows creating a second default price and deactivates the first', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -308,7 +308,7 @@ describe('pricesRouter.create', () => {
   })
 
   it('allows creating the first price for a default product', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -346,7 +346,7 @@ describe('pricesRouter.create', () => {
   })
 
   it('forbids additional prices for default products', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -459,8 +459,8 @@ describe('pricesRouter.create', () => {
 // pricingModelsRouter.clone
 describe('pricingModelsRouter.clone', () => {
   it('returns NOT_FOUND when cloning a pricing model from another organization', async () => {
-    const org1 = await setupOrg()
-    const org2 = await setupOrg()
+    const org1 = await setupOrg({ skipPricingModel: true })
+    const org2 = await setupOrg({ skipPricingModel: true })
 
     const { apiKey: org1ApiKey } = await setupUserAndApiKey({
       organizationId: org1.organization.id,
@@ -511,7 +511,7 @@ describe('pricingModelsRouter.clone', () => {
   })
 
   it('clones a pricing model within the same environment when no destinationEnvironment is specified', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
     const { apiKey } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: true,
@@ -545,7 +545,7 @@ describe('pricingModelsRouter.clone', () => {
   })
 
   it('clones a pricing model from test mode to live mode when destinationEnvironment is livemode', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
 
     // Create test mode API key and pricing model
     const { apiKey: testApiKey } = await setupUserAndApiKey({
@@ -593,7 +593,7 @@ describe('pricingModelsRouter.clone', () => {
   })
 
   it('clones a pricing model from live mode to test mode when destinationEnvironment is testmode', async () => {
-    const orgData = await setupOrg()
+    const orgData = await setupOrg({ skipPricingModel: true })
 
     // Create live mode API key and pricing model
     const { apiKey: liveApiKey } = await setupUserAndApiKey({

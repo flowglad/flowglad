@@ -179,6 +179,8 @@ export const setupOrg = async (params?: {
   feePercentage?: string
   stripeConnectContractType?: StripeConnectContractType
   countryCode?: CountryCode
+  /** Skip creating pricing models, products, and prices. Useful for tests that need to create their own. */
+  skipPricingModel?: boolean
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
@@ -217,6 +219,17 @@ export const setupOrg = async (params?: {
       },
       transaction
     )
+
+    // If skipPricingModel is true, return just the organization
+    if (params?.skipPricingModel) {
+      return {
+        organization,
+        product: undefined,
+        price: undefined,
+        pricingModel: undefined,
+        testmodePricingModel: undefined,
+      } as any
+    }
 
     // Create both live and testmode default pricing models
     const livePricingModel = await insertPricingModel(
