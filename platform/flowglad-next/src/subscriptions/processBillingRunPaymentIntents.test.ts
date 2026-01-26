@@ -304,10 +304,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         await processOutcomeForBillingRun({ input: event }, ctx)
       ).unwrap()
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = (
         await selectInvoiceById(invoice.id, transaction)
       ).unwrap()
@@ -458,10 +457,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        failedBillingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(failedBillingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = (
         await selectInvoiceById(failedInvoice.id, transaction)
       ).unwrap()
@@ -537,10 +535,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = (
         await selectInvoiceById(canceledInvoice.id, transaction)
       ).unwrap()
@@ -612,10 +609,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = (
         await selectInvoiceById(invoice.id, transaction)
       ).unwrap()
@@ -698,10 +694,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
       const updatedInvoice = (
         await selectInvoiceById(requiresActionInvoice.id, transaction)
       ).unwrap()
@@ -1248,10 +1243,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     // Assertions after transaction
     await adminTransaction(async ({ transaction }) => {
-      const updatedBillingRun = await selectBillingRunById(
-        adjustmentBillingRun.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        )
+      ).unwrap()
       const updatedInvoice = (
         await selectInvoiceById(adjustmentInvoice.id, transaction)
       ).unwrap()
