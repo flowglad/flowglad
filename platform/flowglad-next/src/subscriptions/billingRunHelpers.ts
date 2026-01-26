@@ -788,7 +788,9 @@ export const executeBillingRun = async (
   }
 ) => {
   const billingRun = await adminTransaction(({ transaction }) => {
-    return selectBillingRunById(billingRunId, transaction)
+    return selectBillingRunById(billingRunId, transaction).then((r) =>
+      r.unwrap()
+    )
   })
 
   if (billingRun.status !== BillingRunStatus.Scheduled) {

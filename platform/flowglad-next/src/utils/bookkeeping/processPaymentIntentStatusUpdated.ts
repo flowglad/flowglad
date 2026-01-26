@@ -143,10 +143,19 @@ export const upsertPaymentForStripeCharge = async (
   let currency: Nullish<CurrencyCode> = null
   let feeCalculation: FeeCalculation.Record | null = null
   if (paymentIntentMetadata.type === IntentMetadataType.BillingRun) {
-    const billingRun = await selectBillingRunById(
+    const billingRunResult = await selectBillingRunById(
       paymentIntentMetadata.billingRunId,
       transaction
     )
+    if (Result.isError(billingRunResult)) {
+      return Result.err(
+        new NotFoundError(
+          'BillingRun',
+          paymentIntentMetadata.billingRunId
+        )
+      )
+    }
+    const billingRun = billingRunResult.value
     const subscription = await selectSubscriptionById(
       billingRun.subscriptionId,
       transaction

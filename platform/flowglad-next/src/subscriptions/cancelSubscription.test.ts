@@ -797,14 +797,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
 
         // Verify billing period updates.
-        const updatedActiveBP = await selectBillingPeriodById(
-          activeBP.id,
-          transaction
-        )
-        const updatedFutureBP = await selectBillingPeriodById(
-          futureBP.id,
-          transaction
-        )
+        const updatedActiveBP = (
+          await selectBillingPeriodById(activeBP.id, transaction)
+        ).unwrap()
+        const updatedFutureBP = (
+          await selectBillingPeriodById(futureBP.id, transaction)
+        ).unwrap()
         expect(updatedActiveBP.status).toBe(
           BillingPeriodStatus.Completed
         )
@@ -1090,10 +1088,9 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
         // Since our logic checks "if (billingPeriod.startDate < endDate)" (and not <=),
         // a cancellation exactly at the start may not trigger the "active period" update.
-        const updatedBP = await selectBillingPeriodById(
-          bp.id,
-          transaction
-        )
+        const updatedBP = (
+          await selectBillingPeriodById(bp.id, transaction)
+        ).unwrap()
         expect(updatedBP.status).not.toBe(
           BillingPeriodStatus.Completed
         )
@@ -1160,28 +1157,25 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
 
         // Verify the PastDue billing period is now Canceled
-        const updatedPastDueBP = await selectBillingPeriodById(
-          pastDueBP.id,
-          transaction
-        )
+        const updatedPastDueBP = (
+          await selectBillingPeriodById(pastDueBP.id, transaction)
+        ).unwrap()
         expect(updatedPastDueBP.status).toBe(
           BillingPeriodStatus.Canceled
         )
 
         // Verify the active billing period is Completed
-        const updatedActiveBP = await selectBillingPeriodById(
-          activeBP.id,
-          transaction
-        )
+        const updatedActiveBP = (
+          await selectBillingPeriodById(activeBP.id, transaction)
+        ).unwrap()
         expect(updatedActiveBP.status).toBe(
           BillingPeriodStatus.Completed
         )
 
         // Verify the future billing period is Canceled
-        const updatedFutureBP = await selectBillingPeriodById(
-          futureBP.id,
-          transaction
-        )
+        const updatedFutureBP = (
+          await selectBillingPeriodById(futureBP.id, transaction)
+        ).unwrap()
         expect(updatedFutureBP.status).toBe(
           BillingPeriodStatus.Canceled
         )
@@ -1237,18 +1231,15 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
 
         // Verify all PastDue billing periods are now Canceled
-        const updatedPastDueBP1 = await selectBillingPeriodById(
-          pastDueBP1.id,
-          transaction
-        )
-        const updatedPastDueBP2 = await selectBillingPeriodById(
-          pastDueBP2.id,
-          transaction
-        )
-        const updatedPastDueBP3 = await selectBillingPeriodById(
-          pastDueBP3.id,
-          transaction
-        )
+        const updatedPastDueBP1 = (
+          await selectBillingPeriodById(pastDueBP1.id, transaction)
+        ).unwrap()
+        const updatedPastDueBP2 = (
+          await selectBillingPeriodById(pastDueBP2.id, transaction)
+        ).unwrap()
+        const updatedPastDueBP3 = (
+          await selectBillingPeriodById(pastDueBP3.id, transaction)
+        ).unwrap()
 
         expect(updatedPastDueBP1.status).toBe(
           BillingPeriodStatus.Canceled
@@ -1305,14 +1296,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
 
         // Verify all scheduled billing runs are now aborted
-        const updatedBillingRun1 = await selectBillingRunById(
-          billingRun1.id,
-          transaction
-        )
-        const updatedBillingRun2 = await selectBillingRunById(
-          billingRun2.id,
-          transaction
-        )
+        const updatedBillingRun1 = (
+          await selectBillingRunById(billingRun1.id, transaction)
+        ).unwrap()
+        const updatedBillingRun2 = (
+          await selectBillingRunById(billingRun2.id, transaction)
+        ).unwrap()
 
         expect(updatedBillingRun1.status).toBe(
           BillingRunStatus.Aborted
@@ -1374,18 +1363,15 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
 
         // Verify only scheduled billing run is aborted
-        const updatedScheduledRun = await selectBillingRunById(
-          scheduledRun.id,
-          transaction
-        )
-        const updatedSucceededRun = await selectBillingRunById(
-          succeededRun.id,
-          transaction
-        )
-        const updatedFailedRun = await selectBillingRunById(
-          failedRun.id,
-          transaction
-        )
+        const updatedScheduledRun = (
+          await selectBillingRunById(scheduledRun.id, transaction)
+        ).unwrap()
+        const updatedSucceededRun = (
+          await selectBillingRunById(succeededRun.id, transaction)
+        ).unwrap()
+        const updatedFailedRun = (
+          await selectBillingRunById(failedRun.id, transaction)
+        ).unwrap()
 
         expect(updatedScheduledRun.status).toBe(
           BillingRunStatus.Aborted
@@ -1445,10 +1431,9 @@ describe('Subscription Cancellation Test Suite', async () => {
           currentBP.endDate
         )
         // Verify that any billing period starting after the cancellation date is updated.
-        const updatedFutureBP = await selectBillingPeriodById(
-          futureBP.id,
-          transaction
-        )
+        const updatedFutureBP = (
+          await selectBillingPeriodById(futureBP.id, transaction)
+        ).unwrap()
         expect(updatedFutureBP.status).toBe(
           BillingPeriodStatus.ScheduledToCancel
         )
@@ -1595,10 +1580,9 @@ describe('Subscription Cancellation Test Suite', async () => {
           SubscriptionStatus.CancellationScheduled
         )
         // Verify that if the cancellation time equals the billing period start, the billing period is not updated as scheduled.
-        const updatedBP = await selectBillingPeriodById(
-          bp.id,
-          transaction
-        )
+        const updatedBP = (
+          await selectBillingPeriodById(bp.id, transaction)
+        ).unwrap()
         expect(updatedBP.status).not.toBe(
           BillingPeriodStatus.ScheduledToCancel
         )
@@ -1655,14 +1639,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
 
         // Verify all scheduled billing runs are now aborted
-        const updatedBillingRun1 = await selectBillingRunById(
-          billingRun1.id,
-          transaction
-        )
-        const updatedBillingRun2 = await selectBillingRunById(
-          billingRun2.id,
-          transaction
-        )
+        const updatedBillingRun1 = (
+          await selectBillingRunById(billingRun1.id, transaction)
+        ).unwrap()
+        const updatedBillingRun2 = (
+          await selectBillingRunById(billingRun2.id, transaction)
+        ).unwrap()
 
         expect(updatedBillingRun1.status).toBe(
           BillingRunStatus.Aborted
@@ -1724,24 +1706,21 @@ describe('Subscription Cancellation Test Suite', async () => {
           0
         )
 
-        const updatedFuturePeriod = await selectBillingPeriodById(
-          futurePeriod.id,
-          transaction
-        )
+        const updatedFuturePeriod = (
+          await selectBillingPeriodById(futurePeriod.id, transaction)
+        ).unwrap()
         expect(updatedFuturePeriod.status).toBe(
           BillingPeriodStatus.ScheduledToCancel
         )
-        const currentPeriodAfter = await selectBillingPeriodById(
-          currentPeriod.id,
-          transaction
-        )
+        const currentPeriodAfter = (
+          await selectBillingPeriodById(currentPeriod.id, transaction)
+        ).unwrap()
         expect(currentPeriodAfter.status).not.toBe(
           BillingPeriodStatus.ScheduledToCancel
         )
-        const updatedBillingRun = await selectBillingRunById(
-          billingRunRecord.id,
-          transaction
-        )
+        const updatedBillingRun = (
+          await selectBillingRunById(billingRunRecord.id, transaction)
+        ).unwrap()
         expect(updatedBillingRun.status).toBe(
           BillingRunStatus.Aborted
         )
@@ -1949,14 +1928,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         expect(updatedSubscription.status).toBe(
           SubscriptionStatus.Canceled
         )
-        const updatedBP1 = await selectBillingPeriodById(
-          bp1.id,
-          transaction
-        )
-        const updatedBP2 = await selectBillingPeriodById(
-          bp2.id,
-          transaction
-        )
+        const updatedBP1 = (
+          await selectBillingPeriodById(bp1.id, transaction)
+        ).unwrap()
+        const updatedBP2 = (
+          await selectBillingPeriodById(bp2.id, transaction)
+        ).unwrap()
         // At least one of the billing periods should be updated appropriately.
         expect([
           BillingPeriodStatus.Completed,
@@ -2122,14 +2099,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
 
         // Verify billing runs are still aborted (not double-aborted or in error state)
-        const updatedBillingRun1 = await selectBillingRunById(
-          billingRun1.id,
-          transaction
-        )
-        const updatedBillingRun2 = await selectBillingRunById(
-          billingRun2.id,
-          transaction
-        )
+        const updatedBillingRun1 = (
+          await selectBillingRunById(billingRun1.id, transaction)
+        ).unwrap()
+        const updatedBillingRun2 = (
+          await selectBillingRunById(billingRun2.id, transaction)
+        ).unwrap()
 
         expect(updatedBillingRun1.status).toBe(
           BillingRunStatus.Aborted
@@ -2768,10 +2743,9 @@ describe('Subscription Cancellation Test Suite', async () => {
           createDiscardingEffectsContext(transaction)
         )
 
-        const updatedBP = await selectBillingPeriodById(
-          futureBP.id,
-          transaction
-        )
+        const updatedBP = (
+          await selectBillingPeriodById(futureBP.id, transaction)
+        ).unwrap()
         expect(updatedBP.status).toBe(BillingPeriodStatus.Upcoming)
       })
     })
@@ -2802,10 +2776,9 @@ describe('Subscription Cancellation Test Suite', async () => {
           createDiscardingEffectsContext(transaction)
         )
 
-        const updatedBP = await selectBillingPeriodById(
-          currentBP.id,
-          transaction
-        )
+        const updatedBP = (
+          await selectBillingPeriodById(currentBP.id, transaction)
+        ).unwrap()
         expect(updatedBP.status).toBe(BillingPeriodStatus.Active)
       })
     })
@@ -3711,19 +3684,17 @@ describe('Subscription Cancellation Test Suite', async () => {
         )
 
         // Verify current billing period reverted to Active
-        const updatedCurrentBP = await selectBillingPeriodById(
-          currentBP.id,
-          transaction
-        )
+        const updatedCurrentBP = (
+          await selectBillingPeriodById(currentBP.id, transaction)
+        ).unwrap()
         expect(updatedCurrentBP.status).toBe(
           BillingPeriodStatus.Active
         )
 
         // Verify future billing period reverted to Upcoming
-        const updatedFutureBP = await selectBillingPeriodById(
-          futureBP.id,
-          transaction
-        )
+        const updatedFutureBP = (
+          await selectBillingPeriodById(futureBP.id, transaction)
+        ).unwrap()
         expect(updatedFutureBP.status).toBe(
           BillingPeriodStatus.Upcoming
         )

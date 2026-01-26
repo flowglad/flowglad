@@ -10,7 +10,7 @@ import {
 } from '@/db/schema/billingRuns'
 import {
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -32,7 +32,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'billing_runs',
 }
 
-export const selectBillingRunById = createSelectById(
+export const selectBillingRunById = createSelectByIdResult(
   billingRuns,
   config
 )
