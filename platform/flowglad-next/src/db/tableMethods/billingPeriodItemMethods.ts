@@ -20,7 +20,7 @@ import {
 import {
   createBulkInsertFunction,
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -63,7 +63,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'billing_period_items',
 }
 
-export const selectBillingPeriodItemById = createSelectById(
+export const selectBillingPeriodItemById = createSelectByIdResult(
   billingPeriodItems,
   config
 )

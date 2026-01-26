@@ -848,10 +848,9 @@ export const setupInvoice = async ({
     let purchaseIdToUse: string | null = existingPurchaseId ?? null
 
     if (billingPeriodId) {
-      billingPeriod = await selectBillingPeriodById(
-        billingPeriodId,
-        transaction
-      )
+      billingPeriod = (
+        await selectBillingPeriodById(billingPeriodId, transaction)
+      ).unwrap()
       if (purchaseIdToUse && billingPeriod) {
         throw new Error(
           'Invoice cannot be for both a billingPeriodId and an existing purchaseId.'

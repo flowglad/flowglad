@@ -6242,6 +6242,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6253,7 +6256,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6442,6 +6446,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6453,7 +6460,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6564,9 +6572,17 @@
                       },
                       "active": {
                         "type": "boolean"
+                      },
+                      "pricingModelId": {
+                        "type": "string"
                       }
                     },
-                    "required": ["filterTypes", "url", "name"]
+                    "required": [
+                      "filterTypes",
+                      "url",
+                      "name",
+                      "pricingModelId"
+                    ]
                   }
                 },
                 "required": ["webhook"]
@@ -6632,6 +6648,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6643,7 +6662,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     },

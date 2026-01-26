@@ -8,6 +8,7 @@ import {
 import {
   constructGinIndex,
   constructIndex,
+  constructPartialUniqueIndex,
   constructUniqueIndex,
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
@@ -77,10 +78,13 @@ export const customers = pgTable(
     //   table.livemode,
     // ]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
-    constructUniqueIndex(TABLE_NAME, [
-      table.pricingModelId,
-      table.externalId,
-    ]),
+    // Partial unique index: only enforce uniqueness for non-archived customers.
+    // This allows archived customers' externalIds to be reused by new customers.
+    constructPartialUniqueIndex(
+      TABLE_NAME,
+      [table.pricingModelId, table.externalId],
+      sql`${table.archived} = false`
+    ),
     constructUniqueIndex(TABLE_NAME, [
       table.pricingModelId,
       table.invoiceNumberBase,

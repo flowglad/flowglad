@@ -9,10 +9,13 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { Customer, customers } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { User } from '@/db/schema/users'
+import { ArchivedCustomerError } from '@/errors'
 import core from '@/utils/core'
 import {
+  assertCustomerNotArchived,
   assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoStackAuthHostedBillingUserId,
   insertCustomer,
+  selectCustomerByExternalIdAndOrganizationId,
   selectCustomerById,
   selectCustomerPricingInfoBatch,
   selectCustomers,
@@ -552,6 +555,186 @@ describe('setUserIdForCustomerRecords', () => {
   })
 })
 
+describe('selectCustomerByExternalIdAndOrganizationId', () => {
+  let organization: Organization.Record
+
+  beforeEach(async () => {
+    const orgData = await setupOrg()
+    organization = orgData.organization
+  })
+
+  it('should not return archived customers by default', async () => {
+    const externalId = `ext_${core.nanoid()}`
+
+    // Create a customer and then archive it
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      externalId,
+    })
+
+    // Archive the customer
+    await adminTransaction(async ({ transaction }) => {
+      await updateCustomer(
+        { id: customer.id, archived: true },
+        transaction
+      )
+    })
+
+    // Lookup without includeArchived should return null
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerByExternalIdAndOrganizationId(
+        {
+          externalId,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('should return archived customers when includeArchived=true', async () => {
+    const externalId = `ext_${core.nanoid()}`
+
+    // Create a customer and then archive it
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      externalId,
+    })
+
+    // Archive the customer
+    await adminTransaction(async ({ transaction }) => {
+      await updateCustomer(
+        { id: customer.id, archived: true },
+        transaction
+      )
+    })
+
+    // Lookup with includeArchived=true should return the archived customer
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerByExternalIdAndOrganizationId(
+        {
+          externalId,
+          organizationId: organization.id,
+          includeArchived: true,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toMatchObject({
+      id: customer.id,
+      externalId,
+      archived: true,
+    })
+  })
+
+  it('should return non-archived customers regardless of includeArchived setting', async () => {
+    const externalId = `ext_${core.nanoid()}`
+
+    // Create an active (non-archived) customer
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      externalId,
+    })
+
+    // Lookup without includeArchived should return the customer
+    const resultDefault = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomerByExternalIdAndOrganizationId(
+          {
+            externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultDefault).toMatchObject({
+      id: customer.id,
+      archived: false,
+    })
+
+    // Lookup with includeArchived=true should also return the customer
+    const resultIncludeArchived = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomerByExternalIdAndOrganizationId(
+          {
+            externalId,
+            organizationId: organization.id,
+            includeArchived: true,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultIncludeArchived).toMatchObject({
+      id: customer.id,
+      archived: false,
+    })
+  })
+
+  it('should return null for non-existent externalId', async () => {
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerByExternalIdAndOrganizationId(
+        {
+          externalId: `non_existent_${core.nanoid()}`,
+          organizationId: organization.id,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toBeNull()
+  })
+
+  it('should respect organization isolation when filtering archived customers', async () => {
+    const externalId = `ext_${core.nanoid()}`
+
+    // Create customer in org1
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      externalId,
+    })
+
+    // Create a second organization
+    const { organization: organization2 } = await setupOrg()
+
+    // Lookup in org2 should return null (customer doesn't exist in org2)
+    const result = await adminTransaction(async ({ transaction }) => {
+      return selectCustomerByExternalIdAndOrganizationId(
+        {
+          externalId,
+          organizationId: organization2.id,
+        },
+        transaction
+      )
+    })
+
+    expect(result).toBeNull()
+
+    // Lookup in org1 should return the customer
+    const resultOrg1 = await adminTransaction(
+      async ({ transaction }) => {
+        return selectCustomerByExternalIdAndOrganizationId(
+          {
+            externalId,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+      }
+    )
+
+    expect(resultOrg1).toMatchObject({
+      id: customer.id,
+    })
+  })
+})
+
 describe('Customer uniqueness constraints', () => {
   let organization1: Organization.Record
   let organization2: Organization.Record
@@ -567,6 +750,203 @@ describe('Customer uniqueness constraints', () => {
     const org2Data = await setupOrg()
     organization2 = org2Data.organization
     pricingModel2Id = org2Data.pricingModel.id
+  })
+
+  describe('externalId partial unique index (archived customer handling)', () => {
+    it('allows two customers with same externalId if one is archived', async () => {
+      const sharedExternalId = `ext_archived_${core.nanoid()}`
+
+      // Create first customer and archive it
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      // Archive the customer
+      await adminTransaction(async ({ transaction }) => {
+        await updateCustomer(
+          { id: customer1.id, archived: true },
+          transaction
+        )
+      })
+
+      // Verify customer1 is archived
+      const archivedCustomer = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectCustomerById(customer1.id, transaction)
+        }
+      )
+      expect(archivedCustomer.archived).toBe(true)
+
+      // Create new customer with same externalId - should succeed
+      const customer2 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer2_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      expect(customer2.externalId).toBe(sharedExternalId)
+      expect(customer2.archived).toBe(false)
+      expect(customer2.id).not.toBe(customer1.id)
+    })
+
+    it('rejects two active (non-archived) customers with same externalId in same pricingModel', async () => {
+      const duplicateExternalId = `ext_dup_${core.nanoid()}`
+
+      // Create first active customer
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: duplicateExternalId,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      expect(customer1.externalId).toBe(duplicateExternalId)
+      expect(customer1.archived).toBe(false)
+
+      // Attempt to create second active customer with same externalId - should fail
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await insertCustomer(
+            {
+              organizationId: organization1.id,
+              externalId: duplicateExternalId,
+              email: `customer2_${core.nanoid()}@test.com`,
+              name: 'Duplicate Customer',
+              livemode: true,
+              pricingModelId: pricingModel1Id,
+            },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+    })
+
+    it('allows same externalId across different pricingModels regardless of archive status', async () => {
+      const sharedExternalId = `ext_cross_pm_${core.nanoid()}`
+
+      // Create customer in pricingModel1
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      // Create customer with same externalId in pricingModel2 (different org has different pricing model)
+      const customer2 = await setupCustomer({
+        organizationId: organization2.id,
+        externalId: sharedExternalId,
+        email: `customer2_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      // Both should be created successfully
+      expect(customer1.externalId).toBe(sharedExternalId)
+      expect(customer2.externalId).toBe(sharedExternalId)
+      expect(customer1.pricingModelId).toBe(pricingModel1Id)
+      expect(customer2.pricingModelId).toBe(pricingModel2Id)
+    })
+
+    it('allows multiple archived customers with the same externalId', async () => {
+      const sharedExternalId = `ext_multi_archived_${core.nanoid()}`
+
+      // Create and archive first customer
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+      await adminTransaction(async ({ transaction }) => {
+        await updateCustomer(
+          { id: customer1.id, archived: true },
+          transaction
+        )
+      })
+
+      // Create and archive second customer with same externalId
+      const customer2 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer2_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+      await adminTransaction(async ({ transaction }) => {
+        await updateCustomer(
+          { id: customer2.id, archived: true },
+          transaction
+        )
+      })
+
+      // Verify both are archived with the same externalId
+      const [archivedCustomer1, archivedCustomer2] =
+        await adminTransaction(async ({ transaction }) => {
+          const c1 = await selectCustomerById(
+            customer1.id,
+            transaction
+          )
+          const c2 = await selectCustomerById(
+            customer2.id,
+            transaction
+          )
+          return [c1, c2]
+        })
+
+      expect(archivedCustomer1.externalId).toBe(sharedExternalId)
+      expect(archivedCustomer2.externalId).toBe(sharedExternalId)
+      expect(archivedCustomer1.archived).toBe(true)
+      expect(archivedCustomer2.archived).toBe(true)
+    })
+
+    it('prevents unarchiving a customer if it would create a duplicate externalId', async () => {
+      const sharedExternalId = `ext_unarchive_${core.nanoid()}`
+
+      // Create and archive first customer
+      const customer1 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer1_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+      await adminTransaction(async ({ transaction }) => {
+        await updateCustomer(
+          { id: customer1.id, archived: true },
+          transaction
+        )
+      })
+
+      // Create second active customer with same externalId
+      const customer2 = await setupCustomer({
+        organizationId: organization1.id,
+        externalId: sharedExternalId,
+        email: `customer2_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+
+      expect(customer2.archived).toBe(false)
+
+      // Attempt to unarchive customer1 - should fail due to unique constraint
+      await expect(
+        adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
+            { id: customer1.id, archived: false },
+            transaction
+          )
+        })
+      ).rejects.toThrow()
+
+      // Verify customer1 is still archived
+      const stillArchivedCustomer = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectCustomerById(customer1.id, transaction)
+        }
+      )
+      expect(stillArchivedCustomer.archived).toBe(true)
+    })
   })
 
   describe('organizationId/externalId/livemode uniqueness constraint', () => {
@@ -1702,5 +2082,47 @@ describe('selectCustomerPricingInfoBatch', () => {
     expect(result.size).toBe(2)
     expect(result.get(customerLive.id)?.livemode).toBe(true)
     expect(result.get(customerTest.id)?.livemode).toBe(false)
+  })
+})
+
+describe('assertCustomerNotArchived', () => {
+  it('throws ArchivedCustomerError for archived customer with the provided operation description', () => {
+    const customer = {
+      id: 'cust_test_123',
+      archived: true,
+    } as Customer.Record
+
+    expect(() =>
+      assertCustomerNotArchived(customer, 'create payment method')
+    ).toThrow(ArchivedCustomerError)
+    expect(() =>
+      assertCustomerNotArchived(customer, 'create payment method')
+    ).toThrow('Cannot create payment method for archived customer')
+  })
+
+  it('throws ArchivedCustomerError with different operation descriptions', () => {
+    const customer = {
+      id: 'cust_test_456',
+      archived: true,
+    } as Customer.Record
+
+    expect(() =>
+      assertCustomerNotArchived(customer, 'record usage event')
+    ).toThrow('Cannot record usage event for archived customer')
+
+    expect(() =>
+      assertCustomerNotArchived(customer, 'create subscription')
+    ).toThrow('Cannot create subscription for archived customer')
+  })
+
+  it('does not throw for non-archived customer (archived: false)', () => {
+    const customer = {
+      id: 'cust_test_789',
+      archived: false,
+    } as Customer.Record
+
+    expect(() =>
+      assertCustomerNotArchived(customer, 'create payment method')
+    ).not.toThrow()
   })
 })

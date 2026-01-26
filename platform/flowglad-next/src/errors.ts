@@ -48,6 +48,27 @@ export class TerminalStateError extends DomainError {
   }
 }
 
+export class SubscriptionTerminalStateError extends DomainError {
+  constructor(
+    public readonly subscriptionId: string,
+    public readonly state: string
+  ) {
+    super(
+      'SubscriptionTerminalStateError',
+      `Cannot mutate subscription ${subscriptionId} in terminal state: ${state}`
+    )
+  }
+}
+
+export class ArchivedCustomerError extends DomainError {
+  constructor(public readonly operation: string) {
+    super(
+      'ArchivedCustomerError',
+      `Cannot ${operation} for archived customer`
+    )
+  }
+}
+
 export class PaymentError extends DomainError {
   constructor(
     public readonly reason: string,

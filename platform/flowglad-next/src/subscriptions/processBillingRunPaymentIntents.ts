@@ -41,6 +41,7 @@ import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscr
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import {
+  ConflictError,
   NotFoundError,
   type TerminalStateError,
   ValidationError,
@@ -228,7 +229,10 @@ export const processOutcomeForBillingRun = async (
       payment: Payment.Record
       processingSkipped?: boolean
     },
-    NotFoundError | ValidationError | TerminalStateError
+    | NotFoundError
+    | ValidationError
+    | TerminalStateError
+    | ConflictError
   >
 > => {
   const {
@@ -245,10 +249,9 @@ export const processOutcomeForBillingRun = async (
     event.metadata
   )
 
-  let billingRun = await selectBillingRunById(
-    metadata.billingRunId,
-    transaction
-  )
+  let billingRun = (
+    await selectBillingRunById(metadata.billingRunId, transaction)
+  ).unwrap()
 
   const eventTimestamp = dateFromStripeTimestamp(timestamp)
   const eventPrecedesLastPaymentIntentEvent =
@@ -384,15 +387,20 @@ export const processOutcomeForBillingRun = async (
     transaction
   )
 
-  const overages = await aggregateOutstandingBalanceForUsageCosts(
-    {
-      ledgerAccountId: claimedLedgerEntries.map(
-        (entry) => entry.ledgerAccountId!
-      ),
-    },
-    new Date(billingPeriod.endDate),
-    transaction
-  )
+  const overagesResult =
+    await aggregateOutstandingBalanceForUsageCosts(
+      {
+        ledgerAccountId: claimedLedgerEntries.map(
+          (entry) => entry.ledgerAccountId!
+        ),
+      },
+      new Date(billingPeriod.endDate),
+      transaction
+    )
+  if (Result.isError(overagesResult)) {
+    return Result.err(overagesResult.error)
+  }
+  const overages = overagesResult.value
 
   const { totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
