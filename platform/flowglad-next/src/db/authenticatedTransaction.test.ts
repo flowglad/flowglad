@@ -8,7 +8,7 @@ import {
   setupOrg,
   setupUserAndApiKey,
 } from '@/../seedDatabase'
-import { EventNoun, FlowgladEventType } from '@/types'
+import { EventNoun, FlowgladEventType, MembershipRole } from '@/types'
 import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'
 import { adminTransaction } from './adminTransaction'
@@ -110,6 +110,7 @@ describe('authenticatedTransaction', () => {
           userId: userA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -256,6 +257,7 @@ describe('authenticatedTransaction', () => {
             userId,
             focused: true,
             livemode: true,
+            role: MembershipRole.Member,
           },
           transaction
         )
@@ -265,6 +267,7 @@ describe('authenticatedTransaction', () => {
             userId,
             focused: false,
             livemode: true,
+            role: MembershipRole.Member,
           },
           transaction
         )

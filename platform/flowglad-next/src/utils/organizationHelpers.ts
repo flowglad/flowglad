@@ -23,6 +23,7 @@ import {
   CurrencyCode,
   type FeatureFlag,
   FlowgladApiKeyType,
+  MembershipRole,
   StripeConnectContractType,
 } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
@@ -187,6 +188,7 @@ export const createOrganizationTransaction = async (
        * checkout experience is like
        */
       livemode: false,
+      role: MembershipRole.Owner,
     },
     transaction
   )

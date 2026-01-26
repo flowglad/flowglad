@@ -33,7 +33,7 @@ import {
 } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { selectProducts } from '@/db/tableMethods/productMethods'
-import { FlowgladApiKeyType } from '@/types'
+import { FlowgladApiKeyType, MembershipRole } from '@/types'
 import { deleteSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
 import { hashData } from '@/utils/backendCore'
 import core from '@/utils/core'
@@ -110,6 +110,7 @@ describe('API Key RLS', () => {
             userId: userA.id,
             focused: true,
             livemode: false,
+            role: MembershipRole.Member,
           },
           transaction
         )

@@ -17,6 +17,7 @@ import {
   selectUsers,
 } from '@/db/tableMethods/userMethods'
 import { protectedProcedure } from '@/server/trpc'
+import { MembershipRole } from '@/types'
 import { auth } from '@/utils/auth'
 import core from '@/utils/core'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
@@ -57,6 +58,7 @@ export const innerInviteUserToOrganizationHandler = async (
           organizationId: focusedMembership.organization.id,
           focused: false,
           livemode: focusedMembership.membership.livemode,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -90,6 +92,7 @@ export const innerInviteUserToOrganizationHandler = async (
         organizationId: focusedMembership.organization.id,
         focused: false,
         livemode,
+        role: MembershipRole.Member,
       },
       transaction
     )

@@ -32,7 +32,7 @@ import {
   selectProducts,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
-import { FlowgladApiKeyType } from '@/types'
+import { FlowgladApiKeyType, MembershipRole } from '@/types'
 
 describe('RLS Access Control with selectOrganizations', () => {
   // Global test state variables
@@ -76,6 +76,7 @@ describe('RLS Access Control with selectOrganizations', () => {
           userId: userA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -214,6 +215,7 @@ describe('RLS Access Control with selectMemberships', () => {
           userId: userA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -385,6 +387,7 @@ describe('RLS for selectProducts', () => {
           userId: prodUserA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -657,6 +660,7 @@ describe('RLS for selectPricingModels', () => {
           userId: catUserA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -1035,6 +1039,7 @@ describe('Edge cases and robustness for second-order RLS', () => {
           userId: user.id,
           focused: true,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
