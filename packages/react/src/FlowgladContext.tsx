@@ -24,6 +24,10 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useFlowgladConfig } from './FlowgladConfigContext'
 import { devError } from './lib/utils'
+import {
+  USAGE_METER_QUERY_KEY,
+  USAGE_METERS_QUERY_KEY,
+} from './useUsageMeters'
 import { validateUrl } from './utils'
 
 /**
@@ -516,6 +520,7 @@ interface ConstructCreateUsageEventParams {
   baseURL: string | undefined
   betterAuthBasePath: string | undefined
   requestConfig?: RequestConfig
+  queryClient: ReturnType<typeof useQueryClient>
 }
 
 const constructCreateUsageEvent =
@@ -526,8 +531,12 @@ const constructCreateUsageEvent =
     | { usageEvent: { id: string } }
     | { error: { code: string; json: Record<string, unknown> } }
   > => {
-    const { baseURL, betterAuthBasePath, requestConfig } =
-      constructParams
+    const {
+      baseURL,
+      betterAuthBasePath,
+      requestConfig,
+      queryClient,
+    } = constructParams
     const headers = requestConfig?.headers
     const flowgladRoute = getFlowgladRoute(
       baseURL,
@@ -554,6 +563,15 @@ const constructCreateUsageEvent =
       )
       return { error: json.error }
     }
+
+    // Invalidate usage meter query keys after successful creation
+    await queryClient.invalidateQueries({
+      queryKey: [USAGE_METERS_QUERY_KEY],
+    })
+    await queryClient.invalidateQueries({
+      queryKey: [USAGE_METER_QUERY_KEY],
+    })
+
     return { usageEvent: { id: json.data.usageEvent.id } }
   }
 
@@ -1021,8 +1039,9 @@ export const useBilling = (): FlowgladContextValues => {
         baseURL,
         betterAuthBasePath,
         requestConfig,
+        queryClient,
       }),
-    [baseURL, betterAuthBasePath, requestConfig]
+    [baseURL, betterAuthBasePath, requestConfig, queryClient]
   )
 
   const adjustSubscription = useMemo(
