@@ -19,7 +19,7 @@ import {
   it,
   spyOn,
 } from 'bun:test'
-import { trackSpy } from '@/test/isolation'
+import { trackSpy } from '@/test/isolation/spyManager'
 
 describe('Test Infrastructure Isolation', () => {
   describe('Environment Variable Isolation', () => {

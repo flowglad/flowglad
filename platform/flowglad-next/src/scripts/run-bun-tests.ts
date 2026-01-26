@@ -105,9 +105,7 @@ const { shard, remainingArgs } = parseShardArg(args.slice(2))
 
 // Check for --list flag
 const listOnly = remainingArgs.includes('--list')
-const extraArgs = remainingArgs.filter(
-  (arg) => arg !== '--list' && arg.startsWith('--')
-)
+const extraArgs = remainingArgs.filter((arg) => arg !== '--list')
 
 // Always search in src/
 const searchDir = 'src'

@@ -129,7 +129,7 @@ The test setup files automatically provide isolation:
 
 **Using trackSpy for automatic spy cleanup:**
 ```typescript
-import { trackSpy } from '@/test/isolation'
+import { trackSpy } from '@/test/isolation/spyManager'
 import { spyOn } from 'bun:test'
 
 beforeEach(() => {
@@ -161,7 +161,7 @@ The setup files (`bun.unit.setup.ts`, `bun.db.test.setup.ts`, `bun.setup.ts`) al
 **Never use global `mock.restore()`** when using `spyOn()` alongside `mock.module()`. The global restore can undo module-level mocks, breaking subsequent tests. Instead, use `trackSpy()`:
 
 ```typescript
-import { trackSpy } from '@/test/isolation'
+import { trackSpy } from '@/test/isolation/spyManager'
 import { spyOn } from 'bun:test'
 
 beforeEach(() => {
