@@ -1712,9 +1712,6 @@
                       "name": {
                         "type": "string"
                       },
-                      "archived": {
-                        "type": "boolean"
-                      },
                       "logoURL": {
                         "anyOf": [
                           {
@@ -2241,6 +2238,90 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customer/{externalId}/archive": {
+      "post": {
+        "operationId": "customers-archive",
+        "summary": "Archive Customer",
+        "description": "Archives a customer, canceling all active subscriptions and freeing the externalId for reuse.",
+        "tags": ["Customer"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "externalId",
+            "schema": {
+              "description": "The external ID of the customer to archive, as defined in your application",
+              "type": "string"
+            },
+            "required": true,
+            "description": "The external ID of the customer to archive, as defined in your application"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "customer": {
+                      "$ref": "#/components/schemas/CustomerClientSelectSchema"
+                    }
+                  },
+                  "required": ["customer"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
                 }
               }
             }

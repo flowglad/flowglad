@@ -108,9 +108,9 @@ export const customerUsageBalancesRouteConfig: Record<
 
 export const customerArchiveRouteConfig: Record<string, RouteConfig> =
   {
-    'POST /customers/:externalId/archive': {
+    'POST /customer/:externalId/archive': {
       procedure: 'customers.archive',
-      pattern: /^customers\/([^\\/]+)\/archive$/,
+      pattern: /^customer\/([^\\/]+)\/archive$/,
       mapParams: (matches) => {
         return {
           externalId: matches[0],
