@@ -555,12 +555,10 @@ describe('setUserIdForCustomerRecords', () => {
 
 describe('selectCustomerByExternalIdAndOrganizationId', () => {
   let organization: Organization.Record
-  let pricingModelId: string
 
   beforeEach(async () => {
     const orgData = await setupOrg()
     organization = orgData.organization
-    pricingModelId = orgData.pricingModel.id
   })
 
   it('should not return archived customers by default', async () => {
