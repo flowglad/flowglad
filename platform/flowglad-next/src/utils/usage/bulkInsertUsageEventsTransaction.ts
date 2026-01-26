@@ -376,10 +376,25 @@ async function collectSlugResolutionEvents(
   )
 
   // Batch fetch and deduplicate pricing models for all customers upfront
-  const pricingModelCache = await batchFetchPricingModelsForCustomers(
-    customersInfo,
-    transaction
-  )
+  let pricingModelCache: Map<string, PricingModelSlugResolutionData>
+  try {
+    pricingModelCache = await batchFetchPricingModelsForCustomers(
+      customersInfo,
+      transaction
+    )
+  } catch (error) {
+    if (error instanceof NotFoundError) {
+      return Result.err(error)
+    }
+    return Result.err(
+      new NotFoundError(
+        'PricingModel',
+        error instanceof Error
+          ? error.message
+          : 'default pricing model not found'
+      )
+    )
+  }
 
   const getPricingModelForCustomer = (customerId: string) => {
     const pricingModel = pricingModelCache.get(customerId)
