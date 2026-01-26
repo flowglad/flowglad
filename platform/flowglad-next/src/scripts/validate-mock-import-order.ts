@@ -1,16 +1,22 @@
 #!/usr/bin/env bun
 /**
- * Validates that bun.mocks.ts is imported first in bun.setup.ts
+ * Validates that bun.mocks.ts is imported first in bun.db.test.setup.ts
  *
  * This is critical because mock.module() calls must precede any imports that
  * transitively load the mocked modules. The bun.mocks.ts file contains all
  * mock registrations, and must be imported before any other non-type imports.
+ *
+ * Note: bun.unit.setup.ts has a different pattern (db blockers first, then mocks)
+ * so we only validate bun.db.test.setup.ts here.
  */
 
 import fs from 'node:fs'
 import path from 'node:path'
 
-const SETUP_FILE = path.resolve(__dirname, '../../bun.setup.ts')
+const SETUP_FILE = path.resolve(
+  __dirname,
+  '../../bun.db.test.setup.ts'
+)
 const MOCKS_IMPORT = './bun.mocks'
 
 // Regex to match import statements (excluding type-only imports)
@@ -37,7 +43,7 @@ function validateMockImportOrder(): boolean {
   }
 
   if (imports.length === 0) {
-    console.error('❌ No imports found in bun.setup.ts')
+    console.error('❌ No imports found in bun.db.test.setup.ts')
     return false
   }
 
@@ -45,7 +51,7 @@ function validateMockImportOrder(): boolean {
   const firstImport = imports[0]
   if (firstImport.source !== MOCKS_IMPORT) {
     console.error(
-      '❌ bun.mocks.ts must be imported first in bun.setup.ts'
+      '❌ bun.mocks.ts must be imported first in bun.db.test.setup.ts'
     )
     console.error(
       `   Found: import from '${firstImport.source}' as first import`

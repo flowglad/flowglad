@@ -1,32 +1,33 @@
 /**
- * This file MUST be imported before any other modules in bun.setup.ts.
+ * This file MUST be imported before any other modules in test setup files.
  *
  * Mock module registration order is critical in bun:test - mock.module() calls
  * must precede any imports that transitively load the mocked modules. By isolating
  * all mock.module() calls in this file and importing it first, we ensure the mocks
  * are registered before module resolution caches the real implementations.
+ *
+ * This file is used by ALL test types (unit, db, integration).
+ * For db-specific blockers and mocks, see bun.db.mocks.ts.
  */
 import { mock } from 'bun:test'
 
-// Mock server-only module (used by Next.js server components)
-mock.module('server-only', () => ({}))
+// Import common module mocks (trigger tasks, auth, server-only)
+import './mocks/module-mocks'
 
-// Mock auth module with a globally-controllable session
-// Tests can set `globalThis.__mockedAuthSession` to control what getSession() returns
-mock.module('@/utils/auth', () => ({
-  auth: {
-    api: {
-      signInMagicLink: mock(async () => ({ success: true })),
-      createUser: mock(async () => ({})),
-      getSession: async () => globalThis.__mockedAuthSession,
-    },
-  },
-  getSession: async () => globalThis.__mockedAuthSession,
+// Import and register the Unkey SDK mock (working mock for unit tests)
+import { MockUnkey } from './mocks/unkey-sdk-mock'
+
+mock.module('@unkey/api', () => ({
+  Unkey: MockUnkey,
+  default: MockUnkey,
 }))
 
-// Mock Trigger.dev idempotency keys
-mock.module('@trigger.dev/core', () => ({
-  idempotencyKeys: {
-    create: async (key: string) => `mock-${key}-${Math.random()}`,
-  },
-}))
+// Import and register Redis utility mock
+import { redisMockExports } from './mocks/redis-mock'
+
+mock.module('@/utils/redis', () => redisMockExports)
+
+// Import and register Svix utility mock
+import { svixMockExports } from './mocks/svix-mock'
+
+mock.module('@/utils/svix', () => svixMockExports)
