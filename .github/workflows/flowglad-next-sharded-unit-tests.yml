@@ -37,14 +37,7 @@ jobs:
       - name: Install dependencies
         run: bun run install-packages --no-progress
       - name: Run unit tests
-        run: |
-          files=$(find src -name "*.unit.test.ts" | sort | tr '\n' ' ')
-          echo "Running $(echo "$files" | wc -w | tr -d ' ') unit test files"
-          if [ -n "$files" ]; then
-            echo "$files" | xargs bun test --preload ./bun.unit.setup.ts
-          else
-            echo "No unit test files found"
-          fi
+        run: bun run test:unit
         env:
           NODE_ENV: test
           CLAUDECODE: 1
@@ -97,27 +90,7 @@ jobs:
         env:
           NODE_ENV: test
       - name: Run sharded db tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
-        run: |
-          files=$(find src -name "*.db.test.ts" | sort)
-          total=$(echo "$files" | grep -c . 2>/dev/null || true)
-          total=${total:-0}
-
-          # Calculate shard size and file range
-          shard_size=$(( (total + ${{ matrix.shardTotal }} - 1) / ${{ matrix.shardTotal }} ))
-          start=$(( (${{ matrix.shardIndex }} - 1) * shard_size + 1 ))
-          end=$(( start + shard_size - 1 ))
-
-          # Get files for this shard
-          shard_files=$(echo "$files" | sed -n "${start},${end}p" | tr '\n' ' ')
-
-          echo "Running shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}: files $start to $end of $total"
-          echo "Files: $shard_files"
-
-          if [ -n "$shard_files" ]; then
-            echo "$shard_files" | xargs bun test --preload ./bun.db.test.setup.ts
-          else
-            echo "No files to test in this shard"
-          fi
+        run: bun run test:db --shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }}
         env:
           NODE_ENV: test
           CLAUDECODE: 1
