@@ -1,6 +1,4 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
-import { HttpResponse, http } from 'msw'
-import { server } from '@/../mocks/server'
 import {
   setupCustomer,
   setupMemberships,
@@ -413,22 +411,9 @@ describe('apiKeyHelpers', () => {
     })
 
     it('should NOT delete the database record if Unkey deletion fails', async () => {
-      // Configure MSW to return an error for deleteKey requests
-      server.use(
-        http.post('https://api.unkey.com/v2/keys.deleteKey', () => {
-          return HttpResponse.json(
-            {
-              meta: { requestId: 'req_error_test' },
-              error: {
-                detail: 'Key not found',
-                status: 404,
-                title: 'Not Found',
-                type: 'NOT_FOUND',
-              },
-            },
-            { status: 404 }
-          )
-        })
+      // Configure the mock to reject for this test
+      globalThis.__mockUnkeyDeleteApiKey.mockRejectedValueOnce(
+        new Error('Unkey API error: Key not found')
       )
 
       // Create a livemode API key WITH a fake unkeyId

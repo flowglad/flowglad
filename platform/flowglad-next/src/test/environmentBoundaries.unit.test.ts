@@ -146,15 +146,15 @@ describe('Environment boundaries', () => {
   })
 
   describe('db tests (*.db.test.ts)', () => {
-    it('should use bun.db.test.setup.ts with transaction isolation', () => {
+    it('should use bun.db.test.setup.ts with external service blocking', () => {
       const setupPath = path.join(
         PROJECT_ROOT,
         'bun.db.test.setup.ts'
       )
       const content = fs.readFileSync(setupPath, 'utf-8')
 
-      // Verify savepoint-based isolation is configured
-      expect(content).toMatch(/savepoint|transaction/i)
+      // Verify external service blocking is configured
+      expect(content).toMatch(/bun\.db\.mocks/i)
     })
   })
 
