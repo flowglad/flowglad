@@ -88,7 +88,7 @@ This project uses isolated-by-default test infrastructure. Tests are categorized
 **Test Commands:**
 ```bash
 # Pure unit tests (no DB, strict isolation)
-bun run test:pure-unit
+bun run test:unit
 
 # DB-backed tests (with database access)
 bun run test:db
