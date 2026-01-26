@@ -261,8 +261,6 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     const testEmail = `deactivated+${core.nanoid()}@test.com`
     const testOrg = (await setupOrg()).organization
 
-    let testUserId: string
-    let membershipId: string
     await adminTransaction(async ({ transaction }) => {
       const [testUser] = await transaction
         .insert(users)
@@ -273,7 +271,6 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
           betterAuthId: testBetterAuthId,
         })
         .returning()
-      testUserId = testUser.id
 
       // Create focused membership
       const [membership] = await transaction
@@ -285,7 +282,6 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
           livemode: false,
         })
         .returning()
-      membershipId = membership.id
 
       // Deactivate the membership
       await transaction
