@@ -24,10 +24,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useMemo } from 'react'
 import { useFlowgladConfig } from './FlowgladConfigContext'
 import { devError } from './lib/utils'
-import {
-  USAGE_METER_QUERY_KEY,
-  USAGE_METERS_QUERY_KEY,
-} from './useUsageMeters'
+import { USAGE_METERS_QUERY_KEY } from './useUsageMeters'
 import { validateUrl } from './utils'
 
 /**
@@ -564,12 +561,9 @@ const constructCreateUsageEvent =
       return { error: json.error }
     }
 
-    // Invalidate usage meter query keys after successful creation
+    // Invalidate usage meter query key after successful creation
     await queryClient.invalidateQueries({
       queryKey: [USAGE_METERS_QUERY_KEY],
-    })
-    await queryClient.invalidateQueries({
-      queryKey: [USAGE_METER_QUERY_KEY],
     })
 
     return { usageEvent: { id: json.data.usageEvent.id } }

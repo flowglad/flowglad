@@ -1,44 +1,69 @@
-import { type FlowgladActionKey, HTTPMethod } from '@flowglad/shared'
+import {
+  type FlowgladActionKey,
+  getUsageMeterBalancesSchema,
+  HTTPMethod,
+} from '@flowglad/shared'
 import type { FlowgladServer } from '../FlowgladServer'
-import type { SubRouteHandler } from './types'
+import { parseErrorStringToErrorObject } from '../serverUtils'
+import type {
+  SubRouteHandler,
+  SubRouteHandlerResultData,
+} from './types'
 
 /**
- * Handler for getting usage meter balances for a customer.
+ * Handler for fetching usage meter balances for the authenticated customer.
  * Returns usage meter balances for current subscriptions, optionally filtered by subscriptionId.
- * Validates HTTP method and delegates to FlowgladServer.getUsageMeterBalances().
+ * Delegates to FlowgladServer.getUsageMeterBalances which calls the platform endpoint.
  */
 export const getUsageMeterBalances: SubRouteHandler<
   FlowgladActionKey.GetUsageMeterBalances
 > = async (params, flowgladServer: FlowgladServer) => {
+  let error:
+    | { code: string; json: Record<string, unknown> }
+    | undefined
+  let status: number
+  let data: SubRouteHandlerResultData<FlowgladActionKey.GetUsageMeterBalances> =
+    {}
+
   if (params.method !== HTTPMethod.POST) {
+    error = {
+      code: 'Method not allowed',
+      json: {},
+    }
+    status = 405
     return {
-      data: {},
-      status: 405,
-      error: {
-        code: 'Method not allowed',
-        json: {},
-      },
+      data,
+      status,
+      error,
     }
   }
 
   try {
-    const result = await flowgladServer.getUsageMeterBalances(
+    // Validate and parse input params
+    const parsedParams = getUsageMeterBalancesSchema.parse(
       params.data
     )
-    return {
-      data: result,
-      status: 200,
+
+    // Delegate to FlowgladServer method
+    const result =
+      await flowgladServer.getUsageMeterBalances(parsedParams)
+    data = result
+    status = 200
+  } catch (e) {
+    if (e instanceof Error) {
+      error = parseErrorStringToErrorObject(e.message)
+    } else {
+      error = {
+        code: 'Unknown error',
+        json: {},
+      }
     }
-  } catch (error) {
-    return {
-      data: {},
-      status: 500,
-      error: {
-        code: 'get_usage_meter_balances_failed',
-        json: {
-          message: (error as Error).message,
-        },
-      },
-    }
+    status = 500
+  }
+
+  return {
+    data,
+    status,
+    error,
   }
 }

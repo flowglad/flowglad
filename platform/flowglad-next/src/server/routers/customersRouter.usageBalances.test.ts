@@ -381,11 +381,10 @@ describe('customers.getUsageBalances', () => {
       livemode: true,
     })
 
-    const orgSetup = await setupOrg()
     const otherSubscription = await setupSubscription({
       organizationId: organization.id,
       customerId: otherCustomer.id,
-      priceId: orgSetup.price.id,
+      priceId: subscription1.priceId,
       status: SubscriptionStatus.Active,
       livemode: true,
       paymentMethodId: otherPaymentMethod.id,

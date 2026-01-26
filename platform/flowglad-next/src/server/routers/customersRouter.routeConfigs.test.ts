@@ -113,17 +113,9 @@ describe('customersRouteConfigs', () => {
       ).toBe(true)
 
       // Test mapParams with matches only (simulate route handler slicing)
+      // Note: subscriptionId comes from query params for GET requests, not the body
       const result = routeConfig!.mapParams(['test-id'])
       expect(result).toEqual({ externalId: 'test-id' })
-
-      // Test mapParams with body (subscriptionId filter)
-      const resultWithBody = routeConfig!.mapParams(['test-id'], {
-        subscriptionId: 'sub_123',
-      })
-      expect(resultWithBody).toEqual({
-        externalId: 'test-id',
-        subscriptionId: 'sub_123',
-      })
     })
 
     it('should map GET /customers to customers.list procedure', () => {

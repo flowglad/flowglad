@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment jsdom
+ */
 import {
   QueryClient,
   QueryClientProvider,
@@ -15,7 +18,6 @@ import {
 import { FlowgladConfigProvider } from './FlowgladConfigContext'
 import { useBilling } from './FlowgladContext'
 import {
-  USAGE_METER_QUERY_KEY,
   USAGE_METERS_QUERY_KEY,
   useUsageMeter,
   useUsageMeters,
@@ -340,6 +342,24 @@ describe('useUsageMeters', () => {
       )
     ).toBe(true)
   })
+
+  it('returns empty array when API returns empty usageMeterBalances', async () => {
+    mockFetch.mockResolvedValueOnce({
+      json: () =>
+        Promise.resolve({ data: { usageMeterBalances: [] } }),
+    })
+
+    const { result } = renderHook(() => useUsageMeters(), {
+      wrapper: createWrapper(),
+    })
+
+    await waitFor(() => {
+      expect(result.current.isLoading).toBe(false)
+    })
+
+    expect(result.current.usageMeters).toEqual([])
+    expect(result.current.error).toBe(null)
+  })
 })
 
 describe('useUsageMeter', () => {
@@ -474,12 +494,10 @@ describe('createUsageEvent invalidation', () => {
       })
     })
 
-    // Verify invalidation was called for usage meter query keys
+    // Verify invalidation was called for usage meter query key
+    // Note: useUsageMeter now shares the same query key as useUsageMeters
     expect(invalidateSpy).toHaveBeenCalledWith({
       queryKey: [USAGE_METERS_QUERY_KEY],
-    })
-    expect(invalidateSpy).toHaveBeenCalledWith({
-      queryKey: [USAGE_METER_QUERY_KEY],
     })
 
     // Verify it was NOT called for billing query key

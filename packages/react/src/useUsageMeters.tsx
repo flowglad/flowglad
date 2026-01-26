@@ -11,11 +11,8 @@ import { useQuery } from '@tanstack/react-query'
 import { useFlowgladConfig } from './FlowgladConfigContext'
 import { getFlowgladRoute } from './FlowgladContext'
 
-/** Query key for usage meters (list) caching */
+/** Query key for usage meters caching */
 export const USAGE_METERS_QUERY_KEY = 'flowglad-usage-meters'
-
-/** Query key for individual usage meter caching */
-export const USAGE_METER_QUERY_KEY = 'flowglad-usage-meter'
 
 type UsageMeterBalancesRouteResponse =
   | {
@@ -190,9 +187,11 @@ export const useUsageMeters = (
 /**
  * Hook to access a specific usage meter balance by slug.
  *
- * This is a convenience wrapper around the usage meter endpoint that:
+ * This is a convenience wrapper around `useUsageMeters` that:
  * - Fetches all usage meter balances
  * - Filters to the specific meter by slug
+ *
+ * Uses the same query cache as `useUsageMeters`, preventing redundant API calls.
  *
  * Must be used within a `FlowgladProvider`.
  *
@@ -219,99 +218,8 @@ export const useUsageMeter = (
   usageMeterSlug: string,
   params?: GetUsageMeterBalancesParams
 ): UseUsageMeterResult => {
-  const {
-    baseURL,
-    betterAuthBasePath,
-    requestConfig,
-    __devMode,
-    billingMocks,
-  } = useFlowgladConfig()
-
-  const {
-    data: responseData,
-    isLoading,
-    error,
-  } = useQuery<UsageMeterBalancesRouteResponse, Error>({
-    queryKey: [
-      USAGE_METER_QUERY_KEY,
-      usageMeterSlug,
-      params?.subscriptionId,
-    ],
-    enabled: !__devMode,
-    queryFn: async () => {
-      const flowgladRoute = getFlowgladRoute(
-        baseURL,
-        betterAuthBasePath
-      )
-      const response = await fetch(
-        `${flowgladRoute}/${FlowgladActionKey.GetUsageMeterBalances}`,
-        {
-          method:
-            flowgladActionValidators[
-              FlowgladActionKey.GetUsageMeterBalances
-            ].method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...requestConfig?.headers,
-          },
-          body: JSON.stringify(params ?? {}),
-        }
-      )
-
-      const json = await response.json()
-      return json as UsageMeterBalancesRouteResponse
-    },
-  })
-
-  // Dev mode: derive balances from billingMocks
-  if (__devMode) {
-    if (!billingMocks) {
-      throw new Error(
-        'FlowgladProvider: __devMode requires billingMocks'
-      )
-    }
-    const balances =
-      deriveUsageMeterBalancesFromBillingMocks(billingMocks)
-
-    // Apply subscriptionId filter if provided, then find by slug
-    const filteredBalances = params?.subscriptionId
-      ? balances.filter(
-          (b) => b.subscriptionId === params.subscriptionId
-        )
-      : balances
-
-    const usageMeter =
-      filteredBalances.find((b) => b.slug === usageMeterSlug) ?? null
-
-    return {
-      usageMeter,
-      isLoading: false,
-      error: null,
-    }
-  }
-
-  // Handle error responses from the API
-  if (responseData?.error) {
-    return {
-      usageMeter: null,
-      isLoading: false,
-      error: new Error(
-        responseData.error.json?.message?.toString() ??
-          responseData.error.code ??
-          'Failed to fetch usage meter balance'
-      ),
-    }
-  }
-
-  // Find the specific usage meter by slug
+  const { usageMeters, isLoading, error } = useUsageMeters(params)
   const usageMeter =
-    responseData?.data?.usageMeterBalances?.find(
-      (b) => b.slug === usageMeterSlug
-    ) ?? null
-
-  return {
-    usageMeter,
-    isLoading,
-    error: error ?? null,
-  }
+    usageMeters?.find((b) => b.slug === usageMeterSlug) ?? null
+  return { usageMeter, isLoading, error }
 }

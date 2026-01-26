@@ -52,7 +52,6 @@ import { protectedProcedure } from '@/server/trpc'
 import { migrateCustomerPricingModelProcedureTransaction } from '@/subscriptions/migratePricingModel'
 import { richSubscriptionClientSelectSchema } from '@/subscriptions/schemas'
 import { generateCsvExportTask } from '@/trigger/exports/generate-csv-export'
-import type { SubscriptionStatus } from '@/types'
 import { createTriggerIdempotencyKey } from '@/utils/backendCore'
 import { createCustomerBookkeeping } from '@/utils/bookkeeping'
 import { customerBillingTransaction } from '@/utils/bookkeeping/customerBilling'
@@ -96,10 +95,9 @@ export const customerUsageBalancesRouteConfig: Record<
   'GET /customers/:externalId/usage-balances': {
     procedure: 'customers.getUsageBalances',
     pattern: /^customers\/([^\\/]+)\/usage-balances$/,
-    mapParams: (matches, body) => {
+    mapParams: (matches) => {
       return {
         externalId: matches[0],
-        ...(body ?? {}),
       }
     },
   },
@@ -517,10 +515,7 @@ export const getCustomerUsageBalances = protectedProcedure
         } else {
           // Filter to current subscriptions only (aligning with billing's currentSubscriptions)
           const currentSubscriptions = subscriptions.filter((s) =>
-            isSubscriptionCurrent(
-              s.status as SubscriptionStatus,
-              s.cancellationReason
-            )
+            isSubscriptionCurrent(s.status, s.cancellationReason)
           )
 
           subscriptionIds = currentSubscriptions.map((s) => s.id)
