@@ -727,12 +727,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
   ] of entriesByUsageEventId.entries()) {
     const priceInfo = priceInfoByUsageEventId.get(usageEventId)
     if (!priceInfo) {
-      return Result.err(
-        new NotFoundError(
-          'priceInfo',
-          `Price information not found for usage event ${usageEventId}`
-        )
-      )
+      return Result.err(new NotFoundError('priceInfo', usageEventId))
     }
     const key = `${priceInfo.usageMeterId}-${priceInfo.priceId}`
 
@@ -810,10 +805,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
     )
     if (!priceInfo) {
       return Result.err(
-        new NotFoundError(
-          'priceInfo',
-          `Price information not found for usageMeterIdAndPriceId ${usageMeterIdPriceId}`
-        )
+        new NotFoundError('priceInfo', usageMeterIdPriceId)
       )
     }
     balances.push({
@@ -852,10 +844,7 @@ export const claimLedgerEntriesWithOutstandingBalances = async (
   )
   if (ledgerEntryResults.length !== usageEventIds.length) {
     return Result.err(
-      new NotFoundError(
-        'ledgerEntries',
-        `Some ledger entries were not found: ${usageEventIds.join(', ')}`
-      )
+      new NotFoundError('ledgerEntries', usageEventIds.join(', '))
     )
   }
   for (const entry of ledgerEntryResults) {
