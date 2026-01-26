@@ -118,6 +118,7 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
   LedgerTransactionType,
+  MembershipRole,
   NormalBalanceType,
   PaymentMethodType,
   type PaymentStatus,
@@ -1200,6 +1201,7 @@ export const setupMemberships = async ({
         userId: user.id,
         focused: true,
         livemode: true,
+        role: MembershipRole.Member,
       },
       transaction
     )

@@ -22,6 +22,7 @@ import {
   type SelectConditions,
   tableBase,
 } from '@/db/tableUtils'
+import { MembershipRole } from '@/types'
 
 const MEMBERSHIPS_TABLE_NAME = 'memberships'
 
@@ -76,7 +77,7 @@ export const memberships = pgTable(
           for: 'update',
           // Deactivated memberships cannot be updated via RLS.
           using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND "deactivated_at" IS NULL`,
-          withCheck: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND "deactivated_at" IS NULL`,
+          withCheck: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
         }
       ),
       // no livemode policy for memberships, because memberships are used to determine access to
@@ -129,6 +130,10 @@ export const {
       .partial()
       .nullable()
       .optional(),
+    role: z
+      .enum(MembershipRole)
+      .optional()
+      .default(MembershipRole.Member),
   },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
@@ -141,6 +146,7 @@ export const {
       userId: true,
       organizationId: true,
       livemode: true,
+      role: true,
     },
     createOnlyColumns: {},
   },
