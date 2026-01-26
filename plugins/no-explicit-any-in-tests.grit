@@ -1,0 +1,30 @@
+engine biome(1.0)
+language js
+
+// Forbids explicit `any` type annotation in test files
+//
+// Bad:  const foo: any = ...
+// Bad:  function bar(x: any) { ... }
+// Bad:  as any
+//
+// Good: const foo: unknown = ...
+// Good: function bar(x: SomeType) { ... }
+//
+// To suppress: // biome-ignore lint/plugin: <justification>
+
+or {
+  `$_: any` as $annotation where {
+    register_diagnostic(
+      span = $annotation,
+      message = "Explicit 'any' is not allowed in tests. Use a specific type, 'unknown', or a generic.",
+      severity = "error"
+    )
+  },
+  `$_ as any` as $assertion where {
+    register_diagnostic(
+      span = $assertion,
+      message = "Type assertion to 'any' is not allowed in tests. Use a specific type or 'as unknown'.",
+      severity = "error"
+    )
+  }
+}
