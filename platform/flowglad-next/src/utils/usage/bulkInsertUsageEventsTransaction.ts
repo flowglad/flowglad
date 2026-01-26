@@ -501,10 +501,7 @@ export function resolveUsageMeterSlugs(
     )
     if (!meter) {
       return Result.err(
-        new NotFoundError(
-          'UsageMeter',
-          `slug "${event.slug}" (index ${event.index})`
-        )
+        new NotFoundError('UsageMeter', `slug "${event.slug}"`)
       )
     }
     // Use composite key to avoid slug collisions across customers
