@@ -99,7 +99,8 @@ jobs:
       - name: Run sharded db tests (Shard ${{ matrix.shardIndex }}/${{ matrix.shardTotal }})
         run: |
           files=$(find src -name "*.db.test.ts" | sort)
-          total=$(echo "$files" | grep -c . || echo 0)
+          total=$(echo "$files" | grep -c . 2>/dev/null || true)
+          total=${total:-0}
 
           # Calculate shard size and file range
           shard_size=$(( (total + ${{ matrix.shardTotal }} - 1) / ${{ matrix.shardTotal }} ))

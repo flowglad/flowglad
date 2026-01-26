@@ -1,4 +1,5 @@
 {
+  "files": ["src/test/globals.ts"],
   "compilerOptions": {
     "types": ["bun-types"],
     "lib": ["dom", "dom.iterable", "esnext"],
@@ -29,8 +30,7 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "trigger.config.ts",
-    "src/test/globals.ts"
+    "trigger.config.ts"
   ],
   "exclude": [
     "node_modules",
@@ -39,8 +39,6 @@
     "src/test/**/*",
     "**/*.test.ts",
     "**/*.test.tsx",
-    "slow-tests/**/*",
-    "rls-tests/**/*",
-    "integration-tests/**/*"
+    "slow-tests/**/*"
   ]
 }

@@ -6,16 +6,18 @@
  * - Gracefully exits 0 when no files match (bun would run ALL tests instead)
  * - Ensures only intended test files run with each setup file
  *
- * Usage: bun run src/scripts/run-bun-tests.ts <setup-file> <pattern> <dirs...> [options...]
+ * Usage: bun run src/scripts/run-bun-tests.ts <setup-file> <pattern> [options...]
+ *
+ * All tests are searched in src/ by default.
  */
 
 import { $ } from 'bun'
 
 const args = process.argv.slice(2)
 
-if (args.length < 3) {
+if (args.length < 2) {
   console.error(
-    'Usage: run-bun-tests.ts <setup-file> <pattern> <dirs...> [options...]'
+    'Usage: run-bun-tests.ts <setup-file> <pattern> [options...]'
   )
   process.exit(1)
 }
@@ -23,39 +25,23 @@ if (args.length < 3) {
 const setupFile = args[0]
 const pattern = args[1]
 
-// Parse remaining args - directories first, then options starting with --
-const searchDirs: string[] = []
-const extraArgs: string[] = []
-let inOptions = false
+// Parse remaining args as options (starting with --)
+const extraArgs = args.slice(2).filter((arg) => arg.startsWith('--'))
 
-for (let i = 2; i < args.length; i++) {
-  const arg = args[i]
-  if (arg.startsWith('--')) inOptions = true
-  if (inOptions) extraArgs.push(arg)
-  else searchDirs.push(arg)
-}
-
-if (searchDirs.length === 0) {
-  console.error('Error: At least one search directory is required')
-  process.exit(1)
-}
+// Always search in src/
+const searchDir = 'src'
 
 // Find test files using Bun Shell
-const files: string[] = []
-for (const dir of searchDirs) {
-  const result = await $`find ${dir} -name ${pattern} -type f`
-    .nothrow()
-    .text()
-  files.push(
-    ...result
-      .trim()
-      .split('\n')
-      .filter((f) => f.length > 0)
-  )
-}
+const result = await $`find ${searchDir} -name ${pattern} -type f`
+  .nothrow()
+  .text()
+const files = result
+  .trim()
+  .split('\n')
+  .filter((f) => f.length > 0)
 
 if (files.length === 0) {
-  console.log(`No ${pattern} files found in ${searchDirs.join(', ')}`)
+  console.log(`No ${pattern} files found in ${searchDir}`)
   process.exit(0)
 }
 

@@ -114,7 +114,7 @@ bun run test:all
 
 - **Legacy Backend (`*.test.ts`)**: Existing tests. Migrate to `*.unit.test.ts` or `*.db.test.ts` for better isolation.
 
-- **Integration (`*.integration.test.ts`)**: Real API calls to Stripe, real external services. Located in `integration-tests/` directory.
+- **Integration (`*.integration.test.ts`)**: Real API calls to Stripe, Redis, and other external services. Located in `src/` alongside other tests.
 
 ### Automatic Isolation (No Opt-In Required)
 
@@ -246,17 +246,19 @@ This includes:
 
 This tells Vitest to run that specific test file in a jsdom environment.
 
-### Test Organization by Type
+### Test Organization
 
-Tests are organized into different directories based on their purpose:
+All tests live in `src/` with different file patterns:
 
-- **`src/`** - Unit tests and integration tests for regular functionality
-- **`slow-tests/`** - Tests that require significant setup time or database seeding
-- **`rls-tests/`** - Row Level Security (RLS) tests that verify PostgreSQL RLS policies
+- **`*.unit.test.ts`** - Pure unit tests (no DB access)
+- **`*.db.test.ts`** - DB-backed tests (external services blocked)
+- **`*.integration.test.ts`** - Integration tests (real external APIs)
+- **`*.rls.test.ts`** - Row Level Security tests (in `src/db/`)
+- **`slow-tests/`** - Tests that require significant setup time
 
 **RLS Tests**: All tests that verify Row Level Security policies must:
-- Be placed in the `rls-tests/` directory
-- Follow the naming convention `foo.rls.test.ts`
+- Follow the naming convention `*.rls.test.ts`
+- Be placed in `src/db/` alongside the schema they test
 - Test organization-based data isolation via `authenticatedTransaction`
 - Verify that users cannot access data from other organizations
 

@@ -25,7 +25,7 @@ import {
 } from '@/types'
 import core from '@/utils/core'
 
-// NOTE: RLS tests have been moved to integration-tests/db/usageEventsRLS.rls.test.ts
+// NOTE: RLS tests are in src/db/usageEvents.rls.test.ts
 
 describe('usageEvents schema - priceId NOT NULL constraint', () => {
   // Shared setup - created once in beforeAll (immutable across tests)
