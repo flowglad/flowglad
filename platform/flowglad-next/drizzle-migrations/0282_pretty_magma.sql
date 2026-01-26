@@ -1,1 +1,0 @@
-ALTER POLICY "Enable update for own membership in current organization" ON "memberships" TO merchant USING ("user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND "deactivated_at" IS NULL) WITH CHECK ("user_id" = requesting_user_id() AND "organization_id" = current_organization_id());

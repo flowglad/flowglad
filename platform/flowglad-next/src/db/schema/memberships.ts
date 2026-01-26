@@ -3,6 +3,7 @@ import {
   boolean,
   integer,
   jsonb,
+  pgEnum,
   pgTable,
   text,
 } from 'drizzle-orm/pg-core'
@@ -26,6 +27,15 @@ import { MembershipRole } from '@/types'
 
 const MEMBERSHIPS_TABLE_NAME = 'memberships'
 
+/**
+ * PostgreSQL enum type for membership roles.
+ * Exported so drizzle-kit can track it and generate CREATE TYPE migrations.
+ */
+export const membershipRoleEnum = pgEnum('MembershipRole', [
+  MembershipRole.Owner,
+  MembershipRole.Member,
+])
+
 export const memberships = pgTable(
   MEMBERSHIPS_TABLE_NAME,
   {
@@ -41,7 +51,9 @@ export const memberships = pgTable(
     notificationPreferences: jsonb(
       'notification_preferences'
     ).default({}),
-    role: text('role').notNull().default('member'),
+    role: membershipRoleEnum()
+      .notNull()
+      .default(MembershipRole.Member),
     deactivatedAt: integer('deactivated_at'),
   },
   (table) => {
@@ -130,10 +142,6 @@ export const {
       .partial()
       .nullable()
       .optional(),
-    role: z
-      .enum(MembershipRole)
-      .optional()
-      .default(MembershipRole.Member),
   },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,

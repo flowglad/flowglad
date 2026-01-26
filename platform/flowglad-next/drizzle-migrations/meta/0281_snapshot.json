@@ -1,5 +1,5 @@
 {
-  "id": "78d240e8-1922-4c17-9225-5f40398af612",
+  "id": "989e6738-f00d-408e-9fdc-dd91c9e8b5a9",
   "prevId": "32619e31-218d-49e0-83d8-b35d09ce99f2",
   "version": "7",
   "dialect": "postgresql",
@@ -5338,7 +5338,8 @@
         },
         "role": {
           "name": "role",
-          "type": "text",
+          "type": "MembershipRole",
+          "typeSchema": "public",
           "primaryKey": false,
           "notNull": true,
           "default": "'member'"
@@ -5466,7 +5467,7 @@
           "for": "UPDATE",
           "to": ["merchant"],
           "using": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id() AND \"deactivated_at\" IS NULL",
-          "withCheck": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id() AND \"deactivated_at\" IS NULL"
+          "withCheck": "\"user_id\" = requesting_user_id() AND \"organization_id\" = current_organization_id()"
         }
       },
       "checkConstraints": {},
@@ -11816,7 +11817,13 @@
       "isRLSEnabled": true
     }
   },
-  "enums": {},
+  "enums": {
+    "public.MembershipRole": {
+      "name": "MembershipRole",
+      "schema": "public",
+      "values": ["owner", "member"]
+    }
+  },
   "schemas": {},
   "sequences": {},
   "roles": {},
