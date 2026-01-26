@@ -438,7 +438,7 @@ const getUsageBalancesInputSchema = z.object({
     .string()
     .optional()
     .describe(
-      'Optional subscription ID to filter balances. If not provided, returns balances for all current subscriptions.'
+      'Optional subscription ID to filter balances. If provided, returns balances only for the specified subscription (regardless of its status). If not provided, returns balances for all current subscriptions (active, past_due, trialing, cancellation_scheduled, unpaid, or credit_trial), excluding canceled or upgraded subscriptions.'
     ),
 })
 
@@ -463,7 +463,7 @@ export const getCustomerUsageBalances = protectedProcedure
       usageMeterBalances: usageMeterBalanceClientSelectSchema.array(),
     })
   )
-  .mutation(async ({ input, ctx }) => {
+  .query(async ({ input, ctx }) => {
     const organizationId = ctx.organizationId
     if (!organizationId) {
       throw new TRPCError({

@@ -573,4 +573,89 @@ describe('customers.getUsageBalances', () => {
       id: usageMeter.id,
     })
   })
+
+  it('returns balances for explicitly requested canceled subscription', async () => {
+    // Create a payment method for the canceled subscription customer
+    const paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+    })
+
+    // Setup a canceled subscription for the same customer
+    const orgSetup = await setupOrg()
+    const canceledSubscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: orgSetup.price.id,
+      status: SubscriptionStatus.Canceled,
+      livemode: true,
+      paymentMethodId: paymentMethod.id,
+      canceledAt: Date.now(),
+    })
+
+    // Setup billing period for canceled subscription
+    const canceledBillingPeriod = await setupBillingPeriod({
+      subscriptionId: canceledSubscription.id,
+      startDate: Date.now() - 30 * 24 * 60 * 60 * 1000,
+      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      livemode: true,
+    })
+
+    // Setup ledger account for canceled subscription
+    const canceledLedgerAccount = await setupLedgerAccount({
+      organizationId: organization.id,
+      subscriptionId: canceledSubscription.id,
+      usageMeterId: usageMeter.id,
+      livemode: true,
+    })
+
+    // Create actual usage credit for canceled subscription
+    const canceledUsageCredit = await setupUsageCredit({
+      organizationId: organization.id,
+      subscriptionId: canceledSubscription.id,
+      usageMeterId: usageMeter.id,
+      creditType: UsageCreditType.Grant,
+      issuedAmount: 500,
+      billingPeriodId: canceledBillingPeriod.id,
+      livemode: true,
+    })
+
+    const canceledLedgerTransaction = await setupLedgerTransaction({
+      organizationId: organization.id,
+      subscriptionId: canceledSubscription.id,
+      type: LedgerTransactionType.AdminCreditAdjusted,
+    })
+
+    await setupLedgerEntries({
+      organizationId: organization.id,
+      subscriptionId: canceledSubscription.id,
+      ledgerTransactionId: canceledLedgerTransaction.id,
+      ledgerAccountId: canceledLedgerAccount.id,
+      usageMeterId: usageMeter.id,
+      entries: [
+        {
+          entryType: LedgerEntryType.CreditGrantRecognized,
+          sourceUsageCreditId: canceledUsageCredit.id,
+          amount: 500,
+        },
+      ],
+    })
+
+    const caller = createCaller(organization, apiKeyToken)
+
+    // Explicitly request the canceled subscription by ID
+    const result = await caller.getUsageBalances({
+      externalId: customer.externalId!,
+      subscriptionId: canceledSubscription.id,
+    })
+
+    // Should return balances for the explicitly requested canceled subscription
+    expect(result.usageMeterBalances).toHaveLength(1)
+    expect(result.usageMeterBalances[0]).toMatchObject({
+      subscriptionId: canceledSubscription.id,
+      availableBalance: 500,
+      id: usageMeter.id,
+    })
+  })
 })
