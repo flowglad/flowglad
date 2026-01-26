@@ -585,9 +585,11 @@ describe('pricingModelsRouter.clone', () => {
     // Verify in database that the cloned model is actually livemode
     const dbClonedPM = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectPricingModelById(clonedPM.id, transaction)
+      return (
+        await selectPricingModelById(clonedPM.id, transaction)
+      ).unwrap()
     })
-    expect(dbClonedPM?.livemode).toBe(true)
+    expect(dbClonedPM.livemode).toBe(true)
   })
 
   it('clones a pricing model from live mode to test mode when destinationEnvironment is testmode', async () => {
@@ -631,8 +633,10 @@ describe('pricingModelsRouter.clone', () => {
     // Verify in database
     const dbClonedPM = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectPricingModelById(clonedPM.id, transaction)
+      return (
+        await selectPricingModelById(clonedPM.id, transaction)
+      ).unwrap()
     })
-    expect(dbClonedPM?.livemode).toBe(false)
+    expect(dbClonedPM.livemode).toBe(false)
   })
 })

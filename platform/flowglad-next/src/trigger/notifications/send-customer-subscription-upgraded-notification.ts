@@ -74,22 +74,20 @@ export const runSendCustomerSubscriptionUpgradedNotification =
         )
 
         // Fetch previous subscription separately (not supported by buildNotificationContext)
-        const previousSubscription = await selectSubscriptionById(
-          params.previousSubscriptionId,
-          transaction
-        )
-        if (!previousSubscription) {
-          throw new NotFoundError(
-            'Subscription',
-            params.previousSubscriptionId
+        const previousSubscription = (
+          await selectSubscriptionById(
+            params.previousSubscriptionId,
+            transaction
           )
-        }
+        ).unwrap()
 
         const previousPrice = previousSubscription.priceId
-          ? await selectPriceById(
-              previousSubscription.priceId,
-              transaction
-            )
+          ? (
+              await selectPriceById(
+                previousSubscription.priceId,
+                transaction
+              )
+            ).unwrap()
           : null
 
         return {

@@ -32,7 +32,7 @@ import {
   selectProducts,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
-import { FlowgladApiKeyType } from '@/types'
+import { FlowgladApiKeyType, MembershipRole } from '@/types'
 
 describe('RLS Access Control with selectOrganizations', () => {
   // Global test state variables
@@ -76,6 +76,7 @@ describe('RLS Access Control with selectOrganizations', () => {
           userId: userA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -214,6 +215,7 @@ describe('RLS Access Control with selectMemberships', () => {
           userId: userA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -385,6 +387,7 @@ describe('RLS for selectProducts', () => {
           userId: prodUserA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -620,6 +623,7 @@ describe('RLS for selectPricingModels', () => {
   let catUserA: User.Record
   let catUserB: User.Record
   let apiKeyCatAOrg1: ApiKey.Record
+  let apiKeyCatAOrg1Testmode: ApiKey.Record // Testmode API key for insert test
   let apiKeyCatAOrg2: ApiKey.Record
 
   beforeEach(async () => {
@@ -640,6 +644,13 @@ describe('RLS for selectPricingModels', () => {
     catUserA = uaOrg1.user
     apiKeyCatAOrg1 = uaOrg1.apiKey
 
+    // Create a testmode API key for the insert test (to allow inserting testmode pricing models)
+    const uaOrg1Testmode = await setupUserAndApiKey({
+      organizationId: catOrg1.id,
+      livemode: false,
+    })
+    apiKeyCatAOrg1Testmode = uaOrg1Testmode.apiKey
+
     // Also give user A a membership in org2, unfocused
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -649,6 +660,7 @@ describe('RLS for selectPricingModels', () => {
           userId: catUserA.id,
           focused: false,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -774,11 +786,11 @@ describe('RLS for selectPricingModels', () => {
             organizationId: catOrg1.id,
             name: 'New Org1 PricingModel',
             isDefault: false,
-            livemode: true,
+            livemode: false, // Use testmode to avoid livemode uniqueness constraint
           },
           transaction
         ),
-      { apiKey: apiKeyCatAOrg1.token }
+      { apiKey: apiKeyCatAOrg1Testmode.token } // Use testmode API key to match testmode pricing model
     )
     expect(created.organizationId).toBe(catOrg1.id)
   })
@@ -1027,6 +1039,7 @@ describe('Edge cases and robustness for second-order RLS', () => {
           userId: user.id,
           focused: true,
           livemode: true,
+          role: MembershipRole.Member,
         },
         transaction
       )

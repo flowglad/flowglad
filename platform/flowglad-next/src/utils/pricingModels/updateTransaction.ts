@@ -448,14 +448,15 @@ export const updatePricingModelTransaction = async (
       transaction
     )
     const existingInput = yield* existingInputResult
-    const pricingModel = await selectPricingModelById(
-      pricingModelId,
-      transaction
-    )
-    const organization = await selectOrganizationById(
-      pricingModel.organizationId,
-      transaction
-    )
+    const pricingModel = (
+      await selectPricingModelById(pricingModelId, transaction)
+    ).unwrap()
+    const organization = (
+      await selectOrganizationById(
+        pricingModel.organizationId,
+        transaction
+      )
+    ).unwrap()
 
     // Step 2: Validate proposed input
     const validatedProposedInput =

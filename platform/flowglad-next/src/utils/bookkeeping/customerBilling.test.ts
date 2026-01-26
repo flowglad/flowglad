@@ -213,10 +213,9 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       expect(pm2.default).toBe(false)
 
       // Verify subscription still uses paymentMethod1
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
+      const sub = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
       expect(sub.defaultPaymentMethodId).toBe(paymentMethod1.id)
     })
   })
@@ -236,10 +235,9 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       expect(pm1.default).toBe(true)
       expect(pm2.default).toBe(false)
 
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
+      const sub = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
       expect(sub.defaultPaymentMethodId).toBe(paymentMethod1.id)
     })
 
@@ -273,10 +271,9 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       expect(pm2.default).toBe(true)
 
       // Verify subscription now uses paymentMethod2
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
+      const sub = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
       expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
     })
   })
@@ -369,18 +366,15 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify initial state
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const sub1 = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      const sub2 = await selectSubscriptionById(
-        subscription2.id,
-        transaction
-      )
-      const sub3 = await selectSubscriptionById(
-        subscription3.id,
-        transaction
-      )
+      const sub1 = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
+      const sub2 = (
+        await selectSubscriptionById(subscription2.id, transaction)
+      ).unwrap()
+      const sub3 = (
+        await selectSubscriptionById(subscription3.id, transaction)
+      ).unwrap()
 
       expect(sub1.defaultPaymentMethodId).toBe(paymentMethod1.id)
       expect(sub2.defaultPaymentMethodId).toBe(paymentMethod1.id)
@@ -402,18 +396,15 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify all subscriptions now use paymentMethod2
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const sub1 = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
-      const sub2 = await selectSubscriptionById(
-        subscription2.id,
-        transaction
-      )
-      const sub3 = await selectSubscriptionById(
-        subscription3.id,
-        transaction
-      )
+      const sub1 = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
+      const sub2 = (
+        await selectSubscriptionById(subscription2.id, transaction)
+      ).unwrap()
+      const sub3 = (
+        await selectSubscriptionById(subscription3.id, transaction)
+      ).unwrap()
 
       expect(sub1.defaultPaymentMethodId).toBe(paymentMethod2.id)
       expect(sub2.defaultPaymentMethodId).toBe(paymentMethod2.id)
@@ -469,18 +460,15 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify subscriptions
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const canceled = await selectSubscriptionById(
-        canceledSub.id,
-        transaction
-      )
-      const active = await selectSubscriptionById(
-        activeSub.id,
-        transaction
-      )
-      const original = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
+      const canceled = (
+        await selectSubscriptionById(canceledSub.id, transaction)
+      ).unwrap()
+      const active = (
+        await selectSubscriptionById(activeSub.id, transaction)
+      ).unwrap()
+      const original = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
 
       // Canceled subscription should not be updated
       expect(canceled.defaultPaymentMethodId).toBe(paymentMethod1.id)
@@ -534,10 +522,9 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       expect(pm2.default).toBe(false)
 
       // Verify subscription remains unchanged
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
+      const sub = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
       expect(sub.defaultPaymentMethodId).toBe(paymentMethod1.id)
     })
   })
@@ -564,10 +551,9 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       )
       expect(pm2.default).toBe(true)
 
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
+      const sub = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
       expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
     })
 
@@ -599,10 +585,9 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       expect(pm2.default).toBe(true)
 
       // Subscription should still use paymentMethod2
-      const sub = await selectSubscriptionById(
-        subscription1.id,
-        transaction
-      )
+      const sub = (
+        await selectSubscriptionById(subscription1.id, transaction)
+      ).unwrap()
       expect(sub.defaultPaymentMethodId).toBe(paymentMethod2.id)
     })
   })
@@ -1011,10 +996,9 @@ describe('customerBillingCreatePricedCheckoutSession', () => {
         },
         transaction
       )
-      const updatedCustomer = await selectCustomerById(
-        customer.id,
-        transaction
-      )
+      const updatedCustomer = (
+        await selectCustomerById(customer.id, transaction)
+      ).unwrap()
       customer.pricingModelId = updatedCustomer.pricingModelId
     })
 

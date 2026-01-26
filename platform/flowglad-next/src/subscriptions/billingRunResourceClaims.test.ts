@@ -7,6 +7,7 @@ import {
   it,
   mock,
 } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -254,7 +255,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       amount: 1000,
       status: 'requires_confirmation',
     })
-    mockCreatePaymentIntent.mockResolvedValue(mockPaymentIntent)
+    mockCreatePaymentIntent.mockResolvedValue(
+      Result.ok(mockPaymentIntent)
+    )
 
     const mockConfirmationResult = createMockConfirmationResult(
       mockPaymentIntentId,
@@ -328,7 +331,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     // Billing run is created (in Scheduled status) but not executed yet
     const currentBillingRun = await adminTransaction(
       async ({ transaction }) => {
-        return selectBillingRunById(billingRun.id, transaction)
+        return selectBillingRunById(billingRun.id, transaction).then(
+          (r) => r.unwrap()
+        )
       }
     )
     expect(currentBillingRun.status).toBe(BillingRunStatus.Scheduled)
@@ -428,7 +433,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       amount: 500, // Proration amount
       status: 'requires_confirmation',
     })
-    mockCreatePaymentIntent.mockResolvedValue(mockPaymentIntent)
+    mockCreatePaymentIntent.mockResolvedValue(
+      Result.ok(mockPaymentIntent)
+    )
 
     const mockConfirmationResult = createMockConfirmationResult(
       mockPaymentIntentId,
@@ -565,7 +572,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       amount: 1000,
       status: 'requires_confirmation',
     })
-    mockCreatePaymentIntent.mockResolvedValue(mockPaymentIntent)
+    mockCreatePaymentIntent.mockResolvedValue(
+      Result.ok(mockPaymentIntent)
+    )
 
     // Payment fails
     const mockFailedResult = createMockConfirmationResult(
@@ -598,7 +607,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
     // Assert: Billing run should be marked as failed
     const updatedBillingRun = await adminTransaction(
       async ({ transaction }) => {
-        return selectBillingRunById(billingRun.id, transaction)
+        return selectBillingRunById(billingRun.id, transaction).then(
+          (r) => r.unwrap()
+        )
       }
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)

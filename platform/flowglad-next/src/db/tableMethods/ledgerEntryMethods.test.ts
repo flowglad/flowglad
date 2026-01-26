@@ -3302,13 +3302,15 @@ describe('ledgerEntryMethods', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await aggregateOutstandingBalanceForUsageCosts(
-          {
-            ledgerAccountId: ledgerAccount.id,
-          },
-          billingPeriod.endDate,
-          transaction
-        )
+        const resultWrapper =
+          await aggregateOutstandingBalanceForUsageCosts(
+            {
+              ledgerAccountId: ledgerAccount.id,
+            },
+            billingPeriod.endDate,
+            transaction
+          )
+        const result = resultWrapper.unwrap()
 
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
@@ -3373,13 +3375,15 @@ describe('ledgerEntryMethods', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await aggregateOutstandingBalanceForUsageCosts(
-          {
-            ledgerAccountId: ledgerAccount.id,
-          },
-          billingPeriod.endDate,
-          transaction
-        )
+        const resultWrapper =
+          await aggregateOutstandingBalanceForUsageCosts(
+            {
+              ledgerAccountId: ledgerAccount.id,
+            },
+            billingPeriod.endDate,
+            transaction
+          )
+        const result = resultWrapper.unwrap()
 
         expect(result).toHaveLength(1)
         const billingInfo = result[0]
@@ -3483,13 +3487,15 @@ describe('ledgerEntryMethods', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await aggregateOutstandingBalanceForUsageCosts(
-          {
-            ledgerAccountId: ledgerAccount.id,
-          },
-          billingPeriod.endDate,
-          transaction
-        )
+        const resultWrapper =
+          await aggregateOutstandingBalanceForUsageCosts(
+            {
+              ledgerAccountId: ledgerAccount.id,
+            },
+            billingPeriod.endDate,
+            transaction
+          )
+        const result = resultWrapper.unwrap()
 
         expect(result).toHaveLength(2)
 
@@ -3605,13 +3611,15 @@ describe('ledgerEntryMethods', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const result = await aggregateOutstandingBalanceForUsageCosts(
-          {
-            ledgerAccountId: ledgerAccount.id,
-          },
-          billingPeriod.endDate,
-          transaction
-        )
+        const resultWrapper =
+          await aggregateOutstandingBalanceForUsageCosts(
+            {
+              ledgerAccountId: ledgerAccount.id,
+            },
+            billingPeriod.endDate,
+            transaction
+          )
+        const result = resultWrapper.unwrap()
 
         expect(result).toHaveLength(1)
         const billingInfo = result[0]

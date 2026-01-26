@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { Result } from 'better-result'
 import { setupOrg, setupPricingModel } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -80,7 +81,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     // Verify database was updated with the hash
     const updatedOrg = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     expect(updatedOrg?.codebaseMarkdownHash).toBe(
       putCall.key.replace('codebase-', '').replace('.md', '')
@@ -119,7 +122,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
     const updatedOrg = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     expect(updatedOrg?.codebaseMarkdownHash).toBe(expectedHash)
   })
@@ -147,7 +152,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
     // Verify database was updated (which only happens after successful putMarkdownFile)
     const updatedOrg = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     expect(typeof updatedOrg?.codebaseMarkdownHash).toBe('string')
   })
@@ -165,7 +172,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
     const orgAfterFirst = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     const firstHash = orgAfterFirst?.codebaseMarkdownHash
     expect(typeof firstHash).toBe('string')
@@ -182,7 +191,9 @@ describe('saveOrganizationCodebaseMarkdown', () => {
 
     const orgAfterSecond = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     const secondHash = orgAfterSecond?.codebaseMarkdownHash
     expect(typeof secondHash).toBe('string')
@@ -270,7 +281,9 @@ describe('getOrganizationCodebaseMarkdown', () => {
     // Verify it's undefined or null
     const org = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return selectOrganizationById(organization.id, transaction)
+      return (
+        await selectOrganizationById(organization.id, transaction)
+      ).unwrap()
     })
     expect(org?.codebaseMarkdownHash).toBeNull()
 
@@ -347,12 +360,15 @@ describe('savePricingModelIntegrationMarkdown', () => {
     )
 
     // Verify database was updated with the hash
-    const updatedPricingModel = await adminTransaction(
+    const updatedPricingModelResult = await adminTransaction(
       async (ctx) => {
         const { transaction } = ctx
         return selectPricingModelById(pricingModel.id, transaction)
       }
     )
+    const updatedPricingModel = Result.isOk(updatedPricingModelResult)
+      ? updatedPricingModelResult.value
+      : null
     expect(typeof updatedPricingModel?.integrationGuideHash).toBe(
       'string'
     )
@@ -430,16 +446,15 @@ describe('getPricingModelIntegrationMarkdown', () => {
     )
   })
 
-  it('should throw an error when pricing model is not found', async () => {
+  it('should return null when pricing model is not found', async () => {
     const nonExistentPricingModelId = 'pm_nonexistent'
     mockGetMarkdownFile.mockClear()
 
-    await expect(
-      getPricingModelIntegrationMarkdown({
-        organizationId: organization.id,
-        pricingModelId: nonExistentPricingModelId,
-      })
-    ).rejects.toThrow(/No pricing models found with id/)
+    const result = await getPricingModelIntegrationMarkdown({
+      organizationId: organization.id,
+      pricingModelId: nonExistentPricingModelId,
+    })
+    expect(result).toBeNull()
   })
 
   it('should return null immediately when integrationGuideHash is null', async () => {
@@ -469,10 +484,11 @@ describe('getPricingModelIntegrationMarkdown', () => {
   it('should return null immediately when integrationGuideHash is undefined', async () => {
     // Pricing model starts with integrationGuideHash as undefined (not set)
     // Verify it's undefined or null
-    const pm = await adminTransaction(async (ctx) => {
+    const pmResult = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       return selectPricingModelById(pricingModel.id, transaction)
     })
+    const pm = Result.isOk(pmResult) ? pmResult.value : null
     expect(pm?.integrationGuideHash).toBeNull()
 
     mockGetMarkdownFile.mockClear()

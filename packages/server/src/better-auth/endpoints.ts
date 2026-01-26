@@ -768,5 +768,16 @@ export const createBillingEndpoints = (
         routeToHandlerMap[FlowgladActionKey.ListResourceClaims],
       options,
     }),
+    // Usage meter endpoints
+    getUsageMeterBalances: createFlowgladBillingEndpoint({
+      actionKey: FlowgladActionKey.GetUsageMeterBalances,
+      validator:
+        flowgladActionValidators[
+          FlowgladActionKey.GetUsageMeterBalances
+        ],
+      handler:
+        routeToHandlerMap[FlowgladActionKey.GetUsageMeterBalances],
+      options,
+    }),
   }
 }

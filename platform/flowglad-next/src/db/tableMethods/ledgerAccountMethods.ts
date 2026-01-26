@@ -168,10 +168,9 @@ export const findOrCreateLedgerAccountsForSubscriptionAndUsageMeters =
     if (unAccountedForUsageMeterIds.length === 0) {
       return ledgerAccounts
     }
-    const subscription = await selectSubscriptionById(
-      subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(subscriptionId, transaction)
+    ).unwrap()
     const ledgerAccountInserts: LedgerAccount.Insert[] =
       unAccountedForUsageMeterIds.map((usageMeterId) => ({
         subscriptionId,

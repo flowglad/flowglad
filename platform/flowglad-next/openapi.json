@@ -2088,6 +2088,176 @@
         }
       }
     },
+    "/api/v1/customers/{externalId}/usage-balances": {
+      "get": {
+        "operationId": "customers-getUsageBalances",
+        "summary": "Get Usage Balances",
+        "tags": ["Customer", "Usage Meters"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "externalId",
+            "schema": {
+              "description": "The external ID of the customer",
+              "type": "string"
+            },
+            "required": true,
+            "description": "The external ID of the customer"
+          },
+          {
+            "in": "query",
+            "name": "subscriptionId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "usageMeterBalances": {
+                      "type": "array",
+                      "items": {
+                        "description": "A usage meter and the available balance for that meter, scoped to a given subscription.",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "description": "Epoch milliseconds.",
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "updatedAt": {
+                            "description": "Epoch milliseconds.",
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "livemode": {
+                            "type": "boolean"
+                          },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "description": "The name of the usage meter",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "pricingModelId": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "description": "The slug of the usage meter",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "aggregationType": {
+                            "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+                            "type": "string",
+                            "enum": [
+                              "sum",
+                              "count_distinct_properties"
+                            ]
+                          },
+                          "availableBalance": {
+                            "type": "number"
+                          },
+                          "subscriptionId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "createdAt",
+                          "updatedAt",
+                          "livemode",
+                          "organizationId",
+                          "name",
+                          "pricingModelId",
+                          "slug",
+                          "aggregationType",
+                          "availableBalance",
+                          "subscriptionId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["usageMeterBalances"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/discounts/{id}": {
       "get": {
         "operationId": "discounts-get",
@@ -5765,23 +5935,26 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "items": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/UsageEventClientSelectSchema"
                       }
                     },
-                    "total": {
-                      "type": "number"
+                    "currentCursor": {
+                      "type": "string"
+                    },
+                    "nextCursor": {
+                      "type": "string"
                     },
                     "hasMore": {
                       "type": "boolean"
                     },
-                    "nextCursor": {
-                      "type": "string"
+                    "total": {
+                      "type": "number"
                     }
                   },
-                  "required": ["items", "total", "hasMore"],
+                  "required": ["data", "hasMore", "total"],
                   "additionalProperties": false
                 }
               }
@@ -6069,6 +6242,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6080,7 +6256,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6269,6 +6446,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6280,7 +6460,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6391,9 +6572,17 @@
                       },
                       "active": {
                         "type": "boolean"
+                      },
+                      "pricingModelId": {
+                        "type": "string"
                       }
                     },
-                    "required": ["filterTypes", "url", "name"]
+                    "required": [
+                      "filterTypes",
+                      "url",
+                      "name",
+                      "pricingModelId"
+                    ]
                   }
                 },
                 "required": ["webhook"]
@@ -6459,6 +6648,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6470,7 +6662,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     },

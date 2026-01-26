@@ -1244,10 +1244,12 @@ describe('createPricingModelBookkeeping', () => {
       // Verify the previous default pricing model is no longer default
       const previousDefaultPricingModel = await adminTransaction(
         async ({ transaction }) => {
-          const prevDefaultPM = await selectPricingModelById(
-            existingDefaultId,
-            transaction
-          )
+          const prevDefaultPM = (
+            await selectPricingModelById(
+              existingDefaultId,
+              transaction
+            )
+          ).unwrap()
           return prevDefaultPM
         }
       )
@@ -1341,10 +1343,12 @@ describe('createPricingModelBookkeeping', () => {
       // Check that the livemode default is STILL the default (unaffected by testmode changes)
       const refreshedLiveModeDefault = await adminTransaction(
         async ({ transaction }) => {
-          const pm = await selectPricingModelById(
-            liveModeDefaultPricingModel!.id,
-            transaction
-          )
+          const pm = (
+            await selectPricingModelById(
+              liveModeDefaultPricingModel!.id,
+              transaction
+            )
+          ).unwrap()
           return pm
         }
       )
@@ -1354,10 +1358,12 @@ describe('createPricingModelBookkeeping', () => {
       // Check that the old test mode default is no longer default
       const refreshedOldTestModeDefault = await adminTransaction(
         async ({ transaction }) => {
-          const pm = await selectPricingModelById(
-            testModeDefaultPricingModel.id,
-            transaction
-          )
+          const pm = (
+            await selectPricingModelById(
+              testModeDefaultPricingModel.id,
+              transaction
+            )
+          ).unwrap()
           return pm
         }
       )
@@ -2514,10 +2520,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         })
 
         // Verify invoice status was updated to Paid
-        const updatedInvoice = await selectInvoiceById(
-          invoice.id,
-          transaction
-        )
+        const updatedInvoice = (
+          await selectInvoiceById(invoice.id, transaction)
+        ).unwrap()
         expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
         return Result.ok(null)
       }
@@ -2553,10 +2558,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         })
 
         // Verify invoice status was NOT updated (should remain Draft)
-        const unchangedInvoice = await selectInvoiceById(
-          invoice.id,
-          transaction
-        )
+        const unchangedInvoice = (
+          await selectInvoiceById(invoice.id, transaction)
+        ).unwrap()
         expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
         return Result.ok(null)
       }
@@ -2600,10 +2604,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         })
 
         // Verify invoice status is still Paid (no change)
-        const unchangedInvoice = await selectInvoiceById(
-          paidInvoice.id,
-          transaction
-        )
+        const unchangedInvoice = (
+          await selectInvoiceById(paidInvoice.id, transaction)
+        ).unwrap()
         expect(unchangedInvoice.status).toBe(InvoiceStatus.Paid)
         return Result.ok(null)
       }
@@ -2652,10 +2655,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         )
 
         // Verify invoice status was NOT updated (should remain Draft)
-        const unchangedInvoice = await selectInvoiceById(
-          invoice.id,
-          transaction
-        )
+        const unchangedInvoice = (
+          await selectInvoiceById(invoice.id, transaction)
+        ).unwrap()
         expect(unchangedInvoice.status).toBe(InvoiceStatus.Draft)
         return Result.ok(null)
       }
@@ -2716,10 +2718,9 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
         )
 
         // Verify invoice status was updated to Paid
-        const updatedInvoice = await selectInvoiceById(
-          invoice.id,
-          transaction
-        )
+        const updatedInvoice = (
+          await selectInvoiceById(invoice.id, transaction)
+        ).unwrap()
         expect(updatedInvoice.status).toBe(InvoiceStatus.Paid)
         return Result.ok(null)
       }

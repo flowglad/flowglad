@@ -71,45 +71,39 @@ export const runSendOrganizationSubscriptionCancellationScheduledNotification =
         // NotFoundError is caught and treated as non-fatal - we use fallbacks instead
         let price: Price.Record | null = null
         if (subscription.priceId) {
-          try {
-            price = await selectPriceById(
-              subscription.priceId,
-              transaction
+          const priceResult = await selectPriceById(
+            subscription.priceId,
+            transaction
+          )
+          if (Result.isOk(priceResult)) {
+            price = priceResult.value
+          } else {
+            logger.warn(
+              'Price not found for subscription, using fallbacks',
+              {
+                priceId: subscription.priceId,
+                subscriptionId: subscription.id,
+              }
             )
-          } catch (error) {
-            if (error instanceof NotFoundError) {
-              logger.warn(
-                'Price not found for subscription, using fallbacks',
-                {
-                  priceId: subscription.priceId,
-                  subscriptionId: subscription.id,
-                }
-              )
-            } else {
-              throw error
-            }
           }
         }
 
         let product: Product.Record | null = null
         if (price && Price.hasProductId(price)) {
-          try {
-            product = await selectProductById(
-              price.productId,
-              transaction
+          const productResult = await selectProductById(
+            price.productId,
+            transaction
+          )
+          if (Result.isOk(productResult)) {
+            product = productResult.value
+          } else {
+            logger.warn(
+              'Product not found for subscription, using fallbacks',
+              {
+                productId: price.productId,
+                subscriptionId: subscription.id,
+              }
             )
-          } catch (error) {
-            if (error instanceof NotFoundError) {
-              logger.warn(
-                'Product not found for subscription, using fallbacks',
-                {
-                  productId: price.productId,
-                  subscriptionId: subscription.id,
-                }
-              )
-            } else {
-              throw error
-            }
           }
         }
 

@@ -250,7 +250,9 @@ const clonePricingModelProcedure = protectedProcedure
   .mutation(async ({ input, ctx }) => {
     const pricingModel = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPricingModelById(input.id, transaction)
+        return (
+          await selectPricingModelById(input.id, transaction)
+        ).unwrap()
       },
       {
         apiKey: ctx.apiKey,

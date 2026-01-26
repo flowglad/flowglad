@@ -304,14 +304,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
         await processOutcomeForBillingRun({ input: event }, ctx)
       ).unwrap()
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
-      const updatedInvoice = await selectInvoiceById(
-        invoice.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
+      const updatedInvoice = (
+        await selectInvoiceById(invoice.id, transaction)
+      ).unwrap()
 
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
@@ -459,14 +457,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       )
       await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        failedBillingRun.id,
-        transaction
-      )
-      const updatedInvoice = await selectInvoiceById(
-        failedInvoice.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(failedBillingRun.id, transaction)
+      ).unwrap()
+      const updatedInvoice = (
+        await selectInvoiceById(failedInvoice.id, transaction)
+      ).unwrap()
 
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
       expect(typeof updatedInvoice).toBe('object')
@@ -539,22 +535,19 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
-      const updatedInvoice = await selectInvoiceById(
-        canceledInvoice.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
+      const updatedInvoice = (
+        await selectInvoiceById(canceledInvoice.id, transaction)
+      ).unwrap()
       const updatedPayment = await selectPaymentById(
         payment.id,
         transaction
       )
-      const updatedSubscription = await selectSubscriptionById(
-        subscription.id,
-        transaction
-      )
+      const updatedSubscription = (
+        await selectSubscriptionById(subscription.id, transaction)
+      ).unwrap()
 
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Aborted)
       expect(updatedInvoice.status).toBe(InvoiceStatus.Open)
@@ -616,14 +609,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
-      const updatedInvoice = await selectInvoiceById(
-        invoice.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
+      const updatedInvoice = (
+        await selectInvoiceById(invoice.id, transaction)
+      ).unwrap()
       const updatedPayment = await selectPaymentById(
         payment.id,
         transaction
@@ -703,14 +694,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
       await processOutcomeForBillingRun({ input: event }, ctx)
 
-      const updatedBillingRun = await selectBillingRunById(
-        billingRun.id,
-        transaction
-      )
-      const updatedInvoice = await selectInvoiceById(
-        requiresActionInvoice.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(billingRun.id, transaction)
+      ).unwrap()
+      const updatedInvoice = (
+        await selectInvoiceById(requiresActionInvoice.id, transaction)
+      ).unwrap()
       const updatedPayment = await selectPaymentById(
         payment.id,
         transaction
@@ -964,10 +953,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     // Verify subscription was canceled
     const canceledSubscription = await adminTransaction(
       async ({ transaction }) => {
-        return selectSubscriptionById(
-          testSubscription.id,
-          transaction
-        )
+        return (
+          await selectSubscriptionById(
+            testSubscription.id,
+            transaction
+          )
+        ).unwrap()
       }
     )
 
@@ -1113,10 +1104,12 @@ describe('processOutcomeForBillingRun integration tests', async () => {
     // Verify subscription was NOT canceled (unlike paid plans)
     const updatedSubscription = await adminTransaction(
       async ({ transaction }) => {
-        return selectSubscriptionById(
-          testSubscription.id,
-          transaction
-        )
+        return (
+          await selectSubscriptionById(
+            testSubscription.id,
+            transaction
+          )
+        ).unwrap()
       }
     )
     expect(updatedSubscription.canceledAt).toBeNull()
@@ -1250,18 +1243,18 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
     // Assertions after transaction
     await adminTransaction(async ({ transaction }) => {
-      const updatedBillingRun = await selectBillingRunById(
-        adjustmentBillingRun.id,
-        transaction
-      )
-      const updatedInvoice = await selectInvoiceById(
-        adjustmentInvoice.id,
-        transaction
-      )
-      const updatedSubscription = await selectSubscriptionById(
-        testSubscription.id,
-        transaction
-      )
+      const updatedBillingRun = (
+        await selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        )
+      ).unwrap()
+      const updatedInvoice = (
+        await selectInvoiceById(adjustmentInvoice.id, transaction)
+      ).unwrap()
+      const updatedSubscription = (
+        await selectSubscriptionById(testSubscription.id, transaction)
+      ).unwrap()
 
       const remainingLineItems = await selectInvoiceLineItems(
         {
@@ -1412,10 +1405,12 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     // Get the billing period
     const testBillingPeriod = await adminTransaction(
       async ({ transaction }) => {
-        return selectBillingPeriodById(
-          testBillingRun.billingPeriodId,
-          transaction
-        )
+        return (
+          await selectBillingPeriodById(
+            testBillingRun.billingPeriodId,
+            transaction
+          )
+        ).unwrap()
       }
     )
 
@@ -1599,10 +1594,12 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     // Get the billing period
     const testBillingPeriod = await adminTransaction(
       async ({ transaction }) => {
-        return selectBillingPeriodById(
-          testBillingRun.billingPeriodId,
-          transaction
-        )
+        return (
+          await selectBillingPeriodById(
+            testBillingRun.billingPeriodId,
+            transaction
+          )
+        ).unwrap()
       }
     )
 
@@ -1780,10 +1777,12 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
 
     const testBillingPeriod = await adminTransaction(
       async ({ transaction }) => {
-        return selectBillingPeriodById(
-          testBillingRun.billingPeriodId,
-          transaction
-        )
+        return (
+          await selectBillingPeriodById(
+            testBillingRun.billingPeriodId,
+            transaction
+          )
+        ).unwrap()
       }
     )
 
@@ -2174,10 +2173,9 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
       await processOutcomeForBillingRun({ input: event }, ctx)
 
       // Verify subscription is now PastDue
-      const updatedSubscription = await selectSubscriptionById(
-        testSubscription.id,
-        transaction
-      )
+      const updatedSubscription = (
+        await selectSubscriptionById(testSubscription.id, transaction)
+      ).unwrap()
       expect(updatedSubscription.status).toBe(
         SubscriptionStatus.PastDue
       )

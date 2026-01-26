@@ -42,10 +42,9 @@ export const processNonPaymentCheckoutSession = async (
     )
   }
 
-  const price = await selectPriceById(
-    checkoutSession.priceId!,
-    transaction
-  )
+  const price = (
+    await selectPriceById(checkoutSession.priceId!, transaction)
+  ).unwrap()
 
   let purchase = checkoutSession.purchaseId
     ? await selectPurchaseById(

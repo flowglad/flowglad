@@ -28,6 +28,7 @@ import {
 } from './subscriptionHandlers'
 import type { HybridSubRouteHandler, SubRouteHandler } from './types'
 import { createUsageEvent } from './usageEventHandlers'
+import { getUsageMeterBalances } from './usageMeterHandlers'
 
 export const routeToHandlerMap: {
   [K in AuthenticatedActionKey]: SubRouteHandler<K>
@@ -59,6 +60,7 @@ export const routeToHandlerMap: {
   [FlowgladActionKey.ClaimResource]: claimResource,
   [FlowgladActionKey.ReleaseResource]: releaseResource,
   [FlowgladActionKey.ListResourceClaims]: listResourceClaims,
+  [FlowgladActionKey.GetUsageMeterBalances]: getUsageMeterBalances,
 }
 
 export const hybridRouteToHandlerMap: {

@@ -35,10 +35,9 @@ async function createNextBillingPeriodForSubscription(
     )
   }
   await db.transaction(async (transaction) => {
-    const subscription = await selectSubscriptionById(
-      subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(subscriptionId, transaction)
+    ).unwrap()
     if (subscription.status === SubscriptionStatus.CreditTrial) {
       throw new Error(
         `Subscription ${subscriptionId} is a credit trial subscription. Credit trial subscriptions cannot have billing periods.`

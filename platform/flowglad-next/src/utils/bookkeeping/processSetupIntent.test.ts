@@ -481,10 +481,12 @@ describe('Process setup intent', async () => {
       // Verify the subscription was updated with the new payment method
       const updatedSubscription = await adminTransaction(
         async ({ transaction }) => {
-          return selectSubscriptionById(
-            targetSubscription.id,
-            transaction
-          )
+          return (
+            await selectSubscriptionById(
+              targetSubscription.id,
+              transaction
+            )
+          ).unwrap()
         }
       )
 
@@ -528,7 +530,9 @@ describe('Process setup intent', async () => {
       // Get the original subscription
       const originalSubscription = await adminTransaction(
         async ({ transaction }) => {
-          return selectSubscriptionById(subscription.id, transaction)
+          return (
+            await selectSubscriptionById(subscription.id, transaction)
+          ).unwrap()
         }
       )
 
@@ -542,7 +546,9 @@ describe('Process setup intent', async () => {
       // Verify the subscription was not updated
       const updatedSubscription = await adminTransaction(
         async ({ transaction }) => {
-          return selectSubscriptionById(subscription.id, transaction)
+          return (
+            await selectSubscriptionById(subscription.id, transaction)
+          ).unwrap()
         }
       )
 
@@ -590,14 +596,15 @@ describe('Process setup intent', async () => {
       // Verify subscriptions are updated
       const [updatedFirstSubscription, updatedSecondSubscription] =
         await adminTransaction(async ({ transaction }) => {
-          const s1 = await selectSubscriptionById(
-            subscription.id,
-            transaction
-          )
-          const s2 = await selectSubscriptionById(
-            secondSubscription.id,
-            transaction
-          )
+          const s1 = (
+            await selectSubscriptionById(subscription.id, transaction)
+          ).unwrap()
+          const s2 = (
+            await selectSubscriptionById(
+              secondSubscription.id,
+              transaction
+            )
+          ).unwrap()
           return [s1, s2]
         })
 
@@ -664,14 +671,15 @@ describe('Process setup intent', async () => {
 
       const [updatedFirstSubscription, updatedSecondSubscription] =
         await adminTransaction(async ({ transaction }) => {
-          const s1 = await selectSubscriptionById(
-            subscription.id,
-            transaction
-          )
-          const s2 = await selectSubscriptionById(
-            secondSubscription.id,
-            transaction
-          )
+          const s1 = (
+            await selectSubscriptionById(subscription.id, transaction)
+          ).unwrap()
+          const s2 = (
+            await selectSubscriptionById(
+              secondSubscription.id,
+              transaction
+            )
+          ).unwrap()
           return [s1, s2]
         })
 
@@ -1249,10 +1257,12 @@ describe('Process setup intent', async () => {
         expect(result.billingRun).toMatchObject({})
         const subscription = await adminTransaction(
           async ({ transaction }) => {
-            return await selectSubscriptionById(
-              result.billingRun!.subscriptionId,
-              transaction
-            )
+            return (
+              await selectSubscriptionById(
+                result.billingRun!.subscriptionId,
+                transaction
+              )
+            ).unwrap()
           }
         )
         expect(currentSubscriptionStatuses).toContain(
@@ -1329,10 +1339,12 @@ describe('Process setup intent', async () => {
             expect(result.billingRun).toMatchObject({})
             return {
               ...result,
-              subscription: await selectSubscriptionById(
-                result.billingRun!.subscriptionId,
-                transaction
-              ),
+              subscription: (
+                await selectSubscriptionById(
+                  result.billingRun!.subscriptionId,
+                  transaction
+                )
+              ).unwrap(),
             }
           }
         )
@@ -1393,10 +1405,12 @@ describe('Process setup intent', async () => {
             ).unwrap()
             return {
               ...result,
-              subscription: await selectSubscriptionById(
-                result.billingRun!.subscriptionId,
-                transaction
-              ),
+              subscription: (
+                await selectSubscriptionById(
+                  result.billingRun!.subscriptionId,
+                  transaction
+                )
+              ).unwrap(),
             }
           })
 
@@ -1443,10 +1457,12 @@ describe('Process setup intent', async () => {
               throw new Error('Billing run not found')
             }
             expect(result.billingRun).toMatchObject({})
-            return await selectSubscriptionById(
-              result.billingRun!.subscriptionId,
-              transaction
-            )
+            return (
+              await selectSubscriptionById(
+                result.billingRun!.subscriptionId,
+                transaction
+              )
+            ).unwrap()
           }
         )
 

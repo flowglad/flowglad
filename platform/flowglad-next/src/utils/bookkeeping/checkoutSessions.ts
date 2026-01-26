@@ -225,10 +225,12 @@ export const editCheckoutSessionBillingAddress = async (
   )
 
   // Check if we should calculate fees (MOR orgs only, and only if fee-ready)
-  const organization = await selectOrganizationById(
-    updatedCheckoutSession.organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(
+      updatedCheckoutSession.organizationId,
+      transaction
+    )
+  ).unwrap()
 
   let feeCalculation: FeeCalculation.Record | null = null
 
@@ -356,16 +358,17 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
       checkoutSession.purchaseId,
       transaction
     )
-    customer = await selectCustomerById(
-      purchase.customerId!,
-      transaction
-    )
+    customer = (
+      await selectCustomerById(purchase.customerId!, transaction)
+    ).unwrap()
   }
   if (checkoutSession.customerId) {
-    customer = await selectCustomerById(
-      checkoutSession.customerId,
-      transaction
-    )
+    customer = (
+      await selectCustomerById(
+        checkoutSession.customerId,
+        transaction
+      )
+    ).unwrap()
   }
 
   // Step 2: Validate that provided Stripe customer ID matches existing customer
@@ -505,10 +508,9 @@ export const processPurchaseBookkeepingForCheckoutSession = async (
     transaction
   )
   if (feeCalculation.discountId) {
-    discount = await selectDiscountById(
-      feeCalculation.discountId,
-      transaction
-    )
+    discount = (
+      await selectDiscountById(feeCalculation.discountId, transaction)
+    ).unwrap()
     discountRedemption =
       await upsertDiscountRedemptionForPurchaseAndDiscount(
         purchase,

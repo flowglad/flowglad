@@ -109,14 +109,18 @@ describe('Pricing Models RLS - Organization Policy', async () => {
 
       await authenticatedTransaction(
         async (params) => {
-          fetchedPricingModel1 = await selectPricingModelById(
-            org1DefaultPricingModel.id,
-            params.transaction
-          )
-          fetchedPricingModel2 = await selectPricingModelById(
-            org1ExtraPricingModel.id,
-            params.transaction
-          )
+          fetchedPricingModel1 = (
+            await selectPricingModelById(
+              org1DefaultPricingModel.id,
+              params.transaction
+            )
+          ).unwrap()
+          fetchedPricingModel2 = (
+            await selectPricingModelById(
+              org1ExtraPricingModel.id,
+              params.transaction
+            )
+          ).unwrap()
         },
         { apiKey: org1ApiKeyToken }
       )
@@ -135,10 +139,12 @@ describe('Pricing Models RLS - Organization Policy', async () => {
         authenticatedTransaction(
           async (params) => {
             // This call is expected to throw due to RLS / not found
-            await selectPricingModelById(
-              org2DefaultPricingModel.id, // Attempting to read Org2's pricingModel
-              params.transaction
-            )
+            ;(
+              await selectPricingModelById(
+                org2DefaultPricingModel.id, // Attempting to read Org2's pricingModel
+                params.transaction
+              )
+            ).unwrap()
           },
           { apiKey: org1ApiKeyToken }
         ) // Authenticated as Org1 user

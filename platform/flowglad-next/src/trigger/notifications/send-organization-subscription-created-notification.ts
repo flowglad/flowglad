@@ -65,11 +65,15 @@ export const runSendOrganizationSubscriptionCreatedNotification =
 
         // Fetch the product associated with the subscription for user-friendly naming
         const price = subscription.priceId
-          ? await selectPriceById(subscription.priceId, transaction)
+          ? (
+              await selectPriceById(subscription.priceId, transaction)
+            ).unwrap()
           : null
         const product =
           price && Price.hasProductId(price)
-            ? await selectProductById(price.productId, transaction)
+            ? (
+                await selectProductById(price.productId, transaction)
+              ).unwrap()
             : null
 
         return {

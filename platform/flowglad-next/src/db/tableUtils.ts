@@ -951,6 +951,36 @@ export const constructUniqueIndex = (
 }
 
 /**
+ * Constructs a partial unique index that only enforces uniqueness
+ * for rows matching the WHERE condition.
+ *
+ * @param tableName - The name of the table
+ * @param columns - The columns to include in the index
+ * @param where - A SQL condition that filters which rows are included in the index
+ * @returns A Drizzle unique index with a WHERE clause
+ *
+ * @example
+ * ```typescript
+ * // Only enforce uniqueness for non-archived customers
+ * constructPartialUniqueIndex(TABLE_NAME, [
+ *   table.pricingModelId,
+ *   table.externalId,
+ * ], sql`${table.archived} = false`)
+ * ```
+ */
+export const constructPartialUniqueIndex = (
+  tableName: string,
+  columns: Parameters<IndexBuilderOn['on']>,
+  where: SQL
+) => {
+  const indexName =
+    createIndexName(tableName, columns, true) + '_partial'
+  return uniqueIndex(indexName)
+    .on(...columns)
+    .where(where)
+}
+
+/**
  * Can only support single column indexes
  * at this time because of the way we need to construct gin
  * indexes in Drizzle:

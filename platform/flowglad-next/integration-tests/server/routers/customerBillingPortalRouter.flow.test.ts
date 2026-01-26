@@ -467,7 +467,9 @@ describe('Customer Billing Portal Router', () => {
       // Verify subscription is scheduled for cancellation
       const scheduledSubscription = await adminTransaction(
         async ({ transaction }) => {
-          return selectSubscriptionById(subscription.id, transaction)
+          return (
+            await selectSubscriptionById(subscription.id, transaction)
+          ).unwrap()
         }
       )
       expect(scheduledSubscription.status).toBe(
@@ -902,7 +904,9 @@ describe('Customer Billing Portal Router', () => {
       // Verify subscription now uses the new payment method
       const updatedSubscription = await adminTransaction(
         async ({ transaction }) => {
-          return selectSubscriptionById(subscription.id, transaction)
+          return (
+            await selectSubscriptionById(subscription.id, transaction)
+          ).unwrap()
         }
       )
       expect(updatedSubscription.defaultPaymentMethodId).toBe(

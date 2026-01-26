@@ -25,7 +25,7 @@ import {
   createDateNotPassedFilter,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   NotFoundError,
@@ -37,6 +37,7 @@ import type {
   DbTransaction,
   TransactionEffectsContext,
 } from '@/db/types'
+import { ConflictError } from '@/errors'
 import { PriceType } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -72,7 +73,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'pricingModels',
 }
 
-export const selectPricingModelById = createSelectById(
+export const selectPricingModelById = createSelectByIdResult(
   pricingModels,
   config
 )
@@ -95,10 +96,9 @@ const selectPricingModelClientRecordById = cached(
     pricingModelId: string,
     transaction: DbTransaction
   ): Promise<PricingModel.ClientRecord> => {
-    const pricingModel = await selectPricingModelById(
-      pricingModelId,
-      transaction
-    )
+    const pricingModel = (
+      await selectPricingModelById(pricingModelId, transaction)
+    ).unwrap()
     return pricingModelsClientSelectSchema.parse(pricingModel)
   }
 )
@@ -196,10 +196,12 @@ export const makePricingModelDefault = async (
 ) => {
   const newDefaultPricingModel =
     typeof newDefaultPricingModelOrId === 'string'
-      ? await selectPricingModelById(
-          newDefaultPricingModelOrId,
-          ctx.transaction
-        )
+      ? (
+          await selectPricingModelById(
+            newDefaultPricingModelOrId,
+            ctx.transaction
+          )
+        ).unwrap()
       : newDefaultPricingModelOrId
   const oldDefaultPricingModel = await selectDefaultPricingModel(
     {
@@ -258,10 +260,9 @@ export const safelyUpdatePricingModel = async (
    * If price is default
    */
   if (pricingModel.isDefault) {
-    const existingPricingModel = await selectPricingModelById(
-      pricingModel.id,
-      ctx.transaction
-    )
+    const existingPricingModel = (
+      await selectPricingModelById(pricingModel.id, ctx.transaction)
+    ).unwrap()
     await setPricingModelsForOrganizationToNonDefault(
       {
         organizationId: existingPricingModel.organizationId,
@@ -284,7 +285,8 @@ export const safelyInsertPricingModel = async (
       ctx.transaction
     )
     if (exists) {
-      throw new Error(
+      throw new ConflictError(
+        'pricingModel',
         'Organization already has a livemode pricing model. Only one livemode pricing model is allowed per organization.'
       )
     }
@@ -773,8 +775,14 @@ export const selectPricingModelForCustomer = async (
         transaction
       )
     } catch (error) {
-      // If the specific pricing model isn't found, fall back to default
-      if (!(error instanceof NotFoundError)) {
+      // If the specific pricing model isn't found, fall back to default.
+      // Check for both NotFoundError directly and Panic errors that wrap NotFoundError
+      // (from Result.unwrap() calls in the chain).
+      const isNotFoundError =
+        error instanceof NotFoundError ||
+        (error instanceof Error &&
+          error.message.includes('NotFoundError'))
+      if (!isNotFoundError) {
         throw error
       }
     }

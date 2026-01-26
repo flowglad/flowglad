@@ -27,7 +27,7 @@ import {
   createCursorPaginatedSelectFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -52,7 +52,10 @@ const config: ORMMethodCreatorConfig<
   tableName: 'invoices',
 }
 
-export const selectInvoiceById = createSelectById(invoices, config)
+export const selectInvoiceById = createSelectByIdResult(
+  invoices,
+  config
+)
 
 /**
  * Derives pricingModelId for an invoice with COALESCE logic.
@@ -84,10 +87,11 @@ export const derivePricingModelIdForInvoice = async (
   }
 
   // Fall back to customer
-  const customer = await selectCustomerById(
+  const customerResult = await selectCustomerById(
     data.customerId,
     transaction
   )
+  const customer = customerResult.unwrap()
   if (!customer.pricingModelId) {
     throw new Error(
       `Customer ${data.customerId} does not have a pricingModelId`

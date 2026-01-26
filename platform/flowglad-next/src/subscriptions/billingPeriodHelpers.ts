@@ -257,10 +257,12 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
     return Result.err(billingPeriodCloseResult.error)
   }
   const updatedBillingPeriod = billingPeriodCloseResult.value
-  let subscription = await selectSubscriptionById(
-    currentBillingPeriod.subscriptionId,
-    transaction
-  )
+  let subscription = (
+    await selectSubscriptionById(
+      currentBillingPeriod.subscriptionId,
+      transaction
+    )
+  ).unwrap()
   if (subscription.status === SubscriptionStatus.CreditTrial) {
     return Result.err(
       new Error(

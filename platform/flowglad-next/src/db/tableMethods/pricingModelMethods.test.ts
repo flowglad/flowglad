@@ -72,17 +72,21 @@ describe('safelyUpdatePricingModel', () => {
 
     const updatedTestmodeDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          testmodeDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            testmodeDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
     const updatedTestmodeNonDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          testmodeNonDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            testmodeNonDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
 
     // The non-default should now be default
@@ -104,10 +108,12 @@ describe('safelyUpdatePricingModel', () => {
 
     const refreshedTestmodeDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          testmodeDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            testmodeDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
 
     expect(updatedPricingModel.name).toBe(newName)
@@ -160,20 +166,24 @@ describe('safelyUpdatePricingModel', () => {
     // Expect: The default pricingModel for the second organization remains unchanged.
     const refreshedOtherOrgPricingModel = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          otherOrgDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            otherOrgDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
     expect(refreshedOtherOrgPricingModel.isDefault).toBe(true)
 
     // Sanity check: The old testmode default for the first organization should now be false.
     const refreshedTestmodeDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          testmodeDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            testmodeDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
     expect(refreshedTestmodeDefault.isDefault).toBe(false)
   })
@@ -196,21 +206,30 @@ describe('safelyUpdatePricingModel', () => {
     // Check that only the testmode default was affected
     const refreshedLivemodePricingModel = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(livemodePricingModel.id, transaction)
+        (
+          await selectPricingModelById(
+            livemodePricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
     const refreshedTestmodeNonDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          testmodeNonDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            testmodeNonDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
     const refreshedTestmodeDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          testmodeDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            testmodeDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
 
     // testmodeNonDefaultPricingModel should now be the default for testmode
@@ -269,10 +288,12 @@ describe('safelyInsertPricingModel', () => {
 
     const refreshedOldDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          existingTestmodeDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            existingTestmodeDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
 
     expect(newPricingModel.isDefault).toBe(true)
@@ -294,10 +315,12 @@ describe('safelyInsertPricingModel', () => {
 
     const refreshedOldDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          existingTestmodeDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            existingTestmodeDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
 
     expect(newPricingModel.isDefault).toBe(false)
@@ -325,10 +348,12 @@ describe('safelyInsertPricingModel', () => {
     // Check that the second org's default pricingModel is untouched
     const refreshedOtherOrgPricingModel = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          otherOrgDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            otherOrgDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
     expect(refreshedOtherOrgPricingModel.isDefault).toBe(true)
   })
@@ -356,17 +381,21 @@ describe('safelyInsertPricingModel', () => {
     // Check that only the testmode default was affected
     const refreshedLivemodeDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          existingLivemodeDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            existingLivemodeDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
     const refreshedOldTestmodeDefault = await adminTransaction(
       async ({ transaction }) =>
-        selectPricingModelById(
-          existingTestmodeDefaultPricingModel.id,
-          transaction
-        )
+        (
+          await selectPricingModelById(
+            existingTestmodeDefaultPricingModel.id,
+            transaction
+          )
+        ).unwrap()
     )
 
     // New testmode pricing model should be default

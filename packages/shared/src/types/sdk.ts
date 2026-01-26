@@ -19,6 +19,7 @@ export enum FlowgladActionKey {
   ReleaseResource = 'resources/release',
   ListResourceClaims = 'resources/claims',
   GetPricingModel = 'pricing-models/retrieve',
+  GetUsageMeterBalances = 'usage-meters/balances',
 }
 
 /**

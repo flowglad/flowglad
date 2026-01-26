@@ -60,10 +60,12 @@ export const invoiceUpdatedTask = task({
             )
           }
 
-          const organization = await selectOrganizationById(
-            customer.organizationId,
-            transaction
-          )
+          const organization = (
+            await selectOrganizationById(
+              customer.organizationId,
+              transaction
+            )
+          ).unwrap()
           if (!organization) {
             return Result.err(
               new NotFoundError(

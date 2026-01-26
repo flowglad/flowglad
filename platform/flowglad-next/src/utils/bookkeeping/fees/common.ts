@@ -447,10 +447,12 @@ export const finalizeFeeCalculation = async (
       { organizationId: feeCalculation.organizationId },
       transaction
     )
-  const organization = await selectOrganizationById(
-    feeCalculation.organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(
+      feeCalculation.organizationId,
+      transaction
+    )
+  ).unwrap()
 
   // Hard assume that the payments are processed in pennies.
   // We accept imprecision for Euros, and for other currencies.

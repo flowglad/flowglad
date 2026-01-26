@@ -155,10 +155,9 @@ describe('productsRouter - Default Product Constraints', () => {
         )
 
         // Create a price for the product
-        const org = await selectOrganizationById(
-          organizationId,
-          transaction
-        )
+        const org = (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
         await insertPrice(
           {
             productId: product.id,
@@ -194,14 +193,12 @@ describe('productsRouter - Default Product Constraints', () => {
       const { regularProduct, defaultProduct } =
         await adminTransaction(async (ctx) => {
           const { transaction } = ctx
-          const regular = await selectProductById(
-            regularProductId,
-            transaction
-          )
-          const defaultProd = await selectProductById(
-            defaultProductId,
-            transaction
-          )
+          const regular = (
+            await selectProductById(regularProductId, transaction)
+          ).unwrap()
+          const defaultProd = (
+            await selectProductById(defaultProductId, transaction)
+          ).unwrap()
           return {
             regularProduct: regular,
             defaultProduct: defaultProd,
@@ -228,10 +225,9 @@ describe('productsRouter - Default Product Constraints', () => {
     it('should allow updating allowed fields on default products (excluding slug)', async () => {
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const existingProduct = await selectProductById(
-          defaultProductId,
-          transaction
-        )
+        const existingProduct = (
+          await selectProductById(defaultProductId, transaction)
+        ).unwrap()
 
         // This should not throw
         validateDefaultProductUpdate(
@@ -264,10 +260,9 @@ describe('productsRouter - Default Product Constraints', () => {
     it('should throw error when attempting to update restricted fields on default products', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const existingProduct = await selectProductById(
-          defaultProductId,
-          transaction
-        )
+        const existingProduct = (
+          await selectProductById(defaultProductId, transaction)
+        ).unwrap()
 
         // Try to change pricingModelId
         expect(() => {
@@ -298,10 +293,9 @@ describe('productsRouter - Default Product Constraints', () => {
     it('should allow updating any field on non-default products', async () => {
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const existingProduct = await selectProductById(
-          regularProductId,
-          transaction
-        )
+        const existingProduct = (
+          await selectProductById(regularProductId, transaction)
+        ).unwrap()
 
         // This should not throw for regular products
         validateDefaultProductUpdate(

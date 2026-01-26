@@ -55,13 +55,9 @@ export const runSendCustomerSubscriptionCancellationScheduledNotification =
     try {
       const data = await adminTransaction(async ({ transaction }) => {
         // First fetch subscription to get organizationId and customerId
-        const subscription = await selectSubscriptionById(
-          subscriptionId,
-          transaction
-        )
-        if (!subscription) {
-          throw new NotFoundError('Subscription', subscriptionId)
-        }
+        const subscription = (
+          await selectSubscriptionById(subscriptionId, transaction)
+        ).unwrap()
 
         // Use buildNotificationContext for organization and customer
         const { organization, customer } =
@@ -75,11 +71,15 @@ export const runSendCustomerSubscriptionCancellationScheduledNotification =
 
         // Fetch the product associated with the subscription for user-friendly naming
         const price = subscription.priceId
-          ? await selectPriceById(subscription.priceId, transaction)
+          ? (
+              await selectPriceById(subscription.priceId, transaction)
+            ).unwrap()
           : null
         const product =
           price && Price.hasProductId(price)
-            ? await selectProductById(price.productId, transaction)
+            ? (
+                await selectProductById(price.productId, transaction)
+              ).unwrap()
             : null
 
         return {

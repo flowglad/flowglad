@@ -236,7 +236,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     await executeBillingRun(adjustmentBillingRun.id)
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
     expect(typeof updatedBillingRun.errorDetails).toBe('object')
@@ -297,7 +300,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
@@ -385,7 +391,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     // Verify billing run succeeded
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
 
@@ -498,7 +507,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     // Verify billing run status (should be Failed after processOutcomeForBillingRun)
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
 
@@ -631,7 +643,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
@@ -740,7 +755,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     // Since amount is 0, executeBillingRun should handle it without creating payment intent
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
 
     // If amount is 0, billing run should succeed without payment
@@ -838,7 +856,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     // Verify billing run succeeded
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
 
@@ -970,7 +991,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })
@@ -1038,8 +1062,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     // Verify subscription record was synced
     const updatedSubscription = await adminTransaction(
-      ({ transaction }) =>
-        selectSubscriptionById(subscription.id, transaction)
+      async ({ transaction }) =>
+        (
+          await selectSubscriptionById(subscription.id, transaction)
+        ).unwrap()
     )
 
     // Subscription should reflect the most expensive item (the new higher price)
@@ -1130,7 +1156,10 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     const updatedBillingRun = await adminTransaction(
       ({ transaction }) =>
-        selectBillingRunById(adjustmentBillingRun.id, transaction)
+        selectBillingRunById(
+          adjustmentBillingRun.id,
+          transaction
+        ).then((r) => r.unwrap())
     )
     expect(updatedBillingRun.status).toBe(BillingRunStatus.Succeeded)
   })

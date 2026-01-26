@@ -209,10 +209,9 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
 
     const discounts = await adminTransaction(
       async ({ transaction }) => {
-        const discountRecord = await selectDiscountById(
-          discount.id,
-          transaction
-        )
+        const discountRecord = (
+          await selectDiscountById(discount.id, transaction)
+        ).unwrap()
         return await enrichDiscountsWithRedemptionCounts(
           [discountRecord],
           transaction
@@ -270,10 +269,9 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
 
     const enrichedDiscounts = await adminTransaction(
       async ({ transaction }) => {
-        const discountRecord = await selectDiscountById(
-          discount.id,
-          transaction
-        )
+        const discountRecord = (
+          await selectDiscountById(discount.id, transaction)
+        ).unwrap()
         return await enrichDiscountsWithRedemptionCounts(
           [discountRecord],
           transaction

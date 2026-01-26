@@ -299,8 +299,8 @@ describe('billingRunHelpers', async () => {
             transaction
           )
       )
-      invoice = await adminTransaction(({ transaction }) =>
-        selectInvoiceById(invoice.id, transaction)
+      invoice = await adminTransaction(async ({ transaction }) =>
+        (await selectInvoiceById(invoice.id, transaction)).unwrap()
       )
 
       expect(invoice.status).toBe(InvoiceStatus.Open)
@@ -1013,7 +1013,9 @@ describe('billingRunHelpers', async () => {
       await executeBillingRun(billingRun.id)
       const updatedBillingRun = await adminTransaction(
         ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction)
+          selectBillingRunById(billingRun.id, transaction).then((r) =>
+            r.unwrap()
+          )
       )
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
     })
@@ -1045,7 +1047,9 @@ describe('billingRunHelpers', async () => {
       await executeBillingRun(billingRun.id)
       const updatedBillingRun = await adminTransaction(
         ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction)
+          selectBillingRunById(billingRun.id, transaction).then((r) =>
+            r.unwrap()
+          )
       )
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
     })
@@ -1126,7 +1130,9 @@ describe('billingRunHelpers', async () => {
         // Verify database state is correct
         const updatedBillingRun = await adminTransaction(
           ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction)
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
         )
         expect(updatedBillingRun.status).toBe(
           BillingRunStatus.Succeeded
@@ -1160,7 +1166,9 @@ describe('billingRunHelpers', async () => {
         // Verify billing run is marked as failed
         const updatedBillingRun = await adminTransaction(
           ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction)
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
         expect(typeof updatedBillingRun.errorDetails).toBe('object')
@@ -1203,7 +1211,9 @@ describe('billingRunHelpers', async () => {
         // Verify billing run is marked as failed
         const updatedBillingRun = await adminTransaction(
           ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction)
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
         expect(typeof updatedBillingRun.errorDetails).toBe('object')
@@ -1261,7 +1271,9 @@ describe('billingRunHelpers', async () => {
         // Verify billing run is marked as failed
         const updatedBillingRun = await adminTransaction(
           ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction)
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
         expect(typeof updatedBillingRun.errorDetails).toBe('object')
@@ -1309,7 +1321,9 @@ describe('billingRunHelpers', async () => {
         // Verify billing run failed
         const updatedBillingRun = await adminTransaction(
           ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction)
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
         expect(typeof updatedBillingRun.errorDetails).toBe('object')
@@ -1361,7 +1375,9 @@ describe('billingRunHelpers', async () => {
         // Verify billing run failed
         const updatedBillingRun = await adminTransaction(
           ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction)
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
         )
         expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
         expect(typeof updatedBillingRun.errorDetails).toBe('object')
@@ -1411,7 +1427,9 @@ describe('billingRunHelpers', async () => {
         // Verify billing run is Succeeded
         const updatedBillingRun = await adminTransaction(
           ({ transaction }) =>
-            selectBillingRunById(billingRun.id, transaction)
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
         )
         expect(updatedBillingRun.status).toBe(
           BillingRunStatus.Succeeded
@@ -1694,10 +1712,9 @@ describe('billingRunHelpers', async () => {
       // Check the billing run status after the function call
       const { updatedBillingRun } = await adminTransaction(
         async ({ transaction }) => {
-          const updatedBillingRun = await selectBillingRunById(
-            billingRun.id,
-            transaction
-          )
+          const updatedBillingRun = (
+            await selectBillingRunById(billingRun.id, transaction)
+          ).unwrap()
           return { updatedBillingRun }
         }
       )
@@ -1733,7 +1750,9 @@ describe('billingRunHelpers', async () => {
       // Check the billing run status after the function call
       const updatedBillingRun = await adminTransaction(
         ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction)
+          selectBillingRunById(billingRun.id, transaction).then((r) =>
+            r.unwrap()
+          )
       )
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
@@ -1864,7 +1883,9 @@ describe('billingRunHelpers', async () => {
       // Check the billing run status after the function call
       const updatedBillingRun = await adminTransaction(
         ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction)
+          selectBillingRunById(billingRun.id, transaction).then((r) =>
+            r.unwrap()
+          )
       )
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.AwaitingPaymentConfirmation
@@ -1899,7 +1920,9 @@ describe('billingRunHelpers', async () => {
       // Check the billing run status after the function call
       const updatedBillingRun = await adminTransaction(
         ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction)
+          selectBillingRunById(billingRun.id, transaction).then((r) =>
+            r.unwrap()
+          )
       )
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
@@ -2200,7 +2223,9 @@ describe('billingRunHelpers', async () => {
       // Verify the billing run is marked as succeeded
       const updatedBillingRun = await adminTransaction(
         ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction)
+          selectBillingRunById(billingRun.id, transaction).then((r) =>
+            r.unwrap()
+          )
       )
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
@@ -2276,7 +2301,9 @@ describe('billingRunHelpers', async () => {
       // Verify the billing run is marked as succeeded
       const updatedBillingRun = await adminTransaction(
         ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction)
+          selectBillingRunById(billingRun.id, transaction).then((r) =>
+            r.unwrap()
+          )
       )
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.Succeeded
@@ -2430,7 +2457,9 @@ describe('billingRunHelpers', async () => {
       // 3. Assert
       const finalBillingRun = await adminTransaction(
         ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction)
+          selectBillingRunById(billingRun.id, transaction).then((r) =>
+            r.unwrap()
+          )
       )
       const finalInvoice = (
         await adminTransaction(({ transaction }) =>

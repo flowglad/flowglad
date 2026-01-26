@@ -19,20 +19,16 @@ export const getBusinessOnboardingStatus = protectedProcedure
   .query(async ({ input, ctx }) => {
     const organization = await authenticatedTransaction(
       async ({ transaction }) => {
-        const organization = await selectOrganizationById(
-          input.organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(
+            input.organizationId,
+            transaction
+          )
+        ).unwrap()
 
         return organization
       }
     )
-    if (!organization) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: 'Organization not found',
-      })
-    }
 
     if (
       organization.stripeAccountId &&
