@@ -1938,7 +1938,7 @@ describe('selectCustomerPricingInfoBatch', () => {
     })
   })
 
-  it('should return only id, pricingModelId, organizationId, livemode fields', async () => {
+  it('should return only id, pricingModelId, organizationId, livemode, archived fields', async () => {
     // Create 10 customers with different pricingModelIds
     // Track which customers have which pricing model
     const pricingModel1CustomerIds: string[] = []
@@ -1971,9 +1971,10 @@ describe('selectCustomerPricingInfoBatch', () => {
     // Verify all 10 customers returned
     expect(result.size).toBe(10)
 
-    // Verify each customer has exactly 4 fields
+    // Verify each customer has exactly 5 fields
     for (const [customerId, customerInfo] of result) {
       expect(Object.keys(customerInfo).sort()).toEqual([
+        'archived',
         'id',
         'livemode',
         'organizationId',
@@ -1982,6 +1983,7 @@ describe('selectCustomerPricingInfoBatch', () => {
       expect(customerInfo.id).toBe(customerId)
       expect(customerInfo.organizationId).toBe(organization.id)
       expect(typeof customerInfo.livemode).toBe('boolean')
+      expect(typeof customerInfo.archived).toBe('boolean')
     }
 
     // Verify specific customer-to-pricingModel mapping
