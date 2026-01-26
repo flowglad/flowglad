@@ -33,7 +33,7 @@ process.env.BETTER_AUTH_URL =
 import './bun.mocks'
 
 // Import consolidated global type declarations (after mocks)
-import '@/test/globals.d'
+import '@/test/globals'
 
 // Initialize auth session mock to null (will be reset after each test)
 globalThis.__mockedAuthSession = null

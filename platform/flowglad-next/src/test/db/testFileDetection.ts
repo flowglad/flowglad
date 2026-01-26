@@ -10,7 +10,7 @@
  */
 
 // Import the globals type for FileTestContext reference
-import type {} from '@/test/globals.d'
+import type {} from '@/test/globals'
 
 /**
  * Debug logging helper. Enabled by DEBUG_TEST_DB=1 environment variable.
