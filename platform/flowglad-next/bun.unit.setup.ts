@@ -29,28 +29,28 @@ import {
 mock.module('@/db/client', () => {
   throw new Error(
     'Database access is blocked in unit tests. ' +
-      'If your test needs database access, rename it to *.dbtest.ts'
+      'If your test needs database access, rename it to *.db.test.ts'
   )
 })
 
 mock.module('@/db/adminTransaction', () => {
   throw new Error(
     'Database access is blocked in unit tests. ' +
-      'If your test needs database access, rename it to *.dbtest.ts'
+      'If your test needs database access, rename it to *.db.test.ts'
   )
 })
 
 mock.module('@/db/authenticatedTransaction', () => {
   throw new Error(
     'Database access is blocked in unit tests. ' +
-      'If your test needs database access, rename it to *.dbtest.ts'
+      'If your test needs database access, rename it to *.db.test.ts'
   )
 })
 
 mock.module('@/db/recomputeTransaction', () => {
   throw new Error(
     'Database access is blocked in unit tests. ' +
-      'If your test needs database access, rename it to *.dbtest.ts'
+      'If your test needs database access, rename it to *.db.test.ts'
   )
 })
 

@@ -9,7 +9,7 @@
  *
  * Examples:
  *   bun run src/scripts/run-bun-tests.ts ./bun.unit.setup.ts '*.unit.test.ts' src
- *   bun run src/scripts/run-bun-tests.ts ./bun.dbtest.setup.ts '*.dbtest.ts' src --watch
+ *   bun run src/scripts/run-bun-tests.ts ./bun.db.test.setup.ts '*.db.test.ts' src --watch
  *   bun run src/scripts/run-bun-tests.ts ./bun.setup.ts '*.test.ts' src
  *   bun run src/scripts/run-bun-tests.ts ./bun.rls.setup.ts '*.rls.test.ts' integration-tests src --timeout 30000 --max-concurrency 1
  */
@@ -84,7 +84,7 @@ console.log(
 
 // Build bun test command
 // Prefix file paths with './' so bun treats them as paths, not filter patterns
-// This is required for non-standard test file extensions like .dbtest.ts
+// This is required for non-standard test file extensions like .db.test.ts
 const filePathsWithPrefix = files.map((f) =>
   f.startsWith('./') || f.startsWith('/') ? f : `./${f}`
 )

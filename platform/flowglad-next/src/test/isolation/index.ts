@@ -2,7 +2,7 @@
  * Test Isolation Utilities
  *
  * This module provides utilities for automatic test isolation in parallel test execution.
- * These utilities are used by the test setup files (bun.unit.setup.ts, bun.dbtest.setup.ts)
+ * These utilities are used by the test setup files (bun.unit.setup.ts, bun.db.test.setup.ts)
  * to ensure tests don't share state.
  *
  * Most tests don't need to import these directly - isolation is automatic.
