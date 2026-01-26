@@ -222,6 +222,29 @@ describe('sync event types', () => {
       }
     })
 
+    it('rejects update event with undefined data', () => {
+      const updateEventWithUndefinedData = {
+        id: 'evt_123',
+        namespace: 'customerSubscriptions',
+        entityId: 'cus_456',
+        scopeId: 'org_789',
+        eventType: 'update',
+        data: undefined, // invalid - update events require actual data payload
+        sequence: '1706745600000-0',
+        timestamp: '2024-02-01T00:00:00.000Z',
+        livemode: true,
+      }
+
+      const result = syncEventSchema.safeParse(
+        updateEventWithUndefinedData
+      )
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toBeInstanceOf(ZodError)
+      }
+    })
+
     it('rejects delete event with non-null data (discriminated union enforcement)', () => {
       const deleteEventWithData = {
         id: 'evt_123',
@@ -325,6 +348,26 @@ describe('sync event types', () => {
 
       const result = syncEventInsertSchema.safeParse(
         updateInsertWithNullData
+      )
+
+      expect(result.success).toBe(false)
+      if (!result.success) {
+        expect(result.error).toBeInstanceOf(ZodError)
+      }
+    })
+
+    it('rejects update insert with undefined data', () => {
+      const updateInsertWithUndefinedData = {
+        namespace: 'customerSubscriptions',
+        entityId: 'cus_456',
+        scopeId: 'org_789',
+        eventType: 'update',
+        data: undefined, // invalid - update events require actual data payload
+        livemode: true,
+      }
+
+      const result = syncEventInsertSchema.safeParse(
+        updateInsertWithUndefinedData
       )
 
       expect(result.success).toBe(false)

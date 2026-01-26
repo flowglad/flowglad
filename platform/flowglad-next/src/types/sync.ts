@@ -100,10 +100,11 @@ const syncEventBaseSchema = {
 }
 
 /**
- * Schema for non-null unknown data (used for update events)
+ * Schema for non-null, non-undefined data (used for update events).
+ * Uses loose equality (!=) to reject both null and undefined.
  */
-const nonNullDataSchema = z.unknown().refine((val) => val !== null, {
-  message: 'data cannot be null for update events',
+const nonNullDataSchema = z.unknown().refine((val) => val != null, {
+  message: 'data is required for update events',
 })
 
 /**
