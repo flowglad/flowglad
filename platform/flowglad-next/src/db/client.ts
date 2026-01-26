@@ -62,7 +62,7 @@ if (core.IS_PROD) {
 /**
  * The main database instance.
  *
- * In test mode (dbtest files), this can be redirected to a test-specific
+ * In test mode (db.test files), this can be redirected to a test-specific
  * connection that uses savepoints for isolation. Set `globalThis.__testDb`
  * to redirect queries.
  */
@@ -73,10 +73,12 @@ const _db = drizzle(client, {
 // Import shared test file detection utility
 // Note: This import is lazy-loaded only in test mode to avoid bundling test code in production
 let getCurrentTestFileOrNull: (() => string | null) | undefined
+let UNKNOWN_TEST_FILE: string | undefined
 
 /**
  * Get the test DB for the current context.
  * Looks up the correct DB based on the calling test file.
+ * Falls back to the shared context key if no file-specific context exists.
  */
 function getTestDbForCurrentContext(): PostgresJsDatabase | null {
   // Only attempt test DB lookup in test mode
@@ -84,7 +86,7 @@ function getTestDbForCurrentContext(): PostgresJsDatabase | null {
     return null
   }
 
-  // Lazy-load the test file detection function
+  // Lazy-load the test file detection function and fallback key
   if (!getCurrentTestFileOrNull) {
     try {
       // Dynamic import to avoid bundling test utilities in production
@@ -92,16 +94,11 @@ function getTestDbForCurrentContext(): PostgresJsDatabase | null {
       const testFileDetection = require('@/test/db/testFileDetection')
       getCurrentTestFileOrNull =
         testFileDetection.getCurrentTestFileOrNull
+      UNKNOWN_TEST_FILE = testFileDetection.UNKNOWN_TEST_FILE
     } catch {
       // Module not available (e.g., in production bundle)
       return null
     }
-  }
-
-  // Find the context for the current test file
-  const filePath = getCurrentTestFileOrNull?.()
-  if (!filePath) {
-    return null
   }
 
   // Access the global contexts map (set by transactionIsolation.ts)
@@ -112,9 +109,23 @@ function getTestDbForCurrentContext(): PostgresJsDatabase | null {
     return null
   }
 
-  const ctx = contexts.get(filePath)
-  if (ctx?.db && ctx.inTransaction) {
-    return ctx.db
+  // Find the context for the current test file
+  const filePath = getCurrentTestFileOrNull?.()
+  if (filePath) {
+    const ctx = contexts.get(filePath)
+    if (ctx?.db && ctx.inTransaction) {
+      return ctx.db
+    }
+  }
+
+  // Fall back to the shared context key
+  // This handles the case where beginOuterTransaction() ran from a setup file
+  // (storing context under the fallback key) but we're querying from a test file
+  if (UNKNOWN_TEST_FILE) {
+    const fallbackCtx = contexts.get(UNKNOWN_TEST_FILE)
+    if (fallbackCtx?.db && fallbackCtx.inTransaction) {
+      return fallbackCtx.db
+    }
   }
 
   return null
@@ -122,7 +133,7 @@ function getTestDbForCurrentContext(): PostgresJsDatabase | null {
 
 /**
  * Proxy that redirects to test DB when available.
- * This enables savepoint-based test isolation in *.dbtest.ts files.
+ * This enables savepoint-based test isolation in *.db.test.ts files.
  * Dynamically looks up the correct DB context based on the call stack.
  */
 export const db: PostgresJsDatabase = new Proxy(_db, {

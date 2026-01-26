@@ -80,7 +80,7 @@ This project uses isolated-by-default test infrastructure. Tests are categorized
 | Category | File Pattern | Database | External APIs | Setup File |
 |----------|--------------|----------|---------------|------------|
 | **Pure Unit** | `*.unit.test.ts` | BLOCKED | MSW strict | `bun.unit.setup.ts` |
-| **DB-Backed** | `*.dbtest.ts` | Transaction-isolated | MSW strict | `bun.dbtest.setup.ts` |
+| **DB-Backed** | `*.db.test.ts` | Transaction-isolated | MSW strict | `bun.db.test.setup.ts` |
 | **Backend** (legacy) | `*.test.ts` | Full access | MSW warn | `bun.setup.ts` |
 | **Integration** | `*.integration.test.ts` | Full access | Real APIs | `bun.integration.setup.ts` |
 | **RLS** | `*.rls.test.ts` | Full access | MSW | `bun.rls.setup.ts` |
@@ -108,11 +108,11 @@ bun run test:all
 
 **When to use which pattern:**
 
-- **Pure Unit (`*.unit.test.ts`)**: Schema validation, utility functions, UI logic, pure business rules. Database imports will throw an error - if your test needs DB, use `*.dbtest.ts`.
+- **Pure Unit (`*.unit.test.ts`)**: Schema validation, utility functions, UI logic, pure business rules. Database imports will throw an error - if your test needs DB, use `*.db.test.ts`.
 
-- **DB-Backed (`*.dbtest.ts`)**: Table methods, services with database access, business logic requiring real data. Each test runs in a savepoint that rolls back automatically.
+- **DB-Backed (`*.db.test.ts`)**: Table methods, services with database access, business logic requiring real data. Each test runs in a savepoint that rolls back automatically.
 
-- **Legacy Backend (`*.test.ts`)**: Existing tests. Migrate to `*.unit.test.ts` or `*.dbtest.ts` for better isolation.
+- **Legacy Backend (`*.test.ts`)**: Existing tests. Migrate to `*.unit.test.ts` or `*.db.test.ts` for better isolation.
 
 - **Integration (`*.integration.test.ts`)**: Real API calls to Stripe, real external services. Located in `integration-tests/` directory.
 
@@ -126,7 +126,7 @@ The test setup files automatically provide isolation:
 | Spies | Use `trackSpy(spyOn(...))` - auto-restored in afterEach |
 | Global state | All `__mock*` globals reset automatically |
 | MSW | Unhandled requests FAIL the test in strict mode |
-| Database (dbtest) | Each test in savepoint that rolls back |
+| Database (db.test) | Each test in savepoint that rolls back |
 
 **Using trackSpy for automatic spy cleanup:**
 ```typescript
@@ -155,7 +155,7 @@ import { afterAll, afterEach, beforeAll } from 'bun:test'
 // ... other imports
 ```
 
-The setup files (`bun.unit.setup.ts`, `bun.dbtest.setup.ts`, `bun.setup.ts`) already handle this correctly.
+The setup files (`bun.unit.setup.ts`, `bun.db.test.setup.ts`, `bun.setup.ts`) already handle this correctly.
 
 #### 2. Spy Restoration with trackSpy
 
@@ -198,7 +198,7 @@ env.restore()
 
 #### 4. MSW Strict Mode
 
-In `*.unit.test.ts` and `*.dbtest.ts` files, MSW runs in **strict mode**: any unhandled HTTP request will **fail the test**. This ensures:
+In `*.unit.test.ts` and `*.db.test.ts` files, MSW runs in **strict mode**: any unhandled HTTP request will **fail the test**. This ensures:
 
 - Tests don't accidentally make real network requests
 - All external dependencies are explicitly mocked
@@ -206,12 +206,12 @@ In `*.unit.test.ts` and `*.dbtest.ts` files, MSW runs in **strict mode**: any un
 
 If a test legitimately needs real API calls, use `*.integration.test.ts` instead.
 
-#### 5. Database Savepoint Isolation (dbtest only)
+#### 5. Database Savepoint Isolation (db.test only)
 
-For `*.dbtest.ts` files, each test runs inside a database savepoint that automatically rolls back:
+For `*.db.test.ts` files, each test runs inside a database savepoint that automatically rolls back:
 
 ```typescript
-// In *.dbtest.ts files:
+// In *.db.test.ts files:
 // - A persistent outer transaction wraps all tests
 // - Each test creates a savepoint before running
 // - The savepoint rolls back after each test

@@ -15,7 +15,7 @@ import type { Sql } from 'postgres'
 
 /**
  * Context for a single test file's database isolation.
- * Each *.dbtest.ts file gets its own dedicated connection with
+ * Each *.db.test.ts file gets its own dedicated connection with
  * an outer transaction for savepoint-based isolation.
  */
 export interface FileTestContext {

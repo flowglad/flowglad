@@ -5,7 +5,7 @@
  * Each test runs within a savepoint that rolls back after the test completes.
  *
  * Use for: Table methods, business logic with DB, service layer tests
- * File pattern: *.dbtest.ts
+ * File pattern: *.db.test.ts
  *
  * Features:
  * - Database access via auto-rollback savepoints
