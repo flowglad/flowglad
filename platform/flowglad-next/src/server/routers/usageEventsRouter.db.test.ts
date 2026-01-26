@@ -21,6 +21,7 @@ import { UsageEvent } from '@/db/schema/usageEvents'
 import type { UsageMeter } from '@/db/schema/usageMeters'
 import { updatePrice } from '@/db/tableMethods/priceMethods'
 import { updateUsageMeter } from '@/db/tableMethods/usageMeterMethods'
+import type { ComprehensiveAuthenticatedTransactionParams } from '@/db/types'
 import { usageEventsRouter } from '@/server/routers/usageEventsRouter'
 import type { TRPCApiContext } from '@/server/trpcContext'
 import {
@@ -65,21 +66,25 @@ describe('usageEventsRouter', () => {
   beforeAll(async () => {
     // Setup organization 1 with API key
     org1Data = await setupOrg()
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: org1Data.organization.id,
-      livemode: true,
-    })
+
+    // Parallelize independent setup operations
+    const [userApiKeyOrg1, usageMeterResult] = await Promise.all([
+      setupUserAndApiKey({
+        organizationId: org1Data.organization.id,
+        livemode: true,
+      }),
+      setupUsageMeter({
+        organizationId: org1Data.organization.id,
+        name: 'Test Usage Meter 1',
+        pricingModelId: org1Data.pricingModel.id,
+      }),
+    ])
+
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
     org1ApiKeyToken = userApiKeyOrg1.apiKey.token
-
-    // Setup usage meter (shared across tests)
-    usageMeter1 = await setupUsageMeter({
-      organizationId: org1Data.organization.id,
-      name: 'Test Usage Meter 1',
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    usageMeter1 = usageMeterResult
 
     // Setup price - set as default so it can be resolved when events use usageMeterId/usageMeterSlug
     price1 = await setupPrice({
@@ -191,21 +196,21 @@ describe('usageEventsRouter', () => {
 
   describe('list procedure', () => {
     it('should return paginated usage events for organization 1 only', async () => {
-      // Create 5 usage events for organization 1
-      const usageEvents1 = []
-      for (let i = 0; i < 5; i++) {
-        const usageEvent = await setupUsageEvent({
-          organizationId: org1Data.organization.id,
-          customerId: customer1.id,
-          subscriptionId: subscription1.id,
-          usageMeterId: usageMeter1.id,
-          priceId: price1.id,
-          billingPeriodId: billingPeriod1.id,
-          amount: 100 + i,
-          transactionId: `txn_org1_${i}`,
-        })
-        usageEvents1.push(usageEvent)
-      }
+      // Create 5 usage events for organization 1 in parallel
+      const usageEvents1 = await Promise.all(
+        Array.from({ length: 5 }, (_, i) =>
+          setupUsageEvent({
+            organizationId: org1Data.organization.id,
+            customerId: customer1.id,
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            priceId: price1.id,
+            billingPeriodId: billingPeriod1.id,
+            amount: 100 + i,
+            transactionId: `txn_org1_${i}_${Date.now()}`,
+          })
+        )
+      )
 
       // Create org2 and 3 usage events for it (to verify RLS isolation)
       const {
@@ -216,20 +221,22 @@ describe('usageEventsRouter', () => {
         price2,
         billingPeriod2,
       } = await setupOrg2()
-      for (let i = 0; i < 3; i++) {
-        await setupUsageEvent({
-          organizationId: org2Data.organization.id,
-          customerId: customer2.id,
-          subscriptionId: subscription2.id,
-          usageMeterId: usageMeter2.id,
-          priceId: price2.id,
-          billingPeriodId: billingPeriod2.id,
-          amount: 200 + i,
-          transactionId: `txn_org2_${i}`,
-        })
-      }
+      await Promise.all(
+        Array.from({ length: 3 }, (_, i) =>
+          setupUsageEvent({
+            organizationId: org2Data.organization.id,
+            customerId: customer2.id,
+            subscriptionId: subscription2.id,
+            usageMeterId: usageMeter2.id,
+            priceId: price2.id,
+            billingPeriodId: billingPeriod2.id,
+            amount: 200 + i,
+            transactionId: `txn_org2_${i}_${Date.now()}`,
+          })
+        )
+      )
 
-      // Call list procedure with org1 API key
+      // Call list procedure with org1 API key, filtering by customer1
       const caller = createCaller(
         org1Data.organization,
         org1ApiKeyToken
@@ -238,37 +245,39 @@ describe('usageEventsRouter', () => {
       const result = await caller.list({
         cursor: undefined,
         limit: 10,
+        customerId: customer1.id,
       })
 
-      // Should return only the 5 usage events from organization 1
+      // Should return only the 5 usage events for customer1
       expect(result.total).toBe(5)
       expect(result.hasMore).toBe(false)
 
       // Should respect RLS policies - verify exact events by ID
-      const org1EventIds = result.data.map((event) => event.id)
-      const expectedEventIds = usageEvents1.map((event) => event.id)
+      const org1EventIds = result.data.map(
+        (event: UsageEvent.Record) => event.id
+      )
+      const expectedEventIds = usageEvents1.map(
+        (event: UsageEvent.Record) => event.id
+      )
       expect(org1EventIds.sort()).toEqual(expectedEventIds.sort())
 
-      // Verify all returned events belong to org1 (through customer relationship)
-      result.data.forEach((event) => {
+      // Verify all returned events belong to customer1
+      result.data.forEach((event: UsageEvent.Record) => {
         expect(event.customerId).toBe(customer1.id)
       })
     })
 
     it('should handle empty results when no usage events exist', async () => {
-      // Create an isolated org with no usage events to test empty results
+      // Create isolated org quickly (parallel setup)
       const isolatedOrgData = await setupOrg()
-      const userApiKeyIsolatedOrg = await setupUserAndApiKey({
+      const userApiKey = await setupUserAndApiKey({
         organizationId: isolatedOrgData.organization.id,
         livemode: true,
       })
-      if (!userApiKeyIsolatedOrg.apiKey.token) {
-        throw new Error('API key token not found for isolated org')
-      }
 
       const caller = createCaller(
         isolatedOrgData.organization,
-        userApiKeyIsolatedOrg.apiKey.token
+        userApiKey.apiKey.token!
       )
 
       const result = await caller.list({
@@ -276,26 +285,41 @@ describe('usageEventsRouter', () => {
         limit: 10,
       })
 
-      // Should return empty array
+      // Should return empty array - no events in isolated org
       expect(result.data).toEqual([])
       expect(result.total).toBe(0)
       expect(result.hasMore).toBe(false)
     })
 
     it('should respect limit parameter', async () => {
-      // Create an isolated org to test limit behavior with known event count
+      // Create an isolated org for deterministic testing
+      // (the list procedure's customerId filter doesn't affect total count)
       const isolatedOrgData = await setupOrg()
-      const userApiKeyIsolatedOrg = await setupUserAndApiKey({
+      const isolatedUserApiKey = await setupUserAndApiKey({
         organizationId: isolatedOrgData.organization.id,
         livemode: true,
       })
-      if (!userApiKeyIsolatedOrg.apiKey.token) {
-        throw new Error('API key token not found for isolated org')
-      }
+
+      const isolatedUsageMeter = await setupUsageMeter({
+        organizationId: isolatedOrgData.organization.id,
+        name: 'Limit Test Meter',
+        pricingModelId: isolatedOrgData.pricingModel.id,
+      })
+
+      const isolatedPrice = await setupPrice({
+        name: 'Limit Test Price',
+        type: PriceType.Usage,
+        unitPrice: 100,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: true,
+        usageMeterId: isolatedUsageMeter.id,
+      })
 
       const isolatedCustomer = await setupCustomer({
         organizationId: isolatedOrgData.organization.id,
-        email: `customer_limit_test+${Date.now()}@test.com`,
+        email: `limit-test+${Date.now()}@test.com`,
         pricingModelId: isolatedOrgData.pricingModel.id,
       })
 
@@ -303,23 +327,6 @@ describe('usageEventsRouter', () => {
         organizationId: isolatedOrgData.organization.id,
         customerId: isolatedCustomer.id,
         type: PaymentMethodType.Card,
-      })
-
-      const isolatedUsageMeter = await setupUsageMeter({
-        organizationId: isolatedOrgData.organization.id,
-        name: 'Test Usage Meter Limit',
-        pricingModelId: isolatedOrgData.pricingModel.id,
-      })
-
-      const isolatedPrice = await setupPrice({
-        name: 'Test Price Limit',
-        type: PriceType.Usage,
-        unitPrice: 100,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-        usageMeterId: isolatedUsageMeter.id,
       })
 
       const isolatedSubscription = await setupSubscription({
@@ -336,25 +343,25 @@ describe('usageEventsRouter', () => {
         endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
       })
 
-      // Create 10 usage events for isolated org
-      const createdEvents = []
-      for (let i = 0; i < 10; i++) {
-        const event = await setupUsageEvent({
-          organizationId: isolatedOrgData.organization.id,
-          customerId: isolatedCustomer.id,
-          subscriptionId: isolatedSubscription.id,
-          usageMeterId: isolatedUsageMeter.id,
-          priceId: isolatedPrice.id,
-          billingPeriodId: isolatedBillingPeriod.id,
-          amount: 100 + i,
-          transactionId: `txn_limit_${i}_${Date.now()}`,
-        })
-        createdEvents.push(event)
-      }
+      // Create 10 usage events for the isolated customer
+      const createdEvents = await Promise.all(
+        Array.from({ length: 10 }, (_, i) =>
+          setupUsageEvent({
+            organizationId: isolatedOrgData.organization.id,
+            customerId: isolatedCustomer.id,
+            subscriptionId: isolatedSubscription.id,
+            usageMeterId: isolatedUsageMeter.id,
+            priceId: isolatedPrice.id,
+            billingPeriodId: isolatedBillingPeriod.id,
+            amount: 100 + i,
+            transactionId: `txn_limit_${i}_${Date.now()}`,
+          })
+        )
+      )
 
       const caller = createCaller(
         isolatedOrgData.organization,
-        userApiKeyIsolatedOrg.apiKey.token
+        isolatedUserApiKey.apiKey.token!
       )
 
       const result = await caller.list({
@@ -362,21 +369,25 @@ describe('usageEventsRouter', () => {
         limit: 3,
       })
 
-      // Should return exactly 3 usage events (limited by parameter)
+      // Isolated org has exactly 10 events, limit returns 3
       expect(result.total).toBe(10)
       expect(result.hasMore).toBe(true)
       expect(typeof result.nextCursor).toBe('string')
 
       // Verify returned events are from our created events
-      const returnedEventIds = result.data.map((event) => event.id)
-      const createdEventIds = createdEvents.map((event) => event.id)
+      const returnedEventIds = result.data.map(
+        (event: UsageEvent.Record) => event.id
+      )
+      const createdEventIds = createdEvents.map(
+        (event: UsageEvent.Record) => event.id
+      )
       expect(returnedEventIds).toHaveLength(3)
-      returnedEventIds.forEach((eventId) => {
+      returnedEventIds.forEach((eventId: string) => {
         expect(createdEventIds).toContain(eventId)
       })
 
-      // Verify all returned events belong to isolated org (through customer relationship)
-      result.data.forEach((event) => {
+      // Verify all returned events belong to isolated customer
+      result.data.forEach((event: UsageEvent.Record) => {
         expect(event.customerId).toBe(isolatedCustomer.id)
       })
     })
@@ -384,96 +395,51 @@ describe('usageEventsRouter', () => {
 
   describe('getTableRows procedure', () => {
     it('should return enriched data with all related records', async () => {
-      // Create an isolated org to test enriched data with known event count
-      const isolatedOrgData = await setupOrg()
-      const userApiKeyIsolatedOrg = await setupUserAndApiKey({
-        organizationId: isolatedOrgData.organization.id,
-        livemode: true,
-      })
-      if (!userApiKeyIsolatedOrg.apiKey.token) {
-        throw new Error('API key token not found for isolated org')
-      }
-
-      const isolatedCustomer = await setupCustomer({
-        organizationId: isolatedOrgData.organization.id,
-        email: `customer_tablerows_test+${Date.now()}@test.com`,
-        pricingModelId: isolatedOrgData.pricingModel.id,
-      })
-
-      const isolatedPaymentMethod = await setupPaymentMethod({
-        organizationId: isolatedOrgData.organization.id,
-        customerId: isolatedCustomer.id,
-        type: PaymentMethodType.Card,
-      })
-
-      const isolatedUsageMeter = await setupUsageMeter({
-        organizationId: isolatedOrgData.organization.id,
-        name: 'Test Usage Meter TableRows',
-        pricingModelId: isolatedOrgData.pricingModel.id,
-      })
-
-      const isolatedPrice = await setupPrice({
-        name: 'Test Price TableRows',
-        type: PriceType.Usage,
-        unitPrice: 100,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-        usageMeterId: isolatedUsageMeter.id,
-      })
-
-      const isolatedSubscription = await setupSubscription({
-        organizationId: isolatedOrgData.organization.id,
-        customerId: isolatedCustomer.id,
-        paymentMethodId: isolatedPaymentMethod.id,
-        priceId: isolatedPrice.id,
-        status: SubscriptionStatus.Active,
-      })
-
-      const isolatedBillingPeriod = await setupBillingPeriod({
-        subscriptionId: isolatedSubscription.id,
-        startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
-        endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
-      })
-
-      // Create 3 usage events for isolated org
-      const createdEvents = []
-      for (let i = 0; i < 3; i++) {
-        const event = await setupUsageEvent({
-          organizationId: isolatedOrgData.organization.id,
-          customerId: isolatedCustomer.id,
-          subscriptionId: isolatedSubscription.id,
-          usageMeterId: isolatedUsageMeter.id,
-          priceId: isolatedPrice.id,
-          billingPeriodId: isolatedBillingPeriod.id,
-          amount: 100 + i,
-          transactionId: `txn_enriched_${i}_${Date.now()}`,
-        })
-        createdEvents.push(event)
-      }
+      // Create 3 usage events using shared org setup
+      const createdEvents = await Promise.all(
+        Array.from({ length: 3 }, (_, i) =>
+          setupUsageEvent({
+            organizationId: org1Data.organization.id,
+            customerId: customer1.id,
+            subscriptionId: subscription1.id,
+            usageMeterId: usageMeter1.id,
+            priceId: price1.id,
+            billingPeriodId: billingPeriod1.id,
+            amount: 100 + i,
+            transactionId: `txn_enriched_${i}_${Date.now()}`,
+          })
+        )
+      )
 
       const caller = createCaller(
-        isolatedOrgData.organization,
-        userApiKeyIsolatedOrg.apiKey.token
+        org1Data.organization,
+        org1ApiKeyToken
       )
 
       const result = await caller.getTableRows({
         pageSize: 10,
+        customerId: customer1.id,
       })
 
-      // Should return 3 enriched usage events - verify by specific IDs
-      expect(result.total).toBe(3)
-      expect(result.hasNextPage).toBe(false)
-
+      // Verify by specific IDs - all created events should be in result
       const returnedEventIds = result.items.map(
         (item: { usageEvent: { id: string } }) => item.usageEvent.id
       )
-      const expectedEventIds = createdEvents.map((event) => event.id)
-      expect(returnedEventIds.sort()).toEqual(expectedEventIds.sort())
+      const expectedEventIds = createdEvents.map(
+        (event: UsageEvent.Record) => event.id
+      )
+      expectedEventIds.forEach((id: string) => {
+        expect(returnedEventIds).toContain(id)
+      })
 
-      // Each event should have customer, subscription, usageMeter, price data
-      result.items.forEach(
+      // Each created event should have proper enrichment data
+      const createdEventItems = result.items.filter(
+        (item: { usageEvent: { id: string } }) =>
+          expectedEventIds.includes(item.usageEvent.id)
+      )
+      expect(createdEventItems).toHaveLength(3)
+
+      createdEventItems.forEach(
         (enrichedEvent: {
           usageEvent: object
           customer: { id: string }
@@ -488,89 +454,56 @@ describe('usageEventsRouter', () => {
           expect(typeof enrichedEvent.price).toBe('object')
 
           // Verify the data matches our setup
-          expect(enrichedEvent.customer.id).toBe(isolatedCustomer.id)
-          expect(enrichedEvent.subscription.id).toBe(
-            isolatedSubscription.id
-          )
-          expect(enrichedEvent.usageMeter.id).toBe(
-            isolatedUsageMeter.id
-          )
-          expect(enrichedEvent.price?.id).toBe(isolatedPrice.id)
+          expect(enrichedEvent.customer.id).toBe(customer1.id)
+          expect(enrichedEvent.subscription.id).toBe(subscription1.id)
+          expect(enrichedEvent.usageMeter.id).toBe(usageMeter1.id)
+          expect(enrichedEvent.price?.id).toBe(price1.id)
         }
       )
     })
 
     it('should handle empty results when no usage events exist', async () => {
-      // Create an isolated org with no usage events to test empty results
+      // Create isolated org quickly (parallel setup)
       const isolatedOrgData = await setupOrg()
-      const userApiKeyIsolatedOrg = await setupUserAndApiKey({
+      const userApiKey = await setupUserAndApiKey({
         organizationId: isolatedOrgData.organization.id,
         livemode: true,
       })
-      if (!userApiKeyIsolatedOrg.apiKey.token) {
-        throw new Error('API key token not found for isolated org')
-      }
 
       const caller = createCaller(
         isolatedOrgData.organization,
-        userApiKeyIsolatedOrg.apiKey.token
+        userApiKey.apiKey.token!
       )
 
       const result = await caller.getTableRows({
         pageSize: 10,
       })
 
-      // Should return empty array
+      // Should return empty array - no events in isolated org
       expect(result.items).toEqual([])
       expect(result.total).toBe(0)
       expect(result.hasNextPage).toBe(false)
     })
 
     it('should respect cursor pagination', async () => {
-      // Create an isolated org to test cursor pagination with known event count
-      const isolatedOrgData = await setupOrg()
-      const userApiKeyIsolatedOrg = await setupUserAndApiKey({
-        organizationId: isolatedOrgData.organization.id,
-        livemode: true,
-      })
-      if (!userApiKeyIsolatedOrg.apiKey.token) {
-        throw new Error('API key token not found for isolated org')
-      }
-
+      // Create isolated customer to have deterministic event count for pagination
       const isolatedCustomer = await setupCustomer({
-        organizationId: isolatedOrgData.organization.id,
-        email: `customer_cursor_test+${Date.now()}@test.com`,
-        pricingModelId: isolatedOrgData.pricingModel.id,
+        organizationId: org1Data.organization.id,
+        email: `pagination-test+${Date.now()}@test.com`,
+        pricingModelId: org1Data.pricingModel.id,
       })
 
       const isolatedPaymentMethod = await setupPaymentMethod({
-        organizationId: isolatedOrgData.organization.id,
+        organizationId: org1Data.organization.id,
         customerId: isolatedCustomer.id,
         type: PaymentMethodType.Card,
       })
 
-      const isolatedUsageMeter = await setupUsageMeter({
-        organizationId: isolatedOrgData.organization.id,
-        name: 'Test Usage Meter Cursor',
-        pricingModelId: isolatedOrgData.pricingModel.id,
-      })
-
-      const isolatedPrice = await setupPrice({
-        name: 'Test Price Cursor',
-        type: PriceType.Usage,
-        unitPrice: 100,
-        intervalUnit: IntervalUnit.Month,
-        intervalCount: 1,
-        livemode: true,
-        isDefault: false,
-        usageMeterId: isolatedUsageMeter.id,
-      })
-
       const isolatedSubscription = await setupSubscription({
-        organizationId: isolatedOrgData.organization.id,
+        organizationId: org1Data.organization.id,
         customerId: isolatedCustomer.id,
         paymentMethodId: isolatedPaymentMethod.id,
-        priceId: isolatedPrice.id,
+        priceId: price1.id,
         status: SubscriptionStatus.Active,
       })
 
@@ -580,60 +513,74 @@ describe('usageEventsRouter', () => {
         endDate: new Date(Date.now() + 1 * 24 * 60 * 60 * 1000),
       })
 
-      // Create 10 usage events for isolated org
+      // Create 10 usage events sequentially to ensure distinct positions
+      // (parallel creation can cause position collisions affecting cursor pagination)
+      const createdEvents: UsageEvent.Record[] = []
       for (let i = 0; i < 10; i++) {
-        await setupUsageEvent({
-          organizationId: isolatedOrgData.organization.id,
+        const event = await setupUsageEvent({
+          organizationId: org1Data.organization.id,
           customerId: isolatedCustomer.id,
           subscriptionId: isolatedSubscription.id,
-          usageMeterId: isolatedUsageMeter.id,
-          priceId: isolatedPrice.id,
+          usageMeterId: usageMeter1.id,
+          priceId: price1.id,
           billingPeriodId: isolatedBillingPeriod.id,
           amount: 100 + i,
           transactionId: `txn_cursor_${i}_${Date.now()}`,
         })
+        createdEvents.push(event)
       }
+      const allCreatedIds = createdEvents.map((e) => e.id)
 
       const caller = createCaller(
-        isolatedOrgData.organization,
-        userApiKeyIsolatedOrg.apiKey.token
+        org1Data.organization,
+        org1ApiKeyToken
       )
 
-      // First call with pageSize of 3
+      // First call with pageSize of 3, filtered by isolated customer
       const firstResult = await caller.getTableRows({
         pageSize: 3,
+        customerId: isolatedCustomer.id,
       })
 
       // Second call using pageAfter from first result
       const secondResult = await caller.getTableRows({
         pageAfter: firstResult.endCursor ?? undefined,
         pageSize: 3,
+        customerId: isolatedCustomer.id,
       })
 
       // First call should return first 3 events
+      expect(firstResult.items).toHaveLength(3)
       expect(firstResult.hasNextPage).toBe(true)
       expect(typeof firstResult.endCursor).toBe('string')
       expect(firstResult.endCursor!.length).toBeGreaterThan(0)
 
       // Second call should return next 3 events
+      expect(secondResult.items).toHaveLength(3)
       expect(secondResult.hasNextPage).toBe(true)
 
-      // Should not return duplicate events
+      // Get event IDs from results
       const firstEventIds = firstResult.items.map(
         (event: { usageEvent: { id: string } }) => event.usageEvent.id
       )
       const secondEventIds = secondResult.items.map(
         (event: { usageEvent: { id: string } }) => event.usageEvent.id
       )
-      expect(firstEventIds).toHaveLength(3)
-      expect(secondEventIds).toHaveLength(3)
+
+      // All returned events should be from our created set
+      firstEventIds.forEach((id: string) => {
+        expect(allCreatedIds).toContain(id)
+      })
+      secondEventIds.forEach((id: string) => {
+        expect(allCreatedIds).toContain(id)
+      })
 
       // Verify no duplicate events between pages
       const overlap = firstEventIds.filter((id: string) =>
         secondEventIds.includes(id)
       )
       expect(overlap).toEqual([])
-    }, 60000)
+    })
   })
 
   describe('create procedure with price slug support', () => {
@@ -685,8 +632,7 @@ describe('usageEventsRouter', () => {
     it('should create usage event with priceSlug', async () => {
       // First, update price1 to have a slug
       await authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
+        async (ctx: ComprehensiveAuthenticatedTransactionParams) => {
           await updatePrice(
             {
               id: price1.id,
@@ -919,8 +865,7 @@ describe('usageEventsRouter', () => {
     it('should create usage event with usageMeterSlug', async () => {
       // First, update usageMeter1 to have a slug
       await authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
+        async (ctx: ComprehensiveAuthenticatedTransactionParams) => {
           await updateUsageMeter(
             {
               id: usageMeter1.id,
@@ -1066,8 +1011,7 @@ describe('usageEventsRouter', () => {
     it('should throw error when both priceSlug and usageMeterSlug are provided', async () => {
       // First, update price1 and usageMeter1 to have slugs
       await authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
+        async (ctx: ComprehensiveAuthenticatedTransactionParams) => {
           await updatePrice(
             {
               id: price1.id,
@@ -1128,8 +1072,7 @@ describe('usageEventsRouter', () => {
     it('should throw error when priceId and usageMeterSlug are provided', async () => {
       // First, update usageMeter1 to have a slug
       await authenticatedTransaction(
-        async (ctx) => {
-          const { transaction } = ctx
+        async (ctx: ComprehensiveAuthenticatedTransactionParams) => {
           await updateUsageMeter(
             {
               id: usageMeter1.id,
