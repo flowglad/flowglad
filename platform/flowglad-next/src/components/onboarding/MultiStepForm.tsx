@@ -5,6 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react'
 import {
@@ -17,6 +18,9 @@ import {
 import { type z } from 'zod'
 
 type NavigationDirection = 'forward' | 'backward' | 'initial'
+
+/** Validation debounce delay in milliseconds */
+const VALIDATION_DEBOUNCE_MS = 150
 
 /**
  * Deep merges saved form data with default values.
@@ -71,7 +75,25 @@ interface StepConfig<T extends z.ZodType> {
   description?: string
   schema: T
   component: React.ComponentType
-  /** Optional skip condition based on current form data */
+  /**
+   * Optional skip condition based on current form data.
+   *
+   * @param data - Current form values (may be undefined during initial render)
+   * @returns true to skip this step, false to include it
+   *
+   * @remarks
+   * **Performance Note**: If your `shouldSkip` function depends on form data,
+   * the step list will re-evaluate whenever form values change. For static
+   * conditions (e.g., environment checks), this has no performance impact.
+   *
+   * @example
+   * // Static condition - no performance impact
+   * shouldSkip: () => process.env.NODE_ENV === 'production'
+   *
+   * @example
+   * // Dynamic condition - re-evaluates on form changes
+   * shouldSkip: (data) => data?.userType === 'enterprise'
+   */
   shouldSkip?: (data: unknown) => boolean
 }
 
@@ -115,6 +137,42 @@ interface MultiStepFormProps<T extends FieldValues> {
   children: React.ReactNode
 }
 
+/**
+ * Checks if any step's shouldSkip function references its parameter.
+ * This is a heuristic to detect if steps need reactive form data.
+ *
+ * @remarks
+ * We check the function's string representation for common patterns that
+ * indicate the function uses its parameter. This avoids unnecessary
+ * form subscriptions when shouldSkip only checks static conditions.
+ */
+function stepsDependOnFormData(
+  steps: StepConfig<z.ZodType>[]
+): boolean {
+  return steps.some((step) => {
+    if (!step.shouldSkip) return false
+    const fnStr = step.shouldSkip.toString()
+    // Check for common patterns: data.field, data?.field, data[key], or destructuring
+    return /\b(data\s*[.?[\[]|{\s*\w+\s*}|\(\s*{\s*\w+)/.test(fnStr)
+  })
+}
+
+/**
+ * A multi-step form component that manages step navigation, validation, and persistence.
+ *
+ * @remarks
+ * **Performance Characteristics**:
+ * - Form watching is conditional: only subscribes to form changes if any step's
+ *   `shouldSkip` function references form data
+ * - Validation is debounced to avoid excessive validation on rapid input
+ * - localStorage persistence uses a subscription pattern that doesn't cause re-renders
+ *
+ * **Step Filtering**:
+ * Steps can be dynamically shown/hidden using the `shouldSkip` function. If your
+ * skip conditions are static (e.g., environment checks), there's no performance
+ * overhead. If they depend on form data, the component will re-evaluate steps
+ * when form values change.
+ */
 export function MultiStepForm<T extends FieldValues>({
   schema,
   defaultValues,
@@ -133,6 +191,17 @@ export function MultiStepForm<T extends FieldValues>({
   const [currentStepValid, setCurrentStepValid] = useState(false)
   const [isHydrated, setIsHydrated] = useState(false)
 
+  // Track form values for steps that need dynamic skip conditions
+  // This is only updated via subscription when steps actually depend on form data
+  const [formValuesForSkip, setFormValuesForSkip] = useState<
+    T | undefined
+  >(undefined)
+
+  // Ref for debouncing validation
+  const validationTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null)
+
   const form = useForm<T>({
     // Type assertion needed because Zod 4's ZodSchema<T> has unknown input type,
     // but zodResolver expects FieldValues. This is safe because T extends FieldValues.
@@ -141,13 +210,35 @@ export function MultiStepForm<T extends FieldValues>({
     mode: 'onChange',
   })
 
-  // Watch form values to reactively update activeSteps
-  const formValues = form.watch()
+  // Determine if any step needs reactive form data for shouldSkip
+  const needsFormWatchForSkip = useMemo(
+    () => stepsDependOnFormData(steps),
+    [steps]
+  )
 
-  // Filter steps based on skip conditions (memoized with proper dependencies)
+  // Subscribe to form changes ONLY if steps depend on form data for skip conditions
+  // This avoids re-renders when shouldSkip functions are static (e.g., env checks)
+  useEffect(() => {
+    if (!needsFormWatchForSkip) return
+
+    const subscription = form.watch((data) => {
+      setFormValuesForSkip(data as T)
+    })
+
+    // Initialize with current values
+    setFormValuesForSkip(form.getValues())
+
+    return () => subscription.unsubscribe()
+  }, [form, needsFormWatchForSkip])
+
+  // Filter steps based on skip conditions
+  // When steps don't depend on form data, this only runs when steps array changes
   const activeSteps = useMemo(() => {
-    return steps.filter((step) => !step.shouldSkip?.(formValues))
-  }, [steps, formValues])
+    const dataForSkip = needsFormWatchForSkip
+      ? formValuesForSkip
+      : undefined
+    return steps.filter((step) => !step.shouldSkip?.(dataForSkip))
+  }, [steps, formValuesForSkip, needsFormWatchForSkip])
 
   // Clamp currentStepIndex when activeSteps shrinks to prevent out-of-range access
   // This can happen when skip conditions dynamically remove steps based on form data
@@ -168,21 +259,44 @@ export function MultiStepForm<T extends FieldValues>({
       ? ((currentStepIndex + 1) / activeSteps.length) * 100
       : 0
 
-  // Validate current step on value changes
+  // Validate current step on value changes (debounced to reduce validation frequency)
+  // Uses form.watch subscription pattern to avoid re-renders from direct watch()
   useEffect(() => {
     if (!currentStep) {
       setCurrentStepValid(false)
       return
     }
 
-    const validate = async () => {
+    const runValidation = async () => {
       const result = await currentStep.schema.safeParseAsync(
         form.getValues()
       )
       setCurrentStepValid(result.success)
     }
-    validate()
-  }, [formValues, currentStep, form])
+
+    // Run initial validation immediately
+    runValidation()
+
+    // Subscribe to form changes and debounce validation
+    const subscription = form.watch(() => {
+      // Clear any pending validation
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current)
+      }
+
+      // Debounce validation to avoid running on every keystroke
+      validationTimeoutRef.current = setTimeout(() => {
+        runValidation()
+      }, VALIDATION_DEBOUNCE_MS)
+    })
+
+    return () => {
+      subscription.unsubscribe()
+      if (validationTimeoutRef.current) {
+        clearTimeout(validationTimeoutRef.current)
+      }
+    }
+  }, [currentStep, form])
 
   // Sync state when URL changes (browser back/forward)
   // Note: currentStepIndex intentionally omitted to prevent loops
