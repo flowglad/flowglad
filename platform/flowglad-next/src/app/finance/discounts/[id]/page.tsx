@@ -1,9 +1,9 @@
+import { Result } from 'better-result'
 import { count, eq } from 'drizzle-orm'
 import { notFound } from 'next/navigation'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { discountRedemptions } from '@/db/schema/discountRedemptions'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
-import { NotFoundError } from '@/db/tableUtils'
 import InnerDiscountDetailsPage from './InnerDiscountDetailsPage'
 
 interface PageProps {
@@ -17,16 +17,11 @@ const DiscountPage = async ({ params }: PageProps) => {
 
   const result = await authenticatedTransaction(
     async ({ transaction }) => {
-      let discount
-      try {
-        discount = await selectDiscountById(id, transaction)
-      } catch (error) {
-        // Only treat "not found" errors as expected; let other DB failures propagate
-        if (error instanceof NotFoundError) {
-          return null
-        }
-        throw error
+      const discountResult = await selectDiscountById(id, transaction)
+      if (Result.isError(discountResult)) {
+        return null
       }
+      const discount = discountResult.unwrap()
 
       // Get redemption count for this discount
       const [redemptionResult] = await transaction

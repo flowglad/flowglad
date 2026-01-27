@@ -249,22 +249,20 @@ export const createCheckoutSessionTransaction = async (
       resolvedPriceId = checkoutSessionInput.priceId
     }
 
-    let resolvedPriceRecord
-    try {
-      resolvedPriceRecord = await selectPriceById(
-        resolvedPriceId!,
-        transaction
-      )
-    } catch (error) {
-      if (error instanceof NotFoundError) {
-        return Result.err(
-          new ValidationError(
-            'priceId',
-            `Invalid or not-found price ID: no matching price found for id "${resolvedPriceId}"`
-          )
+    const priceResult = await selectPriceById(
+      resolvedPriceId!,
+      transaction
+    )
+    if (Result.isError(priceResult)) {
+      return Result.err(
+        new ValidationError(
+          'priceId',
+          `Invalid or not-found price ID: no matching price found for id "${resolvedPriceId}"`
         )
-      }
-      throw error
+      )
+    }
+    const resolvedPriceRecord = priceResult.unwrap()
+    {
     }
 
     if (resolvedPriceRecord.type === PriceType.Usage) {
@@ -307,20 +305,21 @@ export const createCheckoutSessionTransaction = async (
       )
     }
   } else {
-    organization = await selectOrganizationById(
-      organizationId,
-      transaction
-    )
+    organization = (
+      await selectOrganizationById(organizationId, transaction)
+    ).unwrap()
     if (
       checkoutSessionInput.type ===
       CheckoutSessionType.ActivateSubscription
     ) {
       let targetSubscription
       try {
-        targetSubscription = await selectSubscriptionById(
-          checkoutSessionInput.targetSubscriptionId,
-          transaction
-        )
+        targetSubscription = (
+          await selectSubscriptionById(
+            checkoutSessionInput.targetSubscriptionId,
+            transaction
+          )
+        ).unwrap()
       } catch (error) {
         return Result.err(
           new ValidationError(

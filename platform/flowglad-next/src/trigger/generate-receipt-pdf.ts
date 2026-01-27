@@ -26,10 +26,12 @@ export const generatePaymentReceiptPdfTask = task({
               transaction
             )
             const invoice = payment.invoiceId
-              ? await selectInvoiceById(
-                  payment.invoiceId,
-                  transaction
-                )
+              ? (
+                  await selectInvoiceById(
+                    payment.invoiceId,
+                    transaction
+                  )
+                ).unwrap()
               : null
             return { payment, invoice }
           }

@@ -77,49 +77,41 @@ export const runSendOrganizationSubscriptionCanceledNotification =
         // re-thrown to allow Trigger.dev to retry the task.
         let price: Price.Record | null = null
         if (subscription.priceId) {
-          try {
-            price = await selectPriceById(
-              subscription.priceId,
-              transaction
+          const priceResult = await selectPriceById(
+            subscription.priceId,
+            transaction
+          )
+          if (Result.isOk(priceResult)) {
+            price = priceResult.value
+          } else {
+            // Price was deleted or never existed - proceed with fallback name
+            logger.warn(
+              'Price not found for subscription, using fallbacks',
+              {
+                priceId: subscription.priceId,
+                subscriptionId: subscription.id,
+              }
             )
-          } catch (error) {
-            if (error instanceof NotFoundError) {
-              // Price was deleted or never existed - proceed with fallback name
-              logger.warn(
-                'Price not found for subscription, using fallbacks',
-                {
-                  priceId: subscription.priceId,
-                  subscriptionId: subscription.id,
-                }
-              )
-            } else {
-              // Unexpected error (connection issue, etc.) - let Trigger.dev retry
-              throw error
-            }
           }
         }
 
         let product: Product.Record | null = null
         if (price && Price.hasProductId(price)) {
-          try {
-            product = await selectProductById(
-              price.productId,
-              transaction
+          const productResult = await selectProductById(
+            price.productId,
+            transaction
+          )
+          if (Result.isOk(productResult)) {
+            product = productResult.value
+          } else {
+            // Product was deleted or never existed - proceed with fallback name
+            logger.warn(
+              'Product not found for subscription, using fallbacks',
+              {
+                productId: price.productId,
+                subscriptionId: subscription.id,
+              }
             )
-          } catch (error) {
-            if (error instanceof NotFoundError) {
-              // Product was deleted or never existed - proceed with fallback name
-              logger.warn(
-                'Product not found for subscription, using fallbacks',
-                {
-                  productId: price.productId,
-                  subscriptionId: subscription.id,
-                }
-              )
-            } else {
-              // Unexpected error (connection issue, etc.) - let Trigger.dev retry
-              throw error
-            }
           }
         }
 

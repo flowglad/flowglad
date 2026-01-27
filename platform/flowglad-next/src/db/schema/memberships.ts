@@ -1,5 +1,11 @@
 import { sql } from 'drizzle-orm'
-import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  jsonb,
+  pgEnum,
+  pgTable,
+  text,
+} from 'drizzle-orm/pg-core'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
@@ -15,9 +21,20 @@ import {
   notNullStringForeignKey,
   type SelectConditions,
   tableBase,
+  timestampWithTimezoneColumn,
 } from '@/db/tableUtils'
+import { MembershipRole } from '@/types'
 
 const MEMBERSHIPS_TABLE_NAME = 'memberships'
+
+/**
+ * PostgreSQL enum type for membership roles.
+ * Exported so drizzle-kit can track it and generate CREATE TYPE migrations.
+ */
+export const membershipRoleEnum = pgEnum('MembershipRole', [
+  MembershipRole.Owner,
+  MembershipRole.Member,
+])
 
 export const memberships = pgTable(
   MEMBERSHIPS_TABLE_NAME,
@@ -34,6 +51,10 @@ export const memberships = pgTable(
     notificationPreferences: jsonb(
       'notification_preferences'
     ).default({}),
+    role: membershipRoleEnum()
+      .notNull()
+      .default(MembershipRole.Member),
+    deactivatedAt: timestampWithTimezoneColumn('deactivated_at'),
   },
   (table) => {
     return [
@@ -56,7 +77,8 @@ export const memberships = pgTable(
           for: 'select',
           // API keys bypass the focused check because they're scoped to a specific organization.
           // Webapp auth requires focused=true to ensure users only see their active organization.
-          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true)`,
+          // Deactivated memberships are always filtered out.
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND (current_auth_type() = 'api_key' OR "focused" = true) AND "deactivated_at" IS NULL`,
         }
       ),
       merchantPolicy(
@@ -65,7 +87,8 @@ export const memberships = pgTable(
           as: 'permissive',
           to: 'merchant',
           for: 'update',
-          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
+          // Deactivated memberships cannot be updated via RLS.
+          using: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id() AND "deactivated_at" IS NULL`,
           withCheck: sql`"user_id" = requesting_user_id() AND "organization_id" = current_organization_id()`,
         }
       ),
@@ -119,6 +142,7 @@ export const {
       .partial()
       .nullable()
       .optional(),
+    role: z.enum([MembershipRole.Owner, MembershipRole.Member]),
   },
   selectRefine: {
     ...newBaseZodSelectSchemaColumns,
@@ -131,6 +155,8 @@ export const {
       userId: true,
       organizationId: true,
       livemode: true,
+      role: true,
+      deactivatedAt: true,
     },
     createOnlyColumns: {},
   },

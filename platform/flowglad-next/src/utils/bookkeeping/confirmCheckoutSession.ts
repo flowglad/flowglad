@@ -91,10 +91,12 @@ export const confirmCheckoutSessionTransaction = async (
 
   if (checkoutSession.customerId) {
     // Find customer
-    customer = await selectCustomerById(
-      checkoutSession.customerId,
-      transaction
-    )
+    customer = (
+      await selectCustomerById(
+        checkoutSession.customerId,
+        transaction
+      )
+    ).unwrap()
   } else if (checkoutSession.purchaseId) {
     const purchaseAndCustomer =
       await selectPurchaseAndCustomersByPurchaseWhere(

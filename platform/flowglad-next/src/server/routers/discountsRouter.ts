@@ -183,10 +183,9 @@ export const getDiscount = protectedProcedure
   .query(async ({ input, ctx }) => {
     const discount = await authenticatedTransaction(
       async ({ transaction }) => {
-        const discountRecord = await selectDiscountById(
-          input.id,
-          transaction
-        )
+        const discountRecord = (
+          await selectDiscountById(input.id, transaction)
+        ).unwrap()
         const [enriched] = await enrichDiscountsWithRedemptionCounts(
           [discountRecord],
           transaction

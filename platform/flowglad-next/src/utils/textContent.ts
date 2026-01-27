@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
   selectOrganizationById,
@@ -27,13 +28,11 @@ export const saveOrganizationCodebaseMarkdown = async ({
   // Fetch organization to get securitySalt
   const organization = await adminTransaction(
     async ({ transaction }) => {
-      return selectOrganizationById(organizationId, transaction)
+      return (
+        await selectOrganizationById(organizationId, transaction)
+      ).unwrap()
     }
   )
-
-  if (!organization) {
-    throw new Error(`Organization ${organizationId} not found`)
-  }
 
   // Generate content hash using organization's securitySalt
   const contentHash = generateContentHash({
@@ -72,11 +71,13 @@ export const getOrganizationCodebaseMarkdown = async (
   // Fetch hash from database
   const organization = await adminTransaction(
     async ({ transaction }) => {
-      return selectOrganizationById(organizationId, transaction)
+      return (
+        await selectOrganizationById(organizationId, transaction)
+      ).unwrap()
     }
   )
 
-  const contentHash = organization?.codebaseMarkdownHash ?? null
+  const contentHash = organization.codebaseMarkdownHash ?? null
   if (!contentHash) {
     return null
   }
@@ -106,13 +107,11 @@ export const savePricingModelIntegrationMarkdown = async ({
   // Fetch organization to get securitySalt
   const organization = await adminTransaction(
     async ({ transaction }) => {
-      return selectOrganizationById(organizationId, transaction)
+      return (
+        await selectOrganizationById(organizationId, transaction)
+      ).unwrap()
     }
   )
-
-  if (!organization) {
-    throw new Error(`Organization ${organizationId} not found`)
-  }
 
   // Generate content hash using organization's securitySalt
   const contentHash = generateContentHash({
@@ -167,13 +166,15 @@ export const getPricingModelIntegrationMarkdown = async ({
   pricingModelId: string
 }): Promise<string | null> => {
   // Fetch hash from database
-  const pricingModel = await adminTransaction(
+  const pricingModelResult = await adminTransaction(
     async ({ transaction }) => {
       return selectPricingModelById(pricingModelId, transaction)
     }
   )
 
-  const contentHash = pricingModel?.integrationGuideHash ?? null
+  const contentHash = Result.isOk(pricingModelResult)
+    ? pricingModelResult.value.integrationGuideHash
+    : null
   if (!contentHash) {
     return null
   }

@@ -37,14 +37,15 @@ const sendCustomerPaymentFailedNotificationTask = task({
           { id: payment.invoiceId },
           transaction
         )
-      const customer = await selectCustomerById(
-        payment.customerId,
-        transaction
-      )
-      const organization = await selectOrganizationById(
-        customer.organizationId,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(payment.customerId, transaction)
+      ).unwrap()
+      const organization = (
+        await selectOrganizationById(
+          customer.organizationId,
+          transaction
+        )
+      ).unwrap()
       return {
         payment,
         invoice,
@@ -63,10 +64,9 @@ const sendCustomerPaymentFailedNotificationTask = task({
     // Fetch the latest invoice after the PDF generation task has completed
     const { mostUpToDateInvoice, orgAndFirstMember } =
       await adminTransaction(async ({ transaction }) => {
-        const mostUpToDateInvoice = await selectInvoiceById(
-          invoice.id,
-          transaction
-        )
+        const mostUpToDateInvoice = (
+          await selectInvoiceById(invoice.id, transaction)
+        ).unwrap()
         const orgAndFirstMember =
           await selectOrganizationAndFirstMemberByOrganizationId(
             organization.id,

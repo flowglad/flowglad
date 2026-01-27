@@ -118,6 +118,7 @@ import {
   LedgerEntryStatus,
   LedgerEntryType,
   LedgerTransactionType,
+  MembershipRole,
   NormalBalanceType,
   PaymentMethodType,
   type PaymentStatus,
@@ -155,14 +156,22 @@ const insertCountries = async () => {
     .onConflictDoNothing()
 }
 
+// Track if database has been seeded to prevent duplicate seeding in parallel test runs
+let isSeeded = false
+
 export const seedDatabase = async () => {
+  if (isSeeded) {
+    return // Already seeded, skip
+  }
   //   await migrateDb()
   await insertCountries()
+  isSeeded = true
 }
 
 export const dropDatabase = async () => {
   console.log('drop database....')
   await db.delete(countries)
+  isSeeded = false // Reset so seedDatabase() can reseed after drop
 }
 
 export const setupOrg = async (params?: {
@@ -170,6 +179,8 @@ export const setupOrg = async (params?: {
   feePercentage?: string
   stripeConnectContractType?: StripeConnectContractType
   countryCode?: CountryCode
+  /** Skip creating pricing models, products, and prices. Useful for tests that need to create their own. */
+  skipPricingModel?: boolean
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
@@ -208,6 +219,17 @@ export const setupOrg = async (params?: {
       },
       transaction
     )
+
+    // If skipPricingModel is true, return just the organization
+    if (params?.skipPricingModel) {
+      return {
+        organization,
+        product: undefined,
+        price: undefined,
+        pricingModel: undefined,
+        testmodePricingModel: undefined,
+      } as any
+    }
 
     // Create both live and testmode default pricing models
     const livePricingModel = await insertPricingModel(
@@ -514,7 +536,9 @@ export const setupSubscription = async (params: {
   }
   const status = params.status ?? SubscriptionStatus.Active
   return adminTransaction(async ({ transaction }) => {
-    const price = await selectPriceById(params.priceId, transaction)
+    const price = (
+      await selectPriceById(params.priceId, transaction)
+    ).unwrap()
     if (params.renews === false) {
       return (await insertSubscription(
         {
@@ -771,7 +795,9 @@ export const setupPurchase = async ({
   status?: PurchaseStatus
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const price = await selectPriceById(priceId, transaction)
+    const price = (
+      await selectPriceById(priceId, transaction)
+    ).unwrap()
     const purchaseFields = projectPriceFieldsOntoPurchaseFields(price)
     const coreFields = {
       customerId,
@@ -848,10 +874,9 @@ export const setupInvoice = async ({
     let purchaseIdToUse: string | null = existingPurchaseId ?? null
 
     if (billingPeriodId) {
-      billingPeriod = await selectBillingPeriodById(
-        billingPeriodId,
-        transaction
-      )
+      billingPeriod = (
+        await selectBillingPeriodById(billingPeriodId, transaction)
+      ).unwrap()
       if (purchaseIdToUse && billingPeriod) {
         throw new Error(
           'Invoice cannot be for both a billingPeriodId and an existing purchaseId.'
@@ -1200,6 +1225,7 @@ export const setupMemberships = async ({
         userId: user.id,
         focused: true,
         livemode: true,
+        role: MembershipRole.Member,
       },
       transaction
     )
@@ -1231,10 +1257,9 @@ export const setupSubscriptionItem = async ({
   usageEventsPerUnit?: number
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    const subscription = await selectSubscriptionById(
-      subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(subscriptionId, transaction)
+    ).unwrap()
     if (!subscription) {
       throw new Error('Subscription not found')
     }
@@ -1588,13 +1613,9 @@ export const setupUsageMeter = async ({
     })
     let pricingModelToUseId: string | null = null
     if (pricingModelId) {
-      const pricingModel = await selectPricingModelById(
-        pricingModelId,
-        transaction
-      )
-      if (!pricingModel) {
-        throw new Error('Pricing model not found')
-      }
+      const pricingModel = (
+        await selectPricingModelById(pricingModelId, transaction)
+      ).unwrap()
       pricingModelToUseId = pricingModel.id
     } else {
       const defaultPricingModel = await selectDefaultPricingModel(
@@ -1725,10 +1746,14 @@ export const setupTestFeaturesAndProductFeatures = async (params: {
       type: 'admin',
       livemode,
     })
-    const product = await selectProductById(productId, transaction)
-    if (!product) {
+    const productResult = await selectProductById(
+      productId,
+      transaction
+    )
+    if (productResult.status === 'error') {
       throw new Error('Product not found')
     }
+    const product = productResult.unwrap()
     const createdData: Array<{
       feature: Feature.Record
       productFeature: ProductFeature.Record

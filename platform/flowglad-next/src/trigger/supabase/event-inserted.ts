@@ -101,10 +101,12 @@ export const eventInsertedTask = task({
         { id: event.id, processedAt: Date.now() },
         transaction
       )
-      const organization = await selectOrganizationById(
-        event.organizationId,
-        transaction
-      )
+      const organization = (
+        await selectOrganizationById(
+          event.organizationId,
+          transaction
+        )
+      ).unwrap()
       return {
         eventId: event.id,
         result: 'processed',

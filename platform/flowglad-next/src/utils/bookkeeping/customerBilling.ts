@@ -249,7 +249,9 @@ export const customerBillingCreatePricedCheckoutSession = async ({
 
     const price = await authenticatedTransaction(
       async ({ transaction }) => {
-        return await selectPriceById(resolvedPriceId, transaction)
+        return (
+          await selectPriceById(resolvedPriceId, transaction)
+        ).unwrap()
       }
     )
     if (!price) {

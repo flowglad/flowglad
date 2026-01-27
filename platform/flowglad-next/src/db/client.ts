@@ -55,6 +55,9 @@ if (core.IS_PROD) {
   logger = new FormattedSQLLogger()
 }
 
+/**
+ * The main database instance.
+ */
 export const db = drizzle(client, {
   logger,
 })

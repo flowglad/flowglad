@@ -23,7 +23,6 @@ import {
   fetchPricingModel,
   getFlowgladRoute,
   useBilling,
-  useCatalog,
   usePricing,
   usePricingModel,
 } from './FlowgladContext'
@@ -890,7 +889,7 @@ describe('usePricingModel', () => {
 })
 
 // ============================================================================
-// usePricing and useCatalog Alias Tests
+// usePricing Alias Tests
 // ============================================================================
 
 describe('usePricing', () => {
@@ -915,33 +914,6 @@ describe('usePricing', () => {
       pricingModelResult.current?.defaultCurrency
     )
     expect(pricingResult.current?.products?.length).toBe(
-      pricingModelResult.current?.products?.length
-    )
-  })
-})
-
-describe('useCatalog', () => {
-  it('returns the same value as usePricingModel (backward compatibility)', async () => {
-    const mockBillingData = createMockBillingData()
-
-    const wrapper = createWrapper({
-      devMode: true,
-      billingMocks: mockBillingData,
-    })
-
-    const { result: catalogResult } = renderHook(() => useCatalog(), {
-      wrapper,
-    })
-    const { result: pricingModelResult } = renderHook(
-      () => usePricingModel(),
-      { wrapper }
-    )
-
-    // useCatalog should be functionally identical to usePricingModel
-    expect(catalogResult.current?.defaultCurrency).toBe(
-      pricingModelResult.current?.defaultCurrency
-    )
-    expect(catalogResult.current?.products?.length).toBe(
       pricingModelResult.current?.products?.length
     )
   })
@@ -987,7 +959,7 @@ describe('dev mode action functions', () => {
     it('rejects when subscription id is not found', async () => {
       const mockBillingData = createMockBillingData({
         currentSubscriptions: [],
-        currentSubscription: null,
+        currentSubscription: undefined,
         subscriptions: [],
       })
 
@@ -1042,7 +1014,7 @@ describe('dev mode action functions', () => {
     it('rejects when subscription id is not found', async () => {
       const mockBillingData = createMockBillingData({
         currentSubscriptions: [],
-        currentSubscription: null,
+        currentSubscription: undefined,
         subscriptions: [],
       })
 
@@ -1221,7 +1193,7 @@ describe('dev mode action functions', () => {
       // Need to ensure currentSubscription is null so the fallback doesn't kick in
       // The implementation falls back to currentSubscription if not found in arrays
       const mockBillingData = createMockBillingData({
-        currentSubscription: null,
+        currentSubscription: undefined,
         currentSubscriptions: [],
         subscriptions: [],
       })

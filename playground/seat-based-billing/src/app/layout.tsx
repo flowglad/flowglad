@@ -1,12 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
-import { PropsWithChildren } from 'react'
-import { Navbar } from '@/components/navbar'
-import {
-  FlowgladProviderWrapper,
-  ReactQueryProvider,
-} from '@/components/providers'
+import { ReactQueryProvider } from '@/components/providers'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -26,18 +21,15 @@ export const metadata: Metadata = {
 
 export default async function RootLayout({
   children,
-}: PropsWithChildren) {
+}: {
+  children: React.ReactNode
+}) {
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <ReactQueryProvider>
-          <FlowgladProviderWrapper>
-            <Navbar />
-            {children}
-          </FlowgladProviderWrapper>
-        </ReactQueryProvider>
+        <ReactQueryProvider>{children}</ReactQueryProvider>
       </body>
     </html>
   )

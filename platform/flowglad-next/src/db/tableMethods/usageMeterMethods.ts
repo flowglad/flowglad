@@ -270,14 +270,9 @@ export const selectUsageMeterBySlugAndCustomerId = async (
   transaction: DbTransaction
 ): Promise<UsageMeter.ClientRecord | null> => {
   // First, get the customer to determine their pricing model
-  const customer = await selectCustomerById(
-    params.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(`Customer ${params.customerId} not found`)
-  }
+  const customer = (
+    await selectCustomerById(params.customerId, transaction)
+  ).unwrap()
 
   // Get the pricing model for the customer (includes usage meters)
   const pricingModel = await selectPricingModelForCustomer(

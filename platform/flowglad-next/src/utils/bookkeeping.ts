@@ -274,10 +274,12 @@ export const createCustomerBookkeeping = async (
     )
   }
   const pricingModel = payload.customer.pricingModelId
-    ? await selectPricingModelById(
-        payload.customer.pricingModelId,
-        transaction
-      )
+    ? (
+        await selectPricingModelById(
+          payload.customer.pricingModelId,
+          transaction
+        )
+      ).unwrap()
     : await selectDefaultPricingModel(
         { organizationId: payload.customer.organizationId, livemode },
         transaction
@@ -355,10 +357,12 @@ export const createCustomerBookkeeping = async (
       const defaultPrice = product.defaultPrice
       if (defaultPrice) {
         // Get the organization details - use customer's organizationId for consistency
-        const organization = await selectOrganizationById(
-          customer.organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(
+            customer.organizationId,
+            transaction
+          )
+        ).unwrap()
 
         // Create the subscription - pass callbacks directly
         const subscriptionResult = (
@@ -463,10 +467,9 @@ export const createPricingModelBookkeeping = async (
   )
 
   // 3. Get organization for default currency
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
 
   // 4. Create the default price with unitPrice of 0
   const defaultPrice = await insertPrice(

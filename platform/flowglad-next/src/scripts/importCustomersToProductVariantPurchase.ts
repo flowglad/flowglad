@@ -47,7 +47,9 @@ const example = async (db: PostgresJsDatabase) => {
       defaultPricingModel.id
     )
 
-    const price = await selectPriceById(VARIANT_ID, transaction)
+    const price = (
+      await selectPriceById(VARIANT_ID, transaction)
+    ).unwrap()
     const customers = await selectCustomersByOrganizationIdAndEmails(
       ORGANIZATION_ID,
       customerInserts.map((customer) => customer.email),

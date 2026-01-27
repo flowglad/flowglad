@@ -41,20 +41,24 @@ const PayPurchasePage = async ({
       const checkoutSession = checkoutSessionResult.unwrap()
 
       const discount = checkoutSession.discountId
-        ? await selectDiscountById(
-            checkoutSession.discountId,
-            transaction
-          )
+        ? (
+            await selectDiscountById(
+              checkoutSession.discountId,
+              transaction
+            )
+          ).unwrap()
         : null
       const feeCalculation = await selectLatestFeeCalculation(
         { checkoutSessionId: checkoutSession.id },
         transaction
       )
       const maybeCustomer = checkoutSession.customerId
-        ? await selectCustomerById(
-            checkoutSession.customerId,
-            transaction
-          )
+        ? (
+            await selectCustomerById(
+              checkoutSession.customerId,
+              transaction
+            )
+          ).unwrap()
         : null
       return {
         purchase,

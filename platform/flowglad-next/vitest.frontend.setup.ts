@@ -5,7 +5,6 @@ import * as matchers from '@testing-library/jest-dom/matchers'
 import { cleanup } from '@testing-library/react'
 import { afterAll, afterEach, beforeAll, expect, vi } from 'vitest'
 import { server } from './mocks/server'
-import { seedDatabase } from './seedDatabase'
 
 expect.extend(matchers)
 
@@ -30,7 +29,6 @@ beforeAll(async () => {
     global.crypto = webcrypto as unknown as Crypto
   }
   server.listen({ onUnhandledRequest: 'warn' })
-  await seedDatabase()
 })
 
 afterEach(() => {

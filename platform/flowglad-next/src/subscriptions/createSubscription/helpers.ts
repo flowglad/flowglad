@@ -346,10 +346,12 @@ export const verifyCanCreateSubscription = async (
   }
 
   if (currentSubscriptionsForCustomer.length > 0) {
-    const organization = await selectOrganizationById(
-      customer.organizationId,
-      transaction
-    )
+    const organization = (
+      await selectOrganizationById(
+        customer.organizationId,
+        transaction
+      )
+    ).unwrap()
     if (!organization.allowMultipleSubscriptionsPerCustomer) {
       return Result.err(
         new ConflictError(
@@ -444,10 +446,9 @@ export const activateSubscription = async (
     subscriptionStartDate: subscription.startDate ?? undefined,
   })
 
-  const price = await selectPriceById(
-    subscription.priceId!,
-    transaction
-  )
+  const price = (
+    await selectPriceById(subscription.priceId!, transaction)
+  ).unwrap()
   const renews = price.type === PriceType.Subscription ? true : false
   let subscriptionUpdate: Subscription.Update | null = null
 

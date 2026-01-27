@@ -170,10 +170,12 @@ export const refundPaymentTransaction = async (
   // Only reverse tax when we actually created a new refund in this call.
   // Skip tax reversal in the recovery path since we didn't initiate the refund.
   if (newlyCreatedRefund && payment.stripeTaxTransactionId) {
-    const organization = await selectOrganizationById(
-      payment.organizationId,
-      transaction
-    )
+    const organization = (
+      await selectOrganizationById(
+        payment.organizationId,
+        transaction
+      )
+    ).unwrap()
 
     if (
       organization.stripeConnectContractType ===

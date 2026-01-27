@@ -35,6 +35,7 @@ describe('isHybridActionKey', () => {
       FlowgladActionKey.ClaimResource,
       FlowgladActionKey.ReleaseResource,
       FlowgladActionKey.ListResourceClaims,
+      FlowgladActionKey.GetUsageMeterBalances,
     ] as const
 
     for (const route of authenticatedRoutes) {

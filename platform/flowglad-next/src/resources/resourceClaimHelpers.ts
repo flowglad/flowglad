@@ -289,10 +289,9 @@ const resolveSubscription = async (
   transaction: DbTransaction
 ) => {
   if (params.subscriptionId) {
-    const subscription = await selectSubscriptionById(
-      params.subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(params.subscriptionId, transaction)
+    ).unwrap()
 
     if (!subscription) {
       throw new Error(

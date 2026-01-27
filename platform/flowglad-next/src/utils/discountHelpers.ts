@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectBillingPeriodById } from '@/db/tableMethods/billingPeriodMethods'
 import { selectDiscountRedemptions } from '@/db/tableMethods/discountRedemptionMethods'
@@ -226,14 +227,15 @@ export const fetchDiscountInfoForInvoice = async (
       return null
     }
 
-    const billingPeriod = await selectBillingPeriodById(
+    const billingPeriodResult = await selectBillingPeriodById(
       invoice.billingPeriodId,
       transaction
     )
 
-    if (!billingPeriod) {
+    if (Result.isError(billingPeriodResult)) {
       return null
     }
+    const billingPeriod = billingPeriodResult.value
 
     const discountRedemptions = await selectDiscountRedemptions(
       { subscriptionId: billingPeriod.subscriptionId },
