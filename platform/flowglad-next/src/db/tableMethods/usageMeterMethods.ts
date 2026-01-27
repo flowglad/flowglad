@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import {
   type UsageMeter,
@@ -59,7 +60,10 @@ export const derivePricingModelIdFromUsageMeter =
     config,
     async (id, transaction) => {
       const result = await selectUsageMeterById(id, transaction)
-      return result.unwrap()
+      if (Result.isError(result)) {
+        throw result.error
+      }
+      return result.value
     }
   )
 

@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { and, eq } from 'drizzle-orm'
 import {
   setupCreditLedgerEntry,
@@ -101,23 +102,25 @@ describe('subscriptionItemMethods', async () => {
   describe('selectSubscriptionItemById', () => {
     it('should return a subscription item when a valid ID is provided and the item exists', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const result = await selectSubscriptionItemById(
-          subscriptionItem.id,
-          transaction
-        )
+        const result = (
+          await selectSubscriptionItemById(
+            subscriptionItem.id,
+            transaction
+          )
+        ).unwrap()
         expect(result).toMatchObject({ id: subscriptionItem.id })
         expect(result?.id).toBe(subscriptionItem.id)
       })
     })
 
-    it('should throw when the ID does not exist', async () => {
+    it('should return an error when the ID does not exist', async () => {
       const nonExistentId = core.nanoid()
       await adminTransaction(async ({ transaction }) => {
-        await expect(
-          selectSubscriptionItemById(nonExistentId, transaction)
-        ).rejects.toThrow(
-          `No subscription items found with id: ${nonExistentId}`
+        const result = await selectSubscriptionItemById(
+          nonExistentId,
+          transaction
         )
+        expect(Result.isError(result)).toBe(true)
       })
     })
   })
@@ -145,10 +148,9 @@ describe('subscriptionItemMethods', async () => {
         expect(result.name).toBe(newItemData.name!)
         expect(result.quantity).toBe(newItemData.quantity)
 
-        const retrieved = await selectSubscriptionItemById(
-          result.id,
-          transaction
-        )
+        const retrieved = (
+          await selectSubscriptionItemById(result.id, transaction)
+        ).unwrap()
         expect(retrieved).toEqual(result)
       })
     })
@@ -189,10 +191,12 @@ describe('subscriptionItemMethods', async () => {
         expect(result?.name).toBe(updates.name!)
         expect(result?.quantity).toBe(updates.quantity!)
 
-        const retrieved = await selectSubscriptionItemById(
-          subscriptionItem.id,
-          transaction
-        )
+        const retrieved = (
+          await selectSubscriptionItemById(
+            subscriptionItem.id,
+            transaction
+          )
+        ).unwrap()
         expect(retrieved?.name).toBe(updates.name!)
       })
     })
@@ -438,10 +442,12 @@ describe('subscriptionItemMethods', async () => {
           expiryDate,
           transaction
         )
-        const updatedItem = await selectSubscriptionItemById(
-          subscriptionItem.id,
-          transaction
-        )
+        const updatedItem = (
+          await selectSubscriptionItemById(
+            subscriptionItem.id,
+            transaction
+          )
+        ).unwrap()
         expect(updatedItem?.expiredAt).toEqual(expiryDate.getTime())
 
         const [updatedFeature] = await transaction
@@ -562,22 +568,22 @@ describe('subscriptionItemMethods', async () => {
         )
 
         // Verify all items are expired
-        const updatedItem1 = await selectSubscriptionItemById(
-          subscriptionItem.id,
-          transaction
-        )
+        const updatedItem1 = (
+          await selectSubscriptionItemById(
+            subscriptionItem.id,
+            transaction
+          )
+        ).unwrap()
         expect(updatedItem1?.expiredAt).toEqual(expiryDate.getTime())
 
-        const updatedItem2 = await selectSubscriptionItemById(
-          item2.id,
-          transaction
-        )
+        const updatedItem2 = (
+          await selectSubscriptionItemById(item2.id, transaction)
+        ).unwrap()
         expect(updatedItem2?.expiredAt).toEqual(expiryDate.getTime())
 
-        const updatedItem3 = await selectSubscriptionItemById(
-          item3.id,
-          transaction
-        )
+        const updatedItem3 = (
+          await selectSubscriptionItemById(item3.id, transaction)
+        ).unwrap()
         expect(updatedItem3?.expiredAt).toEqual(expiryDate.getTime())
 
         // Verify all features are expired

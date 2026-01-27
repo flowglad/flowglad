@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupInvoice,
@@ -311,10 +312,9 @@ describe('paymentMethods.ts', () => {
         expect(updatedPayment.status).toBe(PaymentStatus.Succeeded)
 
         // Verify the payment was actually updated in the database
-        const fetchedPayment = await selectPaymentById(
-          payment.id,
-          transaction
-        )
+        const fetchedPayment = (
+          await selectPaymentById(payment.id, transaction)
+        ).unwrap()
         expect(fetchedPayment?.status).toBe(PaymentStatus.Succeeded)
       })
     })

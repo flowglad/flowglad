@@ -541,10 +541,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       const updatedInvoice = (
         await selectInvoiceById(canceledInvoice.id, transaction)
       ).unwrap()
-      const updatedPayment = await selectPaymentById(
-        payment.id,
-        transaction
-      )
+      const updatedPayment = (
+        await selectPaymentById(payment.id, transaction)
+      ).unwrap()
       const updatedSubscription = (
         await selectSubscriptionById(subscription.id, transaction)
       ).unwrap()
@@ -615,10 +614,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       const updatedInvoice = (
         await selectInvoiceById(invoice.id, transaction)
       ).unwrap()
-      const updatedPayment = await selectPaymentById(
-        payment.id,
-        transaction
-      )
+      const updatedPayment = (
+        await selectPaymentById(payment.id, transaction)
+      ).unwrap()
 
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.AwaitingPaymentConfirmation
@@ -700,10 +698,9 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       const updatedInvoice = (
         await selectInvoiceById(requiresActionInvoice.id, transaction)
       ).unwrap()
-      const updatedPayment = await selectPaymentById(
-        payment.id,
-        transaction
-      )
+      const updatedPayment = (
+        await selectPaymentById(payment.id, transaction)
+      ).unwrap()
 
       expect(updatedBillingRun.status).toBe(
         BillingRunStatus.InProgress

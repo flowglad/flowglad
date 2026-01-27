@@ -435,7 +435,7 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     const reselected = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       const id = command!.payload.usageCredit.id
-      return selectUsageCreditById(id, transaction)
+      return (await selectUsageCreditById(id, transaction)).unwrap()
     })
     expect(reselected).toMatchObject({
       id: command!.payload.usageCredit.id,
@@ -699,10 +699,9 @@ describe('Process payment intent status updated', async () => {
               enqueueLedgerCommand: enqueueLedgerCommand!,
             }
           )
-          const updatedPurchase = await selectPurchaseById(
-            purchase.id,
-            transaction
-          )
+          const updatedPurchase = (
+            await selectPurchaseById(purchase.id, transaction)
+          ).unwrap()
           expect(updatedPurchase.status).toEqual(PurchaseStatus.Paid)
         }
       )
