@@ -728,7 +728,9 @@ describe('usageEventsRouter', () => {
             },
           ],
         })
-      ).rejects.toThrow('Price not found: slug "invalid-slug-bulk"')
+      ).rejects.toThrow(
+        "Price not found: with slug invalid-slug-bulk (not in customer's pricing model)"
+      )
     })
 
     it('should throw error when both priceId and priceSlug are provided', async () => {

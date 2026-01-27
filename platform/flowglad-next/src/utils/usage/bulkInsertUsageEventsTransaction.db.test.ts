@@ -17,12 +17,23 @@ import {
 import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
+import { customers } from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
+import { prices } from '@/db/schema/prices'
+import { pricingModels } from '@/db/schema/pricingModels'
+import { products } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
 import type { UsageMeter } from '@/db/schema/usageMeters'
-import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import { usageMeters } from '@/db/schema/usageMeters'
+import { selectCustomerPricingInfoBatch } from '@/db/tableMethods/customerMethods'
+import { updatePrice } from '@/db/tableMethods/priceMethods'
+import {
+  type PricingModelSlugResolutionData,
+  selectPricingModelSlugResolutionData,
+} from '@/db/tableMethods/pricingModelMethods'
+import { NotFoundError } from '@/errors'
 import {
   createCapturingEffectsContext,
   createDiscardingEffectsContext,
@@ -35,7 +46,28 @@ import {
   UsageMeterAggregationType,
 } from '@/types'
 import core from '@/utils/core'
-import { bulkInsertUsageEventsTransaction } from './bulkInsertUsageEventsTransaction'
+import {
+  batchFetchPricingModelsForCustomers,
+  bulkInsertUsageEventsTransaction,
+  resolvePriceSlugs,
+  resolveUsageMeterSlugs,
+  type SlugResolutionEvent,
+  type WithSlugEventsContext,
+} from './bulkInsertUsageEventsTransaction'
+
+// Typed partial contexts for unit testing resolvePriceSlugs and resolveUsageMeterSlugs
+// These use Pick to define exactly what fields are needed, then cast to full context type
+type TestResolvePriceSlugsContext = Pick<
+  WithSlugEventsContext,
+  'eventsWithPriceSlugs' | 'getPricingModelForCustomer'
+>
+
+type TestResolveUsageMeterSlugsContext = Pick<
+  WithSlugEventsContext,
+  'eventsWithUsageMeterSlugs' | 'getPricingModelForCustomer'
+> & {
+  slugToPriceIdMap: Map<string, string>
+}
 
 describe('bulkInsertUsageEventsTransaction', () => {
   let organization: Organization.Record
@@ -192,7 +224,9 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow('Price not found: slug "non-existent-slug"')
+      ).rejects.toThrow(
+        "Price not found: with slug non-existent-slug (not in customer's pricing model)"
+      )
     })
 
     it('should throw error when usageMeterSlug not found', async () => {
@@ -698,7 +732,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
             createDiscardingEffectsContext(transaction)
           )
         )
-      ).rejects.toThrow("not in customer's pricing model")
+      ).rejects.toThrow("(not in customer's pricing model")
     })
 
     it('should throw error when CountDistinctProperties meter is used with subscription missing billing period', async () => {
@@ -1471,7 +1505,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should handle customers without explicit pricingModelId (uses default pricing model)', async () => {
       // Setup: Create customer without pricingModelId (will use default)
-      // The default pricing model is already set up in beforeEach
+
       const defaultCustomer = await adminTransaction(
         async ({ transaction }) =>
           setupCustomer({
@@ -1542,51 +1576,6 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should handle mix of customers with and without explicit pricingModelId', async () => {
       // Setup: Create some customers with explicit pricing model, some without
-      // Get the testmode default pricing model for the existing organization
-      const testmodeDefaultPricingModel = await adminTransaction(
-        async ({ transaction }) =>
-          selectDefaultPricingModel(
-            {
-              organizationId: organization.id,
-              livemode: false,
-            },
-            transaction
-          )
-      )
-
-      if (!testmodeDefaultPricingModel) {
-        throw new Error(
-          'Testmode default pricing model not found for organization'
-        )
-      }
-
-      // Create testmode usage meter and price for the default pricing model
-      const defaultUsageMeter = await adminTransaction(
-        async ({ transaction }) =>
-          setupUsageMeter({
-            organizationId: organization.id,
-            name: 'Default Usage Meter (testmode)',
-            livemode: false,
-            pricingModelId: testmodeDefaultPricingModel.id,
-          })
-      )
-
-      const defaultPrice = await adminTransaction(
-        async ({ transaction }) =>
-          setupPrice({
-            name: 'Default Usage Price (testmode)',
-            type: PriceType.Usage,
-            unitPrice: 10,
-            intervalUnit: IntervalUnit.Day,
-            intervalCount: 1,
-            livemode: false,
-            isDefault: false,
-            currency: CurrencyCode.USD,
-            usageMeterId: defaultUsageMeter.id,
-          })
-      )
-
-      // Create explicit pricing model (testmode) for customers with explicit pricingModelId
       const explicitPricingModel = await adminTransaction(
         async ({ transaction }) =>
           setupPricingModel({
@@ -1632,14 +1621,13 @@ describe('bulkInsertUsageEventsTransaction', () => {
           })
       )
 
-      // Create 3 customers with explicit pricing model (testmode)
+      // Create 3 customers with explicit pricing model
       const explicitCustomers = []
       for (let i = 0; i < 3; i++) {
         const customerData = await adminTransaction(
           async ({ transaction }) =>
             setupCustomer({
               organizationId: organization.id,
-              livemode: false,
               pricingModelId: explicitPricingModel.id,
             })
         )
@@ -1681,14 +1669,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
         })
       }
 
-      // Create 3 customers without explicit pricingModelId (uses default testmode pricing model)
+      // Create 3 customers with default pricing model
       const defaultCustomers = []
       for (let i = 0; i < 3; i++) {
         const customerData = await adminTransaction(
           async ({ transaction }) =>
             setupCustomer({
               organizationId: organization.id,
-              livemode: false,
+              // No pricingModelId - uses default
             })
         )
 
@@ -1706,7 +1694,7 @@ describe('bulkInsertUsageEventsTransaction', () => {
               organizationId: organization.id,
               customerId: customerData.id,
               paymentMethodId: pmData.id,
-              priceId: defaultPrice.id,
+              priceId: price.id,
             })
         )
 
@@ -1724,12 +1712,12 @@ describe('bulkInsertUsageEventsTransaction', () => {
         defaultCustomers.push({
           customer: customerData,
           subscription: subData,
-          price: defaultPrice,
-          usageMeter: defaultUsageMeter,
+          price,
+          usageMeter,
         })
       }
 
-      // Execute: Create usage events for all 6 customers in a single batch (all testmode)
+      // Execute: Create usage events for all 6 customers in a single batch
       const timestamp = Date.now()
       const allEvents = [
         ...explicitCustomers.map(
@@ -1737,14 +1725,14 @@ describe('bulkInsertUsageEventsTransaction', () => {
             subscriptionId: subscription.id,
             priceId: price.id,
             amount: (index + 1) * 100,
-            transactionId: `txn_explicit_${index}_${timestamp}`,
+            transactionId: `txn_mixed_explicit_${index}_${timestamp}`,
           })
         ),
         ...defaultCustomers.map(({ subscription, price }, index) => ({
           subscriptionId: subscription.id,
           priceId: price.id,
           amount: (index + 4) * 100,
-          transactionId: `txn_default_${index}_${timestamp}`,
+          transactionId: `txn_mixed_default_${index}_${timestamp}`,
         })),
       ]
 
@@ -1786,6 +1774,906 @@ describe('bulkInsertUsageEventsTransaction', () => {
           usageMeterId: usageMeter.id,
         })
       })
+    })
+  })
+
+  describe('batch pricing model lookups', () => {
+    it('should handle multiple customers sharing same pricing model', async () => {
+      // Note: This test verifies correctness when multiple customers share the same pricing model.
+      // The implementation deduplicates pricing model fetches (one query for all customers sharing a model),
+      // but we verify behavior rather than implementation details (no mocking/spying per test guidelines).
+      // Setup: Create 10 customers all sharing the same pricing model
+      const { organization } = await setupOrg()
+
+      const pricingModel = await adminTransaction(
+        async ({ transaction }) =>
+          setupPricingModel({
+            organizationId: organization.id,
+            isDefault: false,
+          })
+      )
+
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Shared Usage Meter',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+
+      const price = await setupPrice({
+        name: 'Shared Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+      })
+
+      // Create 10 customers all with the same explicit pricing model
+      const customers = []
+      for (let i = 0; i < 10; i++) {
+        const customerData = await adminTransaction(
+          async ({ transaction }) =>
+            setupCustomer({
+              organizationId: organization.id,
+              pricingModelId: pricingModel.id,
+            })
+        )
+
+        const pmData = await adminTransaction(
+          async ({ transaction }) =>
+            setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customerData.id,
+            })
+        )
+
+        const subData = await adminTransaction(
+          async ({ transaction }) =>
+            setupSubscription({
+              organizationId: organization.id,
+              customerId: customerData.id,
+              paymentMethodId: pmData.id,
+              priceId: price.id,
+            })
+        )
+
+        await adminTransaction(async ({ transaction }) => {
+          const now = new Date()
+          const endDate = new Date(now)
+          endDate.setDate(endDate.getDate() + 30)
+          return setupBillingPeriod({
+            subscriptionId: subData.id,
+            startDate: now,
+            endDate,
+          })
+        })
+
+        customers.push({
+          customer: customerData,
+          subscription: subData,
+        })
+      }
+
+      // Execute: Create usage events for all 10 customers
+      const timestamp = Date.now()
+      const events = customers.map(({ subscription }, index) => ({
+        subscriptionId: subscription.id,
+        priceId: price.id,
+        amount: (index + 1) * 100,
+        transactionId: `txn_shared_${index}_${timestamp}`,
+      }))
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: events,
+            },
+            livemode: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      )
+
+      // Expectations: All 10 events processed correctly
+      expect(result.unwrap().usageEvents).toHaveLength(10)
+
+      // All customers should get the correct pricing model
+      customers.forEach(({ customer }) => {
+        const event = result
+          .unwrap()
+          .usageEvents.find((e) => e.customerId === customer.id)
+        expect(event).toMatchObject({
+          customerId: customer.id,
+          priceId: price.id,
+          usageMeterId: usageMeter.id,
+          pricingModelId: pricingModel.id,
+        })
+      })
+    })
+
+    it('should handle multiple unique pricing models correctly', async () => {
+      // Note: This test verifies correctness when customers have different pricing models.
+      // The implementation fetches pricing models in parallel and deduplicates by model ID,
+      // but we verify behavior rather than implementation details
+      // Setup: Create 5 different pricing models
+      const orgSetup = await setupOrg()
+      const { organization } = orgSetup
+
+      // Use the default pricing model from setupOrg as the first pricing model
+      const defaultUsageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Default Usage Meter',
+        livemode: true,
+        pricingModelId: orgSetup.pricingModel.id,
+      })
+
+      const defaultPrice = await setupPrice({
+        name: 'Default Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: defaultUsageMeter.id,
+      })
+
+      const pricingModelsData = [
+        {
+          pricingModel: orgSetup.pricingModel,
+          usageMeter: defaultUsageMeter,
+          price: defaultPrice,
+        },
+      ]
+
+      // Create 4 more non-default pricing models
+      for (let i = 0; i < 4; i++) {
+        const pricingModel = await adminTransaction(
+          async ({ transaction }) =>
+            setupPricingModel({
+              organizationId: organization.id,
+              isDefault: false,
+            })
+        )
+
+        const usageMeter = await setupUsageMeter({
+          organizationId: organization.id,
+          name: `Usage Meter ${i + 1}`,
+          livemode: true,
+          pricingModelId: pricingModel.id,
+        })
+
+        const price = await setupPrice({
+          name: `Usage Price ${i + 1}`,
+          type: PriceType.Usage,
+          unitPrice: 10,
+          intervalUnit: IntervalUnit.Day,
+          intervalCount: 1,
+          livemode: true,
+          isDefault: false,
+          currency: CurrencyCode.USD,
+          usageMeterId: usageMeter.id,
+        })
+
+        pricingModelsData.push({ pricingModel, usageMeter, price })
+      }
+
+      // Create 2 customers per pricing model (10 total)
+      const customers = []
+      for (const { pricingModel, price } of pricingModelsData) {
+        for (let i = 0; i < 2; i++) {
+          const customerData = await adminTransaction(
+            async ({ transaction }) =>
+              setupCustomer({
+                organizationId: organization.id,
+                pricingModelId: pricingModel.id,
+              })
+          )
+
+          const pmData = await adminTransaction(
+            async ({ transaction }) =>
+              setupPaymentMethod({
+                organizationId: organization.id,
+                customerId: customerData.id,
+              })
+          )
+
+          const subData = await adminTransaction(
+            async ({ transaction }) =>
+              setupSubscription({
+                organizationId: organization.id,
+                customerId: customerData.id,
+                paymentMethodId: pmData.id,
+                priceId: price.id,
+              })
+          )
+
+          await adminTransaction(async ({ transaction }) => {
+            const now = new Date()
+            const endDate = new Date(now)
+            endDate.setDate(endDate.getDate() + 30)
+            return setupBillingPeriod({
+              subscriptionId: subData.id,
+              startDate: now,
+              endDate,
+            })
+          })
+
+          customers.push({
+            customer: customerData,
+            subscription: subData,
+            expectedPricingModelId: pricingModel.id,
+            price,
+          })
+        }
+      }
+
+      // Execute: Create usage events for all customers
+      const timestamp = Date.now()
+      const events = customers.map(
+        ({ subscription, price }, index) => ({
+          subscriptionId: subscription.id,
+          priceId: price.id,
+          amount: (index + 1) * 100,
+          transactionId: `txn_parallel_${index}_${timestamp}`,
+        })
+      )
+
+      const result = await adminTransaction(async ({ transaction }) =>
+        bulkInsertUsageEventsTransaction(
+          {
+            input: {
+              usageEvents: events,
+            },
+            livemode: true,
+          },
+          createDiscardingEffectsContext(transaction)
+        )
+      )
+
+      // Expectations: All 10 events processed correctly
+      expect(result.unwrap().usageEvents).toHaveLength(10)
+
+      // All customers should get the correct pricing model
+      customers.forEach(
+        ({ customer, expectedPricingModelId, price }) => {
+          const event = result
+            .unwrap()
+            .usageEvents.find((e) => e.customerId === customer.id)
+          expect(event).toMatchObject({
+            customerId: customer.id,
+            priceId: price.id,
+            pricingModelId: expectedPricingModelId,
+          })
+        }
+      )
+    })
+
+    it('should only resolve usage prices when using priceSlug (filters out subscription prices)', async () => {
+      // Note: Usage prices don't belong to products - they belong to usage meters.
+      // This test verifies that when resolving priceSlug, only usage prices are considered,
+      // not subscription prices (even if they have matching slugs).
+      // Setup: Create pricing model with subscription price and usage price
+      const orgSetup = await setupOrg()
+      const { organization } = orgSetup
+
+      // Use the default pricing model from setupOrg
+      const pricingModel = orgSetup.pricingModel
+
+      // Create a product with subscription price
+      const product = await adminTransaction(
+        async ({ transaction }) =>
+          setupProduct({
+            name: 'Test Product',
+            organizationId: organization.id,
+            pricingModelId: pricingModel.id,
+            active: true,
+          })
+      )
+
+      const subscriptionPrice = await setupPrice({
+        name: 'Subscription Price',
+        type: PriceType.Subscription,
+        unitPrice: 1000,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        productId: product.id,
+        trialPeriodDays: 0,
+        active: true,
+        slug: 'subscription-price-slug',
+      })
+
+      // Create a usage meter and usage price
+      const usageMeter = await setupUsageMeter({
+        organizationId: organization.id,
+        name: 'Test Usage Meter',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+
+      const usagePrice = await setupPrice({
+        name: 'Usage Price',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+        active: true,
+        slug: 'usage-price-slug',
+      })
+
+      const customerData = await adminTransaction(
+        async ({ transaction }) =>
+          setupCustomer({
+            organizationId: organization.id,
+            // Uses default pricing model
+          })
+      )
+
+      const pmData = await adminTransaction(async ({ transaction }) =>
+        setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerData.id,
+        })
+      )
+
+      const subData = await adminTransaction(
+        async ({ transaction }) =>
+          setupSubscription({
+            organizationId: organization.id,
+            customerId: customerData.id,
+            paymentMethodId: pmData.id,
+            priceId: subscriptionPrice.id,
+          })
+      )
+
+      await adminTransaction(async ({ transaction }) => {
+        const now = new Date()
+        const endDate = new Date(now)
+        endDate.setDate(endDate.getDate() + 30)
+        return setupBillingPeriod({
+          subscriptionId: subData.id,
+          startDate: now,
+          endDate,
+        })
+      })
+
+      // Execute: Try to resolve subscription price slug - should fail (only usage prices are considered)
+      const timestamp = Date.now()
+      await expect(
+        comprehensiveAdminTransaction(async ({ transaction }) =>
+          bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: [
+                  {
+                    subscriptionId: subData.id,
+                    priceSlug: 'subscription-price-slug',
+                    amount: 100,
+                    transactionId: `txn_subscription_slug_${timestamp}`,
+                  },
+                ],
+              },
+              livemode: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+        )
+      ).rejects.toThrow(
+        "Price not found: with slug subscription-price-slug (not in customer's pricing model)"
+      )
+
+      // Execute: Use usage price slug - should succeed
+      const resultActive = await adminTransaction(
+        async ({ transaction }) =>
+          bulkInsertUsageEventsTransaction(
+            {
+              input: {
+                usageEvents: [
+                  {
+                    subscriptionId: subData.id,
+                    priceSlug: 'usage-price-slug',
+                    amount: 100,
+                    transactionId: `txn_usage_slug_${timestamp}`,
+                  },
+                ],
+              },
+              livemode: true,
+            },
+            createDiscardingEffectsContext(transaction)
+          )
+      )
+
+      // Expectation: Usage price slug should resolve correctly
+      expect(resultActive.unwrap().usageEvents).toHaveLength(1)
+      expect(resultActive.unwrap().usageEvents[0].priceId).toBe(
+        usagePrice.id
+      )
+    })
+  })
+
+  describe('batchFetchPricingModelsForCustomers', () => {
+    it('should fetch explicit pricing models for customers with pricingModelId', async () => {
+      const orgSetup1 = await setupOrg()
+      const orgSetup2 = await setupOrg()
+
+      const customer1 = await setupCustomer({
+        organizationId: orgSetup1.organization.id,
+        pricingModelId: orgSetup1.pricingModel.id,
+      })
+
+      const customer2 = await setupCustomer({
+        organizationId: orgSetup2.organization.id,
+        pricingModelId: orgSetup2.pricingModel.id,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const customersInfo = await selectCustomerPricingInfoBatch(
+            [customer1.id, customer2.id],
+            transaction
+          )
+          return batchFetchPricingModelsForCustomers(
+            customersInfo,
+            transaction
+          )
+        }
+      )
+
+      expect(result.size).toBe(2)
+      expect(result.get(customer1.id)?.id).toBe(
+        orgSetup1.pricingModel.id
+      )
+      expect(result.get(customer2.id)?.id).toBe(
+        orgSetup2.pricingModel.id
+      )
+    })
+
+    it('should fetch pricing models for customers with default pricing model', async () => {
+      const orgSetup = await setupOrg()
+
+      // When no explicit pricingModelId is provided, setupCustomer uses the default
+      const customer = await setupCustomer({
+        organizationId: orgSetup.organization.id,
+        // No explicit pricingModelId - will use default
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const customersInfo = await selectCustomerPricingInfoBatch(
+            [customer.id],
+            transaction
+          )
+          return batchFetchPricingModelsForCustomers(
+            customersInfo,
+            transaction
+          )
+        }
+      )
+
+      expect(result.size).toBe(1)
+      const pricingModel = result.get(customer.id)
+      expect(pricingModel?.id).toBe(orgSetup.pricingModel.id)
+      expect(pricingModel?.isDefault).toBe(true)
+    })
+  })
+
+  // Helper function to create getPricingModelForCustomer mock
+  const createGetPricingModelForCustomerMock = (
+    customer: Customer.Record,
+    pricingModel: PricingModelSlugResolutionData
+  ) => {
+    return (customerId: string) => {
+      if (customerId === customer.id) {
+        return pricingModel
+      }
+      throw new NotFoundError(
+        'PricingModel',
+        `for customer ${customerId}`
+      )
+    }
+  }
+
+  describe('resolvePriceSlugs', () => {
+    it('should resolve price slugs to IDs using composite customerId:slug keys', async () => {
+      const orgSetup = await setupOrg()
+      const usageMeter = await setupUsageMeter({
+        organizationId: orgSetup.organization.id,
+        name: 'Test Meter',
+        livemode: true,
+        pricingModelId: orgSetup.pricingModel.id,
+      })
+
+      const price = await setupPrice({
+        name: 'Test Price',
+        type: PriceType.Usage,
+        unitPrice: 10,
+        intervalUnit: IntervalUnit.Day,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: CurrencyCode.USD,
+        usageMeterId: usageMeter.id,
+        active: true,
+        slug: 'test-price-slug',
+      })
+
+      const customer = await setupCustomer({
+        organizationId: orgSetup.organization.id,
+        pricingModelId: orgSetup.pricingModel.id,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] =
+            await selectPricingModelSlugResolutionData(
+              { id: orgSetup.pricingModel.id },
+              transaction
+            )
+
+          const getPricingModelForCustomer =
+            createGetPricingModelForCustomerMock(
+              customer,
+              pricingModel
+            )
+
+          const context: TestResolvePriceSlugsContext = {
+            eventsWithPriceSlugs: [
+              {
+                index: 0,
+                slug: 'test-price-slug',
+                customerId: customer.id,
+              },
+            ],
+            getPricingModelForCustomer,
+          }
+
+          return resolvePriceSlugs(context as WithSlugEventsContext)
+        }
+      )
+
+      expect(result.status).toBe('ok')
+      if (result.status === 'ok') {
+        const slugToPriceIdMap = result.value.slugToPriceIdMap
+        expect(slugToPriceIdMap.size).toBe(1)
+        expect(
+          slugToPriceIdMap.get(`${customer.id}:test-price-slug`)
+        ).toBe(price.id)
+      }
+    })
+  })
+
+  describe('resolvePriceSlugs and resolveUsageMeterSlugs - shared error handling', () => {
+    it('should return error when pricing model is not found for customer in both functions', async () => {
+      const orgSetup = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: orgSetup.organization.id,
+        pricingModelId: orgSetup.pricingModel.id,
+      })
+
+      const getPricingModelForCustomer = (customerId: string) => {
+        // Throw NotFoundError to simulate pricing model not found
+        throw new NotFoundError(
+          'PricingModel',
+          `for customer ${customerId}`
+        )
+      }
+
+      // Test resolvePriceSlugs
+      const priceSlugResult = await adminTransaction(
+        async ({ transaction }) => {
+          const context: TestResolvePriceSlugsContext = {
+            eventsWithPriceSlugs: [
+              {
+                index: 0,
+                slug: 'test-slug',
+                customerId: customer.id,
+              },
+            ],
+            getPricingModelForCustomer,
+          }
+
+          return resolvePriceSlugs(context as WithSlugEventsContext)
+        }
+      )
+
+      expect(priceSlugResult.status).toBe('error')
+      if (priceSlugResult.status === 'error') {
+        expect(priceSlugResult.error).toBeInstanceOf(NotFoundError)
+        expect(priceSlugResult.error.message).toBe(
+          `PricingModel not found: for customer ${customer.id}`
+        )
+      }
+
+      // Test resolveUsageMeterSlugs
+      const usageMeterSlugResult = await adminTransaction(
+        async ({ transaction }) => {
+          const context: TestResolveUsageMeterSlugsContext = {
+            eventsWithUsageMeterSlugs: [
+              {
+                index: 0,
+                slug: 'test-meter-slug',
+                customerId: customer.id,
+              },
+            ],
+            getPricingModelForCustomer,
+            slugToPriceIdMap: new Map(),
+          }
+
+          return resolveUsageMeterSlugs(
+            context as WithSlugEventsContext & {
+              slugToPriceIdMap: Map<string, string>
+            }
+          )
+        }
+      )
+
+      expect(usageMeterSlugResult.status).toBe('error')
+      if (usageMeterSlugResult.status === 'error') {
+        expect(usageMeterSlugResult.error).toBeInstanceOf(
+          NotFoundError
+        )
+        expect(usageMeterSlugResult.error.message).toBe(
+          `PricingModel not found: for customer ${customer.id}`
+        )
+      }
+    })
+
+    it('should return error when slug is not found in both functions', async () => {
+      const orgSetup = await setupOrg()
+      const customer = await setupCustomer({
+        organizationId: orgSetup.organization.id,
+        pricingModelId: orgSetup.pricingModel.id,
+      })
+
+      // Test resolvePriceSlugs - slug not found
+      const priceSlugResult = await adminTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] =
+            await selectPricingModelSlugResolutionData(
+              { id: orgSetup.pricingModel.id },
+              transaction
+            )
+
+          const getPricingModelForCustomer =
+            createGetPricingModelForCustomerMock(
+              customer,
+              pricingModel
+            )
+
+          const context: TestResolvePriceSlugsContext = {
+            eventsWithPriceSlugs: [
+              {
+                index: 0,
+                slug: 'non-existent-slug',
+                customerId: customer.id,
+              },
+            ],
+            getPricingModelForCustomer,
+          }
+
+          return resolvePriceSlugs(context as WithSlugEventsContext)
+        }
+      )
+
+      expect(priceSlugResult.status).toBe('error')
+      if (priceSlugResult.status === 'error') {
+        expect(priceSlugResult.error).toBeInstanceOf(NotFoundError)
+        expect(priceSlugResult.error.message).toBe(
+          "Price not found: with slug non-existent-slug (not in customer's pricing model)"
+        )
+      }
+
+      // Test resolveUsageMeterSlugs - slug not found
+      const usageMeterSlugResult = await adminTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] =
+            await selectPricingModelSlugResolutionData(
+              { id: orgSetup.pricingModel.id },
+              transaction
+            )
+
+          const getPricingModelForCustomer =
+            createGetPricingModelForCustomerMock(
+              customer,
+              pricingModel
+            )
+
+          const context: TestResolveUsageMeterSlugsContext = {
+            eventsWithUsageMeterSlugs: [
+              {
+                index: 0,
+                slug: 'non-existent-meter-slug',
+                customerId: customer.id,
+              },
+            ],
+            getPricingModelForCustomer,
+            slugToPriceIdMap: new Map(),
+          }
+
+          return resolveUsageMeterSlugs(
+            context as WithSlugEventsContext & {
+              slugToPriceIdMap: Map<string, string>
+            }
+          )
+        }
+      )
+
+      expect(usageMeterSlugResult.status).toBe('error')
+      if (usageMeterSlugResult.status === 'error') {
+        expect(usageMeterSlugResult.error.message).toContain(
+          'slug "non-existent-meter-slug"'
+        )
+      }
+    })
+  })
+
+  describe('resolveUsageMeterSlugs', () => {
+    it('should resolve usage meter slugs to IDs using composite customerId:slug keys', async () => {
+      const orgSetup = await setupOrg()
+      const usageMeter = await setupUsageMeter({
+        organizationId: orgSetup.organization.id,
+        name: 'Test Meter',
+        livemode: true,
+        pricingModelId: orgSetup.pricingModel.id,
+        slug: 'test-meter-slug',
+      })
+
+      const customer = await setupCustomer({
+        organizationId: orgSetup.organization.id,
+        pricingModelId: orgSetup.pricingModel.id,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const [pricingModel] =
+            await selectPricingModelSlugResolutionData(
+              { id: orgSetup.pricingModel.id },
+              transaction
+            )
+
+          const getPricingModelForCustomer =
+            createGetPricingModelForCustomerMock(
+              customer,
+              pricingModel
+            )
+
+          const context: TestResolveUsageMeterSlugsContext = {
+            eventsWithUsageMeterSlugs: [
+              {
+                index: 0,
+                slug: 'test-meter-slug',
+                customerId: customer.id,
+              },
+            ],
+            getPricingModelForCustomer,
+            slugToPriceIdMap: new Map(),
+          }
+
+          return resolveUsageMeterSlugs(
+            context as WithSlugEventsContext & {
+              slugToPriceIdMap: Map<string, string>
+            }
+          )
+        }
+      )
+
+      expect(result.status).toBe('ok')
+      if (result.status === 'ok') {
+        const slugToUsageMeterIdMap =
+          result.value.slugToUsageMeterIdMap
+        expect(slugToUsageMeterIdMap.size).toBe(1)
+        expect(
+          slugToUsageMeterIdMap.get(`${customer.id}:test-meter-slug`)
+        ).toBe(usageMeter.id)
+      }
+    })
+
+    it('should handle multiple usage meter slugs for different customers', async () => {
+      const orgSetup1 = await setupOrg()
+      const orgSetup2 = await setupOrg()
+
+      const usageMeter1 = await setupUsageMeter({
+        organizationId: orgSetup1.organization.id,
+        name: 'Meter 1',
+        livemode: true,
+        pricingModelId: orgSetup1.pricingModel.id,
+        slug: 'meter-1-slug',
+      })
+
+      const usageMeter2 = await setupUsageMeter({
+        organizationId: orgSetup2.organization.id,
+        name: 'Meter 2',
+        livemode: true,
+        pricingModelId: orgSetup2.pricingModel.id,
+        slug: 'meter-2-slug',
+      })
+
+      const customer1 = await setupCustomer({
+        organizationId: orgSetup1.organization.id,
+        pricingModelId: orgSetup1.pricingModel.id,
+      })
+
+      const customer2 = await setupCustomer({
+        organizationId: orgSetup2.organization.id,
+        pricingModelId: orgSetup2.pricingModel.id,
+      })
+
+      const result = await adminTransaction(
+        async ({ transaction }) => {
+          const [pricingModel1] =
+            await selectPricingModelSlugResolutionData(
+              { id: orgSetup1.pricingModel.id },
+              transaction
+            )
+          const [pricingModel2] =
+            await selectPricingModelSlugResolutionData(
+              { id: orgSetup2.pricingModel.id },
+              transaction
+            )
+
+          const getPricingModelForCustomer = (customerId: string) => {
+            if (customerId === customer1.id) {
+              return pricingModel1
+            }
+            if (customerId === customer2.id) {
+              return pricingModel2
+            }
+            throw new NotFoundError(
+              'PricingModel',
+              `for customer ${customerId}`
+            )
+          }
+
+          const context: TestResolveUsageMeterSlugsContext = {
+            eventsWithUsageMeterSlugs: [
+              {
+                index: 0,
+                slug: 'meter-1-slug',
+                customerId: customer1.id,
+              },
+              {
+                index: 1,
+                slug: 'meter-2-slug',
+                customerId: customer2.id,
+              },
+            ],
+            getPricingModelForCustomer,
+            slugToPriceIdMap: new Map(),
+          }
+
+          return resolveUsageMeterSlugs(
+            context as WithSlugEventsContext & {
+              slugToPriceIdMap: Map<string, string>
+            }
+          )
+        }
+      )
+
+      expect(result.status).toBe('ok')
+      if (result.status === 'ok') {
+        const slugToUsageMeterIdMap =
+          result.value.slugToUsageMeterIdMap
+        expect(slugToUsageMeterIdMap.size).toBe(2)
+        expect(
+          slugToUsageMeterIdMap.get(`${customer1.id}:meter-1-slug`)
+        ).toBe(usageMeter1.id)
+        expect(
+          slugToUsageMeterIdMap.get(`${customer2.id}:meter-2-slug`)
+        ).toBe(usageMeter2.id)
+      }
     })
   })
 })
