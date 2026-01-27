@@ -2,7 +2,11 @@
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { BottomBar, FixedBottomBar } from './BottomBar'
+import {
+  BottomBar,
+  FixedBottomBar,
+  ResponsiveBottomBar,
+} from './BottomBar'
 import { useMultiStepForm } from './MultiStepForm'
 import { StepProgress } from './StepProgress'
 
@@ -22,11 +26,12 @@ interface NavigationBarProps {
   /** Whether to show progress indicator in the center */
   showProgress?: boolean
   /**
-   * Whether to use fixed positioning at the bottom of the viewport.
-   * - true (default): Fixed to viewport bottom, requires FixedBottomBarSpacer
-   * - false: Flows with document, use with CSS Grid layout for full-bleed effect
+   * Positioning mode for the navigation bar.
+   * - true: Fixed to viewport bottom always
+   * - false: Static, flows with document content
+   * - 'responsive': Fixed on mobile, static on desktop (default)
    */
-  fixed?: boolean
+  fixed?: boolean | 'responsive'
   className?: string
 }
 
@@ -49,7 +54,7 @@ export function NavigationBar({
   firstStepBackLabel = 'Login',
   hideBackOnFirstStep = false,
   showProgress = false,
-  fixed = true,
+  fixed = 'responsive',
   className,
 }: NavigationBarProps) {
   const {
@@ -121,6 +126,14 @@ export function NavigationBar({
 
   // Parent containers (OnboardingShell) handle borders - just render button row
   const content = buttonRow
+
+  if (fixed === 'responsive') {
+    return (
+      <ResponsiveBottomBar className={className}>
+        {content}
+      </ResponsiveBottomBar>
+    )
+  }
 
   if (fixed) {
     return (

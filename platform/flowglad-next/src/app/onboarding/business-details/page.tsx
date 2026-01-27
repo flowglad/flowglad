@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import ErrorLabel from '@/components/ErrorLabel'
+import { ResponsiveBottomBarSpacer } from '@/components/onboarding/BottomBar'
 import {
   MultiStepForm,
   useMultiStepForm,
@@ -143,7 +144,7 @@ function BusinessDetailsContent() {
       defaultValues={{
         organization: {
           name: '',
-          countryId: 'country_us',
+          countryId: undefined,
           stripeConnectContractType: undefined,
         },
         codebaseMarkdown: '',
@@ -158,12 +159,10 @@ function BusinessDetailsContent() {
     >
       <OnboardingShell>
         <FormContent />
-        {/* Navigation bar - flows naturally after form content */}
-        <NavigationBar
-          hideBackOnFirstStep
-          showProgress
-          fixed={false}
-        />
+        {/* Spacer for mobile fixed nav (only visible on mobile) */}
+        <ResponsiveBottomBarSpacer />
+        {/* Navigation bar - fixed on mobile, static on desktop */}
+        <NavigationBar hideBackOnFirstStep showProgress />
       </OnboardingShell>
     </MultiStepForm>
   )

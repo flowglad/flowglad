@@ -1,4 +1,9 @@
-export { BottomBar, FixedBottomBar } from './BottomBar'
+export {
+  BottomBar,
+  FixedBottomBar,
+  ResponsiveBottomBar,
+  ResponsiveBottomBarSpacer,
+} from './BottomBar'
 export { MultiStepForm, useMultiStepForm } from './MultiStepForm'
 export { NavigationBar } from './NavigationBar'
 export { OnboardingShell } from './OnboardingShell'

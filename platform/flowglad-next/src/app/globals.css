@@ -149,7 +149,7 @@
   :root {
     --radius: 0.625rem;
     --onboarding-max-w: 608px;
-    --onboarding-border-gap: 1rem; /* 16px */
+    --onboarding-border-gap: 0.5rem; /* 8px on mobile */
     --background: 51 47% 97%;
     --foreground: 30 5.3% 7.5%;
     --card: 0 0% 100%;
@@ -221,6 +221,12 @@
     --status-muted-bg: var(--muted);
     --status-muted-fg: var(--muted-foreground);
     --status-muted-border: var(--border);
+  }
+
+  @media (min-width: 640px) {
+    :root {
+      --onboarding-border-gap: 1rem; /* 16px on sm+ */
+    }
   }
 
   .dark {

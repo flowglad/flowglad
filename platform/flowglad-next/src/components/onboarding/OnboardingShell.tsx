@@ -26,7 +26,7 @@ export function OnboardingShell({
   className,
 }: OnboardingShellProps) {
   return (
-    <div className="h-screen overflow-hidden flex flex-col items-center">
+    <div className="h-screen overflow-hidden flex flex-col items-center px-2">
       <div
         className={cn(
           // Layout
