@@ -10,8 +10,8 @@ import {
 import Link from 'next/link'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
-import RefundPaymentModal from '@/app/finance/payments/RefundPaymentModal'
-import RetryPaymentModal from '@/app/finance/payments/RetryPaymentModal'
+import RefundPaymentModal from '@/app/(merchant)/finance/payments/RefundPaymentModal'
+import RetryPaymentModal from '@/app/(merchant)/finance/payments/RetryPaymentModal'
 import { ExpandSection } from '@/components/ExpandSection'
 import {
   type BillingHistoryStatus,

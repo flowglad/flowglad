@@ -2,10 +2,10 @@
 
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
+import type { ProductRow } from '@/app/(merchant)/products/columns'
+import type { ProductsTableFilters } from '@/app/(merchant)/products/data-table'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
-import type { ProductRow } from '@/app/products/columns'
-import type { ProductsTableFilters } from '@/app/products/data-table'
 import { ProductCard } from '@/components/ProductCard'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
