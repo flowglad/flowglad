@@ -97,6 +97,12 @@ jobs:
           UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
           UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
         run: bun run test:integration
+      - name: Run behavior tests
+        env:
+          STRIPE_TEST_MODE_SECRET_KEY: ${{ secrets.STRIPE_TEST_MODE_SECRET_KEY }}
+          UPSTASH_REDIS_REST_URL: ${{ secrets.UPSTASH_REDIS_REST_URL }}
+          UPSTASH_REDIS_REST_TOKEN: ${{ secrets.UPSTASH_REDIS_REST_TOKEN }}
+        run: bun run test:behavior
       - name: Run test teardown
         if: always()
         run: bun run test:teardown
