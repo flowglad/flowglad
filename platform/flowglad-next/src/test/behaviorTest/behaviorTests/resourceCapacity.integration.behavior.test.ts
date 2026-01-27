@@ -30,8 +30,6 @@ import {
   teardownOrg,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
-import { insertProduct } from '@/db/tableMethods/productMethods'
 import { countActiveResourceClaims } from '@/db/tableMethods/resourceClaimMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import { claimResourceTransaction } from '@/resources/resourceClaimHelpers'
@@ -58,47 +56,13 @@ describe('Resource Capacity Integration Tests', () => {
   beforeEach(async () => {
     const nanoid = core.nanoid()
 
-    // Setup organization
+    // Setup organization - this creates a default livemode pricing model and product
     const { organization, pricingModel, product } = await setupOrg()
     organizationId = organization.id
+    // Use the existing default livemode pricing model from setupOrg
+    // (each org can only have one livemode pricing model)
     pricingModelId = pricingModel.id
     productId = product.id
-
-    // Create a specific pricing model for this test
-    const testPricingModel = await adminTransaction(
-      async ({ transaction }) => {
-        return insertPricingModel(
-          {
-            name: `Test Pricing Model ${nanoid}`,
-            organizationId,
-            livemode,
-            isDefault: false,
-          },
-          transaction
-        )
-      },
-      { livemode }
-    )
-    pricingModelId = testPricingModel.id
-
-    // Create product
-    const testProduct = await adminTransaction(
-      async ({ transaction }) => {
-        return insertProduct(
-          {
-            name: `Test Product ${nanoid}`,
-            organizationId,
-            livemode,
-            pricingModelId,
-            active: true,
-            slug: `test-product-${nanoid}`,
-          },
-          transaction
-        )
-      },
-      { livemode }
-    )
-    productId = testProduct.id
 
     // Create price
     const price = await setupPrice({

@@ -28,7 +28,11 @@ import core from './core'
  * @returns A Svix client instance initialized with the value of `SVIX_API_KEY`.
  */
 export function svix() {
-  return new Svix(core.envVariable('SVIX_API_KEY'))
+  return new Svix(
+    core.IS_TEST
+      ? 'test_svix_api_key'
+      : core.envVariable('SVIX_API_KEY')
+  )
 }
 
 function generateSvixId({
@@ -52,7 +56,9 @@ function generateSvixId({
   const hmac = generateHmac({
     data,
     salt: organization.securitySalt!,
-    key: core.envVariable('HMAC_KEY_SVIX'),
+    key: core.IS_TEST
+      ? 'test_hmac_key_for_svix'
+      : core.envVariable('HMAC_KEY_SVIX'),
   })
   return `${prefix}_${id}_${modeStr}_${hmac}`
 }

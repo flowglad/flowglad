@@ -62,7 +62,7 @@ import type { Resource } from '@/db/schema/resources'
 import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
 import type { Subscription } from '@/db/schema/subscriptions'
 import { insertCustomer } from '@/db/tableMethods/customerMethods'
-import { insertPricingModel } from '@/db/tableMethods/pricingModelMethods'
+import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
 import { insertProduct } from '@/db/tableMethods/productMethods'
 import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
@@ -193,26 +193,29 @@ export const setupSubscriptionBehavior = defineBehavior({
     const nanoid = core.nanoid()
     const livemode = true
 
-    // Create pricing model
+    // Get the existing default livemode pricing model for the organization
+    // The pricing model is created during organization setup (createOrganizationBehavior)
     const pricingModel = await adminTransaction(
       async ({ transaction }) => {
-        return insertPricingModel(
-          {
-            name: `Test Pricing Model ${nanoid}`,
-            organizationId: organization.id,
-            livemode,
-            isDefault: false,
-          },
+        const existingModel = await selectDefaultPricingModel(
+          { organizationId: organization.id, livemode },
           transaction
         )
+        if (!existingModel) {
+          throw new Error(
+            `No default livemode pricing model found for organization ${organization.id}. ` +
+              'This should have been created during organization setup.'
+          )
+        }
+        return existingModel
       },
       { livemode }
     )
 
-    // Create product
-    const product = await adminTransaction(
-      async ({ transaction }) => {
-        return insertProduct(
+    // Create product - use comprehensiveAdminTransaction to get full context
+    const product = await comprehensiveAdminTransaction(
+      async (ctx) => {
+        const result = await insertProduct(
           {
             name: `Test Product ${nanoid}`,
             organizationId: organization.id,
@@ -221,8 +224,9 @@ export const setupSubscriptionBehavior = defineBehavior({
             active: true,
             slug: `test-product-${nanoid}`,
           },
-          transaction
+          ctx
         )
+        return Result.ok(result)
       },
       { livemode }
     )
@@ -434,10 +438,10 @@ export const setupTargetPriceBehavior = defineBehavior({
       initialPrice.unitPrice * adjustmentTypeDep.priceMultiplier
     )
 
-    // Create target product
-    const targetProduct = await adminTransaction(
-      async ({ transaction }) => {
-        return insertProduct(
+    // Create target product - use comprehensiveAdminTransaction to get full context
+    const targetProduct = await comprehensiveAdminTransaction(
+      async (ctx) => {
+        const result = await insertProduct(
           {
             name: `Target Product ${nanoid}`,
             organizationId: organization.id,
@@ -446,8 +450,9 @@ export const setupTargetPriceBehavior = defineBehavior({
             active: true,
             slug: `target-product-${nanoid}`,
           },
-          transaction
+          ctx
         )
+        return Result.ok(result)
       },
       { livemode }
     )
@@ -575,10 +580,11 @@ export const adjustSubscriptionBehavior = defineBehavior({
 
     // Call adjustSubscription within a transaction
     // adjustSubscription requires TransactionEffectsContext, which comprehensiveAdminTransaction provides
+    // Note: adjustSubscription returns Result<AdjustSubscriptionResult, Error> so we return it directly
     const adjustmentResult =
       await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: subscription.id,
               adjustment,
@@ -586,7 +592,6 @@ export const adjustSubscriptionBehavior = defineBehavior({
             organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )

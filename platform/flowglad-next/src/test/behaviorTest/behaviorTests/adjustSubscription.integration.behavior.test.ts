@@ -172,7 +172,7 @@ describe('adjustSubscription error cases', () => {
     const promise =
       comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: canceledSubscription.id,
               adjustment: {
@@ -186,14 +186,11 @@ describe('adjustSubscription error cases', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )
 
-    await expect(promise).rejects.toThrow(
-      'Subscription is in terminal state'
-    )
+    await expect(promise).rejects.toThrow('is in terminal state')
   })
 
   // SKIPPED: CreditTrial status exists in TypeScript enum but is explicitly excluded
@@ -225,7 +222,7 @@ describe('adjustSubscription error cases', () => {
     const promise =
       comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: creditTrialSubscription.id,
               adjustment: {
@@ -239,7 +236,6 @@ describe('adjustSubscription error cases', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )
@@ -273,7 +269,7 @@ describe('adjustSubscription error cases', () => {
     const promise =
       comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: nonRenewingSubscription.id,
               adjustment: {
@@ -287,7 +283,6 @@ describe('adjustSubscription error cases', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )
@@ -322,7 +317,7 @@ describe('adjustSubscription error cases', () => {
     const promise =
       comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: doNotChargeSubscription.id,
               adjustment: {
@@ -336,14 +331,11 @@ describe('adjustSubscription error cases', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )
 
-    await expect(promise).rejects.toThrow(
-      'Cannot adjust doNotCharge subscriptions'
-    )
+    await expect(promise).rejects.toThrow('Cannot adjust doNotCharge')
   })
 
   it('throws when adjusting a free plan subscription', async () => {
@@ -371,7 +363,7 @@ describe('adjustSubscription error cases', () => {
     const promise =
       comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: freePlanSubscription.id,
               adjustment: {
@@ -385,14 +377,11 @@ describe('adjustSubscription error cases', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )
 
-    await expect(promise).rejects.toThrow(
-      'Cannot adjust free plan subscriptions'
-    )
+    await expect(promise).rejects.toThrow('Cannot adjust free plan')
   })
 
   it('throws when attempting upgrade with AtEndOfCurrentBillingPeriod timing', async () => {
@@ -404,7 +393,7 @@ describe('adjustSubscription error cases', () => {
     const promise =
       comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: setup.subscription.id,
               adjustment: {
@@ -418,7 +407,6 @@ describe('adjustSubscription error cases', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )
@@ -445,7 +433,7 @@ describe('adjustSubscription error cases', () => {
     const promise =
       comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: setup.subscription.id,
               adjustment: {
@@ -459,7 +447,6 @@ describe('adjustSubscription error cases', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )
@@ -530,7 +517,7 @@ describe('adjustSubscription resource capacity validation', () => {
     const promise =
       comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: setup.subscription.id,
               adjustment: {
@@ -544,7 +531,6 @@ describe('adjustSubscription resource capacity validation', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )
@@ -578,7 +564,7 @@ describe('adjustSubscription priceSlug resolution', () => {
     const result =
       await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const adjustmentResult = await adjustSubscription(
+          return adjustSubscription(
             {
               id: setup.subscription.id,
               adjustment: {
@@ -592,7 +578,6 @@ describe('adjustSubscription priceSlug resolution', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(adjustmentResult)
         },
         { livemode }
       )
@@ -613,7 +598,7 @@ describe('adjustSubscription priceSlug resolution', () => {
     const promise =
       comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const result = await adjustSubscription(
+          return adjustSubscription(
             {
               id: setup.subscription.id,
               adjustment: {
@@ -627,7 +612,6 @@ describe('adjustSubscription priceSlug resolution', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(result)
         },
         { livemode }
       )
@@ -660,7 +644,7 @@ describe('adjustSubscription manual items preservation', () => {
     const result =
       await comprehensiveAdminTransaction<AdjustSubscriptionResult>(
         async (ctx) => {
-          const adjustmentResult = await adjustSubscription(
+          return adjustSubscription(
             {
               id: setup.subscription.id,
               adjustment: {
@@ -674,7 +658,6 @@ describe('adjustSubscription manual items preservation', () => {
             setup.organization,
             ctx
           )
-          return Result.ok(adjustmentResult)
         },
         { livemode }
       )
