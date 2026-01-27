@@ -1,16 +1,12 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { SubscriptionResourceUsage } from './SubscriptionResourceUsage'
 
 // Create mock function that we can control
-const mockUseQuery = vi.fn()
+const mockUseQuery = mock()
 
 // Mock tRPC
-vi.mock('@/app/_trpc/client', () => ({
+mock.module('@/app/_trpc/client', () => ({
   trpc: {
     resourceClaims: {
       listResourceUsages: {
@@ -22,7 +18,7 @@ vi.mock('@/app/_trpc/client', () => ({
 
 describe('SubscriptionResourceUsage', () => {
   beforeEach(() => {
-    vi.clearAllMocks()
+    mockUseQuery.mockClear()
   })
 
   describe('resource usage display', () => {

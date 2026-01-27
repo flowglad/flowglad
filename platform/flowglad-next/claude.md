@@ -232,19 +232,10 @@ afterEach(() => {
 ### Test Environments
 The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
 
-**Tests using React or DOM APIs** must include this directive at the top of the file:
-```typescript
-/**
- * @vitest-environment jsdom
- */
-```
-
-This includes:
-- React component tests (`.test.tsx` files)
+**Tests using React or DOM APIs** (`.test.tsx` files) are run via `test:frontend` which uses happy-dom for DOM emulation. This includes:
+- React component tests
 - React hook tests using `renderHook` from `@testing-library/react`
 - Any test that needs DOM APIs like `document` or `window`
-
-This tells Vitest to run that specific test file in a jsdom environment.
 
 ### Test Organization
 

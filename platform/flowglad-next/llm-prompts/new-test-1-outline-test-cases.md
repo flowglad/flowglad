@@ -19,7 +19,7 @@ Once you have a good sense of all of the possible scenarios for a given passage 
 
 In a markdown format, come up with a list of test cases. These test cases should include what will be required to set up the state necessary for the test case, as well as the expectations that we should assert at the end of each test.
 
-Ideally, your test cases are separated by scenario. The gameplan is that each of these scenarios will be later tested in a vitest suite like so:
+Ideally, your test cases are separated by scenario. The gameplan is that each of these scenarios will be later tested in a bun:test suite like so:
 ```ts
 describe("thefunction", ()=> { it("should [do X] when [condition Y]", () => {...})})
 ```
