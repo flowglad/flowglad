@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import { setupOrg, teardownOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
@@ -56,7 +56,6 @@ const createUserWithMembership = async (params: {
 
 describe('innerRemoveMemberFromOrganization', () => {
   let organization: Organization.Record
-  let ownerUser: User.Record
   let ownerMembership: Membership.Record
 
   beforeEach(async () => {
@@ -64,12 +63,15 @@ describe('innerRemoveMemberFromOrganization', () => {
     organization = org
 
     // Create an owner for this org
-    const ownerData = await createUserWithMembership({
+    const { membership } = await createUserWithMembership({
       organizationId: organization.id,
       role: MembershipRole.Owner,
     })
-    ownerUser = ownerData.user
-    ownerMembership = ownerData.membership
+    ownerMembership = membership
+  })
+
+  afterEach(async () => {
+    await teardownOrg({ organizationId: organization.id })
   })
 
   describe('when requester is owner', () => {
@@ -157,16 +159,14 @@ describe('innerRemoveMemberFromOrganization', () => {
   })
 
   describe('when requester is member', () => {
-    let memberUser: User.Record
     let memberMembership: Membership.Record
 
     beforeEach(async () => {
-      const memberData = await createUserWithMembership({
+      const { membership } = await createUserWithMembership({
         organizationId: organization.id,
         role: MembershipRole.Member,
       })
-      memberUser = memberData.user
-      memberMembership = memberData.membership
+      memberMembership = membership
     })
 
     it('successfully removes self (leave org) and sets focused=false and deactivatedAt', async () => {

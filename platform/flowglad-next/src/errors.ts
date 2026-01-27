@@ -117,30 +117,21 @@ export class ExternalServiceError extends DomainError {
 
 // Membership-related errors
 
-export class CannotRemoveOwnerError extends DomainError {
+export class CannotRemoveOwnerError extends AuthorizationError {
   constructor() {
-    super(
-      'CannotRemoveOwnerError',
-      'Cannot remove the owner of an organization'
-    )
+    super('remove', 'organization owner')
   }
 }
 
-export class MembershipNotFoundError extends DomainError {
+export class MembershipNotFoundError extends NotFoundError {
   constructor(public readonly membershipId: string) {
-    super(
-      'MembershipNotFoundError',
-      `Membership not found: ${membershipId}`
-    )
+    super('Membership', membershipId)
   }
 }
 
-export class MembershipAlreadyDeactivatedError extends DomainError {
+export class MembershipAlreadyDeactivatedError extends ConflictError {
   constructor(public readonly membershipId: string) {
-    super(
-      'MembershipAlreadyDeactivatedError',
-      `Membership is already deactivated: ${membershipId}`
-    )
+    super('Membership', `already deactivated: ${membershipId}`)
   }
 }
 
