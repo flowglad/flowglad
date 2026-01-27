@@ -8,6 +8,7 @@ import {
 import { adminTransaction } from '@/db/adminTransaction'
 import { BillingPeriodStatus, CurrencyCode, PriceType } from '@/types'
 import { core } from '@/utils/core'
+import type { BillingPeriod } from '../schema/billingPeriods'
 import type { Customer } from '../schema/customers'
 import type { Organization } from '../schema/organizations'
 import type { Price } from '../schema/prices'
@@ -15,10 +16,9 @@ import type { PricingModel } from '../schema/pricingModels'
 import type { Product } from '../schema/products'
 import type { Subscription } from '../schema/subscriptions'
 import {
-  isBillingPeriodInTerminalState,
   insertBillingPeriod,
+  isBillingPeriodInTerminalState,
 } from './billingPeriodMethods'
-import type { BillingPeriod } from '../schema/billingPeriods'
 
 describe('Billing Period Methods', () => {
   let organization: Organization.Record
