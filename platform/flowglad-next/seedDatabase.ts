@@ -18,7 +18,7 @@ import {
   ledgerEntryNulledSourceIdColumns,
 } from '@/db/schema/ledgerEntries'
 import { type LedgerTransaction } from '@/db/schema/ledgerTransactions'
-import { memberships } from '@/db/schema/memberships'
+import { type Membership, memberships } from '@/db/schema/memberships'
 import type { BillingAddress } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
 import { nulledPriceColumns, type Price } from '@/db/schema/prices'
@@ -1666,13 +1666,21 @@ export const setupUserAndApiKey = async ({
       throw new Error('Failed to create user for API key setup')
     const user = userInsertResult as typeof users.$inferSelect
 
-    await transaction.insert(memberships).values({
-      id: `mem_${core.nanoid()}`,
-      userId: user.id,
-      organizationId,
-      focused: true,
-      livemode,
-    })
+    const membershipInsertResult = await transaction
+      .insert(memberships)
+      .values({
+        id: `mem_${core.nanoid()}`,
+        userId: user.id,
+        organizationId,
+        focused: true,
+        livemode,
+      })
+      .returning()
+      .then(R.head)
+
+    if (!membershipInsertResult)
+      throw new Error('Failed to create membership for user setup')
+    const membership = membershipInsertResult as Membership.Record
 
     const apiKeyTokenValue = `test_sk_${core.nanoid()}`
     const apiKeyInsertResult = await transaction
@@ -1693,7 +1701,11 @@ export const setupUserAndApiKey = async ({
       throw new Error('Failed to create API key')
     const apiKey = apiKeyInsertResult as ApiKey.Record
 
-    return { user, apiKey: { ...apiKey, token: apiKeyTokenValue } }
+    return {
+      user,
+      membership,
+      apiKey: { ...apiKey, token: apiKeyTokenValue },
+    }
   })
 }
 
