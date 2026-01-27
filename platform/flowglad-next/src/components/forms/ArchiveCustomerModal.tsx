@@ -2,6 +2,7 @@
 
 import { AlertTriangle, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
 import { Button } from '@/components/ui/button'
 import {
@@ -20,6 +21,48 @@ interface ArchiveCustomerModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onSuccess?: () => void
+}
+
+function SubscriptionInfo({
+  isLoading,
+  activeCount,
+}: {
+  isLoading: boolean
+  activeCount: number
+}) {
+  if (isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        Loading subscription information...
+      </div>
+    )
+  }
+
+  if (activeCount > 0) {
+    return (
+      <div className="flex items-start gap-3 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+        <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-medium text-destructive">
+            {activeCount} active{' '}
+            {activeCount === 1 ? 'subscription' : 'subscriptions'}{' '}
+            will be canceled
+          </p>
+          <p className="text-muted-foreground mt-1">
+            All active subscriptions for this customer will be
+            immediately canceled when you archive them.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <p className="text-sm text-muted-foreground">
+      This customer has no active subscriptions.
+    </p>
+  )
 }
 
 const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
@@ -51,12 +94,17 @@ const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
   const activeSubscriptionCount = subscriptionsData?.total ?? 0
 
   const handleArchive = async () => {
-    await archiveCustomer.mutateAsync({
-      externalId: customer.externalId,
-    })
-    router.refresh()
-    onOpenChange(false)
-    onSuccess?.()
+    try {
+      await archiveCustomer.mutateAsync({
+        externalId: customer.externalId,
+      })
+      router.refresh()
+      onOpenChange(false)
+      onSuccess?.()
+    } catch (error) {
+      console.error('Failed to archive customer:', error)
+      toast.error('Failed to archive customer. Please try again.')
+    }
   }
 
   return (
@@ -79,33 +127,10 @@ const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
         </DialogHeader>
 
         <div className="space-y-4">
-          {isLoadingSubscriptions ? (
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Loading subscription information...
-            </div>
-          ) : activeSubscriptionCount > 0 ? (
-            <div className="flex items-start gap-3 rounded-md border border-destructive/20 bg-destructive/5 p-3">
-              <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
-              <div className="text-sm">
-                <p className="font-medium text-destructive">
-                  {activeSubscriptionCount} active{' '}
-                  {activeSubscriptionCount === 1
-                    ? 'subscription'
-                    : 'subscriptions'}{' '}
-                  will be canceled
-                </p>
-                <p className="text-muted-foreground mt-1">
-                  All active subscriptions for this customer will be
-                  immediately canceled when you archive them.
-                </p>
-              </div>
-            </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">
-              This customer has no active subscriptions.
-            </p>
-          )}
+          <SubscriptionInfo
+            isLoading={isLoadingSubscriptions}
+            activeCount={activeSubscriptionCount}
+          />
 
           <p className="text-sm text-muted-foreground">
             Archiving a customer will:

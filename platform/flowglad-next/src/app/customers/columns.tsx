@@ -30,6 +30,19 @@ import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 
+function getPortalLinkHelperText(
+  isArchived: boolean,
+  livemode: boolean
+): string | undefined {
+  if (isArchived) {
+    return 'Archived customers cannot access the billing portal'
+  }
+  if (!livemode) {
+    return 'Only livemode customers can access the billing portal'
+  }
+  return undefined
+}
+
 function CustomerActionsMenu({
   customer,
 }: {
@@ -80,11 +93,10 @@ function CustomerActionsMenu({
       icon: <ExternalLink className="h-4 w-4" />,
       handler: copyPortalURLHandler,
       disabled: !customer.livemode || isArchived,
-      helperText: isArchived
-        ? 'Archived customers cannot access the billing portal'
-        : !customer.livemode
-          ? 'Only livemode customers can access the billing portal'
-          : undefined,
+      helperText: getPortalLinkHelperText(
+        isArchived,
+        customer.livemode
+      ),
     },
     {
       label: 'Copy External ID',
@@ -137,15 +149,18 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     cell: ({ row }) => {
       const isArchived = row.original.customer.archived
       return (
-        <div className="flex items-center gap-2 truncate">
+        <div className="flex items-center gap-2 min-w-0">
           <span
-            className={isArchived ? 'text-muted-foreground' : ''}
+            className={`truncate ${isArchived ? 'text-muted-foreground' : ''}`}
             title={row.getValue('name')}
           >
             {row.getValue('name')}
           </span>
           {isArchived && (
-            <Badge variant="secondary" className="text-xs">
+            <Badge
+              variant="secondary"
+              className="text-xs flex-shrink-0"
+            >
               Archived
             </Badge>
           )}
