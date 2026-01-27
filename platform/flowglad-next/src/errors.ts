@@ -115,6 +115,35 @@ export class ExternalServiceError extends DomainError {
   }
 }
 
+// Membership-related errors
+
+export class CannotRemoveOwnerError extends DomainError {
+  constructor() {
+    super(
+      'CannotRemoveOwnerError',
+      'Cannot remove the owner of an organization'
+    )
+  }
+}
+
+export class MembershipNotFoundError extends DomainError {
+  constructor(public readonly membershipId: string) {
+    super(
+      'MembershipNotFoundError',
+      `Membership not found: ${membershipId}`
+    )
+  }
+}
+
+export class MembershipAlreadyDeactivatedError extends DomainError {
+  constructor(public readonly membershipId: string) {
+    super(
+      'MembershipAlreadyDeactivatedError',
+      `Membership is already deactivated: ${membershipId}`
+    )
+  }
+}
+
 /**
  * Panic is used for invariant violations - code defects that indicate bugs.
  * Unlike Result.err(), panic throws immediately and should never be caught.
