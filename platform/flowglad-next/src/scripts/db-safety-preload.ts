@@ -130,14 +130,3 @@ function validateEnvironmentFiles(): void {
 
 // Run environment validation when this module is loaded
 validateEnvironmentFiles()
-
-// ============================================================================
-// Re-exports from safety module (for backward compatibility with tests)
-// ============================================================================
-
-export {
-  isLocalDatabaseUrl,
-  LOCAL_HOST_PATTERNS,
-  maskDatabaseUrl,
-  shouldSkipSafetyCheck,
-} from '@/db/safety'
