@@ -206,15 +206,17 @@ export const finalizeStripeOnboardingBehavior = defineBehavior({
 /**
  * Complete Stripe Onboarding Behavior (Fast-Forward)
  *
- * Represents the full Stripe Connect onboarding flow completing successfully.
- * This is a convenience behavior that combines initiate + finalize.
+ * Represents the full Stripe Connect onboarding flow completing successfully,
+ * including manual payout approval. This is a convenience behavior for tests
+ * that need a fully operational organization.
  *
  * ## When to Use
  *
  * Use this when you need an organization that's ready to process payments,
  * but don't need to test intermediate onboarding states.
  *
- * For tests that verify PartiallyOnboarded state, use the granular behaviors:
+ * For tests that verify PartiallyOnboarded state or verify that payouts
+ * require separate approval, use the granular behaviors:
  * - `initiateStripeConnectBehavior`
  * - `finalizeStripeOnboardingBehavior`
  *
@@ -223,11 +225,11 @@ export const finalizeStripeOnboardingBehavior = defineBehavior({
  * - Organization has:
  *   - `stripeAccountId`: Linked Stripe Connect account (format: `acct_*`)
  *   - `onboardingStatus`: FullyOnboarded
- *   - `payoutsEnabled`: false (requires separate manual approval)
+ *   - `payoutsEnabled`: true (fast-forward includes payout approval)
  * - Organization can now:
  *   - Create checkout sessions
  *   - Process payments
- *   - (But not receive payouts until manually approved)
+ *   - Receive payouts
  */
 export const completeStripeOnboardingBehavior = defineBehavior({
   name: 'complete stripe onboarding',
@@ -245,6 +247,7 @@ export const completeStripeOnboardingBehavior = defineBehavior({
             id: prev.organization.id,
             stripeAccountId,
             onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
+            payoutsEnabled: true,
           },
           transaction
         )
@@ -258,6 +261,7 @@ export const completeStripeOnboardingBehavior = defineBehavior({
         ...prev.organization,
         stripeAccountId,
         onboardingStatus: BusinessOnboardingStatus.FullyOnboarded,
+        payoutsEnabled: true,
       },
       stripeAccountId,
     }
