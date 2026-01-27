@@ -7,7 +7,7 @@
  * NOTE: Full end-to-end testing of the page with all UI components requires
  * integration testing due to complex dependencies (Radix UI, shadcn, etc).
  */
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { signInSchema } from '@/lib/authSchema'
 
 describe('SignIn Page - Form Validation', () => {

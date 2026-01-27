@@ -7,8 +7,8 @@
  * NOTE: Full end-to-end testing of the page with all UI components requires
  * integration testing due to complex dependencies (Radix UI, shadcn, etc).
  */
-import { describe, it, expect } from 'vitest'
-import { signupSchema, PASSWORD_MIN_LENGTH } from '@/lib/authSchema'
+import { describe, expect, it } from 'vitest'
+import { PASSWORD_MIN_LENGTH, signupSchema } from '@/lib/authSchema'
 
 describe('SignUp Page - Form Validation', () => {
   const validData = {
@@ -32,7 +32,7 @@ describe('SignUp Page - Form Validation', () => {
       it('should accept names with special characters', () => {
         const result = signupSchema.safeParse({
           ...validData,
-          firstName: "Mary-Jane",
+          firstName: 'Mary-Jane',
           lastName: "O'Brien",
         })
         expect(result.success).toBe(true)
@@ -74,7 +74,10 @@ describe('SignUp Page - Form Validation', () => {
       })
 
       it('should accept password with all special characters', () => {
-        const specialPassword = '!@#$%^&*()'.padEnd(PASSWORD_MIN_LENGTH, '!')
+        const specialPassword = '!@#$%^&*()'.padEnd(
+          PASSWORD_MIN_LENGTH,
+          '!'
+        )
         const result = signupSchema.safeParse({
           ...validData,
           password: specialPassword,
@@ -95,7 +98,9 @@ describe('SignUp Page - Form Validation', () => {
         })
         expect(result.success).toBe(false)
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('First name is required')
+          expect(result.error.issues[0].message).toBe(
+            'First name is required'
+          )
         }
       })
 
@@ -145,7 +150,9 @@ describe('SignUp Page - Form Validation', () => {
         })
         expect(result.success).toBe(false)
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('Last name is required')
+          expect(result.error.issues[0].message).toBe(
+            'Last name is required'
+          )
         }
       })
 
@@ -193,7 +200,9 @@ describe('SignUp Page - Form Validation', () => {
         })
         expect(result.success).toBe(false)
         if (!result.success) {
-          expect(result.error.issues[0].message).toBe('Invalid email address')
+          expect(result.error.issues[0].message).toBe(
+            'Invalid email address'
+          )
         }
       })
 
@@ -326,10 +335,12 @@ describe('SignUp Page - Form Validation', () => {
         })
         expect(result.success).toBe(false)
         if (!result.success) {
-          const mismatchError = result.error.issues.find(
-            (issue) => issue.path.includes('passwordConfirmation')
+          const mismatchError = result.error.issues.find((issue) =>
+            issue.path.includes('passwordConfirmation')
           )
-          expect(mismatchError?.message).toBe('Passwords do not match')
+          expect(mismatchError?.message).toBe(
+            'Passwords do not match'
+          )
         }
       })
 
@@ -399,7 +410,8 @@ describe('SignUp Page - Form Validation', () => {
       })
 
       it('should reject when passwordConfirmation is missing', () => {
-        const { passwordConfirmation, ...withoutConfirmation } = validData
+        const { passwordConfirmation, ...withoutConfirmation } =
+          validData
         const result = signupSchema.safeParse(withoutConfirmation)
         expect(result.success).toBe(false)
       })

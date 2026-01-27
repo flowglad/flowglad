@@ -12,8 +12,11 @@
  * 2. Form state - shows password reset form
  * 3. Success state - shows success message and redirects
  */
-import { describe, it, expect } from 'vitest'
-import { newPasswordSchema, PASSWORD_MIN_LENGTH } from '@/lib/authSchema'
+import { describe, expect, it } from 'vitest'
+import {
+  newPasswordSchema,
+  PASSWORD_MIN_LENGTH,
+} from '@/lib/authSchema'
 
 describe('Reset Password Page - Form Validation', () => {
   const validData = {
@@ -50,7 +53,10 @@ describe('Reset Password Page - Form Validation', () => {
       })
 
       it('should accept password with special characters', () => {
-        const specialPassword = '!@#$%^&*()_+'.padEnd(PASSWORD_MIN_LENGTH, '!')
+        const specialPassword = '!@#$%^&*()_+'.padEnd(
+          PASSWORD_MIN_LENGTH,
+          '!'
+        )
         const result = newPasswordSchema.safeParse({
           password: specialPassword,
           passwordConfirmation: specialPassword,
@@ -171,10 +177,12 @@ describe('Reset Password Page - Form Validation', () => {
         })
         expect(result.success).toBe(false)
         if (!result.success) {
-          const mismatchError = result.error.issues.find(
-            (issue) => issue.path.includes('passwordConfirmation')
+          const mismatchError = result.error.issues.find((issue) =>
+            issue.path.includes('passwordConfirmation')
           )
-          expect(mismatchError?.message).toBe('Passwords do not match')
+          expect(mismatchError?.message).toBe(
+            'Passwords do not match'
+          )
         }
       })
 
@@ -290,7 +298,16 @@ describe('Reset Password Page - Form Validation', () => {
       it('should reject array input', () => {
         const result = newPasswordSchema.safeParse({
           password: ['p', 'a', 's', 's', 'w', 'o', 'r', 'd'],
-          passwordConfirmation: ['p', 'a', 's', 's', 'w', 'o', 'r', 'd'],
+          passwordConfirmation: [
+            'p',
+            'a',
+            's',
+            's',
+            'w',
+            'o',
+            'r',
+            'd',
+          ],
         })
         expect(result.success).toBe(false)
       })
@@ -351,7 +368,7 @@ describe('Reset Password Page - Form Validation', () => {
               issue.message ===
               `Password must be at least ${PASSWORD_MIN_LENGTH} characters`
           )
-        expect(lengthError?.message).toBe(
+          expect(lengthError?.message).toBe(
             `Password must be at least ${PASSWORD_MIN_LENGTH} characters`
           )
         }

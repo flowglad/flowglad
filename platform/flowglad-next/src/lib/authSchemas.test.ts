@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
-  PASSWORD_MIN_LENGTH,
   newPasswordSchema,
+  PASSWORD_MIN_LENGTH,
   signInSchema,
   signupSchema,
 } from './authSchema'
@@ -174,8 +174,8 @@ describe('signupSchema', () => {
       })
       expect(result.success).toBe(false)
       if (!result.success) {
-        const mismatchError = result.error.issues.find(
-          (issue) => issue.path.includes('passwordConfirmation')
+        const mismatchError = result.error.issues.find((issue) =>
+          issue.path.includes('passwordConfirmation')
         )
         expect(mismatchError?.message).toBe('Passwords do not match')
       }
@@ -218,8 +218,8 @@ describe('newPasswordSchema', () => {
       })
       expect(result.success).toBe(false)
       if (!result.success) {
-        const mismatchError = result.error.issues.find(
-          (issue) => issue.path.includes('passwordConfirmation')
+        const mismatchError = result.error.issues.find((issue) =>
+          issue.path.includes('passwordConfirmation')
         )
         expect(mismatchError?.message).toBe('Passwords do not match')
       }
