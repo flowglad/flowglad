@@ -10,7 +10,6 @@ import {
   appendSyncEvent,
   getSyncStreamInfo,
   getSyncStreamKey,
-  pollSyncEvents,
   readSyncEvents,
   trimSyncStream,
 } from '@/utils/syncStream'
@@ -312,102 +311,6 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       expect(events.length).toBe(2)
       expect(events[0].entityId).toBe('sub_3')
       expect(events[1].entityId).toBe('sub_4')
-    })
-  })
-
-  describeIfRedisKey('pollSyncEvents', () => {
-    it('returns empty array when stream does not exist', async () => {
-      const events = await pollSyncEvents({
-        scopeId: `${testKeyPrefix}_poll_nonexistent:live`,
-        lastSequence: '0-0',
-      })
-
-      expect(events).toEqual([])
-    })
-
-    it('returns empty array when no new events after lastSequence', async () => {
-      const scopeId = `${testKeyPrefix}_org_poll_empty:live`
-      const streamKey = getSyncStreamKey(scopeId)
-      keysToCleanup.push(streamKey)
-
-      // Append one event
-      const result = await appendSyncEvent({
-        namespace: 'customerSubscriptions',
-        entityId: 'sub_1',
-        scopeId,
-        eventType: 'update',
-        data: { test: true },
-        livemode: true,
-      })
-
-      // Poll after the event we just added - should be empty
-      const events = await pollSyncEvents({
-        scopeId,
-        lastSequence: result.sequence,
-      })
-
-      expect(events).toEqual([])
-    })
-
-    it('returns new events after lastSequence', async () => {
-      const scopeId = `${testKeyPrefix}_org_poll_new:live`
-      const streamKey = getSyncStreamKey(scopeId)
-      keysToCleanup.push(streamKey)
-
-      // Append first event
-      const first = await appendSyncEvent({
-        namespace: 'customerSubscriptions',
-        entityId: 'sub_1',
-        scopeId,
-        eventType: 'update',
-        data: { first: true },
-        livemode: true,
-      })
-
-      // Append second event
-      await appendSyncEvent({
-        namespace: 'customerSubscriptions',
-        entityId: 'sub_2',
-        scopeId,
-        eventType: 'update',
-        data: { second: true },
-        livemode: true,
-      })
-
-      // Poll after first event
-      const events = await pollSyncEvents({
-        scopeId,
-        lastSequence: first.sequence,
-      })
-
-      expect(events.length).toBe(1)
-      expect(events[0].entityId).toBe('sub_2')
-    })
-
-    it('returns all events when polling from 0-0', async () => {
-      const scopeId = `${testKeyPrefix}_org_poll_all:live`
-      const streamKey = getSyncStreamKey(scopeId)
-      keysToCleanup.push(streamKey)
-
-      // Append 3 events
-      for (let i = 0; i < 3; i++) {
-        await appendSyncEvent({
-          namespace: 'customerSubscriptions',
-          entityId: `sub_${i}`,
-          scopeId,
-          eventType: 'update',
-          data: { index: i },
-          livemode: true,
-        })
-      }
-
-      // Poll from the beginning
-      const events = await pollSyncEvents({
-        scopeId,
-        lastSequence: '0-0',
-      })
-
-      expect(events.length).toBe(3)
     })
   })
 
