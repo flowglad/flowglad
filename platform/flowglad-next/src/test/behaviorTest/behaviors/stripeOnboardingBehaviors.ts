@@ -257,7 +257,11 @@ export const completeStripeOnboardingBehavior = defineBehavior({
         country: prev.country.code,
         type: 'custom',
         capabilities: {
+          // Request both transfers and card_payments.
+          // Non-US countries (AU, DE, GB, etc.) require card_payments
+          // when requesting transfers without the 'recipient' service agreement.
           transfers: { requested: true },
+          card_payments: { requested: true },
         },
         // Accept TOS at creation time (only works for Custom accounts)
         tos_acceptance: {
@@ -268,11 +272,10 @@ export const completeStripeOnboardingBehavior = defineBehavior({
         business_type: 'company',
         business_profile: {
           mcc: '5734', // Computer Software Stores
-          url: 'https://example.com',
+          product_description: 'Software services',
         },
         company: {
-          name: prev.organization.name,
-          tax_id: '000000000', // Test tax ID
+          name: prev.organization.name || 'Test Company',
         },
       })
       stripeAccountId = stripeAccount.id
