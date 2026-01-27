@@ -168,6 +168,7 @@ export const editCustomerInputSchema = z.object({
   customer: customerClientUpdateSchema.omit({
     externalId: true,
     id: true,
+    archived: true, // Prevent archiving via update - use dedicated archive endpoint
   }),
   externalId: z.string(),
 })
