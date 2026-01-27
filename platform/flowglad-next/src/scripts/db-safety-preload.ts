@@ -132,79 +132,12 @@ function validateEnvironmentFiles(): void {
 validateEnvironmentFiles()
 
 // ============================================================================
-// Utility Functions (kept for backward compatibility with tests)
+// Re-exports from safety module (for backward compatibility with tests)
 // ============================================================================
 
-/**
- * Patterns that identify a database URL as "local" and safe for development.
- */
-export const LOCAL_HOST_PATTERNS = [
-  'localhost',
-  '127.0.0.1',
-  '0.0.0.0',
-  '::1',
-  '.local',
-  'host.docker.internal',
-] as const
-
-/**
- * Check if a database URL points to a local database.
- *
- * @param url - The DATABASE_URL to check
- * @returns true if the URL points to a recognized local host
- */
-export function isLocalDatabaseUrl(url: string): boolean {
-  try {
-    const parsed = new URL(url)
-    let hostname = parsed.hostname.toLowerCase()
-
-    // Strip IPv6 brackets if present (URL parser keeps them)
-    if (hostname.startsWith('[') && hostname.endsWith(']')) {
-      hostname = hostname.slice(1, -1)
-    }
-
-    return LOCAL_HOST_PATTERNS.some((pattern) => {
-      if (pattern.startsWith('.')) {
-        // Suffix match (e.g., .local)
-        return hostname.endsWith(pattern)
-      }
-      // Exact match
-      return hostname === pattern
-    })
-  } catch {
-    // If URL parsing fails, assume it's not local (safer)
-    return false
-  }
-}
-
-/**
- * Mask credentials in a database URL for safe display in error messages.
- *
- * @param url - The DATABASE_URL to mask
- * @returns URL with password replaced by ****
- */
-export function maskDatabaseUrl(url: string): string {
-  try {
-    const parsed = new URL(url)
-    if (parsed.password) {
-      parsed.password = '****'
-      return parsed.toString()
-    }
-    return url
-  } catch {
-    // If parsing fails, return a generic message
-    return '(invalid URL)'
-  }
-}
-
-/**
- * @deprecated Safety check has been moved to src/db/client.ts
- * This function is kept for backward compatibility with tests.
- */
-export function shouldSkipSafetyCheck(): boolean {
-  return (
-    process.env.VERCEL !== undefined ||
-    process.env.CI !== undefined ||
-    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined
-  )
-}
+export {
+  isLocalDatabaseUrl,
+  LOCAL_HOST_PATTERNS,
+  maskDatabaseUrl,
+  shouldSkipSafetyCheck,
+} from '@/db/safety'
