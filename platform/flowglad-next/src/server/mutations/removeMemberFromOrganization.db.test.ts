@@ -13,9 +13,9 @@ import {
 } from '@/db/tableMethods/membershipMethods'
 import { insertUser } from '@/db/tableMethods/userMethods'
 import {
-  CannotRemoveOwnerError,
-  MembershipAlreadyDeactivatedError,
-  MembershipNotFoundError,
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
 } from '@/errors'
 import { MembershipRole } from '@/types'
 import core from '@/utils/core'
@@ -116,7 +116,7 @@ describe('innerRemoveMemberFromOrganization', () => {
       expect(membershipIds).toContain(ownerMembership.id)
     })
 
-    it('returns CannotRemoveOwnerError when owner tries to remove themselves', async () => {
+    it('returns AuthorizationError when owner tries to remove themselves', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           return innerRemoveMemberFromOrganization(
@@ -128,12 +128,11 @@ describe('innerRemoveMemberFromOrganization', () => {
       )
 
       expect(Result.isError(result)).toBe(true)
-      const error = (result as { error: CannotRemoveOwnerError })
-        .error
-      expect(error).toBeInstanceOf(CannotRemoveOwnerError)
+      const error = (result as { error: AuthorizationError }).error
+      expect(error).toBeInstanceOf(AuthorizationError)
     })
 
-    it('returns CannotRemoveOwnerError when trying to remove another owner', async () => {
+    it('returns AuthorizationError when trying to remove another owner', async () => {
       // Create another owner
       const { membership: anotherOwnerMembership } =
         await createUserWithMembership({
@@ -152,9 +151,8 @@ describe('innerRemoveMemberFromOrganization', () => {
       )
 
       expect(Result.isError(result)).toBe(true)
-      const error = (result as { error: CannotRemoveOwnerError })
-        .error
-      expect(error).toBeInstanceOf(CannotRemoveOwnerError)
+      const error = (result as { error: AuthorizationError }).error
+      expect(error).toBeInstanceOf(AuthorizationError)
     })
   })
 
@@ -189,7 +187,7 @@ describe('innerRemoveMemberFromOrganization', () => {
       expect(typeof updatedMembership.deactivatedAt).toBe('number')
     })
 
-    it('returns MembershipNotFoundError when trying to remove another member', async () => {
+    it('returns NotFoundError when trying to remove another member', async () => {
       // Create another member
       const { membership: anotherMemberMembership } =
         await createUserWithMembership({
@@ -208,12 +206,11 @@ describe('innerRemoveMemberFromOrganization', () => {
       )
 
       expect(Result.isError(result)).toBe(true)
-      const error = (result as { error: MembershipNotFoundError })
-        .error
-      expect(error).toBeInstanceOf(MembershipNotFoundError)
+      const error = (result as { error: NotFoundError }).error
+      expect(error).toBeInstanceOf(NotFoundError)
     })
 
-    it('returns CannotRemoveOwnerError when trying to remove the owner', async () => {
+    it('returns AuthorizationError when trying to remove the owner', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           return innerRemoveMemberFromOrganization(
@@ -225,16 +222,15 @@ describe('innerRemoveMemberFromOrganization', () => {
       )
 
       // Owner role check happens before requester permission check,
-      // so attempting to remove an owner always returns CannotRemoveOwnerError
+      // so attempting to remove an owner always returns AuthorizationError
       expect(Result.isError(result)).toBe(true)
-      const error = (result as { error: CannotRemoveOwnerError })
-        .error
-      expect(error).toBeInstanceOf(CannotRemoveOwnerError)
+      const error = (result as { error: AuthorizationError }).error
+      expect(error).toBeInstanceOf(AuthorizationError)
     })
   })
 
   describe('error cases', () => {
-    it('returns MembershipNotFoundError for non-existent membership', async () => {
+    it('returns NotFoundError for non-existent membership', async () => {
       const fakeMembershipId = `memb_${core.nanoid()}`
 
       const result = await adminTransaction(
@@ -248,13 +244,12 @@ describe('innerRemoveMemberFromOrganization', () => {
       )
 
       expect(Result.isError(result)).toBe(true)
-      const error = (result as { error: MembershipNotFoundError })
-        .error
-      expect(error).toBeInstanceOf(MembershipNotFoundError)
-      expect(error.membershipId).toBe(fakeMembershipId)
+      const error = (result as { error: NotFoundError }).error
+      expect(error).toBeInstanceOf(NotFoundError)
+      expect(error.id).toBe(fakeMembershipId)
     })
 
-    it('returns MembershipAlreadyDeactivatedError for already-removed member', async () => {
+    it('returns ConflictError for already-removed member', async () => {
       // Create and deactivate a member
       const { membership: deactivatedMembership } =
         await createUserWithMembership({
@@ -284,14 +279,14 @@ describe('innerRemoveMemberFromOrganization', () => {
       )
 
       expect(Result.isError(result)).toBe(true)
-      const error = (
-        result as { error: MembershipAlreadyDeactivatedError }
-      ).error
-      expect(error).toBeInstanceOf(MembershipAlreadyDeactivatedError)
-      expect(error.membershipId).toBe(deactivatedMembership.id)
+      const error = (result as { error: ConflictError }).error
+      expect(error).toBeInstanceOf(ConflictError)
+      expect(error.conflict).toBe(
+        `already deactivated: ${deactivatedMembership.id}`
+      )
     })
 
-    it('returns MembershipNotFoundError when target membership is in different org (avoids info leakage)', async () => {
+    it('returns NotFoundError when target membership is in different org (avoids info leakage)', async () => {
       // Create another org with a member
       const { organization: otherOrg } = await setupOrg()
       const { membership: otherOrgMembership } =
@@ -311,9 +306,8 @@ describe('innerRemoveMemberFromOrganization', () => {
       )
 
       expect(Result.isError(result)).toBe(true)
-      const error = (result as { error: MembershipNotFoundError })
-        .error
-      expect(error).toBeInstanceOf(MembershipNotFoundError)
+      const error = (result as { error: NotFoundError }).error
+      expect(error).toBeInstanceOf(NotFoundError)
       // Should not reveal anything about whether the membership exists
 
       // Cleanup

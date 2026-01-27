@@ -10,9 +10,9 @@ import {
 } from '@/db/tableMethods/membershipMethods'
 import type { DbTransaction } from '@/db/types'
 import {
-  CannotRemoveOwnerError,
-  MembershipAlreadyDeactivatedError,
-  MembershipNotFoundError,
+  AuthorizationError,
+  ConflictError,
+  NotFoundError,
 } from '@/errors'
 import { protectedProcedure } from '@/server/trpc'
 import { MembershipRole } from '@/types'
@@ -26,9 +26,9 @@ export type RemoveMemberFromOrganizationInput = z.infer<
 >
 
 export type RemoveMemberError =
-  | CannotRemoveOwnerError
-  | MembershipNotFoundError
-  | MembershipAlreadyDeactivatedError
+  | AuthorizationError
+  | NotFoundError
+  | ConflictError
 
 /**
  * Core logic for removing a member from an organization.
@@ -57,7 +57,9 @@ export const innerRemoveMemberFromOrganization = async (
 
   // Target doesn't exist
   if (!targetMembership) {
-    return Result.err(new MembershipNotFoundError(input.membershipId))
+    return Result.err(
+      new NotFoundError('Membership', input.membershipId)
+    )
   }
 
   // Target is in a different organization - return NotFound to avoid leaking info
@@ -65,19 +67,26 @@ export const innerRemoveMemberFromOrganization = async (
     targetMembership.organizationId !==
     requesterMembership.organizationId
   ) {
-    return Result.err(new MembershipNotFoundError(input.membershipId))
+    return Result.err(
+      new NotFoundError('Membership', input.membershipId)
+    )
   }
 
   // Target is already deactivated
   if (targetMembership.deactivatedAt !== null) {
     return Result.err(
-      new MembershipAlreadyDeactivatedError(input.membershipId)
+      new ConflictError(
+        'Membership',
+        `already deactivated: ${input.membershipId}`
+      )
     )
   }
 
   // Cannot remove an owner
   if (targetMembership.role === MembershipRole.Owner) {
-    return Result.err(new CannotRemoveOwnerError())
+    return Result.err(
+      new AuthorizationError('remove', 'organization owner')
+    )
   }
 
   const isRequesterOwner =
@@ -99,8 +108,10 @@ export const innerRemoveMemberFromOrganization = async (
   }
 
   // Member trying to remove another member - not allowed
-  // Return MembershipNotFoundError to avoid revealing membership exists
-  return Result.err(new MembershipNotFoundError(input.membershipId))
+  // Return NotFoundError to avoid revealing membership exists
+  return Result.err(
+    new NotFoundError('Membership', input.membershipId)
+  )
 }
 
 /**
