@@ -281,7 +281,7 @@ describe('apiKeyHelpers', () => {
       })
     })
 
-    it('should return an error if the API key does not exist', async () => {
+    it('should throw an error if the API key does not exist', async () => {
       const nonExistentId = `apikey_${core.nanoid()}`
 
       await expect(
