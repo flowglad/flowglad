@@ -1,0 +1,199 @@
+---
+title: 'Archive Customer'
+description: 'Archive a customer, canceling all active subscriptions and freeing the externalId for reuse.'
+---
+
+Archiving a customer is a permanent operation that removes them from active use while preserving historical data. This is useful for managing customer churn, cleaning up test data, or handling duplicate accounts.
+
+## What Archiving Does
+
+When you archive a customer:
+
+1. **Cancels all active subscriptions** - All subscriptions in `active`, `trialing`, `past_due`, `unpaid`, or `cancellation_scheduled` status are immediately canceled with reason `customer_archived`
+2. **Sets archived flag** - The customer's `archived` field is set to `true`
+3. **Frees the externalId** - The `externalId` becomes available for reuse by a new customer
+
+<Note>
+Archiving is **permanent**. There is currently no restore functionality. Once archived, a customer cannot be unarchived.
+</Note>
+
+## When to Use
+
+Archive customers when:
+
+- **Customer churns** - They've canceled their account and you want to clean up
+- **Duplicate accounts** - You've identified duplicate customer records
+- **Test data cleanup** - Removing test customers from production
+- **GDPR/privacy requests** - Customer requests data removal (archiving preserves billing history while removing from active use)
+
+## API Endpoint
+
+```
+POST /api/v1/customers/{externalId}/archive
+```
+
+### Authentication
+
+Requires a valid API key with write access:
+
+```
+Authorization: Bearer sk_test_...
+```
+
+### Path Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `externalId` | string | The external ID of the customer to archive (from your application) |
+
+### Response
+
+Returns the archived customer object:
+
+```json
+{
+  "customer": {
+    "id": "cus_abc123",
+    "externalId": "user_456",
+    "email": "customer@example.com",
+    "name": "John Doe",
+    "archived": true,
+    "createdAt": 1706400000000,
+    "updatedAt": 1706486400000
+    // ... other customer fields
+  }
+}
+```
+
+## SDK Usage
+
+### Node.js
+
+```typescript
+import { Flowglad } from '@flowglad/node'
+
+const flowglad = new Flowglad({
+  apiKey: process.env.FLOWGLAD_SECRET_KEY
+})
+
+// Archive a customer by their externalId
+const { customer } = await flowglad.customers.archive({
+  externalId: 'user_456'
+})
+
+console.log(`Archived customer: ${customer.email}`)
+```
+
+### cURL
+
+```bash
+curl -X POST "https://app.flowglad.com/api/v1/customers/user_456/archive" \
+  -H "Authorization: Bearer sk_test_..." \
+  -H "Content-Type: application/json"
+```
+
+## Behavior Notes
+
+### Idempotent Operation
+
+The archive endpoint is idempotent. Calling it multiple times on the same customer is safe:
+
+- **First call**: Archives the customer and cancels subscriptions
+- **Subsequent calls**: Returns the already-archived customer without changes
+
+```typescript
+// Safe to retry on network failures
+await flowglad.customers.archive({ externalId: 'user_456' })
+await flowglad.customers.archive({ externalId: 'user_456' }) // No error, returns same result
+```
+
+### ExternalId Reuse
+
+After archiving, the `externalId` is freed for reuse. You can create a new customer with the same `externalId`:
+
+```typescript
+// Archive the old customer
+await flowglad.customers.archive({ externalId: 'org_123' })
+
+// Create a new customer with the same externalId
+const { customer } = await flowglad.customers.create({
+  externalId: 'org_123',
+  email: 'new-org@example.com',
+  name: 'New Organization'
+})
+```
+
+This is useful when:
+- A user creates a new account with the same identifier
+- An organization is re-onboarded after churning
+- You need to reassign an external ID to a different entity
+
+### Subscription Cancellation
+
+All active subscriptions are canceled **immediately** with:
+- `cancellation` timing set to `immediately`
+- `cancellationReason` set to `customer_archived`
+- No proration or refund processing
+- Customer notifications are skipped
+
+```typescript
+// Before archive: customer has 2 active subscriptions
+// After archive: both subscriptions have status 'canceled'
+```
+
+### Archived Customers Are Not Accessible via API
+
+<Warning>
+After archiving, the customer returns a 404 Not Found from the `GET /customers/{externalId}` endpoint. This is intentional - archived customers are excluded from normal API access.
+</Warning>
+
+To view archived customers:
+- Use the Flowglad dashboard's "Archived" tab on the Customers page
+- Query the database directly if you have database access
+
+This design matches how other payment platforms handle deleted/archived records - they're preserved for historical purposes but not accessible through standard API calls.
+
+### Operations Blocked for Archived Customers
+
+Once archived, the following operations are blocked:
+
+- Creating new subscriptions
+- Creating checkout sessions
+- Recording usage events
+- Updating customer details
+- Creating invoices
+
+Attempting these operations returns an error indicating the customer is archived.
+
+## Error Responses
+
+| Status | Code | Description |
+|--------|------|-------------|
+| 404 | `NOT_FOUND` | Customer with the specified externalId does not exist |
+| 401 | `UNAUTHORIZED` | Invalid or missing API key |
+| 400 | `BAD_REQUEST` | Invalid externalId format |
+
+### Example Error Response
+
+```json
+{
+  "error": {
+    "code": "NOT_FOUND",
+    "message": "Customer with externalId user_456 not found"
+  }
+}
+```
+
+## Best Practices
+
+1. **Verify before archiving** - Confirm the customer should be archived, especially in production
+2. **Notify stakeholders** - Inform the customer or relevant team members before archiving
+3. **Export data first** - If needed, export customer data before archiving
+4. **Handle webhooks** - Listen for subscription cancellation webhooks that fire during archiving
+5. **Update your system** - After archiving, clean up related data in your application
+
+## Related
+
+- [Subscriptions](/features/subscriptions) - How subscriptions work and cancellation behavior
+- [Customers API](/api-reference/customers) - Other customer endpoints
+- [Data Model](/data-model) - How customers relate to other entities
