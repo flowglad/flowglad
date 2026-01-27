@@ -21,9 +21,8 @@ import {
 // ============================================================================
 
 /**
- * Upstash XRANGE response format.
- * Standard Redis: [["id", ["field1", "value1", ...]]]
- * Upstash: { "id": { field1: value1, ... } }
+ * Upstash XRANGE response format (object with stream IDs as keys).
+ * Standard Redis clients return arrays, which we also handle.
  */
 type UpstashXrangeResponse = Record<
   string,
@@ -31,39 +30,91 @@ type UpstashXrangeResponse = Record<
 > | null
 
 /**
+ * Standard Redis XRANGE response format (array of [id, fields] tuples).
+ * Fields may be a flat array ["k1", "v1", "k2", "v2"] or already an object.
+ */
+type StandardXrangeResponse = Array<
+  [string, string[] | Record<string, unknown>]
+>
+
+/**
  * Normalized stream entry format used by core logic.
- * [sequence, fields] tuple matching standard Redis client patterns.
+ * [sequence, fields] tuple with fields as an object.
  */
 type StreamEntry = [string, Record<string, unknown>]
 
 /**
- * Convert Upstash XRANGE object response to standard entry array.
- *
- * Upstash quirk: XRANGE returns { "1234-0": {...fields} } object
- * Standard Redis: returns [["1234-0", {...fields}]] array
+ * Convert a flat field array ["k1", "v1", "k2", "v2"] to an object {k1: v1, k2: v2}.
+ * Returns the input unchanged if already an object.
  */
-const normalizeUpstashXrangeResponse = (
-  response: UpstashXrangeResponse
-): StreamEntry[] => {
-  if (!response || typeof response !== 'object') {
-    return []
+const flatFieldsToObject = (
+  fields: string[] | Record<string, unknown>
+): Record<string, unknown> => {
+  if (!Array.isArray(fields)) {
+    return fields
   }
-
-  const sequences = Object.keys(response)
-  return sequences.map((sequence) => [sequence, response[sequence]])
+  const obj: Record<string, unknown> = {}
+  for (let i = 0; i < fields.length; i += 2) {
+    obj[fields[i]] = fields[i + 1]
+  }
+  return obj
 }
 
 /**
- * Extract first entry ID from Upstash XRANGE response.
- * Returns null if response is empty or invalid.
+ * Normalize XRANGE response to standard entry array.
+ *
+ * Handles two formats:
+ * - Upstash: { "1234-0": {...fields} } object
+ * - Standard Redis: [["1234-0", ["field1", "value1", ...]]] array
  */
-const getFirstEntryIdFromUpstashResponse = (
-  response: UpstashXrangeResponse
+const normalizeXrangeResponse = (
+  response: UpstashXrangeResponse | StandardXrangeResponse
+): StreamEntry[] => {
+  if (!response) {
+    return []
+  }
+
+  // Standard Redis clients return arrays - handle this format
+  if (Array.isArray(response)) {
+    return response.map(([id, fields]) => [
+      id,
+      flatFieldsToObject(fields),
+    ])
+  }
+
+  // Upstash returns an object with stream IDs as keys
+  if (typeof response === 'object') {
+    const sequences = Object.keys(response)
+    return sequences.map((sequence) => [sequence, response[sequence]])
+  }
+
+  return []
+}
+
+/**
+ * Extract first entry ID from XRANGE response.
+ * Returns null if response is empty or invalid.
+ *
+ * Handles both Upstash (object) and standard Redis (array) formats.
+ */
+const getFirstEntryIdFromXrangeResponse = (
+  response: UpstashXrangeResponse | StandardXrangeResponse
 ): string | null => {
-  if (!response || typeof response !== 'object') {
+  if (!response) {
     return null
   }
-  return Object.keys(response)[0] ?? null
+
+  // Standard Redis clients return arrays
+  if (Array.isArray(response)) {
+    return response[0]?.[0] ?? null
+  }
+
+  // Upstash returns an object
+  if (typeof response === 'object') {
+    return Object.keys(response)[0] ?? null
+  }
+
+  return null
 }
 
 /**
@@ -280,10 +331,8 @@ export const readSyncEvents = async (params: {
       count
     )
 
-    // Normalize Upstash response format to standard entries
-    const entries = normalizeUpstashXrangeResponse(
-      rawEntries as UpstashXrangeResponse
-    )
+    // Normalize response format (handles both Upstash object and standard array formats)
+    const entries = normalizeXrangeResponse(rawEntries)
 
     const events: SyncEvent[] = []
     for (const entry of entries) {
@@ -408,15 +457,11 @@ export const getSyncStreamInfo = async (
     // XRANGE with count 1: Get first entry
     // Using XRANGE instead of XINFO STREAM for Upstash compatibility
     const firstEntries = await redisClient.xrange(key, '-', '+', 1)
-    const firstEntry = getFirstEntryIdFromUpstashResponse(
-      firstEntries as UpstashXrangeResponse
-    )
+    const firstEntry = getFirstEntryIdFromXrangeResponse(firstEntries)
 
     // XREVRANGE with count 1: Get last entry (reverse order)
     const lastEntries = await redisClient.xrevrange(key, '+', '-', 1)
-    const lastEntry = getFirstEntryIdFromUpstashResponse(
-      lastEntries as UpstashXrangeResponse
-    )
+    const lastEntry = getFirstEntryIdFromXrangeResponse(lastEntries)
 
     return {
       length,
