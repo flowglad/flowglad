@@ -6,25 +6,27 @@ interface OnboardingShellProps {
 }
 
 /**
- * Layout shell for onboarding pages with double-dashed border decoration.
+ * Layout shell for onboarding pages with double-dashed border decoration
+ * and vertically centered content.
  *
  * Features:
  * - Double dashed borders on left/right that extend to viewport edges
  * - Content constrained to max-width with centered alignment
+ * - Vertical centering of children within the viewport
  * - Flexbox layout for proper content distribution
  *
  * Structure:
- * - Outer container: min-h-screen, overflow-x-hidden (clips extended borders)
+ * - Outer container: h-screen, overflow-hidden (clips extended borders, prevents unwanted scroll)
  * - Border track: draws outer borders via ::before, applies outer padding
  * - Inner track: draws inner borders via ::before, applies inner padding
- * - Children: flex-1 to fill available space
+ * - Content area: flex-1 with vertical centering and padding
  */
 export function OnboardingShell({
   children,
   className,
 }: OnboardingShellProps) {
   return (
-    <div className="min-h-screen overflow-x-hidden flex flex-col items-center">
+    <div className="h-screen overflow-hidden flex flex-col items-center">
       <div
         className={cn(
           // Layout
@@ -56,7 +58,10 @@ export function OnboardingShell({
             'before:pointer-events-none'
           )}
         >
-          {children}
+          {/* Content area - vertically centered with padding */}
+          <div className="flex-1 flex flex-col justify-center py-8">
+            {children}
+          </div>
         </div>
       </div>
     </div>

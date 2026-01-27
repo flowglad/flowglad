@@ -16,7 +16,7 @@ export function StepContainer({
   return (
     <div
       className={cn(
-        'flex flex-col gap-6 w-full flex-1 max-h-[300px] justify-start',
+        'flex flex-col gap-6 w-full h-[400px] justify-start',
         className
       )}
     >

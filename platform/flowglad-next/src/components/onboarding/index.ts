@@ -1,7 +1,6 @@
 export { BottomBar, FixedBottomBar } from './BottomBar'
 export { MultiStepForm, useMultiStepForm } from './MultiStepForm'
 export { NavigationBar } from './NavigationBar'
-export { OnboardingContent } from './OnboardingContent'
 export { OnboardingShell } from './OnboardingShell'
 export { StepContainer } from './StepContainer'
 export { StepProgress } from './StepProgress'

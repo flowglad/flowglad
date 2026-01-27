@@ -9,7 +9,6 @@ import {
   useMultiStepForm,
 } from '@/components/onboarding/MultiStepForm'
 import { NavigationBar } from '@/components/onboarding/NavigationBar'
-import { OnboardingContent } from '@/components/onboarding/OnboardingContent'
 import { OnboardingShell } from '@/components/onboarding/OnboardingShell'
 import { useAuthContext } from '@/contexts/authContext'
 import core from '@/utils/core'
@@ -80,11 +79,9 @@ export default function BusinessDetailsPage() {
 function BusinessDetailsLoadingFallback() {
   return (
     <OnboardingShell>
-      <OnboardingContent>
-        {/* Empty placeholder - skeleton could be added here */}
-        {/* Bottom bar placeholder with full-bleed border */}
-        <div className="w-full relative before:absolute before:top-0 before:left-1/2 before:-translate-x-1/2 before:w-screen before:border-t before:border-border" />
-      </OnboardingContent>
+      {/* Empty placeholder - skeleton could be added here */}
+      {/* Bottom bar placeholder with full-bleed border */}
+      <div className="w-full relative before:absolute before:top-0 before:left-1/2 before:-translate-x-1/2 before:w-screen before:border-t before:border-border" />
     </OnboardingShell>
   )
 }
@@ -160,16 +157,13 @@ function BusinessDetailsContent() {
       analyticsPrefix="onboarding_business_details"
     >
       <OnboardingShell>
-        {/* Content area - vertically centered, includes form and navigation */}
-        <OnboardingContent>
-          <FormContent />
-          {/* Navigation bar - flows naturally after form content */}
-          <NavigationBar
-            hideBackOnFirstStep
-            showProgress
-            fixed={false}
-          />
-        </OnboardingContent>
+        <FormContent />
+        {/* Navigation bar - flows naturally after form content */}
+        <NavigationBar
+          hideBackOnFirstStep
+          showProgress
+          fixed={false}
+        />
       </OnboardingShell>
     </MultiStepForm>
   )
