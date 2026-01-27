@@ -305,20 +305,21 @@ export const createCheckoutSessionTransaction = async (
       )
     }
   } else {
-    organization = await selectOrganizationById(
-      organizationId,
-      transaction
-    )
+    organization = (
+      await selectOrganizationById(organizationId, transaction)
+    ).unwrap()
     if (
       checkoutSessionInput.type ===
       CheckoutSessionType.ActivateSubscription
     ) {
       let targetSubscription
       try {
-        targetSubscription = await selectSubscriptionById(
-          checkoutSessionInput.targetSubscriptionId,
-          transaction
-        )
+        targetSubscription = (
+          await selectSubscriptionById(
+            checkoutSessionInput.targetSubscriptionId,
+            transaction
+          )
+        ).unwrap()
       } catch (error) {
         return Result.err(
           new ValidationError(

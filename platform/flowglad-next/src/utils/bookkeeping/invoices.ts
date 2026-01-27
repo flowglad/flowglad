@@ -36,10 +36,9 @@ export const createInitialInvoiceForPurchase = async (
     },
     transaction
   )
-  const customer = await selectCustomerById(
-    purchase.customerId,
-    transaction
-  )
+  const customer = (
+    await selectCustomerById(purchase.customerId, transaction)
+  ).unwrap()
   const { customerId, organizationId, priceId } = purchase
   const [{ price, organization }] =
     await selectPriceProductAndOrganizationByPriceWhere(

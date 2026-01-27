@@ -72,10 +72,9 @@ const processPaymentIntent = async ({
         payment.purchaseId,
         transaction
       )
-      const invoice = await selectInvoiceById(
-        payment.invoiceId,
-        transaction
-      )
+      const invoice = (
+        await selectInvoiceById(payment.invoiceId, transaction)
+      ).unwrap()
       const metadata = stripeIntentMetadataSchema.parse(
         paymentIntent.metadata
       )

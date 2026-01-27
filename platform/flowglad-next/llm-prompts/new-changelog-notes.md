@@ -1,10 +1,15 @@
 You are creating a new changelog announcement. These changelog notes will be used to also generate a github release as well. Please generate a new changelog file in the following format.
 
-Use the git log to determine what changes in packages/* have happened since the last changelog. Group the notes thematically into sections. They may be grouped around new features, improvements, bug fixes, etc.
+Use the git log to determine what changes in packages/* have happened since the last changelog (search the git log for the last time we had a commit "chore: version packages"). Group the notes thematically into sections. They may be grouped around new features, improvements, bug fixes, etc.
 
-Include links to commits for each of the changes.
+Include links to commits for each individual change item (bullet points), but NOT for section headings. Section headings (###) are organizational and should not have commit links or commit hashes.
 
 Put your release notes in the markdown file found in the .changeset directory in project root.
+
+**Important formatting rules:**
+- Section headings (starting with `###`) should be plain text without commit links or hashes
+- Only individual change items (bullet points) should include commit links in the format `[commit-hash](url): description`
+- Never put commit hashes or links before section headings
 
 Here's an example:
 ---

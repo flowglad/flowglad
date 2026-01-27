@@ -208,10 +208,9 @@ export const createSubscriptionWorkflow = async (
 
     if (hasTrialPeriod) {
       // Fetch customer to check trial eligibility
-      const customer = await selectCustomerById(
-        params.customer.id,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(params.customer.id, transaction)
+      ).unwrap()
       // Fetch price record to check trial eligibility
       const priceResult = await selectPriceById(
         params.price.id,
@@ -349,19 +348,12 @@ export const createSubscriptionWorkflow = async (
     }
 
     const timestamp = Date.now()
-    const customer = await selectCustomerById(
-      updatedSubscription.customerId,
-      transaction
-    )
-
-    if (!customer) {
-      return Result.err(
-        new NotFoundError(
-          'Customer',
-          `subscription ${updatedSubscription.id}`
-        )
+    const customer = (
+      await selectCustomerById(
+        updatedSubscription.customerId,
+        transaction
       )
-    }
+    ).unwrap()
 
     const eventInserts: Event.Insert[] = [
       {

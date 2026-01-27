@@ -46,10 +46,9 @@ export const safelyInsertBillingRun = async (
   insert: z.infer<typeof billingRunsInsertSchema>,
   transaction: DbTransaction
 ): Promise<Result<BillingRun.Record, ValidationError>> => {
-  const subscription = await selectSubscriptionById(
-    insert.subscriptionId,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(insert.subscriptionId, transaction)
+  ).unwrap()
   if (subscription.status === SubscriptionStatus.Canceled) {
     return Result.err(
       new ValidationError(

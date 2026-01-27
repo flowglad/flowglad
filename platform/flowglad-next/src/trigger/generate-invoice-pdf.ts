@@ -17,7 +17,9 @@ export const generateInvoicePdfTask = task({
       async () => {
         const invoice = await adminTransaction(
           async ({ transaction }) => {
-            return await selectInvoiceById(invoiceId, transaction)
+            return (
+              await selectInvoiceById(invoiceId, transaction)
+            ).unwrap()
           }
         )
         /**
@@ -44,10 +46,9 @@ export const generateInvoicePdfTask = task({
         logger.log('Invoice PDF URL', { invoicePdfUrl })
         const oldInvoicePdfUrl = await adminTransaction(
           async ({ transaction }) => {
-            const latestInvoice = await selectInvoiceById(
-              invoice.id,
-              transaction
-            )
+            const latestInvoice = (
+              await selectInvoiceById(invoice.id, transaction)
+            ).unwrap()
             const oldInvoicePdfUrl = latestInvoice.pdfURL
             await updateInvoice(
               {

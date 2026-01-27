@@ -346,10 +346,12 @@ export const verifyCanCreateSubscription = async (
   }
 
   if (currentSubscriptionsForCustomer.length > 0) {
-    const organization = await selectOrganizationById(
-      customer.organizationId,
-      transaction
-    )
+    const organization = (
+      await selectOrganizationById(
+        customer.organizationId,
+        transaction
+      )
+    ).unwrap()
     if (!organization.allowMultipleSubscriptionsPerCustomer) {
       return Result.err(
         new ConflictError(

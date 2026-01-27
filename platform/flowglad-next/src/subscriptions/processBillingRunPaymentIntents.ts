@@ -439,7 +439,9 @@ export const processOutcomeForBillingRun = async (
   }
 
   // Re-Select Invoice after changes have been made
-  invoice = await selectInvoiceById(invoice.id, transaction)
+  invoice = (
+    await selectInvoiceById(invoice.id, transaction)
+  ).unwrap()
 
   // Handle subscription item adjustments after successful payment
   if (

@@ -130,19 +130,14 @@ export const derivePricingModelIdForPayment = async (
   }
 
   // Fall back to invoice (invoiceId is always present)
-  let invoiceRecord
-  try {
-    invoiceRecord = await selectInvoiceById(
-      data.invoiceId,
-      transaction
-    )
-  } catch (error) {
-    if (error instanceof TableUtilsNotFoundError) {
-      return Result.err(new NotFoundError('Invoice', data.invoiceId))
-    }
-    throw error
+  const invoiceResult = await selectInvoiceById(
+    data.invoiceId,
+    transaction
+  )
+  if (Result.isError(invoiceResult)) {
+    return Result.err(new NotFoundError('Invoice', data.invoiceId))
   }
-  return Result.ok(invoiceRecord.pricingModelId)
+  return Result.ok(invoiceResult.value.pricingModelId)
 }
 
 const baseInsertPayment = createInsertFunction(payments, config)

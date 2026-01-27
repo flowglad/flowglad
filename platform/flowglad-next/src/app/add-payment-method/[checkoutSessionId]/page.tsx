@@ -34,14 +34,18 @@ const CheckoutSessionPage = async ({
       ) {
         notFound()
       }
-      const customer = await selectCustomerById(
-        checkoutSession.customerId,
-        transaction
-      )
-      const organization = await selectOrganizationById(
-        checkoutSession.organizationId,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(
+          checkoutSession.customerId,
+          transaction
+        )
+      ).unwrap()
+      const organization = (
+        await selectOrganizationById(
+          checkoutSession.organizationId,
+          transaction
+        )
+      ).unwrap()
       return {
         checkoutSession,
         sellerOrganization: organization,

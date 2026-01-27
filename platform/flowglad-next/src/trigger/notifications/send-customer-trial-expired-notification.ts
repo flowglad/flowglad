@@ -46,16 +46,12 @@ export const runSendCustomerTrialExpiredNotification =
     >
     try {
       const data = await adminTransaction(async ({ transaction }) => {
-        const subscription = await selectSubscriptionById(
-          params.subscriptionId,
-          transaction
-        )
-        if (!subscription) {
-          throw new NotFoundError(
-            'Subscription',
-            params.subscriptionId
+        const subscription = (
+          await selectSubscriptionById(
+            params.subscriptionId,
+            transaction
           )
-        }
+        ).unwrap()
 
         const { organization, customer } =
           await buildNotificationContext(

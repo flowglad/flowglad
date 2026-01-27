@@ -42,14 +42,18 @@ const sendOrganizationPaymentSucceededNotificationTask = task({
 
     const { organization, customer, usersAndMemberships } =
       await adminTransaction(async ({ transaction }) => {
-        const organization = await selectOrganizationById(
-          paymentData.organizationId,
-          transaction
-        )
-        const customer = await selectCustomerById(
-          paymentData.customerId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(
+            paymentData.organizationId,
+            transaction
+          )
+        ).unwrap()
+        const customer = (
+          await selectCustomerById(
+            paymentData.customerId,
+            transaction
+          )
+        ).unwrap()
         const usersAndMemberships =
           await selectMembershipsAndUsersByMembershipWhere(
             {
@@ -63,10 +67,6 @@ const sendOrganizationPaymentSucceededNotificationTask = task({
           usersAndMemberships,
         }
       })
-
-    if (!organization || !customer) {
-      throw new Error('Organization or customer not found')
-    }
 
     const eligibleRecipients = filterEligibleRecipients(
       usersAndMemberships,

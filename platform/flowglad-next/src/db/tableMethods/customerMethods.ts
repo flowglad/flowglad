@@ -18,7 +18,7 @@ import {
   createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -48,7 +48,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'customers',
 }
 
-export const selectCustomerById = createSelectById(
+export const selectCustomerById = createSelectByIdResult(
   customersTable,
   config
 )
@@ -73,7 +73,10 @@ export const derivePricingModelIdFromCustomer =
   createDerivePricingModelId(
     customersTable,
     config,
-    selectCustomerById
+    async (id, transaction) => {
+      const result = await selectCustomerById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**
@@ -538,6 +541,11 @@ export type CustomerPricingInfo = {
   pricingModelId: string
   organizationId: string
   livemode: boolean
+  /**
+   * Included for early validation in bulk operations to prevent
+   * processing events for archived customers before expensive lookups.
+   */
+  archived: boolean
 }
 
 /**
@@ -563,6 +571,7 @@ export const selectCustomerPricingInfoBatch = async (
       pricingModelId: customers.pricingModelId,
       organizationId: customers.organizationId,
       livemode: customers.livemode,
+      archived: customers.archived,
     })
     .from(customers)
     .where(inArray(customers.id, customerIds))

@@ -11,10 +11,15 @@ import core from '@/utils/core'
 
 /**
  * Gets the Stripe test mode secret key from environment variables.
- * Returns undefined if not set.
+ * Returns undefined if not set or if it's a stub key (like sk_test_stub).
  */
 export const getStripeTestModeSecretKey = (): string | undefined => {
-  return process.env.STRIPE_TEST_MODE_SECRET_KEY
+  const key = process.env.STRIPE_TEST_MODE_SECRET_KEY
+  // Detect stub keys that won't work with real Stripe API
+  if (!key || key === 'sk_test_stub' || key.includes('stub')) {
+    return undefined
+  }
+  return key
 }
 
 /**

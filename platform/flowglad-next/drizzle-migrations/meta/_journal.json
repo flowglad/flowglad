@@ -1982,6 +1982,13 @@
       "when": 1769458892205,
       "tag": "0283_sturdy_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 284,
+      "version": "7",
+      "when": 1769550000000,
+      "tag": "0284_backfill_membership_owners",
+      "breakpoints": true
     }
   ]
 }
