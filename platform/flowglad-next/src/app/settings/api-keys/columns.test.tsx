@@ -6,7 +6,6 @@ import {
   waitFor,
 } from '@testing-library/react'
 import { trpc } from '@/app/_trpc/client'
-import DeleteApiKeyModal from '@/components/forms/DeleteApiKeyModal'
 
 // Mock tRPC
 const mockUseMutation = mock()
@@ -66,6 +65,9 @@ mock.module('@/components/forms/FormModal', async () => {
     NestedFormModal: FormModalMock,
   }
 })
+
+// Import component AFTER mock.module calls (bun:test doesn't hoist mocks)
+import DeleteApiKeyModal from '@/components/forms/DeleteApiKeyModal'
 
 describe('DeleteApiKeyModal', () => {
   const mockMutateAsync = mock()

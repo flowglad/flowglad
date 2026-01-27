@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { SubscriptionResourceUsage } from './SubscriptionResourceUsage'
 
 // Create mock function that we can control
 const mockUseQuery = mock()
@@ -15,6 +14,9 @@ mock.module('@/app/_trpc/client', () => ({
     },
   },
 }))
+
+// Import component AFTER mock.module calls (bun:test doesn't hoist mocks)
+import { SubscriptionResourceUsage } from './SubscriptionResourceUsage'
 
 describe('SubscriptionResourceUsage', () => {
   beforeEach(() => {

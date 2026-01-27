@@ -9,7 +9,6 @@ import type { ReactNode } from 'react'
 import type { DefaultValues, FieldValues } from 'react-hook-form'
 import { trpc } from '@/app/_trpc/client'
 import type { NotificationPreferences } from '@/db/schema/memberships'
-import EditNotificationPreferencesModal from './EditNotificationPreferencesModal'
 
 interface FormModalMockProps<T extends FieldValues> {
   children: ReactNode
@@ -101,6 +100,9 @@ mock.module('./NotificationPreferencesFormFields', () => ({
     </div>
   ),
 }))
+
+// Import component AFTER mock.module calls (bun:test doesn't hoist mocks)
+import EditNotificationPreferencesModal from './EditNotificationPreferencesModal'
 
 describe('EditNotificationPreferencesModal', () => {
   const mockCurrentPreferences: NotificationPreferences = {

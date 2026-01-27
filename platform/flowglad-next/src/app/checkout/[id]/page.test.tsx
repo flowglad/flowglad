@@ -4,7 +4,6 @@ import {
   PriceType,
   SubscriptionStatus,
 } from '@/types'
-import Page from './page'
 
 // Mock next/navigation redirect
 const redirect = mock()
@@ -67,6 +66,9 @@ mock.module('@/utils/checkoutHelpers', () => ({
     customerSessionClientSecret: null,
   })),
 }))
+
+// Import Page AFTER mock.module calls (bun:test doesn't hoist mocks)
+import Page from './page'
 
 describe('CheckoutSessionPage', () => {
   beforeEach(() => {
