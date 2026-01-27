@@ -201,10 +201,12 @@ describe('db/safety', () => {
     })
 
     it('masks passwords containing special characters', () => {
+      // Password: pass@word!with#special$chars (percent-encoded to stay in authority)
       const url =
-        'postgresql://user:pass@word!with#special$chars@localhost:5432/db'
+        'postgresql://user:pass%40word%21with%23special%24chars@localhost:5432/db'
       const masked = maskDatabaseUrl(url)
-      expect(masked).not.toContain('pass@word')
+      expect(masked).not.toContain('pass')
+      expect(masked).not.toContain('%40')
       expect(masked).toContain('****')
     })
 
