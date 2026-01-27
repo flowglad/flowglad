@@ -61,10 +61,12 @@ export const derivePricingModelIdForFeeCalculation = async (
 
   // Try checkout session second (for checkout session payment fee calculations)
   if (data.checkoutSessionId) {
-    const checkoutSession = await selectCheckoutSessionById(
-      data.checkoutSessionId,
-      transaction
-    )
+    const checkoutSession = (
+      await selectCheckoutSessionById(
+        data.checkoutSessionId,
+        transaction
+      )
+    ).unwrap()
     return checkoutSession.pricingModelId
   }
 

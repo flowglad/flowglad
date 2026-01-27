@@ -89,7 +89,9 @@ describe('resources RLS - merchant role sequence permissions', () => {
       // Then select it back
       const selected = await authenticatedTransaction(
         async ({ transaction }) => {
-          return selectResourceById(inserted.id, transaction)
+          return (
+            await selectResourceById(inserted.id, transaction)
+          ).unwrap()
         },
         { apiKey: apiKey.token }
       )

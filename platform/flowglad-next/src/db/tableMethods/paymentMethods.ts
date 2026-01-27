@@ -523,17 +523,14 @@ export const safelyUpdatePaymentForRefund = async (
 ): Promise<
   Result<Payment.Record, NotFoundError | ValidationError>
 > => {
-  let payment: Payment.Record
-  try {
-    payment = await selectPaymentById(paymentUpdate.id, transaction)
-  } catch (error) {
-    if (error instanceof TableUtilsNotFoundError) {
-      return Result.err(
-        new NotFoundError('Payment', paymentUpdate.id)
-      )
-    }
-    throw error
+  const paymentResult = await selectPaymentById(
+    paymentUpdate.id,
+    transaction
+  )
+  if (Result.isError(paymentResult)) {
+    return Result.err(new NotFoundError('Payment', paymentUpdate.id))
   }
+  const payment = paymentResult.value
   /**
    * Only allow updates to succeeded or refunded payments
    * can be updated to refunded.

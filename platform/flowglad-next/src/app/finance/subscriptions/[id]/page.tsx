@@ -33,10 +33,12 @@ const SubscriptionPage = async ({
       }
 
       const defaultPaymentMethod = subscription.defaultPaymentMethodId
-        ? await selectPaymentMethodById(
-            subscription.defaultPaymentMethodId,
-            transaction
-          )
+        ? (
+            await selectPaymentMethodById(
+              subscription.defaultPaymentMethodId,
+              transaction
+            )
+          ).unwrap()
         : null
 
       const customer = (

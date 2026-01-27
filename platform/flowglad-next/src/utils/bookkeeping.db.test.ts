@@ -2317,10 +2317,9 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
         })
 
         // Verify purchase status was updated to Paid
-        const updatedPurchase = await selectPurchaseById(
-          purchase.id,
-          transaction
-        )
+        const updatedPurchase = (
+          await selectPurchaseById(purchase.id, transaction)
+        ).unwrap()
         expect(updatedPurchase.status).toBe(PurchaseStatus.Paid)
         expect(updatedPurchase.purchaseDate).toBe(payment.chargeDate)
         return Result.ok(null)
@@ -2358,10 +2357,9 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
         })
 
         // Verify purchase status was updated to Failed
-        const updatedPurchase = await selectPurchaseById(
-          purchase.id,
-          transaction
-        )
+        const updatedPurchase = (
+          await selectPurchaseById(purchase.id, transaction)
+        ).unwrap()
         expect(updatedPurchase.status).toBe(PurchaseStatus.Failed)
         return Result.ok(null)
       }
@@ -2398,10 +2396,9 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
         })
 
         // Verify purchase status was updated to Pending
-        const updatedPurchase = await selectPurchaseById(
-          purchase.id,
-          transaction
-        )
+        const updatedPurchase = (
+          await selectPurchaseById(purchase.id, transaction)
+        ).unwrap()
         expect(updatedPurchase.status).toBe(PurchaseStatus.Pending)
         return Result.ok(null)
       }
@@ -2442,10 +2439,9 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
         )
 
         // Verify purchase status was NOT updated (should remain Open)
-        const unchangedPurchase = await selectPurchaseById(
-          purchase.id,
-          transaction
-        )
+        const unchangedPurchase = (
+          await selectPurchaseById(purchase.id, transaction)
+        ).unwrap()
         expect(unchangedPurchase.status).toBe(PurchaseStatus.Open)
         return Result.ok(null)
       }

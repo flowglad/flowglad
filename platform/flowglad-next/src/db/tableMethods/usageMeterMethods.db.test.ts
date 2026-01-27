@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -45,23 +46,24 @@ describe('usageMeterMethods', () => {
       })
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const result = await selectUsageMeterById(
-          meter.id,
-          transaction
-        )
+        const result = (
+          await selectUsageMeterById(meter.id, transaction)
+        ).unwrap()
         expect(result.id).toBe(meter.id)
         expect(result.name).toBe('Meter A')
         expect(result.pricingModelId).toBe(pricingModelId)
       })
     })
 
-    it('should throw an error for a non-existent ID', async () => {
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return selectUsageMeterById('non-existent-id', transaction)
-        })
-      ).rejects.toThrow()
+    it('should return an error for a non-existent ID', async () => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await selectUsageMeterById(
+          'non-existent-id',
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+      })
     })
   })
 

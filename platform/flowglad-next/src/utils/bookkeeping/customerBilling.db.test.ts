@@ -7,6 +7,7 @@ import {
   mock,
   spyOn,
 } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -143,14 +144,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Refresh the payment method records to get updated values
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      paymentMethod1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      paymentMethod2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+      paymentMethod1 = (
+        await selectPaymentMethodById(paymentMethod1.id, transaction)
+      ).unwrap()
+      paymentMethod2 = (
+        await selectPaymentMethodById(paymentMethod2.id, transaction)
+      ).unwrap()
     })
 
     // Set up a subscription using the first payment method
@@ -168,10 +167,9 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify initial state - paymentMethod1 is already default
     const initialPm1 = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
+      return (
+        await selectPaymentMethodById(paymentMethod1.id, transaction)
+      ).unwrap()
     })
     expect(initialPm1.default).toBe(true)
 
@@ -192,14 +190,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify payment methods in database
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+      const pm1 = (
+        await selectPaymentMethodById(paymentMethod1.id, transaction)
+      ).unwrap()
+      const pm2 = (
+        await selectPaymentMethodById(paymentMethod2.id, transaction)
+      ).unwrap()
 
       expect(pm1.default).toBe(true)
       expect(pm2.default).toBe(false)
@@ -216,14 +212,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify initial state
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+      const pm1 = (
+        await selectPaymentMethodById(paymentMethod1.id, transaction)
+      ).unwrap()
+      const pm2 = (
+        await selectPaymentMethodById(paymentMethod2.id, transaction)
+      ).unwrap()
       expect(pm1.default).toBe(true)
       expect(pm2.default).toBe(false)
 
@@ -250,14 +244,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify payment methods in database - pm2 is now default, pm1 is not
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+      const pm1 = (
+        await selectPaymentMethodById(paymentMethod1.id, transaction)
+      ).unwrap()
+      const pm2 = (
+        await selectPaymentMethodById(paymentMethod2.id, transaction)
+      ).unwrap()
 
       expect(pm1.default).toBe(false)
       expect(pm2.default).toBe(true)
@@ -314,14 +306,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify payment methods in database
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const pm1 = await selectPaymentMethodById(
-        pm1NoSubs.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        pm2NoSubs.id,
-        transaction
-      )
+      const pm1 = (
+        await selectPaymentMethodById(pm1NoSubs.id, transaction)
+      ).unwrap()
+      const pm2 = (
+        await selectPaymentMethodById(pm2NoSubs.id, transaction)
+      ).unwrap()
 
       expect(pm1.default).toBe(false)
       expect(pm2.default).toBe(true)
@@ -403,14 +393,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       expect(sub3.defaultPaymentMethodId).toBe(paymentMethod2.id)
 
       // Verify payment methods
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+      const pm1 = (
+        await selectPaymentMethodById(paymentMethod1.id, transaction)
+      ).unwrap()
+      const pm2 = (
+        await selectPaymentMethodById(paymentMethod2.id, transaction)
+      ).unwrap()
 
       expect(pm1.default).toBe(false)
       expect(pm2.default).toBe(true)
@@ -470,14 +458,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
       expect(original.defaultPaymentMethodId).toBe(paymentMethod2.id)
 
       // Verify payment methods
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+      const pm1 = (
+        await selectPaymentMethodById(paymentMethod1.id, transaction)
+      ).unwrap()
+      const pm2 = (
+        await selectPaymentMethodById(paymentMethod2.id, transaction)
+      ).unwrap()
 
       expect(pm1.default).toBe(false)
       expect(pm2.default).toBe(true)
@@ -501,14 +487,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify existing payment methods remain unchanged
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+      const pm1 = (
+        await selectPaymentMethodById(paymentMethod1.id, transaction)
+      ).unwrap()
+      const pm2 = (
+        await selectPaymentMethodById(paymentMethod2.id, transaction)
+      ).unwrap()
 
       expect(pm1.default).toBe(true)
       expect(pm2.default).toBe(false)
@@ -537,10 +521,9 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify state after first call
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+      const pm2 = (
+        await selectPaymentMethodById(paymentMethod2.id, transaction)
+      ).unwrap()
       expect(pm2.default).toBe(true)
 
       const sub = (
@@ -564,14 +547,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     // Verify state remains the same after second call
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      const pm1 = await selectPaymentMethodById(
-        paymentMethod1.id,
-        transaction
-      )
-      const pm2 = await selectPaymentMethodById(
-        paymentMethod2.id,
-        transaction
-      )
+      const pm1 = (
+        await selectPaymentMethodById(paymentMethod1.id, transaction)
+      ).unwrap()
+      const pm2 = (
+        await selectPaymentMethodById(paymentMethod2.id, transaction)
+      ).unwrap()
 
       expect(pm1.default).toBe(false)
       expect(pm2.default).toBe(true)

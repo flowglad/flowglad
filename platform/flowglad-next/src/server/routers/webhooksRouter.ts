@@ -101,7 +101,9 @@ export const getWebhook = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const webhook = await selectWebhookById(input.id, transaction)
+        const webhook = (
+          await selectWebhookById(input.id, transaction)
+        ).unwrap()
         return { webhook }
       }
     )

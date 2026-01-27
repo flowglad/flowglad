@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { eq } from 'drizzle-orm'
 import {
   setupCheckoutSession,
@@ -95,14 +96,18 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
       id: old.id,
     })
     expect(deleted.find((s) => s.id === recent.id)).toBeUndefined()
-    await expect(
-      adminTransaction(async ({ transaction }) =>
-        selectCheckoutSessionById(old.id, transaction)
+    await adminTransaction(async ({ transaction }) => {
+      const result = await selectCheckoutSessionById(
+        old.id,
+        transaction
       )
-    ).rejects.toThrow()
+      expect(Result.isError(result)).toBe(true)
+    })
     const recentStillThere = await adminTransaction(
       async ({ transaction }) =>
-        selectCheckoutSessionById(recent.id, transaction)
+        (
+          await selectCheckoutSessionById(recent.id, transaction)
+        ).unwrap()
     )
     expect(recentStillThere.id).toBe(recent.id)
   })
@@ -153,10 +158,14 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     ).toBeUndefined()
     // ensure both still present
     const s1 = await adminTransaction(async ({ transaction }) =>
-      selectCheckoutSessionById(oldSucceeded.id, transaction)
+      (
+        await selectCheckoutSessionById(oldSucceeded.id, transaction)
+      ).unwrap()
     )
     const s2 = await adminTransaction(async ({ transaction }) =>
-      selectCheckoutSessionById(oldPending.id, transaction)
+      (
+        await selectCheckoutSessionById(oldPending.id, transaction)
+      ).unwrap()
     )
     expect(s1.id).toBe(oldSucceeded.id)
     expect(s2.id).toBe(oldPending.id)
@@ -236,7 +245,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     expect(result.find((s) => s.id === recent.id)).toBeUndefined()
     const stillThere = await adminTransaction(
       async ({ transaction }) =>
-        selectCheckoutSessionById(recent.id, transaction)
+        (
+          await selectCheckoutSessionById(recent.id, transaction)
+        ).unwrap()
     )
     expect(stillThere.id).toBe(recent.id)
   })

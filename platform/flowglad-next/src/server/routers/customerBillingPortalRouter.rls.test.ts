@@ -818,10 +818,12 @@ describe('Customer Billing Portal Router', () => {
       // Verify the payment method is actually set as default
       const updatedPaymentMethod = await adminTransaction(
         async ({ transaction }) => {
-          return selectPaymentMethodById(
-            additionalPaymentMethod.id,
-            transaction
-          )
+          return (
+            await selectPaymentMethodById(
+              additionalPaymentMethod.id,
+              transaction
+            )
+          ).unwrap()
         }
       )
       expect(updatedPaymentMethod.default).toBe(true)
@@ -829,10 +831,12 @@ describe('Customer Billing Portal Router', () => {
       // Verify the previous default is no longer default
       const previousDefault = await adminTransaction(
         async ({ transaction }) => {
-          return selectPaymentMethodById(
-            paymentMethod.id,
-            transaction
-          )
+          return (
+            await selectPaymentMethodById(
+              paymentMethod.id,
+              transaction
+            )
+          ).unwrap()
         }
       )
       expect(previousDefault.default).toBe(false)

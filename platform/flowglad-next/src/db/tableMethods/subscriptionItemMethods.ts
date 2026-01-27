@@ -64,7 +64,10 @@ export const derivePricingModelIdFromSubscriptionItem =
   createDerivePricingModelId(
     subscriptionItems,
     config,
-    selectSubscriptionItemById
+    async (id, transaction) => {
+      const result = await selectSubscriptionItemById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**

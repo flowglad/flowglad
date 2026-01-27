@@ -68,10 +68,9 @@ const processPaymentIntent = async ({
           `No purchase id found for payment ${payment.id}`
         )
       }
-      const purchase = await selectPurchaseById(
-        payment.purchaseId,
-        transaction
-      )
+      const purchase = (
+        await selectPurchaseById(payment.purchaseId, transaction)
+      ).unwrap()
       const invoice = (
         await selectInvoiceById(payment.invoiceId, transaction)
       ).unwrap()
@@ -80,10 +79,12 @@ const processPaymentIntent = async ({
       )
       let checkoutSession: CheckoutSession.Record | null = null
       if (metadata?.type === IntentMetadataType.CheckoutSession) {
-        checkoutSession = await selectCheckoutSessionById(
-          metadata.checkoutSessionId,
-          transaction
-        )
+        checkoutSession = (
+          await selectCheckoutSessionById(
+            metadata.checkoutSessionId,
+            transaction
+          )
+        ).unwrap()
       } else {
         const checkoutSessionsForPaymentIntent =
           await selectCheckoutSessions(

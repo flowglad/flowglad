@@ -25,7 +25,7 @@ import {
   createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -131,7 +131,7 @@ export const derivePricingModelIdForPrice = async (
   return pricingModelId
 }
 
-export const selectPriceById = createSelectByIdResult(prices, config)
+export const selectPriceById = createSelectById(prices, config)
 
 /**
  * Derives pricingModelId from a price by reading directly from the price table.
@@ -1005,13 +1005,9 @@ export const ensureUsageMeterHasDefaultPrice = async (
   }
 
   // Set the no_charge price as default
-  const usageMeter = await selectUsageMeterById(
-    usageMeterId,
-    ctx.transaction
-  )
-  if (!usageMeter) {
-    throw new Error(`Usage meter ${usageMeterId} not found`)
-  }
+  const usageMeter = (
+    await selectUsageMeterById(usageMeterId, ctx.transaction)
+  ).unwrap()
 
   const noChargeSlug = getNoChargeSlugForMeter(usageMeter.slug)
 

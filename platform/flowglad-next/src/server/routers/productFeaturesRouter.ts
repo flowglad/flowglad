@@ -68,13 +68,12 @@ export const createOrRestoreProductFeature = protectedProcedure
         const product = productResult.value
 
         // Validate that toggle features cannot be associated with single payment products
-        const feature = await selectFeatureById(
-          input.productFeature.featureId,
-          transaction
-        )
-        if (!feature) {
-          throw new Error('Feature not found')
-        }
+        const feature = (
+          await selectFeatureById(
+            input.productFeature.featureId,
+            transaction
+          )
+        ).unwrap()
 
         if (feature.type === FeatureType.Toggle) {
           const defaultPrice = await selectPrices(
@@ -134,14 +133,9 @@ export const getProductFeature = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const productFeature = await selectProductFeatureById(
-          input.id,
-          transaction
-        )
-        if (!productFeature) {
-          // Consider throwing a TRPCError NOT_FOUND
-          throw new Error('ProductFeature not found')
-        }
+        const productFeature = (
+          await selectProductFeatureById(input.id, transaction)
+        ).unwrap()
         return { productFeature }
       }
     )

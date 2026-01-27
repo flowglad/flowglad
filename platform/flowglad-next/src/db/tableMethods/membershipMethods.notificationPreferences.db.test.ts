@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { setupMemberships, setupOrg } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import {
@@ -27,10 +28,9 @@ describe('memberships notificationPreferences', () => {
     it('returns expected defaults for new memberships via getMembershipNotificationPreferences', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Fetch the fresh membership
-        const freshMembership = await selectMembershipById(
-          membership.id,
-          transaction
-        )
+        const freshMembership = (
+          await selectMembershipById(membership.id, transaction)
+        ).unwrap()
 
         // getMembershipNotificationPreferences should return testModeNotifications = true (default)
         const prefs =
@@ -67,10 +67,9 @@ describe('memberships notificationPreferences', () => {
         )
 
         // Fetch the updated membership
-        const updatedMembership = await selectMembershipById(
-          membership.id,
-          transaction
-        )
+        const updatedMembership = (
+          await selectMembershipById(membership.id, transaction)
+        ).unwrap()
 
         // getMembershipNotificationPreferences should return the updated values
         const prefs =
@@ -93,10 +92,9 @@ describe('memberships notificationPreferences', () => {
 
     it('returns all defaults for a fresh membership', async () => {
       await adminTransaction(async ({ transaction }) => {
-        const freshMembership = await selectMembershipById(
-          membership.id,
-          transaction
-        )
+        const freshMembership = (
+          await selectMembershipById(membership.id, transaction)
+        ).unwrap()
 
         const prefs =
           getMembershipNotificationPreferences(freshMembership)
@@ -130,10 +128,9 @@ describe('memberships notificationPreferences', () => {
           transaction
         )
 
-        const updatedMembership = await selectMembershipById(
-          membership.id,
-          transaction
-        )
+        const updatedMembership = (
+          await selectMembershipById(membership.id, transaction)
+        ).unwrap()
 
         const prefs =
           getMembershipNotificationPreferences(updatedMembership)

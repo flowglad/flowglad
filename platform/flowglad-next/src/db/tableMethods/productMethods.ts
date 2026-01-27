@@ -29,7 +29,7 @@ import {
   createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -64,10 +64,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'products',
 }
 
-export const selectProductById = createSelectByIdResult(
-  products,
-  config
-)
+export const selectProductById = createSelectById(products, config)
 
 export const selectProducts = createSelectFunction(products, config)
 

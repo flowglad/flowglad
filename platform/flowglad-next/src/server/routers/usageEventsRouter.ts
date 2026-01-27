@@ -91,7 +91,9 @@ export const getUsageEvent = protectedProcedure
   .query(async ({ input, ctx }) => {
     const usageEvent = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectUsageEventById(input.id, transaction)
+        return (
+          await selectUsageEventById(input.id, transaction)
+        ).unwrap()
       },
       { apiKey: ctx.apiKey }
     )

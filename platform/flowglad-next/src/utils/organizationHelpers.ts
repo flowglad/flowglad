@@ -101,10 +101,9 @@ export const createOrganizationTransaction = async (
     finalSubdomainSlug = `${subdomainSlug}-${suffix}`
   }
 
-  const country = await selectCountryById(
-    organization.countryId,
-    transaction
-  )
+  const country = (
+    await selectCountryById(organization.countryId, transaction)
+  ).unwrap()
   const eligibleFlows = getEligibleFundsFlowsForCountry(country.code)
   if (eligibleFlows.length === 0) {
     throw new Error(

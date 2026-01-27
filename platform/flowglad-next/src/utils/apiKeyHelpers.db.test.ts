@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupMemberships,
@@ -250,7 +251,9 @@ describe('apiKeyHelpers', () => {
       // Verify the key exists before deletion
       const keyBeforeDelete = await adminTransaction(
         async ({ transaction }) => {
-          return selectApiKeyById(secretApiKey.id, transaction)
+          return (
+            await selectApiKeyById(secretApiKey.id, transaction)
+          ).unwrap()
         }
       )
       expect(keyBeforeDelete.id).toBe(secretApiKey.id)
@@ -269,11 +272,13 @@ describe('apiKeyHelpers', () => {
       })
 
       // Verify the key no longer exists
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return selectApiKeyById(secretApiKey.id, transaction)
-        })
-      ).rejects.toThrow()
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectApiKeyById(
+          secretApiKey.id,
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+      })
     })
 
     it('should throw an error if the API key does not exist', async () => {
@@ -363,11 +368,13 @@ describe('apiKeyHelpers', () => {
       })
 
       // Verify the key no longer exists
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return selectApiKeyById(legacyApiKey.id, transaction)
-        })
-      ).rejects.toThrow()
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectApiKeyById(
+          legacyApiKey.id,
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+      })
     })
 
     it('should successfully delete a secret API key without hashText', async () => {
@@ -403,11 +410,13 @@ describe('apiKeyHelpers', () => {
       })
 
       // Verify the key no longer exists
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return selectApiKeyById(apiKeyNoHash.id, transaction)
-        })
-      ).rejects.toThrow()
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectApiKeyById(
+          apiKeyNoHash.id,
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+      })
     })
 
     it('should NOT delete the database record if Unkey deletion fails', async () => {
@@ -453,7 +462,9 @@ describe('apiKeyHelpers', () => {
       // Verify the key STILL EXISTS in the database (deletion was aborted)
       const keyAfterFailedDelete = await adminTransaction(
         async ({ transaction }) => {
-          return selectApiKeyById(apiKeyWithUnkeyId.id, transaction)
+          return (
+            await selectApiKeyById(apiKeyWithUnkeyId.id, transaction)
+          ).unwrap()
         }
       )
       expect(keyAfterFailedDelete.id).toBe(apiKeyWithUnkeyId.id)

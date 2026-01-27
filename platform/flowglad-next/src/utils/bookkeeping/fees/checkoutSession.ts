@@ -186,10 +186,9 @@ export const createFeeCalculationForCheckoutSession = async (
   if (!organizationCountryId) {
     throw new Error('Organization country id is required')
   }
-  const organizationCountry = await selectCountryById(
-    organizationCountryId,
-    transaction
-  )
+  const organizationCountry = (
+    await selectCountryById(organizationCountryId, transaction)
+  ).unwrap()
   return createCheckoutSessionFeeCalculation(
     {
       organization,

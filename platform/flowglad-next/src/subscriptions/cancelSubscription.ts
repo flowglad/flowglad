@@ -766,9 +766,13 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
     subscription.defaultPaymentMethodId ??
     subscription.backupPaymentMethodId
 
-  const paymentMethod = paymentMethodId
+  const paymentMethodResult = paymentMethodId
     ? await selectPaymentMethodById(paymentMethodId, transaction)
     : null
+  const paymentMethod =
+    paymentMethodResult && Result.isOk(paymentMethodResult)
+      ? paymentMethodResult.value
+      : null
 
   // Security check: For paid subscriptions, require payment method
   // doNotCharge subscriptions are exempt from this requirement
