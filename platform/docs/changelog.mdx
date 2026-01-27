@@ -6,6 +6,39 @@ rss: true
 
 
 
+<Update label="January 27, 2026">
+  ## Highlights
+
+  - Resource-based billing is live. Track seats, projects, storage, or any resource with capacity limits and real-time claims. [#1519](https://github.com/flowglad/flowglad/pull/1519)
+  - Better Auth plugin reworked with automatic organization customer resolution, improved routing, and expanded test coverage. [#1617](https://github.com/flowglad/flowglad/pull/1617)
+  - Customers and payment methods now fully scoped to pricing models with comprehensive migration support. [#1320](https://github.com/flowglad/flowglad/pull/1320)
+
+  ## New Features
+
+  - Resource-based billing system redesigned so resource claims survive subscription adjustments, scoped to (subscriptionId, resourceId) with expiring claims support. [#1519](https://github.com/flowglad/flowglad/pull/1519)
+  - Redesigned resource usage UI with 2-column grid layout, clickable cards, and detail modal with capacity stats. [#1460](https://github.com/flowglad/flowglad/pull/1460)
+  - Discounts now scoped to pricing models, allowing the same code across different models. [#1425](https://github.com/flowglad/flowglad/pull/1425)
+  - Customers scoped to pricing models with customers.pricing_model_id now NOT NULL and uniqueness enforced at pricing model level. [#1320](https://github.com/flowglad/flowglad/pull/1320)
+  - Better Auth integration reworked with automatic organization details derivation, new endpoints for getExternalId, billing/pricing, and usage meter balances. [#1617](https://github.com/flowglad/flowglad/pull/1617)
+  - Subscription lifecycle emails with trial-specific handling, professional DetailTable component, and unified messaging. [#1504](https://github.com/flowglad/flowglad/pull/1504)
+  - Notification preferences with per-organization settings UI and form toggles for test mode, subscription, and payment notifications. [#1366](https://github.com/flowglad/flowglad/pull/1366), [#1444](https://github.com/flowglad/flowglad/pull/1444)
+
+  ## Improvements & Fixes
+
+  - Added migration testing scripts for staging/prod database clones. [#1320](https://github.com/flowglad/flowglad/pull/1320)
+  - Batch customer lookups for bulk operations. [#1593](https://github.com/flowglad/flowglad/pull/1593)
+  - Resource capacity aggregation with deduplication. [#1519](https://github.com/flowglad/flowglad/pull/1519)
+  - Unified StatusTag component with semantic colors. [#1627](https://github.com/flowglad/flowglad/pull/1627)
+  - Split test infrastructure with bun test for backend and vitest for frontend. [#1609](https://github.com/flowglad/flowglad/pull/1609), [#1638](https://github.com/flowglad/flowglad/pull/1638)
+  - Docker build performance improvements. [#1639](https://github.com/flowglad/flowglad/pull/1639)
+  - Parallelized queries in customerBillingTransaction. [#1614](https://github.com/flowglad/flowglad/pull/1614)
+  - Fixed proration logic for end-of-period adjustments. [#1519](https://github.com/flowglad/flowglad/pull/1519)
+  - Resource claim releases on scheduled cancellation. [#1519](https://github.com/flowglad/flowglad/pull/1519)
+  - Navigation fixes preventing 404s on org/livemode switching. [#1567](https://github.com/flowglad/flowglad/pull/1567)
+  - Better Auth plugin documentation updates. [#1617](https://github.com/flowglad/flowglad/pull/1617), [#1618](https://github.com/flowglad/flowglad/pull/1618)
+  - Comprehensive resource billing documentation. [#1549](https://github.com/flowglad/flowglad/pull/1549), [#1577](https://github.com/flowglad/flowglad/pull/1577)
+</Update>
+
 <Update label="January 13, 2026">
   ## Highlights
 
