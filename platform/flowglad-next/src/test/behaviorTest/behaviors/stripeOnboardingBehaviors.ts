@@ -42,6 +42,7 @@
 
 import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
+import type { ComprehensiveAdminTransactionParams } from '@/db/types'
 import {
   getStripeTestClient,
   getStripeTestModeSecretKey,
@@ -277,6 +278,9 @@ export const completeStripeOnboardingBehavior = defineBehavior({
         company: {
           name: prev.organization.name || 'Test Company',
         },
+        // Provide test external account to enable transfers capability
+        // This is a Stripe test bank account token that auto-verifies in test mode
+        external_account: 'btok_us', // US test bank account token
       })
       stripeAccountId = stripeAccount.id
     } else {
@@ -285,7 +289,9 @@ export const completeStripeOnboardingBehavior = defineBehavior({
     }
 
     await adminTransaction(
-      async ({ transaction }) => {
+      async ({
+        transaction,
+      }: ComprehensiveAdminTransactionParams) => {
         await updateOrganization(
           {
             id: prev.organization.id,
