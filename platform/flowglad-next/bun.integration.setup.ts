@@ -68,6 +68,10 @@ import { seedDatabase } from './seedDatabase'
 // This allows the stripe() function to use real API keys instead of fake test keys
 process.env.STRIPE_INTEGRATION_TEST_MODE = 'true'
 
+// Skip Stripe Tax API calls to avoid rate limit (1000 req/24hr in test mode)
+// Tax calculations return mock data; all other Stripe APIs use real calls
+process.env.SKIP_STRIPE_TAX_CALCULATIONS = 'true'
+
 // Enable integration test mode for Redis client
 // This allows the redis() function to use real Upstash connection instead of test stub
 process.env.REDIS_INTEGRATION_TEST_MODE = 'true'
