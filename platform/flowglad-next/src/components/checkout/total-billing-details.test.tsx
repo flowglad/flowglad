@@ -91,7 +91,6 @@ const mockCheckoutPageContext = (): CheckoutPageContextValues => {
 
 // Declare global mock state for checkout context
 declare global {
-  // biome-ignore lint: test mock globals
   var __mockedCheckoutContext: CheckoutPageContextValues | undefined
 }
 
@@ -253,10 +252,6 @@ describe('calculateTotalBillingDetails', () => {
 })
 
 describe('price flow', () => {
-  beforeEach(() => {
-    // mocks cleared
-  })
-
   it('should handle basic no discount, no feeCalculation', async () => {
     // Arrange: type: 'price', price with non-usage type, purchase optional/undefined
     const params = {
@@ -444,10 +439,6 @@ describe('price flow', () => {
 })
 
 describe('invoice flow', () => {
-  beforeEach(() => {
-    // mocks cleared
-  })
-
   it('should handle basic no discount, no feeCalculation', async () => {
     // Arrange: type: 'invoice', invoice provided, invoiceLineItems provided
     const params = {

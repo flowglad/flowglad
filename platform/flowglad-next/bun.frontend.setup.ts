@@ -24,13 +24,6 @@
 /// <reference lib="dom" />
 /// <reference types="@testing-library/jest-dom" />
 
-// Import DOM preload to ensure happy-dom is available
-// We use happyWindow for cleanup between tests
-import { happyWindow } from './bun.dom.preload'
-
-// Store reference for cleanup (avoids unused import warning)
-const _happyWindow = happyWindow
-
 // Import standard mocks (after DOM registration)
 import './bun.mocks'
 
@@ -61,9 +54,13 @@ process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
 process.env.UNKEY_ROOT_KEY =
   process.env.UNKEY_ROOT_KEY || 'unkey_test_mock'
 
-// Polyfill crypto if missing
+// Polyfill crypto if missing (use Object.defineProperty for safer global mutation)
 if (!globalThis.crypto) {
-  globalThis.crypto = webcrypto as unknown as Crypto
+  Object.defineProperty(globalThis, 'crypto', {
+    value: webcrypto,
+    writable: true,
+    configurable: true,
+  })
 }
 
 const envTracker = createAutoEnvTracker()

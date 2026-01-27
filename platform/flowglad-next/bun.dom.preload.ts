@@ -18,7 +18,6 @@ const happyWindow = new Window({
 })
 
 // Set up global DOM APIs immediately (using 'as any' for type compatibility)
-// biome-ignore lint: happy-dom types don't perfectly match native DOM types
 const g = globalThis as any
 g.window = happyWindow
 g.document = happyWindow.document
