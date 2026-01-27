@@ -313,9 +313,9 @@ describe('paymentMethods.ts', () => {
 
         // Verify the payment was actually updated in the database
         const fetchedPayment = (
-          await selectPaymentById(payment.id, transaction)
+          await selectPaymentById(processingPayment.id, transaction)
         ).unwrap()
-        expect(fetchedPayment?.status).toBe(PaymentStatus.Succeeded)
+        expect(fetchedPayment.status).toBe(PaymentStatus.Succeeded)
       })
     })
 
