@@ -403,3 +403,79 @@ bun test --max-concurrency 1 path/to/file.test.ts
 4. **Verify test setup ran** - `bun run test:setup` for DB tests
 5. **Check environment variables** - integration tests need real credentials
 6. **Look for parallel pollution** - run with `--max-concurrency 1`
+
+## Flaky Test Patterns
+
+**Never re-run CI hoping flaky tests pass.** Always diagnose and fix the root cause.
+
+### Non-Deterministic Results
+
+```typescript
+// FLAKY: Array order not guaranteed
+const users = await db.query.users.findMany()
+expect(users).toEqual([userA, userB])
+
+// FIXED: Sort before comparing
+const users = await db.query.users.findMany()
+const sorted = users.sort((a, b) => a.id.localeCompare(b.id))
+expect(sorted).toEqual([userA, userB].sort((a, b) => a.id.localeCompare(b.id)))
+```
+
+### Race Conditions
+
+```typescript
+// FLAKY: Doesn't wait for async completion
+emitEvent('userCreated')
+expect(handler.called).toBe(true)
+
+// FIXED: Wait for the side effect
+await emitEvent('userCreated')
+await waitFor(() => expect(handler.called).toBe(true))
+```
+
+### Timing Dependencies
+
+```typescript
+// FLAKY: Arbitrary sleep may not be enough
+await sleep(100)
+expect(cache.get('key')).toBeDefined()
+
+// FIXED: Poll for condition
+await waitFor(() => expect(cache.get('key')).toBeDefined(), { timeout: 5000 })
+```
+
+### Shared State Between Tests
+
+```typescript
+// FLAKY: Uses global counter that persists across tests
+let counter = 0
+it('increments counter', () => {
+  counter++
+  expect(counter).toBe(1) // Fails if another test ran first
+})
+
+// FIXED: Reset in beforeEach
+let counter: number
+beforeEach(() => { counter = 0 })
+it('increments counter', () => {
+  counter++
+  expect(counter).toBe(1)
+})
+```
+
+### Test Data Collisions
+
+```typescript
+// FLAKY: Fixed email collides in parallel runs
+await createUser({ email: 'test@example.com' })
+
+// FIXED: Unique email per test
+await createUser({ email: `test+${nanoid()}@example.com` })
+```
+
+### Verifying a Fix is Stable
+
+Run the test multiple times before pushing:
+```bash
+for i in {1..10}; do bun test path/to/test.ts || exit 1; done
+```
