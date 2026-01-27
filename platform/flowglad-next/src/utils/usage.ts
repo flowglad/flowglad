@@ -58,10 +58,9 @@ export const createUsageMeterTransaction = async (
   const { usageMeter: usageMeterInput, price: priceInput } = payload
 
   // Get organization's default currency
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
 
   const ctx = {
     transaction,

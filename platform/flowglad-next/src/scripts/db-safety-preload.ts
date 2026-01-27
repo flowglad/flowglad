@@ -99,6 +99,9 @@ function validateEnvironmentFiles(): void {
   const scriptName = process.env.npm_lifecycle_event
   if (!scriptName) return
 
+  // Skip for bootstrap scripts that don't need env files
+  if (isBootstrapScript()) return
+
   const nodeEnv = getEffectiveNodeEnv()
 
   // Map NODE_ENV to the expected env file
@@ -144,6 +147,63 @@ export const LOCAL_HOST_PATTERNS = [
   '.local',
   'host.docker.internal',
 ] as const
+
+/**
+ * Commands that are safe to run without local database validation.
+ * These commands don't connect to the database at all.
+ */
+export const SAFE_COMMANDS = [
+  // Type checking and linting
+  'typecheck',
+  'lint',
+  'format',
+  'check',
+
+  // Build and install
+  'build',
+  'install',
+  'install-packages',
+
+  // Validation scripts that don't need DB
+  'validate:registry',
+  'validate:mock-import-order',
+
+  // Biome direct calls
+  'biome',
+  '@biomejs/biome',
+
+  // TypeScript direct calls
+  'tsc',
+] as const
+
+/**
+ * Check if the current command is in the safe list.
+ * These commands don't need database access and should be allowed
+ * to run even when DATABASE_URL points to a remote database.
+ */
+export function isCommandSafe(): boolean {
+  // Get the script being run via npm/bun
+  const scriptName = process.env.npm_lifecycle_event
+
+  if (scriptName) {
+    return SAFE_COMMANDS.some((cmd) => scriptName.includes(cmd))
+  }
+
+  // Check Bun.argv for direct execution
+  const args = typeof Bun !== 'undefined' ? Bun.argv.slice(2) : []
+
+  // Check for 'bun run <script>' pattern
+  if (args[0] === 'run' && args[1]) {
+    return SAFE_COMMANDS.some((cmd) => args[1].includes(cmd))
+  }
+
+  // Check for direct execution (bun <script>)
+  if (args[0]) {
+    return SAFE_COMMANDS.some((cmd) => args[0].includes(cmd))
+  }
+
+  return false
+}
 
 // ANSI colors for terminal output
 const COLORS = {
@@ -226,7 +286,8 @@ export function shouldSkipSafetyCheck(): boolean {
     process.env.VERCEL !== undefined ||
     process.env.CI !== undefined ||
     process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined ||
-    isBootstrapScript()
+    isBootstrapScript() ||
+    isCommandSafe()
   )
 }
 

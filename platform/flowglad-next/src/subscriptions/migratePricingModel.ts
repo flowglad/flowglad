@@ -294,10 +294,9 @@ async function createDefaultSubscriptionOnPricingModel(
   ctx: TransactionEffectsContext
 ): Promise<Result<Subscription.Record, Error>> {
   const { transaction } = ctx
-  const organization = await selectOrganizationById(
-    customer.organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(customer.organizationId, transaction)
+  ).unwrap()
 
   // Try to find default product on the new pricing model
   let [defaultProduct] = await selectPricesAndProductsByProductWhere(

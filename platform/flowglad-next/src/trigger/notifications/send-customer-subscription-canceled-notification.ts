@@ -50,13 +50,14 @@ export const runSendCustomerSubscriptionCanceledNotification =
     try {
       const data = await adminTransaction(async ({ transaction }) => {
         // First fetch subscription to get organizationId and customerId
-        const subscription = await selectSubscriptionById(
+        const subscriptionResult = await selectSubscriptionById(
           subscriptionId,
           transaction
         )
-        if (!subscription) {
-          throw new NotFoundError('Subscription', subscriptionId)
+        if (Result.isError(subscriptionResult)) {
+          throw subscriptionResult.error
         }
+        const subscription = subscriptionResult.value
 
         // Use buildNotificationContext for organization and customer
         const { organization, customer } =

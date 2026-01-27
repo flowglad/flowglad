@@ -12,6 +12,7 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  // FIXME: migrate to better-auth plugin pattern
   plugins: [expo()],
   socialProviders: {},
   trustedOrigins: ['exp://', 'withbetterauth://'],
