@@ -4,6 +4,7 @@ import {
   LOCAL_HOST_PATTERNS,
   maskDatabaseUrl,
   shouldSkipSafetyCheck,
+  validateDatabaseUrl,
 } from './safety'
 
 describe('db/safety', () => {
@@ -229,6 +230,134 @@ describe('db/safety', () => {
     it('is a readonly tuple', () => {
       expect(Array.isArray(LOCAL_HOST_PATTERNS)).toBe(true)
       expect(LOCAL_HOST_PATTERNS.length).toBeGreaterThan(0)
+    })
+  })
+
+  describe('validateDatabaseUrl', () => {
+    let originalEnv: Record<string, string | undefined>
+
+    beforeEach(() => {
+      originalEnv = { ...process.env }
+      const env = process.env as Record<string, string | undefined>
+      delete env.VERCEL
+      delete env.CI
+      delete env.DANGEROUSLY_ALLOW_REMOTE_DB
+    })
+
+    afterEach(() => {
+      const env = process.env as Record<string, string | undefined>
+      Object.keys(env).forEach((key) => {
+        delete env[key]
+      })
+      Object.entries(originalEnv).forEach(([key, value]) => {
+        if (value !== undefined) {
+          env[key] = value
+        }
+      })
+    })
+
+    it('does not throw for localhost URLs', () => {
+      validateDatabaseUrl('postgresql://user:pass@localhost:5432/db')
+    })
+
+    it('does not throw for 127.0.0.1 URLs', () => {
+      validateDatabaseUrl('postgresql://user:pass@127.0.0.1:5432/db')
+    })
+
+    it('does not throw for host.docker.internal URLs', () => {
+      validateDatabaseUrl(
+        'postgresql://user:pass@host.docker.internal:5432/db'
+      )
+    })
+
+    it('does not throw for .local domain URLs', () => {
+      validateDatabaseUrl('postgresql://user:pass@mydb.local:5432/db')
+    })
+
+    it('does not throw for remote URLs when VERCEL is set', () => {
+      const env = process.env as Record<string, string | undefined>
+      env.VERCEL = '1'
+      validateDatabaseUrl(
+        'postgresql://user:pass@prod.supabase.co:5432/db'
+      )
+    })
+
+    it('does not throw for remote URLs when CI is set', () => {
+      const env = process.env as Record<string, string | undefined>
+      env.CI = 'true'
+      validateDatabaseUrl(
+        'postgresql://user:pass@prod.supabase.co:5432/db'
+      )
+    })
+
+    it('does not throw for remote URLs when DANGEROUSLY_ALLOW_REMOTE_DB is set', () => {
+      const env = process.env as Record<string, string | undefined>
+      env.DANGEROUSLY_ALLOW_REMOTE_DB = '1'
+      validateDatabaseUrl(
+        'postgresql://user:pass@prod.supabase.co:5432/db'
+      )
+    })
+
+    it('throws for remote URLs when no bypass is set', () => {
+      expect(() =>
+        validateDatabaseUrl(
+          'postgresql://user:secretpass@prod.supabase.co:5432/db'
+        )
+      ).toThrow()
+    })
+
+    it('includes masked URL in error message (password hidden)', () => {
+      try {
+        validateDatabaseUrl(
+          'postgresql://user:my-secret-password@prod.supabase.co:5432/db'
+        )
+        expect.unreachable('Expected an error to be thrown')
+      } catch (error) {
+        const message = (error as Error).message
+        expect(message).toContain('prod.supabase.co')
+        expect(message).toContain('****')
+        expect(message).not.toContain('my-secret-password')
+      }
+    })
+
+    it('includes recognized local hosts in error message', () => {
+      try {
+        validateDatabaseUrl(
+          'postgresql://user:pass@remote.example.com:5432/db'
+        )
+        expect.unreachable('Expected an error to be thrown')
+      } catch (error) {
+        const message = (error as Error).message
+        expect(message).toContain('localhost')
+        expect(message).toContain('127.0.0.1')
+        expect(message).toContain('host.docker.internal')
+      }
+    })
+
+    it('includes bypass instructions in error message', () => {
+      try {
+        validateDatabaseUrl(
+          'postgresql://user:pass@remote.example.com:5432/db'
+        )
+        expect.unreachable('Expected an error to be thrown')
+      } catch (error) {
+        const message = (error as Error).message
+        expect(message).toContain('DANGEROUSLY_ALLOW_REMOTE_DB=1')
+      }
+    })
+
+    it('error message indicates the check runs at db import time', () => {
+      try {
+        validateDatabaseUrl(
+          'postgresql://user:pass@remote.example.com:5432/db'
+        )
+        expect.unreachable('Expected an error to be thrown')
+      } catch (error) {
+        const message = (error as Error).message
+        expect(message).toContain(
+          'when the database module is imported'
+        )
+      }
     })
   })
 })
