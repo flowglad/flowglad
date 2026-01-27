@@ -1,7 +1,13 @@
 import { Img } from '@react-email/components'
 import * as React from 'react'
+import { emailBaseUrl } from '@/utils/core'
 import TestModeBanner from '../components/TestBanner'
-import { EmailLayout, Header, Paragraph } from '../components/themed'
+import {
+  EmailLayout,
+  Footer,
+  Header,
+  Paragraph,
+} from '../components/themed'
 
 export interface CustomersCsvExportReadyEmailProps {
   organizationName: string
@@ -19,11 +25,11 @@ export const CustomersCsvExportReadyEmail = ({
     >
       <TestModeBanner livemode={livemode} />
       <Img
-        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-        width="540"
-        height="199"
+        src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
+        width="40"
+        height="40"
         alt="Flowglad Logo"
-        style={{ margin: '0 auto', marginBottom: '32px' }}
+        style={{ marginBottom: '32px' }}
       />
       <Header
         title="Your CSV Export is Ready"
@@ -32,6 +38,10 @@ export const CustomersCsvExportReadyEmail = ({
       <Paragraph variant="organization">
         The file is attached to this email and ready to download.
       </Paragraph>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }

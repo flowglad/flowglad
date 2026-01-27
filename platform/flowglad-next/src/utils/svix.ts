@@ -57,14 +57,35 @@ function generateSvixId({
   return `${prefix}_${id}_${modeStr}_${hmac}`
 }
 
+/**
+ * Generate a Svix application ID for the given organization and livemode.
+ *
+ * When `pricingModelId` is provided, generates a PM-scoped app ID:
+ *   `app_${orgId}_${pricingModelId}_${livemode}_${hmac}`
+ *
+ * When `pricingModelId` is not provided (legacy), generates:
+ *   `app_${orgId}_${livemode}_${hmac}`
+ *
+ * @param organization - Organization record used to compute the Svix application ID
+ * @param livemode - When `true`, use the live-mode application ID; when `false`, use test-mode
+ * @param pricingModelId - Optional pricing model ID for PM-scoped applications
+ * @returns The deterministic Svix application ID
+ */
 export function getSvixApplicationId(params: {
   organization: Organization.Record
   livemode: boolean
+  pricingModelId?: string // Optional for backward compat with legacy apps
 }) {
-  const { organization, livemode } = params
+  const { organization, livemode, pricingModelId } = params
+  // When pricingModelId is provided, include it in the ID base
+  // This creates PM-scoped app IDs like: app_${orgId}_${pmId}_${livemode}_${hmac}
+  // When not provided, creates legacy IDs like: app_${orgId}_${livemode}_${hmac}
+  const idBase = pricingModelId
+    ? `${organization.id}_${pricingModelId}`
+    : organization.id
   return generateSvixId({
     prefix: 'app',
-    id: organization.id,
+    id: idBase,
     organization,
     livemode,
   })
@@ -85,6 +106,30 @@ export function getSvixEndpointId(params: {
 }
 
 /**
+ * Check if a Svix application exists by ID.
+ *
+ * This is used to check for the existence of legacy (org+livemode) or
+ * PM-scoped (org+pm+livemode) Svix applications without creating them.
+ *
+ * @param applicationId - The Svix application ID to check
+ * @returns `true` if the application exists, `false` if not found
+ * @throws On other errors (network, auth, rate limits, etc.)
+ */
+export const checkSvixApplicationExists = async (
+  applicationId: string
+): Promise<boolean> => {
+  try {
+    await svix().application.get(applicationId)
+    return true
+  } catch (error) {
+    if (error instanceof ApiException && error.code === 404) {
+      return false
+    }
+    throw error
+  }
+}
+
+/**
  * Core findOrCreateSvixApplication logic with checkpoint callback for tracing.
  */
 const findOrCreateSvixApplicationCore = async (
@@ -92,13 +137,15 @@ const findOrCreateSvixApplicationCore = async (
   params: {
     organization: Organization.Record
     livemode: boolean
+    pricingModelId?: string // Optional for backward compat
   }
 ): Promise<ApplicationOut> => {
-  const { organization, livemode } = params
+  const { organization, livemode, pricingModelId } = params
   const modeSlug = livemode ? 'live' : 'test'
   const applicationId = getSvixApplicationId({
     organization,
     livemode,
+    pricingModelId,
   })
 
   let app: ApplicationOut | undefined
@@ -131,8 +178,12 @@ const findOrCreateSvixApplicationCore = async (
  *
  * Attempts to fetch a Svix application by its deterministic ID and creates a new application with a name derived from the organization if no existing application is found. The OpenTelemetry span used for the operation is annotated with the attribute `svix.created` set to `true` when a new application is created and `false` when an existing application is returned.
  *
+ * When `pricingModelId` is provided, creates/finds a PM-scoped application.
+ * When not provided, creates/finds a legacy org+livemode application.
+ *
  * @param organization - Organization record used to compute the Svix application ID and display name
  * @param livemode - When `true`, use the live-mode application ID; when `false`, use the test-mode application ID
+ * @param pricingModelId - Optional pricing model ID for PM-scoped applications (backward compat)
  * @returns The existing or newly created Svix application
  */
 export const findOrCreateSvixApplication = tracedWithCheckpoints(
@@ -155,6 +206,9 @@ interface CreateSvixEndpointParams {
 
 /**
  * Core createSvixEndpoint logic without tracing.
+ *
+ * When the webhook has a `pricingModelId`, uses PM-scoped Svix application.
+ * Otherwise falls back to legacy org+livemode application format.
  */
 const createSvixEndpointCore = async (
   params: CreateSvixEndpointParams
@@ -163,6 +217,7 @@ const createSvixEndpointCore = async (
   const applicationId = getSvixApplicationId({
     organization,
     livemode: webhook.livemode,
+    pricingModelId: webhook.pricingModelId,
   })
   if (!applicationId) {
     throw new Error('No application ID found')
@@ -170,18 +225,35 @@ const createSvixEndpointCore = async (
   await findOrCreateSvixApplication({
     organization,
     livemode: webhook.livemode,
+    pricingModelId: webhook.pricingModelId,
   })
   const endpointId = getSvixEndpointId({
     organization,
     webhook,
     livemode: webhook.livemode,
   })
-  const endpoint = await svix().endpoint.create(applicationId, {
-    uid: endpointId,
-    url: webhook.url,
-    filterTypes: webhook.filterTypes,
-  })
-  return endpoint
+  try {
+    const endpoint = await svix().endpoint.create(applicationId, {
+      uid: endpointId,
+      url: webhook.url,
+      filterTypes: webhook.filterTypes,
+    })
+    return endpoint
+  } catch (error) {
+    // Extract user-friendly error message from Svix response
+    const svixError = error as {
+      code?: number
+      body?: { detail?: Array<{ msg?: string; loc?: string[] }> }
+    }
+    if (svixError.code === 422 && svixError.body?.detail?.length) {
+      const messages = svixError.body.detail
+        .map((d) => d.msg)
+        .filter(Boolean)
+        .join('; ')
+      throw new Error(messages || 'Invalid webhook configuration')
+    }
+    throw error
+  }
 }
 
 /**
@@ -200,6 +272,7 @@ export const createSvixEndpoint = svixTraced(
     'svix.app_id': getSvixApplicationId({
       organization: params.organization,
       livemode: params.webhook.livemode,
+      pricingModelId: params.webhook.pricingModelId,
     }),
   }),
   createSvixEndpointCore
@@ -212,6 +285,9 @@ interface UpdateSvixEndpointParams {
 
 /**
  * Core updateSvixEndpoint logic without tracing.
+ *
+ * When the webhook has a `pricingModelId`, uses PM-scoped Svix application.
+ * Otherwise falls back to legacy org+livemode application format.
  */
 const updateSvixEndpointCore = async (
   params: UpdateSvixEndpointParams
@@ -225,6 +301,7 @@ const updateSvixEndpointCore = async (
   const application = await findOrCreateSvixApplication({
     organization,
     livemode: webhook.livemode,
+    pricingModelId: webhook.pricingModelId,
   })
   if (!application) {
     throw new Error('No application found')
@@ -255,6 +332,7 @@ export const updateSvixEndpoint = svixTraced(
     'svix.app_id': getSvixApplicationId({
       organization: params.organization,
       livemode: params.webhook.livemode,
+      pricingModelId: params.webhook.pricingModelId,
     }),
     'svix.endpoint_id': getSvixEndpointId({
       organization: params.organization,
@@ -271,47 +349,111 @@ interface SendSvixEventParams {
 }
 
 /**
- * Core sendSvixEvent logic without tracing.
+ * Core sendSvixEvent logic with legacy-first routing.
+ *
+ * Event routing follows a backward-compatible approach:
+ * 1. First, check if a legacy org+livemode Svix app exists and send there
+ *    to maintain existing end-user behavior
+ * 2. If no legacy app exists, check for a PM-scoped app (when event has pricingModelId)
+ * 3. If neither app exists, silently no-op (org has no webhooks configured)
+ *
+ * When hard PM isolation is enforced in the future, the legacy app check
+ * will be removed and only PM-scoped apps will be used.
  */
 const sendSvixEventCore = async (params: SendSvixEventParams) => {
   const { event, organization } = params
-  const applicationId = getSvixApplicationId({
+
+  // 1. Check for legacy org+livemode app first (backward compatibility)
+  const legacyAppId = getSvixApplicationId({
     organization,
     livemode: event.livemode,
+    // No pricingModelId - legacy format
   })
-  if (!applicationId) {
-    throw new Error('No application ID found')
+
+  const legacyAppExists =
+    await checkSvixApplicationExists(legacyAppId)
+  if (legacyAppExists) {
+    // Send to legacy app to maintain existing end-user behavior
+    await svix().message.create(
+      legacyAppId,
+      {
+        eventType: event.type,
+        eventId: event.hash,
+        payload: {
+          ...event.payload,
+          pricingModelId: event.pricingModelId,
+        },
+      },
+      {
+        idempotencyKey: event.hash,
+      }
+    )
+    return
   }
-  await svix().message.create(
-    applicationId,
-    {
-      eventType: event.type,
-      eventId: event.hash,
-      payload: event.payload,
-    },
-    {
-      idempotencyKey: event.hash,
+
+  // 2. Check for PM-scoped app (only if event has pricingModelId)
+  if (event.pricingModelId) {
+    const pmAppId = getSvixApplicationId({
+      organization,
+      livemode: event.livemode,
+      pricingModelId: event.pricingModelId,
+    })
+
+    const pmAppExists = await checkSvixApplicationExists(pmAppId)
+    if (pmAppExists) {
+      await svix().message.create(
+        pmAppId,
+        {
+          eventType: event.type,
+          eventId: event.hash,
+          payload: {
+            ...event.payload,
+            pricingModelId: event.pricingModelId,
+          },
+        },
+        {
+          idempotencyKey: event.hash,
+        }
+      )
+      return
     }
-  )
+  }
+
+  // 3. No app found - no-op, don't throw error
+  // This happens when org has no webhooks configured
 }
 
 /**
  * Send the provided event to Svix for the given organization.
  *
+ * Uses legacy-first routing: first checks for legacy org+livemode app,
+ * then PM-scoped app if event has pricingModelId. Silently no-ops if
+ * neither app exists (org has no webhooks configured).
+ *
  * @param event - The event record to deliver; its `livemode` and `type` determine routing and metadata.
  * @param organization - The organization record used to derive the Svix application identifier.
- *
- * @throws If no Svix application ID can be derived for the organization and event livemode.
  */
 export const sendSvixEvent = svixTraced(
   'message.create',
-  (params: SendSvixEventParams) => ({
-    'svix.app_id': getSvixApplicationId({
+  (params: SendSvixEventParams) => {
+    const legacyAppId = getSvixApplicationId({
       organization: params.organization,
       livemode: params.event.livemode,
-    }),
-    'svix.event_type': params.event.type,
-  }),
+    })
+    const pmAppId = params.event.pricingModelId
+      ? getSvixApplicationId({
+          organization: params.organization,
+          livemode: params.event.livemode,
+          pricingModelId: params.event.pricingModelId,
+        })
+      : undefined
+
+    return {
+      'svix.legacy_app_id': legacyAppId,
+      'svix.pm_app_id': pmAppId,
+      'svix.event_type': params.event.type,
+    }
+  },
   sendSvixEventCore
 )
 
@@ -322,6 +464,9 @@ interface GetSvixSigningSecretParams {
 
 /**
  * Core getSvixSigningSecret logic without tracing.
+ *
+ * When the webhook has a `pricingModelId`, uses PM-scoped Svix application.
+ * Otherwise falls back to legacy org+livemode application format.
  */
 const getSvixSigningSecretCore = async (
   params: GetSvixSigningSecretParams
@@ -335,6 +480,7 @@ const getSvixSigningSecretCore = async (
   const applicationId = getSvixApplicationId({
     organization,
     livemode: webhook.livemode,
+    pricingModelId: webhook.pricingModelId,
   })
   const secret = await svix().endpoint.getSecret(
     applicationId,
@@ -356,6 +502,7 @@ export const getSvixSigningSecret = svixTraced(
     'svix.app_id': getSvixApplicationId({
       organization: params.organization,
       livemode: params.webhook.livemode,
+      pricingModelId: params.webhook.pricingModelId,
     }),
     'svix.endpoint_id': getSvixEndpointId({
       organization: params.organization,

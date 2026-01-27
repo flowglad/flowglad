@@ -30,7 +30,7 @@ export const createMockCustomer = (
     domain: null,
     billingAddress: null,
     userId: null,
-    pricingModelId: null,
+    pricingModelId: `pricing_model_${core.nanoid()}`,
     invoiceNumberBase: `INV${core.nanoid()}`,
     livemode: true,
     createdByCommit: null,

@@ -35,6 +35,7 @@ import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { BillingAddress } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import { nulledPriceColumns } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Product } from '@/db/schema/products'
 import {
   insertCheckoutSession,
@@ -74,6 +75,8 @@ export interface CreateProductWithPriceResult
   product: Product.Record
   /** The created price for the product */
   price: Price.Record
+  /** The pricing model used */
+  pricingModel: PricingModel.Record
 }
 
 /**
@@ -161,7 +164,8 @@ export const createProductWithPriceBehavior = defineBehavior({
     { contractTypeDep },
     prev: CompleteStripeOnboardingResult
   ): Promise<CreateProductWithPriceResult> => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const pricingModel = await selectDefaultPricingModel(
         { organizationId: prev.organization.id, livemode: true },
         transaction
@@ -186,7 +190,7 @@ export const createProductWithPriceBehavior = defineBehavior({
           default: false,
           slug: `test-product-${core.nanoid()}`,
         },
-        transaction
+        ctx
       )
 
       const price = await insertPrice(
@@ -205,10 +209,10 @@ export const createProductWithPriceBehavior = defineBehavior({
           externalId: null,
           slug: `test-price-${core.nanoid()}`,
         },
-        transaction
+        ctx
       )
 
-      return { product, price }
+      return { product, price, pricingModel }
     })
 
     return {
@@ -251,7 +255,8 @@ export const initiateCheckoutSessionBehavior = defineBehavior({
     _deps,
     prev: CreateProductWithPriceResult
   ): Promise<InitiateCheckoutSessionResult> => {
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Create anonymous customer
       const customer = await insertCustomer(
         {
@@ -262,12 +267,13 @@ export const initiateCheckoutSessionBehavior = defineBehavior({
           livemode: true,
           stripeCustomerId: `cus_${core.nanoid()}`,
           invoiceNumberBase: core.nanoid(),
+          pricingModelId: prev.pricingModel.id,
         },
         transaction
       )
 
       // Create checkout session without billing address
-      const checkoutSession = await insertCheckoutSession(
+      const checkoutSessionResult = await insertCheckoutSession(
         {
           organizationId: prev.organization.id,
           customerId: customer.id,
@@ -289,6 +295,7 @@ export const initiateCheckoutSessionBehavior = defineBehavior({
         },
         transaction
       )
+      const checkoutSession = checkoutSessionResult.unwrap()
 
       return {
         customerId: customer.id,
@@ -349,12 +356,14 @@ export const applyDiscountBehavior = defineBehavior({
     }
 
     // Create the discount and link it to the checkout session
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       // Create discount for this organization
       const discount = await insertDiscount(
         {
           ...discountInsert,
           organizationId: prev.organization.id,
+          pricingModelId: prev.pricingModel.id,
           livemode: true,
         },
         transaction
@@ -421,14 +430,19 @@ export const provideBillingAddressBehavior = defineBehavior({
   dependencies: [CustomerResidencyDep],
   run: async (
     { customerResidencyDep },
-    prev: ApplyDiscountResult
+    prev: ApplyDiscountResult | InitiateCheckoutSessionResult
   ): Promise<ProvideBillingAddressResult> => {
     const billingAddress = customerResidencyDep.billingAddress
 
-    // Use the checkout session with discount (if any)
-    const checkoutSessionId = prev.checkoutSessionWithDiscount.id
+    // Use the checkout session with discount if available, otherwise use the base checkout session
+    // This allows the behavior to work both with and without the applyDiscountBehavior in the chain
+    const checkoutSessionId =
+      'checkoutSessionWithDiscount' in prev
+        ? prev.checkoutSessionWithDiscount.id
+        : prev.checkoutSession.id
 
-    const result = await adminTransaction(async ({ transaction }) => {
+    const result = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
       const {
         checkoutSession: updatedCheckoutSession,
         feeCalculation,
@@ -446,10 +460,22 @@ export const provideBillingAddressBehavior = defineBehavior({
       }
     })
 
+    // Build the checkoutSessionWithDiscount value:
+    // - If we had a discount applied, use that session
+    // - Otherwise, use the updated checkout session (which has the billing address)
+    const checkoutSessionWithDiscount =
+      'checkoutSessionWithDiscount' in prev
+        ? prev.checkoutSessionWithDiscount
+        : result.updatedCheckoutSession
+
     return {
       ...prev,
       ...result,
       billingAddress,
+      // Ensure checkoutSessionWithDiscount is set for downstream behaviors
+      checkoutSessionWithDiscount,
+      // discount is null if not present in prev
+      discount: 'discount' in prev ? prev.discount : null,
     }
   },
 })

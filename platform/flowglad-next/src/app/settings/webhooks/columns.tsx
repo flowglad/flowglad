@@ -6,19 +6,23 @@ import { Eye, Pencil } from 'lucide-react'
 import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import EditWebhookModal from '@/components/forms/EditWebhookModal'
-import StatusBadge from '@/components/StatusBadge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 // Other imports
 import type { Webhook } from '@/db/schema/webhooks'
 import WebhookSecretModal from './WebhookSecretModal'
 
 export type WebhookTableRowData = {
   webhook: Webhook.ClientRecord
+  pricingModelName: string | null
 }
 
 function WebhookActionsMenu({
@@ -90,6 +94,29 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
     maxSize: 150,
   },
   {
+    id: 'pricingModel',
+    accessorFn: (row) => row.pricingModelName,
+    header: 'Pricing Model',
+    cell: ({ row }) => {
+      const pricingModelName = row.getValue('pricingModel') as
+        | string
+        | null
+      return (
+        <div
+          className="truncate"
+          title={pricingModelName ?? 'Legacy'}
+        >
+          {pricingModelName ?? (
+            <span className="text-muted-foreground">Legacy</span>
+          )}
+        </div>
+      )
+    },
+    size: 130,
+    minSize: 100,
+    maxSize: 180,
+  },
+  {
     id: 'url',
     accessorFn: (row) => row.webhook.url,
     header: 'URL',
@@ -109,7 +136,11 @@ export const columns: ColumnDef<WebhookTableRowData>[] = [
     accessorFn: (row) => row.webhook.active,
     header: 'Status',
     cell: ({ row }) => (
-      <StatusBadge active={row.getValue('active')} />
+      <ActiveStatusTag
+        status={booleanToActiveStatus(row.getValue('active'))}
+        showTooltip
+        tooltipVariant="muted"
+      />
     ),
     size: 110,
     minSize: 105,

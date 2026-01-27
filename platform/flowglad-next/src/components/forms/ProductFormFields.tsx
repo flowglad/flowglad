@@ -15,13 +15,16 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import type { CreateProductSchema } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import { PriceType } from '@/types'
 import core from '@/utils/core'
-import StatusBadge from '../StatusBadge'
 import PricingModelSelect from './PricingModelSelect'
 import ProductFeatureMultiSelect from './ProductFeatureMultiSelect'
 
@@ -45,7 +48,7 @@ export const ProductFormFields = ({
     }
   }, [isDefaultProduct, product?.active, form])
 
-  // Clear featureIds when price type is 'usage'
+  // Clear featureIds when price type is 'usage' (no features allowed for usage prices)
   useEffect(() => {
     if (!editProduct && priceType === PriceType.Usage) {
       form.setValue('featureIds', [])
@@ -167,11 +170,11 @@ export const ProductFormFields = ({
                           htmlFor="product-active"
                           className="cursor-pointer w-full"
                         >
-                          {field.value ? (
-                            <StatusBadge active={true} />
-                          ) : (
-                            <StatusBadge active={false} />
-                          )}
+                          <ActiveStatusTag
+                            status={booleanToActiveStatus(
+                              field.value
+                            )}
+                          />
                         </Label>
                       </div>
                     </FormControl>
@@ -196,6 +199,7 @@ export const ProductFormFields = ({
                     ? (product as unknown as Product.ClientUpdate).id
                     : undefined
                 }
+                priceType={priceType}
               />
             </div>
           )}

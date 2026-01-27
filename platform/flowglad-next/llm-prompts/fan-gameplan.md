@@ -2,6 +2,30 @@
 
 I'm providing a gameplan with patches and a dependency graph (includes a **Project Name** in kebab-case).
 
+**Directory Structure (Required):** Patch files must be created at:
+```
+llm-prompts/patches/{project-name}/patch-{N}.md
+```
+This structure is required for compatibility with `fan-patches.sh`, which spins up parallel Claude Code sessions.
+
+## Retrieving Gameplans from Notion
+
+**IMPORTANT:** If the user provides a Notion URL or a reference prefixed with `GP-` (e.g., `GP-123`), you MUST use the Notion skill to retrieve the gameplan contents. Simply fetching the URL will not work.
+
+**Step 1: Verify Notion Authentication**
+
+Before attempting to fetch from Notion, first run a simple Notion query (e.g., `/notion-find` with a basic search) to verify you're authenticated. If the query fails with an authentication error, prompt the user:
+
+> "I need to access Notion to retrieve the gameplan, but I'm not authenticated. Please ensure the Notion MCP server is configured and authenticated, then try again."
+
+**Step 2: Retrieve the Gameplan**
+
+Once authenticated:
+- **Notion URL** (e.g., `https://www.notion.so/...`): Use `/notion-find` or `/notion-search` to locate and retrieve the page contents.
+- **GP- prefix** (e.g., `GP-42`): This refers to a Notion database entry. Use `/notion-database-query` or `/notion-find` to search for entries matching the GP identifier.
+
+Do NOT attempt to use `WebFetch` or `curl` for Notion URLs—Notion requires authentication and the MCP Notion tools handle this automatically.
+
 ## Your Task
 
 1. Extract the **Project Name** from the gameplan (e.g., `subscription-adjustments`)
@@ -50,14 +74,32 @@ I'm providing a gameplan with patches and a dependency graph (includes a **Proje
 ## Tests to Implement
 {Test stubs for this patch only, verbatim from gameplan}
 
+## Setup Instructions (REQUIRED)
+Before starting any development work, you MUST run the initialization script:
+```bash
+bun run init:flowglad-next
+```
+This script pulls environment variables and sets up the local development environment. Without this, builds and tests will fail.
+
 ## Git Instructions
 - Branch from: `{base branch determined in step 5 for this patch}`
 - Branch name: `{project-name}/patch-{N}-{descriptive-slug}`
 - PR base: `{base branch determined in step 5 for this patch}`
-- After completing, run `bun run check` to verify lint/typecheck passes.
+
+**IMPORTANT: Open a draft PR immediately after your first commit.** Do not wait until implementation is complete. This ensures the PR title format is correct from the start.
+
+After your first commit, run:
+```bash
+gh pr create --draft --title "[{project-name}] Patch {N}: {Title}" --body "Work in progress" --base {base branch}
+```
+
+Then continue implementing. When finished:
+1. Run `bun run check` to verify lint/typecheck passes
+2. Update the PR description with a proper summary
+3. Mark the PR as ready for review when complete
 
 ## PR Title (CRITICAL)
-**You MUST use this EXACT title format when creating the PR:**
+**You MUST use this EXACT title format:**
 
 `[{project-name}] Patch {N}: {Title}`
 

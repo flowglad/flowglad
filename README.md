@@ -130,7 +130,7 @@ export default function RootLayout({ children }) {
   return (
     <html>
       <body>
-        <FlowgladProvider loadBilling={true}>
+        <FlowgladProvider>
           {children}
         </FlowgladProvider>
       </body>
@@ -172,28 +172,41 @@ export function FeatureGate({ featureSlug, children }) {
 ```
 
 ```tsx
-import { useBilling } from '@flowglad/nextjs'
+import { useBilling, usePricing } from '@flowglad/nextjs'
 
-export function UsageBalanceIndicator({ usageMeterSlug }) {
-  const { loaded, errors, checkUsageBalance, createCheckoutSession } = useBilling()
+export function PricingCards() {
+  const pricingModel = usePricing()
+  const { createCheckoutSession } = useBilling()
 
-  if (!loaded || !checkUsageBalance) {
-    return <p>Loading usage…</p>
+  if (!pricingModel) {
+    return <p>Loading pricing…</p>
   }
-
-  const usage = checkUsageBalance(usageMeterSlug)
 
   return (
     <div>
-      <h3>Usage Balance</h3>
-      <p>
-        Remaining:{' '}
-        {usage ? `${usage.availableBalance} credits available` : <button onClick={() => createCheckoutSession({ 
-            priceSlug: 'pro_plan',
-            autoRedirect: true
-          })}
-        />}
-      </p>
+      {pricingModel.products.map((product) => {
+        const defaultPrice = product.defaultPrice ?? product.prices?.[0]
+        if (!defaultPrice) return null
+
+        return (
+          <div key={product.id}>
+            <h3>{product.name}</h3>
+            <p>{product.description}</p>
+            <button
+              onClick={() =>
+                createCheckoutSession({
+                  priceSlug: defaultPrice.slug,
+                  successUrl: window.location.href,
+                  cancelUrl: window.location.href,
+                  autoRedirect: true,
+                })
+              }
+            >
+              Choose {defaultPrice.name ?? product.name}
+            </button>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -282,4 +295,3 @@ We're building a payments layer that lets you:
 - Unlock more payment providers from a single integration
 
 Achieving this mission will take time. It will be hard. It might even make some people unhappy. But with AI bringing more and more developers on line and exploding the complexity of startup billing, the need is more urgent than ever.
-

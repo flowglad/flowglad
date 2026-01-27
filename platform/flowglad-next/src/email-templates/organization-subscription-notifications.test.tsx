@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import {
@@ -201,7 +205,7 @@ describe('OrganizationSubscriptionCanceledNotificationEmail', () => {
     )
 
     expect(
-      getByText('Subscription Cancellation Alert')
+      getByText('A Subscription was Canceled')
     ).toBeInTheDocument()
   })
 

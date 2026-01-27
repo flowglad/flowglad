@@ -39,6 +39,7 @@ export const unkeyHandlers = [
       meta: {
         requestId: `req_${core.nanoid()}`,
       },
+      data: {},
     })
   }),
 
@@ -94,6 +95,7 @@ export const unkeyHandlers = [
         meta: {
           requestId: `req_${core.nanoid()}`,
         },
+        data: {},
       })
     }
   ),

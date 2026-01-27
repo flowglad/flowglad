@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { render } from '@testing-library/react'
 import { describe, expect, it } from 'vitest'
 import { CurrencyCode } from '@/types'
@@ -75,15 +79,12 @@ describe('PaymentFailedEmail', () => {
     ).toBeInTheDocument()
     expect(getByText('Amount: $60.00')).toBeInTheDocument()
 
-    // Check line items
+    // Check line items (quantity is now embedded in name as "×2" for qty > 1)
     expect(getByTestId('line-item-name-0')).toHaveTextContent(
-      'Test Product'
+      'Test Product (×2)'
     )
     expect(getByTestId('line-item-price-0')).toHaveTextContent(
       '$25.00'
-    )
-    expect(getByTestId('line-item-quantity-0')).toHaveTextContent(
-      'Quantity: 2'
     )
 
     // Check totals - should not show subtotal when there's no tax

@@ -5,9 +5,11 @@
  * (features, products, usage meters) to identify what needs to be created, updated, or removed.
  */
 
+import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
+  resourceFeatureClientUpdateSchema,
   toggleFeatureClientUpdateSchema,
   usageCreditGrantFeatureClientUpdateSchema,
 } from '@/db/schema/features'
@@ -22,12 +24,15 @@ import {
 } from '@/db/schema/prices'
 import { productsClientUpdateSchema } from '@/db/schema/products'
 import { usageMetersClientUpdateSchema } from '@/db/schema/usageMeters'
+import { ValidationError } from '@/errors'
 import { FeatureType, PriceType } from '@/types'
 import type {
   SetupPricingModelInput,
   SetupPricingModelProductInput,
   SetupPricingModelProductPriceInput,
+  SetupUsageMeterPriceInput,
 } from './setupSchemas'
+import { buildSyntheticUsagePriceSlug } from './slugHelpers'
 
 /**
  * A resource with a slug identifier.
@@ -177,30 +182,224 @@ export const diffFeatures = (
 }
 
 /**
+ * Extracts the slug from a UsageMeterDiffInput for slug-based diffing.
+ * Usage meters now have a nested structure: { usageMeter: { slug, name, ... }, prices: [...] }
+ */
+const getUsageMeterSlug = (
+  meterInput: UsageMeterDiffInput
+): string => {
+  return meterInput.usageMeter.slug
+}
+
+/**
+ * Converts UsageMeterDiffInput array to a format compatible with diffSluggedResources
+ * by adding the slug at the top level.
+ */
+const toSluggedUsageMeters = (
+  meters: UsageMeterDiffInput[]
+): SluggedResource<UsageMeterDiffInput>[] => {
+  return meters.map((m) => ({
+    ...m,
+    slug: getUsageMeterSlug(m),
+  }))
+}
+
+/**
  * Diffs usage meter arrays to identify which usage meters need to be removed, created, or updated.
  *
- * Usage meters are compared by their slug field. The function uses the generic
+ * Usage meters are compared by their usageMeter.slug field. The function uses the generic
  * `diffSluggedResources` utility to perform the comparison.
+ *
+ * For usage meters that exist in both arrays, the function also compares their prices
+ * and includes price diff information in the result.
  *
  * Note: Usage meter removal is not allowed and will cause validation errors in later stages.
  *
- * @param existing - Array of existing usage meters
- * @param proposed - Array of proposed usage meters
- * @returns A DiffResult containing usage meters to remove, create, and update
+ * @param existing - Array of existing usage meters (with nested usageMeter and prices)
+ * @param proposed - Array of proposed usage meters (with nested usageMeter and prices)
+ * @returns A UsageMeterDiffResult containing usage meters to remove, create, and update with price diffs
  *
  * @example
  * ```typescript
- * const existing = [{ slug: 'api-calls', name: 'API Calls', aggregationType: 'sum' }]
- * const proposed = [{ slug: 'api-calls', name: 'API Requests', aggregationType: 'sum' }]
+ * const existing = [{ usageMeter: { slug: 'api-calls', name: 'API Calls' }, prices: [...] }]
+ * const proposed = [{ usageMeter: { slug: 'api-calls', name: 'API Requests' }, prices: [...] }]
  * const diff = diffUsageMeters(existing, proposed)
- * // diff.toUpdate will contain the usage meter with name change
+ * // diff.toUpdate will contain the usage meter with name change and price diff
  * ```
  */
 export const diffUsageMeters = (
   existing: UsageMeterDiffInput[],
   proposed: UsageMeterDiffInput[]
-): DiffResult<UsageMeterDiffInput> => {
-  return diffSluggedResources(existing, proposed)
+): UsageMeterDiffResult => {
+  // Convert to slugged format for generic diffing
+  const sluggedExisting = toSluggedUsageMeters(existing)
+  const sluggedProposed = toSluggedUsageMeters(proposed)
+
+  // Use generic diffing for basic categorization
+  const baseDiff = diffSluggedResources(
+    sluggedExisting,
+    sluggedProposed
+  )
+
+  // Build the result with price diffs for updates
+  const toUpdate = baseDiff.toUpdate.map(
+    ({ existing: existingMeter, proposed: proposedMeter }) => {
+      // Cast to UsageMeterDiffInput to access prices
+      const existing = existingMeter as unknown as UsageMeterDiffInput
+      const proposed = proposedMeter as unknown as UsageMeterDiffInput
+
+      // Diff the prices within this usage meter
+      // Pass the meter slug for globally unique synthetic price slugs
+      const priceDiff = diffUsageMeterPrices(
+        existing.prices,
+        proposed.prices,
+        existing.usageMeter.slug
+      )
+
+      return {
+        existing,
+        proposed,
+        priceDiff,
+      }
+    }
+  )
+
+  return {
+    toRemove: baseDiff.toRemove as unknown as UsageMeterDiffInput[],
+    toCreate: baseDiff.toCreate as unknown as UsageMeterDiffInput[],
+    toUpdate,
+  }
+}
+
+/**
+ * Result of diffing usage prices within a usage meter.
+ * Contains the prices to remove, create, and update for a single usage meter.
+ */
+export type UsageMeterPriceDiffResult = {
+  /**
+   * Prices that exist in the existing usage meter but not in the proposed.
+   * These prices should be removed (deactivated).
+   */
+  toRemove: SetupUsageMeterPriceInput[]
+  /**
+   * Prices that exist in the proposed usage meter but not in the existing.
+   * These prices should be created.
+   */
+  toCreate: SetupUsageMeterPriceInput[]
+  /**
+   * Prices that exist in both (matched by slug).
+   * These prices may need to be updated if their properties differ.
+   */
+  toUpdate: Array<{
+    existing: SetupUsageMeterPriceInput
+    proposed: SetupUsageMeterPriceInput
+  }>
+}
+
+/**
+ * Result of diffing two arrays of usage meters.
+ *
+ * Similar to DiffResult but with additional price comparison information
+ * for usage meters that need to be updated.
+ */
+export type UsageMeterDiffResult = {
+  /**
+   * Usage meters that exist in the existing array but not in the proposed array.
+   * These usage meters should be removed.
+   */
+  toRemove: UsageMeterDiffInput[]
+  /**
+   * Usage meters that exist in the proposed array but not in the existing array.
+   * These usage meters should be created.
+   */
+  toCreate: UsageMeterDiffInput[]
+  /**
+   * Usage meters that exist in both arrays (matched by usageMeter.slug).
+   * These usage meters may need to be updated if their properties differ.
+   * Includes price diff information when prices differ.
+   */
+  toUpdate: Array<{
+    existing: UsageMeterDiffInput
+    proposed: UsageMeterDiffInput
+    /**
+     * Price comparison information for usage prices within this meter.
+     * Always present for updates (may be empty if no price changes).
+     */
+    priceDiff: UsageMeterPriceDiffResult
+  }>
+}
+
+/**
+ * Extracts the slug from a usage price for slug-based diffing.
+ * Falls back to generating a synthetic slug if the price has no real slug.
+ *
+ * @param price - The usage price input
+ * @param meterSlug - The slug of the usage meter this price belongs to (for global uniqueness)
+ */
+const getUsagePriceSlug = (
+  price: SetupUsageMeterPriceInput,
+  meterSlug: string
+): string => {
+  // Use real slug if present
+  if (price.slug) {
+    return price.slug
+  }
+  // Fallback: use shared synthetic slug generator for consistency with updateHelpers.ts
+  return buildSyntheticUsagePriceSlug(price, meterSlug)
+}
+
+/**
+ * Converts usage prices to a format compatible with diffSluggedResources.
+ *
+ * @param prices - The usage price inputs
+ * @param meterSlug - The slug of the usage meter these prices belong to
+ */
+const toSluggedUsagePrices = (
+  prices: SetupUsageMeterPriceInput[],
+  meterSlug: string
+): SluggedResource<SetupUsageMeterPriceInput>[] => {
+  return prices.map((p) => ({
+    ...p,
+    slug: getUsagePriceSlug(p, meterSlug),
+  }))
+}
+
+/**
+ * Diffs usage prices within a usage meter.
+ *
+ * @param existingPrices - Array of existing usage prices (or undefined/empty)
+ * @param proposedPrices - Array of proposed usage prices (or undefined/empty)
+ * @param meterSlug - The slug of the usage meter (for global uniqueness of synthetic slugs)
+ * @returns A UsageMeterPriceDiffResult containing prices to remove, create, and update
+ */
+export const diffUsageMeterPrices = (
+  existingPrices: SetupUsageMeterPriceInput[] | undefined,
+  proposedPrices: SetupUsageMeterPriceInput[] | undefined,
+  meterSlug: string
+): UsageMeterPriceDiffResult => {
+  const existing = existingPrices || []
+  const proposed = proposedPrices || []
+
+  // Convert to slugged format for generic diffing
+  const sluggedExisting = toSluggedUsagePrices(existing, meterSlug)
+  const sluggedProposed = toSluggedUsagePrices(proposed, meterSlug)
+
+  // Use generic diffing
+  const baseDiff = diffSluggedResources(
+    sluggedExisting,
+    sluggedProposed
+  )
+
+  return {
+    toRemove:
+      baseDiff.toRemove as unknown as SetupUsageMeterPriceInput[],
+    toCreate:
+      baseDiff.toCreate as unknown as SetupUsageMeterPriceInput[],
+    toUpdate: baseDiff.toUpdate.map(({ existing, proposed }) => ({
+      existing: existing as unknown as SetupUsageMeterPriceInput,
+      proposed: proposed as unknown as SetupUsageMeterPriceInput,
+    })),
+  }
 }
 
 /**
@@ -260,7 +459,24 @@ const toSluggedProducts = (
 }
 
 /**
+ * Removes keys with undefined values from an object (shallow).
+ * This normalizes objects so that { foo: undefined } compares equal to {}.
+ */
+const stripUndefinedValues = <T extends Record<string, unknown>>(
+  obj: T
+): Partial<T> => {
+  const result: Partial<T> = {}
+  for (const key of Object.keys(obj) as Array<keyof T>) {
+    if (obj[key] !== undefined) {
+      result[key] = obj[key]
+    }
+  }
+  return result
+}
+
+/**
  * Checks if two prices are different by comparing their JSON representations.
+ * Normalizes both objects to treat undefined values as equivalent to missing keys.
  */
 const pricesAreDifferent = (
   existingPrice: SetupPricingModelProductPriceInput | undefined,
@@ -274,8 +490,11 @@ const pricesAreDifferent = (
   if (existingPrice === undefined || proposedPrice === undefined) {
     return true
   }
-  // Both defined - compare using deep equality
-  return !R.equals(existingPrice, proposedPrice)
+  // Both defined - normalize and compare using deep equality
+  // This ensures { foo: undefined } is treated as equal to {}
+  const normalizedExisting = stripUndefinedValues(existingPrice)
+  const normalizedProposed = stripUndefinedValues(proposedPrice)
+  return !R.equals(normalizedExisting, normalizedProposed)
 }
 
 /**
@@ -404,79 +623,308 @@ export const computeUpdateObject = <
 }
 
 /**
- * Validates a usage meter diff result.
+ * Validates a usage price change between existing and proposed prices.
  *
  * This function enforces the following rules:
- * - Usage meters cannot be removed (throws if toRemove is non-empty)
+ * - Price type cannot change (usage prices must remain usage prices)
  * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
  *
- * @param diff - The diff result from diffUsageMeters
- * @throws Error if usage meters are being removed or if immutable fields are being modified
- *
- * @example
- * ```typescript
- * const diff = diffUsageMeters(existing, proposed)
- * validateUsageMeterDiff(diff) // throws if invalid
- * ```
+ * @param existing - The existing usage price (or undefined for creation)
+ * @param proposed - The proposed usage price (or undefined for removal)
+ * @param meterSlug - The slug of the usage meter (for error messages)
+ * @returns Result.ok(undefined) if valid, Result.err(ValidationError) if invalid
  */
-export const validateUsageMeterDiff = (
-  diff: DiffResult<UsageMeterDiffInput>
-): void => {
-  // Usage meters cannot be removed
-  if (diff.toRemove.length > 0) {
-    const removedSlugs = diff.toRemove.map((m) => m.slug).join(', ')
-    throw new Error(
-      `Usage meters cannot be removed. Attempted to remove: ${removedSlugs}`
-    )
-  }
+export const validateUsagePriceChange = (
+  existing: SetupUsageMeterPriceInput | undefined,
+  proposed: SetupUsageMeterPriceInput | undefined,
+  meterSlug: string
+): Result<void, ValidationError> => {
+  return Result.gen(function* () {
+    // Both undefined - no change
+    if (existing === undefined && proposed === undefined) {
+      return Result.ok(undefined)
+    }
 
-  // Validate each update entry
-  for (const { existing, proposed } of diff.toUpdate) {
+    // One undefined, one defined - valid (creation or removal)
+    if (existing === undefined || proposed === undefined) {
+      return Result.ok(undefined)
+    }
+
+    // Both exist - validate the change
     const updateObject = computeUpdateObject(existing, proposed)
 
     // Skip if nothing changed
     if (Object.keys(updateObject).length === 0) {
-      continue
+      return Result.ok(undefined)
+    }
+
+    // Check if any immutable/create-only fields are being changed.
+    // If so, skip strict validation because this price will be replaced entirely
+    // (create new price + deactivate old price), not updated.
+    const immutableFields = new Set(priceImmutableFields)
+    const changedFields = Object.keys(updateObject)
+    const hasImmutableFieldChanges = changedFields.some((field) =>
+      immutableFields.has(field)
+    )
+
+    // If immutable fields are changing, this will be a price replacement.
+    // We still need to validate the proposed price is well-formed using the insert schema.
+    if (hasImmutableFieldChanges) {
+      const insertResult = usagePriceClientInsertSchema
+        .omit({ usageMeterId: true, productId: true })
+        .safeParse(proposed)
+
+      if (!insertResult.success) {
+        return yield* Result.err(
+          new ValidationError(
+            `usageMeter.${meterSlug}.price`,
+            `Invalid usage price for replacement on meter '${meterSlug}': ${insertResult.error.message}`
+          )
+        )
+      }
+      return Result.ok(undefined)
     }
 
     // Try to parse with strict mode - this will fail if any immutable fields are present
-    const result = usageMetersClientUpdateSchema
+    const result = usagePriceClientUpdateSchema
       .partial()
       .strict()
       .safeParse(updateObject)
 
     if (!result.success) {
-      throw new Error(
-        `Invalid usage meter update for slug '${existing.slug}': ${result.error.message}`
+      return yield* Result.err(
+        new ValidationError(
+          `usageMeter.${meterSlug}.price`,
+          `Invalid usage price update on meter '${meterSlug}': ${result.error.message}`
+        )
       )
     }
-  }
+
+    return Result.ok(undefined)
+  })
+}
+
+/**
+ * Validates a usage meter diff result.
+ *
+ * This function enforces the following rules:
+ * - Usage meters cannot be removed (returns error if toRemove is non-empty)
+ * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
+ * - Usage price changes are validated via validateUsagePriceChange
+ *
+ * @param diff - The diff result from diffUsageMeters
+ * @returns Result.ok(undefined) if valid, Result.err(ValidationError) if invalid
+ *
+ * @example
+ * ```typescript
+ * const diff = diffUsageMeters(existing, proposed)
+ * const validationResult = validateUsageMeterDiff(diff)
+ * ```
+ */
+export const validateUsageMeterDiff = (
+  diff: UsageMeterDiffResult
+): Result<void, ValidationError> => {
+  return Result.gen(function* () {
+    // Usage meters cannot be removed
+    if (diff.toRemove.length > 0) {
+      const removedSlugs = diff.toRemove
+        .map((m) => m.usageMeter.slug)
+        .join(', ')
+      return yield* Result.err(
+        new ValidationError(
+          'usageMeters',
+          `Usage meters cannot be removed. Attempted to remove: ${removedSlugs}`
+        )
+      )
+    }
+
+    // Validate each update entry
+    for (const { existing, proposed, priceDiff } of diff.toUpdate) {
+      const meterSlug = existing.usageMeter.slug
+
+      // Compare the usageMeter nested object, not the top-level object (which includes prices)
+      const usageMeterUpdateObject = computeUpdateObject(
+        existing.usageMeter,
+        proposed.usageMeter
+      )
+
+      // Validate usage meter field updates if there are any
+      if (Object.keys(usageMeterUpdateObject).length > 0) {
+        // Try to parse with strict mode - this will fail if any immutable fields are present
+        const result = usageMetersClientUpdateSchema
+          .partial()
+          .strict()
+          .safeParse(usageMeterUpdateObject)
+
+        if (!result.success) {
+          return yield* Result.err(
+            new ValidationError(
+              `usageMeter.${meterSlug}`,
+              `Invalid usage meter update for slug '${meterSlug}': ${result.error.message}`
+            )
+          )
+        }
+      }
+
+      // Validate usage price updates
+      for (const {
+        existing: existingPrice,
+        proposed: proposedPrice,
+      } of priceDiff.toUpdate) {
+        yield* validateUsagePriceChange(
+          existingPrice,
+          proposedPrice,
+          meterSlug
+        )
+      }
+    }
+
+    return Result.ok(undefined)
+  })
 }
 
 /**
  * Validates a feature diff result.
  *
  * This function enforces the following rules:
- * - Feature type cannot be changed (throws error if type differs)
+ * - Feature type cannot be changed (returns error if type differs)
  * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
  *
  * @param diff - The diff result from diffFeatures
- * @throws Error if type changes or if immutable fields are being modified
+ * @returns Result.ok(undefined) if valid, Result.err(ValidationError) if invalid
  *
  * @example
  * ```typescript
  * const diff = diffFeatures(existing, proposed)
- * validateFeatureDiff(diff) // throws if invalid
+ * const validationResult = validateFeatureDiff(diff)
  * ```
  */
 export const validateFeatureDiff = (
   diff: DiffResult<FeatureDiffInput>
-): void => {
-  for (const { existing, proposed } of diff.toUpdate) {
+): Result<void, ValidationError> => {
+  return Result.gen(function* () {
+    for (const { existing, proposed } of diff.toUpdate) {
+      // Check for type change first (before Zod parsing)
+      if (existing.type !== proposed.type) {
+        return yield* Result.err(
+          new ValidationError(
+            `feature.${existing.slug}.type`,
+            `Feature type cannot be changed. Feature '${existing.slug}' has type '${existing.type}' but proposed type is '${proposed.type}'. To change type, remove the feature and create a new one.`
+          )
+        )
+      }
+
+      const updateObject = computeUpdateObject(existing, proposed)
+
+      // Skip if nothing changed
+      if (Object.keys(updateObject).length === 0) {
+        continue
+      }
+
+      // Select the appropriate schema based on feature type
+      let schema
+      if (existing.type === FeatureType.Toggle) {
+        schema = toggleFeatureClientUpdateSchema
+      } else if (existing.type === FeatureType.UsageCreditGrant) {
+        schema = usageCreditGrantFeatureClientUpdateSchema
+      } else if (existing.type === FeatureType.Resource) {
+        schema = resourceFeatureClientUpdateSchema
+      } else {
+        return yield* Result.err(
+          new ValidationError(
+            `feature.${(existing as { slug: string }).slug}.type`,
+            `Unknown feature type: ${(existing as { type: string }).type}`
+          )
+        )
+      }
+
+      // Handle usageMeterSlug -> usageMeterId transformation for UsageCreditGrant features
+      // In the setup schema, we use usageMeterSlug, but the client update schema expects usageMeterId
+      // usageMeterId is updatable (per features.ts schemas), so changes to usageMeterSlug are allowed
+      // The transformation from usageMeterSlug to usageMeterId is only to align client update payloads
+      // with the schema so validation can proceed. Tests expect changing usageMeterSlug/usageMeterId
+      // to be allowed (not to throw).
+      const transformedUpdate = { ...updateObject }
+      if ('usageMeterSlug' in transformedUpdate) {
+        // Transform usageMeterSlug to usageMeterId to align with the client update schema
+        ;(transformedUpdate as Record<string, unknown>).usageMeterId =
+          (
+            transformedUpdate as Record<string, unknown>
+          ).usageMeterSlug
+        delete (transformedUpdate as Record<string, unknown>)
+          .usageMeterSlug
+      }
+
+      // Handle resourceSlug -> resourceId transformation for Resource features
+      // Similar to usageMeterSlug, the setup schema uses resourceSlug but the
+      // client update schema expects resourceId
+      if ('resourceSlug' in transformedUpdate) {
+        ;(transformedUpdate as Record<string, unknown>).resourceId = (
+          transformedUpdate as Record<string, unknown>
+        ).resourceSlug
+        delete (transformedUpdate as Record<string, unknown>)
+          .resourceSlug
+      }
+
+      // Try to parse with strict mode
+      const result = schema
+        .partial()
+        .strict()
+        .safeParse(transformedUpdate)
+
+      if (!result.success) {
+        return yield* Result.err(
+          new ValidationError(
+            `feature.${existing.slug}`,
+            `Invalid feature update for slug '${existing.slug}': ${result.error.message}`
+          )
+        )
+      }
+    }
+
+    return Result.ok(undefined)
+  })
+}
+
+/**
+ * Validates a price change between existing and proposed prices.
+ *
+ * This function enforces the following rules:
+ * - Price type cannot change (returns error if types differ)
+ * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
+ *
+ * @param existing - The existing price (or undefined for creation)
+ * @param proposed - The proposed price (or undefined for removal)
+ * @returns Result.ok(undefined) if valid, Result.err(ValidationError) if invalid
+ *
+ * @example
+ * ```typescript
+ * const validationResult = validatePriceChange(existingPrice, proposedPrice)
+ * ```
+ */
+export const validatePriceChange = (
+  existing: SetupPricingModelProductPriceInput | undefined,
+  proposed: SetupPricingModelProductPriceInput | undefined
+): Result<void, ValidationError> => {
+  return Result.gen(function* () {
+    // Both undefined - no change
+    if (existing === undefined && proposed === undefined) {
+      return Result.ok(undefined)
+    }
+
+    // One undefined, one defined - valid (creation or removal)
+    if (existing === undefined || proposed === undefined) {
+      return Result.ok(undefined)
+    }
+
+    // Both exist - validate the change
     // Check for type change first (before Zod parsing)
     if (existing.type !== proposed.type) {
-      throw new Error(
-        `Feature type cannot be changed. Feature '${existing.slug}' has type '${existing.type}' but proposed type is '${proposed.type}'. To change type, remove the feature and create a new one.`
+      return yield* Result.err(
+        new ValidationError(
+          'price.type',
+          `Price type cannot be changed. Existing type is '${existing.type}' but proposed type is '${proposed.type}'. To change price type, remove the price and create a new one.`
+        )
       )
     }
 
@@ -484,24 +932,13 @@ export const validateFeatureDiff = (
 
     // Skip if nothing changed
     if (Object.keys(updateObject).length === 0) {
-      continue
+      return Result.ok(undefined)
     }
 
-    // Select the appropriate schema based on feature type
-    const schema =
-      existing.type === FeatureType.Toggle
-        ? toggleFeatureClientUpdateSchema
-        : usageCreditGrantFeatureClientUpdateSchema
-
-    // Handle usageMeterSlug -> usageMeterId transformation for UsageCreditGrant features
-    // In the setup schema, we use usageMeterSlug, but the client update schema expects usageMeterId
-    // usageMeterId is updatable (per features.ts schemas), so changes to usageMeterSlug are allowed
-    // The transformation from usageMeterSlug to usageMeterId is only to align client update payloads
-    // with the schema so validation can proceed. Tests expect changing usageMeterSlug/usageMeterId
-    // to be allowed (not to throw).
+    // Handle usageMeterSlug -> usageMeterId transformation for usage prices
     const transformedUpdate = { ...updateObject }
     if ('usageMeterSlug' in transformedUpdate) {
-      // Transform usageMeterSlug to usageMeterId to align with the client update schema
+      // usageMeterSlug changes are not allowed (usageMeterId is create-only)
       ;(transformedUpdate as Record<string, unknown>).usageMeterId = (
         transformedUpdate as Record<string, unknown>
       ).usageMeterSlug
@@ -509,141 +946,92 @@ export const validateFeatureDiff = (
         .usageMeterSlug
     }
 
-    // Try to parse with strict mode
-    const result = schema
-      .partial()
-      .strict()
-      .safeParse(transformedUpdate)
-
-    if (!result.success) {
-      throw new Error(
-        `Invalid feature update for slug '${existing.slug}': ${result.error.message}`
-      )
-    }
-  }
-}
-
-/**
- * Validates a price change between existing and proposed prices.
- *
- * This function enforces the following rules:
- * - Price type cannot change (throws error if types differ)
- * - Updates must only modify mutable fields (validated via Zod parsing with strict mode)
- *
- * @param existing - The existing price (or undefined for creation)
- * @param proposed - The proposed price (or undefined for removal)
- * @throws Error if price type changes or if immutable fields are being modified
- *
- * @example
- * ```typescript
- * validatePriceChange(existingPrice, proposedPrice) // throws if invalid
- * ```
- */
-export const validatePriceChange = (
-  existing: SetupPricingModelProductPriceInput | undefined,
-  proposed: SetupPricingModelProductPriceInput | undefined
-): void => {
-  // Both undefined - no change
-  if (existing === undefined && proposed === undefined) {
-    return
-  }
-
-  // One undefined, one defined - valid (creation or removal)
-  if (existing === undefined || proposed === undefined) {
-    return
-  }
-
-  // Both exist - validate the change
-  // Check for type change first (before Zod parsing)
-  if (existing.type !== proposed.type) {
-    throw new Error(
-      `Price type cannot be changed. Existing type is '${existing.type}' but proposed type is '${proposed.type}'. To change price type, remove the price and create a new one.`
+    // Check if any immutable/create-only fields are being changed.
+    // If so, skip strict validation because this price will be replaced entirely
+    // (create new price + deactivate old price), not updated.
+    const immutableFields = new Set(priceImmutableFields)
+    const changedFields = Object.keys(transformedUpdate)
+    const hasImmutableFieldChanges = changedFields.some((field) =>
+      immutableFields.has(field)
     )
-  }
 
-  const updateObject = computeUpdateObject(existing, proposed)
+    // If immutable fields are changing, this will be a price replacement.
+    // We still need to validate the proposed price is well-formed using the insert schema.
+    // Note: Usage prices are handled separately under usage meters,
+    // so product prices are only subscription or single payment.
+    if (hasImmutableFieldChanges) {
+      let insertResult: { success: boolean; error?: z.ZodError }
+      switch (proposed.type) {
+        case PriceType.Subscription:
+          insertResult = subscriptionPriceClientInsertSchema
+            .omit({ productId: true })
+            .safeParse(proposed)
+          break
+        case PriceType.SinglePayment:
+          insertResult = singlePaymentPriceClientInsertSchema
+            .omit({ productId: true })
+            .safeParse(proposed)
+          break
+        default: {
+          const unexpectedType = (proposed as { type: string }).type
+          return yield* Result.err(
+            new ValidationError(
+              'price.type',
+              `Product prices cannot be of type '${unexpectedType}'. Usage prices belong to usage meters.`
+            )
+          )
+        }
+      }
 
-  // Skip if nothing changed
-  if (Object.keys(updateObject).length === 0) {
-    return
-  }
+      if (!insertResult.success) {
+        return yield* Result.err(
+          new ValidationError(
+            'price',
+            `Invalid price for replacement: ${insertResult.error?.message}`
+          )
+        )
+      }
+      return Result.ok(undefined)
+    }
 
-  // Handle usageMeterSlug -> usageMeterId transformation for usage prices
-  const transformedUpdate = { ...updateObject }
-  if ('usageMeterSlug' in transformedUpdate) {
-    // usageMeterSlug changes are not allowed (usageMeterId is create-only)
-    ;(transformedUpdate as Record<string, unknown>).usageMeterId = (
-      transformedUpdate as Record<string, unknown>
-    ).usageMeterSlug
-    delete (transformedUpdate as Record<string, unknown>)
-      .usageMeterSlug
-  }
-
-  // Check if any immutable/create-only fields are being changed.
-  // If so, skip strict validation because this price will be replaced entirely
-  // (create new price + deactivate old price), not updated.
-  const immutableFields = new Set(priceImmutableFields)
-  const changedFields = Object.keys(transformedUpdate)
-  const hasImmutableFieldChanges = changedFields.some((field) =>
-    immutableFields.has(field)
-  )
-
-  // If immutable fields are changing, this will be a price replacement.
-  // We still need to validate the proposed price is well-formed using the insert schema.
-  if (hasImmutableFieldChanges) {
-    let insertResult: { success: boolean; error?: z.ZodError }
-    switch (proposed.type) {
+    // Select the appropriate schema based on price type and try to parse with strict mode
+    // Note: Product prices are only subscription or single payment
+    let result: { success: boolean; error?: z.ZodError }
+    switch (existing.type) {
       case PriceType.Subscription:
-        insertResult = subscriptionPriceClientInsertSchema
-          .omit({ productId: true })
-          .safeParse(proposed)
+        result = subscriptionPriceClientUpdateSchema
+          .partial()
+          .strict()
+          .safeParse(transformedUpdate)
         break
       case PriceType.SinglePayment:
-        insertResult = singlePaymentPriceClientInsertSchema
-          .omit({ productId: true })
-          .safeParse(proposed)
+        result = singlePaymentPriceClientUpdateSchema
+          .partial()
+          .strict()
+          .safeParse(transformedUpdate)
         break
-      case PriceType.Usage:
-        insertResult = usagePriceClientInsertSchema
-          .omit({ productId: true, usageMeterId: true })
-          .safeParse(proposed)
-        break
+      default: {
+        const unexpectedType = (existing as { type: string }).type
+        return yield* Result.err(
+          new ValidationError(
+            'price.type',
+            `Product prices cannot be of type '${unexpectedType}'. Usage prices belong to usage meters.`
+          )
+        )
+      }
     }
 
-    if (!insertResult.success) {
-      throw new Error(
-        `Invalid price for replacement: ${insertResult.error?.message}`
+    if (!result.success) {
+      return yield* Result.err(
+        new ValidationError(
+          'price',
+          `Invalid price update: ${result.error?.message}`
+        )
       )
     }
-    return
-  }
 
-  // Select the appropriate schema based on price type and try to parse with strict mode
-  let result: { success: boolean; error?: z.ZodError }
-  switch (existing.type) {
-    case PriceType.Subscription:
-      result = subscriptionPriceClientUpdateSchema
-        .partial()
-        .strict()
-        .safeParse(transformedUpdate)
-      break
-    case PriceType.SinglePayment:
-      result = singlePaymentPriceClientUpdateSchema
-        .partial()
-        .strict()
-        .safeParse(transformedUpdate)
-      break
-    case PriceType.Usage:
-      result = usagePriceClientUpdateSchema
-        .partial()
-        .strict()
-        .safeParse(transformedUpdate)
-      break
-  }
-
-  if (!result.success) {
-    throw new Error(`Invalid price update: ${result.error?.message}`)
-  }
+    return Result.ok(undefined)
+  })
 }
 
 /**
@@ -654,49 +1042,56 @@ export const validatePriceChange = (
  * - Price changes are validated via validatePriceChange
  *
  * @param diff - The diff result from diffProducts
- * @throws Error if immutable fields are being modified or if price validation fails
+ * @returns Result.ok(undefined) if valid, Result.err(ValidationError) if invalid
  *
  * @example
  * ```typescript
  * const diff = diffProducts(existing, proposed)
- * validateProductDiff(diff) // throws if invalid
+ * const validationResult = validateProductDiff(diff)
  * ```
  */
 export const validateProductDiff = (
   diff: ProductDiffResult
-): void => {
-  for (const { existing, proposed, priceDiff } of diff.toUpdate) {
-    // Validate product fields (excluding price field)
-    const existingProduct = existing.product
-    const proposedProduct = proposed.product
+): Result<void, ValidationError> => {
+  return Result.gen(function* () {
+    for (const { existing, proposed, priceDiff } of diff.toUpdate) {
+      // Validate product fields (excluding price field)
+      const existingProduct = existing.product
+      const proposedProduct = proposed.product
 
-    const productUpdateObject = computeUpdateObject(
-      existingProduct,
-      proposedProduct
-    )
+      const productUpdateObject = computeUpdateObject(
+        existingProduct,
+        proposedProduct
+      )
 
-    // Validate product update if there are changes
-    if (Object.keys(productUpdateObject).length > 0) {
-      const result = productsClientUpdateSchema
-        .partial()
-        .strict()
-        .safeParse(productUpdateObject)
+      // Validate product update if there are changes
+      if (Object.keys(productUpdateObject).length > 0) {
+        const result = productsClientUpdateSchema
+          .partial()
+          .strict()
+          .safeParse(productUpdateObject)
 
-      if (!result.success) {
-        throw new Error(
-          `Invalid product update for slug '${existingProduct.slug}': ${result.error.message}`
+        if (!result.success) {
+          return yield* Result.err(
+            new ValidationError(
+              `product.${existingProduct.slug}`,
+              `Invalid product update for slug '${existingProduct.slug}': ${result.error.message}`
+            )
+          )
+        }
+      }
+
+      // Validate price change if there's a price diff
+      if (priceDiff) {
+        yield* validatePriceChange(
+          priceDiff.existingPrice,
+          priceDiff.proposedPrice
         )
       }
     }
 
-    // Validate price change if there's a price diff
-    if (priceDiff) {
-      validatePriceChange(
-        priceDiff.existingPrice,
-        priceDiff.proposedPrice
-      )
-    }
-  }
+    return Result.ok(undefined)
+  })
 }
 
 /**
@@ -714,9 +1109,9 @@ export type PricingModelDiffResult = {
    */
   products: ProductDiffResult
   /**
-   * Diff result for usage meters.
+   * Diff result for usage meters, including usage price comparison.
    */
-  usageMeters: DiffResult<UsageMeterDiffInput>
+  usageMeters: UsageMeterDiffResult
 }
 
 /**
@@ -733,8 +1128,7 @@ export type PricingModelDiffResult = {
  *
  * @param existing - The existing pricing model setup
  * @param proposed - The proposed pricing model setup
- * @returns A PricingModelDiffResult containing all diffs for features, products, and usage meters
- * @throws Error if any validation fails (e.g., trying to remove usage meters, changing immutable fields)
+ * @returns Result.ok(PricingModelDiffResult) if valid, Result.err(ValidationError) if invalid
  *
  * @example
  * ```typescript
@@ -758,36 +1152,39 @@ export type PricingModelDiffResult = {
  *   usageMeters: [{ slug: 'api-calls', name: 'API Calls', aggregationType: 'sum' }]
  * }
  *
- * const diff = diffPricingModel(existing, proposed)
- * // diff.features.toUpdate will contain the feature with name change
- * // diff.products.toUpdate will contain the product with price unitPrice change
- * // diff.usageMeters will have empty toRemove, toCreate, and toUpdate arrays
+ * const diffResult = diffPricingModel(existing, proposed)
+ * if (diffResult.ok) {
+ *   // diffResult.value.features.toUpdate will contain the feature with name change
+ *   // diffResult.value.products.toUpdate will contain the product with price unitPrice change
+ * }
  * ```
  */
 export const diffPricingModel = (
   existing: SetupPricingModelInput,
   proposed: SetupPricingModelInput
-): PricingModelDiffResult => {
-  const featuresDiff = diffFeatures(
-    existing.features,
-    proposed.features
-  )
-  const productsDiff = diffProducts(
-    existing.products,
-    proposed.products
-  )
-  const usageMetersDiff = diffUsageMeters(
-    existing.usageMeters,
-    proposed.usageMeters
-  )
+): Result<PricingModelDiffResult, ValidationError> => {
+  return Result.gen(function* () {
+    const featuresDiff = diffFeatures(
+      existing.features,
+      proposed.features
+    )
+    const productsDiff = diffProducts(
+      existing.products,
+      proposed.products
+    )
+    const usageMetersDiff = diffUsageMeters(
+      existing.usageMeters,
+      proposed.usageMeters
+    )
 
-  validateFeatureDiff(featuresDiff)
-  validateProductDiff(productsDiff)
-  validateUsageMeterDiff(usageMetersDiff)
+    yield* validateFeatureDiff(featuresDiff)
+    yield* validateProductDiff(productsDiff)
+    yield* validateUsageMeterDiff(usageMetersDiff)
 
-  return {
-    features: featuresDiff,
-    products: productsDiff,
-    usageMeters: usageMetersDiff,
-  }
+    return Result.ok({
+      features: featuresDiff,
+      products: productsDiff,
+      usageMeters: usageMetersDiff,
+    })
+  })
 }

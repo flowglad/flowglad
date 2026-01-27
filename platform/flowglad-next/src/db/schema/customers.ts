@@ -8,6 +8,7 @@ import {
 import {
   constructGinIndex,
   constructIndex,
+  constructPartialUniqueIndex,
   constructUniqueIndex,
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
@@ -50,7 +51,7 @@ const columns = {
   billingAddress: jsonb('billing_address'),
   externalId: text('external_id').notNull(),
   userId: nullableStringForeignKey('user_id', users),
-  pricingModelId: nullableStringForeignKey(
+  pricingModelId: notNullStringForeignKey(
     'pricing_model_id',
     pricingModels
   ),
@@ -77,17 +78,21 @@ export const customers = pgTable(
     //   table.livemode,
     // ]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
+    // Partial unique index: only enforce uniqueness for non-archived customers.
+    // This allows archived customers' externalIds to be reused by new customers.
+    constructPartialUniqueIndex(
+      TABLE_NAME,
+      [table.pricingModelId, table.externalId],
+      sql`${table.archived} = false`
+    ),
     constructUniqueIndex(TABLE_NAME, [
-      table.organizationId,
-      table.externalId,
-      table.livemode,
-    ]),
-    constructUniqueIndex(TABLE_NAME, [
-      table.organizationId,
+      table.pricingModelId,
       table.invoiceNumberBase,
-      table.livemode,
     ]),
-    constructUniqueIndex(TABLE_NAME, [table.stripeCustomerId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.stripeCustomerId,
+      table.pricingModelId,
+    ]),
     constructGinIndex(TABLE_NAME, table.email),
     constructGinIndex(TABLE_NAME, table.name),
     merchantPolicy('Enable all actions for own organizations', {
@@ -116,6 +121,7 @@ const readOnlyColumns = {
   billingAddress: true,
   invoiceNumberBase: true,
   organizationId: true,
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -162,7 +168,7 @@ export const editCustomerInputSchema = z.object({
   customer: customerClientUpdateSchema.omit({
     externalId: true,
     id: true,
-    pricingModelId: true,
+    archived: true, // Prevent archiving via update - use dedicated archive endpoint
   }),
   externalId: z.string(),
 })
@@ -249,7 +255,7 @@ export const customersPaginatedTableRowDataSchema = z.object({
   customer: customerClientSelectSchema,
   totalSpend: z.number().optional(),
   payments: z.number().optional(),
-  status: z.nativeEnum(InferredCustomerStatus),
+  status: z.enum(InferredCustomerStatus),
 })
 
 export const customersPaginatedTableRowOutputSchema =

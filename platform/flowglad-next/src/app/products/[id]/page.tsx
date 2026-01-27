@@ -16,10 +16,12 @@ const ProductPage = async ({ params }: ProductPageProps) => {
     await authenticatedTransaction(async ({ transaction }) => {
       const { prices, ...product } =
         await selectPricesAndProductByProductId(id, transaction)
-      const pricingModel = await selectPricingModelById(
-        product.pricingModelId,
-        transaction
-      )
+      const pricingModel = (
+        await selectPricingModelById(
+          product.pricingModelId,
+          transaction
+        )
+      ).unwrap()
       const productFeaturesWithDetails =
         await selectFeaturesByProductFeatureWhere(
           { productId: id },

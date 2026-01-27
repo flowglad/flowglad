@@ -10,6 +10,7 @@ import {
   insertMembership,
   selectFocusedMembershipAndOrganization,
   selectMemberships,
+  updateMembership,
 } from '@/db/tableMethods/membershipMethods'
 import {
   insertUser,
@@ -17,6 +18,7 @@ import {
   selectUsers,
 } from '@/db/tableMethods/userMethods'
 import { protectedProcedure } from '@/server/trpc'
+import { MembershipRole } from '@/types'
 import { auth } from '@/utils/auth'
 import core from '@/utils/core'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
@@ -57,6 +59,7 @@ export const innerInviteUserToOrganizationHandler = async (
           organizationId: focusedMembership.organization.id,
           focused: false,
           livemode: focusedMembership.membership.livemode,
+          role: MembershipRole.Member,
         },
         transaction
       )
@@ -72,16 +75,28 @@ export const innerInviteUserToOrganizationHandler = async (
     }
   }
 
-  // Insert membership for the user
+  // Insert membership for the user, or reactivate if previously deactivated
   await adminTransaction(async ({ transaction, livemode }) => {
     const membershipForUser = await selectMemberships(
       {
         userId: userForEmail.id,
         organizationId: focusedMembership.organization.id,
       },
-      transaction
+      transaction,
+      { includeDeactivated: true }
     )
     if (membershipForUser.length > 0) {
+      const existingMembership = membershipForUser[0]
+      // If membership was deactivated, reactivate it
+      if (existingMembership.deactivatedAt) {
+        await updateMembership(
+          {
+            id: existingMembership.id,
+            deactivatedAt: null,
+          },
+          transaction
+        )
+      }
       return
     }
     return insertMembership(
@@ -90,6 +105,7 @@ export const innerInviteUserToOrganizationHandler = async (
         organizationId: focusedMembership.organization.id,
         focused: false,
         livemode,
+        role: MembershipRole.Member,
       },
       transaction
     )

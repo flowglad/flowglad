@@ -1,0 +1,10 @@
+# Files to copy to new git worktrees (used by Claude Code desktop app)
+# These files are gitignored but should be present in each worktree
+
+# Environment variables
+.env
+.env.local
+.env.*
+
+# Claude Code settings
+.claude/settings.local.json

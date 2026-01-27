@@ -110,6 +110,13 @@ export const getColorClassName = (
   return chartColors[color]?.[type] ?? fallbackColor[type]
 }
 
+/**
+ * Minimum upper bound for Y-axis domain.
+ * When all data values are 0, we need a non-zero upper bound to ensure
+ * the line appears at the bottom of the chart instead of centered.
+ */
+const MIN_Y_AXIS_UPPER_BOUND = 1
+
 export const getYAxisDomain = (
   autoMinValue: boolean,
   minValue: number | undefined,
@@ -118,18 +125,31 @@ export const getYAxisDomain = (
 ): AxisDomain => {
   if (minValue !== undefined && maxValue !== undefined) {
     // Always start from 0 for revenue and add significant padding to top
-    return [0, maxValue * (1 + additionalPaddingMultiple)]
+    // Use minimum upper bound when maxValue is 0 to prevent line centering
+    const upperBound = Math.max(
+      maxValue * (1 + additionalPaddingMultiple),
+      MIN_Y_AXIS_UPPER_BOUND
+    )
+    return [0, upperBound]
   }
   // For dynamic domains, also add padding
   if (autoMinValue) {
     return [
       0,
-      (dataMax: number) => dataMax * (1 + additionalPaddingMultiple),
+      (dataMax: number) =>
+        Math.max(
+          dataMax * (1 + additionalPaddingMultiple),
+          MIN_Y_AXIS_UPPER_BOUND
+        ),
     ]
   }
   return [
     'dataMin',
-    (dataMax: number) => dataMax * (1 + additionalPaddingMultiple),
+    (dataMax: number) =>
+      Math.max(
+        dataMax * (1 + additionalPaddingMultiple),
+        MIN_Y_AXIS_UPPER_BOUND
+      ),
   ]
 }
 export function hasOnlyOneValueForKey(

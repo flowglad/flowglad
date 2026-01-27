@@ -35,10 +35,9 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
   // Get organization and customer info for the email
   const { organization, customer } = await adminTransaction(
     async ({ transaction }) => {
-      const org = await selectOrganizationById(
-        organizationId,
-        transaction
-      )
+      const org = (
+        await selectOrganizationById(organizationId, transaction)
+      ).unwrap()
       // Only look for live mode customers - billing portals are not supported for test mode customers
       const customers = await selectCustomers(
         { email, organizationId, livemode: true },
@@ -53,11 +52,6 @@ const handleCustomerBillingPortalEmailOTP = async (params: {
 
   // Build the magic link URL with OTP
   // Send the magic link email
-  if (!organization) {
-    throw new Error(
-      `Organization not found for id: ${organizationId}`
-    )
-  }
   await sendCustomerBillingPortalMagicLink({
     to: [email],
     url,
@@ -85,10 +79,9 @@ const handleSendVerificationOTP = async (params: {
   // Get organization and customer info for the email
   const { organization, customer } = await adminTransaction(
     async ({ transaction }) => {
-      const org = await selectOrganizationById(
-        organizationId,
-        transaction
-      )
+      const org = (
+        await selectOrganizationById(organizationId, transaction)
+      ).unwrap()
       // Only look for live mode customers - billing portals are not supported for test mode customers
       const customers = await selectCustomers(
         { email, organizationId, livemode: true },
@@ -101,11 +94,7 @@ const handleSendVerificationOTP = async (params: {
     }
   )
 
-  if (!organization) {
-    throw new Error(
-      `Organization not found for id: ${organizationId}`
-    )
-  }
+  // Send OTP email using the proper email template
 
   // Send OTP email using the proper email template
   await sendCustomerBillingPortalOTP({

@@ -1,11 +1,11 @@
-import { afterAll, expect, it } from 'vitest'
+import { afterAll, expect, it } from 'bun:test'
 import {
   cleanupStripeTestData,
   createTestPaymentMethod,
   createTestStripeCustomer,
   describeIfStripeKey,
   getStripeTestClient,
-} from './stripeIntegrationHelpers'
+} from '@/test/stripeIntegrationHelpers'
 
 /**
  * Smoke tests for Stripe integration test infrastructure.

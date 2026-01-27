@@ -131,7 +131,8 @@ interface CustomerCSVRow {
 export const customerInsertsFromCSV = async (
   csvContent: string,
   organizationId: string,
-  livemode: boolean
+  livemode: boolean,
+  pricingModelId: string
 ) => {
   // Parse CSV to JSON
   const results = await new Promise<CustomerCSVRow[]>((resolve) => {
@@ -153,6 +154,7 @@ export const customerInsertsFromCSV = async (
         organizationId: organizationId,
         externalId: core.nanoid(),
         livemode,
+        pricingModelId,
       }
     }
   )

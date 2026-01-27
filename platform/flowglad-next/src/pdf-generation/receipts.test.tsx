@@ -1,91 +1,76 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 import { render } from '@testing-library/react'
 import { beforeEach, describe, expect, it } from 'vitest'
-import {
-  setupCustomer,
-  setupInvoice,
-  setupInvoiceLineItem,
-  setupOrg,
-  setupPayment,
-} from '@/../seedDatabase'
-import { adminTransaction } from '@/db/adminTransaction'
 import type { Customer } from '@/db/schema/customers'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
 import type { Invoice } from '@/db/schema/invoices'
 import type { Organization } from '@/db/schema/organizations'
-import type { Payment } from '@/db/schema/payments'
-import type { Price } from '@/db/schema/prices'
-import { updateCustomer } from '@/db/tableMethods/customerMethods'
-import { updateInvoice } from '@/db/tableMethods/invoiceMethods'
-import { CurrencyCode, InvoiceStatus, PaymentStatus } from '@/types'
+import { InvoiceStatus, PaymentStatus } from '@/types'
 import { ReceiptTemplate } from './receipts'
+import {
+  createMockCustomer,
+  createMockInvoice,
+  createMockInvoiceLineItem,
+  createMockOrganization,
+  createMockPayment,
+  resetMockIdCounter,
+} from './test/pdfMocks'
+
+// ============================================================================
+// Tests
+// ============================================================================
 
 describe('Receipt Components', () => {
   let organization: Organization.Record
   let customer: Customer.Record
   let invoice: Invoice.Record
   let invoiceLineItems: InvoiceLineItem.Record[]
-  let payment: Payment.Record
-  let price: Price.Record
 
-  beforeEach(async () => {
-    // Setup test data
-    const orgSetup = await setupOrg()
-    organization = orgSetup.organization
-    price = orgSetup.price
+  beforeEach(() => {
+    // Reset counter for each test to ensure consistent IDs
+    resetMockIdCounter()
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${Date.now()}`,
-    })
-
-    invoice = await setupInvoice({
+    // Setup test data with mock factories
+    organization = createMockOrganization()
+    customer = createMockCustomer({ organizationId: organization.id })
+    invoice = createMockInvoice({
       customerId: customer.id,
       organizationId: organization.id,
       status: InvoiceStatus.Paid,
-      priceId: orgSetup.price.id,
+      subtotal: 6000,
     })
-
     invoiceLineItems = [
-      await setupInvoiceLineItem({
+      createMockInvoiceLineItem({
         invoiceId: invoice.id,
-        priceId: orgSetup.price.id,
         quantity: 2,
         price: 2500, // $25.00
       }),
-      await setupInvoiceLineItem({
+      createMockInvoiceLineItem({
         invoiceId: invoice.id,
-        priceId: orgSetup.price.id,
         quantity: 1,
         price: 1000, // $10.00
       }),
     ]
-
-    payment = await setupPayment({
-      invoiceId: invoice.id,
-      amount: 6000, // $60.00
-      status: PaymentStatus.Succeeded,
-      customerId: customer.id,
-      organizationId: organization.id,
-      stripeChargeId: `ch_${Date.now()}`,
-    })
   })
 
   describe('ReceiptTemplate with discounts', () => {
-    it('should handle fixed discount correctly', async () => {
-      const invoiceWithDiscount = await setupInvoice({
+    it('should handle fixed discount correctly', () => {
+      const invoiceWithDiscount = createMockInvoice({
         customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Paid,
-        priceId: price.id,
+        subtotal: 5000, // $50.00 after $10.00 discount
       })
 
-      const paymentWithDiscount = await setupPayment({
+      const paymentWithDiscount = createMockPayment({
         invoiceId: invoiceWithDiscount.id,
         amount: 5000, // $50.00
         status: PaymentStatus.Succeeded,
         customerId: customer.id,
         organizationId: organization.id,
-        stripeChargeId: `ch_${Date.now()}`,
       })
 
       const { getByTestId } = render(
@@ -127,21 +112,20 @@ describe('Receipt Components', () => {
       expect(getByTestId('amount-paid')).toHaveTextContent('$50.00')
     })
 
-    it('should handle percentage discount correctly', async () => {
-      const invoiceWithDiscount = await setupInvoice({
+    it('should handle percentage discount correctly', () => {
+      const invoiceWithDiscount = createMockInvoice({
         customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Paid,
-        priceId: price.id,
+        subtotal: 5400, // $54.00 after 10% discount
       })
 
-      const paymentWithDiscount = await setupPayment({
+      const paymentWithDiscount = createMockPayment({
         invoiceId: invoiceWithDiscount.id,
         amount: 5400, // $54.00
         status: PaymentStatus.Succeeded,
         customerId: customer.id,
         organizationId: organization.id,
-        stripeChargeId: `ch_${Date.now()}`,
       })
 
       const { getByTestId } = render(
@@ -183,46 +167,26 @@ describe('Receipt Components', () => {
       expect(getByTestId('amount-paid')).toHaveTextContent('$54.00')
     })
 
-    it('should handle percentage discount with tax correctly', async () => {
-      const invoiceWithDiscountAndTax = await setupInvoice({
+    it('should handle percentage discount with tax correctly', () => {
+      const invoiceWithDiscountAndTax = createMockInvoice({
         customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Paid,
-        priceId: price.id,
+        subtotal: 5400, // $54.00 after 10% discount
+        taxAmount: 540, // $5.40 tax
       })
 
-      // Update the invoice with the correct subtotal and tax
-      const updatedInvoiceWithTax = await adminTransaction(
-        async ({ transaction }) => {
-          return await updateInvoice(
-            {
-              id: invoiceWithDiscountAndTax.id,
-              type: invoiceWithDiscountAndTax.type,
-              purchaseId: invoiceWithDiscountAndTax.purchaseId,
-              billingPeriodId:
-                invoiceWithDiscountAndTax.billingPeriodId,
-              subscriptionId:
-                invoiceWithDiscountAndTax.subscriptionId,
-              subtotal: 5400, // $54.00 after 10% discount
-              taxAmount: 540, // $5.40 tax
-            } as any,
-            transaction
-          )
-        }
-      )
-
-      const paymentWithDiscountAndTax = await setupPayment({
+      const paymentWithDiscountAndTax = createMockPayment({
         invoiceId: invoiceWithDiscountAndTax.id,
         amount: 5940, // $59.40
         status: PaymentStatus.Succeeded,
         customerId: customer.id,
         organizationId: organization.id,
-        stripeChargeId: `ch_${Date.now()}`,
       })
 
       const { getByTestId } = render(
         <ReceiptTemplate
-          invoice={updatedInvoiceWithTax}
+          invoice={invoiceWithDiscountAndTax}
           invoiceLineItems={invoiceLineItems}
           customer={customer}
           organization={organization}
@@ -261,21 +225,20 @@ describe('Receipt Components', () => {
       expect(getByTestId('amount-paid')).toHaveTextContent('$59.40')
     })
 
-    it('should cap percentage discount at 100%', async () => {
-      const invoiceWithLargeDiscount = await setupInvoice({
+    it('should cap percentage discount at 100%', () => {
+      const invoiceWithLargeDiscount = createMockInvoice({
         customerId: customer.id,
         organizationId: organization.id,
         status: InvoiceStatus.Paid,
-        priceId: price.id,
+        subtotal: 0, // $0.00 after 100% discount
       })
 
-      const paymentWithLargeDiscount = await setupPayment({
+      const paymentWithLargeDiscount = createMockPayment({
         invoiceId: invoiceWithLargeDiscount.id,
         amount: 0, // $0.00
         status: PaymentStatus.Succeeded,
         customerId: customer.id,
         organizationId: organization.id,
-        stripeChargeId: `ch_${Date.now()}`,
       })
 
       const { getByTestId } = render(

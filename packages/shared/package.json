@@ -1,6 +1,6 @@
 {
   "name": "@flowglad/shared",
-  "version": "0.16.2",
+  "version": "0.17.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
@@ -11,7 +11,8 @@
     "build": "tsup",
     "clean": "rm -rf dist",
     "dev": "tsup --watch",
-    "check": "biome check . && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check . && bun run typecheck",
     "build:declarations": "tsc -p tsconfig.declarations.json",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -26,7 +27,7 @@
   "dependencies": {
     "zod": "4.1.5",
     "date-fns": "4.1.0",
-    "@flowglad/node": "0.24.0"
+    "@flowglad/node": "0.29.0"
   },
   "devDependencies": {
     "typescript": "5.8.2",

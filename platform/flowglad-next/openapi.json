@@ -1712,9 +1712,6 @@
                       "name": {
                         "type": "string"
                       },
-                      "archived": {
-                        "type": "boolean"
-                      },
                       "logoURL": {
                         "anyOf": [
                           {
@@ -2071,6 +2068,260 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{externalId}/usage-balances": {
+      "get": {
+        "operationId": "customers-getUsageBalances",
+        "summary": "Get Usage Balances",
+        "tags": ["Customer", "Usage Meters"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "externalId",
+            "schema": {
+              "description": "The external ID of the customer",
+              "type": "string"
+            },
+            "required": true,
+            "description": "The external ID of the customer"
+          },
+          {
+            "in": "query",
+            "name": "subscriptionId",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "usageMeterBalances": {
+                      "type": "array",
+                      "items": {
+                        "description": "A usage meter and the available balance for that meter, scoped to a given subscription.",
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string"
+                          },
+                          "createdAt": {
+                            "description": "Epoch milliseconds.",
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "updatedAt": {
+                            "description": "Epoch milliseconds.",
+                            "type": "integer",
+                            "minimum": -9007199254740991,
+                            "maximum": 9007199254740991
+                          },
+                          "livemode": {
+                            "type": "boolean"
+                          },
+                          "organizationId": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "description": "The name of the usage meter",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "pricingModelId": {
+                            "type": "string"
+                          },
+                          "slug": {
+                            "description": "The slug of the usage meter",
+                            "type": "string",
+                            "minLength": 1,
+                            "maxLength": 255
+                          },
+                          "aggregationType": {
+                            "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+                            "type": "string",
+                            "enum": [
+                              "sum",
+                              "count_distinct_properties"
+                            ]
+                          },
+                          "availableBalance": {
+                            "type": "number"
+                          },
+                          "subscriptionId": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "createdAt",
+                          "updatedAt",
+                          "livemode",
+                          "organizationId",
+                          "name",
+                          "pricingModelId",
+                          "slug",
+                          "aggregationType",
+                          "availableBalance",
+                          "subscriptionId"
+                        ],
+                        "additionalProperties": false
+                      }
+                    }
+                  },
+                  "required": ["usageMeterBalances"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/customers/{externalId}/archive": {
+      "post": {
+        "operationId": "customers-archive",
+        "summary": "Archive Customer",
+        "description": "Archives a customer, canceling all active subscriptions and freeing the externalId for reuse.",
+        "tags": ["Customer"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "externalId",
+            "schema": {
+              "description": "The external ID of the customer to archive, as defined in your application",
+              "type": "string"
+            },
+            "required": true,
+            "description": "The external ID of the customer to archive, as defined in your application"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "customer": {
+                      "$ref": "#/components/schemas/CustomerClientSelectSchema"
+                    }
+                  },
+                  "required": ["customer"],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
                 }
               }
             }
@@ -3415,7 +3666,7 @@
                                   ]
                                 },
                                 "isDefault": {
-                                  "description": "Whether or not this price is the default price for the product.",
+                                  "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
                                   "type": "boolean"
                                 },
                                 "unitPrice": {
@@ -3486,7 +3737,7 @@
                                   "type": "null"
                                 },
                                 "isDefault": {
-                                  "description": "Whether or not this price is the default price for the product.",
+                                  "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
                                   "type": "boolean"
                                 },
                                 "unitPrice": {
@@ -3529,87 +3780,6 @@
                                 "isDefault",
                                 "unitPrice"
                               ]
-                            },
-                            {
-                              "type": "object",
-                              "properties": {
-                                "intervalUnit": {
-                                  "type": "string",
-                                  "enum": [
-                                    "day",
-                                    "week",
-                                    "month",
-                                    "year"
-                                  ]
-                                },
-                                "name": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 255
-                                },
-                                "intervalCount": {
-                                  "description": "A positive integer",
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 9007199254740991
-                                },
-                                "type": {
-                                  "type": "string",
-                                  "const": "usage"
-                                },
-                                "trialPeriodDays": {
-                                  "description": "Omitted.",
-                                  "type": "null"
-                                },
-                                "isDefault": {
-                                  "description": "Whether or not this price is the default price for the product.",
-                                  "type": "boolean"
-                                },
-                                "unitPrice": {
-                                  "description": "The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.",
-                                  "anyOf": [
-                                    {
-                                      "description": "A positive integer",
-                                      "type": "integer",
-                                      "exclusiveMinimum": 0,
-                                      "maximum": 9007199254740991
-                                    },
-                                    {
-                                      "type": "number",
-                                      "const": 0
-                                    }
-                                  ]
-                                },
-                                "usageEventsPerUnit": {
-                                  "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
-                                  "type": "integer",
-                                  "exclusiveMinimum": 0,
-                                  "maximum": 9007199254740991
-                                },
-                                "active": {
-                                  "type": "boolean"
-                                },
-                                "slug": {
-                                  "type": "string",
-                                  "minLength": 1,
-                                  "maxLength": 255
-                                },
-                                "usageMeterSlug": {
-                                  "type": "string"
-                                },
-                                "currency": {
-                                  "$ref": "#/components/schemas/CurrencyCode"
-                                }
-                              },
-                              "required": [
-                                "intervalUnit",
-                                "intervalCount",
-                                "type",
-                                "isDefault",
-                                "unitPrice",
-                                "usageEventsPerUnit",
-                                "usageMeterSlug"
-                              ]
                             }
                           ],
                           "type": "object"
@@ -3628,22 +3798,112 @@
                   "usageMeters": {
                     "type": "array",
                     "items": {
-                      "description": "The usage meters to add to the pricingModel. If the pricingModel has any prices that are based on usage, each dimension along which usage will be tracked will need its own meter.",
                       "type": "object",
                       "properties": {
-                        "name": {
-                          "type": "string"
+                        "usageMeter": {
+                          "description": "The usage meter configuration. Each dimension along which usage will be tracked needs its own meter.",
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "slug": {
+                              "type": "string"
+                            },
+                            "aggregationType": {
+                              "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+                              "type": "string",
+                              "enum": [
+                                "sum",
+                                "count_distinct_properties"
+                              ]
+                            }
+                          },
+                          "required": ["name", "slug"]
                         },
-                        "slug": {
-                          "type": "string"
-                        },
-                        "aggregationType": {
-                          "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
-                          "type": "string",
-                          "enum": ["sum", "count_distinct_properties"]
+                        "prices": {
+                          "description": "The prices for this usage meter. Each price defines how usage on this meter is billed.",
+                          "type": "array",
+                          "items": {
+                            "type": "object",
+                            "properties": {
+                              "intervalUnit": {
+                                "type": "string",
+                                "enum": [
+                                  "day",
+                                  "week",
+                                  "month",
+                                  "year"
+                                ]
+                              },
+                              "name": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "intervalCount": {
+                                "description": "A positive integer",
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "type": {
+                                "type": "string",
+                                "const": "usage"
+                              },
+                              "trialPeriodDays": {
+                                "description": "Omitted.",
+                                "type": "null"
+                              },
+                              "isDefault": {
+                                "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
+                                "type": "boolean"
+                              },
+                              "unitPrice": {
+                                "description": "The price per unit. This should be in the smallest unit of the currency. For example, if the currency is USD, GBP, CAD, EUR or SGD, the price should be in cents.",
+                                "anyOf": [
+                                  {
+                                    "description": "A positive integer",
+                                    "type": "integer",
+                                    "exclusiveMinimum": 0,
+                                    "maximum": 9007199254740991
+                                  },
+                                  {
+                                    "type": "number",
+                                    "const": 0
+                                  }
+                                ]
+                              },
+                              "usageEventsPerUnit": {
+                                "description": "The number of usage events per unit. Used to determine how to map usage events to quantities when raising invoices for usage.",
+                                "type": "integer",
+                                "exclusiveMinimum": 0,
+                                "maximum": 9007199254740991
+                              },
+                              "active": {
+                                "type": "boolean"
+                              },
+                              "slug": {
+                                "type": "string",
+                                "minLength": 1,
+                                "maxLength": 255
+                              },
+                              "currency": {
+                                "$ref": "#/components/schemas/CurrencyCode"
+                              }
+                            },
+                            "required": [
+                              "intervalUnit",
+                              "intervalCount",
+                              "type",
+                              "isDefault",
+                              "unitPrice",
+                              "usageEventsPerUnit"
+                            ]
+                          }
                         }
                       },
-                      "required": ["name", "slug"]
+                      "required": ["usageMeter"]
                     }
                   },
                   "resources": {
@@ -3860,7 +4120,20 @@
                 "type": "object",
                 "properties": {
                   "pricingModel": {
-                    "$ref": "#/components/schemas/PricingModelClientUpdateSchema"
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "string"
+                      },
+                      "isDefault": {
+                        "type": "boolean"
+                      },
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      }
+                    },
+                    "required": ["id", "name"]
                   }
                 },
                 "required": ["pricingModel"]
@@ -5743,23 +6016,26 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "items": {
+                    "data": {
                       "type": "array",
                       "items": {
                         "$ref": "#/components/schemas/UsageEventClientSelectSchema"
                       }
                     },
-                    "total": {
-                      "type": "number"
+                    "currentCursor": {
+                      "type": "string"
+                    },
+                    "nextCursor": {
+                      "type": "string"
                     },
                     "hasMore": {
                       "type": "boolean"
                     },
-                    "nextCursor": {
-                      "type": "string"
+                    "total": {
+                      "type": "number"
                     }
                   },
-                  "required": ["items", "total", "hasMore"],
+                  "required": ["data", "hasMore", "total"],
                   "additionalProperties": false
                 }
               }
@@ -6047,6 +6323,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6058,7 +6337,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6247,6 +6527,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6258,7 +6541,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     }
@@ -6369,9 +6653,17 @@
                       },
                       "active": {
                         "type": "boolean"
+                      },
+                      "pricingModelId": {
+                        "type": "string"
                       }
                     },
-                    "required": ["filterTypes", "url", "name"]
+                    "required": [
+                      "filterTypes",
+                      "url",
+                      "name",
+                      "pricingModelId"
+                    ]
                   }
                 },
                 "required": ["webhook"]
@@ -6437,6 +6729,9 @@
                         },
                         "active": {
                           "type": "boolean"
+                        },
+                        "pricingModelId": {
+                          "type": "string"
                         }
                       },
                       "required": [
@@ -6448,7 +6743,8 @@
                         "organizationId",
                         "url",
                         "name",
-                        "active"
+                        "active",
+                        "pricingModelId"
                       ],
                       "additionalProperties": false
                     },
@@ -7188,7 +7484,7 @@
         }
       }
     },
-    "/api/v1/product-feature/{id}/expire": {
+    "/api/v1/product-features/{id}/expire": {
       "post": {
         "operationId": "productFeatures-expire",
         "summary": "Expire Product Feature",
@@ -8067,18 +8363,18 @@
                     "$ref": "#/components/schemas/Metadata"
                   },
                   "quantity": {
-                    "description": "Create N anonymous (cattle-style) claims. Each claim will have externalId = null.",
+                    "description": "Create N anonymous claims without external identifiers.",
                     "type": "integer",
                     "exclusiveMinimum": 0,
                     "maximum": 9007199254740991
                   },
                   "externalId": {
-                    "description": "Create a single pet-style claim with this external identifier.",
+                    "description": "Create a single named claim with this external identifier (idempotent).",
                     "type": "string",
                     "maxLength": 255
                   },
                   "externalIds": {
-                    "description": "Create multiple pet-style claims with these external identifiers.",
+                    "description": "Create multiple named claims with these external identifiers (idempotent per ID).",
                     "minItems": 1,
                     "type": "array",
                     "items": {
@@ -8109,6 +8405,12 @@
                     "usage": {
                       "type": "object",
                       "properties": {
+                        "resourceSlug": {
+                          "type": "string"
+                        },
+                        "resourceId": {
+                          "type": "string"
+                        },
                         "capacity": {
                           "type": "integer",
                           "minimum": -9007199254740991,
@@ -8126,6 +8428,8 @@
                         }
                       },
                       "required": [
+                        "resourceSlug",
+                        "resourceId",
                         "capacity",
                         "claimed",
                         "available"
@@ -8215,18 +8519,18 @@
                     "type": "string"
                   },
                   "quantity": {
-                    "description": "Release N anonymous (cattle-style) claims. Only releases claims where externalId IS NULL. Will not release pet-style claims with externalIds.",
+                    "description": "Release N anonymous claims (FIFO order). Only releases claims without external identifiers.",
                     "type": "integer",
                     "exclusiveMinimum": 0,
                     "maximum": 9007199254740991
                   },
                   "externalId": {
-                    "description": "Release a specific pet-style claim by its externalId",
+                    "description": "Release a specific named claim by its external identifier.",
                     "type": "string",
                     "maxLength": 255
                   },
                   "externalIds": {
-                    "description": "Release multiple pet-style claims by their externalIds",
+                    "description": "Release multiple named claims by their external identifiers.",
                     "minItems": 1,
                     "type": "array",
                     "items": {
@@ -8235,7 +8539,7 @@
                     }
                   },
                   "claimIds": {
-                    "description": "Release specific claims by their claim IDs (works for both cattle and pet claims)",
+                    "description": "Release specific claims by their claim IDs (works for both anonymous and named claims).",
                     "minItems": 1,
                     "type": "array",
                     "items": {
@@ -8265,6 +8569,12 @@
                     "usage": {
                       "type": "object",
                       "properties": {
+                        "resourceSlug": {
+                          "type": "string"
+                        },
+                        "resourceId": {
+                          "type": "string"
+                        },
                         "capacity": {
                           "type": "integer",
                           "minimum": -9007199254740991,
@@ -8282,6 +8592,8 @@
                         }
                       },
                       "required": [
+                        "resourceSlug",
+                        "resourceId",
                         "capacity",
                         "claimed",
                         "available"
@@ -8342,7 +8654,7 @@
       "get": {
         "operationId": "resourceClaims-getUsage",
         "summary": "Get Resource Usage",
-        "description": "Get resource usage information for a subscription. Optionally filter by resourceSlug.",
+        "description": "Get resource usage information for a subscription. Exactly one of resourceSlug or resourceId must be provided.",
         "tags": ["Resource Claims"],
         "security": [
           {
@@ -8364,6 +8676,13 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "in": "query",
+            "name": "resourceId",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -8372,48 +8691,113 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "properties": {
-                    "usage": {
-                      "type": "array",
-                      "items": {
-                        "type": "object",
-                        "properties": {
-                          "resourceSlug": {
-                            "type": "string"
-                          },
-                          "resourceId": {
-                            "type": "string"
-                          },
-                          "capacity": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "claimed": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          },
-                          "available": {
-                            "type": "integer",
-                            "minimum": -9007199254740991,
-                            "maximum": 9007199254740991
-                          }
-                        },
-                        "required": [
-                          "resourceSlug",
-                          "resourceId",
-                          "capacity",
-                          "claimed",
-                          "available"
-                        ],
-                        "additionalProperties": false
-                      }
-                    }
-                  },
-                  "required": ["usage"],
-                  "additionalProperties": false
+                  "$ref": "#/components/schemas/ResourceUsage"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.BAD_REQUEST"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authorization not provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.UNAUTHORIZED"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Insufficient access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.FORBIDDEN"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.NOT_FOUND"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/error.INTERNAL_SERVER_ERROR"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resource-claims/{subscriptionId}/usages": {
+      "get": {
+        "operationId": "resourceClaims-listResourceUsages",
+        "summary": "List Resource Usages",
+        "description": "List resource usage information for all resources on the subscription.",
+        "tags": ["Resource Claims"],
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "subscriptionId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true
+          },
+          {
+            "in": "query",
+            "name": "resourceSlugs",
+            "schema": {
+              "maxItems": 100,
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceIds",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResourceUsageList"
                 }
               }
             }
@@ -8654,8 +9038,10 @@
             "type": "string"
           },
           "quantity": {
-            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.",
-            "type": "number"
+            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Must be a positive integer. Defaults to 1 if not provided.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
           },
           "anonymous": {
             "type": "boolean",
@@ -8735,8 +9121,10 @@
             "type": "string"
           },
           "quantity": {
-            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.",
-            "type": "number"
+            "description": "The quantity of the purchase or subscription created when this checkout session succeeds. Must be a positive integer. Defaults to 1 if not provided.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 9007199254740991
           },
           "anonymous": {
             "type": "boolean",
@@ -8994,7 +9382,7 @@
             ]
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9072,7 +9460,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9146,7 +9534,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9338,7 +9726,7 @@
             ]
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9361,6 +9749,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for subscription prices.",
             "type": "string"
           },
           "active": {
@@ -9420,7 +9809,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9443,6 +9832,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for single payment prices.",
             "type": "string"
           },
           "active": {
@@ -9497,7 +9887,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -9522,7 +9912,8 @@
             "maximum": 9007199254740991
           },
           "productId": {
-            "type": "string"
+            "description": "Omitted.",
+            "type": "null"
           },
           "active": {
             "type": "boolean"
@@ -9549,7 +9940,6 @@
           "isDefault",
           "unitPrice",
           "usageEventsPerUnit",
-          "productId",
           "usageMeterId"
         ]
       },
@@ -9596,7 +9986,7 @@
             "const": "subscription"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "active": {
@@ -9636,7 +10026,7 @@
             "const": "single_payment"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "active": {
@@ -9676,7 +10066,7 @@
             "const": "usage"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "active": {
@@ -9741,16 +10131,6 @@
             "type": "string"
           },
           "userId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "pricingModelId": {
             "anyOf": [
               {
                 "type": "string"
@@ -9910,6 +10290,9 @@
       "DefaultDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -9949,6 +10332,9 @@
       "NumberOfPaymentsDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -9992,6 +10378,9 @@
       "ForeverDiscountClientInsertSchema": {
         "type": "object",
         "properties": {
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -10167,21 +10556,6 @@
           "ZAR",
           "ZMW"
         ]
-      },
-      "PricingModelClientUpdateSchema": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string"
-          },
-          "isDefault": {
-            "type": "boolean"
-          },
-          "name": {
-            "type": "string"
-          }
-        },
-        "required": ["id"]
       },
       "AdjustSubscriptionImmediatelyInput": {
         "type": "object",
@@ -10787,9 +11161,6 @@
             "type": "null",
             "const": null
           },
-          "pricingModelId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "null",
             "const": null
@@ -10833,9 +11204,6 @@
           "renewalFrequency": {
             "type": "string",
             "enum": ["once", "every_billing_period"]
-          },
-          "pricingModelId": {
-            "type": "string"
           },
           "resourceId": {
             "type": "null",
@@ -10887,9 +11255,6 @@
           "renewalFrequency": {
             "type": "null",
             "const": null
-          },
-          "pricingModelId": {
-            "type": "string"
           },
           "resourceId": {
             "type": "string"
@@ -13870,7 +14235,7 @@
             ]
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -13893,6 +14258,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for subscription prices.",
             "type": "string"
           },
           "active": {
@@ -13988,7 +14354,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -14011,6 +14377,7 @@
             "type": "null"
           },
           "productId": {
+            "description": "The product this price belongs to. Required for single payment prices.",
             "type": "string"
           },
           "active": {
@@ -14104,7 +14471,7 @@
             "type": "null"
           },
           "isDefault": {
-            "description": "Whether or not this price is the default price for the product.",
+            "description": "Whether or not this price is the default price. For product prices, this indicates the default price for that product. For usage prices, this indicates the default price for that usage meter.",
             "type": "boolean"
           },
           "unitPrice": {
@@ -14129,7 +14496,7 @@
             "maximum": 9007199254740991
           },
           "productId": {
-            "type": "string"
+            "type": "null"
           },
           "active": {
             "type": "boolean"
@@ -15239,14 +15606,7 @@
             ]
           },
           "pricingModelId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string"
           }
         },
         "required": [
@@ -18233,6 +18593,9 @@
           "customerId": {
             "type": "string"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "billingDetails": {
             "type": "object",
             "properties": {
@@ -18438,6 +18801,7 @@
           "updatedAt",
           "livemode",
           "customerId",
+          "pricingModelId",
           "billingDetails",
           "type",
           "default",
@@ -18484,7 +18848,7 @@
           "usageMeters": {
             "type": "array",
             "items": {
-              "$ref": "#/components/schemas/UsageMeterClientSelectSchema"
+              "$ref": "#/components/schemas/UsageMeterWithPricesRecord"
             }
           },
           "defaultProduct": {
@@ -18505,7 +18869,7 @@
         ],
         "additionalProperties": false
       },
-      "UsageMeterClientSelectSchema": {
+      "UsageMeterWithPricesRecord": {
         "type": "object",
         "properties": {
           "id": {
@@ -18548,6 +18912,16 @@
             "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
             "type": "string",
             "enum": ["sum", "count_distinct_properties"]
+          },
+          "prices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UsagePriceClientSelectSchema"
+            }
+          },
+          "defaultPrice": {
+            "description": "The default price for the usage meter. If no price is explicitly set as default, will return the first price.",
+            "$ref": "#/components/schemas/UsagePriceClientSelectSchema"
           }
         },
         "required": [
@@ -18559,7 +18933,8 @@
           "name",
           "pricingModelId",
           "slug",
-          "aggregationType"
+          "aggregationType",
+          "prices"
         ],
         "additionalProperties": false
       },
@@ -18600,6 +18975,9 @@
           "organizationId": {
             "type": "string"
           },
+          "pricingModelId": {
+            "type": "string"
+          },
           "name": {
             "type": "string"
           },
@@ -18636,6 +19014,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "code",
           "amount",
@@ -18667,6 +19046,9 @@
             "type": "boolean"
           },
           "organizationId": {
+            "type": "string"
+          },
+          "pricingModelId": {
             "type": "string"
           },
           "name": {
@@ -18708,6 +19090,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "code",
           "amount",
@@ -18740,6 +19123,9 @@
             "type": "boolean"
           },
           "organizationId": {
+            "type": "string"
+          },
+          "pricingModelId": {
             "type": "string"
           },
           "name": {
@@ -18778,6 +19164,7 @@
           "updatedAt",
           "livemode",
           "organizationId",
+          "pricingModelId",
           "name",
           "code",
           "amount",
@@ -19042,6 +19429,64 @@
         ],
         "additionalProperties": false
       },
+      "UsageMeterClientSelectSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "createdAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "updatedAt": {
+            "description": "Epoch milliseconds.",
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "livemode": {
+            "type": "boolean"
+          },
+          "organizationId": {
+            "type": "string"
+          },
+          "name": {
+            "description": "The name of the usage meter",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "pricingModelId": {
+            "type": "string"
+          },
+          "slug": {
+            "description": "The slug of the usage meter",
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "aggregationType": {
+            "description": "The type of aggregation to perform on the usage meter. Defaults to \"sum\", which aggregates all the usage event amounts for the billing period. \"count_distinct_properties\" counts the number of distinct properties in the billing period for a given meter.",
+            "type": "string",
+            "enum": ["sum", "count_distinct_properties"]
+          }
+        },
+        "required": [
+          "id",
+          "createdAt",
+          "updatedAt",
+          "livemode",
+          "organizationId",
+          "name",
+          "pricingModelId",
+          "slug",
+          "aggregationType"
+        ],
+        "additionalProperties": false
+      },
       "UsageEventClientSelectSchema": {
         "type": "object",
         "properties": {
@@ -19099,14 +19544,7 @@
             "type": "string"
           },
           "priceId": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
+            "type": "string"
           },
           "properties": {
             "description": "Properties for the usage event. Only required when using the \"count_distinct_properties\" aggregation type.",
@@ -19276,9 +19714,6 @@
           "organizationId": {
             "type": "string"
           },
-          "subscriptionItemFeatureId": {
-            "type": "string"
-          },
           "resourceId": {
             "type": "string"
           },
@@ -19327,6 +19762,19 @@
               }
             ]
           },
+          "expiredAt": {
+            "anyOf": [
+              {
+                "description": "Epoch milliseconds.",
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "metadata": {
             "anyOf": [
               {
@@ -19344,7 +19792,6 @@
           "updatedAt",
           "livemode",
           "organizationId",
-          "subscriptionItemFeatureId",
           "resourceId",
           "subscriptionId",
           "pricingModelId",
@@ -19353,6 +19800,64 @@
           "releaseReason"
         ],
         "additionalProperties": false
+      },
+      "ResourceUsage": {
+        "description": "The usage data for a resource.",
+        "type": "object",
+        "properties": {
+          "usage": {
+            "$ref": "#/components/schemas/ResourceUsageData"
+          },
+          "claims": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ResourceClaimClientSelectSchema"
+            }
+          }
+        },
+        "required": ["usage", "claims"],
+        "additionalProperties": false
+      },
+      "ResourceUsageData": {
+        "type": "object",
+        "properties": {
+          "resourceSlug": {
+            "type": "string"
+          },
+          "resourceId": {
+            "type": "string"
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "claimed": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "available": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "resourceSlug",
+          "resourceId",
+          "capacity",
+          "claimed",
+          "available"
+        ],
+        "additionalProperties": false
+      },
+      "ResourceUsageList": {
+        "description": "List of resource usage data for the subscription.",
+        "type": "array",
+        "items": {
+          "$ref": "#/components/schemas/ResourceUsage"
+        }
       },
       "SubscriptionItemRecordOutput": {
         "$ref": "#/components/schemas/StaticSubscriptionItemClientSelectSchemaOutput"

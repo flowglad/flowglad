@@ -1,3 +1,7 @@
+/**
+ * @vitest-environment jsdom
+ */
+
 // @ts-nocheck
 import { render } from '@testing-library/react'
 import {
@@ -345,6 +349,103 @@ describe('price flow', () => {
     expect(result.discountAmount).toBe(300) // feeCalculation.discountAmountFixed
     expect(result.taxAmount).toBe(90) // feeCalculation.taxAmountFixed
     expect(result.totalDueAmount).toBe(990) // calculateTotalDueAmount(feeCalculation)
+  })
+
+  it('should multiply base amount by quantity when quantity is greater than 1', async () => {
+    // Arrange: price with unitPrice of 100, quantity of 5
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: undefined,
+      feeCalculation: null,
+      discount: null,
+      quantity: 5,
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 100 * 5 = 500
+    expect(result.baseAmount).toBe(500)
+    expect(result.subtotalAmount).toBe(500)
+    expect(result.discountAmount).toBe(0)
+    expect(result.taxAmount).toBeNull()
+    expect(result.totalDueAmount).toBe(500)
+  })
+
+  it('should default quantity to 1 when not provided', async () => {
+    // Arrange: price without quantity specified
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: undefined,
+      feeCalculation: null,
+      discount: null,
+      // quantity not provided
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 100 * 1 = 100
+    expect(result.baseAmount).toBe(100)
+    expect(result.subtotalAmount).toBe(100)
+    expect(result.totalDueAmount).toBe(100)
+  })
+
+  it('should apply discount to quantity-multiplied base amount', async () => {
+    // Arrange: price with unitPrice of 100, quantity of 3, fixed discount of 200
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: undefined,
+      feeCalculation: null,
+      discount: mockDiscount, // fixed 200 discount
+      quantity: 3,
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 100 * 3 = 300, total due = 300 - 200 = 100
+    expect(result.baseAmount).toBe(300)
+    expect(result.subtotalAmount).toBe(300)
+    expect(result.discountAmount).toBe(200)
+    expect(result.totalDueAmount).toBe(100)
+  })
+
+  it('should not double-count quantity when purchase exists (purchase values already include quantity)', async () => {
+    // Arrange: purchase with pricePerBillingCycle of 500 (which already represents 5 * 100 unitPrice)
+    // When quantity is also passed, it should NOT multiply again
+    const purchaseWithQuantityIncluded = {
+      ...subscriptionWithTrialDummyPurchase,
+      pricePerBillingCycle: 500, // Already includes quantity (e.g., 5 seats at 100 each)
+      firstInvoiceValue: 500,
+      quantity: 5,
+    }
+
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: purchaseWithQuantityIncluded,
+      feeCalculation: null,
+      discount: null,
+      quantity: 5, // Same quantity, but should not be multiplied again
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 500 (from purchase.pricePerBillingCycle), NOT 2500
+    // calculatePriceBaseAmount returns pricePerBillingCycle when purchase exists,
+    // and we should NOT multiply by quantity again
+    expect(result.baseAmount).toBe(500)
+    expect(result.subtotalAmount).toBe(500)
+    expect(result.totalDueAmount).toBe(500)
   })
 })
 

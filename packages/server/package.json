@@ -1,13 +1,13 @@
 {
   "name": "@flowglad/server",
-  "version": "0.16.2",
+  "version": "0.17.1",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
   "types": "./dist/types/index.d.ts",
   "typesVersions": {
     "*": {
       "better-auth": [
-        "./dist/types/better-auth.d.ts"
+        "./dist/types/better-auth/index.d.ts"
       ],
       "express": [
         "./dist/types/express/index.d.ts"
@@ -27,14 +27,15 @@
     "build:declarations": "tsc -p tsconfig.declarations.json",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "check": "biome check . && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check . && bun run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
-    "@flowglad/node": "0.24.0",
+    "@flowglad/node": "0.29.0",
     "nanoid": "^3.3.11",
     "zod": "4.1.5"
   },
@@ -65,9 +66,9 @@
       "require": "./dist/cjs/index.js"
     },
     "./better-auth": {
-      "types": "./dist/types/better-auth.d.ts",
-      "import": "./dist/esm/better-auth.js",
-      "require": "./dist/cjs/better-auth.js"
+      "types": "./dist/types/better-auth/index.d.ts",
+      "import": "./dist/esm/better-auth/index.js",
+      "require": "./dist/cjs/better-auth/index.js"
     },
     "./express": {
       "types": "./dist/types/express/index.d.ts",

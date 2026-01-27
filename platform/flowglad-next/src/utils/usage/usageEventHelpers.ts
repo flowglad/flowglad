@@ -1,4 +1,4 @@
-import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import type { UsageEventProcessedLedgerCommand } from '@/db/ledgerManager/ledgerManagerTypes'
 import {
@@ -10,8 +10,12 @@ import {
   selectBillingPeriodsForSubscriptions,
   selectCurrentBillingPeriodForSubscription,
 } from '@/db/tableMethods/billingPeriodMethods'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import {
+  assertCustomerNotArchived,
+  selectCustomerById,
+} from '@/db/tableMethods/customerMethods'
+import {
+  selectDefaultPriceForUsageMeter,
   selectPriceById,
   selectPriceBySlugAndCustomerId,
 } from '@/db/tableMethods/priceMethods'
@@ -28,14 +32,53 @@ import {
   selectUsageMeterBySlugAndCustomerId,
   selectUsageMeters,
 } from '@/db/tableMethods/usageMeterMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
+import {
+  ArchivedCustomerError,
+  ConflictError,
+  type DomainError,
+  NotFoundError,
+  panic,
+  ValidationError,
+} from '@/errors'
 import {
   LedgerTransactionType,
   PriceType,
   UsageMeterAggregationType,
 } from '@/types'
 import core from '@/utils/core'
+
+/**
+ * Fetches the default price for a usage meter.
+ * Panics if no default price exists, as this indicates a data integrity issue.
+ *
+ * @param usageMeterId - The ID of the usage meter
+ * @param transaction - Database transaction
+ * @returns The default price record
+ * @throws Invariant violation if no default price exists
+ */
+export const getRequiredDefaultPriceForMeter = async (
+  usageMeterId: string,
+  transaction: DbTransaction
+): Promise<
+  NonNullable<
+    Awaited<ReturnType<typeof selectDefaultPriceForUsageMeter>>
+  >
+> => {
+  const defaultPrice = await selectDefaultPriceForUsageMeter(
+    usageMeterId,
+    transaction
+  )
+  if (!defaultPrice) {
+    panic(
+      `Invalid usageMeterId: Usage meter ${usageMeterId} has no default price. This should not happen.`
+    )
+  }
+  return defaultPrice
+}
 
 /**
  * Type guard to check if a value is a plain object (not array, not null).
@@ -119,59 +162,74 @@ export type CreateUsageEventWithSlugInput = z.infer<
 /**
  * Resolves priceSlug to priceId if provided, usageMeterSlug to usageMeterId if provided,
  * or uses usageMeterId directly if provided.
- * When usage meter identifiers are provided, priceId will be null.
+ * When usage meter identifiers are provided without an explicit priceId, the meter's default price is used.
  * @param input - The usage event input with one of: priceId, priceSlug, usageMeterId, or usageMeterSlug
  * @param transaction - The database transaction
- * @returns The usage event input with resolved priceId (or null if usage meter identifiers were used)
+ * @returns Result with the usage event input with resolved priceId
  */
 export const resolveUsageEventInput = async (
   input: CreateUsageEventWithSlugInput,
   transaction: DbTransaction
-): Promise<CreateUsageEventInput> => {
+): Promise<Result<CreateUsageEventInput, DomainError>> => {
   // Early return if priceId is already provided
   if (input.usageEvent.priceId) {
     // Fetch the price to get usageMeterId
-    const price = await selectPriceById(
+    const priceResult = await selectPriceById(
       input.usageEvent.priceId,
       transaction
     )
+    if (Result.isError(priceResult)) {
+      return Result.err(
+        new NotFoundError('Price', input.usageEvent.priceId)
+      )
+    }
+    const price = priceResult.value
     if (price.type !== PriceType.Usage) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Price ${price.id} is not a usage price. Please provide a usage price id to create a usage event.`,
-      })
+      return Result.err(
+        new ValidationError(
+          'priceId',
+          `Price ${price.id} is not a usage price. Please provide a usage price id to create a usage event.`
+        )
+      )
     }
     if (!price.usageMeterId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Price ${price.id} does not have a usage meter associated with it.`,
-      })
+      return Result.err(
+        new ValidationError(
+          'priceId',
+          `Price ${price.id} does not have a usage meter associated with it.`
+        )
+      )
     }
 
     // Validate that the price belongs to the customer's pricing model
-    const subscription = await selectSubscriptionById(
-      input.usageEvent.subscriptionId,
-      transaction
-    )
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        input.usageEvent.subscriptionId,
+        transaction
+      )
+    ).unwrap()
+    const customer = (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
     if (!customer.pricingModelId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Customer ${customer.id} does not have a pricing model associated`,
-      })
+      return Result.err(
+        new ValidationError(
+          'customerId',
+          `Customer ${customer.id} does not have a pricing model associated`
+        )
+      )
     }
     if (price.pricingModelId !== customer.pricingModelId) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Price ${price.id} not found for this customer's pricing model`,
-      })
+      return Result.err(
+        new NotFoundError(
+          'Price',
+          `${price.id} (not in customer's pricing model)`
+        )
+      )
     }
 
     const usageMeterId = price.usageMeterId
-    return {
+    return Result.ok({
       usageEvent: {
         ...core.omit(
           ['priceSlug', 'usageMeterSlug'],
@@ -180,7 +238,7 @@ export const resolveUsageEventInput = async (
         priceId: input.usageEvent.priceId,
         usageMeterId,
       },
-    }
+    })
   }
 
   // Early return if usageMeterId is already provided
@@ -191,23 +249,26 @@ export const resolveUsageEventInput = async (
     // because it already caches the pricing model for slug resolution, so reusing it adds no extra queries.
 
     // First get the subscription to determine the customerId (needed for validation)
-    const subscription = await selectSubscriptionById(
-      input.usageEvent.subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        input.usageEvent.subscriptionId,
+        transaction
+      )
+    ).unwrap()
 
     // Get the customer to determine their pricing model
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
 
     // Validate that the customer has a pricing model ID
     if (!customer.pricingModelId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Customer ${customer.id} does not have a pricing model associated`,
-      })
+      return Result.err(
+        new ValidationError(
+          'customerId',
+          `Customer ${customer.id} does not have a pricing model associated`
+        )
+      )
     }
 
     let usageMeter
@@ -218,39 +279,51 @@ export const resolveUsageEventInput = async (
       )
     } catch (error) {
       // If we can't fetch the usage meter (RLS blocked or doesn't exist),
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Usage meter ${input.usageEvent.usageMeterId} not found for this customer's pricing model`,
-      })
+      return Result.err(
+        new NotFoundError(
+          'UsageMeter',
+          `${input.usageEvent.usageMeterId} (not in customer's pricing model)`
+        )
+      )
     }
 
     // Validate that the usage meter belongs to the customer's pricing model
     if (usageMeter.pricingModelId !== customer.pricingModelId) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Usage meter ${input.usageEvent.usageMeterId} not found for this customer's pricing model`,
-      })
+      return Result.err(
+        new NotFoundError(
+          'UsageMeter',
+          `${input.usageEvent.usageMeterId} (not in customer's pricing model)`
+        )
+      )
     }
 
-    return {
+    // Get the default price for the usage meter
+    const defaultPrice = await getRequiredDefaultPriceForMeter(
+      input.usageEvent.usageMeterId,
+      transaction
+    )
+
+    return Result.ok({
       usageEvent: {
         ...core.omit(
           ['priceSlug', 'usageMeterSlug'],
           input.usageEvent
         ),
-        priceId: null,
+        priceId: defaultPrice.id,
         usageMeterId: input.usageEvent.usageMeterId,
       },
-    }
+    })
   }
 
   // First get the subscription to determine the customerId (needed for both priceSlug and usageMeterSlug)
-  const subscription = await selectSubscriptionById(
-    input.usageEvent.subscriptionId,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(
+      input.usageEvent.subscriptionId,
+      transaction
+    )
+  ).unwrap()
 
-  // If usageMeterSlug is provided, resolve it to usageMeterId with null priceId
+  // If usageMeterSlug is provided, resolve it to usageMeterId and fetch default price
   if (input.usageEvent.usageMeterSlug) {
     const usageMeter = await selectUsageMeterBySlugAndCustomerId(
       {
@@ -261,32 +334,40 @@ export const resolveUsageEventInput = async (
     )
 
     if (!usageMeter) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Usage meter with slug ${input.usageEvent.usageMeterSlug} not found for this customer's pricing model`,
-      })
+      return Result.err(
+        new NotFoundError(
+          'UsageMeter',
+          `with slug ${input.usageEvent.usageMeterSlug} (not in customer's pricing model)`
+        )
+      )
     }
 
-    // Return with priceId: null and usageMeterId from the lookup
-    return {
+    // Get the default price for the usage meter
+    const defaultPrice = await getRequiredDefaultPriceForMeter(
+      usageMeter.id,
+      transaction
+    )
+
+    return Result.ok({
       usageEvent: {
         ...core.omit(
           ['priceSlug', 'usageMeterSlug'],
           input.usageEvent
         ),
-        priceId: null,
+        priceId: defaultPrice.id,
         usageMeterId: usageMeter.id,
       },
-    }
+    })
   }
 
   // If priceSlug is provided, resolve it to priceId
   if (!input.usageEvent.priceSlug) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message:
-        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided',
-    })
+    return Result.err(
+      new ValidationError(
+        'identifier',
+        'Exactly one of priceId, priceSlug, usageMeterId, or usageMeterSlug must be provided'
+      )
+    )
   }
 
   // Look up the price by slug and customerId
@@ -299,27 +380,31 @@ export const resolveUsageEventInput = async (
   )
 
   if (!price) {
-    throw new TRPCError({
-      code: 'NOT_FOUND',
-      message: `Price with slug ${input.usageEvent.priceSlug} not found for this customer's pricing model`,
-    })
+    return Result.err(
+      new NotFoundError(
+        'Price',
+        `with slug ${input.usageEvent.priceSlug} (not in customer's pricing model)`
+      )
+    )
   }
 
   if (!price.usageMeterId) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message: `Price ${price.id} does not have a usage meter associated with it.`,
-    })
+    return Result.err(
+      new ValidationError(
+        'priceId',
+        `Price ${price.id} does not have a usage meter associated with it.`
+      )
+    )
   }
   // Create the input with resolved priceId and usageMeterId from the price
   const usageMeterId = price.usageMeterId
-  return {
+  return Result.ok({
     usageEvent: {
       ...core.omit(['priceSlug', 'usageMeterSlug'], input.usageEvent),
       priceId: price.id,
       usageMeterId,
     },
-  }
+  })
 }
 
 /**
@@ -415,8 +500,7 @@ const batchFetchExistingCombinations = async (
  *   - insertedUsageEvents: Array of usage events that were just inserted
  *   - livemode: Whether the events are in livemode
  * @param transaction - Database transaction
- * @returns Array of ledger commands for events that should be processed
- * @throws Error if subscription or usage meter is not found for any event
+ * @returns Result with array of ledger commands for events that should be processed
  */
 export const generateLedgerCommandsForBulkUsageEvents = async (
   params: {
@@ -424,11 +508,13 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
     livemode: boolean
   },
   transaction: DbTransaction
-): Promise<UsageEventProcessedLedgerCommand[]> => {
+): Promise<
+  Result<UsageEventProcessedLedgerCommand[], DomainError>
+> => {
   const { insertedUsageEvents, livemode } = params
 
   if (insertedUsageEvents.length === 0) {
-    return []
+    return Result.ok([])
   }
 
   // Extract unique IDs for batch queries
@@ -483,18 +569,16 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
       usageEvent.subscriptionId
     )
     if (!subscription) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Subscription ${usageEvent.subscriptionId} not found`,
-      })
+      return Result.err(
+        new NotFoundError('Subscription', usageEvent.subscriptionId)
+      )
     }
 
     const usageMeter = usageMeterById.get(usageEvent.usageMeterId)
     if (!usageMeter) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Usage meter ${usageEvent.usageMeterId} not found`,
-      })
+      return Result.err(
+        new NotFoundError('UsageMeter', usageEvent.usageMeterId)
+      )
     }
 
     const billingPeriod =
@@ -510,10 +594,12 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
     let combinationKey: string | null = null
     if (isCountDistinctPropertiesMeter) {
       if (billingPeriod === null) {
-        throw new TRPCError({
-          code: 'BAD_REQUEST',
-          message: `Billing period is required for usage meter of type "count_distinct_properties".`,
-        })
+        return Result.err(
+          new ValidationError(
+            'billingPeriod',
+            'Billing period is required for usage meter of type "count_distinct_properties".'
+          )
+        )
       }
       combinationKey = countDistinctPropertiesCombinationKey({
         usageMeterId: usageEvent.usageMeterId,
@@ -587,7 +673,7 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
     })
   }
 
-  return ledgerCommands
+  return Result.ok(ledgerCommands)
 }
 
 /**
@@ -598,16 +684,19 @@ export const generateLedgerCommandsForBulkUsageEvents = async (
  * @param params - Object containing:
  *   - input: The usage event input (with resolved priceId/usageMeterId)
  *   - livemode: Whether the event is in livemode
- * @param transaction - Database transaction
- * @returns Transaction output with the usage event and optional ledger command
+ * @param ctx - Transaction effects context with callbacks for enqueueing ledger commands
+ * @returns Result with the usage event record
  */
 export const ingestAndProcessUsageEvent = async (
   {
     input,
     livemode,
   }: { input: CreateUsageEventInput; livemode: boolean },
-  transaction: DbTransaction
-): Promise<TransactionOutput<{ usageEvent: UsageEvent.Record }>> => {
+  ctx: TransactionEffectsContext
+): Promise<
+  Result<{ usageEvent: UsageEvent.Record }, DomainError>
+> => {
+  const { transaction, enqueueLedgerCommand } = ctx
   const usageEventInput = input.usageEvent
   // Fetch the current billing period for the subscription
   const billingPeriod =
@@ -617,79 +706,85 @@ export const ingestAndProcessUsageEvent = async (
     )
 
   // Fetch subscription - needed for validation and for insert
-  const subscription = await selectSubscriptionById(
-    usageEventInput.subscriptionId,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(
+      usageEventInput.subscriptionId,
+      transaction
+    )
+  ).unwrap()
 
-  // Determine usageMeterId based on whether priceId is provided or not
+  // Fetch customer once for archived/pricing model validation
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
+
+  // Guard: cannot create usage events for archived customers
+  if (customer.archived) {
+    return Result.err(new ArchivedCustomerError('create usage event'))
+  }
+
+  // Validate that the customer has a pricing model ID
+  if (!customer.pricingModelId) {
+    return Result.err(
+      new ValidationError(
+        'customerId',
+        `Customer ${customer.id} does not have a pricing model associated`
+      )
+    )
+  }
+
+  // Determine usageMeterId and resolved priceId based on whether priceId is provided or not
   let usageMeterId: string
+  let resolvedPriceId: string | null = usageEventInput.priceId ?? null
 
   if (usageEventInput.priceId) {
     // When priceId is provided, get usageMeterId from the price
-    const price = await selectPriceById(
-      usageEventInput.priceId,
-      transaction
-    )
+    const price = (
+      await selectPriceById(usageEventInput.priceId, transaction)
+    ).unwrap()
     if (price.type !== PriceType.Usage) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Price ${price.id} is not a usage price. Please provide a usage price id to create a usage event.`,
-      })
+      return Result.err(
+        new ValidationError(
+          'priceId',
+          `Price ${price.id} is not a usage price. Please provide a usage price id to create a usage event.`
+        )
+      )
     }
     if (!price.usageMeterId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Price ${price.id} does not have a usage meter associated with it.`,
-      })
+      return Result.err(
+        new ValidationError(
+          'priceId',
+          `Price ${price.id} does not have a usage meter associated with it.`
+        )
+      )
     }
 
     // Validate that the price belongs to the customer's pricing model
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
-    if (!customer.pricingModelId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Customer ${customer.id} does not have a pricing model associated`,
-      })
-    }
     if (price.pricingModelId !== customer.pricingModelId) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Price ${price.id} not found for this customer's pricing model`,
-      })
+      return Result.err(
+        new NotFoundError(
+          'Price',
+          `${price.id} (not in customer's pricing model)`
+        )
+      )
     }
 
     usageMeterId = price.usageMeterId
   } else {
     // When priceId is null, usageMeterId must be provided in the input
     if (!usageEventInput.usageMeterId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message:
-          'usageMeterId is required when priceId is not provided',
-      })
+      return Result.err(
+        new ValidationError(
+          'usageMeterId',
+          'usageMeterId is required when priceId is not provided'
+        )
+      )
     }
     usageMeterId = usageEventInput.usageMeterId
   }
 
   // If usageMeterId was provided directly, validate it belongs to customer's pricing model
   if (!usageEventInput.priceId) {
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
-
-    // Validate that the customer has a pricing model ID
-    if (!customer.pricingModelId) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Customer ${customer.id} does not have a pricing model associated`,
-      })
-    }
-
     let usageMeter
     try {
       usageMeter = await selectUsageMeterById(
@@ -698,19 +793,30 @@ export const ingestAndProcessUsageEvent = async (
       )
     } catch (error) {
       // If we can't fetch the usage meter (RLS blocked or doesn't exist),
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Usage meter ${usageMeterId} not found for this customer's pricing model`,
-      })
+      return Result.err(
+        new NotFoundError(
+          'UsageMeter',
+          `${usageMeterId} (not in customer's pricing model)`
+        )
+      )
     }
 
     // Validate that the usage meter belongs to the customer's pricing model
     if (usageMeter.pricingModelId !== customer.pricingModelId) {
-      throw new TRPCError({
-        code: 'NOT_FOUND',
-        message: `Usage meter ${usageMeterId} not found for this customer's pricing model`,
-      })
+      return Result.err(
+        new NotFoundError(
+          'UsageMeter',
+          `${usageMeterId} (not in customer's pricing model)`
+        )
+      )
     }
+
+    // Resolve to the default price for this usage meter
+    const defaultPrice = await getRequiredDefaultPriceForMeter(
+      usageMeterId,
+      transaction
+    )
+    resolvedPriceId = defaultPrice.id
   }
 
   // Check for existing usage event with the same transactionId and usageMeterId
@@ -728,13 +834,15 @@ export const ingestAndProcessUsageEvent = async (
       existingUsageEvent.subscriptionId !==
       usageEventInput.subscriptionId
     ) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `A usage event already exists for transactionid ${usageEventInput.transactionId}, but does not belong to subscription ${usageEventInput.subscriptionId}. Please provide a unique transactionId to create a new usage event.`,
-      })
+      return Result.err(
+        new ConflictError(
+          'UsageEvent',
+          `A usage event already exists for transactionid ${usageEventInput.transactionId}, but does not belong to subscription ${usageEventInput.subscriptionId}. Please provide a unique transactionId to create a new usage event.`
+        )
+      )
     }
     // Return the existing event without creating a new one
-    return { result: { usageEvent: existingUsageEvent } }
+    return Result.ok({ usageEvent: existingUsageEvent })
   }
 
   // Fetch the usage meter to validate count_distinct_properties requirements before insert
@@ -763,20 +871,24 @@ export const ingestAndProcessUsageEvent = async (
     UsageMeterAggregationType.CountDistinctProperties
   ) {
     if (!billingPeriod) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Billing period is required for usage meter "${usageMeter.name}" because it uses "count_distinct_properties" aggregation.`,
-      })
+      return Result.err(
+        new ValidationError(
+          'billingPeriod',
+          `Billing period is required for usage meter "${usageMeter.name}" because it uses "count_distinct_properties" aggregation.`
+        )
+      )
     }
 
     if (
       !usageEventInput.properties ||
       Object.keys(usageEventInput.properties).length === 0
     ) {
-      throw new TRPCError({
-        code: 'BAD_REQUEST',
-        message: `Properties are required for usage meter "${usageMeter.name}" because it uses "count_distinct_properties" aggregation. Each usage event must have a non-empty properties object to identify the distinct combination being counted.`,
-      })
+      return Result.err(
+        new ValidationError(
+          'properties',
+          `Properties are required for usage meter "${usageMeter.name}" because it uses "count_distinct_properties" aggregation. Each usage event must have a non-empty properties object to identify the distinct combination being counted.`
+        )
+      )
     }
   }
 
@@ -784,6 +896,7 @@ export const ingestAndProcessUsageEvent = async (
   const usageEvent = await insertUsageEvent(
     {
       ...usageEventInput,
+      priceId: resolvedPriceId,
       usageMeterId,
       billingPeriodId: billingPeriod?.id ?? null,
       customerId: subscription.customerId,
@@ -818,33 +931,32 @@ export const ingestAndProcessUsageEvent = async (
       stableStringifyUsageEventProperties(usageEvent.properties)
 
     // Check if any existing event has the same properties (using stable stringification)
-    const existingUsageEvent = eventsInPeriod.find((event) => {
-      if (excludeSet.has(event.id)) {
-        return false
+    const existingUsageEventDuplicate = eventsInPeriod.find(
+      (event) => {
+        if (excludeSet.has(event.id)) {
+          return false
+        }
+        const eventPropertiesKey =
+          stableStringifyUsageEventProperties(event.properties)
+        return eventPropertiesKey === currentEventPropertiesKey
       }
-      const eventPropertiesKey = stableStringifyUsageEventProperties(
-        event.properties
-      )
-      return eventPropertiesKey === currentEventPropertiesKey
-    })
+    )
 
     // Only process if no duplicate exists
-    if (existingUsageEvent) {
-      return { result: { usageEvent } }
+    if (existingUsageEventDuplicate) {
+      return Result.ok({ usageEvent })
     }
   }
 
-  return {
-    result: { usageEvent },
-    eventsToInsert: [],
-    ledgerCommand: {
-      type: LedgerTransactionType.UsageEventProcessed,
-      livemode,
-      organizationId: subscription.organizationId,
-      subscriptionId: subscription.id,
-      payload: {
-        usageEvent,
-      },
+  enqueueLedgerCommand({
+    type: LedgerTransactionType.UsageEventProcessed,
+    livemode,
+    organizationId: subscription.organizationId,
+    subscriptionId: subscription.id,
+    payload: {
+      usageEvent,
     },
-  }
+  })
+
+  return Result.ok({ usageEvent })
 }

@@ -49,7 +49,9 @@ export const updateInvoiceTransaction = async (
       `ID mismatch: parameter id (${id}) does not match invoice.id (${invoice.id})`
     )
   }
-  const existingInvoice = await selectInvoiceById(id, transaction)
+  const existingInvoice = (
+    await selectInvoiceById(id, transaction)
+  ).unwrap()
   if (invoiceIsInTerminalState(existingInvoice)) {
     throw new Error(
       `Invoice ${existingInvoice.id} has status ${existingInvoice.status}, which is terminal. You cannot update invoices that are in a terminal state.`

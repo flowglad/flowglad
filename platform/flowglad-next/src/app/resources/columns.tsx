@@ -3,11 +3,14 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import { Pencil } from 'lucide-react'
 import * as React from 'react'
-import StatusBadge from '@/components/StatusBadge'
 import {
   type ActionMenuItem,
   EnhancedDataTableActionsMenu,
 } from '@/components/ui/enhanced-data-table-actions-menu'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import type { Resource } from '@/db/schema/resources'
 
 export type ResourceTableRowData = {
@@ -82,7 +85,13 @@ export const createColumns = (
     maxSize: 150,
     cell: ({ row }) => {
       const active = row.getValue('active') as boolean
-      return <StatusBadge active={active} />
+      return (
+        <ActiveStatusTag
+          status={booleanToActiveStatus(active)}
+          showTooltip
+          tooltipVariant="muted"
+        />
+      )
     },
   },
   {

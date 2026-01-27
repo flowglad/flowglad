@@ -1,16 +1,29 @@
-import * as React from 'react'
+import { Link } from '@react-email/components'
+import type * as React from 'react'
 import { type CurrencyCode, IntervalUnit } from '@/types'
 import core, { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
 import { EmailButton } from './components/EmailButton'
 import {
-  DetailItem,
-  DetailSection,
+  DetailRow,
+  DetailTable,
   EmailLayout,
+  Footer,
   Header,
+  HelpfulLinks,
   Paragraph,
   Signature,
 } from './components/themed'
+
+/**
+ * Brand color for links - matches globals.css
+ */
+const LINK_COLOR = '#DA853A'
+
+export interface TrialInfo {
+  trialEndDate: Date
+  trialDurationDays: number
+}
 
 export const CustomerSubscriptionCreatedEmail = ({
   customerName,
@@ -24,6 +37,8 @@ export const CustomerSubscriptionCreatedEmail = ({
   interval,
   nextBillingDate,
   paymentMethodLast4,
+  trial,
+  dateConfirmed,
 }: {
   customerName: string
   organizationName: string
@@ -36,6 +51,8 @@ export const CustomerSubscriptionCreatedEmail = ({
   interval?: IntervalUnit
   nextBillingDate?: Date
   paymentMethodLast4?: string
+  trial?: TrialInfo
+  dateConfirmed?: Date
 }) => {
   const formattedPrice =
     stripeCurrencyAmountToHumanReadableCurrencyAmount(currency, price)
@@ -60,61 +77,137 @@ export const CustomerSubscriptionCreatedEmail = ({
     ? `${formattedPrice}/${getIntervalText(interval)}`
     : formattedPrice
 
+  const billingPortalUrl = core.organizationBillingPortalURL({
+    organizationId,
+  })
+
+  // Use provided date or fall back to now
+  const confirmationDate = dateConfirmed ?? new Date()
+
+  // Both trial and non-trial use unified "Subscription Confirmed" messaging
+  // per Apple-inspired patterns
+  const headerTitle = 'Subscription Confirmed'
+  const previewText = 'Your Subscription is Confirmed'
+
   return (
-    <EmailLayout previewText="Payment method confirmed - Subscription active">
+    <EmailLayout previewText={previewText}>
       <Header
-        title="Payment method confirmed"
+        title={headerTitle}
         organizationLogoUrl={organizationLogoUrl}
       />
 
       <Paragraph>Hi {customerName},</Paragraph>
 
-      <Paragraph>Your subscription has been activated.</Paragraph>
+      <Paragraph>
+        You've successfully subscribed to the following plan:
+      </Paragraph>
 
-      <DetailSection>
-        <DetailItem dataTestId="plan-name">
-          Plan: {planName}
-        </DetailItem>
-        <DetailItem dataTestId="price">
-          Price: {formattedPriceWithInterval}
-        </DetailItem>
-        {nextBillingDate && (
-          <DetailItem dataTestId="next-billing-date">
-            Next billing date: {formatDate(nextBillingDate)}
-          </DetailItem>
+      <DetailTable>
+        <DetailRow
+          label="Plan"
+          value={planName}
+          dataTestId="plan-name"
+        />
+        {trial ? (
+          <>
+            <DetailRow
+              label="Trial"
+              value={`Free for ${trial.trialDurationDays} days, starting ${formatDate(confirmationDate)}`}
+              dataTestId="trial-info"
+            />
+            <DetailRow
+              label="Renewal Price"
+              value={`${formattedPriceWithInterval}, starting ${formatDate(trial.trialEndDate)}`}
+              dataTestId="renewal-price"
+            />
+          </>
+        ) : (
+          <>
+            <DetailRow
+              label="Price"
+              value={formattedPriceWithInterval}
+              dataTestId="price"
+            />
+            {nextBillingDate && (
+              <DetailRow
+                label="Next Billing Date"
+                value={formatDate(nextBillingDate)}
+                dataTestId="next-billing-date"
+              />
+            )}
+          </>
         )}
+        <DetailRow
+          label="Date Confirmed"
+          value={formatDate(confirmationDate)}
+          dataTestId="date-confirmed"
+        />
         {paymentMethodLast4 && (
-          <DetailItem dataTestId="payment-method">
-            Payment method: •••• {paymentMethodLast4}
-          </DetailItem>
+          <DetailRow
+            label="Payment Method"
+            value={`•••• ${paymentMethodLast4}`}
+            dataTestId="payment-method"
+          />
         )}
-      </DetailSection>
+      </DetailTable>
 
-      <Paragraph style={{ marginTop: '24px' }}>
-        The payment method
-        {paymentMethodLast4 ? ` ending in ${paymentMethodLast4}` : ''}{' '}
-        will be used for future charges.
-      </Paragraph>
-
-      <Paragraph style={{ marginTop: '16px' }}>
-        You can manage your subscription and payment methods at any
-        time through your billing portal.
-      </Paragraph>
+      {trial ? (
+        <div data-testid="trial-auto-renew-notice">
+          <Paragraph>
+            Your subscription automatically renews until canceled. To
+            avoid being charged, you must cancel at least a day before{' '}
+            {formatDate(trial.trialEndDate)}. To learn more or cancel,{' '}
+            <Link
+              href={billingPortalUrl}
+              style={{
+                color: LINK_COLOR,
+                textDecoration: 'underline',
+              }}
+            >
+              manage your subscription
+            </Link>
+            .
+          </Paragraph>
+        </div>
+      ) : (
+        <div data-testid="auto-renew-notice">
+          <Paragraph>
+            Your subscription automatically renews until canceled. To
+            learn more or cancel,{' '}
+            <Link
+              href={billingPortalUrl}
+              style={{
+                color: LINK_COLOR,
+                textDecoration: 'underline',
+              }}
+            >
+              manage your subscription
+            </Link>
+            .
+          </Paragraph>
+        </div>
+      )}
 
       <EmailButton
-        href={core.organizationBillingPortalURL({
-          organizationId,
-        })}
-        testId="manage-subscription-button"
+        href={billingPortalUrl}
+        testId="manage-subscription-cta"
       >
         Manage Subscription →
       </EmailButton>
+
+      <HelpfulLinks billingPortalUrl={billingPortalUrl} />
 
       <Signature
         greeting="Thanks,"
         name={organizationName}
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
+      />
+
+      <Footer
+        organizationName={organizationName}
+        variant="customer"
+        billingPortalUrl={billingPortalUrl}
       />
     </EmailLayout>
   )

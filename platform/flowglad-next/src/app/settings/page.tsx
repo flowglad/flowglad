@@ -12,6 +12,7 @@ import { DetailLabel } from '@/components/DetailLabel'
 import { ExpandSection } from '@/components/ExpandSection'
 import CreateApiKeyModal from '@/components/forms/CreateApiKeyModal'
 import CreateWebhookModal from '@/components/forms/CreateWebhookModal'
+import EditNotificationPreferencesModal from '@/components/forms/EditNotificationPreferencesModal'
 import InviteUserToOrganizationModal from '@/components/forms/InviteUserToOrganizationModal'
 import OrganizationLogoInput from '@/components/OrganizationLogoInput'
 import PageContainer from '@/components/PageContainer'
@@ -21,6 +22,7 @@ import { PageHeaderNew } from '@/components/ui/page-header-new'
 import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useAuthenticatedContext } from '@/contexts/authContext'
+import { DEFAULT_NOTIFICATION_PREFERENCES } from '@/db/schema/memberships'
 import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
 import { FlowgladApiKeyType } from '@/types'
 import { cursorDeepLink } from '@/utils/cursor'
@@ -32,6 +34,10 @@ const SettingsPage = () => {
     useState(false)
   const [isCreateWebhookModalOpen, setIsCreateWebhookModalOpen] =
     useState(false)
+  const [
+    isEditNotificationPreferencesModalOpen,
+    setIsEditNotificationPreferencesModalOpen,
+  ] = useState(false)
   const [codebaseMarkdownValue, setCodebaseMarkdownValue] =
     useState('')
   const hasInitializedRef = useRef(false)
@@ -59,6 +65,11 @@ const SettingsPage = () => {
 
   const { data: codebaseMarkdown, isLoading: isLoadingMarkdown } =
     trpc.organizations.getCodebaseMarkdown.useQuery()
+
+  const {
+    data: notificationPreferences,
+    isLoading: isLoadingNotificationPreferences,
+  } = trpc.organizations.getNotificationPreferences.useQuery()
 
   const updateCodebaseMarkdownMutation =
     trpc.organizations.updateCodebaseMarkdown.useMutation({
@@ -272,6 +283,37 @@ const SettingsPage = () => {
             </div>
           </ExpandSection>
 
+          {/* Notification Preferences Section */}
+          <ExpandSection
+            title="Notification Preferences"
+            defaultExpanded={false}
+          >
+            <div className="flex flex-col gap-3 w-full">
+              <div className="text-sm text-foreground">
+                Configure which email notifications you receive for
+                this organization
+              </div>
+              {isLoadingNotificationPreferences ? (
+                <div className="text-sm text-muted-foreground">
+                  Loading...
+                </div>
+              ) : (
+                <div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    onClick={() =>
+                      setIsEditNotificationPreferencesModalOpen(true)
+                    }
+                  >
+                    Edit Preferences
+                  </Button>
+                </div>
+              )}
+            </div>
+          </ExpandSection>
+
           {/* API Section */}
           <ExpandSection
             title="API"
@@ -305,6 +347,13 @@ const SettingsPage = () => {
       <CreateWebhookModal
         isOpen={isCreateWebhookModalOpen}
         setIsOpen={setIsCreateWebhookModalOpen}
+      />
+      <EditNotificationPreferencesModal
+        isOpen={isEditNotificationPreferencesModalOpen}
+        setIsOpen={setIsEditNotificationPreferencesModalOpen}
+        currentPreferences={
+          notificationPreferences ?? DEFAULT_NOTIFICATION_PREFERENCES
+        }
       />
     </PageContainer>
   )

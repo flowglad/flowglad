@@ -1,0 +1,574 @@
+---
+title: 'Resources'
+description: 'Manage claimable capacity entitlements like seats, API keys, and projects.'
+---
+
+Resources are claimable capacity entitlements included in subscriptions. They represent countable units that customers can reserve and release—like team seats, API keys, concurrent connections, or projects. Unlike [usage-based billing](/features/usage) which tracks consumption, resources track allocation: who has reserved what.
+
+## The Resource Data Model
+
+Resources let you implement allocation-based pricing models. Here's how the key components work together:
+
+1. **`Resources`**: Define the types of capacity you offer. Each resource has a slug (like `seats` or `api_keys`) and belongs to a pricing model. Think of it as describing *what* can be allocated.
+
+2. **`Subscription Item Features`**: When a customer subscribes to a product, their subscription includes features that grant resource capacity. For example, a "Team Plan" might include 10 seats. This defines *how much* of each resource a customer can claim.
+
+3. **`Resource Claims`**: Individual allocations from a customer's capacity pool. When a user joins a team and takes a seat, that's a claim. Claims can be anonymous (just a count) or named (with an identifier like a user ID).
+
+<Note>
+Resources are different from [Usage](/features/usage): usage tracks *consumption* that gets billed (like tokens), while resources track *allocations* (like seats) that can be reserved and released.
+</Note>
+
+## Key Concepts
+
+### Capacity
+
+Each subscription has a capacity limit for resources, determined by the product features. If a customer subscribes to a plan with "10 seats included," their seat capacity is 10. Capacity can vary by pricing tier—a Pro plan might offer 25 seats while an Enterprise plan offers unlimited.
+
+### Resource Claims
+
+A claim represents an allocation from the capacity pool. When you claim a resource, you're reserving it for use. Claims track:
+
+- **When** it was claimed (`claimedAt`)
+- **Who** it's for (`externalId`, optional)
+- **Custom data** (`metadata`, optional)
+- **Release status** (`releasedAt`, `releaseReason`)
+
+### Named vs Anonymous Claims
+
+Resources support two claiming modes:
+
+**Named Claims** use an identifier (`externalId`) to track exactly what each allocation is for:
+- Idempotent—claiming the same ID twice returns the existing claim
+- Easy to look up and release by identifier
+- Ideal for tracking: "user_john has seat #3"
+
+**Anonymous Claims** use a simple quantity count:
+- No identifier attached
+- Released in FIFO order (oldest first)
+- Ideal for: "we need 3 more seats, don't care which"
+
+## Common Use Cases
+
+| Use Case | Resource Slug | Claim Mode |
+|----------|---------------|------------|
+| Team seats | `seats` | Named (track which users) |
+| API keys | `api_keys` | Named (track each key) |
+| Project limits | `projects` | Named (track each project) |
+| Concurrent connections | `connections` | Anonymous (just count) |
+| Workspace limits | `workspaces` | Named (track each workspace) |
+
+## Setting Up Resources
+
+### Step 1: Create a Resource in Your Pricing Model
+
+1. Navigate to the [Pricing Models](https://app.flowglad.com/pricing-models) page in your dashboard
+2. Select the pricing model you want to add the resource to
+3. Click "Create Resource"
+4. Provide a descriptive **name** (e.g., "Team Seats") and **slug** (e.g., `seats`)
+5. Save the resource
+
+### Step 2: Add Resource Capacity to a Product
+
+When creating or editing a product's features:
+
+1. Add a new feature of type **Resource**
+2. Select the resource you created
+3. Set the **capacity** (e.g., 10 seats)
+4. Save the product
+
+When customers subscribe to this product, they'll receive the specified capacity for that resource.
+
+## Working with Resources in Your App
+
+### Checking Available Capacity
+
+Before allowing users to claim resources, check what's available:
+
+```typescript lib/check-capacity.ts
+import { flowglad } from './flowglad'
+
+export async function checkSeatAvailability(customerExternalId: string) {
+  const server = flowglad(customerExternalId)
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  return {
+    total: usage.capacity,
+    claimed: usage.claimed,
+    available: usage.available,
+    canAddMember: usage.available > 0
+  }
+}
+```
+
+### Claiming Resources
+
+Use named claims when you need to track what each allocation is for:
+
+```typescript lib/team-management.ts
+import { flowglad } from './flowglad'
+
+export async function addTeamMember(params: {
+  customerExternalId: string
+  memberId: string
+  memberEmail: string
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  // Named claim with metadata
+  const result = await server.claimResource({
+    resourceSlug: 'seats',
+    externalId: params.memberId,
+    metadata: {
+      email: params.memberEmail,
+      addedAt: Date.now()
+    }
+  })
+
+  return {
+    claim: result.claims[0],
+    remainingSeats: result.usage.available
+  }
+}
+```
+
+Use anonymous claims when you just need a count:
+
+```typescript lib/connection-pool.ts
+import { flowglad } from './flowglad'
+
+export async function reserveConnections(params: {
+  customerExternalId: string
+  quantity: number
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  const result = await server.claimResource({
+    resourceSlug: 'connections',
+    quantity: params.quantity
+  })
+
+  return result.claims
+}
+```
+
+### Releasing Resources
+
+Release named claims by their identifier:
+
+```typescript lib/team-management.ts
+export async function removeTeamMember(params: {
+  customerExternalId: string
+  memberId: string
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  const result = await server.releaseResource({
+    resourceSlug: 'seats',
+    externalId: params.memberId
+  })
+
+  return {
+    released: result.releasedClaims,
+    availableSeats: result.usage.available
+  }
+}
+```
+
+Release anonymous claims by quantity (FIFO order):
+
+```typescript lib/connection-pool.ts
+export async function releaseConnections(params: {
+  customerExternalId: string
+  quantity: number
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  return server.releaseResource({
+    resourceSlug: 'connections',
+    quantity: params.quantity
+  })
+}
+```
+
+### Listing Active Claims
+
+View all active claims for a resource:
+
+```typescript lib/team-management.ts
+export async function getTeamMembers(params: { customerExternalId: string }) {
+  const server = flowglad(params.customerExternalId)
+
+  const { claims } = await server.listResourceClaims({
+    resourceSlug: 'seats'
+  })
+
+  return claims.map(claim => ({
+    id: claim.id,
+    memberId: claim.externalId,
+    email: claim.metadata?.email,
+    joinedAt: claim.claimedAt
+  }))
+}
+```
+
+## API Response Shapes
+
+### Resource Usage
+
+```typescript
+interface ResourceUsage {
+  resourceSlug: string    // e.g., "seats"
+  resourceId: string      // UUID
+  capacity: number        // Total available (e.g., 10)
+  claimed: number         // Currently in use (e.g., 3)
+  available: number       // Remaining (e.g., 7)
+}
+```
+
+### Resource Claim
+
+```typescript
+interface ResourceClaim {
+  id: string                                      // Claim ID
+  resourceId: string                              // Resource UUID
+  subscriptionId: string                          // Subscription UUID
+  externalId: string | null                       // Your identifier (null for anonymous)
+  claimedAt: number                               // Unix timestamp (ms)
+  releasedAt: number | null                       // null = active
+  releaseReason: string | null                    // Why it was released
+  expiredAt: number | null                        // Auto-expires at this time (for interim claims)
+  metadata: Record<string, string | number | boolean> | null
+  createdAt: number                               // Unix timestamp (ms)
+  updatedAt: number                               // Unix timestamp (ms)
+  livemode: boolean                               // true = production mode
+  organizationId: string                          // Owning organization
+  pricingModelId: string                          // Associated pricing model
+}
+```
+
+## Important Behaviors
+
+### Idempotent Named Claims
+
+Claiming with the same `externalId` twice returns the existing claim without creating a duplicate. This makes the API safe for retries:
+
+```typescript
+// First call creates the claim
+await server.claimResource({ resourceSlug: 'seats', externalId: 'user_123' })
+
+// Second call with same externalId returns the existing claim
+await server.claimResource({ resourceSlug: 'seats', externalId: 'user_123' })
+// No duplicate created!
+```
+
+### Capacity Enforcement
+
+Claims fail if they would exceed capacity. Always check availability before attempting to claim, or handle the error gracefully:
+
+```typescript
+const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+if (usage.available < 1) {
+  throw new Error('No seats available. Please upgrade your plan.')
+}
+
+await server.claimResource({ resourceSlug: 'seats', externalId: userId })
+```
+
+### Capacity Aggregation
+
+When a subscription has multiple items that provide capacity for the same resource (e.g., a base plan + add-on), the total capacity is **aggregated** across all subscription items. For example:
+
+- Pro Plan provides 10 seats
+- Seat Add-On provides 5 additional seats
+- Total capacity = 15 seats
+
+This aggregation happens automatically when calculating usage. The `getResourceUsages` endpoint returns one entry per resource with the total aggregated capacity, not per subscription item.
+
+### Subscription Lifecycle
+
+**On Cancellation:** When a subscription is canceled, all associated resource claims are automatically released with a `releaseReason` of `"subscription_canceled"`. This ensures clean capacity management without manual cleanup.
+
+**Claims Persist Across Adjustments:** Resource claims are scoped to the subscription and resource, not to individual subscription items. This means claims survive subscription adjustments—when you upgrade or downgrade plans, existing claims are preserved as long as they fit within the new capacity.
+
+**On Downgrade:** When adjusting a subscription to a plan with lower capacity, Flowglad validates that existing claims fit within the new capacity. If the current claimed count exceeds the new capacity, the adjustment is blocked with an error message:
+
+```
+Cannot reduce seats capacity to 5. 8 resources are currently claimed.
+Release 3 claims before downgrading.
+```
+
+The customer must first release enough resources before the downgrade can proceed.
+
+**Scheduled Downgrade Interim Period:** When a downgrade is scheduled for the end of the billing period (rather than immediately), customers retain their current capacity until the change takes effect. During this interim, new claims that exceed the *future* capacity are allowed but marked as temporary—they have an `expiredAt` timestamp set to the billing period end and automatically expire when the downgrade executes.
+
+### Auto-Resolution
+
+If a customer has exactly one active subscription, the `subscriptionId` parameter is optional—Flowglad automatically resolves it. For customers with multiple subscriptions, you must specify which one:
+
+```typescript
+// Single subscription - auto-resolved
+await server.claimResource({ resourceSlug: 'seats', externalId: userId })
+
+// Multiple subscriptions - must specify
+await server.claimResource({
+  resourceSlug: 'seats',
+  externalId: userId,
+  subscriptionId: 'sub_abc123'
+})
+```
+
+## Full Example: Team Seat Management
+
+Here's a complete example showing how to implement team seat management:
+
+```typescript lib/team-seats.ts
+import { flowglad } from './flowglad'
+
+// Check if team can add more members
+export async function canAddTeamMember(orgId: string): Promise<boolean> {
+  const server = flowglad(orgId)
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+  return usage.available > 0
+}
+
+// Get current team capacity status
+export async function getTeamCapacity(orgId: string) {
+  const server = flowglad(orgId)
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  return {
+    used: usage.claimed,
+    total: usage.capacity,
+    remaining: usage.available,
+    percentUsed: usage.capacity > 0
+      ? Math.round((usage.claimed / usage.capacity) * 100)
+      : 0
+  }
+}
+
+// Add a member to the team
+export async function addMember(params: {
+  orgId: string
+  userId: string
+  userEmail: string
+}) {
+  const server = flowglad(params.orgId)
+
+  // Check capacity first
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+  if (usage.available < 1) {
+    return {
+      success: false,
+      error: 'CAPACITY_EXCEEDED',
+      message: `Team is at capacity (${usage.capacity} seats). Upgrade to add more members.`
+    }
+  }
+
+  // Claim the seat (idempotent if user already has one)
+  const result = await server.claimResource({
+    resourceSlug: 'seats',
+    externalId: params.userId,
+    metadata: { email: params.userEmail, addedAt: new Date().toISOString() }
+  })
+
+  return {
+    success: true,
+    claim: result.claims[0],
+    remainingSeats: result.usage.available
+  }
+}
+
+// Remove a member from the team
+export async function removeMember(params: { orgId: string; userId: string }) {
+  const server = flowglad(params.orgId)
+
+  const result = await server.releaseResource({
+    resourceSlug: 'seats',
+    externalId: params.userId
+  })
+
+  return {
+    released: result.releasedClaims.length > 0,
+    availableSeats: result.usage.available
+  }
+}
+
+// List all team members with seats
+export async function listTeamMembers(orgId: string) {
+  const server = flowglad(orgId)
+  const { claims } = await server.listResourceClaims({ resourceSlug: 'seats' })
+
+  return claims
+    .filter(c => c.externalId !== null)
+    .map(c => ({
+      userId: c.externalId,
+      email: c.metadata?.email,
+      joinedAt: new Date(c.claimedAt)
+    }))
+}
+```
+
+## Adjusting Subscriptions with Resources
+
+When customers upgrade or downgrade plans, resource claims are preserved—but capacity validation ensures you can't reduce capacity below active claims.
+
+### Upgrade Flow: Adding More Seats
+
+The most common upgrade is adding more seats to an existing plan. Use the `quantity` parameter to set the exact number of seats:
+
+```typescript lib/add-seats.ts
+import { flowglad } from './flowglad'
+
+export async function addSeats(params: {
+  customerExternalId: string
+  newSeatCount: number
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  // Increase seats from current amount to newSeatCount
+  const result = await server.adjustSubscription({
+    priceSlug: 'team_seats', // Your per-seat price
+    quantity: params.newSeatCount,
+    // timing defaults to 'auto' - upgrades apply immediately with proration
+  })
+
+  // After adjustment:
+  // - All existing seat claims are preserved
+  // - Additional seats are immediately available
+  return result.subscription
+}
+```
+
+You can also upgrade to an entirely different plan:
+
+```typescript lib/upgrade-plan.ts
+import { flowglad } from './flowglad'
+
+export async function upgradeToProPlan(customerExternalId: string) {
+  const server = flowglad(customerExternalId)
+
+  // Current plan: Starter (5 seats)
+  // New plan: Pro (25 seats)
+  const result = await server.adjustSubscription({
+    priceSlug: 'pro_monthly',
+    // timing defaults to 'auto' - upgrades apply immediately
+  })
+
+  // After upgrade:
+  // - All existing seat claims are preserved
+  // - 20 additional seats are now available
+  return result.subscription
+}
+```
+
+### Downgrade Flow
+
+Downgrading requires releasing excess claims first. Flowglad validates capacity before allowing the change:
+
+```typescript lib/downgrade-with-seats.ts
+import { flowglad } from './flowglad'
+
+export async function downgradeToStarterPlan(params: {
+  customerExternalId: string
+  seatsToRelease: string[]  // User IDs of members to remove
+}) {
+  const server = flowglad(params.customerExternalId)
+
+  // Step 1: Check current usage
+  const { usage } = await server.getResourceUsage({ resourceSlug: 'seats' })
+
+  // The new plan's capacity - in production, fetch this from your pricing config
+  const newCapacity = 5
+  const excessClaims = usage.claimed - newCapacity
+
+  if (excessClaims > 0) {
+    // Step 2: Validate enough seats are selected for release
+    if (params.seatsToRelease.length < excessClaims) {
+      throw new Error(
+        `Must release at least ${excessClaims} seats, but only ${params.seatsToRelease.length} selected.`
+      )
+    }
+
+    // Step 3: Release excess claims before downgrading
+    await server.releaseResource({
+      resourceSlug: 'seats',
+      externalIds: params.seatsToRelease
+    })
+  }
+
+  // Step 4: Now the downgrade will succeed
+  const result = await server.adjustSubscription({
+    priceSlug: 'starter_monthly',
+    // timing defaults to 'auto' - downgrades apply at end of period
+  })
+
+  return result.subscription
+}
+```
+
+<Note>
+Both immediate and scheduled downgrades are blocked if claimed resources exceed the new capacity. The `expiredAt` mechanism only applies to *new* claims made during an interim period after a valid downgrade is scheduled—not to allowing downgrades when excess claims already exist.
+</Note>
+
+### Building a Seat Adjustment UI
+
+Here's how to build a UI that handles seat-aware plan changes:
+
+```typescript lib/plan-change-handler.ts
+import { flowglad } from './flowglad'
+
+interface PlanChangeResult {
+  success: boolean
+  error?: string
+  seatsToRelease?: number
+  affectedMembers?: Array<{ userId: string; email: string }>
+}
+
+export async function validatePlanChange(params: {
+  customerExternalId: string
+  newPriceSlug: string
+  newSeatCapacity: number
+}): Promise<PlanChangeResult> {
+  const server = flowglad(params.customerExternalId)
+
+  // Get current seat usage
+  const { usage, claims } = await server.getResourceUsage({
+    resourceSlug: 'seats'
+  })
+
+  // Check if downgrade would exceed new capacity
+  if (usage.claimed > params.newSeatCapacity) {
+    const seatsToRelease = usage.claimed - params.newSeatCapacity
+
+    // Identify which members would need to be removed.
+    // This example uses FIFO order—customize this logic based on your needs
+    // (e.g., let admins choose, exclude certain roles, use last-in-first-out, etc.)
+    const affectedMembers = claims
+      .filter(c => c.externalId !== null)
+      .slice(0, seatsToRelease)
+      .map(c => ({
+        userId: c.externalId!,
+        email: (c.metadata?.email as string) ?? 'unknown'
+      }))
+
+    return {
+      success: false,
+      error: `This plan includes ${params.newSeatCapacity} seats, but you have ${usage.claimed} members.`,
+      seatsToRelease,
+      affectedMembers
+    }
+  }
+
+  return { success: true }
+}
+```
+
+## Related
+
+- [Subscriptions](/features/subscriptions) - Resources are attached to subscription features
+- [Subscription Management](/sdks/subscription-management) - Adjusting subscriptions with `adjustSubscription`
+- [Usage](/features/usage) - For consumption-based tracking instead of allocation
+- [Products](/features/products) - Define resource capacity in product features
+- [SDK Reference](/sdks/resources) - Full SDK documentation for resources

@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -8,7 +9,6 @@ import {
   editResourceSchema,
   resourcesClientSelectSchema,
 } from '@/db/schema/resources'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   insertResource,
   resourcesTableRowOutputSchema,
@@ -25,7 +25,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
-import { devOnlyProcedure, router } from '@/server/trpc'
+import { protectedProcedure, router } from '@/server/trpc'
 import { generateOpenApiMetas, trpcToRest } from '@/utils/openapi'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -42,7 +42,7 @@ const resourcesPaginatedListSchema = createPaginatedListQuerySchema(
   resourcesClientSelectSchema
 )
 
-const listProcedure = devOnlyProcedure
+const listProcedure = protectedProcedure
   .meta(openApiMetas.LIST)
   .input(z.object({ pricingModelId: z.string() }))
   .output(
@@ -52,7 +52,8 @@ const listProcedure = devOnlyProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const resources = await selectResources(
           {
             pricingModelId: input.pricingModelId,
@@ -64,13 +65,14 @@ const listProcedure = devOnlyProcedure
     )
   )
 
-const getProcedure = devOnlyProcedure
+const getProcedure = protectedProcedure
   .meta(openApiMetas.GET)
   .input(idInputSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const resource = await selectResourceById(
           input.id,
           transaction
@@ -80,25 +82,26 @@ const getProcedure = devOnlyProcedure
     )
   )
 
-const createProcedure = devOnlyProcedure
+const createProcedure = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createResourceSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, userId, livemode }) => {
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode, organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         const resource = await insertResource(
           {
             ...input.resource,
-            organizationId: organization.id,
+            organizationId,
             livemode,
           },
           transaction
@@ -108,13 +111,14 @@ const createProcedure = devOnlyProcedure
     )
   )
 
-const updateProcedure = devOnlyProcedure
+const updateProcedure = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editResourceSchema)
   .output(z.object({ resource: resourcesClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const resource = await updateResource(
           {
             ...input.resource,
@@ -127,7 +131,7 @@ const updateProcedure = devOnlyProcedure
     )
   )
 
-const listPaginatedProcedure = devOnlyProcedure
+const listPaginatedProcedure = protectedProcedure
   .input(resourcesPaginatedSelectSchema)
   .output(resourcesPaginatedListSchema)
   .query(async ({ input, ctx }) => {
@@ -141,7 +145,7 @@ const listPaginatedProcedure = devOnlyProcedure
     )
   })
 
-const getTableRowsProcedure = devOnlyProcedure
+const getTableRowsProcedure = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
@@ -154,7 +158,12 @@ const getTableRowsProcedure = devOnlyProcedure
     createPaginatedTableRowOutputSchema(resourcesTableRowOutputSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectResourcesTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectResourcesTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const resourcesRouter = router({
