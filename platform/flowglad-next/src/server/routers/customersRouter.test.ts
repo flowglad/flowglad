@@ -13,7 +13,10 @@ import {
   setupUserAndApiKey,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import type { Customer } from '@/db/schema/customers'
+import {
+  type Customer,
+  editCustomerInputSchema,
+} from '@/db/schema/customers'
 import type { Organization } from '@/db/schema/organizations'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
 import type { TRPCApiContext } from '@/server/trpcContext'
@@ -272,5 +275,26 @@ describe('customersRouter.update', () => {
     // Assert: name is updated, but archived is still false
     expect(result.customer.name).toBe('Updated Name')
     expect(result.customer.archived).toBe(false)
+  })
+})
+
+describe('editCustomerInputSchema', () => {
+  it('strips the archived field from parsed input, preventing archiving via update', () => {
+    // Input with archived field that should be stripped
+    const inputWithArchived = {
+      externalId: 'test-external-id',
+      customer: {
+        name: 'Test Customer',
+        archived: true, // This should be stripped by Zod
+      },
+    }
+
+    // Parse the input through the schema
+    const parsed = editCustomerInputSchema.parse(inputWithArchived)
+
+    // Assert: archived field is stripped from the parsed output
+    expect(parsed.externalId).toBe('test-external-id')
+    expect(parsed.customer.name).toBe('Test Customer')
+    expect('archived' in parsed.customer).toBe(false)
   })
 })
