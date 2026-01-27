@@ -26,15 +26,35 @@ interface ArchiveCustomerModalProps {
 function SubscriptionInfo({
   isLoading,
   activeCount,
+  error,
 }: {
   isLoading: boolean
   activeCount: number
+  error?: unknown
 }) {
   if (isLoading) {
     return (
       <div className="flex items-center gap-2 text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
         Loading subscription information...
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-start gap-3 rounded-md border border-destructive/20 bg-destructive/5 p-3">
+        <AlertTriangle className="h-5 w-5 text-destructive flex-shrink-0 mt-0.5" />
+        <div className="text-sm">
+          <p className="font-medium text-destructive">
+            Failed to load subscription information
+          </p>
+          <p className="text-muted-foreground mt-1">
+            Could not verify active subscriptions. Please close and
+            try again, or proceed with caution as active subscriptions
+            may be canceled.
+          </p>
+        </div>
       </div>
     )
   }
@@ -78,6 +98,7 @@ const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
   const {
     data: subscriptionsData,
     isLoading: isLoadingSubscriptions,
+    error: subscriptionsError,
   } = trpc.subscriptions.getTableRows.useQuery(
     {
       filters: {
@@ -130,6 +151,7 @@ const ArchiveCustomerModal: React.FC<ArchiveCustomerModalProps> = ({
           <SubscriptionInfo
             isLoading={isLoadingSubscriptions}
             activeCount={activeSubscriptionCount}
+            error={subscriptionsError}
           />
 
           <p className="text-sm text-muted-foreground">
