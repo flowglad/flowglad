@@ -241,11 +241,18 @@ export function MultiStepForm<T extends FieldValues>({
 
     if (isLastStep) {
       try {
+        // Validate the full form schema before final submission.
+        // validateCurrentStep() only validates the current step's schema,
+        // but we need to ensure all fields across all steps are valid
+        // against the complete form schema before submitting.
+        const isFullFormValid = await form.trigger()
+        if (!isFullFormValid) {
+          return false
+        }
+
         // Call onComplete directly instead of through handleSubmit.
         // handleSubmit internally catches errors and doesn't rethrow them,
         // which prevents our try-catch from catching API errors.
-        // Since validateCurrentStep() already validated the form, we can
-        // safely call onComplete with the current values.
         const data = form.getValues()
         await onComplete(data)
       } catch (error) {
