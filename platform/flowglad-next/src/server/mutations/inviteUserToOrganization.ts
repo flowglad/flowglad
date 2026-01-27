@@ -26,7 +26,7 @@ type InviteAction = 'created' | 'reactivated' | 'already_member'
 export const innerInviteUserToOrganizationHandler = async (
   focusedMembership: {
     organization: Pick<Organization.Record, 'id' | 'name'>
-    membership: Pick<Membership.Record, 'livemode' | 'userId'>
+    membership: Pick<Membership.Record, 'userId'>
   },
   input: {
     email: string
@@ -59,7 +59,7 @@ export const innerInviteUserToOrganizationHandler = async (
           userId: databaseUser.id,
           organizationId: focusedMembership.organization.id,
           focused: false,
-          livemode: focusedMembership.membership.livemode,
+          livemode: false,
           role: MembershipRole.Member,
         },
         transaction
@@ -75,7 +75,7 @@ export const innerInviteUserToOrganizationHandler = async (
 
   // Check for existing membership (including deactivated)
   const action = await adminTransaction(
-    async ({ transaction, livemode }): Promise<InviteAction> => {
+    async ({ transaction }): Promise<InviteAction> => {
       const membershipForUser = await selectMemberships(
         {
           userId: userForEmail.id,
@@ -106,7 +106,7 @@ export const innerInviteUserToOrganizationHandler = async (
           userId: userForEmail.id,
           organizationId: focusedMembership.organization.id,
           focused: false,
-          livemode,
+          livemode: false,
           role: MembershipRole.Member,
         },
         transaction

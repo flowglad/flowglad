@@ -34,7 +34,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
   let inviterUser: User.Record
   let focusedMembership: {
     organization: Pick<Organization.Record, 'id' | 'name'>
-    membership: Pick<Membership.Record, 'livemode' | 'userId'>
+    membership: Pick<Membership.Record, 'userId'>
   }
 
   beforeEach(async () => {
@@ -57,7 +57,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
         name: organization.name,
       },
       membership: {
-        livemode: true,
         userId: inviterUser.id,
       },
     }
@@ -97,7 +96,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
         )
         expect(newMemberships).toHaveLength(1)
         expect(newMemberships[0].focused).toBe(false)
-        expect(newMemberships[0].livemode).toBe(true)
+        expect(newMemberships[0].livemode).toBe(false)
       })
 
       expect(result).toEqual({ action: 'created' })
@@ -163,7 +162,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
         )
         expect(memberships).toHaveLength(1)
         expect(memberships[0].focused).toBe(false)
-        expect(memberships[0].livemode).toBe(true)
+        expect(memberships[0].livemode).toBe(false)
       })
 
       expect(result).toEqual({ action: 'created' })
