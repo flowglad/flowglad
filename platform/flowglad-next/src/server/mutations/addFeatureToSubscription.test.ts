@@ -219,7 +219,6 @@ describe('addFeatureToSubscription mutation', () => {
           createDiscardingEffectsContext(transaction)
         )
 
-
         expect(result.subscriptionItemFeature.featureId).toBe(
           toggleFeature.id
         )
@@ -228,7 +227,9 @@ describe('addFeatureToSubscription mutation', () => {
         )
         expect(result.subscriptionItemFeature.amount).toBeNull()
         expect(result.subscriptionItemFeature.usageMeterId).toBeNull()
-        expect(result.subscriptionItemFeature.manuallyCreated).toBe(true)
+        expect(result.subscriptionItemFeature.manuallyCreated).toBe(
+          true
+        )
       })
     })
 
@@ -289,7 +290,6 @@ describe('addFeatureToSubscription mutation', () => {
           createDiscardingEffectsContext(transaction)
         )
 
-
         expect(result.subscriptionItemFeature.featureId).toBe(
           usageCreditFeature.id
         )
@@ -303,7 +303,9 @@ describe('addFeatureToSubscription mutation', () => {
         expect(result.subscriptionItemFeature.renewalFrequency).toBe(
           FeatureUsageGrantFrequency.EveryBillingPeriod
         )
-        expect(result.subscriptionItemFeature.manuallyCreated).toBe(true)
+        expect(result.subscriptionItemFeature.manuallyCreated).toBe(
+          true
+        )
       })
     })
 
@@ -343,7 +345,8 @@ describe('addFeatureToSubscription mutation', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const { ctx, effects } = createCapturingEffectsContext(transaction)
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
 
         const result = await addFeatureToSubscriptionItem(
           {
@@ -353,8 +356,6 @@ describe('addFeatureToSubscription mutation', () => {
           },
           ctx
         )
-
-
 
         // Verify ledger command was enqueued
         expect(effects.ledgerCommands.length).toBe(1)
@@ -385,7 +386,9 @@ describe('addFeatureToSubscription mutation', () => {
           transaction
         )
         expect(usageCredits.length).toBe(1)
-        expect(usageCredits[0].issuedAmount).toBe(usageCreditFeature.amount)
+        expect(usageCredits[0].issuedAmount).toBe(
+          usageCreditFeature.amount
+        )
       })
     })
 
@@ -416,7 +419,8 @@ describe('addFeatureToSubscription mutation', () => {
       })
 
       await adminTransaction(async ({ transaction }) => {
-        const { ctx, effects } = createCapturingEffectsContext(transaction)
+        const { ctx, effects } =
+          createCapturingEffectsContext(transaction)
 
         await addFeatureToSubscriptionItem(
           {
@@ -451,7 +455,12 @@ describe('addFeatureToSubscription mutation', () => {
           product.id,
           orgData.pricingModel.id,
           true,
-          [{ name: 'Feature for Expired Item', type: FeatureType.Toggle }]
+          [
+            {
+              name: 'Feature for Expired Item',
+              type: FeatureType.Toggle,
+            },
+          ]
         )
 
       await adminTransaction(async ({ transaction }) => {
@@ -589,7 +598,12 @@ describe('addFeatureToSubscription mutation', () => {
           product.id,
           orgData.pricingModel.id,
           true,
-          [{ name: 'Dedupe Toggle Feature', type: FeatureType.Toggle }]
+          [
+            {
+              name: 'Dedupe Toggle Feature',
+              type: FeatureType.Toggle,
+            },
+          ]
         )
 
       await adminTransaction(async ({ transaction }) => {
