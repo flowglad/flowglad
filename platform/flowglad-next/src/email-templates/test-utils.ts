@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, vi } from 'vitest'
+import { afterEach, beforeEach, mock } from 'bun:test'
 
 /**
  * Suppresses expected hydration warnings from React Email components in jsdom.
@@ -22,7 +22,7 @@ export function suppressEmailHydrationWarnings(): void {
   const originalError = console.error
 
   beforeEach(() => {
-    console.error = vi.fn((...args: unknown[]) => {
+    console.error = mock((...args: unknown[]) => {
       const message = args[0]
       if (
         typeof message === 'string' &&
