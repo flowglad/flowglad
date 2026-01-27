@@ -60,6 +60,13 @@ export const upsertCustomerByorganizationIdAndInvoiceNumberBase =
     config
   )
 
+/**
+ * Selects customers matching the given conditions.
+ *
+ * @warning This function returns ALL customers including archived ones.
+ * For public API endpoints, use `selectCustomerByExternalIdAndOrganizationId()`
+ * which filters out archived customers by default.
+ */
 export const selectCustomers = createSelectFunction(
   customersTable,
   config
