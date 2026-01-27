@@ -40,13 +40,14 @@ export default defineConfig((overrideOptions) => {
     outDir: './dist/cjs',
   }
 
-  // const copyPackageJson = (format: 'esm' | 'cjs') =>
-  //   `cp ./package.${format}.json ./dist/${format}/package.json`
+  const copyPackageJson = (format: 'esm' | 'cjs') =>
+    `cp ./package.${format}.json ./dist/${format}/package.json`
 
   return runAfterLast([
     'bun run build:declarations',
-    // copyPackageJson('esm'),
-    // copyPackageJson('cjs'),
+    copyPackageJson('esm'),
+    copyPackageJson('cjs'),
+    'bun run ./scripts/fix-esm-imports.ts',
     shouldPublish && 'bun run publish:local',
   ])(esm, cjs)
 })
