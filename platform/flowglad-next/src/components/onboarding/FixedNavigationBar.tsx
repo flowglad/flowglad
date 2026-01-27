@@ -1,9 +1,10 @@
 // src/components/onboarding/FixedNavigationBar.tsx
-import { ArrowLeft, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { FixedBottomBar } from './FixedBottomBar'
+import { BottomBar, FixedBottomBar } from './FixedBottomBar'
 import { useMultiStepForm } from './MultiStepForm'
+import { StepProgress } from './StepProgress'
 
 interface FixedNavigationBarProps {
   /** Label for back button. Defaults to "Back" */
@@ -18,6 +19,16 @@ interface FixedNavigationBarProps {
   onBackOverride?: () => void
   /** Custom back label for first step */
   firstStepBackLabel?: string
+  /** Hide back button on first step */
+  hideBackOnFirstStep?: boolean
+  /** Whether to show progress indicator in the center */
+  showProgress?: boolean
+  /**
+   * Whether to use fixed positioning at the bottom of the viewport.
+   * - true (default): Fixed to viewport bottom, requires FixedBottomBarSpacer
+   * - false: Flows with document, use with CSS Grid layout for full-bleed effect
+   */
+  fixed?: boolean
   className?: string
 }
 
@@ -30,6 +41,7 @@ interface FixedNavigationBarProps {
  * - Continue/Submit button that validates current step before proceeding
  * - Loading spinner during form submission
  * - Matches onboarding page container styling with dashed borders
+ * - Supports both fixed (viewport-anchored) and static (document flow) positioning
  */
 export function FixedNavigationBar({
   backLabel = 'Back',
@@ -38,10 +50,19 @@ export function FixedNavigationBar({
   showBorders = true,
   onBackOverride,
   firstStepBackLabel = 'Login',
+  hideBackOnFirstStep = false,
+  showProgress = false,
+  fixed = true,
   className,
 }: FixedNavigationBarProps) {
-  const { goToNext, goToPrevious, isFirstStep, isLastStep, form } =
-    useMultiStepForm()
+  const {
+    goToNext,
+    goToPrevious,
+    isFirstStep,
+    isLastStep,
+    form,
+    canProceed,
+  } = useMultiStepForm()
 
   const { isSubmitting } = form.formState
 
@@ -56,63 +77,72 @@ export function FixedNavigationBar({
   const displayBackLabel =
     isFirstStep && onBackOverride ? firstStepBackLabel : backLabel
 
-  return (
-    <FixedBottomBar className={className}>
-      <div className="flex items-center justify-center w-full">
-        {/* Parent container: max-w-[608px] + px-4 (16px padding) */}
-        <div
-          className={cn(
-            'w-full max-w-[608px] px-4',
-            showBorders &&
-              'border-l border-r border-dashed border-border'
-          )}
-        >
-          {/* Inner container: fills parent + px-4 (16px padding) */}
-          <div
-            className={cn(
-              'w-full px-4',
-              showBorders &&
-                'border-l border-r border-dashed border-border'
-            )}
-          >
-            {/* Content area: py-2.5 for vertical padding, flex for button layout */}
-            <div className="flex items-center justify-between py-2.5">
-              {/* Back button - uses existing Button component */}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={handleBack}
-                disabled={isSubmitting}
-                className="rounded-full"
-              >
-                <ArrowLeft className="size-4" />
-                <span>{displayBackLabel}</span>
-              </Button>
+  const showBackButton = !(isFirstStep && hideBackOnFirstStep)
 
-              {/* Continue/Submit button - uses existing Button component
-                  Note: goToNext() handles form validation before proceeding.
-                  On the last step, goToNext() triggers form submission via onComplete.
-              */}
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={goToNext}
-                disabled={isSubmitting}
-                className="rounded-full"
-              >
-                {isSubmitting && (
-                  <Loader2 className="size-4 animate-spin" />
-                )}
-                <span>
-                  {isLastStep ? submitLabel : continueLabel}
-                </span>
-              </Button>
-            </div>
-          </div>
+  // Button row content - shared between bordered and non-bordered layouts
+  const buttonRow = (
+    <div className="flex items-center justify-between py-2.5">
+      {/* Back button - always rendered for consistent layout, invisible on first step */}
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={handleBack}
+        disabled={isSubmitting}
+        className={cn(!showBackButton && 'invisible')}
+        aria-hidden={!showBackButton}
+        tabIndex={showBackButton ? 0 : -1}
+      >
+        <ChevronLeft className="size-4" />
+        <span>{displayBackLabel}</span>
+      </Button>
+
+      {/* Progress indicator - centered between buttons */}
+      {showProgress ? (
+        <StepProgress variant="meter" />
+      ) : (
+        <div /> /* Placeholder to maintain layout */
+      )}
+
+      {/* Continue/Submit button - uses existing Button component
+          Note: goToNext() handles form validation before proceeding.
+          On the last step, goToNext() triggers form submission via onComplete.
+      */}
+      <Button
+        type="button"
+        variant="default"
+        size="sm"
+        onClick={goToNext}
+        disabled={isSubmitting || !canProceed}
+      >
+        {isSubmitting && <Loader2 className="size-4 animate-spin" />}
+        <span>{isLastStep ? submitLabel : continueLabel}</span>
+        <ChevronRight className="size-4" />
+      </Button>
+    </div>
+  )
+
+  // When showBorders=false, parent containers handle width constraints and padding
+  // Just render the button row directly
+  const content = showBorders ? (
+    <div className="flex items-center justify-center w-full">
+      {/* Parent container: max-w-[608px] + px-4 (16px padding) */}
+      <div className="w-full max-w-[608px] px-4 border-l border-r border-dashed border-border">
+        {/* Inner container: fills parent + px-4 (16px padding) */}
+        <div className="w-full px-4 border-l border-r border-dashed border-border">
+          {buttonRow}
         </div>
       </div>
-    </FixedBottomBar>
+    </div>
+  ) : (
+    buttonRow
   )
+
+  if (fixed) {
+    return (
+      <FixedBottomBar className={className}>{content}</FixedBottomBar>
+    )
+  }
+
+  return <BottomBar className={className}>{content}</BottomBar>
 }

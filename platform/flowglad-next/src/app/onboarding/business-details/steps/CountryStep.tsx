@@ -105,7 +105,7 @@ export function CountryStep() {
                 value={field.value}
                 onValueChange={field.onChange}
               >
-                <SelectTrigger className="h-12 text-lg">
+                <SelectTrigger className="h-12">
                   <SelectValue placeholder="Select your country" />
                 </SelectTrigger>
                 <SelectContent>

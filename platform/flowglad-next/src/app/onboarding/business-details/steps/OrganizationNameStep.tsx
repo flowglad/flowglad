@@ -38,7 +38,7 @@ export function OrganizationNameStep() {
                 {...field}
                 placeholder="Acme Inc."
                 autoFocus
-                className="text-lg h-12"
+                className="h-12"
               />
             </FormControl>
             <FormMessage />

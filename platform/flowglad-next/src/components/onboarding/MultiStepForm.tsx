@@ -103,6 +103,17 @@ export function MultiStepForm<T extends FieldValues>({
     return steps.filter((step) => !step.shouldSkip?.(formValues))
   }, [steps, formValues])
 
+  // Clamp currentStepIndex when activeSteps shrinks to prevent out-of-range access
+  // This can happen when skip conditions dynamically remove steps based on form data
+  useEffect(() => {
+    if (
+      currentStepIndex >= activeSteps.length &&
+      activeSteps.length > 0
+    ) {
+      setCurrentStepIndex(activeSteps.length - 1)
+    }
+  }, [activeSteps.length, currentStepIndex])
+
   const currentStep = activeSteps[currentStepIndex]
   const isFirstStep = currentStepIndex === 0
   const isLastStep = currentStepIndex === activeSteps.length - 1
@@ -185,8 +196,15 @@ export function MultiStepForm<T extends FieldValues>({
     if (isLastStep) {
       try {
         await form.handleSubmit(onComplete)()
-      } catch {
-        // Error handling is done in onComplete via form.setError('root', ...)
+      } catch (error) {
+        // Set root error so the UI can display feedback
+        form.setError('root', {
+          type: 'manual',
+          message:
+            error instanceof Error
+              ? error.message
+              : 'An unexpected error occurred. Please try again.',
+        })
         return false
       }
     } else {

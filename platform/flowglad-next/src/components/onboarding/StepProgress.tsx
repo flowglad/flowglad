@@ -3,7 +3,7 @@ import { cn } from '@/lib/utils'
 import { useMultiStepForm } from './MultiStepForm'
 
 interface StepProgressProps {
-  variant?: 'bar' | 'dots' | 'steps'
+  variant?: 'bar' | 'dots' | 'steps' | 'meter'
   showStepCount?: boolean
   className?: string
 }
@@ -54,6 +54,30 @@ export function StepProgress({
                 'bg-muted cursor-not-allowed'
             )}
             aria-label={`Step ${index + 1}`}
+          />
+        ))}
+      </div>
+    )
+  }
+
+  if (variant === 'meter') {
+    return (
+      <div
+        className={cn(
+          'flex items-center justify-center gap-1',
+          className
+        )}
+      >
+        {Array.from({ length: totalSteps }).map((_, index) => (
+          <div
+            key={index}
+            className={cn(
+              'w-1.5 h-3 rounded-full transition-colors duration-200',
+              index <= currentStepIndex
+                ? 'bg-foreground'
+                : 'bg-secondary'
+            )}
+            aria-label={`Step ${index + 1}${index === currentStepIndex ? ' (current)' : ''}`}
           />
         ))}
       </div>

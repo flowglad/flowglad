@@ -36,7 +36,7 @@ export function ReferralStep() {
                 value={field.value}
                 onValueChange={field.onChange}
               >
-                <SelectTrigger className="h-12 text-lg">
+                <SelectTrigger className="h-12">
                   <SelectValue placeholder="Select an option" />
                 </SelectTrigger>
                 <SelectContent>

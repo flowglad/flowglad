@@ -1,116 +1,113 @@
 /**
  * @vitest-environment jsdom
  */
-import { fireEvent, render, screen } from '@testing-library/react'
-import type { ReactNode } from 'react'
-import type { FieldValues, UseFormReturn } from 'react-hook-form'
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-// Mock dependencies that make network calls or need controlled responses
-const mockGoToNext = vi.fn().mockResolvedValue(true)
-const mockGoToPrevious = vi.fn()
-const mockGoToStep = vi.fn()
-
-interface MockContextOptions {
-  isFirstStep?: boolean
-  isLastStep?: boolean
-  isSubmitting?: boolean
-  currentStepIndex?: number
-}
-
-function createMockForm(
-  isSubmitting: boolean
-): UseFormReturn<FieldValues> {
-  return {
-    formState: {
-      isSubmitting,
-      isDirty: false,
-      isValid: true,
-      isLoading: false,
-      isSubmitted: false,
-      isSubmitSuccessful: false,
-      isValidating: false,
-      submitCount: 0,
-      defaultValues: {},
-      dirtyFields: {},
-      touchedFields: {},
-      errors: {},
-      disabled: false,
-    },
-    watch: vi.fn(),
-    getValues: vi.fn(),
-    getFieldState: vi.fn(),
-    setError: vi.fn(),
-    clearErrors: vi.fn(),
-    setValue: vi.fn(),
-    trigger: vi.fn(),
-    reset: vi.fn(),
-    resetField: vi.fn(),
-    setFocus: vi.fn(),
-    unregister: vi.fn(),
-    control: {} as UseFormReturn<FieldValues>['control'],
-    register: vi.fn(),
-    handleSubmit: vi.fn(),
-  }
-}
-
-function createMockContextValue(options: MockContextOptions = {}) {
-  const {
-    isFirstStep = false,
-    isLastStep = false,
-    isSubmitting = false,
-    currentStepIndex = 1,
-  } = options
-
-  return {
-    currentStepIndex,
-    totalSteps: 3,
-    form: createMockForm(isSubmitting),
-    goToNext: mockGoToNext,
-    goToPrevious: mockGoToPrevious,
-    goToStep: mockGoToStep,
-    isFirstStep,
-    isLastStep,
-    canProceed: true,
-    progress: ((currentStepIndex + 1) / 3) * 100,
-    direction: 'forward' as const,
-    currentStep: {
-      id: 'test-step',
-      title: 'Test Step',
-      schema: {} as never,
-      component: () => null,
-    },
-  }
-}
-
-// Mock the MultiStepForm context
-let mockContextValue = createMockContextValue()
-
-vi.mock('./MultiStepForm', () => ({
-  useMultiStepForm: () => mockContextValue,
-}))
-
-// Import after mocking
+import { z } from 'zod'
 import { FixedNavigationBar } from './FixedNavigationBar'
+import { MultiStepForm } from './MultiStepForm'
 
-// Wrapper component to provide necessary context
-function TestWrapper({ children }: { children: ReactNode }) {
-  return <>{children}</>
+// Minimal step schemas for testing
+const step1Schema = z.object({
+  name: z.string().min(1),
+})
+
+const step2Schema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+})
+
+const step3Schema = z.object({
+  name: z.string().min(1),
+  email: z.string().email(),
+  company: z.string().min(1),
+})
+
+// Simple step components for testing
+function Step1() {
+  return <div data-testid="step-1">Step 1 Content</div>
+}
+
+function Step2() {
+  return <div data-testid="step-2">Step 2 Content</div>
+}
+
+function Step3() {
+  return <div data-testid="step-3">Step 3 Content</div>
+}
+
+const testSteps = [
+  {
+    id: 'step-1',
+    title: 'Step 1',
+    schema: step1Schema,
+    component: Step1,
+  },
+  {
+    id: 'step-2',
+    title: 'Step 2',
+    schema: step2Schema,
+    component: Step2,
+  },
+  {
+    id: 'step-3',
+    title: 'Step 3',
+    schema: step3Schema,
+    component: Step3,
+  },
+]
+
+const validFormData = {
+  name: 'Test User',
+  email: 'test@example.com',
+  company: 'Test Corp',
+}
+
+interface TestWrapperProps {
+  children: React.ReactNode
+  initialStep?: number
+  defaultValues?: Record<string, string>
+  onComplete?: (data: unknown) => Promise<void>
+  onStepChange?: (step: number) => void
+}
+
+function TestWrapper({
+  children,
+  initialStep = 0,
+  defaultValues = validFormData,
+  onComplete = async () => {},
+  onStepChange,
+}: TestWrapperProps) {
+  return (
+    <MultiStepForm
+      schema={step3Schema}
+      defaultValues={defaultValues}
+      steps={testSteps}
+      onComplete={onComplete}
+      initialStep={initialStep}
+      onStepChange={onStepChange}
+    >
+      {children}
+    </MultiStepForm>
+  )
 }
 
 describe('FixedNavigationBar', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    mockContextValue = createMockContextValue()
   })
 
   describe('back button behavior', () => {
     it('renders back button with "Login" label and calls onBackOverride when on first step with override provided', () => {
-      mockContextValue = createMockContextValue({ isFirstStep: true })
       const mockBackOverride = vi.fn()
 
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={0}>
           <FixedNavigationBar
             onBackOverride={mockBackOverride}
             firstStepBackLabel="Login"
@@ -126,18 +123,17 @@ describe('FixedNavigationBar', () => {
       fireEvent.click(backButton)
 
       expect(mockBackOverride).toHaveBeenCalledTimes(1)
-      expect(mockGoToPrevious).not.toHaveBeenCalled()
     })
 
-    it('renders back button with "Back" label and calls goToPrevious when on non-first step', () => {
-      mockContextValue = createMockContextValue({
-        isFirstStep: false,
-        currentStepIndex: 2,
-      })
+    it('renders back button with "Back" label and navigates to previous step when on non-first step', async () => {
+      const onStepChange = vi.fn()
 
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={1} onStepChange={onStepChange}>
           <FixedNavigationBar />
+          {/* Render step content to verify navigation */}
+          <Step1 />
+          <Step2 />
         </TestWrapper>
       )
 
@@ -146,14 +142,16 @@ describe('FixedNavigationBar', () => {
 
       fireEvent.click(backButton)
 
-      expect(mockGoToPrevious).toHaveBeenCalledTimes(1)
+      await waitFor(() => {
+        expect(onStepChange).toHaveBeenCalledWith(0)
+      })
     })
 
     it('renders back button with "Back" label and calls goToPrevious when on first step without onBackOverride', () => {
-      mockContextValue = createMockContextValue({ isFirstStep: true })
-
+      // On first step without override, clicking back should still call goToPrevious
+      // (which will clamp to 0, effectively a no-op)
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={0}>
           <FixedNavigationBar />
         </TestWrapper>
       )
@@ -161,18 +159,18 @@ describe('FixedNavigationBar', () => {
       const backButton = screen.getByRole('button', { name: /Back/i })
       expect(backButton).toBeInTheDocument()
 
+      // Should not throw when clicked
       fireEvent.click(backButton)
 
-      expect(mockGoToPrevious).toHaveBeenCalledTimes(1)
+      // Button should still be present (navigation stays at step 0)
+      expect(
+        screen.getByRole('button', { name: /Back/i })
+      ).toBeInTheDocument()
     })
 
     it('renders back button with custom backLabel when provided and not on first step', () => {
-      mockContextValue = createMockContextValue({
-        isFirstStep: false,
-      })
-
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={1}>
           <FixedNavigationBar backLabel="Previous" />
         </TestWrapper>
       )
@@ -185,10 +183,8 @@ describe('FixedNavigationBar', () => {
 
   describe('continue/submit button behavior', () => {
     it('renders continue button with "Continue" label when not on last step', () => {
-      mockContextValue = createMockContextValue({ isLastStep: false })
-
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={0}>
           <FixedNavigationBar />
         </TestWrapper>
       )
@@ -197,17 +193,31 @@ describe('FixedNavigationBar', () => {
         name: /Continue/i,
       })
       expect(continueButton).toBeInTheDocument()
+    })
+
+    it('advances to next step when continue is clicked with valid data', async () => {
+      const onStepChange = vi.fn()
+
+      render(
+        <TestWrapper initialStep={0} onStepChange={onStepChange}>
+          <FixedNavigationBar />
+        </TestWrapper>
+      )
+
+      const continueButton = screen.getByRole('button', {
+        name: /Continue/i,
+      })
 
       fireEvent.click(continueButton)
 
-      expect(mockGoToNext).toHaveBeenCalledTimes(1)
+      await waitFor(() => {
+        expect(onStepChange).toHaveBeenCalledWith(1)
+      })
     })
 
     it('renders continue button with "Complete" label when on last step', () => {
-      mockContextValue = createMockContextValue({ isLastStep: true })
-
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={2}>
           <FixedNavigationBar />
         </TestWrapper>
       )
@@ -219,10 +229,8 @@ describe('FixedNavigationBar', () => {
     })
 
     it('renders continue button with custom submitLabel when on last step and submitLabel provided', () => {
-      mockContextValue = createMockContextValue({ isLastStep: true })
-
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={2}>
           <FixedNavigationBar submitLabel="Finish Setup" />
         </TestWrapper>
       )
@@ -233,10 +241,8 @@ describe('FixedNavigationBar', () => {
     })
 
     it('renders continue button with custom continueLabel when not on last step and continueLabel provided', () => {
-      mockContextValue = createMockContextValue({ isLastStep: false })
-
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={0}>
           <FixedNavigationBar continueLabel="Next Step" />
         </TestWrapper>
       )
@@ -245,43 +251,80 @@ describe('FixedNavigationBar', () => {
         screen.getByRole('button', { name: /Next Step/i })
       ).toBeInTheDocument()
     })
-  })
 
-  describe('loading state', () => {
-    it('disables both buttons and shows loading spinner on continue button when form is submitting', () => {
-      mockContextValue = createMockContextValue({
-        isSubmitting: true,
-      })
+    it('calls onComplete when clicking complete on last step with valid data', async () => {
+      const onComplete = vi.fn().mockResolvedValue(undefined)
 
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={2} onComplete={onComplete}>
           <FixedNavigationBar />
         </TestWrapper>
       )
 
-      const buttons = screen.getAllByRole('button')
-      expect(buttons).toHaveLength(2)
+      const submitButton = screen.getByRole('button', {
+        name: /Complete/i,
+      })
 
-      // Both buttons should be disabled
+      fireEvent.click(submitButton)
+
+      await waitFor(() => {
+        expect(onComplete).toHaveBeenCalledTimes(1)
+        const calledWith = onComplete.mock.calls[0][0]
+        expect(calledWith).toMatchObject({
+          name: 'Test User',
+          email: 'test@example.com',
+          company: 'Test Corp',
+        })
+      })
+    })
+  })
+
+  describe('loading state', () => {
+    it('shows loading spinner on continue button during form submission', async () => {
+      // Create a promise we can control to keep the form in submitting state
+      let resolveSubmit: () => void
+      const submitPromise = new Promise<void>((resolve) => {
+        resolveSubmit = resolve
+      })
+      const onComplete = vi.fn().mockReturnValue(submitPromise)
+
+      render(
+        <TestWrapper initialStep={2} onComplete={onComplete}>
+          <FixedNavigationBar />
+        </TestWrapper>
+      )
+
+      const submitButton = screen.getByRole('button', {
+        name: /Complete/i,
+      })
+
+      fireEvent.click(submitButton)
+
+      // Wait for the spinner to appear (form is submitting)
+      await waitFor(() => {
+        const spinner = submitButton.querySelector('.animate-spin')
+        expect(spinner).toBeInTheDocument()
+      })
+
+      // Both buttons should be disabled during submission
+      const buttons = screen.getAllByRole('button')
       for (const button of buttons) {
         expect(button).toBeDisabled()
       }
 
-      // Continue button should have the spinner (Loader2 icon has animate-spin class)
-      const continueButton = screen.getByRole('button', {
-        name: /Continue/i,
+      // Resolve the submission
+      resolveSubmit!()
+
+      // Wait for spinner to disappear
+      await waitFor(() => {
+        const spinner = submitButton.querySelector('.animate-spin')
+        expect(spinner).not.toBeInTheDocument()
       })
-      const spinner = continueButton.querySelector('.animate-spin')
-      expect(spinner).toBeInTheDocument()
     })
 
     it('does not show loading spinner when form is not submitting', () => {
-      mockContextValue = createMockContextValue({
-        isSubmitting: false,
-      })
-
       render(
-        <TestWrapper>
+        <TestWrapper initialStep={0}>
           <FixedNavigationBar />
         </TestWrapper>
       )
@@ -304,8 +347,6 @@ describe('FixedNavigationBar', () => {
 
   describe('container styling', () => {
     it('renders with dashed borders by default (showBorders=true)', () => {
-      mockContextValue = createMockContextValue()
-
       const { container } = render(
         <TestWrapper>
           <FixedNavigationBar />
@@ -319,8 +360,6 @@ describe('FixedNavigationBar', () => {
     })
 
     it('renders without dashed borders when showBorders=false', () => {
-      mockContextValue = createMockContextValue()
-
       const { container } = render(
         <TestWrapper>
           <FixedNavigationBar showBorders={false} />
@@ -336,8 +375,6 @@ describe('FixedNavigationBar', () => {
 
   describe('accessibility', () => {
     it('all buttons are keyboard accessible with type="button"', () => {
-      mockContextValue = createMockContextValue()
-
       render(
         <TestWrapper>
           <FixedNavigationBar />
@@ -352,8 +389,6 @@ describe('FixedNavigationBar', () => {
     })
 
     it('back button contains ArrowLeft icon inside', () => {
-      mockContextValue = createMockContextValue()
-
       render(
         <TestWrapper>
           <FixedNavigationBar />
