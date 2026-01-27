@@ -9,7 +9,6 @@ import { MoreIcon } from '@/components/icons/MoreIcon'
 import PageContainer from '@/components/PageContainer'
 import PopoverMenu, {
   type PopoverMenuItem,
-  PopoverMenuItemState,
 } from '@/components/PopoverMenu'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
@@ -74,17 +73,13 @@ function InternalCustomerDetailsScreen({
         ]
       : []),
     {
-      label: 'Archive Customer',
+      label: 'Archive customer',
       handler: () => {
         setIsMoreMenuOpen(false)
         setIsArchiveOpen(true)
       },
       icon: <Archive className="h-4 w-4" />,
       disabled: isArchived,
-      helperText: isArchived
-        ? 'Customer is already archived'
-        : undefined,
-      state: PopoverMenuItemState.Danger,
     },
   ]
 

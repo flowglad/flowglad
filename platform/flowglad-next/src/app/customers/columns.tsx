@@ -113,10 +113,6 @@ function CustomerActionsMenu({
       icon: <Archive className="h-4 w-4" />,
       handler: () => setIsArchiveOpen(true),
       disabled: isArchived,
-      helperText: isArchived
-        ? 'Customer is already archived'
-        : undefined,
-      destructive: true,
     },
   ]
 
