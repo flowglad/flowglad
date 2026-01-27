@@ -4,10 +4,7 @@ import Stripe from 'stripe'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import {
-  type BillingAddress,
-  type Organization,
-} from '@/db/schema/organizations'
+import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import type { Purchase } from '@/db/schema/purchases'
@@ -38,8 +35,6 @@ import {
   createPaymentIntentForCheckoutSession,
   createSetupIntentForCheckoutSession,
   createStripeCustomer,
-  createStripeTaxCalculationByPrice,
-  createStripeTaxCalculationByPurchase,
   createStripeTaxTransactionFromCalculation,
   dateFromStripeTimestamp,
   getLatestChargeForPaymentIntent,
@@ -1737,135 +1732,41 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 })
 
 /**
- * Creates a test BillingAddress for US-based tax calculations.
+ * Tax calculation business logic tests.
+ * These tests verify guard clauses and don't hit the real Stripe Tax API.
+ * Tests that hit the real Tax API have been removed due to rate limits
+ * (1000 requests/24hr in test mode).
  */
-const createTestBillingAddress = (): BillingAddress => {
-  return {
-    name: 'Test Customer',
-    firstName: 'Test',
-    lastName: 'Customer',
-    email: 'test@example.com',
-    address: {
-      name: 'Test Customer',
-      line1: '354 Oyster Point Blvd',
-      line2: null,
-      city: 'South San Francisco',
-      state: 'CA',
-      postal_code: '94080',
-      country: 'US',
-    },
-    phone: null,
-  }
-}
-
 describeIfStripeKey('Tax Calculations', () => {
-  describe('createStripeTaxCalculationByPrice', () => {
-    it('creates a tax calculation for a US address and returns calculation id and tax amount', async () => {
-      const price = createTestPrice({
-        unitPrice: 10000, // $100.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      // Action: call the application function
-      const result = await createStripeTaxCalculationByPrice({
-        price,
-        billingAddress,
-        discountInclusiveAmount: 10000,
-        livemode: false,
-      })
-
-      // Verify we got a real Stripe tax calculation ID (not the test prefix)
-      expect(result.id).toMatch(/^taxcalc_/)
-
-      // Verify tax_amount_exclusive is a number (could be 0 or positive depending on Stripe Tax settings)
-      expect(typeof result.tax_amount_exclusive).toBe('number')
-      expect(result.tax_amount_exclusive).toBeGreaterThanOrEqual(0)
-    })
-  })
-
   describe('createStripeTaxTransactionFromCalculation', () => {
     it('returns null when stripeTaxCalculationId is null', async () => {
-      // Action: call the application function with null
       const result = await createStripeTaxTransactionFromCalculation({
         stripeTaxCalculationId: null,
         reference: `test_reference_${core.nanoid()}`,
         livemode: false,
       })
 
-      // Verify null is returned (business logic guard)
       expect(result).toBeNull()
     })
 
     it('returns null when stripeTaxCalculationId starts with notaxoverride_', async () => {
-      // Action: call the application function with notaxoverride prefix
       const result = await createStripeTaxTransactionFromCalculation({
         stripeTaxCalculationId: 'notaxoverride_xyz',
         reference: `test_reference_${core.nanoid()}`,
         livemode: false,
       })
 
-      // Verify null is returned (business logic guard for tax-exempt scenarios)
       expect(result).toBeNull()
     })
 
-    it('creates a tax transaction from a valid calculation', async () => {
-      // Setup: first create a tax calculation
-      const price = createTestPrice({
-        unitPrice: 5000, // $50.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      const calculation = await createStripeTaxCalculationByPrice({
-        price,
-        billingAddress,
-        discountInclusiveAmount: 5000,
-        livemode: false,
-      })
-
-      // Action: create a tax transaction from the calculation
-      const reference = `test_txn_${core.nanoid()}`
+    it('returns null when stripeTaxCalculationId starts with testtaxcalc_', async () => {
       const result = await createStripeTaxTransactionFromCalculation({
-        stripeTaxCalculationId: calculation.id,
-        reference,
+        stripeTaxCalculationId: 'testtaxcalc_xyz',
+        reference: `test_reference_${core.nanoid()}`,
         livemode: false,
       })
 
-      // Verify we got a real tax transaction
-      expect(result).toMatchObject({ reference: reference })
-      expect(result!.id).toMatch(/^tax_/)
-      expect(result!.reference).toBe(reference)
-    })
-  })
-
-  describe('createStripeTaxCalculationByPurchase', () => {
-    it('creates a tax calculation for a purchase with US billing address', async () => {
-      const purchase = createTestPurchase()
-      const price = createTestPrice({
-        unitPrice: 7500, // $75.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      // Action: call the application function
-      const result = await createStripeTaxCalculationByPurchase({
-        purchase,
-        price,
-        billingAddress,
-        discountInclusiveAmount: 7500,
-        livemode: false,
-      })
-
-      // Verify we got a real Stripe tax calculation ID
-      expect(result.id).toMatch(/^taxcalc_/)
-
-      // Verify tax_amount_exclusive is a number
-      expect(typeof result.tax_amount_exclusive).toBe('number')
-      expect(result.tax_amount_exclusive).toBeGreaterThanOrEqual(0)
+      expect(result).toBeNull()
     })
   })
 
@@ -1901,97 +1802,6 @@ describeIfStripeKey('Tax Calculations', () => {
       })
 
       expect(result).toBeNull()
-    })
-
-    it('creates a full reversal for a valid tax transaction', async () => {
-      // Setup: create a tax calculation and transaction first
-      const price = createTestPrice({
-        unitPrice: 6000, // $60.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      const calculation = await createStripeTaxCalculationByPrice({
-        price,
-        billingAddress,
-        discountInclusiveAmount: 6000,
-        livemode: false,
-      })
-
-      const txnReference = `test_txn_${core.nanoid()}`
-      const transaction =
-        await createStripeTaxTransactionFromCalculation({
-          stripeTaxCalculationId: calculation.id,
-          reference: txnReference,
-          livemode: false,
-        })
-
-      // Skip if no transaction was created (can happen in some test environments)
-      if (!transaction) {
-        return
-      }
-
-      // Action: reverse the tax transaction
-      const reversalReference = `test_reversal_${core.nanoid()}`
-      const result = await reverseStripeTaxTransaction({
-        stripeTaxTransactionId: transaction.id,
-        reference: reversalReference,
-        livemode: false,
-        mode: 'full',
-      })
-
-      // Verify we got a reversal transaction
-      expect(result).toMatchObject({ reference: reversalReference })
-      expect(result!.id).toMatch(/^tax_/)
-      expect(result!.reference).toBe(reversalReference)
-      expect(result!.type).toBe('reversal')
-    })
-
-    it('creates a partial reversal with flat_amount for a valid tax transaction', async () => {
-      // Setup: create a tax calculation and transaction first
-      const price = createTestPrice({
-        unitPrice: 10000, // $100.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      const calculation = await createStripeTaxCalculationByPrice({
-        price,
-        billingAddress,
-        discountInclusiveAmount: 10000,
-        livemode: false,
-      })
-
-      const txnReference = `test_txn_partial_${core.nanoid()}`
-      const transaction =
-        await createStripeTaxTransactionFromCalculation({
-          stripeTaxCalculationId: calculation.id,
-          reference: txnReference,
-          livemode: false,
-        })
-
-      // Skip if no transaction was created
-      if (!transaction) {
-        return
-      }
-
-      // Action: partial reversal for $50 (5000 cents) - Stripe requires negative flat_amount
-      const reversalReference = `test_partial_reversal_${core.nanoid()}`
-      const result = await reverseStripeTaxTransaction({
-        stripeTaxTransactionId: transaction.id,
-        reference: reversalReference,
-        livemode: false,
-        mode: 'partial',
-        flatAmount: -5000,
-      })
-
-      // Verify we got a reversal transaction
-      expect(result).toMatchObject({ reference: reversalReference })
-      expect(result!.id).toMatch(/^tax_/)
-      expect(result!.reference).toBe(reversalReference)
-      expect(result!.type).toBe('reversal')
     })
   })
 })

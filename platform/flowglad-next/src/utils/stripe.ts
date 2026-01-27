@@ -1036,7 +1036,8 @@ export const createStripeTaxTransactionFromCalculation = async ({
 }): Promise<Stripe.Tax.Transaction | null> => {
   if (
     !stripeTaxCalculationId ||
-    stripeTaxCalculationId.startsWith('notaxoverride_')
+    stripeTaxCalculationId.startsWith('notaxoverride_') ||
+    stripeTaxCalculationId.startsWith('testtaxcalc_')
   ) {
     return null
   }
