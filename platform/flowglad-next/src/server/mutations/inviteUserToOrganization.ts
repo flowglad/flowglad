@@ -1,4 +1,3 @@
-import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import {
@@ -19,9 +18,10 @@ import {
 } from '@/db/tableMethods/userMethods'
 import { protectedProcedure } from '@/server/trpc'
 import { MembershipRole } from '@/types'
-import { auth } from '@/utils/auth'
 import core from '@/utils/core'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
+
+type InviteAction = 'created' | 'reactivated' | 'already_member'
 
 export const innerInviteUserToOrganizationHandler = async (
   focusedMembership: {
@@ -35,7 +35,7 @@ export const innerInviteUserToOrganizationHandler = async (
   inviterUser: {
     name: string | null
   }
-) => {
+): Promise<{ action: InviteAction }> => {
   // Use admin transaction to find user by email
   const [userForEmail] = await adminTransaction(
     async ({ transaction }) => {
@@ -44,6 +44,7 @@ export const innerInviteUserToOrganizationHandler = async (
   )
 
   if (!userForEmail) {
+    // Create new user and membership
     await adminTransaction(async ({ transaction }) => {
       const databaseUser = await insertUser(
         {
@@ -69,47 +70,61 @@ export const innerInviteUserToOrganizationHandler = async (
       organizationName: focusedMembership.organization.name,
       inviterName: inviterUser.name ?? undefined,
     })
-    return {
-      success: true,
-      message: 'User created and invited to organization',
-    }
+    return { action: 'created' }
   }
 
-  // Insert membership for the user, or reactivate if previously deactivated
-  await adminTransaction(async ({ transaction, livemode }) => {
-    const membershipForUser = await selectMemberships(
-      {
-        userId: userForEmail.id,
-        organizationId: focusedMembership.organization.id,
-      },
-      transaction,
-      { includeDeactivated: true }
-    )
-    if (membershipForUser.length > 0) {
-      const existingMembership = membershipForUser[0]
-      // If membership was deactivated, reactivate it
-      if (existingMembership.deactivatedAt) {
-        await updateMembership(
-          {
-            id: existingMembership.id,
-            deactivatedAt: null,
-          },
-          transaction
-        )
+  // Check for existing membership (including deactivated)
+  const action = await adminTransaction(
+    async ({ transaction, livemode }): Promise<InviteAction> => {
+      const membershipForUser = await selectMemberships(
+        {
+          userId: userForEmail.id,
+          organizationId: focusedMembership.organization.id,
+        },
+        transaction,
+        { includeDeactivated: true }
+      )
+      if (membershipForUser.length > 0) {
+        const existingMembership = membershipForUser[0]
+        // If membership was deactivated, reactivate it
+        if (existingMembership.deactivatedAt) {
+          await updateMembership(
+            {
+              id: existingMembership.id,
+              deactivatedAt: null,
+            },
+            transaction
+          )
+          return 'reactivated'
+        }
+        // Already an active member
+        return 'already_member'
       }
-      return
+      // Create new membership for existing user
+      await insertMembership(
+        {
+          userId: userForEmail.id,
+          organizationId: focusedMembership.organization.id,
+          focused: false,
+          livemode,
+          role: MembershipRole.Member,
+        },
+        transaction
+      )
+      return 'created'
     }
-    return insertMembership(
-      {
-        userId: userForEmail.id,
-        organizationId: focusedMembership.organization.id,
-        focused: false,
-        livemode,
-        role: MembershipRole.Member,
-      },
-      transaction
-    )
-  })
+  )
+
+  // Send email for all new/reactivated memberships (not if already an active member)
+  if (action !== 'already_member') {
+    await sendOrganizationInvitationEmail({
+      to: [input.email],
+      organizationName: focusedMembership.organization.name,
+      inviterName: inviterUser.name ?? undefined,
+    })
+  }
+
+  return { action }
 }
 
 /**
