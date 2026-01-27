@@ -20,7 +20,7 @@
     "test:unit": "bun run src/scripts/run-bun-tests.ts ./bun.unit.setup.ts '*.unit.test.ts'",
     "test:db": "bun run src/scripts/run-bun-tests.ts ./bun.db.test.setup.ts '*.db.test.ts'",
     "test:backend": "bun run test:unit && bun run test:db",
-    "test:frontend": "bun run src/scripts/run-bun-tests.ts ./bun.frontend.setup.ts '*.test.tsx' --timeout 30000",
+    "test:frontend": "NODE_ENV=test bun test --preload ./bun.dom.preload.ts --preload ./bun.frontend.setup.ts --timeout 30000 ./src/**/*.test.tsx",
     "test:rls": "bun run src/scripts/run-bun-tests.ts ./bun.rls.setup.ts '*.rls.test.ts' --timeout 30000 --concurrency 1",
     "test:integration": "bun run src/scripts/run-bun-tests.ts ./bun.integration.setup.ts '*.integration.test.ts' --timeout 30000",
     "test:behavior": "bun run src/scripts/run-bun-tests.ts ./bun.integration.setup.ts '*.behavior.test.ts' --timeout 60000",
