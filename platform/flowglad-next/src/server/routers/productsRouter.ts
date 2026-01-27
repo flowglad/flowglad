@@ -72,7 +72,15 @@ export const createProduct = protectedProcedure
         }
         try {
           // Validate that default products cannot be created manually
-          validateProductCreation(input.product)
+          const validationResult = validateProductCreation(
+            input.product
+          )
+          if (validationResult.status === 'error') {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: validationResult.error.reason,
+            })
+          }
 
           const { product, price, featureIds } = input
           const txResult = await createProductTransaction(

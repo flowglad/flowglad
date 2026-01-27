@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import { createDefaultPlanConfig } from '@/constants/defaultPlanConfig'
+import { ValidationError } from '@/errors'
 import { PriceType } from '@/types'
 import { validateDefaultProductSchema } from './defaultProductValidation'
 
@@ -37,9 +38,11 @@ describe('defaultProductValidation', () => {
       const result = validateDefaultProductSchema(product)
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toContain(
           'Default products must have zero price'
         )
+        expect(result.error.field).toBe('price.amount')
       }
     })
 
@@ -58,9 +61,11 @@ describe('defaultProductValidation', () => {
       const result = validateDefaultProductSchema(product)
       expect(Result.isError(result)).toBe(true)
       if (Result.isError(result)) {
+        expect(result.error).toBeInstanceOf(ValidationError)
         expect(result.error.message).toContain(
           'Default products cannot have trials'
         )
+        expect(result.error.field).toBe('price.trialDays')
       }
     })
   })

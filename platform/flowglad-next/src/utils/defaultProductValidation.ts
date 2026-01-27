@@ -1,4 +1,3 @@
-import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import * as R from 'ramda'
 import type { Price } from '@/db/schema/prices'
@@ -23,27 +22,31 @@ export const DEFAULT_PRODUCT_ALLOWED_FIELDS = [
 export const validateDefaultProductUpdate = (
   update: Partial<Product.Update>,
   existingProduct: Product.Record
-): void => {
+): Result<void, ValidationError> => {
   // Prevent changing the default status on any product
   if (
     'default' in update &&
     update.default !== existingProduct.default
   ) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'Cannot change the default status of a product',
-    })
+    return Result.err(
+      new ValidationError(
+        'product.default',
+        'Cannot change the default status of a product'
+      )
+    )
   }
 
   // If not a default product, no further validation needed
-  if (!existingProduct.default) return
+  if (!existingProduct.default) return Result.ok(undefined)
 
   // Force default products to remain active
   if ('active' in update && update.active === false) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'Default products must remain active',
-    })
+    return Result.err(
+      new ValidationError(
+        'product.active',
+        'Default products must remain active'
+      )
+    )
   }
 
   const attemptedFields = Object.keys(update).filter(
@@ -64,10 +67,12 @@ export const validateDefaultProductUpdate = (
   )
 
   if (disallowedChangedFields.length > 0) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: `Cannot update the following fields on default products: ${disallowedChangedFields.join(', ')}. Only ${DEFAULT_PRODUCT_ALLOWED_FIELDS.join(', ')} can be modified.`,
-    })
+    return Result.err(
+      new ValidationError(
+        'product',
+        `Cannot update the following fields on default products: ${disallowedChangedFields.join(', ')}. Only ${DEFAULT_PRODUCT_ALLOWED_FIELDS.join(', ')} can be modified.`
+      )
+    )
   }
 
   // Additionally, prevent slug change on default products
@@ -77,11 +82,15 @@ export const validateDefaultProductUpdate = (
     update.slug !== existingProduct.slug &&
     existingProduct.default
   ) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'Cannot change the slug of a default product',
-    })
+    return Result.err(
+      new ValidationError(
+        'product.slug',
+        'Cannot change the slug of a default product'
+      )
+    )
   }
+
+  return Result.ok(undefined)
 }
 
 /**
@@ -91,17 +100,19 @@ export const validateDefaultPriceUpdate = (
   update: Partial<Price.Update>,
   existingPrice: Price.Record,
   product: Product.Record
-): void => {
+): Result<void, ValidationError> => {
   // Only validate if this is a default price for a default product
-  if (!product.default || !existingPrice.isDefault) return
+  if (!product.default || !existingPrice.isDefault)
+    return Result.ok(undefined)
 
   // Ensure unitPrice remains 0 for default prices on default products
   if (update.unitPrice !== undefined && update.unitPrice !== 0) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Default prices for default products must have a unitPrice of 0',
-    })
+    return Result.err(
+      new ValidationError(
+        'price.unitPrice',
+        'Default prices for default products must have a unitPrice of 0'
+      )
+    )
   }
 
   // Disallow trials on default product's default price
@@ -110,11 +121,12 @@ export const validateDefaultPriceUpdate = (
     update.trialPeriodDays !== null &&
     update.trialPeriodDays !== 0
   ) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Default prices for default products cannot have a time-based trial',
-    })
+    return Result.err(
+      new ValidationError(
+        'price.trialPeriodDays',
+        'Default prices for default products cannot have a time-based trial'
+      )
+    )
   }
 
   // Prevent changing the billing interval for default prices on default products
@@ -122,11 +134,12 @@ export const validateDefaultPriceUpdate = (
     update.intervalUnit !== undefined &&
     update.intervalUnit !== existingPrice.intervalUnit
   ) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Cannot change the billing interval of the default price for a default product',
-    })
+    return Result.err(
+      new ValidationError(
+        'price.intervalUnit',
+        'Cannot change the billing interval of the default price for a default product'
+      )
+    )
   }
 
   // Prevent changing the isDefault status
@@ -134,12 +147,15 @@ export const validateDefaultPriceUpdate = (
     'isDefault' in update &&
     update.isDefault !== existingPrice.isDefault
   ) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Cannot change the default status of a default price on a default product',
-    })
+    return Result.err(
+      new ValidationError(
+        'price.isDefault',
+        'Cannot change the default status of a default price on a default product'
+      )
+    )
   }
+
+  return Result.ok(undefined)
 }
 
 /**
@@ -147,14 +163,16 @@ export const validateDefaultPriceUpdate = (
  */
 export const validateProductCreation = (
   product: Partial<Product.Insert>
-): void => {
+): Result<void, ValidationError> => {
   if (product.default === true) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Default products cannot be created manually. They are automatically created when pricing models are created.',
-    })
+    return Result.err(
+      new ValidationError(
+        'product.default',
+        'Default products cannot be created manually. They are automatically created when pricing models are created.'
+      )
+    )
   }
+  return Result.ok(undefined)
 }
 /**
  * Checks if a field update on a default product is allowed
@@ -183,7 +201,7 @@ export const validateDefaultProductSchema = (product: {
   if (product.price.amount !== 0) {
     return Result.err(
       new ValidationError(
-        'price',
+        'price.amount',
         'Default products must have zero price'
       )
     )
@@ -193,7 +211,7 @@ export const validateDefaultProductSchema = (product: {
   if (product.price.trialDays && product.price.trialDays > 0) {
     return Result.err(
       new ValidationError(
-        'price',
+        'price.trialDays',
         'Default products cannot have trials'
       )
     )

@@ -8,6 +8,7 @@ import {
   selectProductById,
   updateProduct,
 } from '@/db/tableMethods/productMethods'
+import { ValidationError } from '@/errors'
 import { IntervalUnit, PriceType } from '@/types'
 import { createPricingModelBookkeeping } from '@/utils/bookkeeping'
 import core from '@/utils/core'
@@ -103,27 +104,32 @@ describe('productsRouter - Default Product Constraints', () => {
   })
 
   describe('createProduct', () => {
-    it('should throw error when attempting to create a product with default: true', async () => {
-      expect(() => {
-        validateProductCreation({
-          name: 'Another Default Product',
-          slug: 'another-default',
-          default: true, // This should cause an error
-          pricingModelId,
-          active: true,
-          description: '',
-          imageURL: '',
-          singularQuantityLabel: '',
-          pluralQuantityLabel: '',
-        })
-      }).toThrow('Default products cannot be created manually')
+    it('returns Result.err with ValidationError when attempting to create a product with default: true', async () => {
+      const result = validateProductCreation({
+        name: 'Another Default Product',
+        slug: 'another-default',
+        default: true, // This should cause an error
+        pricingModelId,
+        active: true,
+        description: '',
+        imageURL: '',
+        singularQuantityLabel: '',
+        pluralQuantityLabel: '',
+      })
+      expect(result.status).toBe('error')
+      if (result.status === 'error') {
+        expect(result.error).toBeInstanceOf(ValidationError)
+        expect(result.error.reason).toBe(
+          'Default products cannot be created manually. They are automatically created when pricing models are created.'
+        )
+      }
     })
 
-    it('should allow creating regular products with default: false', async () => {
+    it('returns Result.ok when creating regular products with default: false', async () => {
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        // Validate this should not throw
-        validateProductCreation({
+        // Validate this should return ok
+        const validationResult = validateProductCreation({
           name: 'Regular Product 2',
           slug: 'regular-product-2',
           default: false, // This should be allowed
@@ -134,6 +140,7 @@ describe('productsRouter - Default Product Constraints', () => {
           singularQuantityLabel: '',
           pluralQuantityLabel: '',
         })
+        expect(validationResult.status).toBe('ok')
 
         // Create the product
         const product = await insertProduct(
@@ -188,7 +195,7 @@ describe('productsRouter - Default Product Constraints', () => {
   })
 
   describe('editProduct', () => {
-    it('should throw error when attempting to change default field on any product', async () => {
+    it('returns Result.err with ValidationError when attempting to change default field on any product', async () => {
       // Test changing a regular product to default
       const { regularProduct, defaultProduct } =
         await adminTransaction(async (ctx) => {
@@ -206,37 +213,52 @@ describe('productsRouter - Default Product Constraints', () => {
         })
 
       // Try to change a regular product to default
-      expect(() => {
-        validateDefaultProductUpdate(
-          { default: true }, // Trying to change to default
-          regularProduct
+      const regularToDefaultResult = validateDefaultProductUpdate(
+        { default: true }, // Trying to change to default
+        regularProduct
+      )
+      expect(regularToDefaultResult.status).toBe('error')
+      if (regularToDefaultResult.status === 'error') {
+        expect(regularToDefaultResult.error).toBeInstanceOf(
+          ValidationError
         )
-      }).toThrow('Cannot change the default status of a product')
+        expect(regularToDefaultResult.error.reason).toBe(
+          'Cannot change the default status of a product'
+        )
+      }
 
       // Try to change a default product to non-default
-      expect(() => {
-        validateDefaultProductUpdate(
-          { default: false }, // Trying to remove default status
-          defaultProduct
+      const defaultToRegularResult = validateDefaultProductUpdate(
+        { default: false }, // Trying to remove default status
+        defaultProduct
+      )
+      expect(defaultToRegularResult.status).toBe('error')
+      if (defaultToRegularResult.status === 'error') {
+        expect(defaultToRegularResult.error).toBeInstanceOf(
+          ValidationError
         )
-      }).toThrow('Cannot change the default status of a product')
+        expect(defaultToRegularResult.error.reason).toBe(
+          'Cannot change the default status of a product'
+        )
+      }
     })
 
-    it('should allow updating allowed fields on default products (excluding slug)', async () => {
+    it('returns Result.ok when updating allowed fields on default products (excluding slug)', async () => {
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const existingProduct = (
           await selectProductById(defaultProductId, transaction)
         ).unwrap()
 
-        // This should not throw
-        validateDefaultProductUpdate(
+        // This should return ok
+        const validationResult = validateDefaultProductUpdate(
           {
             name: 'Updated Base Plan Name',
             description: 'Updated description',
           },
           existingProduct
         )
+        expect(validationResult.status).toBe('ok')
 
         // Actually update the product
         const updatedProduct = await updateProduct(
@@ -257,7 +279,7 @@ describe('productsRouter - Default Product Constraints', () => {
       expect(result.default).toBe(true) // Should remain default
     })
 
-    it('should throw error when attempting to update restricted fields on default products', async () => {
+    it('returns Result.err with ValidationError when attempting to update restricted fields on default products', async () => {
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const existingProduct = (
@@ -265,46 +287,55 @@ describe('productsRouter - Default Product Constraints', () => {
         ).unwrap()
 
         // Try to change pricingModelId
-        expect(() => {
-          validateDefaultProductUpdate(
-            {
-              pricingModelId: core.nanoid(), // Not allowed on default products
-            },
-            existingProduct
-          )
-        }).toThrow(
-          'Cannot update the following fields on default products'
+        const pricingModelResult = validateDefaultProductUpdate(
+          {
+            pricingModelId: core.nanoid(), // Not allowed on default products
+          },
+          existingProduct
         )
+        expect(pricingModelResult.status).toBe('error')
+        if (pricingModelResult.status === 'error') {
+          expect(pricingModelResult.error).toBeInstanceOf(
+            ValidationError
+          )
+          expect(pricingModelResult.error.reason).toContain(
+            'Cannot update the following fields on default products'
+          )
+        }
 
         // Try to change slug (falls under generic disallowed fields validation)
-        expect(() => {
-          validateDefaultProductUpdate(
-            {
-              slug: 'should-not-allow-slug-changes',
-            } as any,
-            existingProduct
-          )
-        }).toThrow(
-          'Cannot update the following fields on default products: slug'
+        const slugResult = validateDefaultProductUpdate(
+          {
+            slug: 'should-not-allow-slug-changes',
+          } as any,
+          existingProduct
         )
+        expect(slugResult.status).toBe('error')
+        if (slugResult.status === 'error') {
+          expect(slugResult.error).toBeInstanceOf(ValidationError)
+          expect(slugResult.error.reason).toContain(
+            'Cannot update the following fields on default products: slug'
+          )
+        }
       })
     })
 
-    it('should allow updating any field on non-default products', async () => {
+    it('returns Result.ok when updating any field on non-default products', async () => {
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         const existingProduct = (
           await selectProductById(regularProductId, transaction)
         ).unwrap()
 
-        // This should not throw for regular products
-        validateDefaultProductUpdate(
+        // This should return ok for regular products
+        const validationResult = validateDefaultProductUpdate(
           {
             name: 'Updated Regular Product',
             active: false,
           },
           existingProduct
         )
+        expect(validationResult.status).toBe('ok')
 
         // Actually update the product
         const updatedProduct = await updateProduct(

@@ -360,7 +360,13 @@ export const editProductTransaction = async (
     : product
 
   // Validate that default products can only have certain fields updated
-  validateDefaultProductUpdate(enforcedProduct, existingProduct)
+  const validationResult = validateDefaultProductUpdate(
+    enforcedProduct,
+    existingProduct
+  )
+  if (validationResult.status === 'error') {
+    throw new Error(validationResult.error.reason)
+  }
 
   const updatedProduct = await updateProduct(enforcedProduct, ctx)
 
