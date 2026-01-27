@@ -11,14 +11,10 @@ import {
 /**
  * Get the Redis Stream key for a scope's sync events.
  * Scope is determined by API key (currently org+livemode, will become pricingModelId).
+ * Livemode is already embedded in the API key scope, so we don't need to key by it separately.
  */
-export const getSyncStreamKey = (params: {
-  scopeId: string
-  livemode: boolean
-}): string => {
-  const { scopeId, livemode } = params
-  const mode = livemode ? 'live' : 'test'
-  return `${RedisKeyNamespace.SyncStream}:${scopeId}:${mode}`
+export const getSyncStreamKey = (scopeId: string): string => {
+  return `${RedisKeyNamespace.SyncStream}:${scopeId}`
 }
 
 /**
@@ -31,10 +27,7 @@ export const appendSyncEvent = async (
   const redisClient = redis()
   const config = getSyncStreamConfig()
 
-  const key = getSyncStreamKey({
-    scopeId: event.scopeId,
-    livemode: event.livemode,
-  })
+  const key = getSyncStreamKey(event.scopeId)
 
   const id = nanoid()
   const timestamp = new Date().toISOString()
@@ -124,14 +117,13 @@ const parseStreamEntry = (
  */
 export const readSyncEvents = async (params: {
   scopeId: string
-  livemode: boolean
   lastSequence?: string
   count?: number
 }): Promise<SyncEvent[]> => {
-  const { scopeId, livemode, lastSequence, count = 100 } = params
+  const { scopeId, lastSequence, count = 100 } = params
   const redisClient = redis()
 
-  const key = getSyncStreamKey({ scopeId, livemode })
+  const key = getSyncStreamKey(scopeId)
 
   try {
     // Use XRANGE to read events
@@ -186,14 +178,13 @@ export const readSyncEvents = async (params: {
  */
 export const pollSyncEvents = async (params: {
   scopeId: string
-  livemode: boolean
   lastSequence: string
   count?: number
 }): Promise<SyncEvent[]> => {
-  const { scopeId, livemode, lastSequence, count = 100 } = params
+  const { scopeId, lastSequence, count = 100 } = params
   const redisClient = redis()
 
-  const key = getSyncStreamKey({ scopeId, livemode })
+  const key = getSyncStreamKey(scopeId)
 
   try {
     // Use XREAD for polling (non-blocking)
@@ -258,18 +249,16 @@ export const pollSyncEvents = async (params: {
  */
 export const trimSyncStream = async (params: {
   scopeId: string
-  livemode: boolean
   retentionMs?: number
 }): Promise<number> => {
   const config = getSyncStreamConfig()
   const {
     scopeId,
-    livemode,
     retentionMs = config.ttl * 1000, // Default 7 days in ms
   } = params
   const redisClient = redis()
 
-  const key = getSyncStreamKey({ scopeId, livemode })
+  const key = getSyncStreamKey(scopeId)
 
   try {
     // Calculate the minimum ID to keep based on retention
@@ -314,18 +303,16 @@ export const trimSyncStream = async (params: {
 /**
  * Get stream info (length, first/last entry IDs).
  */
-export const getSyncStreamInfo = async (params: {
+export const getSyncStreamInfo = async (
   scopeId: string
-  livemode: boolean
-}): Promise<{
+): Promise<{
   length: number
   firstEntry: string | null
   lastEntry: string | null
 }> => {
-  const { scopeId, livemode } = params
   const redisClient = redis()
 
-  const key = getSyncStreamKey({ scopeId, livemode })
+  const key = getSyncStreamKey(scopeId)
 
   try {
     // XINFO STREAM returns detailed information about the stream

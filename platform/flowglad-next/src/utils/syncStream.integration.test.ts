@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, expect, it } from 'bun:test'
 import {
   cleanupRedisTestKeys,
   describeIfRedisKey,
@@ -26,6 +26,10 @@ import {
  *
  * These tests require UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN
  * environment variables to be set.
+ *
+ * Note: scopeId represents the full API key scope (currently org+livemode,
+ * will become pricingModelId). Livemode is embedded in the scope, not a
+ * separate key component.
  */
 
 describeIfRedisKey('syncStream Integration Tests', () => {
@@ -42,28 +46,26 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     await cleanupRedisTestKeys(client, keysToCleanup)
   })
 
-  describe('getSyncStreamKey', () => {
-    it('generates key with livemode suffix for live events', () => {
-      const key = getSyncStreamKey({
-        scopeId: 'org_123',
-        livemode: true,
-      })
+  describeIfRedisKey('getSyncStreamKey', () => {
+    it('generates key with scopeId only (livemode embedded in scope)', () => {
+      // scopeId already contains the full scope context from API key
+      const key = getSyncStreamKey('org_123:live')
       expect(key).toBe('syncStream:org_123:live')
     })
 
-    it('generates key with test suffix for test events', () => {
-      const key = getSyncStreamKey({
-        scopeId: 'org_123',
-        livemode: false,
-      })
-      expect(key).toBe('syncStream:org_123:test')
+    it('generates different keys for different scopes', () => {
+      const liveKey = getSyncStreamKey('org_123:live')
+      const testKey = getSyncStreamKey('org_123:test')
+      expect(liveKey).toBe('syncStream:org_123:live')
+      expect(testKey).toBe('syncStream:org_123:test')
+      expect(liveKey).not.toBe(testKey)
     })
   })
 
-  describe('appendSyncEvent', () => {
+  describeIfRedisKey('appendSyncEvent', () => {
     it('appends event and returns sequence ID in Redis stream format', async () => {
-      const scopeId = `${testKeyPrefix}_org_append`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_append:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       const event: SyncEventInsert = {
@@ -85,8 +87,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('generates unique sequence IDs for rapid successive writes', async () => {
-      const scopeId = `${testKeyPrefix}_org_rapid`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_rapid:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       const sequences: string[] = []
@@ -126,8 +128,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('stores event data that can be retrieved', async () => {
-      const scopeId = `${testKeyPrefix}_org_retrieve`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_retrieve:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       const eventData = {
@@ -147,10 +149,7 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       const { sequence, id } = await appendSyncEvent(event)
 
       // Read back the event
-      const events = await readSyncEvents({
-        scopeId,
-        livemode: true,
-      })
+      const events = await readSyncEvents({ scopeId })
 
       expect(events.length).toBe(1)
       expect(events[0].id).toBe(id)
@@ -163,8 +162,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('stores delete events with null data', async () => {
-      const scopeId = `${testKeyPrefix}_org_delete`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_delete:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       const event: SyncEventInsert = {
@@ -178,10 +177,7 @@ describeIfRedisKey('syncStream Integration Tests', () => {
 
       await appendSyncEvent(event)
 
-      const events = await readSyncEvents({
-        scopeId,
-        livemode: true,
-      })
+      const events = await readSyncEvents({ scopeId })
 
       expect(events.length).toBe(1)
       expect(events[0].eventType).toBe('delete')
@@ -189,19 +185,18 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
   })
 
-  describe('readSyncEvents', () => {
+  describeIfRedisKey('readSyncEvents', () => {
     it('returns empty array when stream does not exist', async () => {
       const events = await readSyncEvents({
-        scopeId: `${testKeyPrefix}_nonexistent`,
-        livemode: true,
+        scopeId: `${testKeyPrefix}_nonexistent:live`,
       })
 
       expect(events).toEqual([])
     })
 
     it('returns all events when lastSequence is undefined', async () => {
-      const scopeId = `${testKeyPrefix}_org_all`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_all:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       // Append 5 events
@@ -216,10 +211,7 @@ describeIfRedisKey('syncStream Integration Tests', () => {
         })
       }
 
-      const events = await readSyncEvents({
-        scopeId,
-        livemode: true,
-      })
+      const events = await readSyncEvents({ scopeId })
 
       expect(events.length).toBe(5)
       // Events should be in order
@@ -230,8 +222,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('returns only events after lastSequence', async () => {
-      const scopeId = `${testKeyPrefix}_org_after`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_after:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       const sequences: string[] = []
@@ -252,7 +244,6 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       // Read after the 3rd event (index 2)
       const events = await readSyncEvents({
         scopeId,
-        livemode: true,
         lastSequence: sequences[2],
       })
 
@@ -263,8 +254,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('respects count limit', async () => {
-      const scopeId = `${testKeyPrefix}_org_limit`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_limit:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       // Append 10 events
@@ -281,7 +272,6 @@ describeIfRedisKey('syncStream Integration Tests', () => {
 
       const events = await readSyncEvents({
         scopeId,
-        livemode: true,
         count: 3,
       })
 
@@ -293,8 +283,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('combines lastSequence and count correctly', async () => {
-      const scopeId = `${testKeyPrefix}_org_combo`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_combo:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       const sequences: string[] = []
@@ -315,7 +305,6 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       // Read 2 events after the 3rd event
       const events = await readSyncEvents({
         scopeId,
-        livemode: true,
         lastSequence: sequences[2],
         count: 2,
       })
@@ -326,11 +315,10 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
   })
 
-  describe('pollSyncEvents', () => {
+  describeIfRedisKey('pollSyncEvents', () => {
     it('returns empty array when stream does not exist', async () => {
       const events = await pollSyncEvents({
-        scopeId: `${testKeyPrefix}_poll_nonexistent`,
-        livemode: true,
+        scopeId: `${testKeyPrefix}_poll_nonexistent:live`,
         lastSequence: '0-0',
       })
 
@@ -338,8 +326,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('returns empty array when no new events after lastSequence', async () => {
-      const scopeId = `${testKeyPrefix}_org_poll_empty`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_poll_empty:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       // Append one event
@@ -355,7 +343,6 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       // Poll after the event we just added - should be empty
       const events = await pollSyncEvents({
         scopeId,
-        livemode: true,
         lastSequence: result.sequence,
       })
 
@@ -363,8 +350,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('returns new events after lastSequence', async () => {
-      const scopeId = `${testKeyPrefix}_org_poll_new`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_poll_new:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       // Append first event
@@ -390,7 +377,6 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       // Poll after first event
       const events = await pollSyncEvents({
         scopeId,
-        livemode: true,
         lastSequence: first.sequence,
       })
 
@@ -399,8 +385,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('returns all events when polling from 0-0', async () => {
-      const scopeId = `${testKeyPrefix}_org_poll_all`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_poll_all:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       // Append 3 events
@@ -418,7 +404,6 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       // Poll from the beginning
       const events = await pollSyncEvents({
         scopeId,
-        livemode: true,
         lastSequence: '0-0',
       })
 
@@ -426,19 +411,18 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
   })
 
-  describe('trimSyncStream', () => {
+  describeIfRedisKey('trimSyncStream', () => {
     it('returns 0 when stream does not exist', async () => {
       const trimmed = await trimSyncStream({
-        scopeId: `${testKeyPrefix}_trim_nonexistent`,
-        livemode: true,
+        scopeId: `${testKeyPrefix}_trim_nonexistent:live`,
       })
 
       expect(trimmed).toBe(0)
     })
 
     it('does not trim recent events within retention window', async () => {
-      const scopeId = `${testKeyPrefix}_org_trim_recent`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_trim_recent:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       // Append 5 events
@@ -454,26 +438,20 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       }
 
       // Trim with default retention (7 days) - all events are recent
-      const trimmed = await trimSyncStream({
-        scopeId,
-        livemode: true,
-      })
+      const trimmed = await trimSyncStream({ scopeId })
 
       // Should not trim any events (they're all recent)
       expect(trimmed).toBe(0)
 
       // Verify all events still exist
-      const events = await readSyncEvents({
-        scopeId,
-        livemode: true,
-      })
+      const events = await readSyncEvents({ scopeId })
       expect(events.length).toBe(5)
     })
 
     it('trims events older than retention window', async () => {
       const client = getRedisTestClient()
-      const scopeId = `${testKeyPrefix}_org_trim_old`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_trim_old:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       // Manually add old entries directly to Redis
@@ -505,16 +483,12 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       })
 
       // Verify we have 2 events
-      const beforeTrim = await readSyncEvents({
-        scopeId,
-        livemode: true,
-      })
+      const beforeTrim = await readSyncEvents({ scopeId })
       expect(beforeTrim.length).toBe(2)
 
       // Trim with 5 second retention - should remove the old event
       const trimmed = await trimSyncStream({
         scopeId,
-        livemode: true,
         retentionMs: 5000, // 5 seconds
       })
 
@@ -522,10 +496,7 @@ describeIfRedisKey('syncStream Integration Tests', () => {
       expect(trimmed).toBeGreaterThanOrEqual(0)
 
       // Verify the recent event still exists
-      const afterTrim = await readSyncEvents({
-        scopeId,
-        livemode: true,
-      })
+      const afterTrim = await readSyncEvents({ scopeId })
       // At minimum the recent event should still exist
       expect(afterTrim.length).toBeGreaterThanOrEqual(1)
       expect(afterTrim.some((e) => e.entityId === 'sub_recent')).toBe(
@@ -534,12 +505,11 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
   })
 
-  describe('getSyncStreamInfo', () => {
+  describeIfRedisKey('getSyncStreamInfo', () => {
     it('returns zeros when stream does not exist', async () => {
-      const info = await getSyncStreamInfo({
-        scopeId: `${testKeyPrefix}_info_nonexistent`,
-        livemode: true,
-      })
+      const info = await getSyncStreamInfo(
+        `${testKeyPrefix}_info_nonexistent:live`
+      )
 
       expect(info.length).toBe(0)
       expect(info.firstEntry).toBeNull()
@@ -547,8 +517,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('returns correct length and entry IDs', async () => {
-      const scopeId = `${testKeyPrefix}_org_info`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_info:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       const sequences: string[] = []
@@ -566,10 +536,7 @@ describeIfRedisKey('syncStream Integration Tests', () => {
         sequences.push(result.sequence)
       }
 
-      const info = await getSyncStreamInfo({
-        scopeId,
-        livemode: true,
-      })
+      const info = await getSyncStreamInfo(scopeId)
 
       expect(info.length).toBe(5)
       expect(info.firstEntry).toBe(sequences[0])
@@ -577,8 +544,8 @@ describeIfRedisKey('syncStream Integration Tests', () => {
     })
 
     it('updates info when events are added', async () => {
-      const scopeId = `${testKeyPrefix}_org_info_update`
-      const streamKey = getSyncStreamKey({ scopeId, livemode: true })
+      const scopeId = `${testKeyPrefix}_org_info_update:live`
+      const streamKey = getSyncStreamKey(scopeId)
       keysToCleanup.push(streamKey)
 
       // Add first event
@@ -591,7 +558,7 @@ describeIfRedisKey('syncStream Integration Tests', () => {
         livemode: true,
       })
 
-      let info = await getSyncStreamInfo({ scopeId, livemode: true })
+      let info = await getSyncStreamInfo(scopeId)
       expect(info.length).toBe(1)
       expect(info.firstEntry).toBe(first.sequence)
       expect(info.lastEntry).toBe(first.sequence)
@@ -606,59 +573,53 @@ describeIfRedisKey('syncStream Integration Tests', () => {
         livemode: true,
       })
 
-      info = await getSyncStreamInfo({ scopeId, livemode: true })
+      info = await getSyncStreamInfo(scopeId)
       expect(info.length).toBe(2)
       expect(info.firstEntry).toBe(first.sequence)
       expect(info.lastEntry).toBe(second.sequence)
     })
   })
 
-  describe('livemode isolation', () => {
-    it('separates live and test events into different streams', async () => {
-      const scopeId = `${testKeyPrefix}_org_isolation`
-      const liveStreamKey = getSyncStreamKey({
-        scopeId,
-        livemode: true,
-      })
-      const testStreamKey = getSyncStreamKey({
-        scopeId,
-        livemode: false,
-      })
+  describeIfRedisKey('scope isolation', () => {
+    it('separates events from different scopes into different streams', async () => {
+      // Different scopes (representing different API key contexts)
+      const liveScopeId = `${testKeyPrefix}_org_isolation:live`
+      const testScopeId = `${testKeyPrefix}_org_isolation:test`
+      const liveStreamKey = getSyncStreamKey(liveScopeId)
+      const testStreamKey = getSyncStreamKey(testScopeId)
       keysToCleanup.push(liveStreamKey, testStreamKey)
 
-      // Add live event
+      // Add event to live scope
       await appendSyncEvent({
         namespace: 'customerSubscriptions',
         entityId: 'sub_live',
-        scopeId,
+        scopeId: liveScopeId,
         eventType: 'update',
         data: { mode: 'live' },
         livemode: true,
       })
 
-      // Add test event
+      // Add event to test scope
       await appendSyncEvent({
         namespace: 'customerSubscriptions',
         entityId: 'sub_test',
-        scopeId,
+        scopeId: testScopeId,
         eventType: 'update',
         data: { mode: 'test' },
         livemode: false,
       })
 
-      // Read live events
+      // Read live scope events
       const liveEvents = await readSyncEvents({
-        scopeId,
-        livemode: true,
+        scopeId: liveScopeId,
       })
       expect(liveEvents.length).toBe(1)
       expect(liveEvents[0].entityId).toBe('sub_live')
       expect(liveEvents[0].livemode).toBe(true)
 
-      // Read test events
+      // Read test scope events
       const testEvents = await readSyncEvents({
-        scopeId,
-        livemode: false,
+        scopeId: testScopeId,
       })
       expect(testEvents.length).toBe(1)
       expect(testEvents[0].entityId).toBe('sub_test')
