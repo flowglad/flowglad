@@ -3,7 +3,6 @@
 import { trpc } from '@/app/_trpc/client'
 import { useMultiStepForm } from '@/components/onboarding/MultiStepForm'
 import { StepContainer } from '@/components/onboarding/StepContainer'
-import { StepNavigation } from '@/components/onboarding/StepNavigation'
 import {
   FormControl,
   FormField,
@@ -107,7 +106,6 @@ export function PaymentProcessingStep() {
           </FormItem>
         )}
       />
-      <StepNavigation />
     </StepContainer>
   )
 }

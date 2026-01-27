@@ -2,7 +2,6 @@
 
 import { useMultiStepForm } from '@/components/onboarding/MultiStepForm'
 import { StepContainer } from '@/components/onboarding/StepContainer'
-import { StepNavigation } from '@/components/onboarding/StepNavigation'
 import {
   FormControl,
   FormField,
@@ -53,7 +52,6 @@ export function ReferralStep() {
           </FormItem>
         )}
       />
-      <StepNavigation submitLabel="Create Organization" />
     </StepContainer>
   )
 }

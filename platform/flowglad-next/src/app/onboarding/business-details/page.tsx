@@ -3,6 +3,8 @@
 import { useRouter, useSearchParams } from 'next/navigation'
 import { trpc } from '@/app/_trpc/client'
 import ErrorLabel from '@/components/ErrorLabel'
+import { FixedBottomBarSpacer } from '@/components/onboarding/FixedBottomBar'
+import { FixedNavigationBar } from '@/components/onboarding/FixedNavigationBar'
 import {
   MultiStepForm,
   useMultiStepForm,
@@ -139,6 +141,15 @@ export default function BusinessDetailsPage() {
             analyticsPrefix="onboarding_business_details"
           >
             <FormContent />
+
+            {/* Fixed navigation bar INSIDE MultiStepForm to access context */}
+            <FixedNavigationBar
+              onBackOverride={() => router.push('/login')}
+              firstStepBackLabel="Login"
+            />
+
+            {/* Spacer INSIDE scrollable content to prevent overlap */}
+            <FixedBottomBarSpacer />
           </MultiStepForm>
         </div>
       </div>

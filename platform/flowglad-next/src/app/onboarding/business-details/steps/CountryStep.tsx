@@ -4,7 +4,6 @@ import { AlertCircle } from 'lucide-react'
 import { trpc } from '@/app/_trpc/client'
 import { useMultiStepForm } from '@/components/onboarding/MultiStepForm'
 import { StepContainer } from '@/components/onboarding/StepContainer'
-import { StepNavigation } from '@/components/onboarding/StepNavigation'
 import { Button } from '@/components/ui/button'
 import {
   FormControl,
@@ -122,7 +121,6 @@ export function CountryStep() {
           </FormItem>
         )}
       />
-      <StepNavigation />
     </StepContainer>
   )
 }

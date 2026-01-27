@@ -5,7 +5,6 @@ import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
 import { CursorLogo } from '@/components/icons/CursorLogo'
 import { useMultiStepForm } from '@/components/onboarding/MultiStepForm'
 import { StepContainer } from '@/components/onboarding/StepContainer'
-import { StepNavigation } from '@/components/onboarding/StepNavigation'
 import { Button } from '@/components/ui/button'
 import {
   FormControl,
@@ -73,8 +72,6 @@ export function CodebaseAnalysisStep() {
           )}
         />
       </div>
-      {/* "Continue" instead of "Skip" - consistent with other steps */}
-      <StepNavigation nextLabel="Continue" />
     </StepContainer>
   )
 }

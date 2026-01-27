@@ -14,16 +14,9 @@ export function StepContainer({
   className,
 }: StepContainerProps) {
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-6 w-full',
-        className
-      )}
-    >
+    <div className={cn('flex flex-col gap-6 w-full', className)}>
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold tracking-tight">
-          {title}
-        </h2>
+        <h2 className="text-2xl tracking-tight">{title}</h2>
         {description && (
           <p className="text-muted-foreground">{description}</p>
         )}

@@ -24,7 +24,12 @@ export function StepNavigation({
   const { isSubmitting } = form.formState
 
   return (
-    <div className={cn('flex items-center justify-between mt-8', className)}>
+    <div
+      className={cn(
+        'flex items-center justify-between mt-8',
+        className
+      )}
+    >
       {showBack && !isFirstStep ? (
         <Button
           type="button"
