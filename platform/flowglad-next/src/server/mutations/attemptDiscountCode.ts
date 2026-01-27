@@ -74,10 +74,9 @@ export const attemptDiscountCode = publicProcedure
             organizationId = product.organizationId
           }
         } else if ('purchaseId' in input) {
-          const purchase = await selectPurchaseById(
-            input.purchaseId,
-            transaction
-          )
+          const purchase = (
+            await selectPurchaseById(input.purchaseId, transaction)
+          ).unwrap()
           if (purchase) {
             organizationId = purchase.organizationId
             pricingModelId = await derivePricingModelIdFromPurchase(

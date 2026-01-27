@@ -317,10 +317,9 @@ export const checkoutSessionFromSetupIntent = async (
     )
   }
   const checkoutSessionId = metadata.checkoutSessionId
-  const checkoutSession = await selectCheckoutSessionById(
-    checkoutSessionId,
-    transaction
-  )
+  const checkoutSession = (
+    await selectCheckoutSessionById(checkoutSessionId, transaction)
+  ).unwrap()
   return Result.ok(checkoutSession)
 }
 
@@ -820,10 +819,12 @@ export const processSetupIntentSucceeded = async (
       await selectCustomerById(subscription.customerId!, transaction)
     ).unwrap()
     const paymentMethod = subscription.defaultPaymentMethodId
-      ? await selectPaymentMethodById(
-          subscription.defaultPaymentMethodId,
-          transaction
-        )
+      ? (
+          await selectPaymentMethodById(
+            subscription.defaultPaymentMethodId,
+            transaction
+          )
+        ).unwrap()
       : undefined
 
     // Determine result type based on checkout session type

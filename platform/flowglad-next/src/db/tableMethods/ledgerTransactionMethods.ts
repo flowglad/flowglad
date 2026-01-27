@@ -9,7 +9,7 @@ import {
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -34,7 +34,7 @@ const config: ORMMethodCreatorConfig<
   updateSchema: ledgerTransactionsUpdateSchema,
 }
 
-export const selectLedgerTransactionById = createSelectById(
+export const selectLedgerTransactionById = createSelectByIdResult(
   ledgerTransactions,
   config
 )

@@ -73,10 +73,9 @@ const getProcedure = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const resource = await selectResourceById(
-          input.id,
-          transaction
-        )
+        const resource = (
+          await selectResourceById(input.id, transaction)
+        ).unwrap()
         return { resource }
       }
     )

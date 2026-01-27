@@ -70,10 +70,9 @@ export const updatePurchaseStatusToReflectLatestPayment = async (
     purchaseStatus = PurchaseStatus.Pending
   }
   if (payment.purchaseId) {
-    const purchase = await selectPurchaseById(
-      payment.purchaseId,
-      transaction
-    )
+    const purchase = (
+      await selectPurchaseById(payment.purchaseId, transaction)
+    ).unwrap()
     await updatePurchase(
       {
         id: payment.purchaseId,

@@ -41,7 +41,9 @@ const getInvoiceLineItemProcedure = protectedProcedure
   .query(async ({ ctx, input }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        return selectInvoiceLineItemById(input.id, transaction)
+        return (
+          await selectInvoiceLineItemById(input.id, transaction)
+        ).unwrap()
       },
       {
         apiKey: ctx.apiKey,

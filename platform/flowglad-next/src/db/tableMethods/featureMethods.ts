@@ -14,7 +14,7 @@ import {
   createCursorPaginatedSelectFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -46,7 +46,10 @@ const config: ORMMethodCreatorConfig<
   tableName: 'features',
 }
 
-export const selectFeatureById = createSelectById(features, config)
+export const selectFeatureById = createSelectByIdResult(
+  features,
+  config
+)
 
 export const selectFeatures = createSelectFunction(features, config)
 
@@ -290,10 +293,9 @@ export const updateFeatureTransaction = async (
   >
 ): Promise<Feature.Record> => {
   // Step 1: Get the current feature state to detect changes
-  const oldFeature = await selectFeatureById(
-    featureUpdate.id,
-    ctx.transaction
-  )
+  const oldFeature = (
+    await selectFeatureById(featureUpdate.id, ctx.transaction)
+  ).unwrap()
 
   // Step 2: Update the feature
   const updatedFeature = await updateFeature(

@@ -7,7 +7,7 @@ import {
 } from '@/db/schema/refunds'
 import {
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -27,7 +27,10 @@ const config: ORMMethodCreatorConfig<
   tableName: 'refunds',
 }
 
-export const selectRefundById = createSelectById(refunds, config)
+export const selectRefundById = createSelectByIdResult(
+  refunds,
+  config
+)
 
 /**
  * Derives pricingModelId from a payment.
@@ -37,7 +40,9 @@ export const derivePricingModelIdFromPayment = async (
   paymentId: string,
   transaction: DbTransaction
 ): Promise<string> => {
-  const payment = await selectPaymentById(paymentId, transaction)
+  const payment = (
+    await selectPaymentById(paymentId, transaction)
+  ).unwrap()
   if (!payment.pricingModelId) {
     throw new Error(
       `Payment ${paymentId} does not have a pricingModelId`

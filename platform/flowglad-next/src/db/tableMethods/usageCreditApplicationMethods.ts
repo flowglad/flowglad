@@ -8,7 +8,7 @@ import {
 import {
   createBulkInsertFunction,
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -31,10 +31,8 @@ const config: ORMMethodCreatorConfig<
   updateSchema: usageCreditApplicationsUpdateSchema,
 }
 
-export const selectUsageCreditApplicationById = createSelectById(
-  usageCreditApplications,
-  config
-)
+export const selectUsageCreditApplicationById =
+  createSelectByIdResult(usageCreditApplications, config)
 
 const baseInsertUsageCreditApplication = createInsertFunction(
   usageCreditApplications,

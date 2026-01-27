@@ -9,7 +9,7 @@ import {
 } from '@/db/schema/discountRedemptions'
 import {
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -37,7 +37,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'discount_redemptions',
 }
 
-export const selectDiscountRedemptionById = createSelectById(
+export const selectDiscountRedemptionById = createSelectByIdResult(
   discountRedemptions,
   config
 )

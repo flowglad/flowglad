@@ -805,10 +805,9 @@ export const adjustSubscription = async (
         )
       )
     }
-    const paymentMethod = await selectPaymentMethodById(
-      paymentMethodId,
-      transaction
-    )
+    const paymentMethod = (
+      await selectPaymentMethodById(paymentMethodId, transaction)
+    ).unwrap()
     // TODO: maybe only create billing run if prorationAdjustments.length > 0
     const billingRunResult = await createBillingRun(
       {

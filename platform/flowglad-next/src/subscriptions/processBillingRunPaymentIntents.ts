@@ -288,10 +288,12 @@ export const processOutcomeForBillingRun = async (
     })
   }
 
-  const paymentMethod = await selectPaymentMethodById(
-    billingRun.paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(
+      billingRun.paymentMethodId,
+      transaction
+    )
+  ).unwrap()
 
   const {
     billingPeriodItems,

@@ -13,7 +13,7 @@ import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -48,7 +48,7 @@ const config: ORMMethodCreatorConfig<
   updateSchema: productFeaturesUpdateSchema,
 }
 
-export const selectProductFeatureById = createSelectById(
+export const selectProductFeatureById = createSelectByIdResult(
   productFeatures,
   config
 )

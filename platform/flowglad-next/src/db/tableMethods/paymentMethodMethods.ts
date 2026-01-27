@@ -10,7 +10,7 @@ import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -39,7 +39,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'payment_methods',
 }
 
-export const selectPaymentMethodById = createSelectById(
+export const selectPaymentMethodById = createSelectByIdResult(
   paymentMethods,
   config
 )
@@ -171,7 +171,9 @@ export const safelyUpdatePaymentMethod = async (
   // Fetch existing payment method if we need to handle default or customerId change
   const existingPaymentMethod =
     paymentMethod.default || paymentMethod.customerId
-      ? await selectPaymentMethodById(paymentMethod.id, transaction)
+      ? (
+          await selectPaymentMethodById(paymentMethod.id, transaction)
+        ).unwrap()
       : null
 
   // If payment method is becoming default, set existing defaults to non-default

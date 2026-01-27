@@ -9,7 +9,7 @@ import {
 import {
   createCursorPaginatedSelectFunction,
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -33,7 +33,10 @@ const config: ORMMethodCreatorConfig<
   updateSchema: webhooksUpdateSchema,
 }
 
-export const selectWebhookById = createSelectById(webhooks, config)
+export const selectWebhookById = createSelectByIdResult(
+  webhooks,
+  config
+)
 
 export const insertWebhook = createInsertFunction(webhooks, config)
 

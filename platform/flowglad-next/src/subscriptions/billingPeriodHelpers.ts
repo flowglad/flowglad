@@ -386,10 +386,9 @@ export const attemptToTransitionSubscriptionBillingPeriod = async (
   // Note: API validation should prevent doNotCharge=true with payment methods,
   // but we handle this defensively to ensure no billing runs are created.
   if (paymentMethodId && !subscription.doNotCharge) {
-    const paymentMethod = await selectPaymentMethodById(
-      paymentMethodId,
-      transaction
-    )
+    const paymentMethod = (
+      await selectPaymentMethodById(paymentMethodId, transaction)
+    ).unwrap()
     const scheduledFor = subscription.runBillingAtPeriodStart
       ? newBillingPeriod.startDate
       : newBillingPeriod.endDate

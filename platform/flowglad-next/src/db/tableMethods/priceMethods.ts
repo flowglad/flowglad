@@ -1005,13 +1005,9 @@ export const ensureUsageMeterHasDefaultPrice = async (
   }
 
   // Set the no_charge price as default
-  const usageMeter = await selectUsageMeterById(
-    usageMeterId,
-    ctx.transaction
-  )
-  if (!usageMeter) {
-    throw new Error(`Usage meter ${usageMeterId} not found`)
-  }
+  const usageMeter = (
+    await selectUsageMeterById(usageMeterId, ctx.transaction)
+  ).unwrap()
 
   const noChargeSlug = getNoChargeSlugForMeter(usageMeter.slug)
 

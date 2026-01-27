@@ -13,7 +13,7 @@ import {
   createDerivePricingModelId,
   createDerivePricingModelIds,
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -41,7 +41,7 @@ const config: ORMMethodCreatorConfig<
   updateSchema: usageCreditsUpdateSchema,
 }
 
-export const selectUsageCreditById = createSelectById(
+export const selectUsageCreditById = createSelectByIdResult(
   usageCredits,
   config
 )
@@ -54,7 +54,10 @@ export const derivePricingModelIdFromUsageCredit =
   createDerivePricingModelId(
     usageCredits,
     config,
-    selectUsageCreditById
+    async (id, transaction) => {
+      const result = await selectUsageCreditById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 export const pricingModelIdsForUsageCredits =

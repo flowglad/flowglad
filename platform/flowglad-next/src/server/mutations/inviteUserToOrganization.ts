@@ -131,10 +131,12 @@ export const inviteUserToOrganization = protectedProcedure
               userId,
               transaction
             )
-          const user = await selectUserById(
-            focusedMembership.membership.userId,
-            transaction
-          )
+          const user = (
+            await selectUserById(
+              focusedMembership.membership.userId,
+              transaction
+            )
+          ).unwrap()
           return { focusedMembership, user }
         },
         {

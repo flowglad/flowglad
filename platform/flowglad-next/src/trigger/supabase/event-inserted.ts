@@ -85,10 +85,13 @@ export const eventInsertedTask = task({
       organization,
       event: mostUpToDateEvent,
     } = await adminTransaction(async ({ transaction }) => {
-      const existingEvent = await selectEventById(
+      const existingEventResult = await selectEventById(
         event.id,
         transaction
       )
+      const existingEvent = Result.isOk(existingEventResult)
+        ? existingEventResult.unwrap()
+        : null
 
       if (existingEvent?.processedAt) {
         return {

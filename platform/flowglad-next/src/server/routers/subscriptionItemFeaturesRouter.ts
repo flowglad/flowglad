@@ -107,17 +107,12 @@ const updateSubscriptionItemFeature = protectedProcedure
       async ({ input, transactionCtx }) => {
         const { transaction, invalidateCache } = transactionCtx
         // Get existing record to obtain subscriptionItemId for cache invalidation
-        const existingFeature =
+        const existingFeature = (
           await selectSubscriptionItemFeatureById(
             input.id,
             transaction
           )
-        if (!existingFeature) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: `SubscriptionItemFeature with id ${input.id} not found.`,
-          })
-        }
+        ).unwrap()
 
         const updatePayload = {
           ...input.subscriptionItemFeature,
@@ -188,14 +183,9 @@ const expireSubscriptionItemFeature = protectedProcedure
         const { transaction, invalidateCache } = transactionCtx
         const { id, expiredAt } = input
         // Ensure the feature exists before attempting to deactivate
-        const existingFeature =
+        const existingFeature = (
           await selectSubscriptionItemFeatureById(id, transaction)
-        if (!existingFeature) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: `SubscriptionItemFeature with id ${id} not found.`,
-          })
-        }
+        ).unwrap()
 
         const { id: subscriptionItemFeatureId } =
           await expireSubscriptionItemFeatureMethod(

@@ -6,7 +6,7 @@ import {
 } from '@/db/schema/users'
 import {
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -29,7 +29,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'users',
 }
 
-export const selectUserById = createSelectById(users, config)
+export const selectUserById = createSelectByIdResult(users, config)
 
 export const upsertUsersByName = createUpsertFunction(
   users,

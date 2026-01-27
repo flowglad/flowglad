@@ -19,7 +19,7 @@ import {
   createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -44,7 +44,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'usage_meters',
 }
 
-export const selectUsageMeterById = createSelectById(
+export const selectUsageMeterById = createSelectByIdResult(
   usageMeters,
   config
 )
@@ -57,7 +57,10 @@ export const derivePricingModelIdFromUsageMeter =
   createDerivePricingModelId(
     usageMeters,
     config,
-    selectUsageMeterById
+    async (id, transaction) => {
+      const result = await selectUsageMeterById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**

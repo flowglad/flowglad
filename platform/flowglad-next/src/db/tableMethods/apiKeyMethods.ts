@@ -10,7 +10,7 @@ import {
   createCursorPaginatedSelectFunction,
   createDeleteFunction,
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -31,7 +31,10 @@ const config: ORMMethodCreatorConfig<
   tableName: 'api_keys',
 }
 
-export const selectApiKeyById = createSelectById(apiKeys, config)
+export const selectApiKeyById = createSelectByIdResult(
+  apiKeys,
+  config
+)
 
 export const insertApiKey = createInsertFunction(apiKeys, config)
 

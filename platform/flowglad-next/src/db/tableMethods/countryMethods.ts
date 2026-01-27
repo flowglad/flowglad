@@ -6,7 +6,7 @@ import {
   countriesUpdateSchema,
 } from '@/db/schema/countries'
 import {
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
@@ -24,7 +24,10 @@ const config: ORMMethodCreatorConfig<
   tableName: 'countries',
 }
 
-export const selectCountryById = createSelectById(countries, config)
+export const selectCountryById = createSelectByIdResult(
+  countries,
+  config
+)
 
 export const selectCountries = createSelectFunction(countries, config)
 

@@ -373,10 +373,9 @@ export async function checkoutInfoForCheckoutSession(
   discount: Discount.Record | null
   isEligibleForTrial?: boolean
 }> {
-  const checkoutSession = await selectCheckoutSessionById(
-    checkoutSessionId,
-    transaction
-  )
+  const checkoutSession = (
+    await selectCheckoutSessionById(checkoutSessionId, transaction)
+  ).unwrap()
   /**
    * Currently, only price / product checkout flows
    * are supported on this page.

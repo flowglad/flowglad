@@ -7,7 +7,7 @@ import {
 } from '@/db/schema/feeCalculations'
 import {
   createInsertFunction,
-  createSelectById,
+  createSelectByIdResult,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -28,7 +28,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'fee_calculations',
 }
 
-export const selectFeeCalculationById = createSelectById(
+export const selectFeeCalculationById = createSelectByIdResult(
   feeCalculations,
   config
 )
@@ -61,10 +61,12 @@ export const derivePricingModelIdForFeeCalculation = async (
 
   // Try checkout session second (for checkout session payment fee calculations)
   if (data.checkoutSessionId) {
-    const checkoutSession = await selectCheckoutSessionById(
-      data.checkoutSessionId,
-      transaction
-    )
+    const checkoutSession = (
+      await selectCheckoutSessionById(
+        data.checkoutSessionId,
+        transaction
+      )
+    ).unwrap()
     return checkoutSession.pricingModelId
   }
 
