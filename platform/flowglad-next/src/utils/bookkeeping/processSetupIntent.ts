@@ -317,10 +317,19 @@ export const checkoutSessionFromSetupIntent = async (
     )
   }
   const checkoutSessionId = metadata.checkoutSessionId
-  const checkoutSession = (
-    await selectCheckoutSessionById(checkoutSessionId, transaction)
-  ).unwrap()
-  return Result.ok(checkoutSession)
+  const checkoutSessionResult = await selectCheckoutSessionById(
+    checkoutSessionId,
+    transaction
+  )
+  if (Result.isError(checkoutSessionResult)) {
+    return Result.err(
+      new NotFoundError(
+        'CheckoutSession',
+        `Checkout session ${checkoutSessionId} not found for setup intent ${setupIntent.id}`
+      )
+    )
+  }
+  return Result.ok(checkoutSessionResult.value)
 }
 
 interface ProcessAddPaymentMethodSetupIntentSucceededResult {
