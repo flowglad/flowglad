@@ -14,7 +14,11 @@ import type { Price } from '../schema/prices'
 import type { PricingModel } from '../schema/pricingModels'
 import type { Product } from '../schema/products'
 import type { Subscription } from '../schema/subscriptions'
-import { insertBillingPeriod } from './billingPeriodMethods'
+import {
+  isBillingPeriodInTerminalState,
+  insertBillingPeriod,
+} from './billingPeriodMethods'
+import type { BillingPeriod } from '../schema/billingPeriods'
 
 describe('Billing Period Methods', () => {
   let organization: Organization.Record
@@ -122,6 +126,65 @@ describe('Billing Period Methods', () => {
         // Verify the provided pricingModelId is used
         expect(billingPeriod.pricingModelId).toBe(pricingModel.id)
       })
+    })
+  })
+
+  describe('isBillingPeriodInTerminalState', () => {
+    const createMockBillingPeriod = (
+      status: BillingPeriodStatus
+    ): BillingPeriod.Record => ({
+      id: 'bp_test',
+      subscriptionId: 'sub_test',
+      startDate: Date.now(),
+      endDate: Date.now() + 30 * 24 * 60 * 60 * 1000,
+      status,
+      trialPeriod: false,
+      proratedPeriod: false,
+      livemode: true,
+      pricingModelId: 'pm_test',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    })
+
+    it('returns true for Canceled status', () => {
+      const billingPeriod = createMockBillingPeriod(
+        BillingPeriodStatus.Canceled
+      )
+      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(true)
+    })
+
+    it('returns true for Completed status', () => {
+      const billingPeriod = createMockBillingPeriod(
+        BillingPeriodStatus.Completed
+      )
+      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(true)
+    })
+
+    it('returns false for Active status', () => {
+      const billingPeriod = createMockBillingPeriod(
+        BillingPeriodStatus.Active
+      )
+      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
+        false
+      )
+    })
+
+    it('returns false for Upcoming status', () => {
+      const billingPeriod = createMockBillingPeriod(
+        BillingPeriodStatus.Upcoming
+      )
+      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
+        false
+      )
+    })
+
+    it('returns false for ScheduledToCancel status', () => {
+      const billingPeriod = createMockBillingPeriod(
+        BillingPeriodStatus.ScheduledToCancel
+      )
+      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
+        false
+      )
     })
   })
 })
