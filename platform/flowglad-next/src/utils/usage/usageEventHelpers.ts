@@ -714,10 +714,9 @@ export const ingestAndProcessUsageEvent = async (
   ).unwrap()
 
   // Fetch customer once for archived/pricing model validation
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
 
   // Guard: cannot create usage events for archived customers
   if (customer.archived) {
