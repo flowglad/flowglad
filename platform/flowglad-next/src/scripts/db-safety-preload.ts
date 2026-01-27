@@ -1,5 +1,5 @@
 /**
- * Bun preload script for database safety and environment validation.
+ * Bun preload script for environment detection and validation.
  *
  * IMPORTANT: DEVELOPMENT IS THE DEFAULT
  * When NODE_ENV is unset, this script defaults to "development" and requires
@@ -14,30 +14,25 @@
  *
  * This script validates that required env files exist before Bun loads them.
  *
- * Safety Check:
- * This script blocks execution if DATABASE_URL points to a non-local database.
- *
- * Skips the check when:
- * - VERCEL is set (Vercel deployments)
- * - CI is set (CI/CD pipelines)
- * - DANGEROUSLY_ALLOW_REMOTE_DB is set (explicit opt-out)
- *
- * Note: NODE_ENV=production intentionally does NOT bypass the safety check.
- * It's too easy for an AI agent to accidentally use it. Use DANGEROUSLY_ALLOW_REMOTE_DB instead.
+ * Database Safety:
+ * The DATABASE_URL safety check has been moved to src/db/client.ts.
+ * This means scripts that don't import the database module are never blocked,
+ * regardless of what DATABASE_URL is set to. The check only runs when a script
+ * actually tries to use the database.
  */
 
 import { existsSync } from 'fs'
 import { resolve } from 'path'
 
 // ============================================================================
-// Environment Validation
+// Environment Detection
 // ============================================================================
 
 export type NodeEnvType = 'development' | 'production' | 'test'
 
 /**
- * Scripts that don't require database access.
- * These bootstrap/setup scripts should skip the DATABASE_URL safety check.
+ * Scripts that don't require environment files.
+ * These bootstrap/setup scripts run before env files exist.
  */
 const BOOTSTRAP_SCRIPTS = [
   'user', // setup-env-user.ts - creates .env_user file
@@ -46,7 +41,7 @@ const BOOTSTRAP_SCRIPTS = [
 ] as const
 
 /**
- * Check if the current script is a bootstrap script that doesn't need database access.
+ * Check if the current script is a bootstrap script that doesn't need env files.
  */
 export function isBootstrapScript(): boolean {
   const scriptName =
@@ -86,6 +81,10 @@ export function getEffectiveNodeEnv(): NodeEnvType {
   if (nodeEnv === 'test') return 'test'
   return 'development' // Default to development
 }
+
+// ============================================================================
+// Environment File Validation
+// ============================================================================
 
 function validateEnvironmentFiles(): void {
   // Skip in Vercel/CI - they manage their own env
@@ -129,15 +128,15 @@ function validateEnvironmentFiles(): void {
   console.log(`Environment: ${nodeEnv} (using ${envFile})`)
 }
 
-// Validate environment files exist
+// Run environment validation when this module is loaded
 validateEnvironmentFiles()
 
 // ============================================================================
-// Configuration
+// Utility Functions (kept for backward compatibility with tests)
 // ============================================================================
 
 /**
- * Patterns that identify a database URL as "local" and safe for development scripts.
+ * Patterns that identify a database URL as "local" and safe for development.
  */
 export const LOCAL_HOST_PATTERNS = [
   'localhost',
@@ -147,77 +146,6 @@ export const LOCAL_HOST_PATTERNS = [
   '.local',
   'host.docker.internal',
 ] as const
-
-/**
- * Commands that are safe to run without local database validation.
- * These commands don't connect to the database at all.
- */
-export const SAFE_COMMANDS = [
-  // Type checking and linting
-  'typecheck',
-  'lint',
-  'format',
-  'check',
-
-  // Build and install
-  'build',
-  'install',
-  'install-packages',
-
-  // Validation scripts that don't need DB
-  'validate:registry',
-  'validate:mock-import-order',
-
-  // Biome direct calls
-  'biome',
-  '@biomejs/biome',
-
-  // TypeScript direct calls
-  'tsc',
-] as const
-
-/**
- * Check if the current command is in the safe list.
- * These commands don't need database access and should be allowed
- * to run even when DATABASE_URL points to a remote database.
- */
-export function isCommandSafe(): boolean {
-  // Get the script being run via npm/bun
-  const scriptName = process.env.npm_lifecycle_event
-
-  if (scriptName) {
-    return SAFE_COMMANDS.some((cmd) => scriptName.includes(cmd))
-  }
-
-  // Check Bun.argv for direct execution
-  const args = typeof Bun !== 'undefined' ? Bun.argv.slice(2) : []
-
-  // Check for 'bun run <script>' pattern
-  if (args[0] === 'run' && args[1]) {
-    return SAFE_COMMANDS.some((cmd) => args[1].includes(cmd))
-  }
-
-  // Check for direct execution (bun <script>)
-  if (args[0]) {
-    return SAFE_COMMANDS.some((cmd) => args[0].includes(cmd))
-  }
-
-  return false
-}
-
-// ANSI colors for terminal output
-const COLORS = {
-  reset: '\x1b[0m',
-  red: '\x1b[31m',
-  yellow: '\x1b[33m',
-  cyan: '\x1b[36m',
-  dim: '\x1b[2m',
-  bold: '\x1b[1m',
-} as const
-
-// ============================================================================
-// Utility Functions
-// ============================================================================
 
 /**
  * Check if a database URL points to a local database.
@@ -251,7 +179,6 @@ export function isLocalDatabaseUrl(url: string): boolean {
 
 /**
  * Mask credentials in a database URL for safe display in error messages.
- * Uses URL object manipulation to ensure percent-encoded passwords are handled correctly.
  *
  * @param url - The DATABASE_URL to mask
  * @returns URL with password replaced by ****
@@ -270,76 +197,14 @@ export function maskDatabaseUrl(url: string): string {
   }
 }
 
-// ============================================================================
-// Safety Check Logic
-// ============================================================================
-
 /**
- * Check if we should skip the database safety check.
- *
- * Note: NODE_ENV=production is intentionally NOT a bypass condition.
- * It's too easy for an AI agent to accidentally use it. The VERCEL/CI
- * env vars are set automatically by platforms, not manually.
+ * @deprecated Safety check has been moved to src/db/client.ts
+ * This function is kept for backward compatibility with tests.
  */
 export function shouldSkipSafetyCheck(): boolean {
   return (
     process.env.VERCEL !== undefined ||
     process.env.CI !== undefined ||
-    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined ||
-    isBootstrapScript() ||
-    isCommandSafe()
+    process.env.DANGEROUSLY_ALLOW_REMOTE_DB !== undefined
   )
 }
-
-/**
- * Print an error message and exit when blocking a remote database connection.
- */
-function blockAndExit(databaseUrl: string): never {
-  const maskedUrl = maskDatabaseUrl(databaseUrl)
-
-  console.error('')
-  console.error(
-    `${COLORS.red}${COLORS.bold}BLOCKED:${COLORS.reset} DATABASE_URL points to non-local database`
-  )
-  console.error(`${COLORS.dim}${maskedUrl}${COLORS.reset}`)
-  console.error('')
-  console.error(
-    `${COLORS.yellow}Recognized local hosts:${COLORS.reset}`
-  )
-  for (const pattern of LOCAL_HOST_PATTERNS) {
-    console.error(`  ${COLORS.dim}- ${pattern}${COLORS.reset}`)
-  }
-  console.error('')
-  console.error(`${COLORS.cyan}To bypass this check:${COLORS.reset}`)
-  console.error(
-    `  ${COLORS.dim}DANGEROUSLY_ALLOW_REMOTE_DB=1 bun run <script>${COLORS.reset}`
-  )
-  console.error('')
-
-  process.exit(1)
-}
-
-/**
- * Main preload logic - runs on module load.
- */
-function runSafetyCheck(): void {
-  // Skip check in production/CI environments
-  if (shouldSkipSafetyCheck()) {
-    return
-  }
-
-  const databaseUrl = process.env.DATABASE_URL
-
-  // No DATABASE_URL set - nothing to check
-  if (!databaseUrl) {
-    return
-  }
-
-  // Check if database URL is local
-  if (!isLocalDatabaseUrl(databaseUrl)) {
-    blockAndExit(databaseUrl)
-  }
-}
-
-// Execute the safety check when this module is loaded
-runSafetyCheck()
