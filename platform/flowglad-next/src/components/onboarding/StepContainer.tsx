@@ -16,7 +16,7 @@ export function StepContainer({
   return (
     <div
       className={cn(
-        'flex flex-col gap-6 w-full max-w-md mx-auto',
+        'flex flex-col gap-6 w-full',
         className
       )}
     >

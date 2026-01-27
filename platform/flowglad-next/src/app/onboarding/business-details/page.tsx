@@ -117,28 +117,30 @@ export default function BusinessDetailsPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md">
-        <MultiStepForm
-          schema={businessDetailsFormSchema}
-          defaultValues={{
-            organization: {
-              name: '',
-              countryId: undefined,
-              stripeConnectContractType: undefined,
-            },
-            codebaseMarkdown: '',
-            referralSource: undefined,
-          }}
-          steps={steps}
-          onComplete={handleComplete}
-          persistKey="onboarding-draft"
-          initialStep={stepFromUrl}
-          onStepChange={handleStepChange}
-          analyticsPrefix="onboarding_business_details"
-        >
-          <FormContent />
-        </MultiStepForm>
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen w-full max-w-[608px] border-l border-r border-dashed border-border flex flex-col px-4">
+        <div className="min-h-screen w-full border-l border-r border-dashed border-border flex flex-col justify-center px-4 py-8">
+          <MultiStepForm
+            schema={businessDetailsFormSchema}
+            defaultValues={{
+              organization: {
+                name: '',
+                countryId: undefined,
+                stripeConnectContractType: undefined,
+              },
+              codebaseMarkdown: '',
+              referralSource: undefined,
+            }}
+            steps={steps}
+            onComplete={handleComplete}
+            persistKey="onboarding-draft"
+            initialStep={stepFromUrl}
+            onStepChange={handleStepChange}
+            analyticsPrefix="onboarding_business_details"
+          >
+            <FormContent />
+          </MultiStepForm>
+        </div>
       </div>
     </div>
   )
