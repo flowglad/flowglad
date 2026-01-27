@@ -1,14 +1,10 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { describe, expect, it, mock } from 'bun:test'
 import { render, screen, within } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
 import Breadcrumb from './Breadcrumb'
 
-const usePathname = vi.fn()
+const usePathname = mock()
 
-vi.mock('next/navigation', () => ({
+mock.module('next/navigation', () => ({
   usePathname: () => usePathname(),
 }))
 

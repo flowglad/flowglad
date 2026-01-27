@@ -117,7 +117,7 @@ export interface ChainStep<
 
 /**
  * Type for the describe function used in behavior tests.
- * Compatible with Vitest's describe function or custom wrappers like describeIfStripeKey.
+ * Compatible with bun:test's describe function or custom wrappers like describeIfStripeKey.
  */
 export type DescribeFunction = (name: string, fn: () => void) => void
 
@@ -129,7 +129,7 @@ export interface BehaviorTestConfig {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   chain: ChainStep<any, any, any>[]
 
-  /** Optional: Vitest test options like timeout */
+  /** Optional: bun:test options like timeout */
   testOptions?: { timeout?: number }
 
   /** Optional: Filter to run only specific combinations */
@@ -143,7 +143,7 @@ export interface BehaviorTestConfig {
    * Use this with helpers like `describeIfStripeKey` to skip tests when
    * external dependencies (like Stripe credentials) are unavailable.
    *
-   * @default vitest's describe
+   * @default bun:test's describe
    * @example
    * ```typescript
    * import { describeIfStripeKey } from '@/test/stripeIntegrationHelpers'

@@ -70,7 +70,7 @@ Roughly, the shape should be:
 - Patches
     Make this an ordered list of patches like: "Patch 1: .....".
     Each patch should include a specific list of files to modify / create / delete, and what specific changes to make.
-    Each patch should also include test cases that we need to have. The list of test cases should be organized in a way that suggests quickly how we might do a vitest describe / it nested pattern to describe groups of cases. Each of the cases should ideally be grouped around a specific scenario, with assertions about what we expect from that scenario. So specific kinds of assertions should be grouped into the same "it" case if they are derived from the same antecedent state / scenario.
+    Each patch should also include test cases that we need to have. The list of test cases should be organized in a way that suggests quickly how we might do a bun:test describe / it nested pattern to describe groups of cases. Each of the cases should ideally be grouped around a specific scenario, with assertions about what we expect from that scenario. So specific kinds of assertions should be grouped into the same "it" case if they are derived from the same antecedent state / scenario.
     Ideally provide stubbed out test code like so, that will make it really easy for the agent doing the work to implement the details of. Don't actually implement the tests yourself! Just help us think clearly to plan them:
     ```ts
     describe('adjustSubscription' async () => {
