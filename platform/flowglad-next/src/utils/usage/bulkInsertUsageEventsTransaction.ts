@@ -30,6 +30,7 @@ import type {
   TransactionEffectsContext,
 } from '@/db/types'
 import {
+  ArchivedCustomerError,
   type DomainError,
   NotFoundError,
   panic,
@@ -374,6 +375,15 @@ async function collectSlugResolutionEvents(
     uniqueCustomerIds,
     transaction
   )
+
+  // Guard: check for archived customers before proceeding
+  for (const [customerId, customerInfo] of customersInfo.entries()) {
+    if (customerInfo.archived) {
+      return Result.err(
+        new ArchivedCustomerError('create usage event')
+      )
+    }
+  }
 
   // Batch fetch and deduplicate pricing models for all customers upfront
   let pricingModelCache: Map<string, PricingModelSlugResolutionData>
