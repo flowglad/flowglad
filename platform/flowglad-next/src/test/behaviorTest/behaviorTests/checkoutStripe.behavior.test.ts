@@ -71,10 +71,7 @@ import { processStripeChargeForCheckoutSession } from '@/utils/bookkeeping/check
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import { calculateTotalDueAmount } from '@/utils/bookkeeping/fees/common'
 import core from '@/utils/core'
-import {
-  createPaymentIntentForCheckoutSession,
-  updatePaymentIntent,
-} from '@/utils/stripe'
+import { createPaymentIntentForCheckoutSession } from '@/utils/stripe'
 
 // =============================================================================
 // Result Types for Extended Chain
@@ -127,22 +124,17 @@ const confirmCheckoutSessionBehavior = defineBehavior({
       livemode: false,
     })
 
-    // Create payment intent for the checkout session (use updatedCheckoutSession which has billing address)
+    // Create payment intent for the checkout session with customer attached
+    // Pass stripeCustomerId directly to avoid a separate updatePaymentIntent call
     const paymentIntent = (
       await createPaymentIntentForCheckoutSession({
         price: prev.price,
         organization: prev.organization,
         product: prev.product,
         checkoutSession: prev.updatedCheckoutSession,
+        stripeCustomerId: stripeCustomer.id,
       })
     ).unwrap()
-
-    // Update payment intent with customer
-    await updatePaymentIntent(
-      paymentIntent.id,
-      { customer: stripeCustomer.id },
-      false
-    )
 
     // Update checkout session with payment intent ID and confirm
     await comprehensiveAdminTransaction(async (ctx) => {
@@ -326,8 +318,11 @@ const checkoutIntegrationTeardown = async (results: unknown[]) => {
         await teardownOrg({ organizationId: result.organization.id })
       }
       if (result?.stripeCustomerId) {
+        // Skip Stripe API cleanup calls to reduce API usage
+        // Stripe test mode data is auto-cleaned periodically anyway
         await cleanupStripeTestData({
           stripeCustomerId: result.stripeCustomerId,
+          skipApiCalls: true,
         })
       }
     } catch (error) {

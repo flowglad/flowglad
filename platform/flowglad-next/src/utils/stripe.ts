@@ -1195,6 +1195,8 @@ export const createPaymentIntentForCheckoutSession = async (params: {
   checkoutSession: CheckoutSession.Record
   feeCalculation?: FeeCalculation.Record
   customer?: Customer.Record
+  /** Direct Stripe customer ID (alternative to passing Customer.Record) */
+  stripeCustomerId?: string
 }): Promise<
   Result<Stripe.Response<Stripe.PaymentIntent>, ValidationError>
 > => {
@@ -1204,6 +1206,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     checkoutSession,
     feeCalculation,
     customer,
+    stripeCustomerId,
   } = params
   const livemode = checkoutSession.livemode
   const transferDataResult = stripeConnectTransferDataForOrganization(
@@ -1248,7 +1251,8 @@ export const createPaymentIntentForCheckoutSession = async (params: {
         application_fee_amount: livemode ? totalFeeAmount : undefined,
         ...transferData,
         metadata,
-        customer: customer?.stripeCustomerId ?? undefined,
+        customer:
+          stripeCustomerId ?? customer?.stripeCustomerId ?? undefined,
       })
   )
   return Result.ok(paymentIntent)
