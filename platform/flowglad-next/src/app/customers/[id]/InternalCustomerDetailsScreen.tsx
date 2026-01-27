@@ -2,12 +2,14 @@
 import { Archive, Mail, Pencil, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import ArchiveCustomerModal from '@/components/forms/ArchiveCustomerModal'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import MigrateCustomerPricingModelModal from '@/components/forms/MigrateCustomerPricingModelModal'
 import { MoreIcon } from '@/components/icons/MoreIcon'
 import PageContainer from '@/components/PageContainer'
 import PopoverMenu, {
   type PopoverMenuItem,
+  PopoverMenuItemState,
 } from '@/components/PopoverMenu'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
@@ -35,6 +37,7 @@ function InternalCustomerDetailsScreen({
   const router = useRouter()
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isMigrateOpen, setIsMigrateOpen] = useState(false)
+  const [isArchiveOpen, setIsArchiveOpen] = useState(false)
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
 
   const isArchived = customer.archived
@@ -70,6 +73,19 @@ function InternalCustomerDetailsScreen({
           },
         ]
       : []),
+    {
+      label: 'Archive Customer',
+      handler: () => {
+        setIsMoreMenuOpen(false)
+        setIsArchiveOpen(true)
+      },
+      icon: <Archive className="h-4 w-4" />,
+      disabled: isArchived,
+      helperText: isArchived
+        ? 'Customer is already archived'
+        : undefined,
+      state: PopoverMenuItemState.Danger,
+    },
   ]
 
   return (
@@ -154,6 +170,12 @@ function InternalCustomerDetailsScreen({
         isOpen={isMigrateOpen}
         setIsOpen={setIsMigrateOpen}
         customer={customer}
+      />
+      <ArchiveCustomerModal
+        customer={customer}
+        open={isArchiveOpen}
+        onOpenChange={setIsArchiveOpen}
+        onSuccess={() => router.push('/customers')}
       />
     </PageContainer>
   )
