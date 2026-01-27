@@ -252,6 +252,151 @@ describe('databaseAuthenticationInfoForWebappRequest', () => {
     expect(result.jwtClaim.organization_id).toEqual('')
     expect(result.jwtClaim.email).toEqual(lonelyEmail)
   })
+
+  it('should return empty organization_id when focused membership is deactivated', async () => {
+    // setup: create user with focused membership, then set deactivatedAt on that membership
+    // action: call databaseAuthenticationInfoForWebappRequest
+    // expects: jwtClaim.organization_id === ''
+    const testBetterAuthId = `bau_${core.nanoid()}`
+    const testEmail = `deactivated+${core.nanoid()}@test.com`
+    const testOrg = (await setupOrg()).organization
+
+    await adminTransaction(async ({ transaction }) => {
+      const [testUser] = await transaction
+        .insert(users)
+        .values({
+          id: `usr_${core.nanoid()}`,
+          email: testEmail,
+          name: 'Deactivated Test User',
+          betterAuthId: testBetterAuthId,
+        })
+        .returning()
+
+      // Create focused membership
+      const [membership] = await transaction
+        .insert(memberships)
+        .values({
+          userId: testUser.id,
+          organizationId: testOrg.id,
+          focused: true,
+          livemode: false,
+        })
+        .returning()
+
+      // Deactivate the membership
+      await transaction
+        .update(memberships)
+        .set({ deactivatedAt: new Date() })
+        .where(eq(memberships.id, membership.id))
+    })
+
+    const mockBetterAuthUser = {
+      id: testBetterAuthId,
+      email: testEmail,
+      role: 'merchant',
+    } as unknown as BetterAuthUserWithRole
+
+    const result = await databaseAuthenticationInfoForWebappRequest(
+      mockBetterAuthUser
+    )
+
+    // Should return empty organization_id because the focused membership is deactivated
+    expect(result.jwtClaim.organization_id).toEqual('')
+    expect(result.userId).toBeUndefined()
+    expect(result.livemode).toEqual(false)
+  })
+
+  it('should return organization_id when focused membership is active (deactivatedAt is null)', async () => {
+    // setup: create user with focused membership (deactivatedAt = null)
+    // action: call databaseAuthenticationInfoForWebappRequest
+    // expects: jwtClaim.organization_id === the org's id
+    const testBetterAuthId = `bau_${core.nanoid()}`
+    const testEmail = `active+${core.nanoid()}@test.com`
+    const testOrg = (await setupOrg()).organization
+
+    let testUserId: string
+    await adminTransaction(async ({ transaction }) => {
+      const [testUser] = await transaction
+        .insert(users)
+        .values({
+          id: `usr_${core.nanoid()}`,
+          email: testEmail,
+          name: 'Active Test User',
+          betterAuthId: testBetterAuthId,
+        })
+        .returning()
+      testUserId = testUser.id
+
+      // Create focused membership with deactivatedAt = null (default)
+      await transaction.insert(memberships).values({
+        userId: testUser.id,
+        organizationId: testOrg.id,
+        focused: true,
+        livemode: true,
+      })
+    })
+
+    const mockBetterAuthUser = {
+      id: testBetterAuthId,
+      email: testEmail,
+      role: 'merchant',
+    } as unknown as BetterAuthUserWithRole
+
+    const result = await databaseAuthenticationInfoForWebappRequest(
+      mockBetterAuthUser
+    )
+
+    // Should return the organization_id because the membership is active
+    expect(result.jwtClaim.organization_id).toEqual(testOrg.id)
+    expect(result.userId).toEqual(testUserId!)
+    expect(result.livemode).toEqual(true)
+  })
+
+  it('should not return org scope for deactivated membership even if focused=true', async () => {
+    // setup: create membership with focused=true, deactivatedAt=timestamp
+    // action: call databaseAuthenticationInfoForWebappRequest
+    // expects: jwtClaim.organization_id === '' (no org context)
+    // This tests the AND condition: both focused=true AND deactivatedAt IS NULL must be true
+    const testBetterAuthId = `bau_${core.nanoid()}`
+    const testEmail = `focused-deactivated+${core.nanoid()}@test.com`
+    const testOrg = (await setupOrg()).organization
+
+    await adminTransaction(async ({ transaction }) => {
+      const [testUser] = await transaction
+        .insert(users)
+        .values({
+          id: `usr_${core.nanoid()}`,
+          email: testEmail,
+          name: 'Focused Deactivated User',
+          betterAuthId: testBetterAuthId,
+        })
+        .returning()
+
+      // Create membership that is both focused AND deactivated
+      // This simulates a membership that was focused when the user was removed
+      await transaction.insert(memberships).values({
+        userId: testUser.id,
+        organizationId: testOrg.id,
+        focused: true,
+        livemode: false,
+        deactivatedAt: new Date(), // Deactivated at current time
+      })
+    })
+
+    const mockBetterAuthUser = {
+      id: testBetterAuthId,
+      email: testEmail,
+      role: 'merchant',
+    } as unknown as BetterAuthUserWithRole
+
+    const result = await databaseAuthenticationInfoForWebappRequest(
+      mockBetterAuthUser
+    )
+
+    // Even though focused=true, the membership is deactivated so no org context
+    expect(result.jwtClaim.organization_id).toEqual('')
+    expect(result.userId).toBeUndefined()
+  })
 })
 
 describe('dbAuthInfoForSecretApiKeyResult', () => {
