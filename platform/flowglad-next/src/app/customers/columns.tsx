@@ -3,6 +3,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 // Icons come next
 import {
+  Archive,
   ArrowRightLeft,
   Copy,
   ExternalLink,
@@ -10,8 +11,10 @@ import {
 } from 'lucide-react'
 import * as React from 'react'
 import { useCopyTextHandler } from '@/app/hooks/useCopyTextHandler'
+import ArchiveCustomerModal from '@/components/forms/ArchiveCustomerModal'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
 import MigrateCustomerPricingModelModal from '@/components/forms/MigrateCustomerPricingModelModal'
+import { Badge } from '@/components/ui/badge'
 // UI components last
 import { DataTableCopyableCell } from '@/components/ui/data-table-copyable-cell'
 import {
@@ -34,6 +37,7 @@ function CustomerActionsMenu({
 }) {
   const [isEditOpen, setIsEditOpen] = React.useState(false)
   const [isMigrateOpen, setIsMigrateOpen] = React.useState(false)
+  const [isArchiveOpen, setIsArchiveOpen] = React.useState(false)
 
   const billingPortalURL = core.customerBillingPortalURL({
     organizationId: customer.organizationId,
@@ -50,25 +54,37 @@ function CustomerActionsMenu({
     text: customer.externalId,
   })
 
+  const isArchived = customer.archived
+
   const actionItems: ActionMenuItem[] = [
     {
       label: 'Edit',
       icon: <Pencil className="h-4 w-4" />,
       handler: () => setIsEditOpen(true),
+      disabled: isArchived,
+      helperText: isArchived
+        ? 'Cannot edit archived customers'
+        : undefined,
     },
     {
       label: 'Migrate Pricing Model',
       icon: <ArrowRightLeft className="h-4 w-4" />,
       handler: () => setIsMigrateOpen(true),
+      disabled: isArchived,
+      helperText: isArchived
+        ? 'Cannot migrate archived customers'
+        : undefined,
     },
     {
       label: 'Copy Portal Link',
       icon: <ExternalLink className="h-4 w-4" />,
       handler: copyPortalURLHandler,
-      disabled: !customer.livemode,
-      helperText: !customer.livemode
-        ? 'Only livemode customers can access the billing portal'
-        : undefined,
+      disabled: !customer.livemode || isArchived,
+      helperText: isArchived
+        ? 'Archived customers cannot access the billing portal'
+        : !customer.livemode
+          ? 'Only livemode customers can access the billing portal'
+          : undefined,
     },
     {
       label: 'Copy External ID',
@@ -79,6 +95,16 @@ function CustomerActionsMenu({
       label: 'Copy Customer ID',
       icon: <Copy className="h-4 w-4" />,
       handler: copyIDHandler,
+    },
+    {
+      label: 'Archive Customer',
+      icon: <Archive className="h-4 w-4" />,
+      handler: () => setIsArchiveOpen(true),
+      disabled: isArchived,
+      helperText: isArchived
+        ? 'Customer is already archived'
+        : undefined,
+      destructive: true,
     },
   ]
 
@@ -94,6 +120,11 @@ function CustomerActionsMenu({
         setIsOpen={setIsMigrateOpen}
         customer={customer}
       />
+      <ArchiveCustomerModal
+        customer={customer}
+        open={isArchiveOpen}
+        onOpenChange={setIsArchiveOpen}
+      />
     </EnhancedDataTableActionsMenu>
   )
 }
@@ -103,11 +134,24 @@ export const columns: ColumnDef<CustomerTableRowData>[] = [
     id: 'name',
     accessorFn: (row) => row.customer.name,
     header: 'Customer',
-    cell: ({ row }) => (
-      <div className="truncate" title={row.getValue('name')}>
-        {row.getValue('name')}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const isArchived = row.original.customer.archived
+      return (
+        <div className="flex items-center gap-2 truncate">
+          <span
+            className={isArchived ? 'text-muted-foreground' : ''}
+            title={row.getValue('name')}
+          >
+            {row.getValue('name')}
+          </span>
+          {isArchived && (
+            <Badge variant="secondary" className="text-xs">
+              Archived
+            </Badge>
+          )}
+        </div>
+      )
+    },
     size: 160,
     minSize: 160,
     maxSize: 275,

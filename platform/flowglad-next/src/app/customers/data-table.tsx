@@ -277,36 +277,39 @@ export function CustomersDataTable({
               </TableCell>
             </TableRow>
           ) : table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                onClick={(e) => {
-                  // Only navigate if not clicking on interactive elements
-                  const target = e.target as HTMLElement
-                  if (
-                    target.closest('button') ||
-                    target.closest('[role="checkbox"]') ||
-                    target.closest('input[type="checkbox"]') ||
-                    target.closest('[data-radix-collection-item]')
-                  ) {
-                    return // Don't navigate when clicking interactive elements
-                  }
-                  router.push(
-                    `/customers/${row.original.customer.id}`
-                  )
-                }}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table.getRowModel().rows.map((row) => {
+              const isArchived = row.original.customer.archived
+              return (
+                <TableRow
+                  key={row.id}
+                  className={`cursor-pointer ${isFetching ? 'opacity-50' : ''} ${isArchived ? 'text-muted-foreground' : ''}`}
+                  onClick={(e) => {
+                    // Only navigate if not clicking on interactive elements
+                    const target = e.target as HTMLElement
+                    if (
+                      target.closest('button') ||
+                      target.closest('[role="checkbox"]') ||
+                      target.closest('input[type="checkbox"]') ||
+                      target.closest('[data-radix-collection-item]')
+                    ) {
+                      return // Don't navigate when clicking interactive elements
+                    }
+                    router.push(
+                      `/customers/${row.original.customer.id}`
+                    )
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )
+            })
           ) : (
             <TableRow>
               <TableCell
