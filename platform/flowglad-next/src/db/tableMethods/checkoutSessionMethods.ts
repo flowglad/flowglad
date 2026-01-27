@@ -79,10 +79,9 @@ export const derivePricingModelIdForCheckoutSession = async (
   // Try invoice third (for Invoice sessions)
   if (data.invoiceId) {
     // Invoice already has pricingModelId from Wave 3
-    const invoice = await selectInvoiceById(
-      data.invoiceId,
-      transaction
-    )
+    const invoice = (
+      await selectInvoiceById(data.invoiceId, transaction)
+    ).unwrap()
     return Result.ok(invoice.pricingModelId)
   }
 
@@ -91,10 +90,9 @@ export const derivePricingModelIdForCheckoutSession = async (
     data.customerId &&
     data.type === CheckoutSessionType.AddPaymentMethod
   ) {
-    const customer = await selectCustomerById(
-      data.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(data.customerId, transaction)
+    ).unwrap()
     if (!customer.pricingModelId) {
       return Result.err(
         new ValidationError(

@@ -118,8 +118,13 @@ export const selectLatestFeeCalculation = async (
     whereClause,
     transaction
   )
+  // Sort by createdAt descending, with position as tiebreaker for creation order
+  // (position is a bigserial that preserves insertion order even within a transaction,
+  // unlike timestamps which are fixed at transaction start in PostgreSQL)
   const latestFeeCalculation = feeCalculations.sort(
-    (a, b) => b.createdAt - a.createdAt
+    (a, b) =>
+      b.createdAt - a.createdAt ||
+      (b.position ?? 0) - (a.position ?? 0)
   )[0]
   if (!latestFeeCalculation) {
     return null

@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
@@ -52,12 +53,19 @@ export const createOrRestoreProductFeature = protectedProcedure
         // The RLS on productFeatures ensures user has access to the product
         // and its organization, and that livemode matches current context.
         // Here, we need to set the livemode and organizationId fields on the productFeature record itself.
-        const product = (
-          await selectProductById(
-            input.productFeature.productId,
-            transaction
-          )
-        ).unwrap()
+        const productResult = await selectProductById(
+          input.productFeature.productId,
+          transaction
+        )
+
+        if (Result.isError(productResult)) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Product with id ${input.productFeature.productId} not found`,
+          })
+        }
+
+        const product = productResult.value
 
         // Validate that toggle features cannot be associated with single payment products
         const feature = await selectFeatureById(

@@ -88,10 +88,12 @@ export const stripePaymentIntentSucceededTask = task({
               transaction
             )
 
-            const organization = await selectOrganizationById(
-              purchase?.organizationId ?? payment.organizationId,
-              transaction
-            )
+            const organization = (
+              await selectOrganizationById(
+                purchase?.organizationId ?? payment.organizationId,
+                transaction
+              )
+            ).unwrap()
 
             await safelyIncrementDiscountRedemptionSubscriptionPayment(
               payment,

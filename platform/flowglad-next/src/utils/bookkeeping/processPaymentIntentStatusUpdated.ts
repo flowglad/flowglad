@@ -156,10 +156,12 @@ export const upsertPaymentForStripeCharge = async (
       )
     }
     const billingRun = billingRunResult.value
-    const subscription = await selectSubscriptionById(
-      billingRun.subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        billingRun.subscriptionId,
+        transaction
+      )
+    ).unwrap()
     const [invoice] = await selectInvoices(
       {
         billingPeriodId: billingRun.billingPeriodId,
@@ -609,10 +611,9 @@ export const processPaymentIntentStatusUpdated = async (
   const purchase = payment.purchaseId
     ? await selectPurchaseById(payment.purchaseId, transaction)
     : null
-  const customer = await selectCustomerById(
-    payment.customerId,
-    transaction
-  )
+  const customer = (
+    await selectCustomerById(payment.customerId, transaction)
+  ).unwrap()
   const timestamp = Date.now()
   if (paymentIntent.status === 'succeeded') {
     emitEvent({
@@ -677,14 +678,9 @@ export const processPaymentIntentStatusUpdated = async (
     })
   }
   if (purchase && purchase.status === PurchaseStatus.Paid) {
-    const purchaseCustomer = await selectCustomerById(
-      purchase.customerId,
-      transaction
-    )
-
-    if (!purchaseCustomer) {
-      return Result.err(new NotFoundError('Customer', purchase.id))
-    }
+    const purchaseCustomer = (
+      await selectCustomerById(purchase.customerId, transaction)
+    ).unwrap()
 
     emitEvent({
       type: FlowgladEventType.PurchaseCompleted,

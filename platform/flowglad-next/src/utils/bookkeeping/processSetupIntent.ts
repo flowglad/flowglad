@@ -95,14 +95,15 @@ export const processTerminalCheckoutSessionSetupIntent = async (
   checkoutSession: CheckoutSession.Record,
   transaction: DbTransaction
 ): Promise<ProcessTerminalCheckoutSessionSetupIntentResult> => {
-  const organization = await selectOrganizationById(
-    checkoutSession.organizationId,
-    transaction
-  )
-  const customer = await selectCustomerById(
-    checkoutSession.customerId!,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(
+      checkoutSession.organizationId,
+      transaction
+    )
+  ).unwrap()
+  const customer = (
+    await selectCustomerById(checkoutSession.customerId!, transaction)
+  ).unwrap()
   return {
     type: checkoutSession.type,
     checkoutSession,
@@ -364,10 +365,9 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
     },
     transaction
   )
-  const initialCustomer = await selectCustomerById(
-    checkoutSession.customerId!,
-    transaction
-  )
+  const initialCustomer = (
+    await selectCustomerById(checkoutSession.customerId!, transaction)
+  ).unwrap()
   const { customer, paymentMethod } =
     await pullStripeSetupIntentDataToDatabase(
       setupIntent,
@@ -375,10 +375,12 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
       ctx
     )
   if (checkoutSession.targetSubscriptionId) {
-    const subscription = await selectSubscriptionById(
-      checkoutSession.targetSubscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        checkoutSession.targetSubscriptionId,
+        transaction
+      )
+    ).unwrap()
     if (subscription.status === SubscriptionStatus.CreditTrial) {
       return Result.err(
         new ValidationError(
@@ -404,10 +406,12 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
     )
   }
 
-  const organization = await selectOrganizationById(
-    checkoutSession.organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(
+      checkoutSession.organizationId,
+      transaction
+    )
+  ).unwrap()
 
   // Invalidate payment methods cache after adding a new payment method
   invalidateCache(CacheDependency.customerPaymentMethods(customer.id))
@@ -684,10 +688,12 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
     }
 
     // Fetch customer and payment method (needed in all paths)
-    const customer = await selectCustomerById(
-      result.subscription.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(
+        result.subscription.customerId,
+        transaction
+      )
+    ).unwrap()
     const { paymentMethod } =
       await pullStripeSetupIntentDataToDatabase(
         setupIntent,
@@ -701,10 +707,12 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       return Result.ok({
         type: CheckoutSessionType.ActivateSubscription as const,
         checkoutSession,
-        organization: await selectOrganizationById(
-          checkoutSession.organizationId,
-          transaction
-        ),
+        organization: (
+          await selectOrganizationById(
+            checkoutSession.organizationId,
+            transaction
+          )
+        ).unwrap(),
         customer,
         paymentMethod,
         billingRun: null,
@@ -739,22 +747,28 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
     const { billingRun } = activationResult.value
 
     // Fetch the subscription again to get the updated status after activation
-    const activatedSubscription = await selectSubscriptionById(
-      updatedSubscription.id,
-      transaction
-    )
+    const activatedSubscription = (
+      await selectSubscriptionById(
+        updatedSubscription.id,
+        transaction
+      )
+    ).unwrap()
 
     return Result.ok({
       type: CheckoutSessionType.ActivateSubscription as const,
       checkoutSession,
-      organization: await selectOrganizationById(
-        checkoutSession.organizationId,
-        transaction
-      ),
-      customer: await selectCustomerById(
-        checkoutSession.customerId!,
-        transaction
-      ),
+      organization: (
+        await selectOrganizationById(
+          checkoutSession.organizationId,
+          transaction
+        )
+      ).unwrap(),
+      customer: (
+        await selectCustomerById(
+          checkoutSession.customerId!,
+          transaction
+        )
+      ).unwrap(),
       paymentMethod: await paymentMethodForStripePaymentMethodId(
         {
           stripePaymentMethodId: stripeIdFromObjectOrId(
@@ -802,10 +816,9 @@ export const processSetupIntentSucceeded = async (
       return Result.err(checkoutSessionResult.error)
     }
     const checkoutSession = checkoutSessionResult.value
-    const customer = await selectCustomerById(
-      subscription.customerId!,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(subscription.customerId!, transaction)
+    ).unwrap()
     const paymentMethod = subscription.defaultPaymentMethodId
       ? await selectPaymentMethodById(
           subscription.defaultPaymentMethodId,
@@ -818,10 +831,12 @@ export const processSetupIntentSucceeded = async (
       checkoutSession.type ===
       CheckoutSessionType.ActivateSubscription
     ) {
-      const organization = await selectOrganizationById(
-        checkoutSession.organizationId,
-        transaction
-      )
+      const organization = (
+        await selectOrganizationById(
+          checkoutSession.organizationId,
+          transaction
+        )
+      ).unwrap()
 
       // Ensure payment method exists for activation
       if (!paymentMethod) {

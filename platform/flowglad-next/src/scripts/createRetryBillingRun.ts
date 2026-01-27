@@ -32,10 +32,12 @@ async function createRetryBillingRun(db: PostgresJsDatabase) {
         transaction
       )
     ).unwrap()
-    const subscription = await selectSubscriptionById(
-      billingPeriod.subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        billingPeriod.subscriptionId,
+        transaction
+      )
+    ).unwrap()
     const paymentMethod = await selectPaymentMethodById(
       subscription.defaultPaymentMethodId!,
       transaction

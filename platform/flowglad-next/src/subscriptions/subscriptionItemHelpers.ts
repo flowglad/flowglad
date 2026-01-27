@@ -614,10 +614,9 @@ export const handleSubscriptionItemAdjustment = async (
   }
 
   // Grant prorated credits for credit-granting features
-  const subscription = await selectSubscriptionById(
-    subscriptionId,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(subscriptionId, transaction)
+  ).unwrap()
   const grantedCreditsResult = await grantProratedCreditsForFeatures({
     subscription,
     features: createdFeatures,

@@ -170,10 +170,9 @@ export const createPriceTransaction = async (
     })
   }
 
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
 
   // For usage prices, derive pricingModelId from usageMeterId
   let pricingModelId: string | undefined
@@ -263,10 +262,9 @@ export const createProductTransaction = async (
   }
 
   // Fetch organization directly for defaultCurrency
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
   const { defaultCurrency } = organization
   const createdProduct = await insertProduct(
     {
@@ -418,10 +416,9 @@ export const editProductTransaction = async (
 
       if (priceChanged) {
         // New price will be inserted - sync slug if product slug changed
-        const organization = await selectOrganizationById(
-          organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
         await safelyInsertPrice(
           {
             ...price,
