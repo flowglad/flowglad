@@ -1,0 +1,109 @@
+/**
+ * Frontend Test Setup (React/DOM tests)
+ *
+ * This setup file is for React component tests that need DOM APIs.
+ * It uses happy-dom (fast DOM implementation) instead of jsdom.
+ *
+ * IMPORTANT: This file must be loaded AFTER bun.dom.preload.ts which sets up
+ * the DOM globals. The test runner uses both preloads in order:
+ *   --preload ./bun.dom.preload.ts --preload ./bun.frontend.setup.ts
+ *
+ * Use for: React components, hooks, DOM interactions
+ * File pattern: *.test.tsx
+ *
+ * Features:
+ * - happy-dom global registration (via bun.dom.preload.ts)
+ * - jest-dom matchers extended on expect
+ * - MSW in WARN mode (logs unhandled requests)
+ * - React Testing Library cleanup after each test
+ * - Environment variables auto-tracked and restored
+ * - Spies auto-restored via globalSpyManager
+ * - Global mock state reset after each test
+ */
+
+/// <reference lib="dom" />
+/// <reference types="@testing-library/jest-dom" />
+
+// Import DOM preload to ensure happy-dom is available
+// We use happyWindow for cleanup between tests
+import { happyWindow } from './bun.dom.preload'
+
+// Store reference for cleanup (avoids unused import warning)
+const _happyWindow = happyWindow
+
+// Import standard mocks (after DOM registration)
+import './bun.mocks'
+
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  expect,
+} from 'bun:test'
+// Now import everything else
+import { webcrypto } from 'node:crypto'
+import * as matchers from '@testing-library/jest-dom/matchers'
+import { cleanup } from '@testing-library/react'
+import { createAutoEnvTracker } from '@/test/isolation/envTracker'
+import {
+  initializeGlobalMockState,
+  resetAllGlobalMocks,
+} from '@/test/isolation/globalStateGuard'
+import { globalSpyManager } from '@/test/isolation/spyManager'
+import { server } from './mocks/server'
+
+// Extend bun:test expect with jest-dom matchers
+expect.extend(matchers)
+
+// Set test environment variables
+process.env.UNKEY_API_ID = process.env.UNKEY_API_ID || 'api_test_mock'
+process.env.UNKEY_ROOT_KEY =
+  process.env.UNKEY_ROOT_KEY || 'unkey_test_mock'
+
+// Polyfill crypto if missing
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto as unknown as Crypto
+}
+
+const envTracker = createAutoEnvTracker()
+
+// Initialize global state once at setup load time
+initializeGlobalMockState()
+
+beforeAll(() => {
+  // MSW WARN mode - logs unhandled requests but doesn't fail
+  // Frontend tests may have various external calls we don't want to break on
+  server.listen({ onUnhandledRequest: 'warn' })
+})
+
+beforeEach(() => {
+  // Capture environment state at test start
+  envTracker.startTracking()
+})
+
+afterEach(() => {
+  // Reset MSW handlers
+  server.resetHandlers()
+
+  // Cleanup React testing-library (unmount components, clear DOM)
+  cleanup()
+
+  // Clear the document body for a clean slate
+  if (typeof document !== 'undefined' && document.body) {
+    document.body.innerHTML = ''
+  }
+
+  // Auto-restore all tracked spies (does not affect mock.module)
+  globalSpyManager.restoreAll()
+
+  // Auto-restore all environment variable changes
+  envTracker.restoreAll()
+
+  // Reset all global mock state (__mockedAuthSession, __mock*, etc.)
+  resetAllGlobalMocks()
+})
+
+afterAll(() => {
+  server.close()
+})

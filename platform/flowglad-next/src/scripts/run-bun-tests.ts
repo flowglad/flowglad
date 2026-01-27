@@ -153,10 +153,22 @@ if (listOnly) {
   process.exit(0)
 }
 
-// Run bun test
+// Build preload arguments
+// For frontend tests, we need the DOM preload to run BEFORE the setup file
+// so that document is available when @testing-library/dom loads
+const preloadArgs: string[] = []
+if (setupFile.includes('frontend')) {
+  preloadArgs.push('--preload', './bun.dom.preload.ts')
+}
+preloadArgs.push('--preload', setupFile)
+
+// Run bun test with NODE_ENV=test so db-safety-preload.ts uses .env.test
 const proc = Bun.spawn(
-  ['bun', 'test', '--preload', setupFile, ...extraArgs, ...filePaths],
-  { stdio: ['inherit', 'inherit', 'inherit'] }
+  ['bun', 'test', ...preloadArgs, ...extraArgs, ...filePaths],
+  {
+    stdio: ['inherit', 'inherit', 'inherit'],
+    env: { ...process.env, NODE_ENV: 'test' },
+  }
 )
 
 process.exit(await proc.exited)
