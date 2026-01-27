@@ -17,14 +17,6 @@ export type OrganizationMemberTableRowData = {
   membership: Membership.ClientRecord
 }
 
-/**
- * Meta context passed to the table for role-based actions
- */
-export interface OrganizationMemberTableMeta {
-  currentMembership: Membership.ClientRecord | null
-  onRemoveMember: (member: OrganizationMemberTableRowData) => void
-}
-
 export const columns: ColumnDef<OrganizationMemberTableRowData>[] = [
   {
     id: 'name',
@@ -81,9 +73,7 @@ export const columns: ColumnDef<OrganizationMemberTableRowData>[] = [
     id: 'actions',
     header: '',
     cell: ({ row, table }) => {
-      const meta = table.options.meta as
-        | OrganizationMemberTableMeta
-        | undefined
+      const meta = table.options.meta
       if (!meta?.currentMembership) {
         return null
       }
