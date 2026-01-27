@@ -1989,6 +1989,13 @@
       "when": 1769550000000,
       "tag": "0284_backfill_membership_owners",
       "breakpoints": true
+    },
+    {
+      "idx": 285,
+      "version": "7",
+      "when": 1738021200000,
+      "tag": "0285_add_session_scope",
+      "breakpoints": true
     }
   ]
 }
