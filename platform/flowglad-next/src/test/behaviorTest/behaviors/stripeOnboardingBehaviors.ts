@@ -42,8 +42,10 @@
 
 import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { BusinessOnboardingStatus } from '@/types'
+import { getStripeTestModeSecretKey } from '@/test/stripeIntegrationHelpers'
+import { BusinessOnboardingStatus, type CountryCode } from '@/types'
 import core from '@/utils/core'
+import { createConnectedAccount } from '@/utils/stripe'
 import { defineBehavior } from '../index'
 import type { CreateOrganizationResult } from './orgSetupBehaviors'
 
@@ -238,7 +240,23 @@ export const completeStripeOnboardingBehavior = defineBehavior({
     _deps,
     prev: CreateOrganizationResult
   ): Promise<CompleteStripeOnboardingResult> => {
-    const stripeAccountId = `acct_test_${core.nanoid()}`
+    // In integration test mode with real Stripe credentials, create a real
+    // Stripe Connect account. Otherwise, use a fake account ID for unit tests.
+    const hasRealStripeKey = !!getStripeTestModeSecretKey()
+
+    let stripeAccountId: string
+    if (hasRealStripeKey) {
+      // Create a real Stripe Connect account for integration tests
+      const stripeAccount = await createConnectedAccount({
+        countryCode: prev.country.code as CountryCode,
+        organization: prev.organization,
+        livemode: false, // Use test mode for integration tests
+      })
+      stripeAccountId = stripeAccount.id
+    } else {
+      // Use fake account ID for unit tests (no real Stripe calls)
+      stripeAccountId = `acct_test_${core.nanoid()}`
+    }
 
     await adminTransaction(
       async ({ transaction }) => {
