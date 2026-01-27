@@ -31,17 +31,18 @@ const createCaller = (
   apiKeyToken: string,
   livemode: boolean = true
 ) => {
-  return customersRouter.createCaller({
+  const ctx: TRPCApiContext = {
     organizationId: organization.id,
     organization,
     apiKey: apiKeyToken,
     livemode,
-    environment: livemode ? ('live' as const) : ('test' as const),
+    environment: (livemode ? 'live' : 'test') satisfies
+      | 'live'
+      | 'test',
     isApi: true,
     path: '',
-    user: null,
-    session: null,
-  } as TRPCApiContext)
+  }
+  return customersRouter.createCaller(ctx)
 }
 
 describe('customersRouter.archive', () => {
@@ -223,11 +224,11 @@ describe('customersRouter.archive', () => {
       .catch((e: unknown) => e)
 
     // Assert: TRPCError NOT_FOUND
-    expect(error).toBeInstanceOf(TRPCError)
-    expect((error as TRPCError).code).toBe('NOT_FOUND')
-    expect((error as TRPCError).message).toContain(
-      'non-existent-external-id'
-    )
+    if (!(error instanceof TRPCError)) {
+      throw new Error(`Expected TRPCError but got ${error}`)
+    }
+    expect(error.code).toBe('NOT_FOUND')
+    expect(error.message).toContain('non-existent-external-id')
   })
 })
 
