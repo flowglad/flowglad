@@ -339,11 +339,8 @@ export const EMAIL_VALIDATION_SCHEMAS = {
 ### File: `src/email-templates/your-template.test.tsx`
 
 ```typescript
-/**
- * @vitest-environment jsdom
- */
 import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it } from 'bun:test'
 import { CurrencyCode } from '@/types'
 import { YourEmail } from './your-template'
 
@@ -397,7 +394,7 @@ describe('YourEmail', () => {
 ### Testing Best Practices
 
 1. **Use `@testing-library/react`** - Not `@react-email/render`
-2. **Add `@vitest-environment jsdom`** - Required for React component tests
+2. **Run via `test:frontend`** - React component tests run with happy-dom
 3. **Use `getByText` / `getByTestId`** - For reliable element selection
 4. **Add `data-testid` props** - To components like `DetailRow` for testing
 5. **Test optional props** - Verify graceful handling of missing data

@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'bun:test'
 import {
   AlertCircle,
   AlertTriangle,
@@ -14,7 +15,6 @@ import {
   X,
   XCircle,
 } from 'lucide-react'
-import { describe, expect, it } from 'vitest'
 import type { Purchase } from '@/db/schema/purchases'
 import {
   InvoiceStatus,

@@ -1,9 +1,5 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { describe, expect, it } from 'bun:test'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
 import { ResourceDetailModal } from './ResourceDetailModal'
 
 describe('ResourceDetailModal', () => {

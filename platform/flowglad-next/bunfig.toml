@@ -17,8 +17,8 @@ autoInstall = false
 # database access or better mocking
 timeout = 5000
 
-# Include only .test.ts files in src/ (not .test.tsx - those run via vitest)
+# Include only .test.ts files in src/ (not .test.tsx - those run via test:frontend)
 # All test categories (unit, db, integration, rls) live in src/
 include = ["src/**/*.test.ts"]
-# Exclude .test.tsx files (run via vitest for frontend tests)
+# Exclude .test.tsx files (run via test:frontend with happy-dom)
 exclude = ["**/*.test.tsx"]

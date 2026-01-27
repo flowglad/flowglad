@@ -15,7 +15,7 @@ The goal here is to create the pseudo code in comment form that will allow the a
 Here's an example output. Note that absence of inner test code, but the comment format. This will be much easier for the agent to pick up in step 3.
 
 ```ts
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect } from 'bun:test'
 
 describe("categorizeUnicornRiders", () => {
 
