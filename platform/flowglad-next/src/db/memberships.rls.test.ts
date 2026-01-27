@@ -135,10 +135,12 @@ describe('memberships RLS - notificationPreferences', () => {
     // Get the user for the second membership
     const user2Membership = await adminTransaction(
       async ({ transaction }) => {
-        return selectMembershipById(
-          org1User2Membership.id,
-          transaction
-        )
+        return (
+          await selectMembershipById(
+            org1User2Membership.id,
+            transaction
+          )
+        ).unwrap()
       }
     )
     // We need to get the actual user record - for now we just use the membership
@@ -210,7 +212,9 @@ describe('memberships RLS - notificationPreferences', () => {
       // User1 selects their own membership by ID
       const membership = await authenticatedTransaction(
         async ({ transaction }) => {
-          return selectMembershipById(org1Membership.id, transaction)
+          return (
+            await selectMembershipById(org1Membership.id, transaction)
+          ).unwrap()
         },
         { apiKey: org1ApiKey.token! }
       )
@@ -324,10 +328,12 @@ describe('memberships RLS - notificationPreferences', () => {
         // Check that the membership was NOT actually updated
         const membership = await adminTransaction(
           async ({ transaction }) => {
-            return selectMembershipById(
-              org1User2Membership.id,
-              transaction
-            )
+            return (
+              await selectMembershipById(
+                org1User2Membership.id,
+                transaction
+              )
+            ).unwrap()
           }
         )
         const prefs = getMembershipNotificationPreferences(membership)
@@ -360,10 +366,12 @@ describe('memberships RLS - notificationPreferences', () => {
         // If we get here, check that the membership was NOT actually updated
         const membership = await adminTransaction(
           async ({ transaction }) => {
-            return selectMembershipById(
-              org1Membership.id,
-              transaction
-            )
+            return (
+              await selectMembershipById(
+                org1Membership.id,
+                transaction
+              )
+            ).unwrap()
           }
         )
         const prefs = getMembershipNotificationPreferences(membership)
