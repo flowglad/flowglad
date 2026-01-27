@@ -40,7 +40,9 @@ const getApiKeyProcedure = protectedProcedure
   .query(async ({ input, ctx }) => {
     return authenticatedTransaction(
       async ({ transaction }) => {
-        const apiKey = await selectApiKeyById(input.id, transaction)
+        const apiKey = (
+          await selectApiKeyById(input.id, transaction)
+        ).unwrap()
         return {
           apiKey,
         }

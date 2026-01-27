@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import { setupOrg, setupPricingModel } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { Organization } from '@/db/schema/organizations'
@@ -68,10 +69,9 @@ describe('resourceMethods', () => {
       )
 
       await adminTransaction(async ({ transaction }) => {
-        const selected = await selectResourceById(
-          inserted.id,
-          transaction
-        )
+        const selected = (
+          await selectResourceById(inserted.id, transaction)
+        ).unwrap()
 
         expect(selected.id).toBe(inserted.id)
         expect(selected.slug).toBe(inserted.slug)
@@ -80,12 +80,14 @@ describe('resourceMethods', () => {
       })
     })
 
-    it('should throw an error when selecting a non-existent resource', async () => {
-      await expect(
-        adminTransaction(async ({ transaction }) => {
-          return selectResourceById('non-existent-id', transaction)
-        })
-      ).rejects.toThrow()
+    it('should return an error when selecting a non-existent resource', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await selectResourceById(
+          'non-existent-id',
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+      })
     })
   })
 
@@ -292,10 +294,9 @@ describe('resourceMethods', () => {
         expect(upsertedArray.length).toBe(0)
 
         // Verify original record is unchanged
-        const original = await selectResourceById(
-          inserted.id,
-          transaction
-        )
+        const original = (
+          await selectResourceById(inserted.id, transaction)
+        ).unwrap()
         expect(original.name).toBe('Original Seats')
       })
     })
@@ -526,10 +527,9 @@ describe('resourceMethods', () => {
         expect(inserted[0].slug).toBe('new-bulk-resource')
 
         // Verify the existing resource was not modified
-        const existingAfter = await selectResourceById(
-          existing.id,
-          transaction
-        )
+        const existingAfter = (
+          await selectResourceById(existing.id, transaction)
+        ).unwrap()
         expect(existingAfter.name).toBe('Existing Resource')
       })
     })

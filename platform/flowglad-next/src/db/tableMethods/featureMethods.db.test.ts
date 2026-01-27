@@ -751,10 +751,9 @@ describe('Resource Feature schema and methods', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const selected = await selectFeatureById(
-          inserted.id,
-          transaction
-        )
+        const selected = (
+          await selectFeatureById(inserted.id, transaction)
+        ).unwrap()
 
         expect(selected.id).toBe(inserted.id)
         expect(selected.type).toBe(FeatureType.Resource)

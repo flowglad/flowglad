@@ -14,7 +14,7 @@ import {
   createDeleteFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -33,10 +33,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'discounts',
 }
 
-export const selectDiscountById = createSelectByIdResult(
-  discounts,
-  config
-)
+export const selectDiscountById = createSelectById(discounts, config)
 export const insertDiscount = createInsertFunction(discounts, config)
 export const updateDiscount = createUpdateFunction(discounts, config)
 export const selectDiscounts = createSelectFunction(discounts, config)

@@ -149,25 +149,26 @@ describe('subscriptionItemFeatureMethods', () => {
           },
           transaction
         )
-        const fetched = await selectSubscriptionItemFeatureById(
-          inserted.id,
-          transaction
-        )
+        const fetched = (
+          await selectSubscriptionItemFeatureById(
+            inserted.id,
+            transaction
+          )
+        ).unwrap()
         expect(fetched.id).toBe(inserted.id)
         expect(fetched.type).toBe(FeatureType.Toggle)
       })
     })
 
-    it('throws when ID not found', async () => {
-      await expect(
-        adminTransaction(async (ctx) => {
-          const { transaction } = ctx
-          return selectSubscriptionItemFeatureById(
-            'bad-id',
-            transaction
-          )
-        })
-      ).rejects.toThrow()
+    it('returns an error when ID not found', async () => {
+      await adminTransaction(async (ctx) => {
+        const { transaction } = ctx
+        const result = await selectSubscriptionItemFeatureById(
+          'bad-id',
+          transaction
+        )
+        expect(Result.isError(result)).toBe(true)
+      })
     })
   })
 
@@ -816,10 +817,12 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
 
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
-        const selected = await selectSubscriptionItemFeatureById(
-          inserted.id,
-          transaction
-        )
+        const selected = (
+          await selectSubscriptionItemFeatureById(
+            inserted.id,
+            transaction
+          )
+        ).unwrap()
 
         expect(selected.id).toBe(inserted.id)
         expect(selected.type).toBe(FeatureType.Resource)

@@ -649,10 +649,12 @@ export const addFeatureToSubscriptionItem = async (
       grantCreditsImmediately = false,
     } = input
 
-    const providedSubscriptionItem = await selectSubscriptionItemById(
-      subscriptionItemId,
-      transaction
-    )
+    const providedSubscriptionItem = (
+      await selectSubscriptionItemById(
+        subscriptionItemId,
+        transaction
+      )
+    ).unwrap()
     ensureSubscriptionItemIsActive(providedSubscriptionItem)
 
     const subscription = (
@@ -662,7 +664,9 @@ export const addFeatureToSubscriptionItem = async (
       )
     ).unwrap()
 
-    const feature = await selectFeatureById(featureId, transaction)
+    const feature = (
+      await selectFeatureById(featureId, transaction)
+    ).unwrap()
     ensureFeatureIsEligible(feature)
     ensureOrganizationAndLivemodeMatch({
       subscription,

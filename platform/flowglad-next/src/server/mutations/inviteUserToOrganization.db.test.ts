@@ -5,7 +5,6 @@ import {
   expect,
   it,
   mock,
-  spyOn,
 } from 'bun:test'
 import {
   setupOrg,
@@ -13,13 +12,13 @@ import {
   teardownOrg,
 } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
-import { type Membership, memberships } from '@/db/schema/memberships'
+import type { Membership } from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
+import type { User } from '@/db/schema/users'
 import {
-  type Organization,
-  organizations,
-} from '@/db/schema/organizations'
-import { type User, users } from '@/db/schema/users'
-import { selectMemberships } from '@/db/tableMethods/membershipMethods'
+  selectMemberships,
+  updateMembership,
+} from '@/db/tableMethods/membershipMethods'
 import { selectUsers } from '@/db/tableMethods/userMethods'
 import * as actualEmail from '@/utils/email'
 import { sendOrganizationInvitationEmail } from '@/utils/email'
@@ -35,7 +34,7 @@ describe('innerInviteUserToOrganizationHandler', () => {
   let inviterUser: User.Record
   let focusedMembership: {
     organization: Pick<Organization.Record, 'id' | 'name'>
-    membership: Pick<Membership.Record, 'livemode' | 'userId'>
+    membership: Pick<Membership.Record, 'userId'>
   }
 
   beforeEach(async () => {
@@ -58,7 +57,6 @@ describe('innerInviteUserToOrganizationHandler', () => {
         name: organization.name,
       },
       membership: {
-        livemode: true,
         userId: inviterUser.id,
       },
     }
@@ -98,13 +96,10 @@ describe('innerInviteUserToOrganizationHandler', () => {
         )
         expect(newMemberships).toHaveLength(1)
         expect(newMemberships[0].focused).toBe(false)
-        expect(newMemberships[0].livemode).toBe(true)
+        expect(newMemberships[0].livemode).toBe(false)
       })
 
-      expect(result).toEqual({
-        success: true,
-        message: 'User created and invited to organization',
-      })
+      expect(result).toEqual({ action: 'created' })
     })
 
     it("should handle invitations for new users when the inviter's name is not available", async () => {
@@ -125,19 +120,36 @@ describe('innerInviteUserToOrganizationHandler', () => {
       )
     })
 
-    it("should handle invitations for new users when the invitee's name is not provided", async () => {
+    it("creates user with empty string name when invitee's name is not provided", async () => {
       const email = `newuser-${Math.random()}@test.com`
       const input = { email }
-      await innerInviteUserToOrganizationHandler(
+
+      const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
         inviterUser
       )
+
+      expect(result).toEqual({ action: 'created' })
+
+      await adminTransaction(async ({ transaction }) => {
+        const [newUser] = await selectUsers({ email }, transaction)
+        expect(newUser.name).toBe('')
+
+        const newMemberships = await selectMemberships(
+          {
+            userId: newUser.id,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+        expect(newMemberships).toHaveLength(1)
+      })
     })
   })
 
   describe('Existing User Invitation', () => {
-    it('should add an existing user to the organization if they are not already a member', async () => {
+    it('should add an existing user to the organization and send invitation email', async () => {
       const { organization: otherOrg } = await setupOrg()
       const { user: existingUser } = await setupUserAndApiKey({
         organizationId: otherOrg.id,
@@ -151,7 +163,11 @@ describe('innerInviteUserToOrganizationHandler', () => {
         inviterUser
       )
 
-      expect(sendOrganizationInvitationEmail).not.toHaveBeenCalled()
+      expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith({
+        to: [existingUser.email],
+        organizationName: organization.name,
+        inviterName: inviterUser.name ?? undefined,
+      })
 
       await adminTransaction(async ({ transaction }) => {
         const memberships = await selectMemberships(
@@ -163,14 +179,14 @@ describe('innerInviteUserToOrganizationHandler', () => {
         )
         expect(memberships).toHaveLength(1)
         expect(memberships[0].focused).toBe(false)
-        expect(memberships[0].livemode).toBe(true)
+        expect(memberships[0].livemode).toBe(false)
       })
 
-      expect(result).toBeUndefined()
+      expect(result).toEqual({ action: 'created' })
       await teardownOrg({ organizationId: otherOrg.id })
     })
 
-    it('should do nothing if the existing user is already a member of the organization', async () => {
+    it('should not send email if the existing user is already an active member of the organization', async () => {
       const { user: existingUser } = await setupUserAndApiKey({
         organizationId: organization.id,
         livemode: true,
@@ -207,7 +223,114 @@ describe('innerInviteUserToOrganizationHandler', () => {
         expect(memberships).toHaveLength(1)
       })
 
-      expect(result).toBeUndefined()
+      expect(result).toEqual({ action: 'already_member' })
+    })
+  })
+
+  describe('Membership Reactivation', () => {
+    it('should reactivate a previously removed member and send invitation email', async () => {
+      // Setup: create a user with a deactivated membership
+      const { user: removedUser, membership } =
+        await setupUserAndApiKey({
+          organizationId: organization.id,
+          livemode: true,
+        })
+
+      // Deactivate the membership
+      await adminTransaction(async ({ transaction }) => {
+        await updateMembership(
+          { id: membership.id, deactivatedAt: Date.now() },
+          transaction
+        )
+      })
+
+      // Verify membership is deactivated (not visible in default query)
+      await adminTransaction(async ({ transaction }) => {
+        const activeMemberships = await selectMemberships(
+          {
+            userId: removedUser.id,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+        expect(activeMemberships).toHaveLength(0)
+      })
+
+      const input = { email: removedUser.email! }
+
+      const result = await innerInviteUserToOrganizationHandler(
+        focusedMembership,
+        input,
+        inviterUser
+      )
+
+      // Should send invitation email for reactivation
+      expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith({
+        to: [removedUser.email],
+        organizationName: organization.name,
+        inviterName: inviterUser.name ?? undefined,
+      })
+
+      // Membership should be reactivated
+      await adminTransaction(async ({ transaction }) => {
+        const memberships = await selectMemberships(
+          {
+            userId: removedUser.id,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+        expect(memberships).toHaveLength(1)
+        expect(memberships[0].deactivatedAt).toBeNull()
+      })
+
+      expect(result).toEqual({ action: 'reactivated' })
+    })
+
+    it('should reactivate and send email even when inviter has no name', async () => {
+      const inviterUserWithoutName = { ...inviterUser, name: null }
+
+      const { user: removedUser, membership } =
+        await setupUserAndApiKey({
+          organizationId: organization.id,
+          livemode: true,
+        })
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateMembership(
+          { id: membership.id, deactivatedAt: Date.now() },
+          transaction
+        )
+      })
+
+      const input = { email: removedUser.email! }
+
+      const result = await innerInviteUserToOrganizationHandler(
+        focusedMembership,
+        input,
+        inviterUserWithoutName
+      )
+
+      expect(result).toEqual({ action: 'reactivated' })
+
+      expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inviterName: undefined,
+        })
+      )
+
+      // Verify reactivation happened
+      await adminTransaction(async ({ transaction }) => {
+        const memberships = await selectMemberships(
+          {
+            userId: removedUser.id,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+        expect(memberships).toHaveLength(1)
+        expect(memberships[0].deactivatedAt).toBeNull()
+      })
     })
   })
 })

@@ -1150,10 +1150,12 @@ describe('confirmCheckoutSessionTransaction', () => {
       const refetchedCheckoutSession =
         await comprehensiveAdminTransaction(
           async ({ transaction }) => {
-            const result = await selectCheckoutSessionById(
-              updatedCheckoutSession.id,
-              transaction
-            )
+            const result = (
+              await selectCheckoutSessionById(
+                updatedCheckoutSession.id,
+                transaction
+              )
+            ).unwrap()
             return Result.ok(result)
           }
         )

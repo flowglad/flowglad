@@ -271,14 +271,12 @@ export const resolveUsageEventInput = async (
       )
     }
 
-    let usageMeter
-    try {
-      usageMeter = await selectUsageMeterById(
-        input.usageEvent.usageMeterId,
-        transaction
-      )
-    } catch (error) {
-      // If we can't fetch the usage meter (RLS blocked or doesn't exist),
+    const usageMeterResult = await selectUsageMeterById(
+      input.usageEvent.usageMeterId,
+      transaction
+    )
+    // If we can't fetch the usage meter (RLS blocked or doesn't exist),
+    if (Result.isError(usageMeterResult)) {
       return Result.err(
         new NotFoundError(
           'UsageMeter',
@@ -286,6 +284,7 @@ export const resolveUsageEventInput = async (
         )
       )
     }
+    const usageMeter = usageMeterResult.unwrap()
 
     // Validate that the usage meter belongs to the customer's pricing model
     if (usageMeter.pricingModelId !== customer.pricingModelId) {
@@ -785,14 +784,12 @@ export const ingestAndProcessUsageEvent = async (
 
   // If usageMeterId was provided directly, validate it belongs to customer's pricing model
   if (!usageEventInput.priceId) {
-    let usageMeter
-    try {
-      usageMeter = await selectUsageMeterById(
-        usageMeterId,
-        transaction
-      )
-    } catch (error) {
-      // If we can't fetch the usage meter (RLS blocked or doesn't exist),
+    const usageMeterResult = await selectUsageMeterById(
+      usageMeterId,
+      transaction
+    )
+    // If we can't fetch the usage meter (RLS blocked or doesn't exist),
+    if (Result.isError(usageMeterResult)) {
       return Result.err(
         new NotFoundError(
           'UsageMeter',
@@ -800,6 +797,7 @@ export const ingestAndProcessUsageEvent = async (
         )
       )
     }
+    const usageMeter = usageMeterResult.unwrap()
 
     // Validate that the usage meter belongs to the customer's pricing model
     if (usageMeter.pricingModelId !== customer.pricingModelId) {
@@ -846,10 +844,9 @@ export const ingestAndProcessUsageEvent = async (
   }
 
   // Fetch the usage meter to validate count_distinct_properties requirements before insert
-  const usageMeter = await selectUsageMeterById(
-    usageMeterId,
-    transaction
-  )
+  const usageMeter = (
+    await selectUsageMeterById(usageMeterId, transaction)
+  ).unwrap()
 
   /**
    * Validation for CountDistinctProperties aggregation type.

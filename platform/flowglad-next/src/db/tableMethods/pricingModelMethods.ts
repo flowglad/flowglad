@@ -25,7 +25,7 @@ import {
   createDateNotPassedFilter,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   NotFoundError,
@@ -73,7 +73,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'pricingModels',
 }
 
-export const selectPricingModelById = createSelectByIdResult(
+export const selectPricingModelById = createSelectById(
   pricingModels,
   config
 )

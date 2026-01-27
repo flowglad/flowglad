@@ -595,10 +595,9 @@ const setDefaultPaymentMethodProcedure = customerProtectedProcedure
         enqueueLedgerCommand,
       }) => {
         // Verify ownership BEFORE making any mutations
-        const existingPaymentMethod = await selectPaymentMethodById(
-          paymentMethodId,
-          transaction
-        )
+        const existingPaymentMethod = (
+          await selectPaymentMethodById(paymentMethodId, transaction)
+        ).unwrap()
         if (existingPaymentMethod.customerId !== customer.id) {
           throw new TRPCError({
             code: 'FORBIDDEN',

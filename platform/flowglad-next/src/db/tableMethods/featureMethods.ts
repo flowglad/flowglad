@@ -290,10 +290,9 @@ export const updateFeatureTransaction = async (
   >
 ): Promise<Feature.Record> => {
   // Step 1: Get the current feature state to detect changes
-  const oldFeature = await selectFeatureById(
-    featureUpdate.id,
-    ctx.transaction
-  )
+  const oldFeature = (
+    await selectFeatureById(featureUpdate.id, ctx.transaction)
+  ).unwrap()
 
   // Step 2: Update the feature
   const updatedFeature = await updateFeature(

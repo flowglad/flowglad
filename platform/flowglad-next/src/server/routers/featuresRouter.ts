@@ -111,7 +111,9 @@ export const getFeature = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const feature = await selectFeatureById(input.id, transaction)
+        const feature = (
+          await selectFeatureById(input.id, transaction)
+        ).unwrap()
         return { feature }
       }
     )

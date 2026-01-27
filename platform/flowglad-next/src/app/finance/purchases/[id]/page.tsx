@@ -15,7 +15,9 @@ const PurchasePage = async ({
   const { id } = await params
   const result = await authenticatedTransaction(
     async ({ transaction }) => {
-      const purchase = await selectPurchaseById(id, transaction)
+      const purchase = (
+        await selectPurchaseById(id, transaction)
+      ).unwrap()
 
       if (!purchase) {
         return null

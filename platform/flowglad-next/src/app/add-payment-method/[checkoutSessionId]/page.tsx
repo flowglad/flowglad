@@ -25,10 +25,12 @@ const CheckoutSessionPage = async ({
   const { checkoutSessionId } = await params
   const { checkoutSession, sellerOrganization, customer } =
     await adminTransaction(async ({ transaction }) => {
-      const checkoutSession = await selectCheckoutSessionById(
-        checkoutSessionId,
-        transaction
-      )
+      const checkoutSession = (
+        await selectCheckoutSessionById(
+          checkoutSessionId,
+          transaction
+        )
+      ).unwrap()
       if (
         checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
       ) {

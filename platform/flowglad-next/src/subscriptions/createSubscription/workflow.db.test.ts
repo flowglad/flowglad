@@ -1556,10 +1556,12 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     // Verify discount redemption was updated
     const updatedDiscountRedemption = await adminTransaction(
       async ({ transaction }) => {
-        return selectDiscountRedemptionById(
-          discountRedemption.id,
-          transaction
-        )
+        return (
+          await selectDiscountRedemptionById(
+            discountRedemption.id,
+            transaction
+          )
+        ).unwrap()
       }
     )
     expect(updatedDiscountRedemption.subscriptionId).toBe(
@@ -1641,10 +1643,12 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     // Verify first discount redemption was updated
     const updatedDiscountRedemption = await adminTransaction(
       async ({ transaction }) => {
-        return selectDiscountRedemptionById(
-          discountRedemptions[0].id,
-          transaction
-        )
+        return (
+          await selectDiscountRedemptionById(
+            discountRedemptions[0].id,
+            transaction
+          )
+        ).unwrap()
       }
     )
     expect(updatedDiscountRedemption.subscriptionId).toBe(
@@ -1654,10 +1658,12 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     // Verify second discount redemption was not updated
     const unchangedDiscountRedemption = await adminTransaction(
       async ({ transaction }) => {
-        return selectDiscountRedemptionById(
-          discountRedemptions[1].id,
-          transaction
-        )
+        return (
+          await selectDiscountRedemptionById(
+            discountRedemptions[1].id,
+            transaction
+          )
+        ).unwrap()
       }
     )
     expect(unchangedDiscountRedemption.subscriptionId).toBeNull()

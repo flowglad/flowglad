@@ -575,7 +575,9 @@ describe('Checkout Sessions', () => {
 
       const updatedPurchase = await adminTransaction(
         async ({ transaction }) => {
-          return selectPurchaseById(purchase.id, transaction)
+          return (
+            await selectPurchaseById(purchase.id, transaction)
+          ).unwrap()
         }
       )
 

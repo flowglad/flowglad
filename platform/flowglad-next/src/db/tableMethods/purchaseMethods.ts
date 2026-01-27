@@ -178,7 +178,14 @@ export const updatePurchase = createUpdateFunction(purchases, config)
  * Used for discountRedemptions.
  */
 export const derivePricingModelIdFromPurchase =
-  createDerivePricingModelId(purchases, config, selectPurchaseById)
+  createDerivePricingModelId(
+    purchases,
+    config,
+    async (id, transaction) => {
+      const result = await selectPurchaseById(id, transaction)
+      return result.unwrap()
+    }
+  )
 
 /**
  * Batch fetch pricingModelIds for multiple purchases.

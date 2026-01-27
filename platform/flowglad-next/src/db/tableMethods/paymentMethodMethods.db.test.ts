@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -161,10 +162,9 @@ describe('safelyUpdatePaymentMethod', () => {
         createCapturingEffectsContext(transaction)
 
       // Verify initial state: paymentMethodB is the default for customerB
-      const initialPaymentMethodB = await selectPaymentMethodById(
-        paymentMethodB.id,
-        transaction
-      )
+      const initialPaymentMethodB = (
+        await selectPaymentMethodById(paymentMethodB.id, transaction)
+      ).unwrap()
       expect(initialPaymentMethodB.default).toBe(true)
 
       // Move paymentMethodA from customerA to customerB AND set it as default
@@ -182,10 +182,9 @@ describe('safelyUpdatePaymentMethod', () => {
       expect(updatedPaymentMethod.default).toBe(true)
 
       // Verify the old default on customerB (paymentMethodB) is no longer default
-      const updatedPaymentMethodB = await selectPaymentMethodById(
-        paymentMethodB.id,
-        transaction
-      )
+      const updatedPaymentMethodB = (
+        await selectPaymentMethodById(paymentMethodB.id, transaction)
+      ).unwrap()
       expect(updatedPaymentMethodB.default).toBe(false)
 
       // Verify customerA has no payment methods left (since the only one was moved)
@@ -233,10 +232,9 @@ describe('safelyUpdatePaymentMethod', () => {
       expect(updatedPaymentMethod.default).toBe(false)
 
       // Verify paymentMethodB is still the default for customerB
-      const paymentMethodBAfter = await selectPaymentMethodById(
-        paymentMethodB.id,
-        transaction
-      )
+      const paymentMethodBAfter = (
+        await selectPaymentMethodById(paymentMethodB.id, transaction)
+      ).unwrap()
       expect(paymentMethodBAfter.default).toBe(true)
 
       // Verify cache invalidations include both customers' set membership keys

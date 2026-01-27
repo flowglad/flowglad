@@ -157,7 +157,17 @@ export const updatePrice = protectedProcedure
           ).unwrap()
 
           // Validate that default prices on default products maintain their constraints
-          validateDefaultPriceUpdate(price, existingPrice, product)
+          const validationResult = validateDefaultPriceUpdate(
+            price,
+            existingPrice,
+            product
+          )
+          if (validationResult.status === 'error') {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: validationResult.error.reason,
+            })
+          }
 
           // Disallow slug changes for the default price of a default product
           if (

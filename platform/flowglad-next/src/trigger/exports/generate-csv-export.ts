@@ -73,7 +73,9 @@ export const generateCsvExportTask = task({
         const organization = (
           await selectOrganizationById(organizationId, transaction)
         ).unwrap()
-        const user = await selectUserById(userId, transaction)
+        const user = (
+          await selectUserById(userId, transaction)
+        ).unwrap()
 
         // Verify membership exists for userId + organizationId
         const memberships = await selectMemberships(

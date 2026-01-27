@@ -136,10 +136,9 @@ const getUsageMeter = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const usageMeter = await selectUsageMeterById(
-          input.id,
-          transaction
-        )
+        const usageMeter = (
+          await selectUsageMeterById(input.id, transaction)
+        ).unwrap()
         return { usageMeter }
       }
     )

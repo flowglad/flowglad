@@ -264,10 +264,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           )
 
           // 3. Verify the usage credit record was created
-          const usageCredit = await selectUsageCreditById(
-            creditEntry.sourceUsageCreditId!,
-            transaction
-          )
+          const usageCredit = (
+            await selectUsageCreditById(
+              creditEntry.sourceUsageCreditId!,
+              transaction
+            )
+          ).unwrap()
 
           expect(usageCredit).toMatchObject({
             issuedAmount: feature.amount,
@@ -894,30 +896,30 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
 
           // Verify the actual usage credits were created
           expect(typeof onceEntry.sourceUsageCreditId).toBe('string')
-          const onceCredit = await selectUsageCreditById(
-            onceEntry.sourceUsageCreditId!,
-            transaction
-          )
+          const onceCredit = (
+            await selectUsageCreditById(
+              onceEntry.sourceUsageCreditId!,
+              transaction
+            )
+          ).unwrap()
           expect(onceCredit).toMatchObject({})
-          if (onceCredit) {
-            expect(onceCredit.expiresAt).toBeNull() // Never expires
-            expect(onceCredit.billingPeriodId).toBeNull()
-            expect(onceCredit.issuedAmount).toBe(500)
-          }
+          expect(onceCredit.expiresAt).toBeNull() // Never expires
+          expect(onceCredit.billingPeriodId).toBeNull()
+          expect(onceCredit.issuedAmount).toBe(500)
 
           expect(typeof recurringEntry.sourceUsageCreditId).toBe(
             'string'
           )
-          const recurringCredit = await selectUsageCreditById(
-            recurringEntry.sourceUsageCreditId!,
-            transaction
-          )
+          const recurringCredit = (
+            await selectUsageCreditById(
+              recurringEntry.sourceUsageCreditId!,
+              transaction
+            )
+          ).unwrap()
           expect(recurringCredit).toMatchObject({})
-          if (recurringCredit) {
-            expect(recurringCredit.expiresAt).toBeNull() // Never expires for non-renewing
-            expect(recurringCredit.billingPeriodId).toBeNull()
-            expect(recurringCredit.issuedAmount).toBe(1000)
-          }
+          expect(recurringCredit.expiresAt).toBeNull() // Never expires for non-renewing
+          expect(recurringCredit.billingPeriodId).toBeNull()
+          expect(recurringCredit.issuedAmount).toBe(1000)
         })
       })
 
@@ -1405,10 +1407,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           if (ledgerEntries.length > 0) {
             const creditEntry =
               ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
-            const credit = await selectUsageCreditById(
-              creditEntry.sourceUsageCreditId!,
-              transaction
-            )
+            const credit = (
+              await selectUsageCreditById(
+                creditEntry.sourceUsageCreditId!,
+                transaction
+              )
+            ).unwrap()
             expect(credit.billingPeriodId).toBeNull()
           }
         })
@@ -1585,10 +1589,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           for (const entry of ledgerEntries) {
             const creditEntry =
               entry as LedgerEntry.CreditGrantRecognizedRecord
-            const credit = await selectUsageCreditById(
-              creditEntry.sourceUsageCreditId!,
-              transaction
-            )
+            const credit = (
+              await selectUsageCreditById(
+                creditEntry.sourceUsageCreditId!,
+                transaction
+              )
+            ).unwrap()
             expect(credit.expiresAt).toBeNull()
             expect(credit.billingPeriodId).toBeNull()
           }
@@ -1688,10 +1694,9 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
 
           // Verify original credits still exist and are unchanged
           for (const creditId of initialCreditIds) {
-            const originalCredit = await selectUsageCreditById(
-              creditId!,
-              transaction
-            )
+            const originalCredit = (
+              await selectUsageCreditById(creditId!, transaction)
+            ).unwrap()
             expect(originalCredit.expiresAt).toBeNull() // Still never expire
             expect(originalCredit.billingPeriodId).toBeNull() // Still no billing period
           }
@@ -1699,10 +1704,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           // Verify new credit has expiration and billing period
           const newCreditEntry = renewingResult
             .ledgerEntries[0] as LedgerEntry.CreditGrantRecognizedRecord
-          const newCredit = await selectUsageCreditById(
-            newCreditEntry.sourceUsageCreditId!,
-            transaction
-          )
+          const newCredit = (
+            await selectUsageCreditById(
+              newCreditEntry.sourceUsageCreditId!,
+              transaction
+            )
+          ).unwrap()
           expect(typeof newCredit.expiresAt).toBe('number')
           expect(newCredit.billingPeriodId).toBe(
             renewingBillingPeriod.id
@@ -1748,10 +1755,9 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           )
 
           // Verify initial credit remains unchanged
-          const initialCredit = await selectUsageCreditById(
-            initialCreditId!,
-            transaction
-          )
+          const initialCredit = (
+            await selectUsageCreditById(initialCreditId!, transaction)
+          ).unwrap()
           expect(initialCredit.expiresAt).toBeNull()
           expect(initialCredit.billingPeriodId).toBeNull()
           expect(initialCredit.status).toBe(UsageCreditStatus.Posted)
@@ -1856,15 +1862,9 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
           const creditId = creditEntry.sourceUsageCreditId!
 
           // Verify the credit exists
-          const credit = await selectUsageCreditById(
-            creditId,
-            transaction
-          )
-          if (!credit) {
-            throw new Error(
-              `Credit ${creditId} not found in database`
-            )
-          }
+          const credit = (
+            await selectUsageCreditById(creditId, transaction)
+          ).unwrap()
 
           // Assert - verify credit properties for non-renewing subscription
           expect(credit.issuedAmount).toBe(500)

@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupOrg,
@@ -143,10 +144,9 @@ describe('resourceClaimMethods', () => {
       )
 
       await adminTransaction(async ({ transaction }) => {
-        const selected = await selectResourceClaimById(
-          inserted.id,
-          transaction
-        )
+        const selected = (
+          await selectResourceClaimById(inserted.id, transaction)
+        ).unwrap()
 
         expect(selected.id).toBe(inserted.id)
         expect(selected.externalId).toBe('pet-2')

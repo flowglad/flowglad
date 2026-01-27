@@ -673,16 +673,20 @@ const createSubscriptionProcedure = protectedProcedure
           })
 
         const defaultPaymentMethod = input.defaultPaymentMethodId
-          ? await selectPaymentMethodById(
-              input.defaultPaymentMethodId,
-              transaction
-            )
+          ? (
+              await selectPaymentMethodById(
+                input.defaultPaymentMethodId,
+                transaction
+              )
+            ).unwrap()
           : undefined
         const backupPaymentMethod = input.backupPaymentMethodId
-          ? await selectPaymentMethodById(
-              input.backupPaymentMethodId,
-              transaction
-            )
+          ? (
+              await selectPaymentMethodById(
+                input.backupPaymentMethodId,
+                transaction
+              )
+            ).unwrap()
           : undefined
         const startDate = input.startDate ?? new Date()
         const defaultTrialEnd = price.trialPeriodDays
@@ -807,10 +811,12 @@ const updatePaymentMethodProcedure = protectedProcedure
         assertSubscriptionNotTerminal(subscription)
 
         // Verify the payment method exists and belongs to the same customer
-        const paymentMethod = await selectPaymentMethodById(
-          input.paymentMethodId,
-          transaction
-        )
+        const paymentMethod = (
+          await selectPaymentMethodById(
+            input.paymentMethodId,
+            transaction
+          )
+        ).unwrap()
 
         if (paymentMethod.customerId !== subscription.customerId) {
           throw new TRPCError({
@@ -888,10 +894,12 @@ const retryBillingRunProcedure = protectedProcedure
         }
 
         const paymentMethod = subscription.defaultPaymentMethodId
-          ? await selectPaymentMethodById(
-              subscription.defaultPaymentMethodId,
-              transaction
-            )
+          ? (
+              await selectPaymentMethodById(
+                subscription.defaultPaymentMethodId,
+                transaction
+              )
+            ).unwrap()
           : (
               await selectPaymentMethods(
                 {
