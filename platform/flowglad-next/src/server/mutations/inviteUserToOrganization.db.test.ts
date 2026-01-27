@@ -120,14 +120,31 @@ describe('innerInviteUserToOrganizationHandler', () => {
       )
     })
 
-    it("should handle invitations for new users when the invitee's name is not provided", async () => {
+    it("creates user with empty string name when invitee's name is not provided", async () => {
       const email = `newuser-${Math.random()}@test.com`
       const input = { email }
-      await innerInviteUserToOrganizationHandler(
+
+      const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
         inviterUser
       )
+
+      expect(result).toEqual({ action: 'created' })
+
+      await adminTransaction(async ({ transaction }) => {
+        const [newUser] = await selectUsers({ email }, transaction)
+        expect(newUser.name).toBe('')
+
+        const newMemberships = await selectMemberships(
+          {
+            userId: newUser.id,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+        expect(newMemberships).toHaveLength(1)
+      })
     })
   })
 
@@ -288,17 +305,32 @@ describe('innerInviteUserToOrganizationHandler', () => {
 
       const input = { email: removedUser.email! }
 
-      await innerInviteUserToOrganizationHandler(
+      const result = await innerInviteUserToOrganizationHandler(
         focusedMembership,
         input,
         inviterUserWithoutName
       )
+
+      expect(result).toEqual({ action: 'reactivated' })
 
       expect(sendOrganizationInvitationEmail).toHaveBeenCalledWith(
         expect.objectContaining({
           inviterName: undefined,
         })
       )
+
+      // Verify reactivation happened
+      await adminTransaction(async ({ transaction }) => {
+        const memberships = await selectMemberships(
+          {
+            userId: removedUser.id,
+            organizationId: organization.id,
+          },
+          transaction
+        )
+        expect(memberships).toHaveLength(1)
+        expect(memberships[0].deactivatedAt).toBeNull()
+      })
     })
   })
 })

@@ -54,6 +54,8 @@ export const innerInviteUserToOrganizationHandler = async (
         },
         transaction
       )
+      // New memberships default to test mode (livemode: false)
+      // to ensure safe onboarding before production access
       await insertMembership(
         {
           userId: databaseUser.id,
@@ -101,6 +103,8 @@ export const innerInviteUserToOrganizationHandler = async (
         return 'already_member'
       }
       // Create new membership for existing user
+      // New memberships default to test mode (livemode: false)
+      // to ensure safe onboarding before production access
       await insertMembership(
         {
           userId: userForEmail.id,
