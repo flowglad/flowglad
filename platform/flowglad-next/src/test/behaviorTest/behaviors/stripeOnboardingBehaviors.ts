@@ -46,9 +46,8 @@ import {
   getStripeTestClient,
   getStripeTestModeSecretKey,
 } from '@/test/stripeIntegrationHelpers'
-import { BusinessOnboardingStatus, type CountryCode } from '@/types'
+import { BusinessOnboardingStatus } from '@/types'
 import core from '@/utils/core'
-import { createConnectedAccount } from '@/utils/stripe'
 import { defineBehavior } from '../index'
 import type { CreateOrganizationResult } from './orgSetupBehaviors'
 
@@ -249,23 +248,34 @@ export const completeStripeOnboardingBehavior = defineBehavior({
 
     let stripeAccountId: string
     if (hasRealStripeKey) {
-      // Create a real Stripe Connect account for integration tests
-      const stripeAccount = await createConnectedAccount({
-        countryCode: prev.country.code as CountryCode,
-        organization: prev.organization,
-        livemode: false, // Use test mode for integration tests
-      })
-      stripeAccountId = stripeAccount.id
-
-      // Accept TOS to enable capabilities (required for transfers)
-      // In test mode, we can programmatically accept the TOS
+      // Create a Custom Stripe Connect account for integration tests.
+      // We use Custom accounts (requirement_collection: 'application') instead of
+      // Express accounts because only Custom accounts allow programmatic TOS acceptance.
+      // Express/Standard accounts require the user to complete Stripe's hosted onboarding.
       const stripe = getStripeTestClient()
-      await stripe.accounts.update(stripeAccountId, {
+      const stripeAccount = await stripe.accounts.create({
+        country: prev.country.code,
+        type: 'custom',
+        capabilities: {
+          transfers: { requested: true },
+        },
+        // Accept TOS at creation time (only works for Custom accounts)
         tos_acceptance: {
           date: Math.floor(Date.now() / 1000),
           ip: '127.0.0.1',
         },
+        // Minimal required info for a Custom account
+        business_type: 'company',
+        business_profile: {
+          mcc: '5734', // Computer Software Stores
+          url: 'https://example.com',
+        },
+        company: {
+          name: prev.organization.name,
+          tax_id: '000000000', // Test tax ID
+        },
       })
+      stripeAccountId = stripeAccount.id
     } else {
       // Use fake account ID for unit tests (no real Stripe calls)
       stripeAccountId = `acct_test_${core.nanoid()}`
