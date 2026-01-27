@@ -1557,10 +1557,12 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         )
 
         // Check the updated checkout session status
-        const updatedSession = await selectCheckoutSessionById(
-          checkoutSession.id,
-          transaction
-        )
+        const updatedSession = (
+          await selectCheckoutSessionById(
+            checkoutSession.id,
+            transaction
+          )
+        ).unwrap()
         expect(updatedSession.status).toBe(
           CheckoutSessionStatus.Succeeded
         )
