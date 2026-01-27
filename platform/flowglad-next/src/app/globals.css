@@ -148,6 +148,8 @@
 
   :root {
     --radius: 0.625rem;
+    --onboarding-max-w: 608px;
+    --onboarding-border-gap: 1rem; /* 16px */
     --background: 51 47% 97%;
     --foreground: 30 5.3% 7.5%;
     --card: 0 0% 100%;

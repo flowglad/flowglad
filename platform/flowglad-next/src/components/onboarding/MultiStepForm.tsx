@@ -18,6 +18,53 @@ import { type z } from 'zod'
 
 type NavigationDirection = 'forward' | 'backward' | 'initial'
 
+/**
+ * Deep merges saved form data with default values.
+ * Prefers saved values only when they are truthy (not empty strings, null, or undefined).
+ * This ensures default values are preserved when users clear form fields.
+ */
+function deepMergeWithDefaults<T>(defaults: T, saved: unknown): T {
+  if (defaults === null || defaults === undefined) {
+    return saved as T
+  }
+
+  if (typeof defaults !== 'object' || Array.isArray(defaults)) {
+    // For primitives and arrays: use saved value if it's truthy, otherwise use default
+    return saved !== undefined && saved !== null && saved !== ''
+      ? (saved as T)
+      : defaults
+  }
+
+  // For objects: recursively merge each key
+  const result = { ...defaults } as Record<string, unknown>
+  const savedObj = saved as Record<string, unknown> | undefined | null
+  for (const key of Object.keys(defaults as object)) {
+    const defaultValue = (defaults as Record<string, unknown>)[key]
+    const savedValue = savedObj?.[key]
+
+    if (
+      savedValue === undefined ||
+      savedValue === null ||
+      savedValue === ''
+    ) {
+      // Keep the default value
+      result[key] = defaultValue
+    } else if (
+      typeof defaultValue === 'object' &&
+      defaultValue !== null &&
+      !Array.isArray(defaultValue)
+    ) {
+      // Recursively merge nested objects
+      result[key] = deepMergeWithDefaults(defaultValue, savedValue)
+    } else {
+      // Use the saved value
+      result[key] = savedValue
+    }
+  }
+
+  return result as T
+}
+
 interface StepConfig<T extends z.ZodType> {
   id: string
   title: string
@@ -250,7 +297,10 @@ export function MultiStepForm<T extends FieldValues>({
     if (saved) {
       try {
         const parsed = JSON.parse(saved)
-        form.reset(parsed, { keepDefaultValues: true })
+        // Deep merge saved values with defaults, preferring saved values only when truthy
+        // This ensures default values are preserved when saved values are empty strings
+        const merged = deepMergeWithDefaults(defaultValues, parsed)
+        form.reset(merged, { keepDefaultValues: true })
       } catch {
         // Ignore invalid saved data
       }

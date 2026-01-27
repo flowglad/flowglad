@@ -1,4 +1,4 @@
-// src/components/onboarding/FixedBottomBar.tsx
+// src/components/onboarding/BottomBar.tsx
 
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
@@ -72,28 +72,5 @@ export function FixedBottomBar({
     >
       {children}
     </div>
-  )
-}
-
-interface FixedBottomBarSpacerProps {
-  /** Height of the fixed bar to account for. Defaults to 60px */
-  height?: number
-}
-
-/**
- * Spacer to prevent content from being hidden behind FixedBottomBar.
- * Place at the end of scrollable content, INSIDE the scrollable container.
- *
- * Accounts for both the bar height and iOS safe-area-inset-bottom.
- */
-export function FixedBottomBarSpacer({
-  height = 60,
-}: FixedBottomBarSpacerProps) {
-  return (
-    <div
-      className="pb-[env(safe-area-inset-bottom)]"
-      style={{ paddingTop: height }}
-      aria-hidden="true"
-    />
   )
 }

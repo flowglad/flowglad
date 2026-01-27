@@ -1,20 +1,18 @@
-// src/components/onboarding/FixedNavigationBar.tsx
+// src/components/onboarding/NavigationBar.tsx
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
-import { BottomBar, FixedBottomBar } from './FixedBottomBar'
+import { BottomBar, FixedBottomBar } from './BottomBar'
 import { useMultiStepForm } from './MultiStepForm'
 import { StepProgress } from './StepProgress'
 
-interface FixedNavigationBarProps {
+interface NavigationBarProps {
   /** Label for back button. Defaults to "Back" */
   backLabel?: string
   /** Label for continue button. Defaults to "Continue" */
   continueLabel?: string
   /** Label for final step submit. Defaults to "Complete" */
   submitLabel?: string
-  /** Whether to show dashed borders on containers */
-  showBorders?: boolean
   /** Custom action for back button (e.g., login redirect on first step) */
   onBackOverride?: () => void
   /** Custom back label for first step */
@@ -43,18 +41,17 @@ interface FixedNavigationBarProps {
  * - Matches onboarding page container styling with dashed borders
  * - Supports both fixed (viewport-anchored) and static (document flow) positioning
  */
-export function FixedNavigationBar({
+export function NavigationBar({
   backLabel = 'Back',
   continueLabel = 'Continue',
   submitLabel = 'Complete',
-  showBorders = true,
   onBackOverride,
   firstStepBackLabel = 'Login',
   hideBackOnFirstStep = false,
   showProgress = false,
   fixed = true,
   className,
-}: FixedNavigationBarProps) {
+}: NavigationBarProps) {
   const {
     goToNext,
     goToPrevious,
@@ -122,21 +119,8 @@ export function FixedNavigationBar({
     </div>
   )
 
-  // When showBorders=false, parent containers handle width constraints and padding
-  // Just render the button row directly
-  const content = showBorders ? (
-    <div className="flex items-center justify-center w-full">
-      {/* Parent container: max-w-[608px] + px-4 (16px padding) */}
-      <div className="w-full max-w-[608px] px-4 border-l border-r border-dashed border-border">
-        {/* Inner container: fills parent + px-4 (16px padding) */}
-        <div className="w-full px-4 border-l border-r border-dashed border-border">
-          {buttonRow}
-        </div>
-      </div>
-    </div>
-  ) : (
-    buttonRow
-  )
+  // Parent containers (OnboardingShell) handle borders - just render button row
+  const content = buttonRow
 
   if (fixed) {
     return (

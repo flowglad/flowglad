@@ -4,11 +4,13 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import ErrorLabel from '@/components/ErrorLabel'
-import { FixedNavigationBar } from '@/components/onboarding/FixedNavigationBar'
 import {
   MultiStepForm,
   useMultiStepForm,
 } from '@/components/onboarding/MultiStepForm'
+import { NavigationBar } from '@/components/onboarding/NavigationBar'
+import { OnboardingContent } from '@/components/onboarding/OnboardingContent'
+import { OnboardingShell } from '@/components/onboarding/OnboardingShell'
 import { useAuthContext } from '@/contexts/authContext'
 import core from '@/utils/core'
 import { CodebaseAnalysisStep } from './steps/CodebaseAnalysisStep'
@@ -77,29 +79,13 @@ export default function BusinessDetailsPage() {
 
 function BusinessDetailsLoadingFallback() {
   return (
-    <div className="min-h-screen relative grid place-items-center">
-      {/* Full-height dashed borders (visual layer) */}
-      <div className="pointer-events-none absolute inset-y-0 left-1/2 w-full max-w-[608px] -translate-x-1/2 px-4">
-        <div className="h-full w-full border-l border-r border-dashed border-border">
-          <div className="h-full w-full px-4">
-            <div className="h-full w-full border-l border-r border-dashed border-border" />
-          </div>
-        </div>
-      </div>
-
-      {/* Content layer - natural height */}
-      <div className="w-full max-w-[608px]">
-        <div className="w-full px-4 border-l border-r border-dashed border-transparent">
-          <div className="w-full px-4 border-l border-r border-dashed border-transparent">
-            <div className="flex flex-col justify-center py-8">
-              {/* Empty placeholder matching the layout structure */}
-            </div>
-            {/* Bottom bar placeholder with full-bleed border */}
-            <div className="w-full relative bg-background before:absolute before:top-0 before:left-1/2 before:-translate-x-1/2 before:w-screen before:border-t before:border-border" />
-          </div>
-        </div>
-      </div>
-    </div>
+    <OnboardingShell>
+      <OnboardingContent>
+        {/* Empty placeholder - skeleton could be added here */}
+        {/* Bottom bar placeholder with full-bleed border */}
+        <div className="w-full relative before:absolute before:top-0 before:left-1/2 before:-translate-x-1/2 before:w-screen before:border-t before:border-border" />
+      </OnboardingContent>
+    </OnboardingShell>
   )
 }
 
@@ -173,36 +159,18 @@ function BusinessDetailsContent() {
       onStepChange={handleStepChange}
       analyticsPrefix="onboarding_business_details"
     >
-      <div className="min-h-screen relative grid place-items-center">
-        {/* Full-height dashed borders (visual layer) */}
-        <div className="pointer-events-none absolute inset-y-0 left-1/2 w-full max-w-[608px] -translate-x-1/2 px-4">
-          <div className="h-full w-full border-l border-r border-dashed border-border">
-            <div className="h-full w-full px-4">
-              <div className="h-full w-full border-l border-r border-dashed border-border" />
-            </div>
-          </div>
-        </div>
-
-        {/* Content layer - natural height */}
-        <div className="w-full max-w-[608px]">
-          <div className="w-full px-4 border-l border-r border-dashed border-transparent">
-            <div className="w-full px-4 border-l border-r border-dashed border-transparent">
-              <div className="flex flex-col justify-center py-8">
-                <FormContent />
-              </div>
-
-              {/* Full-width bottom bar - flows with content, not fixed */}
-              {/* showBorders={false} because parent containers provide the dashed borders */}
-              <FixedNavigationBar
-                hideBackOnFirstStep
-                showProgress
-                fixed={false}
-                showBorders={false}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
+      <OnboardingShell>
+        {/* Content area - vertically centered, includes form and navigation */}
+        <OnboardingContent>
+          <FormContent />
+          {/* Navigation bar - flows naturally after form content */}
+          <NavigationBar
+            hideBackOnFirstStep
+            showProgress
+            fixed={false}
+          />
+        </OnboardingContent>
+      </OnboardingShell>
     </MultiStepForm>
   )
 }
