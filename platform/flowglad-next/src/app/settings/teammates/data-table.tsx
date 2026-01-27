@@ -1,6 +1,5 @@
 'use client'
 
-import type { TableMeta } from '@tanstack/react-table'
 import {
   type ColumnFiltersState,
   type ColumnSizingState,
@@ -30,6 +29,7 @@ import {
 } from '@/components/ui/table'
 import {
   columns,
+  type OrganizationMemberTableMeta,
   type OrganizationMemberTableRowData,
 } from './columns'
 
@@ -113,16 +113,15 @@ export function OrganizationMembersDataTable({
     React.useState<ColumnSizingState>({})
 
   // Build the table meta for passing context to cells
-  const tableMeta: TableMeta<OrganizationMemberTableRowData> =
-    React.useMemo(
-      () => ({
-        currentMembership: focusedMembershipData?.membership ?? null,
-        onRemoveMember: (member: OrganizationMemberTableRowData) => {
-          setMemberToRemove(member)
-        },
-      }),
-      [focusedMembershipData?.membership]
-    )
+  const tableMeta: OrganizationMemberTableMeta = React.useMemo(
+    () => ({
+      currentMembership: focusedMembershipData?.membership ?? null,
+      onRemoveMember: (member: OrganizationMemberTableRowData) => {
+        setMemberToRemove(member)
+      },
+    }),
+    [focusedMembershipData?.membership]
+  )
 
   const table = useReactTable({
     data: data?.items || [],

@@ -20,8 +20,6 @@ dist
 **/src/**/*.d.ts
 # Exception: test globals declaration needed for test infrastructure
 !platform/flowglad-next/src/test/globals.d.ts
-# Exception: tanstack-table module augmentation for TableMeta types
-!platform/flowglad-next/src/tanstack-table.d.ts
 
 generated/styles.ts
 .turbo
