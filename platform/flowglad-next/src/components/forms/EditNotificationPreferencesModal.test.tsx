@@ -101,7 +101,7 @@ mock.module('./NotificationPreferencesFormFields', () => ({
   ),
 }))
 
-// Import component AFTER mock.module calls (bun:test doesn't hoist mocks)
+// Import component AFTER mock.module calls
 import EditNotificationPreferencesModal from './EditNotificationPreferencesModal'
 
 describe('EditNotificationPreferencesModal', () => {

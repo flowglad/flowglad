@@ -66,7 +66,7 @@ mock.module('@/components/forms/FormModal', async () => {
   }
 })
 
-// Import component AFTER mock.module calls (bun:test doesn't hoist mocks)
+// Import component AFTER mock.module calls
 import DeleteApiKeyModal from '@/components/forms/DeleteApiKeyModal'
 
 describe('DeleteApiKeyModal', () => {

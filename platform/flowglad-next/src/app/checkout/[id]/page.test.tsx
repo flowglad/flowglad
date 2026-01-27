@@ -67,7 +67,7 @@ mock.module('@/utils/checkoutHelpers', () => ({
   })),
 }))
 
-// Import Page AFTER mock.module calls (bun:test doesn't hoist mocks)
+// Import component AFTER mock.module calls
 import Page from './page'
 
 describe('CheckoutSessionPage', () => {

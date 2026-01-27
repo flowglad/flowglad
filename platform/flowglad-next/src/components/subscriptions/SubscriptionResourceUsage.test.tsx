@@ -15,7 +15,7 @@ mock.module('@/app/_trpc/client', () => ({
   },
 }))
 
-// Import component AFTER mock.module calls (bun:test doesn't hoist mocks)
+// Import component AFTER mock.module calls
 import { SubscriptionResourceUsage } from './SubscriptionResourceUsage'
 
 describe('SubscriptionResourceUsage', () => {
