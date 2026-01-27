@@ -3,6 +3,7 @@ import { adminTransaction } from '@/db/adminTransaction'
 import type { CreateOrganizationInput } from '@/db/schema/organizations'
 import { selectApiKeys } from '@/db/tableMethods/apiKeyMethods'
 import { selectCountries } from '@/db/tableMethods/countryMethods'
+import { selectMemberships } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizations } from '@/db/tableMethods/organizationMethods'
 import { selectPricesAndProductByProductId } from '@/db/tableMethods/priceMethods'
 import { selectPricingModels } from '@/db/tableMethods/pricingModelMethods'
@@ -10,6 +11,7 @@ import { selectProducts } from '@/db/tableMethods/productMethods'
 import {
   CurrencyCode,
   FlowgladApiKeyType,
+  MembershipRole,
   StripeConnectContractType,
 } from '@/types'
 import {
@@ -177,6 +179,48 @@ describe('createOrganizationTransaction', () => {
        * they can only be created once the organization has payouts enabled.
        */
       expect(livemodeKeys.length).toBe(0)
+    })
+  })
+
+  it('sets the creator membership role to owner', async () => {
+    const organizationName = `org_${core.nanoid()}`
+    const userId = core.nanoid()
+
+    await adminTransaction(async ({ transaction }) => {
+      const countryId =
+        await getPlatformEligibleCountryId(transaction)
+      const input: CreateOrganizationInput = {
+        organization: {
+          name: organizationName,
+          countryId,
+        },
+      }
+      return createOrganizationTransaction(
+        input,
+        {
+          id: userId,
+          email: `test+${core.nanoid()}@test.com`,
+          fullName: 'Test User',
+        },
+        transaction,
+        { type: 'admin', livemode: true }
+      )
+    })
+
+    await adminTransaction(async ({ transaction }) => {
+      const [organization] = await selectOrganizations(
+        { name: organizationName },
+        transaction
+      )
+      expect(typeof organization).toBe('object')
+
+      const [membership] = await selectMemberships(
+        { organizationId: organization.id, userId },
+        transaction
+      )
+      expect(typeof membership).toBe('object')
+
+      expect(membership.role).toBe(MembershipRole.Owner)
     })
   })
 
