@@ -90,9 +90,8 @@ interface MultiStepFormContextValue<TFormData extends FieldValues> {
   currentStep: StepConfig<z.ZodType> | undefined
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const MultiStepFormContext =
-  createContext<MultiStepFormContextValue<any> | null>(null)
+  createContext<MultiStepFormContextValue<FieldValues> | null>(null)
 
 export function useMultiStepForm<T extends FieldValues>() {
   const context = useContext(MultiStepFormContext)
@@ -242,7 +241,13 @@ export function MultiStepForm<T extends FieldValues>({
 
     if (isLastStep) {
       try {
-        await form.handleSubmit(onComplete)()
+        // Call onComplete directly instead of through handleSubmit.
+        // handleSubmit internally catches errors and doesn't rethrow them,
+        // which prevents our try-catch from catching API errors.
+        // Since validateCurrentStep() already validated the form, we can
+        // safely call onComplete with the current values.
+        const data = form.getValues()
+        await onComplete(data)
       } catch (error) {
         // Set root error so the UI can display feedback
         form.setError('root', {
@@ -347,7 +352,9 @@ export function MultiStepForm<T extends FieldValues>({
   }
 
   return (
-    <MultiStepFormContext.Provider value={contextValue}>
+    <MultiStepFormContext.Provider
+      value={contextValue as MultiStepFormContextValue<FieldValues>}
+    >
       <FormProvider {...form}>{children}</FormProvider>
     </MultiStepFormContext.Provider>
   )

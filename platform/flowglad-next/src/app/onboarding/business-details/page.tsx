@@ -112,10 +112,27 @@ function BusinessDetailsContent() {
 
   // Handle form completion
   const handleComplete = async (data: BusinessDetailsFormData) => {
-    const { organization } = await createOrganization.mutateAsync({
-      organization: data.organization,
-      codebaseMarkdown: data.codebaseMarkdown,
-    })
+    let organization: Awaited<
+      ReturnType<typeof createOrganization.mutateAsync>
+    >['organization']
+
+    try {
+      const result = await createOrganization.mutateAsync({
+        organization: data.organization,
+        codebaseMarkdown: data.codebaseMarkdown,
+      })
+      organization = result.organization
+    } catch (err) {
+      // Log for debugging
+      console.error('Failed to create organization:', err)
+
+      // Re-throw with user-friendly message for MultiStepForm to catch and display
+      const message =
+        err instanceof Error
+          ? err.message
+          : 'Failed to create organization. Please try again.'
+      throw new Error(message)
+    }
 
     // Non-critical: referral tracking (don't block on failure)
     if (data.referralSource) {

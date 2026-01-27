@@ -36,7 +36,7 @@ export function OrganizationNameStep() {
             <FormControl>
               <Input
                 {...field}
-                placeholder="Acme Inc."
+                placeholder="Wayne Enterprises"
                 autoFocus
                 className="h-12"
               />
