@@ -258,6 +258,10 @@ describe('Customer Billing Portal Router', () => {
         .createCaller(ctx)
         .getBilling(input)
 
+      // Check array assertions BEFORE toMatchObject (bun:test mutates the object)
+      expect(Array.isArray(result.invoices)).toBe(true)
+      expect(result.invoices.length).toBeGreaterThanOrEqual(3)
+
       expect(result).toMatchObject({
         customer: expect.objectContaining({
           id: customer.id,
@@ -289,10 +293,6 @@ describe('Customer Billing Portal Router', () => {
           id: pricingModel.id,
         }),
       })
-
-      // Verify all invoices are returned when no pagination
-      expect(Array.isArray(result.invoices)).toBe(true)
-      expect(result.invoices.length).toBeGreaterThanOrEqual(3)
     })
 
     it('returns paginated billing data when pagination parameters provided', async () => {
