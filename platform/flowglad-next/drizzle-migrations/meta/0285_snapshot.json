@@ -1,6 +1,6 @@
 {
-  "id": "d8a4f5e2-1234-5678-9abc-def012345678",
-  "prevId": "c236ec7a-9cce-4efb-a4fe-5c5e0245b393",
+  "id": "2cd5e820-56a3-4e4a-b6c6-03517f3ec702",
+  "prevId": "d8a4f5e2-1234-5678-9abc-def012345678",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -10122,6 +10122,171 @@
         },
         "Check mode (subscriptions)": {
           "name": "Check mode (subscriptions)",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": ["merchant"],
+          "using": "current_setting('app.livemode')::boolean = livemode"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.sync_webhooks": {
+      "name": "sync_webhooks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamptz",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_by_commit": {
+          "name": "created_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "updated_by_commit": {
+          "name": "updated_by_commit",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "livemode": {
+          "name": "livemode",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "position": {
+          "name": "position",
+          "type": "bigserial",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "signing_secret": {
+          "name": "signing_secret",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "active": {
+          "name": "active",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        }
+      },
+      "indexes": {
+        "sync_webhooks_organization_id_idx": {
+          "name": "sync_webhooks_organization_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sync_webhooks_active_idx": {
+          "name": "sync_webhooks_active_idx",
+          "columns": [
+            {
+              "expression": "active",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sync_webhooks_organization_id_livemode_unique_idx": {
+          "name": "sync_webhooks_organization_id_livemode_unique_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "livemode",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "sync_webhooks_organization_id_organizations_id_fk": {
+          "name": "sync_webhooks_organization_id_organizations_id_fk",
+          "tableFrom": "sync_webhooks",
+          "tableTo": "organizations",
+          "columnsFrom": ["organization_id"],
+          "columnsTo": ["id"],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "sync_webhooks_id_unique": {
+          "name": "sync_webhooks_id_unique",
+          "nullsNotDistinct": false,
+          "columns": ["id"]
+        }
+      },
+      "policies": {
+        "Enable all for own organizations (sync_webhooks)": {
+          "name": "Enable all for own organizations (sync_webhooks)",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": ["merchant"],
+          "using": "\"organization_id\" = current_organization_id()"
+        },
+        "Check mode (sync_webhooks)": {
+          "name": "Check mode (sync_webhooks)",
           "as": "RESTRICTIVE",
           "for": "ALL",
           "to": ["merchant"],

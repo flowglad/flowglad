@@ -2,25 +2,25 @@
  * Register a sync webhook URL for an API key scope.
  *
  * Usage:
- *   bun run register-sync-webhook <api-key> <webhook-url> [--regenerate-secret]
+ *   bun run sync:register-webhook <api-key> <webhook-url> [--regenerate-secret]
  *
  * Examples:
- *   bun run register-sync-webhook sk_test_abc123 https://example.com/webhook
- *   bun run register-sync-webhook sk_live_xyz789 https://myapp.com/api/sync --regenerate-secret
+ *   bun run sync:register-webhook sk_test_abc123 https://example.com/webhook
+ *   bun run sync:register-webhook sk_live_xyz789 https://myapp.com/api/sync --regenerate-secret
  *
  * The script will:
  * 1. Verify the API key via Unkey
  * 2. Validate the webhook URL
  * 3. Generate a signing secret (or preserve existing one)
- * 4. Store the configuration in Redis
+ * 4. Store the configuration in the database
  * 5. Output the signing secret (save it securely!)
  *
  * Requires environment variables:
  *   - UNKEY_ROOT_KEY
- *   - UPSTASH_REDIS_REST_URL
- *   - UPSTASH_REDIS_REST_TOKEN
+ *   - DATABASE_URL
  */
 
+import { adminTransaction } from '@/db/adminTransaction'
 import core from '@/utils/core'
 import { validateWebhookUrl } from '@/utils/syncWebhook'
 import {
@@ -38,7 +38,7 @@ interface ParsedArgs {
 
 function printUsage(): void {
   console.log(`
-Usage: bun run register-sync-webhook <api-key> <webhook-url> [options]
+Usage: bun run sync:register-webhook <api-key> <webhook-url> [options]
 
 Arguments:
   api-key      The Flowglad API key (e.g., sk_test_abc123 or sk_live_xyz789)
@@ -49,8 +49,8 @@ Options:
   --help               Show this help message
 
 Examples:
-  bun run register-sync-webhook sk_test_abc123 https://example.com/webhook
-  bun run register-sync-webhook sk_live_xyz789 https://myapp.com/api/sync --regenerate-secret
+  bun run sync:register-webhook sk_test_abc123 https://example.com/webhook
+  bun run sync:register-webhook sk_live_xyz789 https://myapp.com/api/sync --regenerate-secret
 `)
 }
 
@@ -136,48 +136,67 @@ async function main(): Promise<void> {
   }
   console.log(`   ✅ URL is valid: ${webhookUrl}\n`)
 
-  // Step 3: Build scope ID and register webhook
+  // Step 3: Register webhook in database
   const scopeId = buildScopeId(ownerId, livemode)
   console.log('3. Registering webhook...')
   console.log(`   Scope ID: ${scopeId}`)
 
-  // Check for existing config
-  const existing = await getSyncWebhookConfig(scopeId)
-  if (existing) {
-    console.log(`   Found existing webhook config`)
-    if (regenerateSecret) {
-      console.log(
-        `   --regenerate-secret flag set, will create new secret`
+  const result = await adminTransaction(
+    async ({ transaction }) => {
+      // Check for existing config
+      const existing = await getSyncWebhookConfig(
+        ownerId,
+        livemode,
+        transaction
       )
-    } else {
-      console.log(`   Preserving existing signing secret`)
-    }
-  }
 
-  const { config, isNew } = await registerSyncWebhook({
-    scopeId,
-    url: webhookUrl,
-    regenerateSecret,
-  })
+      if (existing) {
+        console.log(`   Found existing webhook config`)
+        if (regenerateSecret) {
+          console.log(
+            `   --regenerate-secret flag set, will create new secret`
+          )
+        } else {
+          console.log(`   Preserving existing signing secret`)
+        }
+      }
 
-  console.log(`   ✅ Webhook ${isNew ? 'created' : 'updated'}\n`)
+      const { webhook, isNew } = await registerSyncWebhook(
+        {
+          organizationId: ownerId,
+          livemode,
+          url: webhookUrl,
+          regenerateSecret,
+        },
+        transaction
+      )
+
+      return { webhook, isNew }
+    },
+    { livemode }
+  )
+
+  console.log(
+    `   ✅ Webhook ${result.isNew ? 'created' : 'updated'}\n`
+  )
 
   // Step 4: Output the results
   console.log('═'.repeat(60))
   console.log('  SYNC WEBHOOK CONFIGURATION')
   console.log('═'.repeat(60))
+  console.log(`  ID:            ${result.webhook.id}`)
   console.log(`  Scope ID:      ${scopeId}`)
-  console.log(`  Webhook URL:   ${config.url}`)
-  console.log(`  Active:        ${config.active}`)
-  console.log(`  Created:       ${config.createdAt}`)
-  console.log(`  Updated:       ${config.updatedAt}`)
+  console.log(`  Webhook URL:   ${result.webhook.url}`)
+  console.log(`  Active:        ${result.webhook.active}`)
+  console.log(`  Created:       ${result.webhook.createdAt}`)
+  console.log(`  Updated:       ${result.webhook.updatedAt}`)
   console.log('─'.repeat(60))
   console.log('  SIGNING SECRET (save this securely!)')
   console.log('─'.repeat(60))
-  console.log(`  ${config.secret}`)
+  console.log(`  ${result.webhook.signingSecret}`)
   console.log('═'.repeat(60))
 
-  if (isNew || regenerateSecret) {
+  if (result.isNew || regenerateSecret) {
     console.log('\n⚠️  IMPORTANT: Save the signing secret above!')
     console.log('   This secret will NOT be shown again.')
     console.log(

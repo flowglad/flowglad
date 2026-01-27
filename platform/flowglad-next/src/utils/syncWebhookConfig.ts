@@ -1,34 +1,12 @@
-import { z } from 'zod'
-import { redis } from '@/utils/redis'
+import type { SyncWebhook } from '@/db/schema/syncWebhooks'
+import {
+  selectActiveSyncWebhookByScope,
+  selectSyncWebhookByScope,
+  updateSyncWebhook,
+  upsertSyncWebhook,
+} from '@/db/tableMethods/syncWebhookMethods'
+import type { DbTransaction } from '@/db/types'
 import { generateSigningSecret } from '@/utils/webhookSignature'
-
-/**
- * Sync webhook configuration stored in Redis.
- * Key format: sync_webhook:{scopeId}
- */
-export const syncWebhookConfigSchema = z.object({
-  /** The webhook endpoint URL */
-  url: z.string().url(),
-  /** The signing secret (hex string) */
-  secret: z.string().min(64).max(64),
-  /** When the config was created */
-  createdAt: z.string().datetime(),
-  /** When the config was last updated */
-  updatedAt: z.string().datetime(),
-  /** Whether the webhook is active */
-  active: z.boolean(),
-})
-
-export type SyncWebhookConfig = z.infer<
-  typeof syncWebhookConfigSchema
->
-
-/**
- * Build the Redis key for a sync webhook config.
- */
-export const getSyncWebhookConfigKey = (scopeId: string): string => {
-  return `sync_webhook:${scopeId}`
-}
 
 /**
  * Build a scope ID from organization ID and livemode.
@@ -62,48 +40,33 @@ export const parseScopeId = (
 }
 
 /**
- * Get a sync webhook config from Redis.
+ * Get a sync webhook config by scope.
  */
 export const getSyncWebhookConfig = async (
-  scopeId: string
-): Promise<SyncWebhookConfig | null> => {
-  const client = redis()
-  const key = getSyncWebhookConfigKey(scopeId)
-  const data = await client.get(key)
-
-  if (!data) {
-    return null
-  }
-
-  try {
-    return syncWebhookConfigSchema.parse(data)
-  } catch {
-    return null
-  }
+  organizationId: string,
+  livemode: boolean,
+  transaction: DbTransaction
+): Promise<SyncWebhook.Record | null> => {
+  return selectSyncWebhookByScope(
+    organizationId,
+    livemode,
+    transaction
+  )
 }
 
 /**
- * Set a sync webhook config in Redis.
+ * Get an active sync webhook config by scope.
  */
-export const setSyncWebhookConfig = async (
-  scopeId: string,
-  config: SyncWebhookConfig
-): Promise<void> => {
-  const client = redis()
-  const key = getSyncWebhookConfigKey(scopeId)
-  const validated = syncWebhookConfigSchema.parse(config)
-  await client.set(key, validated)
-}
-
-/**
- * Delete a sync webhook config from Redis.
- */
-export const deleteSyncWebhookConfig = async (
-  scopeId: string
-): Promise<void> => {
-  const client = redis()
-  const key = getSyncWebhookConfigKey(scopeId)
-  await client.del(key)
+export const getActiveSyncWebhookConfig = async (
+  organizationId: string,
+  livemode: boolean,
+  transaction: DbTransaction
+): Promise<SyncWebhook.Record | null> => {
+  return selectActiveSyncWebhookByScope(
+    organizationId,
+    livemode,
+    transaction
+  )
 }
 
 /**
@@ -117,59 +80,85 @@ export const deleteSyncWebhookConfig = async (
  * - A new signing secret is generated
  * - The config is created
  *
- * @returns The webhook config (including the signing secret)
+ * @returns The webhook record (including the signing secret) and whether it was newly created
  */
-export const registerSyncWebhook = async (params: {
-  scopeId: string
-  url: string
-  regenerateSecret?: boolean
-}): Promise<{ config: SyncWebhookConfig; isNew: boolean }> => {
-  const { scopeId, url, regenerateSecret = false } = params
-  const now = new Date().toISOString()
+export const registerSyncWebhook = async (
+  params: {
+    organizationId: string
+    livemode: boolean
+    url: string
+    regenerateSecret?: boolean
+  },
+  transaction: DbTransaction
+): Promise<{ webhook: SyncWebhook.Record; isNew: boolean }> => {
+  const {
+    organizationId,
+    livemode,
+    url,
+    regenerateSecret = false,
+  } = params
 
   // Check for existing config
-  const existing = await getSyncWebhookConfig(scopeId)
+  const existing = await selectSyncWebhookByScope(
+    organizationId,
+    livemode,
+    transaction
+  )
 
   if (existing && !regenerateSecret) {
     // Update URL only, preserve secret
-    const updated: SyncWebhookConfig = {
-      ...existing,
-      url,
-      updatedAt: now,
-      active: true,
-    }
-    await setSyncWebhookConfig(scopeId, updated)
-    return { config: updated, isNew: false }
+    const updated = await updateSyncWebhook(
+      {
+        id: existing.id,
+        url,
+        active: true,
+      },
+      transaction
+    )
+    return { webhook: updated, isNew: false }
   }
 
-  // Create new config with fresh secret
-  const config: SyncWebhookConfig = {
-    url,
-    secret: generateSigningSecret(),
-    createdAt: existing?.createdAt ?? now,
-    updatedAt: now,
-    active: true,
-  }
-  await setSyncWebhookConfig(scopeId, config)
-  return { config, isNew: !existing }
+  // Create or update with fresh secret
+  const signingSecret = generateSigningSecret()
+  const webhook = await upsertSyncWebhook(
+    {
+      organizationId,
+      livemode,
+      url,
+      signingSecret,
+      active: true,
+    },
+    transaction
+  )
+
+  return { webhook, isNew: !existing }
 }
 
 /**
  * Deactivate a sync webhook without deleting it.
  */
 export const deactivateSyncWebhook = async (
-  scopeId: string
+  organizationId: string,
+  livemode: boolean,
+  transaction: DbTransaction
 ): Promise<boolean> => {
-  const existing = await getSyncWebhookConfig(scopeId)
+  const existing = await selectSyncWebhookByScope(
+    organizationId,
+    livemode,
+    transaction
+  )
+
   if (!existing) {
     return false
   }
 
-  const updated: SyncWebhookConfig = {
-    ...existing,
-    active: false,
-    updatedAt: new Date().toISOString(),
-  }
-  await setSyncWebhookConfig(scopeId, updated)
+  await updateSyncWebhook(
+    {
+      id: existing.id,
+      active: false,
+    },
+    transaction
+  )
+
   return true
 }
