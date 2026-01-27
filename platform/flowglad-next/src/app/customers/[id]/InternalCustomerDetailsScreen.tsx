@@ -1,5 +1,5 @@
 'use client'
-import { Mail, Pencil, RefreshCw } from 'lucide-react'
+import { Archive, Mail, Pencil, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import EditCustomerModal from '@/components/forms/EditCustomerModal'
@@ -37,6 +37,8 @@ function InternalCustomerDetailsScreen({
   const [isMigrateOpen, setIsMigrateOpen] = useState(false)
   const [isMoreMenuOpen, setIsMoreMenuOpen] = useState(false)
 
+  const isArchived = customer.archived
+
   const moreMenuItems: PopoverMenuItem[] = [
     {
       label: 'Edit',
@@ -45,6 +47,7 @@ function InternalCustomerDetailsScreen({
         setIsEditOpen(true)
       },
       icon: <Pencil className="h-4 w-4" />,
+      disabled: isArchived,
     },
     {
       label: 'Migrate Pricing Model',
@@ -53,6 +56,7 @@ function InternalCustomerDetailsScreen({
         setIsMigrateOpen(true)
       },
       icon: <RefreshCw className="h-4 w-4" />,
+      disabled: isArchived,
     },
     ...(customer.email
       ? [
@@ -76,8 +80,17 @@ function InternalCustomerDetailsScreen({
           breadcrumb="Customers"
           onBreadcrumbClick={() => router.push('/customers')}
           className="pb-4"
-          badges={
-            customer.email
+          badges={[
+            ...(isArchived
+              ? [
+                  {
+                    icon: <Archive className="h-3.5 w-3.5" />,
+                    label: 'Archived',
+                    variant: 'destructive' as const,
+                  },
+                ]
+              : []),
+            ...(customer.email
               ? [
                   {
                     icon: <Mail className="h-3.5 w-3.5" />,
@@ -85,8 +98,8 @@ function InternalCustomerDetailsScreen({
                     variant: 'muted' as const,
                   },
                 ]
-              : []
-          }
+              : []),
+          ]}
           description={
             <div className="flex items-center gap-2">
               <CopyableField
