@@ -8,6 +8,7 @@ import {
   useState,
 } from 'react'
 import {
+  type DefaultValues,
   type FieldValues,
   FormProvider,
   type UseFormReturn,
@@ -58,7 +59,7 @@ export function useMultiStepForm<T extends FieldValues>() {
 
 interface MultiStepFormProps<T extends FieldValues> {
   schema: z.ZodType<T>
-  defaultValues: Partial<T>
+  defaultValues: DefaultValues<T>
   steps: StepConfig<z.ZodType>[]
   onComplete: (data: T) => Promise<void>
   persistKey?: string
@@ -90,7 +91,7 @@ export function MultiStepForm<T extends FieldValues>({
     // Type assertion needed because Zod 4's ZodSchema<T> has unknown input type,
     // but zodResolver expects FieldValues. This is safe because T extends FieldValues.
     resolver: zodResolver(schema as z.ZodType<T, T>),
-    defaultValues: defaultValues as T,
+    defaultValues,
     mode: 'onChange',
   })
 
