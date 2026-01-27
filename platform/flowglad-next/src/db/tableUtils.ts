@@ -162,59 +162,10 @@ export interface ORMMethodCreatorConfig<
   tableName: string
 }
 
-export const createSelectById = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const selectSchema = config.selectSchema
-
-  return async function selectById(
-    id: InferSelectModel<T>['id'] extends string ? string : number,
-    transaction: DbTransaction
-  ): Promise<z.infer<S>> {
-    /**
-     * NOTE we don't simply use selectByIds here
-     * because a simple equality check is generally more performant
-     */
-    try {
-      const results = await transaction
-        .select()
-        .from(table as SelectTable)
-        .where(eq(table.id, id))
-      if (results.length === 0) {
-        throw new NotFoundError(config.tableName, id)
-      }
-      const result = results[0]
-      return selectSchema.parse(result)
-    } catch (error) {
-      // Re-throw NotFoundError as-is to preserve type-safe error handling
-      if (error instanceof NotFoundError) {
-        throw error
-      }
-      if (!IS_TEST) {
-        console.error(
-          `[selectById] Error selecting ${config.tableName} with id ${id}:`,
-          error
-        )
-      }
-      throw new Error(
-        `Failed to select ${config.tableName} by id ${id}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
 /**
  * Creates a selectById function that returns a Result instead of throwing.
- * Use this for functions that are being migrated to Result-based error handling.
  */
-export const createSelectByIdResult = <
+export const createSelectById = <
   T extends PgTableWithId,
   S extends ZodTableUnionOrType<InferSelectModel<T>>,
   I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,

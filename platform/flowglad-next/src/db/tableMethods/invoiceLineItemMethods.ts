@@ -14,7 +14,7 @@ import {
   createInsertFunction,
   createInsertManyFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -50,7 +50,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'invoice_line_items',
 }
 
-export const selectInvoiceLineItemById = createSelectByIdResult(
+export const selectInvoiceLineItemById = createSelectById(
   invoiceLineItems,
   config
 )

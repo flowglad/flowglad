@@ -13,7 +13,7 @@ import {
   createDerivePricingModelId,
   createDerivePricingModelIds,
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -41,7 +41,7 @@ const config: ORMMethodCreatorConfig<
   updateSchema: usageCreditsUpdateSchema,
 }
 
-export const selectUsageCreditById = createSelectByIdResult(
+export const selectUsageCreditById = createSelectById(
   usageCredits,
   config
 )

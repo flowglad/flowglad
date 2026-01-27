@@ -10,7 +10,7 @@ import {
 import {
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   NotFoundError,
@@ -40,7 +40,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'checkout_sessions',
 }
 
-export const selectCheckoutSessionById = createSelectByIdResult(
+export const selectCheckoutSessionById = createSelectById(
   checkoutSessions,
   config
 )

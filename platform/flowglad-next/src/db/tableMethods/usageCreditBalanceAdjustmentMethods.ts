@@ -7,7 +7,7 @@ import {
 } from '@/db/schema/usageCreditBalanceAdjustments'
 import {
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -28,7 +28,7 @@ const config: ORMMethodCreatorConfig<
 }
 
 export const selectUsageCreditBalanceAdjustmentById =
-  createSelectByIdResult(usageCreditBalanceAdjustments, config)
+  createSelectById(usageCreditBalanceAdjustments, config)
 
 const baseInsertUsageCreditBalanceAdjustment = createInsertFunction(
   usageCreditBalanceAdjustments,

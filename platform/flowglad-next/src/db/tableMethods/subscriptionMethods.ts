@@ -30,7 +30,7 @@ import {
   createDerivePricingModelIds,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -83,7 +83,7 @@ export type SubscriptionTableFilters = SelectConditions<
   productName?: string
 }
 
-export const selectSubscriptionById = createSelectByIdResult(
+export const selectSubscriptionById = createSelectById(
   subscriptions,
   config
 )

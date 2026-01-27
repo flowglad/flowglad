@@ -19,7 +19,7 @@ import {
   createBulkInsertFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -38,7 +38,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'resource_claims',
 }
 
-export const selectResourceClaimById = createSelectByIdResult(
+export const selectResourceClaimById = createSelectById(
   resourceClaims,
   config
 )

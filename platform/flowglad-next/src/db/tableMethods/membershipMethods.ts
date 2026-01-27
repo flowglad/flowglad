@@ -16,7 +16,7 @@ import type { User } from '@/db/schema/users'
 import {
   createCursorPaginatedSelectFunction,
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -69,7 +69,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'memberships',
 }
 
-export const selectMembershipById = createSelectByIdResult(
+export const selectMembershipById = createSelectById(
   memberships,
   config
 )

@@ -20,7 +20,7 @@ import {
   createDerivePricingModelId,
   createDerivePricingModelIds,
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -53,7 +53,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'billing_periods',
 }
 
-export const selectBillingPeriodById = createSelectByIdResult(
+export const selectBillingPeriodById = createSelectById(
   billingPeriods,
   config
 )

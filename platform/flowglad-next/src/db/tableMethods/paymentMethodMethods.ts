@@ -10,7 +10,7 @@ import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -39,7 +39,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'payment_methods',
 }
 
-export const selectPaymentMethodById = createSelectByIdResult(
+export const selectPaymentMethodById = createSelectById(
   paymentMethods,
   config
 )

@@ -10,7 +10,7 @@ import {
 import {
   createBulkInsertFunction,
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -65,7 +65,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'usage_ledger_items',
 }
 
-export const selectLedgerEntryById = createSelectByIdResult(
+export const selectLedgerEntryById = createSelectById(
   ledgerEntries,
   config
 )

@@ -25,7 +25,7 @@ import {
   createCursorPaginatedSelectFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -51,7 +51,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'usage_events',
 }
 
-export const selectUsageEventById = createSelectByIdResult(
+export const selectUsageEventById = createSelectById(
   usageEvents,
   config
 )

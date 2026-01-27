@@ -13,7 +13,7 @@ import { subscriptions } from '@/db/schema/subscriptions'
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -34,7 +34,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'events',
 }
 
-export const selectEventById = createSelectByIdResult(events, config)
+export const selectEventById = createSelectById(events, config)
 
 export const insertEvent = createInsertFunction(events, config)
 

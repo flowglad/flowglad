@@ -8,7 +8,7 @@ import {
 } from '@/db/schema/subscriptionMeterPeriodCalculations'
 import {
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -31,7 +31,7 @@ const config: ORMMethodCreatorConfig<
 }
 
 export const selectSubscriptionMeterPeriodCalculationById =
-  createSelectByIdResult(subscriptionMeterPeriodCalculations, config)
+  createSelectById(subscriptionMeterPeriodCalculations, config)
 
 const baseInsertSubscriptionMeterPeriodCalculation =
   createInsertFunction(subscriptionMeterPeriodCalculations, config)

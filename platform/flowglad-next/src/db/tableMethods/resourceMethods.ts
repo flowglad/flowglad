@@ -14,7 +14,7 @@ import {
   createCursorPaginatedSelectFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -36,10 +36,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'resources',
 }
 
-export const selectResourceById = createSelectByIdResult(
-  resources,
-  config
-)
+export const selectResourceById = createSelectById(resources, config)
 
 export const insertResource = createInsertFunction(resources, config)
 

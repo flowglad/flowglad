@@ -8,7 +8,7 @@ import {
 import {
   createBulkInsertOrDoNothingFunction,
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -36,7 +36,7 @@ const config: ORMMethodCreatorConfig<
   tableName: TABLE_NAME,
 }
 
-export const selectLedgerAccountById = createSelectByIdResult(
+export const selectLedgerAccountById = createSelectById(
   ledgerAccounts,
   config
 )

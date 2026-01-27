@@ -13,7 +13,7 @@ import {
 import {
   createBulkUpsertFunction,
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   createUpsertFunction,
@@ -52,8 +52,10 @@ const config: ORMMethodCreatorConfig<
   updateSchema: subscriptionItemFeaturesUpdateSchema,
 }
 
-export const selectSubscriptionItemFeatureById =
-  createSelectByIdResult(subscriptionItemFeatures, config)
+export const selectSubscriptionItemFeatureById = createSelectById(
+  subscriptionItemFeatures,
+  config
+)
 
 export const selectClientSubscriptionItemFeatureAndFeatureById =
   async (id: string, transaction: DbTransaction) => {

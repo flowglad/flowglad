@@ -25,7 +25,7 @@ import {
   createCursorPaginatedSelectFunction,
   createInsertFunction,
   createPaginatedSelectFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -68,10 +68,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'payments',
 }
 
-export const selectPaymentById = createSelectByIdResult(
-  payments,
-  config
-)
+export const selectPaymentById = createSelectById(payments, config)
 
 /**
  * Derives pricingModelId for a payment with COALESCE logic.

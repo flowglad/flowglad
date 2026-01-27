@@ -7,7 +7,7 @@ import {
 } from '@/db/schema/refunds'
 import {
   createInsertFunction,
-  createSelectByIdResult,
+  createSelectById,
   createSelectFunction,
   createUpdateFunction,
   type ORMMethodCreatorConfig,
@@ -27,10 +27,7 @@ const config: ORMMethodCreatorConfig<
   tableName: 'refunds',
 }
 
-export const selectRefundById = createSelectByIdResult(
-  refunds,
-  config
-)
+export const selectRefundById = createSelectById(refunds, config)
 
 /**
  * Derives pricingModelId from a payment.
