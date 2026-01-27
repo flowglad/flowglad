@@ -80,8 +80,9 @@ jobs:
           echo "Files: $shard_files"
 
           # Run bun test with the selected files
+          # Use absolute path for preload to ensure it's found when running via xargs
           if [ -n "$shard_files" ]; then
-            echo "$shard_files" | xargs bun test --preload ./bun.setup.ts
+            echo "$shard_files" | xargs bun test --preload "$PWD/bun.setup.ts"
           else
             echo "No files to test in this shard"
           fi
