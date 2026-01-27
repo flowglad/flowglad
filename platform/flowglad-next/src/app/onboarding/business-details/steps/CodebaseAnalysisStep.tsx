@@ -11,7 +11,6 @@ import {
   FormControl,
   FormField,
   FormItem,
-  FormLabel,
 } from '@/components/ui/form'
 import { Textarea } from '@/components/ui/textarea'
 import analyzeCodebasePrompt from '@/prompts/analyze-codebase.md'
@@ -26,47 +25,23 @@ export function CodebaseAnalysisStep() {
 
   return (
     <StepContainer
-      title="Share your codebase overview"
-      description="This helps us generate a tailored integration guide."
+      title="Codebase Context"
+      description="Use the prompt to have AI analyze your codebase, then paste the result here. This is optional but helps us provide better integration guidance."
     >
       <div className="space-y-4">
-        <FormField
-          control={form.control}
-          name="codebaseMarkdown"
-          render={({ field }) => (
-            <FormItem>
-              {/* Explicit "(optional)" label for clarity */}
-              <FormLabel className="text-sm text-muted-foreground">
-                Codebase analysis{' '}
-                <span className="text-muted-foreground/60">
-                  (optional)
-                </span>
-              </FormLabel>
-              <FormControl>
-                <Textarea
-                  {...field}
-                  value={field.value ?? ''}
-                  placeholder="Paste your codebase analysis here, or continue without..."
-                  className="min-h-[150px] resize-none"
-                />
-              </FormControl>
-            </FormItem>
-          )}
-        />
-
         <div className="flex gap-2">
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={copyPromptHandler}
           >
-            <Copy className="mr-2 h-4 w-4" />
-            Copy Analysis Prompt
+            Copy Prompt
+            <Copy className="ml-2 h-4 w-4" />
           </Button>
           <Button
             type="button"
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => {
               window.open(
@@ -80,6 +55,23 @@ export function CodebaseAnalysisStep() {
             <CursorLogo />
           </Button>
         </div>
+
+        <FormField
+          control={form.control}
+          name="codebaseMarkdown"
+          render={({ field }) => (
+            <FormItem>
+              <FormControl>
+                <Textarea
+                  {...field}
+                  value={field.value ?? ''}
+                  placeholder="Paste the AI-generated analysis here (optional)"
+                  className="resize-none"
+                />
+              </FormControl>
+            </FormItem>
+          )}
+        />
       </div>
       {/* "Continue" instead of "Skip" - consistent with other steps */}
       <StepNavigation nextLabel="Continue" />

@@ -1,4 +1,4 @@
-import { ArrowLeft, ArrowRight, Loader2 } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useMultiStepForm } from './MultiStepForm'
@@ -24,31 +24,32 @@ export function StepNavigation({
   const { isSubmitting } = form.formState
 
   return (
-    <div className={cn('flex items-center gap-3', className)}>
-      {showBack && !isFirstStep && (
+    <div className={cn('flex items-center justify-between mt-8', className)}>
+      {showBack && !isFirstStep ? (
         <Button
           type="button"
-          variant="ghost"
+          variant="outline"
           onClick={goToPrevious}
           disabled={isSubmitting}
         >
-          <ArrowLeft className="w-4 h-4 mr-2" />
+          <ChevronLeft className="w-4 h-4 mr-1" />
           {backLabel}
         </Button>
+      ) : (
+        <div />
       )}
 
       <Button
         type="button"
         onClick={goToNext}
         disabled={isSubmitting}
-        className="flex-1 max-w-[200px]"
       >
         {isSubmitting ? (
           <Loader2 className="w-4 h-4 animate-spin" />
         ) : (
           <>
             {isLastStep ? submitLabel : nextLabel}
-            {!isLastStep && <ArrowRight className="w-4 h-4 ml-2" />}
+            {!isLastStep && <ChevronRight className="w-4 h-4 ml-1" />}
           </>
         )}
       </Button>

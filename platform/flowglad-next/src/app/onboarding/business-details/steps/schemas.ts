@@ -25,7 +25,7 @@ export const codebaseAnalysisStepSchema = z.object({
 })
 
 export const referralStepSchema = z.object({
-  referralSource: referralOptionEnum,
+  referralSource: referralOptionEnum.optional(),
 })
 
 // Combined schema for the full form
@@ -38,7 +38,7 @@ export const businessDetailsFormSchema = z.object({
       .optional(),
   }),
   codebaseMarkdown: z.string().optional(),
-  referralSource: referralOptionEnum,
+  referralSource: referralOptionEnum.optional(),
 })
 
 export type BusinessDetailsFormData = z.infer<
