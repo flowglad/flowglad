@@ -213,7 +213,7 @@ describe('innerRemoveMemberFromOrganization', () => {
       expect(error).toBeInstanceOf(MembershipNotFoundError)
     })
 
-    it('returns MembershipNotFoundError when trying to remove the owner', async () => {
+    it('returns CannotRemoveOwnerError when trying to remove the owner', async () => {
       const result = await adminTransaction(
         async ({ transaction }) => {
           return innerRemoveMemberFromOrganization(
@@ -224,11 +224,9 @@ describe('innerRemoveMemberFromOrganization', () => {
         }
       )
 
-      // Note: This returns MembershipNotFoundError because we check CannotRemoveOwner
-      // only after checking if the member is an owner. But since a member can't remove
-      // an owner, it returns CannotRemoveOwnerError which is the correct behavior
+      // Owner role check happens before requester permission check,
+      // so attempting to remove an owner always returns CannotRemoveOwnerError
       expect(Result.isError(result)).toBe(true)
-      // The actual error is CannotRemoveOwnerError since we check that first
       const error = (result as { error: CannotRemoveOwnerError })
         .error
       expect(error).toBeInstanceOf(CannotRemoveOwnerError)
