@@ -42,7 +42,10 @@
 
 import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import { getStripeTestModeSecretKey } from '@/test/stripeIntegrationHelpers'
+import {
+  getStripeTestClient,
+  getStripeTestModeSecretKey,
+} from '@/test/stripeIntegrationHelpers'
 import { BusinessOnboardingStatus, type CountryCode } from '@/types'
 import core from '@/utils/core'
 import { createConnectedAccount } from '@/utils/stripe'
@@ -253,6 +256,16 @@ export const completeStripeOnboardingBehavior = defineBehavior({
         livemode: false, // Use test mode for integration tests
       })
       stripeAccountId = stripeAccount.id
+
+      // Accept TOS to enable capabilities (required for transfers)
+      // In test mode, we can programmatically accept the TOS
+      const stripe = getStripeTestClient()
+      await stripe.accounts.update(stripeAccountId, {
+        tos_acceptance: {
+          date: Math.floor(Date.now() / 1000),
+          ip: '127.0.0.1',
+        },
+      })
     } else {
       // Use fake account ID for unit tests (no real Stripe calls)
       stripeAccountId = `acct_test_${core.nanoid()}`
