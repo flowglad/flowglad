@@ -141,6 +141,10 @@
             "pages": ["api-reference/introduction"]
           }
         ]
+      },
+      {
+        "tab": "Changelog",
+        "pages": ["changelog"]
       }
     ],
     "global": {
