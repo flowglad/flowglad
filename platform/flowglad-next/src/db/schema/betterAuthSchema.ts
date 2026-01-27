@@ -1,9 +1,21 @@
 import {
   boolean,
+  pgEnum,
   pgTable,
   text,
   timestamp,
 } from 'drizzle-orm/pg-core'
+import { SessionScope } from '@/types'
+
+/**
+ * PostgreSQL enum type for session scopes.
+ * Exported so drizzle-kit can track it and generate CREATE TYPE migrations.
+ * Used to distinguish between merchant dashboard sessions and customer billing portal sessions.
+ */
+export const sessionScopeEnum = pgEnum('session_scope', [
+  SessionScope.Merchant,
+  SessionScope.Customer,
+])
 
 export const user = pgTable('better_auth_user', {
   id: text('id').primaryKey(),
@@ -34,6 +46,20 @@ export const session = pgTable('better_auth_session', {
   userId: text('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
+  /**
+   * Scope of the session - either 'merchant' for dashboard sessions
+   * or 'customer' for billing portal sessions.
+   * Defaults to 'merchant' for backward compatibility.
+   */
+  scope: sessionScopeEnum('scope')
+    .notNull()
+    .default(SessionScope.Merchant),
+  /**
+   * The organization ID associated with this session.
+   * For merchant sessions, this is the focused organization.
+   * For customer sessions, this is the billing portal organization being accessed.
+   */
+  contextOrganizationId: text('context_organization_id'),
 }).enableRLS()
 
 export const account = pgTable('better_auth_account', {

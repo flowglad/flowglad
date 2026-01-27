@@ -749,6 +749,15 @@ export enum MembershipRole {
   Member = 'member',
 }
 
+/**
+ * Scope for authentication sessions.
+ * Used to distinguish between merchant dashboard sessions and customer billing portal sessions.
+ */
+export enum SessionScope {
+  Merchant = 'merchant',
+  Customer = 'customer',
+}
+
 export enum BillingPeriodStatus {
   Upcoming = 'upcoming',
   Active = 'active',

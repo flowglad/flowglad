@@ -1,6 +1,6 @@
 {
-  "id": "360ed140-efce-46cf-b003-219e6a4895d7",
-  "prevId": "c236ec7a-9cce-4efb-a4fe-5c5e0245b393",
+  "id": "f75db310-1a4c-4413-bb5f-dff9d4c5ba5c",
+  "prevId": "360ed140-efce-46cf-b003-219e6a4895d7",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -316,6 +316,20 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "scope": {
+          "name": "scope",
+          "type": "session_scope",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'merchant'"
+        },
+        "context_organization_id": {
+          "name": "context_organization_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -11879,6 +11893,11 @@
     }
   },
   "enums": {
+    "public.session_scope": {
+      "name": "session_scope",
+      "schema": "public",
+      "values": ["merchant", "customer"]
+    },
     "public.MembershipRole": {
       "name": "MembershipRole",
       "schema": "public",

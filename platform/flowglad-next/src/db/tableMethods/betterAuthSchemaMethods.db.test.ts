@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'bun:test'
+import { eq } from 'drizzle-orm'
 import { adminTransaction } from '@/db/adminTransaction'
-import { user } from '@/db/schema/betterAuthSchema'
+import { session, user } from '@/db/schema/betterAuthSchema'
+import { SessionScope } from '@/types'
 import core from '@/utils/core'
 import {
   selectBetterAuthUserByEmail,
@@ -137,5 +139,139 @@ describe('selectBetterAuthUserByEmail', () => {
     expect(result2.id).toBe(user2Id)
     expect(result2.email).toBe(user2Email)
     expect(result2.name).toBe('User Two')
+  })
+})
+
+describe('session schema', () => {
+  it('should create session with default merchant scope', async () => {
+    const userId = `bau_${core.nanoid()}`
+    const userEmail = `test+${core.nanoid()}@test.com`
+    const sessionId = `ses_${core.nanoid()}`
+    const sessionToken = `tok_${core.nanoid()}`
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      // Create user first
+      await transaction.insert(user).values({
+        id: userId,
+        email: userEmail,
+        name: 'Test User',
+        role: 'user',
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      // Create session without explicit scope (should default to merchant)
+      await transaction.insert(session).values({
+        id: sessionId,
+        userId,
+        token: sessionToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      // Fetch the session
+      const [createdSession] = await transaction
+        .select()
+        .from(session)
+        .where(eq(session.id, sessionId))
+        .limit(1)
+
+      return createdSession
+    })
+
+    expect(result.id).toBe(sessionId)
+    expect(result.scope).toBe(SessionScope.Merchant)
+    expect(result.contextOrganizationId).toBeNull()
+  })
+
+  it('should allow creating session with customer scope', async () => {
+    const userId = `bau_${core.nanoid()}`
+    const userEmail = `test+${core.nanoid()}@test.com`
+    const sessionId = `ses_${core.nanoid()}`
+    const sessionToken = `tok_${core.nanoid()}`
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      // Create user first
+      await transaction.insert(user).values({
+        id: userId,
+        email: userEmail,
+        name: 'Test User',
+        role: 'user',
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      // Create session with customer scope
+      await transaction.insert(session).values({
+        id: sessionId,
+        userId,
+        token: sessionToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        scope: SessionScope.Customer,
+      })
+
+      // Fetch the session
+      const [createdSession] = await transaction
+        .select()
+        .from(session)
+        .where(eq(session.id, sessionId))
+        .limit(1)
+
+      return createdSession
+    })
+
+    expect(result.id).toBe(sessionId)
+    expect(result.scope).toBe(SessionScope.Customer)
+  })
+
+  it('should allow storing contextOrganizationId in session', async () => {
+    const userId = `bau_${core.nanoid()}`
+    const userEmail = `test+${core.nanoid()}@test.com`
+    const sessionId = `ses_${core.nanoid()}`
+    const sessionToken = `tok_${core.nanoid()}`
+    const orgId = `org_${core.nanoid()}`
+
+    const result = await adminTransaction(async ({ transaction }) => {
+      // Create user first
+      await transaction.insert(user).values({
+        id: userId,
+        email: userEmail,
+        name: 'Test User',
+        role: 'user',
+        emailVerified: false,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      })
+
+      // Create session with contextOrganizationId
+      await transaction.insert(session).values({
+        id: sessionId,
+        userId,
+        token: sessionToken,
+        expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        scope: SessionScope.Customer,
+        contextOrganizationId: orgId,
+      })
+
+      // Fetch the session
+      const [createdSession] = await transaction
+        .select()
+        .from(session)
+        .where(eq(session.id, sessionId))
+        .limit(1)
+
+      return createdSession
+    })
+
+    expect(result.id).toBe(sessionId)
+    expect(result.scope).toBe(SessionScope.Customer)
+    expect(result.contextOrganizationId).toBe(orgId)
   })
 })
