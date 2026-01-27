@@ -365,7 +365,7 @@ export const editProductTransaction = async (
     existingProduct
   )
   if (validationResult.status === 'error') {
-    throw new Error(validationResult.error.reason)
+    throw validationResult.error
   }
 
   const updatedProduct = await updateProduct(enforcedProduct, ctx)

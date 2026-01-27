@@ -307,7 +307,7 @@ describe('productsRouter - Default Product Constraints', () => {
         const slugResult = validateDefaultProductUpdate(
           {
             slug: 'should-not-allow-slug-changes',
-          } as any,
+          },
           existingProduct
         )
         expect(slugResult.status).toBe('error')
