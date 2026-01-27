@@ -42,11 +42,6 @@
 
 import { adminTransaction } from '@/db/adminTransaction'
 import { updateOrganization } from '@/db/tableMethods/organizationMethods'
-import type { ComprehensiveAdminTransactionParams } from '@/db/types'
-import {
-  getStripeTestClient,
-  getStripeTestModeSecretKey,
-} from '@/test/stripeIntegrationHelpers'
 import { BusinessOnboardingStatus } from '@/types'
 import core from '@/utils/core'
 import { defineBehavior } from '../index'
@@ -243,55 +238,13 @@ export const completeStripeOnboardingBehavior = defineBehavior({
     _deps,
     prev: CreateOrganizationResult
   ): Promise<CompleteStripeOnboardingResult> => {
-    // In integration test mode with real Stripe credentials, create a real
-    // Stripe Connect account. Otherwise, use a fake account ID for unit tests.
-    const hasRealStripeKey = !!getStripeTestModeSecretKey()
-
-    let stripeAccountId: string
-    if (hasRealStripeKey) {
-      // Create a Custom Stripe Connect account for integration tests.
-      // We use Custom accounts (requirement_collection: 'application') instead of
-      // Express accounts because only Custom accounts allow programmatic TOS acceptance.
-      // Express/Standard accounts require the user to complete Stripe's hosted onboarding.
-      const stripe = getStripeTestClient()
-      const stripeAccount = await stripe.accounts.create({
-        country: prev.country.code,
-        type: 'custom',
-        capabilities: {
-          // Request both transfers and card_payments.
-          // Non-US countries (AU, DE, GB, etc.) require card_payments
-          // when requesting transfers without the 'recipient' service agreement.
-          transfers: { requested: true },
-          card_payments: { requested: true },
-        },
-        // Accept TOS at creation time (only works for Custom accounts)
-        tos_acceptance: {
-          date: Math.floor(Date.now() / 1000),
-          ip: '127.0.0.1',
-        },
-        // Minimal required info for a Custom account
-        business_type: 'company',
-        business_profile: {
-          mcc: '5734', // Computer Software Stores
-          product_description: 'Software services',
-        },
-        company: {
-          name: prev.organization.name || 'Test Company',
-        },
-        // Provide test external account to enable transfers capability
-        // This is a Stripe test bank account token that auto-verifies in test mode
-        external_account: 'btok_us', // US test bank account token
-      })
-      stripeAccountId = stripeAccount.id
-    } else {
-      // Use fake account ID for unit tests (no real Stripe calls)
-      stripeAccountId = `acct_test_${core.nanoid()}`
-    }
+    // Use a fake Stripe account ID for behavior tests.
+    // Behavior tests focus on our business logic (purchases, invoices, payments),
+    // not on Stripe Connect account verification which is tested separately.
+    const stripeAccountId = `acct_test_${core.nanoid()}`
 
     await adminTransaction(
-      async ({
-        transaction,
-      }: ComprehensiveAdminTransactionParams) => {
+      async ({ transaction }) => {
         await updateOrganization(
           {
             id: prev.organization.id,
