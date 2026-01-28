@@ -69,6 +69,10 @@ const getTableRowsProcedure = protectedProcedure
           id: z.string(),
           name: z.string(),
         }),
+        pricingModel: z.object({
+          id: z.string(),
+          name: z.string(),
+        }),
       })
     )
   )
