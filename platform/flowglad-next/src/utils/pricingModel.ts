@@ -155,10 +155,9 @@ export const createPriceTransaction = async (
   // Product validation only applies to non-usage prices.
   // Usage prices don't have productId, so skip product-related validation.
   if (Price.clientInsertHasProductId(price)) {
-    const product = await selectProductById(
-      price.productId,
-      transaction
-    )
+    const product = (
+      await selectProductById(price.productId, transaction)
+    ).unwrap()
     const existingPrices = await selectPrices(
       { productId: price.productId },
       transaction
@@ -171,10 +170,9 @@ export const createPriceTransaction = async (
     })
   }
 
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
 
   // For usage prices, derive pricingModelId from usageMeterId
   let pricingModelId: string | undefined
@@ -264,10 +262,9 @@ export const createProductTransaction = async (
   }
 
   // Fetch organization directly for defaultCurrency
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
   const { defaultCurrency } = organization
   const createdProduct = await insertProduct(
     {
@@ -345,13 +342,9 @@ export const editProductTransaction = async (
   }
 
   // Fetch the existing product to check if it's a default product
-  const existingProduct = await selectProductById(
-    product.id,
-    transaction
-  )
-  if (!existingProduct) {
-    throw new Error('Product not found')
-  }
+  const existingProduct = (
+    await selectProductById(product.id, transaction)
+  ).unwrap()
 
   // Check if product slug is being mutated
   // Compare slug values, treating null and undefined as equivalent
@@ -367,7 +360,13 @@ export const editProductTransaction = async (
     : product
 
   // Validate that default products can only have certain fields updated
-  validateDefaultProductUpdate(enforcedProduct, existingProduct)
+  const validationResult = validateDefaultProductUpdate(
+    enforcedProduct,
+    existingProduct
+  )
+  if (validationResult.status === 'error') {
+    throw validationResult.error
+  }
 
   const updatedProduct = await updateProduct(enforcedProduct, ctx)
 
@@ -423,10 +422,9 @@ export const editProductTransaction = async (
 
       if (priceChanged) {
         // New price will be inserted - sync slug if product slug changed
-        const organization = await selectOrganizationById(
-          organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
         await safelyInsertPrice(
           {
             ...price,
@@ -470,10 +468,9 @@ export const clonePricingModelTransaction = async (
   ctx: TransactionEffectsContext
 ) => {
   const { transaction } = ctx
-  const pricingModel = await selectPricingModelById(
-    input.id,
-    transaction
-  )
+  const pricingModel = (
+    await selectPricingModelById(input.id, transaction)
+  ).unwrap()
   const livemode = input.destinationEnvironment
     ? input.destinationEnvironment === DestinationEnvironment.Livemode
     : pricingModel.livemode

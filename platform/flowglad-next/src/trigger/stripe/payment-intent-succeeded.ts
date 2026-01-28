@@ -68,10 +68,12 @@ export const stripePaymentIntentSucceededTask = task({
 
             // Only fetch purchase if purchaseId exists
             const purchase = payment.purchaseId
-              ? await selectPurchaseById(
-                  payment.purchaseId,
-                  transaction
-                )
+              ? (
+                  await selectPurchaseById(
+                    payment.purchaseId,
+                    transaction
+                  )
+                ).unwrap()
               : null
 
             const [invoice] =
@@ -88,10 +90,12 @@ export const stripePaymentIntentSucceededTask = task({
               transaction
             )
 
-            const organization = await selectOrganizationById(
-              purchase?.organizationId ?? payment.organizationId,
-              transaction
-            )
+            const organization = (
+              await selectOrganizationById(
+                purchase?.organizationId ?? payment.organizationId,
+                transaction
+              )
+            ).unwrap()
 
             await safelyIncrementDiscountRedemptionSubscriptionPayment(
               payment,

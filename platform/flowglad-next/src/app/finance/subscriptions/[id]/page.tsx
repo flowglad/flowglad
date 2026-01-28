@@ -33,47 +33,47 @@ const SubscriptionPage = async ({
       }
 
       const defaultPaymentMethod = subscription.defaultPaymentMethodId
-        ? await selectPaymentMethodById(
-            subscription.defaultPaymentMethodId,
-            transaction
-          )
+        ? (
+            await selectPaymentMethodById(
+              subscription.defaultPaymentMethodId,
+              transaction
+            )
+          ).unwrap()
         : null
 
-      const customer = await selectCustomerById(
-        subscription.customerId,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(subscription.customerId, transaction)
+      ).unwrap()
 
       let product = null
       let pricingModel = null
 
       if (subscription.priceId) {
-        const price = await selectPriceById(
-          subscription.priceId,
-          transaction
-        )
+        const price = (
+          await selectPriceById(subscription.priceId, transaction)
+        ).unwrap()
         if (Price.hasProductId(price)) {
-          product = await selectProductById(
-            price.productId,
-            transaction
-          )
+          product = (
+            await selectProductById(price.productId, transaction)
+          ).unwrap()
         }
       } else if (subscription.subscriptionItems.length > 0) {
         // Fallback: if no main price is set, use the product from the first item
         const firstPrice = subscription.subscriptionItems[0].price
         if (firstPrice && Price.clientHasProductId(firstPrice)) {
-          product = await selectProductById(
-            firstPrice.productId,
-            transaction
-          )
+          product = (
+            await selectProductById(firstPrice.productId, transaction)
+          ).unwrap()
         }
       }
 
       if (product && product.pricingModelId) {
-        pricingModel = await selectPricingModelById(
-          product.pricingModelId,
-          transaction
-        )
+        pricingModel = (
+          await selectPricingModelById(
+            product.pricingModelId,
+            transaction
+          )
+        ).unwrap()
       }
 
       // Fetch all products for subscription items (only for prices with productId)

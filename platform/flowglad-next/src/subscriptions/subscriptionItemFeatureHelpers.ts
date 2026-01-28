@@ -127,7 +127,15 @@ const getFeaturesByPriceId = async (
         latestByResourceId.set(resourceId, entry)
         continue
       }
-      if (entry.feature.createdAt > existing.feature.createdAt) {
+      // Use createdAt as primary sort key, with position as tiebreaker
+      // (position is a bigserial that preserves insertion order even within a transaction,
+      // unlike timestamps which are fixed at transaction start in PostgreSQL)
+      if (
+        entry.feature.createdAt > existing.feature.createdAt ||
+        (entry.feature.createdAt === existing.feature.createdAt &&
+          (entry.feature.position ?? 0) >
+            (existing.feature.position ?? 0))
+      ) {
         latestByResourceId.set(resourceId, entry)
       }
     }
@@ -641,18 +649,24 @@ export const addFeatureToSubscriptionItem = async (
       grantCreditsImmediately = false,
     } = input
 
-    const providedSubscriptionItem = await selectSubscriptionItemById(
-      subscriptionItemId,
-      transaction
-    )
+    const providedSubscriptionItem = (
+      await selectSubscriptionItemById(
+        subscriptionItemId,
+        transaction
+      )
+    ).unwrap()
     ensureSubscriptionItemIsActive(providedSubscriptionItem)
 
-    const subscription = await selectSubscriptionById(
-      providedSubscriptionItem.subscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        providedSubscriptionItem.subscriptionId,
+        transaction
+      )
+    ).unwrap()
 
-    const feature = await selectFeatureById(featureId, transaction)
+    const feature = (
+      await selectFeatureById(featureId, transaction)
+    ).unwrap()
     ensureFeatureIsEligible(feature)
     ensureOrganizationAndLivemodeMatch({
       subscription,
@@ -668,10 +682,9 @@ export const addFeatureToSubscriptionItem = async (
         transaction
       )
 
-    const customer = await selectCustomerById(
-      subscription.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
     await ensureFeatureBelongsToCustomerPricingModel({
       customer,
       feature,

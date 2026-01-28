@@ -123,10 +123,9 @@ export const setDefaultPaymentMethodForCustomer = async (
 ) => {
   const { transaction, invalidateCache } = ctx
   // Verify the payment method belongs to the customer
-  const paymentMethod = await selectPaymentMethodById(
-    paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(paymentMethodId, transaction)
+  ).unwrap()
 
   // Check if already default
   if (paymentMethod.default) {
@@ -249,7 +248,9 @@ export const customerBillingCreatePricedCheckoutSession = async ({
 
     const price = await authenticatedTransaction(
       async ({ transaction }) => {
-        return await selectPriceById(resolvedPriceId, transaction)
+        return (
+          await selectPriceById(resolvedPriceId, transaction)
+        ).unwrap()
       }
     )
     if (!price) {

@@ -54,7 +54,10 @@ export const derivePricingModelIdFromUsageCredit =
   createDerivePricingModelId(
     usageCredits,
     config,
-    selectUsageCreditById
+    async (id, transaction) => {
+      const result = await selectUsageCreditById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 export const pricingModelIdsForUsageCredits =

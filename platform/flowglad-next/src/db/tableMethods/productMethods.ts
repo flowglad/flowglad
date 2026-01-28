@@ -104,7 +104,9 @@ export const selectProductsByPricingModelId = cached(
  * Used for prices and productFeatures.
  */
 export const derivePricingModelIdFromProduct =
-  createDerivePricingModelId(products, config, selectProductById)
+  createDerivePricingModelId(products, config, async (id, tx) =>
+    (await selectProductById(id, tx)).unwrap()
+  )
 
 /**
  * Batch fetch pricingModelIds for multiple products.
@@ -499,7 +501,9 @@ export const selectProductPriceAndFeaturesByProductId = async (
     )
   } catch (error) {
     // If product lookup fails because it has no prices, try to get the product directly
-    const product = await selectProductById(productId, transaction)
+    const product = (
+      await selectProductById(productId, transaction)
+    ).unwrap()
     const prices = await selectPrices({ productId }, transaction)
     productWithPrices = {
       ...product,

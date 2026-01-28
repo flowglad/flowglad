@@ -37,7 +37,7 @@ export const memberInsertedTask = task({
   ) => {
     const { userId } = payload.record
     const user = await adminTransaction(async ({ transaction }) =>
-      selectUserById(userId, transaction)
+      (await selectUserById(userId, transaction)).unwrap()
     )
     const validatedUser = validateUserForNewsletter(
       user,

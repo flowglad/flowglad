@@ -8,7 +8,6 @@ import {
   selectPaymentById,
   selectPayments,
 } from '@/db/tableMethods/paymentMethods'
-import { NotFoundError as TableUtilsNotFoundError } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
 import { NotFoundError, ValidationError } from '@/errors'
 import { PaymentStatus, StripeConnectContractType } from '@/types'
@@ -36,15 +35,11 @@ export const refundPaymentTransaction = async (
   // =========================================================================
   // STEP 1: Validate the payment can be refunded
   // =========================================================================
-  let payment: Payment.Record
-  try {
-    payment = await selectPaymentById(id, transaction)
-  } catch (error) {
-    if (error instanceof TableUtilsNotFoundError) {
-      return Result.err(new NotFoundError('Payment', id))
-    }
-    throw error
+  const paymentResult = await selectPaymentById(id, transaction)
+  if (Result.isError(paymentResult)) {
+    return Result.err(new NotFoundError('Payment', id))
   }
+  const payment = paymentResult.unwrap()
 
   // Additional refunds are only supported until the payment is fully refunded.
   if (payment.status === PaymentStatus.Refunded) {
@@ -170,10 +165,12 @@ export const refundPaymentTransaction = async (
   // Only reverse tax when we actually created a new refund in this call.
   // Skip tax reversal in the recovery path since we didn't initiate the refund.
   if (newlyCreatedRefund && payment.stripeTaxTransactionId) {
-    const organization = await selectOrganizationById(
-      payment.organizationId,
-      transaction
-    )
+    const organization = (
+      await selectOrganizationById(
+        payment.organizationId,
+        transaction
+      )
+    ).unwrap()
 
     if (
       organization.stripeConnectContractType ===
@@ -252,10 +249,7 @@ export const retryPaymentTransaction = async (
   { id }: { id: string },
   transaction: DbTransaction
 ) => {
-  const payment = await selectPaymentById(id, transaction)
-  if (!payment) {
-    throw new Error('Payment not found')
-  }
+  const payment = (await selectPaymentById(id, transaction)).unwrap()
   if (payment.status !== PaymentStatus.Failed) {
     throw new Error('Payment is not failed')
   }

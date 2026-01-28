@@ -51,10 +51,9 @@ const clonePricingModel = async (db: PostgresJsDatabase) => {
   }
 
   await db.transaction(async (transaction) => {
-    const sourcePricingModel = await selectPricingModelById(
-      pricingModelId,
-      transaction
-    )
+    const sourcePricingModel = (
+      await selectPricingModelById(pricingModelId, transaction)
+    ).unwrap()
 
     // Create transaction context with noop callbacks for scripts
     const ctx = createTransactionEffectsContext(transaction, {

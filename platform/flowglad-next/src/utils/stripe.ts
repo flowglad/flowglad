@@ -919,10 +919,13 @@ export const createStripeTaxCalculationByPrice = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  // Allow integration tests to use real Stripe Tax API
+  // Skip Stripe Tax API in tests unless explicitly enabled.
+  // Use SKIP_STRIPE_TAX_CALCULATIONS to mock tax even when other Stripe APIs are real.
+  // This avoids hitting Stripe's 1000 req/24hr tax API rate limit in test mode.
   if (
     core.IS_TEST &&
-    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
+    (process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true' ||
+      process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true')
   ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
@@ -973,10 +976,13 @@ export const createStripeTaxCalculationByPurchase = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  // Allow integration tests to use real Stripe Tax API
+  // Skip Stripe Tax API in tests unless explicitly enabled.
+  // Use SKIP_STRIPE_TAX_CALCULATIONS to mock tax even when other Stripe APIs are real.
+  // This avoids hitting Stripe's 1000 req/24hr tax API rate limit in test mode.
   if (
     core.IS_TEST &&
-    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
+    (process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true' ||
+      process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true')
   ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
@@ -1036,7 +1042,8 @@ export const createStripeTaxTransactionFromCalculation = async ({
 }): Promise<Stripe.Tax.Transaction | null> => {
   if (
     !stripeTaxCalculationId ||
-    stripeTaxCalculationId.startsWith('notaxoverride_')
+    stripeTaxCalculationId.startsWith('notaxoverride_') ||
+    stripeTaxCalculationId.startsWith('testtaxcalc_')
   ) {
     return null
   }
@@ -1188,6 +1195,8 @@ export const createPaymentIntentForCheckoutSession = async (params: {
   checkoutSession: CheckoutSession.Record
   feeCalculation?: FeeCalculation.Record
   customer?: Customer.Record
+  /** Direct Stripe customer ID (alternative to passing Customer.Record) */
+  stripeCustomerId?: string
 }): Promise<
   Result<Stripe.Response<Stripe.PaymentIntent>, ValidationError>
 > => {
@@ -1197,6 +1206,7 @@ export const createPaymentIntentForCheckoutSession = async (params: {
     checkoutSession,
     feeCalculation,
     customer,
+    stripeCustomerId,
   } = params
   const livemode = checkoutSession.livemode
   const transferDataResult = stripeConnectTransferDataForOrganization(
@@ -1241,7 +1251,8 @@ export const createPaymentIntentForCheckoutSession = async (params: {
         application_fee_amount: livemode ? totalFeeAmount : undefined,
         ...transferData,
         metadata,
-        customer: customer?.stripeCustomerId ?? undefined,
+        customer:
+          stripeCustomerId ?? customer?.stripeCustomerId ?? undefined,
       })
   )
   return Result.ok(paymentIntent)

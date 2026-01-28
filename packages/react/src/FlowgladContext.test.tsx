@@ -889,7 +889,7 @@ describe('usePricingModel', () => {
 })
 
 // ============================================================================
-// usePricing and useCatalog Alias Tests
+// usePricing Alias Tests
 // ============================================================================
 
 describe('usePricing', () => {
@@ -959,7 +959,7 @@ describe('dev mode action functions', () => {
     it('rejects when subscription id is not found', async () => {
       const mockBillingData = createMockBillingData({
         currentSubscriptions: [],
-        currentSubscription: null,
+        currentSubscription: undefined,
         subscriptions: [],
       })
 
@@ -1014,7 +1014,7 @@ describe('dev mode action functions', () => {
     it('rejects when subscription id is not found', async () => {
       const mockBillingData = createMockBillingData({
         currentSubscriptions: [],
-        currentSubscription: null,
+        currentSubscription: undefined,
         subscriptions: [],
       })
 
@@ -1193,7 +1193,7 @@ describe('dev mode action functions', () => {
       // Need to ensure currentSubscription is null so the fallback doesn't kick in
       // The implementation falls back to currentSubscription if not found in arrays
       const mockBillingData = createMockBillingData({
-        currentSubscription: null,
+        currentSubscription: undefined,
         currentSubscriptions: [],
         subscriptions: [],
       })

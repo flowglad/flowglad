@@ -143,14 +143,25 @@ export const upsertPaymentForStripeCharge = async (
   let currency: Nullish<CurrencyCode> = null
   let feeCalculation: FeeCalculation.Record | null = null
   if (paymentIntentMetadata.type === IntentMetadataType.BillingRun) {
-    const billingRun = await selectBillingRunById(
+    const billingRunResult = await selectBillingRunById(
       paymentIntentMetadata.billingRunId,
       transaction
     )
-    const subscription = await selectSubscriptionById(
-      billingRun.subscriptionId,
-      transaction
-    )
+    if (Result.isError(billingRunResult)) {
+      return Result.err(
+        new NotFoundError(
+          'BillingRun',
+          paymentIntentMetadata.billingRunId
+        )
+      )
+    }
+    const billingRun = billingRunResult.value
+    const subscription = (
+      await selectSubscriptionById(
+        billingRun.subscriptionId,
+        transaction
+      )
+    ).unwrap()
     const [invoice] = await selectInvoices(
       {
         billingPeriodId: billingRun.billingPeriodId,
@@ -444,15 +455,14 @@ export const ledgerCommandForPaymentSucceeded = async (
     NotFoundError | ValidationError
   >
 > => {
-  let price: Price.Record
-  try {
-    price = await selectPriceById(params.priceId, transaction)
-  } catch (error) {
-    if (error instanceof TableUtilsNotFoundError) {
-      return Result.err(new NotFoundError('Price', params.priceId))
-    }
-    throw error
+  const priceResult = await selectPriceById(
+    params.priceId,
+    transaction
+  )
+  if (Result.isError(priceResult)) {
+    return Result.err(new NotFoundError('Price', params.priceId))
   }
+  const price = priceResult.unwrap()
   // Use type guard for consistent pattern and proper TypeScript narrowing
   if (
     !Price.hasProductId(price) ||
@@ -599,12 +609,13 @@ export const processPaymentIntentStatusUpdated = async (
   // Fetch customer data for event payload
   // Re-fetch purchase after update to get the latest status
   const purchase = payment.purchaseId
-    ? await selectPurchaseById(payment.purchaseId, transaction)
+    ? (
+        await selectPurchaseById(payment.purchaseId, transaction)
+      ).unwrap()
     : null
-  const customer = await selectCustomerById(
-    payment.customerId,
-    transaction
-  )
+  const customer = (
+    await selectCustomerById(payment.customerId, transaction)
+  ).unwrap()
   const timestamp = Date.now()
   if (paymentIntent.status === 'succeeded') {
     emitEvent({
@@ -626,10 +637,12 @@ export const processPaymentIntentStatusUpdated = async (
       processedAt: null,
     })
     if (metadata.type === IntentMetadataType.CheckoutSession) {
-      const checkoutSession = await selectCheckoutSessionById(
-        metadata.checkoutSessionId,
-        transaction
-      )
+      const checkoutSession = (
+        await selectCheckoutSessionById(
+          metadata.checkoutSessionId,
+          transaction
+        )
+      ).unwrap()
       if (checkoutSession.priceId) {
         const ledgerCommandResult =
           await ledgerCommandForPaymentSucceeded(
@@ -669,14 +682,9 @@ export const processPaymentIntentStatusUpdated = async (
     })
   }
   if (purchase && purchase.status === PurchaseStatus.Paid) {
-    const purchaseCustomer = await selectCustomerById(
-      purchase.customerId,
-      transaction
-    )
-
-    if (!purchaseCustomer) {
-      return Result.err(new NotFoundError('Customer', purchase.id))
-    }
+    const purchaseCustomer = (
+      await selectCustomerById(purchase.customerId, transaction)
+    ).unwrap()
 
     emitEvent({
       type: FlowgladEventType.PurchaseCompleted,

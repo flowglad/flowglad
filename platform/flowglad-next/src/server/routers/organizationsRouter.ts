@@ -67,6 +67,7 @@ import {
   saveOrganizationCodebaseMarkdown,
 } from '@/utils/textContent'
 import { inviteUserToOrganization } from '../mutations/inviteUserToOrganization'
+import { removeMemberFromOrganization } from '../mutations/removeMemberFromOrganization'
 
 const generateSubdomainSlug = (name: string) => {
   return (
@@ -571,6 +572,7 @@ const getMembersTableRowData = protectedProcedure
           filters: {
             ...args.input.filters,
             organizationId: focusedMembership.organization.id,
+            deactivatedAt: null,
           },
         },
         transaction,
@@ -705,6 +707,7 @@ export const organizationsRouter = router({
   updateFocusedMembership: updateFocusedMembership,
   getOrganizations: getOrganizations,
   inviteUser: inviteUserToOrganization,
+  removeMember: removeMemberFromOrganization,
   getCodebaseMarkdown: getCodebaseMarkdown,
   updateCodebaseMarkdown: updateCodebaseMarkdown,
   // Notification preferences for the current user

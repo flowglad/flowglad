@@ -21,6 +21,8 @@ import {
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createUsageEventSchema,
+  type GetUsageMeterBalancesParams,
+  type GetUsageMeterBalancesResponse,
   type ListResourceClaimsParams,
   type ReleaseResourceParams,
   type ResourceClaim,
@@ -574,6 +576,41 @@ export class FlowgladServer {
     return { pricingModel: billing.pricingModel }
   }
 
+  /**
+   * Get usage meter balances for the authenticated customer.
+   *
+   * By default, returns balances for all current subscriptions.
+   * Optionally filter by a specific subscriptionId.
+   *
+   * @param params - Optional parameters for fetching usage balances
+   * @param params.subscriptionId - Optional. Filter to a specific subscription.
+   *
+   * @returns A promise that resolves to an object containing usage meter balances
+   *
+   * @throws {Error} If the customer is not authenticated
+   *
+   * @example
+   * // Get all usage meter balances for current subscriptions
+   * const { usageMeterBalances } = await flowglad.getUsageMeterBalances()
+   *
+   * @example
+   * // Get usage balances for a specific subscription
+   * const { usageMeterBalances } = await flowglad.getUsageMeterBalances({
+   *   subscriptionId: 'sub_123'
+   * })
+   */
+  public getUsageMeterBalances = async (
+    params?: GetUsageMeterBalancesParams
+  ): Promise<GetUsageMeterBalancesResponse> => {
+    const customer = await this.findOrCreateCustomer()
+    return this.flowgladNode.get(
+      `/api/v1/customers/${customer.externalId}/usage-balances`,
+      {
+        query: params ?? {},
+      }
+    )
+  }
+
   private deriveSubscriptionId = async (
     maybeSubscriptionId?: string
   ): Promise<string> => {
@@ -961,5 +998,38 @@ export class FlowgladServer {
           : undefined,
       }
     )
+  }
+
+  /**
+   * Archives a customer by setting archived=true and canceling all active subscriptions.
+   *
+   * This is a dedicated method for archiving customers because archiving is a significant
+   * state change with cascade effects (subscription cancellation), not just a field update.
+   *
+   * Behavior:
+   * - If customer is already archived, returns immediately (idempotent)
+   * - Cancels all active subscriptions with reason 'customer_archived'
+   * - Sets archived=true on the customer
+   *
+   * After archiving:
+   * - The customer's externalId is freed for reuse by a new customer
+   * - ExternalId lookups will not return this customer by default
+   * - Operations that create records attached to this customer will be blocked
+   *
+   * @param externalId - The external ID of the customer to archive
+   * @returns The archived customer record
+   */
+  public archiveCustomer = async (
+    externalId: string
+  ): Promise<FlowgladNode.Customers.CustomerClientSelectSchema> => {
+    const result = await this.flowgladNode.post<{
+      customer: FlowgladNode.Customers.CustomerClientSelectSchema
+    }>(
+      `/api/v1/customers/${encodeURIComponent(externalId)}/archive`,
+      {
+        body: {},
+      }
+    )
+    return result.customer
   }
 }

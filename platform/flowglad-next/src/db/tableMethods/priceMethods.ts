@@ -139,7 +139,9 @@ export const selectPriceById = createSelectById(prices, config)
  * Note: Changed from going through product to reading directly from price.
  */
 export const derivePricingModelIdFromPrice =
-  createDerivePricingModelId(prices, config, selectPriceById)
+  createDerivePricingModelId(prices, config, async (id, tx) =>
+    (await selectPriceById(id, tx)).unwrap()
+  )
 
 /**
  * Batch fetch pricingModelIds for multiple prices.
@@ -615,10 +617,9 @@ export const selectPriceBySlugAndCustomerId = async (
   transaction: DbTransaction
 ): Promise<Price.ClientRecord | null> => {
   // First, get the customer to determine their pricing model
-  const customer = await selectCustomerById(
-    params.customerId,
-    transaction
-  )
+  const customer = (
+    await selectCustomerById(params.customerId, transaction)
+  ).unwrap()
 
   // Get the pricing model for the customer (includes products and prices)
   // Note: selectPricingModelForCustomer already filters for active prices
@@ -790,7 +791,7 @@ export const makePriceDefault = async (
 ) => {
   const newDefaultPrice =
     typeof priceOrId === 'string'
-      ? await selectPriceById(priceOrId, ctx.transaction)
+      ? (await selectPriceById(priceOrId, ctx.transaction)).unwrap()
       : priceOrId
 
   const { price: oldDefaultPrice } = (
@@ -1004,13 +1005,9 @@ export const ensureUsageMeterHasDefaultPrice = async (
   }
 
   // Set the no_charge price as default
-  const usageMeter = await selectUsageMeterById(
-    usageMeterId,
-    ctx.transaction
-  )
-  if (!usageMeter) {
-    throw new Error(`Usage meter ${usageMeterId} not found`)
-  }
+  const usageMeter = (
+    await selectUsageMeterById(usageMeterId, ctx.transaction)
+  ).unwrap()
 
   const noChargeSlug = getNoChargeSlugForMeter(usageMeter.slug)
 
@@ -1134,10 +1131,9 @@ export const safelyUpdatePrice = async (
    * If price is being set as default, reset other prices for the same product/meter
    */
   if (price.isDefault) {
-    const existingPrice = await selectPriceById(
-      price.id,
-      ctx.transaction
-    )
+    const existingPrice = (
+      await selectPriceById(price.id, ctx.transaction)
+    ).unwrap()
     // For non-usage prices, reset other prices for the same product
     if (Price.hasProductId(existingPrice)) {
       await setPricesForProductToNonDefault(
@@ -1203,7 +1199,7 @@ export const selectResourceFeaturesForPrice = async (
   transaction: DbTransaction
 ): Promise<Feature.ResourceRecord[]> => {
   // Get the price to find its productId
-  const price = await selectPriceById(priceId, transaction)
+  const price = (await selectPriceById(priceId, transaction)).unwrap()
 
   // Usage prices don't have products, so they can't have resource features
   if (price.productId === null) {
@@ -1324,9 +1320,14 @@ export const selectResourceFeaturesForPrices = async (
       new Map<string, Feature.ResourceRecord>()
 
     const existingForResource = existingMapForProduct.get(resourceId)
+    // Use createdAt as primary sort key, with position as tiebreaker
+    // (position is a bigserial that preserves insertion order even within a transaction,
+    // unlike timestamps which are fixed at transaction start in PostgreSQL)
     if (
       !existingForResource ||
-      feature.createdAt > existingForResource.createdAt
+      feature.createdAt > existingForResource.createdAt ||
+      (feature.createdAt === existingForResource.createdAt &&
+        (feature.position ?? 0) > (existingForResource.position ?? 0))
     ) {
       existingMapForProduct.set(resourceId, feature)
       productIdToLatestByResourceId.set(

@@ -130,19 +130,14 @@ export const derivePricingModelIdForPayment = async (
   }
 
   // Fall back to invoice (invoiceId is always present)
-  let invoiceRecord
-  try {
-    invoiceRecord = await selectInvoiceById(
-      data.invoiceId,
-      transaction
-    )
-  } catch (error) {
-    if (error instanceof TableUtilsNotFoundError) {
-      return Result.err(new NotFoundError('Invoice', data.invoiceId))
-    }
-    throw error
+  const invoiceResult = await selectInvoiceById(
+    data.invoiceId,
+    transaction
+  )
+  if (Result.isError(invoiceResult)) {
+    return Result.err(new NotFoundError('Invoice', data.invoiceId))
   }
-  return Result.ok(invoiceRecord.pricingModelId)
+  return Result.ok(invoiceResult.value.pricingModelId)
 }
 
 const baseInsertPayment = createInsertFunction(payments, config)
@@ -528,17 +523,14 @@ export const safelyUpdatePaymentForRefund = async (
 ): Promise<
   Result<Payment.Record, NotFoundError | ValidationError>
 > => {
-  let payment: Payment.Record
-  try {
-    payment = await selectPaymentById(paymentUpdate.id, transaction)
-  } catch (error) {
-    if (error instanceof TableUtilsNotFoundError) {
-      return Result.err(
-        new NotFoundError('Payment', paymentUpdate.id)
-      )
-    }
-    throw error
+  const paymentResult = await selectPaymentById(
+    paymentUpdate.id,
+    transaction
+  )
+  if (Result.isError(paymentResult)) {
+    return Result.err(new NotFoundError('Payment', paymentUpdate.id))
   }
+  const payment = paymentResult.value
   /**
    * Only allow updates to succeeded or refunded payments
    * can be updated to refunded.

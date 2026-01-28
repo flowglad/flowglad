@@ -23,6 +23,7 @@ import {
   CurrencyCode,
   type FeatureFlag,
   FlowgladApiKeyType,
+  MembershipRole,
   StripeConnectContractType,
 } from '@/types'
 import { createSecretApiKeyTransaction } from '@/utils/apiKeyHelpers'
@@ -100,10 +101,9 @@ export const createOrganizationTransaction = async (
     finalSubdomainSlug = `${subdomainSlug}-${suffix}`
   }
 
-  const country = await selectCountryById(
-    organization.countryId,
-    transaction
-  )
+  const country = (
+    await selectCountryById(organization.countryId, transaction)
+  ).unwrap()
   const eligibleFlows = getEligibleFundsFlowsForCountry(country.code)
   if (eligibleFlows.length === 0) {
     throw new Error(
@@ -187,6 +187,7 @@ export const createOrganizationTransaction = async (
        * checkout experience is like
        */
       livemode: false,
+      role: MembershipRole.Owner,
     },
     transaction
   )

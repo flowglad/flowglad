@@ -18,10 +18,12 @@ const ProductCheckoutSuccessPage = async ({
   if (product.customerId) {
     const customer = await adminTransaction(
       async ({ transaction }) => {
-        return selectCustomerById(product.customerId!, transaction)
+        return (
+          await selectCustomerById(product.customerId!, transaction)
+        ).unwrap()
       }
     )
-    customerEmail = customer?.email || null
+    customerEmail = customer.email || null
   }
 
   // If there's no priceId, just show a generic success message

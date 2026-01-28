@@ -15,24 +15,29 @@ const PurchasePage = async ({
   const { id } = await params
   const result = await authenticatedTransaction(
     async ({ transaction }) => {
-      const purchase = await selectPurchaseById(id, transaction)
+      const purchase = (
+        await selectPurchaseById(id, transaction)
+      ).unwrap()
 
       if (!purchase) {
         return null
       }
 
-      const customer = await selectCustomerById(
-        purchase.customerId,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(purchase.customerId, transaction)
+      ).unwrap()
 
       const price = purchase.priceId
-        ? await selectPriceById(purchase.priceId, transaction)
+        ? (
+            await selectPriceById(purchase.priceId, transaction)
+          ).unwrap()
         : null
 
       const product =
         price && Price.hasProductId(price)
-          ? await selectProductById(price.productId, transaction)
+          ? (
+              await selectProductById(price.productId, transaction)
+            ).unwrap()
           : null
 
       return {

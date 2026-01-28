@@ -208,15 +208,18 @@ export const createSubscriptionWorkflow = async (
 
     if (hasTrialPeriod) {
       // Fetch customer to check trial eligibility
-      const customer = await selectCustomerById(
-        params.customer.id,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(params.customer.id, transaction)
+      ).unwrap()
       // Fetch price record to check trial eligibility
-      const price = await selectPriceById(
+      const priceResult = await selectPriceById(
         params.price.id,
         transaction
       )
+      if (Result.isError(priceResult)) {
+        return Result.err(new NotFoundError('Price', params.price.id))
+      }
+      const price = priceResult.value
 
       // Calculate trial eligibility (returns undefined for non-subscription prices)
       const isEligibleForTrial = await calculateTrialEligibility(
@@ -345,19 +348,12 @@ export const createSubscriptionWorkflow = async (
     }
 
     const timestamp = Date.now()
-    const customer = await selectCustomerById(
-      updatedSubscription.customerId,
-      transaction
-    )
-
-    if (!customer) {
-      return Result.err(
-        new NotFoundError(
-          'Customer',
-          `subscription ${updatedSubscription.id}`
-        )
+    const customer = (
+      await selectCustomerById(
+        updatedSubscription.customerId,
+        transaction
       )
-    }
+    ).unwrap()
 
     const eventInserts: Event.Insert[] = [
       {

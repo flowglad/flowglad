@@ -578,8 +578,8 @@ export type ListResourceClaimsParams = z.infer<
 
 /**
  * Schema for fetching usage meter balances for a customer.
- * Optionally filtered by subscription ID.
- * Customer externalId is derived server-side from the authenticated session.
+ * Returns usage meter balances for current subscriptions, optionally filtered by subscriptionId.
+ * The customer externalId is derived server-side from the authenticated session.
  */
 export const getUsageMeterBalancesSchema = z
   .object({

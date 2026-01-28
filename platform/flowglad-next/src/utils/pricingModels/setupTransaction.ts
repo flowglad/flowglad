@@ -347,10 +347,9 @@ export const setupPricingModelTransaction = async (
       organizationId,
       isDefault: input.isDefault,
     }
-    const organization = await selectOrganizationById(
-      organizationId,
-      transaction
-    )
+    const organization = (
+      await selectOrganizationById(organizationId, transaction)
+    ).unwrap()
     const pricingModel = await safelyInsertPricingModel(
       pricingModelInsert,
       ctx

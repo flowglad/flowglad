@@ -13,6 +13,7 @@ import {
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
+  NotFoundError,
   type ORMMethodCreatorConfig,
   type SelectConditions,
 } from '@/db/tableUtils'
@@ -79,10 +80,9 @@ export const derivePricingModelIdForCheckoutSession = async (
   // Try invoice third (for Invoice sessions)
   if (data.invoiceId) {
     // Invoice already has pricingModelId from Wave 3
-    const invoice = await selectInvoiceById(
-      data.invoiceId,
-      transaction
-    )
+    const invoice = (
+      await selectInvoiceById(data.invoiceId, transaction)
+    ).unwrap()
     return Result.ok(invoice.pricingModelId)
   }
 
@@ -91,10 +91,9 @@ export const derivePricingModelIdForCheckoutSession = async (
     data.customerId &&
     data.type === CheckoutSessionType.AddPaymentMethod
   ) {
-    const customer = await selectCustomerById(
-      data.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(data.customerId, transaction)
+    ).unwrap()
     if (!customer.pricingModelId) {
       return Result.err(
         new ValidationError(
@@ -349,11 +348,17 @@ export const updateCheckoutSessionPaymentMethodType = async (
 export const updateCheckoutSessionCustomerEmail = async (
   update: Pick<CheckoutSession.Record, 'id' | 'customerEmail'>,
   transaction: DbTransaction
-): Promise<Result<CheckoutSession.Record, ValidationError>> => {
-  const checkoutSession = await selectCheckoutSessionById(
+): Promise<
+  Result<CheckoutSession.Record, ValidationError | NotFoundError>
+> => {
+  const checkoutSessionResult = await selectCheckoutSessionById(
     update.id,
     transaction
   )
+  if (Result.isError(checkoutSessionResult)) {
+    return Result.err(checkoutSessionResult.error)
+  }
+  const checkoutSession = checkoutSessionResult.value
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
     return Result.err(
       new ValidationError(
@@ -375,11 +380,17 @@ export const updateCheckoutSessionCustomerEmail = async (
 export const updateCheckoutSessionBillingAddress = async (
   update: Pick<CheckoutSession.Record, 'id' | 'billingAddress'>,
   transaction: DbTransaction
-): Promise<Result<CheckoutSession.Record, ValidationError>> => {
-  const checkoutSession = await selectCheckoutSessionById(
+): Promise<
+  Result<CheckoutSession.Record, ValidationError | NotFoundError>
+> => {
+  const checkoutSessionResult = await selectCheckoutSessionById(
     update.id,
     transaction
   )
+  if (Result.isError(checkoutSessionResult)) {
+    return Result.err(checkoutSessionResult.error)
+  }
+  const checkoutSession = checkoutSessionResult.value
   if (checkoutSession.status !== CheckoutSessionStatus.Open) {
     return Result.err(
       new ValidationError(
@@ -405,11 +416,17 @@ export const updateCheckoutSessionAutomaticallyUpdateSubscriptions =
       'id' | 'automaticallyUpdateSubscriptions'
     >,
     transaction: DbTransaction
-  ): Promise<Result<CheckoutSession.Record, ValidationError>> => {
-    const checkoutSession = await selectCheckoutSessionById(
+  ): Promise<
+    Result<CheckoutSession.Record, ValidationError | NotFoundError>
+  > => {
+    const checkoutSessionResult = await selectCheckoutSessionById(
       update.id,
       transaction
     )
+    if (Result.isError(checkoutSessionResult)) {
+      return Result.err(checkoutSessionResult.error)
+    }
+    const checkoutSession = checkoutSessionResult.value
     if (
       checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
     ) {

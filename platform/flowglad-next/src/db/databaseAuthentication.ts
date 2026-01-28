@@ -1,6 +1,6 @@
 import type { Session } from '@supabase/supabase-js'
 import type { User } from 'better-auth'
-import { and, desc, eq, or } from 'drizzle-orm'
+import { and, desc, eq, isNull, or } from 'drizzle-orm'
 import type { JwtPayload } from 'jsonwebtoken'
 import { z } from 'zod'
 import { FlowgladApiKeyType } from '@/types'
@@ -323,7 +323,8 @@ export async function databaseAuthenticationInfoForWebappRequest(
       .where(
         and(
           eq(users.betterAuthId, betterAuthId),
-          eq(memberships.focused, true)
+          eq(memberships.focused, true),
+          isNull(memberships.deactivatedAt)
         )
       )
       .limit(1)

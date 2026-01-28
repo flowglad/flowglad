@@ -84,14 +84,9 @@ export const commitPaymentSucceededEvent = async (
   payment: Payment.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    payment.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(`Customer not found for payment ${payment.id}`)
-  }
+  const customer = (
+    await selectCustomerById(payment.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -117,14 +112,9 @@ export const commitPaymentCanceledEvent = async (
   payment: Payment.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    payment.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(`Customer not found for payment ${payment.id}`)
-  }
+  const customer = (
+    await selectCustomerById(payment.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -198,14 +188,9 @@ export const commitPurchaseCompletedEvent = async (
   purchase: Purchase.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    purchase.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(`Customer not found for purchase ${purchase.id}`)
-  }
+  const customer = (
+    await selectCustomerById(purchase.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -231,16 +216,9 @@ export const commitSubscriptionCreatedEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(
-      `Customer not found for subscription ${subscription.id}`
-    )
-  }
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -266,16 +244,9 @@ export const commitSubscriptionUpdatedEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(
-      `Customer not found for subscription ${subscription.id}`
-    )
-  }
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {
@@ -301,16 +272,9 @@ export const commitSubscriptionCanceledEvent = async (
   subscription: Subscription.Record,
   transaction: DbTransaction
 ) => {
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
-
-  if (!customer) {
-    throw new Error(
-      `Customer not found for subscription ${subscription.id}`
-    )
-  }
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
 
   return commitEvent(
     {

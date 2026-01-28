@@ -233,10 +233,12 @@ export async function checkoutInfoForPriceWhere(
     }
     const checkoutSession = checkoutSessionResult.value
     const discount = checkoutSession.discountId
-      ? await selectDiscountById(
-          checkoutSession.discountId,
-          transaction
-        )
+      ? (
+          await selectDiscountById(
+            checkoutSession.discountId,
+            transaction
+          )
+        ).unwrap()
       : null
     const feeCalculation = await selectLatestFeeCalculation(
       {
@@ -249,10 +251,12 @@ export async function checkoutInfoForPriceWhere(
       transaction
     )
     const maybeCustomer = checkoutSession.customerId
-      ? await selectCustomerById(
-          checkoutSession.customerId,
-          transaction
-        )
+      ? (
+          await selectCustomerById(
+            checkoutSession.customerId,
+            transaction
+          )
+        ).unwrap()
       : null
 
     // Calculate trial eligibility
@@ -369,10 +373,9 @@ export async function checkoutInfoForCheckoutSession(
   discount: Discount.Record | null
   isEligibleForTrial?: boolean
 }> {
-  const checkoutSession = await selectCheckoutSessionById(
-    checkoutSessionId,
-    transaction
-  )
+  const checkoutSession = (
+    await selectCheckoutSessionById(checkoutSessionId, transaction)
+  ).unwrap()
   /**
    * Currently, only price / product checkout flows
    * are supported on this page.
@@ -404,16 +407,20 @@ export async function checkoutInfoForCheckoutSession(
     transaction
   )
   const discount = checkoutSession.discountId
-    ? await selectDiscountById(
-        checkoutSession.discountId,
-        transaction
-      )
+    ? (
+        await selectDiscountById(
+          checkoutSession.discountId,
+          transaction
+        )
+      ).unwrap()
     : null
   const maybeCustomer = checkoutSession.customerId
-    ? await selectCustomerById(
-        checkoutSession.customerId,
-        transaction
-      )
+    ? (
+        await selectCustomerById(
+          checkoutSession.customerId,
+          transaction
+        )
+      ).unwrap()
     : null
   const maybeCurrentSubscriptions =
     maybeCustomer &&

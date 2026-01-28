@@ -67,10 +67,12 @@ export const runSendCustomerSubscriptionCreatedNotification =
         // Fetch the product associated with the price for user-friendly naming
         const product =
           context.price && Price.hasProductId(context.price)
-            ? await selectProductById(
-                context.price.productId,
-                transaction
-              )
+            ? (
+                await selectProductById(
+                  context.price.productId,
+                  transaction
+                )
+              ).unwrap()
             : null
 
         return {

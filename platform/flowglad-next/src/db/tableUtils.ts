@@ -7,6 +7,7 @@ import {
   desc,
   eq,
   gt,
+  gte,
   type InferInsertModel,
   type InferSelectModel,
   ilike,
@@ -161,59 +162,10 @@ export interface ORMMethodCreatorConfig<
   tableName: string
 }
 
-export const createSelectById = <
-  T extends PgTableWithId,
-  S extends ZodTableUnionOrType<InferSelectModel<T>>,
-  I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
-  U extends ZodTableUnionOrType<Partial<InferInsertModel<T>>>,
->(
-  table: T,
-  config: ORMMethodCreatorConfig<T, S, I, U>
-) => {
-  const selectSchema = config.selectSchema
-
-  return async function selectById(
-    id: InferSelectModel<T>['id'] extends string ? string : number,
-    transaction: DbTransaction
-  ): Promise<z.infer<S>> {
-    /**
-     * NOTE we don't simply use selectByIds here
-     * because a simple equality check is generally more performant
-     */
-    try {
-      const results = await transaction
-        .select()
-        .from(table as SelectTable)
-        .where(eq(table.id, id))
-      if (results.length === 0) {
-        throw new NotFoundError(config.tableName, id)
-      }
-      const result = results[0]
-      return selectSchema.parse(result)
-    } catch (error) {
-      // Re-throw NotFoundError as-is to preserve type-safe error handling
-      if (error instanceof NotFoundError) {
-        throw error
-      }
-      if (!IS_TEST) {
-        console.error(
-          `[selectById] Error selecting ${config.tableName} with id ${id}:`,
-          error
-        )
-      }
-      throw new Error(
-        `Failed to select ${config.tableName} by id ${id}: ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error }
-      )
-    }
-  }
-}
-
 /**
  * Creates a selectById function that returns a Result instead of throwing.
- * Use this for functions that are being migrated to Result-based error handling.
  */
-export const createSelectByIdResult = <
+export const createSelectById = <
   T extends PgTableWithId,
   S extends ZodTableUnionOrType<InferSelectModel<T>>,
   I extends ZodTableUnionOrType<Omit<InferInsertModel<T>, 'id'>>,
@@ -951,6 +903,36 @@ export const constructUniqueIndex = (
 }
 
 /**
+ * Constructs a partial unique index that only enforces uniqueness
+ * for rows matching the WHERE condition.
+ *
+ * @param tableName - The name of the table
+ * @param columns - The columns to include in the index
+ * @param where - A SQL condition that filters which rows are included in the index
+ * @returns A Drizzle unique index with a WHERE clause
+ *
+ * @example
+ * ```typescript
+ * // Only enforce uniqueness for non-archived customers
+ * constructPartialUniqueIndex(TABLE_NAME, [
+ *   table.pricingModelId,
+ *   table.externalId,
+ * ], sql`${table.archived} = false`)
+ * ```
+ */
+export const constructPartialUniqueIndex = (
+  tableName: string,
+  columns: Parameters<IndexBuilderOn['on']>,
+  where: SQL
+) => {
+  const indexName =
+    createIndexName(tableName, columns, true) + '_partial'
+  return uniqueIndex(indexName)
+    .on(...columns)
+    .where(where)
+}
+
+/**
  * Can only support single column indexes
  * at this time because of the way we need to construct gin
  * indexes in Drizzle:
@@ -1417,32 +1399,41 @@ export const createPaginatedSelectFunction = <
         // Force epoch-ms number for custom timestamptzMs column to ensure consistent toDriver
         const createdAtMs = createdAt.valueOf()
         if (id) {
-          // Preferred: composite keyset with tie-breaker on id
+          // Composite keyset with tie-breaker on id
+          // IMPORTANT: Use range comparison for "same millisecond" because:
+          // - PostgreSQL stores timestamps with microsecond precision (e.g., 575.079ms)
+          // - JavaScript cursor stores millisecond precision (575ms)
+          // - eq(575.079, 575) returns FALSE, so ID tiebreaker would never get used
+          // Instead, we define "same millisecond" as: cursorMs <= createdAt < cursorMs + 1
+          const sameMillisecond = and(
+            gte(table.createdAt, createdAtMs),
+            lt(table.createdAt, createdAtMs + 1)
+          )
           const keyset =
             direction === 'forward'
               ? or(
-                  gt(table.createdAt, createdAtMs),
-                  and(
-                    eq(table.createdAt, createdAtMs),
-                    gt(table.id, id)
-                  )
+                  // Strictly later millisecond
+                  gte(table.createdAt, createdAtMs + 1),
+                  // Same millisecond, later ID
+                  and(sameMillisecond, gt(table.id, id))
                 )
               : or(
+                  // Strictly earlier millisecond
                   lt(table.createdAt, createdAtMs),
-                  and(
-                    eq(table.createdAt, createdAtMs),
-                    lt(table.id, id)
-                  )
+                  // Same millisecond, earlier ID
+                  and(sameMillisecond, lt(table.id, id))
                 )
           // Exclude anchor row to avoid boundary duplication, combine with base filter
           const boundary = and(ne(table.id, id), keyset)
           query = query.where(and(baseWhere, boundary))
         } else {
           // Legacy fallback: apply createdAt-only boundary when id is absent
+          // Since we can't use ID as a tiebreaker, we must skip to the next/previous
+          // whole millisecond to avoid microsecond precision issues
           const keyset =
             direction === 'forward'
-              ? gt(table.createdAt, createdAtMs)
-              : lt(table.createdAt, createdAtMs)
+              ? gte(table.createdAt, createdAtMs + 1) // Skip to next millisecond
+              : lt(table.createdAt, createdAtMs) // Before this millisecond (OK as-is)
           query = query.where(and(baseWhere, keyset))
         }
       }

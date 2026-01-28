@@ -145,17 +145,17 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
         `Organization: ${organization.id}; Billing Period: ${billingPeriod.id}`
     )
   }
-  const organizationCountry = await selectCountryById(
-    countryId,
-    transaction
-  )
-  await claimLedgerEntriesWithOutstandingBalances(
+  const organizationCountry = (
+    await selectCountryById(countryId, transaction)
+  ).unwrap()
+  const claimResult = await claimLedgerEntriesWithOutstandingBalances(
     usageOverages.flatMap(
       (usageOverage) => usageOverage.usageEventIds
     ),
     billingRun,
     transaction
   )
+  claimResult.unwrap()
   const feeCalculation =
     await createAndFinalizeSubscriptionFeeCalculation(
       {
@@ -225,9 +225,7 @@ export const tabulateOutstandingUsageCosts = async (
     string,
     OutstandingUsageCostAggregation
   >
-  rawOutstandingUsageCosts: Awaited<
-    ReturnType<typeof aggregateOutstandingBalanceForUsageCosts>
-  >
+  rawOutstandingUsageCosts: UsageBillingInfo[]
 }> => {
   const ledgerAccountsForSubscription = await selectLedgerAccounts(
     {
@@ -235,7 +233,7 @@ export const tabulateOutstandingUsageCosts = async (
     },
     transaction
   )
-  const rawOutstandingUsageCosts =
+  const rawOutstandingUsageCostsResult =
     await aggregateOutstandingBalanceForUsageCosts(
       {
         ledgerAccountId: ledgerAccountsForSubscription.map(
@@ -245,6 +243,8 @@ export const tabulateOutstandingUsageCosts = async (
       billingPeriodEndDate,
       transaction
     )
+  const rawOutstandingUsageCosts =
+    rawOutstandingUsageCostsResult.unwrap()
 
   const outstandingUsageCostsByLedgerAccountId = new Map()
   rawOutstandingUsageCosts.forEach((usageCost) => {
@@ -435,10 +435,12 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       transaction
     )
 
-  const paymentMethod = await selectPaymentMethodById(
-    billingRun.paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(
+      billingRun.paymentMethodId,
+      transaction
+    )
+  ).unwrap()
 
   // For doNotCharge subscriptions, skip usage overages - they're recorded but not charged
   const { rawOutstandingUsageCosts } =
@@ -787,7 +789,9 @@ export const executeBillingRun = async (
   }
 ) => {
   const billingRun = await adminTransaction(({ transaction }) => {
-    return selectBillingRunById(billingRunId, transaction)
+    return selectBillingRunById(billingRunId, transaction).then((r) =>
+      r.unwrap()
+    )
   })
 
   if (billingRun.status !== BillingRunStatus.Scheduled) {

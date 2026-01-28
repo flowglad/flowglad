@@ -1,4 +1,5 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import { z } from 'zod'
 import {
   authenticatedProcedureTransaction,
@@ -98,16 +99,9 @@ export const updatePrice = protectedProcedure
         const { price } = input
 
         // Fetch the existing price and its product to check if it's a default price on a default product
-        const existingPrice = await selectPriceById(
-          price.id,
-          transaction
-        )
-        if (!existingPrice) {
-          throw new TRPCError({
-            code: 'NOT_FOUND',
-            message: 'Price not found',
-          })
-        }
+        const existingPrice = (
+          await selectPriceById(price.id, transaction)
+        ).unwrap()
 
         // No_charge price protection - these checks must come BEFORE other validation
         // No_charge prices can only have their name changed
@@ -155,19 +149,25 @@ export const updatePrice = protectedProcedure
         // Usage prices don't have productId, so skip product-related validation.
         let product = null
         if (Price.hasProductId(existingPrice)) {
-          product = await selectProductById(
-            existingPrice.productId,
-            transaction
-          )
-          if (!product) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: 'Product not found',
-            })
-          }
+          product = (
+            await selectProductById(
+              existingPrice.productId,
+              transaction
+            )
+          ).unwrap()
 
           // Validate that default prices on default products maintain their constraints
-          validateDefaultPriceUpdate(price, existingPrice, product)
+          const validationResult = validateDefaultPriceUpdate(
+            price,
+            existingPrice,
+            product
+          )
+          if (validationResult.status === 'error') {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: validationResult.error.reason,
+            })
+          }
 
           // Disallow slug changes for the default price of a default product
           if (
@@ -247,17 +247,14 @@ export const getPrice = protectedProcedure
   .query(async ({ input, ctx }) => {
     const price = await authenticatedTransaction(
       async ({ transaction }) => {
-        try {
-          return await selectPriceById(input.id, transaction)
-        } catch (error) {
-          if (error instanceof NotFoundError) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: 'Price not found',
-            })
-          }
-          throw error
+        const result = await selectPriceById(input.id, transaction)
+        if (Result.isError(result)) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'Price not found',
+          })
         }
+        return result.unwrap()
       },
       { apiKey: ctx.apiKey }
     )
@@ -310,7 +307,9 @@ export const setPriceAsDefault = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const oldPrice = await selectPriceById(input.id, transaction)
+        const oldPrice = (
+          await selectPriceById(input.id, transaction)
+        ).unwrap()
         const price = await safelyUpdatePrice(
           { id: input.id, isDefault: true, type: oldPrice.type },
           transactionCtx
@@ -327,7 +326,9 @@ export const archivePrice = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const oldPrice = await selectPriceById(input.id, transaction)
+        const oldPrice = (
+          await selectPriceById(input.id, transaction)
+        ).unwrap()
 
         // No_charge price protection - cannot be archived
         // Note: Only usage prices can be no_charge prices
@@ -392,21 +393,17 @@ export const replaceUsagePrice = protectedProcedure
       async (transactionCtx) => {
         const { transaction } = transactionCtx
         // Verify the old price exists and is a usage price
-        let oldPrice
-        try {
-          oldPrice = await selectPriceById(
-            input.oldPriceId,
-            transaction
-          )
-        } catch (error) {
-          if (error instanceof NotFoundError) {
-            throw new TRPCError({
-              code: 'NOT_FOUND',
-              message: `Price with id "${input.oldPriceId}" not found`,
-            })
-          }
-          throw error
+        const oldPriceResult = await selectPriceById(
+          input.oldPriceId,
+          transaction
+        )
+        if (Result.isError(oldPriceResult)) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: `Price with id "${input.oldPriceId}" not found`,
+          })
         }
+        const oldPrice = oldPriceResult.unwrap()
         if (oldPrice.type !== PriceType.Usage) {
           throw new TRPCError({
             code: 'BAD_REQUEST',

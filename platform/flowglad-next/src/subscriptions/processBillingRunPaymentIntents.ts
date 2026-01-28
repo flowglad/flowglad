@@ -41,6 +41,7 @@ import { selectCurrentlyActiveSubscriptionItems } from '@/db/tableMethods/subscr
 import { safelyUpdateSubscriptionStatus } from '@/db/tableMethods/subscriptionMethods'
 import type { TransactionEffectsContext } from '@/db/types'
 import {
+  ConflictError,
   NotFoundError,
   type TerminalStateError,
   ValidationError,
@@ -228,7 +229,10 @@ export const processOutcomeForBillingRun = async (
       payment: Payment.Record
       processingSkipped?: boolean
     },
-    NotFoundError | ValidationError | TerminalStateError
+    | NotFoundError
+    | ValidationError
+    | TerminalStateError
+    | ConflictError
   >
 > => {
   const {
@@ -245,10 +249,9 @@ export const processOutcomeForBillingRun = async (
     event.metadata
   )
 
-  let billingRun = await selectBillingRunById(
-    metadata.billingRunId,
-    transaction
-  )
+  let billingRun = (
+    await selectBillingRunById(metadata.billingRunId, transaction)
+  ).unwrap()
 
   const eventTimestamp = dateFromStripeTimestamp(timestamp)
   const eventPrecedesLastPaymentIntentEvent =
@@ -285,10 +288,12 @@ export const processOutcomeForBillingRun = async (
     })
   }
 
-  const paymentMethod = await selectPaymentMethodById(
-    billingRun.paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(
+      billingRun.paymentMethodId,
+      transaction
+    )
+  ).unwrap()
 
   const {
     billingPeriodItems,
@@ -384,15 +389,20 @@ export const processOutcomeForBillingRun = async (
     transaction
   )
 
-  const overages = await aggregateOutstandingBalanceForUsageCosts(
-    {
-      ledgerAccountId: claimedLedgerEntries.map(
-        (entry) => entry.ledgerAccountId!
-      ),
-    },
-    new Date(billingPeriod.endDate),
-    transaction
-  )
+  const overagesResult =
+    await aggregateOutstandingBalanceForUsageCosts(
+      {
+        ledgerAccountId: claimedLedgerEntries.map(
+          (entry) => entry.ledgerAccountId!
+        ),
+      },
+      new Date(billingPeriod.endDate),
+      transaction
+    )
+  if (Result.isError(overagesResult)) {
+    return Result.err(overagesResult.error)
+  }
+  const overages = overagesResult.value
 
   const { totalDueAmount } =
     await calculateFeeAndTotalAmountDueForBillingPeriod(
@@ -431,7 +441,9 @@ export const processOutcomeForBillingRun = async (
   }
 
   // Re-Select Invoice after changes have been made
-  invoice = await selectInvoiceById(invoice.id, transaction)
+  invoice = (
+    await selectInvoiceById(invoice.id, transaction)
+  ).unwrap()
 
   // Handle subscription item adjustments after successful payment
   if (
@@ -472,16 +484,17 @@ export const processOutcomeForBillingRun = async (
     )
 
     // Send upgrade notifications AFTER payment succeeded and items updated
-    const price = await selectPriceById(
+    const priceResult = await selectPriceById(
       subscription.priceId,
       transaction
     )
 
-    if (!price) {
+    if (Result.isError(priceResult)) {
       return Result.err(
         new NotFoundError('Price', subscription.priceId)
       )
     }
+    const price = priceResult.unwrap()
 
     // Calculate proration amount from billing period items
     // Proration items are created in adjustSubscription.ts with name "Proration: Net charge adjustment"

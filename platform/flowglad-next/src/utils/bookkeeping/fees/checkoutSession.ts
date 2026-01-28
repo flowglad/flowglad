@@ -169,10 +169,12 @@ export const createFeeCalculationForCheckoutSession = async (
   transaction: DbTransaction
 ): Promise<FeeCalculation.Record> => {
   const discount = checkoutSession.discountId
-    ? await selectDiscountById(
-        checkoutSession.discountId,
-        transaction
-      )
+    ? (
+        await selectDiscountById(
+          checkoutSession.discountId,
+          transaction
+        )
+      ).unwrap()
     : undefined
 
   const [{ price, organization }] =
@@ -184,10 +186,9 @@ export const createFeeCalculationForCheckoutSession = async (
   if (!organizationCountryId) {
     throw new Error('Organization country id is required')
   }
-  const organizationCountry = await selectCountryById(
-    organizationCountryId,
-    transaction
-  )
+  const organizationCountry = (
+    await selectCountryById(organizationCountryId, transaction)
+  ).unwrap()
   return createCheckoutSessionFeeCalculation(
     {
       organization,

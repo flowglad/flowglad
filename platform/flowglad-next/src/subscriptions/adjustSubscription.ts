@@ -260,10 +260,9 @@ export const syncSubscriptionWithActiveItems = async (
     // No currently active items - this can happen for "AtEndOfCurrentBillingPeriod" timing
     // where old items are expired but new items haven't started yet.
     // In this case, don't update the subscription record and return current state.
-    const currentSubscription = (await selectSubscriptionById(
-      subscriptionId,
-      transaction
-    )) as Subscription.StandardRecord
+    const currentSubscription = (
+      await selectSubscriptionById(subscriptionId, transaction)
+    ).unwrap() as Subscription.StandardRecord
     return currentSubscription
   }
 
@@ -291,10 +290,9 @@ export const syncSubscriptionWithActiveItems = async (
     )
   }
   // Get current subscription to preserve required fields
-  const currentSubscription = await selectSubscriptionById(
-    subscriptionId,
-    transaction
-  )
+  const currentSubscription = (
+    await selectSubscriptionById(subscriptionId, transaction)
+  ).unwrap()
 
   // Update subscription record with primary item info
   const subscriptionUpdate: Subscription.Update = {
@@ -387,16 +385,14 @@ export const adjustSubscription = async (
     'prorateCurrentBillingPeriod' in adjustment
       ? adjustment.prorateCurrentBillingPeriod
       : true
-  // TODO: Remove try/catch when selectSubscriptionById is migrated to return Result
-  let subscription: Subscription.Record
-  try {
-    subscription = await selectSubscriptionById(id, transaction)
-  } catch (error) {
-    if (error instanceof DbNotFoundError) {
-      return Result.err(new NotFoundError('Subscription', id))
-    }
-    throw error
+  const subscriptionResult = await selectSubscriptionById(
+    id,
+    transaction
+  )
+  if (Result.isError(subscriptionResult)) {
+    return Result.err(new NotFoundError('Subscription', id))
   }
+  const subscription = subscriptionResult.value
   if (isSubscriptionInTerminalState(subscription.status)) {
     return Result.err(
       new TerminalStateError('Subscription', id, subscription.status)
@@ -809,10 +805,9 @@ export const adjustSubscription = async (
         )
       )
     }
-    const paymentMethod = await selectPaymentMethodById(
-      paymentMethodId,
-      transaction
-    )
+    const paymentMethod = (
+      await selectPaymentMethodById(paymentMethodId, transaction)
+    ).unwrap()
     // TODO: maybe only create billing run if prorationAdjustments.length > 0
     const billingRunResult = await createBillingRun(
       {
@@ -888,18 +883,16 @@ export const adjustSubscription = async (
     )
 
     // Send adjustment notifications (no proration - either downgrade or upgrade with proration disabled)
-    // TODO: Remove try/catch when selectPriceById is migrated to return Result
-    let price: Price.Record
-    try {
-      price = await selectPriceById(subscription.priceId, transaction)
-    } catch (error) {
-      if (error instanceof DbNotFoundError) {
-        return Result.err(
-          new NotFoundError('Price', subscription.priceId)
-        )
-      }
-      throw error
+    const priceResult = await selectPriceById(
+      subscription.priceId,
+      transaction
+    )
+    if (Result.isError(priceResult)) {
+      return Result.err(
+        new NotFoundError('Price', subscription.priceId)
+      )
     }
+    const price = priceResult.unwrap()
 
     await idempotentSendCustomerSubscriptionAdjustedNotification({
       subscriptionId: id,
@@ -950,10 +943,9 @@ export const adjustSubscription = async (
       transaction
     )
 
-  const updatedSubscription = await selectSubscriptionById(
-    id,
-    transaction
-  )
+  const updatedSubscription = (
+    await selectSubscriptionById(id, transaction)
+  ).unwrap()
   // Note: For billing run path, cache invalidation happens in
   // handleSubscriptionItemAdjustment (called by processOutcomeForBillingRun)
   // after the actual subscription item changes are applied.

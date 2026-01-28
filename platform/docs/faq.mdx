@@ -221,3 +221,83 @@ export const FAQSearch = () => {
 };
 
 <FAQSearch />
+
+<div className="sr-only">
+
+## What does "payments without webhooks" mean?
+
+You do not need to build webhook handlers or any glue code to keep entitlements in sync with your customer's billing state according to your payment provider. Flowglad handles the webhook-driven state transitions internally and exposes the latest derived state via our SDK.
+
+## Does Flowglad eliminate webhooks entirely?
+
+For most cases, yes. Webhooks are still useful if you need to trigger background jobs and event-driven workflows, such as shutting down a customer's server in response to them cancelling their plan. Flowglad's goal is that entitlement checks and billing-state reads do not require you to run your own webhook pipeline.
+
+## Who processes payments?
+
+Currently Flowglad processes payments through Stripe.
+
+## Do I bring my own Stripe API key or existing Stripe account?
+
+No. Flowglad is not a BYOK product. You onboard to Flowglad by creating a new Stripe Connect account.
+
+## Can I migrate my existing Stripe account over to Flowglad?
+
+Absolutely. Reach out to our team (support@flowglad.com) and we'll work with you to migrate over your existing customers and billing to Flowglad.
+
+## Do I need to store Stripe customer IDs or subscription IDs in my database?
+
+No. You refer to customers using your own customer ID. Flowglad handles processor IDs and mappings internally.
+
+## What are entitlements in Flowglad? How do they work?
+
+Entitlements are the features a customer can access and the usage credits they have available, derived from their billing state. You can read more at [Feature Access & Usage](https://docs.flowglad.com/sdks/feature-access-usage).
+
+## How does Flowglad handle past-due and grace periods?
+
+The current default behavior is: when the first charge fails, access is blocked; after subsequent failures, access may continue until you cancel.
+
+## How does Flowglad handle 3DS and asynchronous payment edge cases?
+
+Flowglad is expanding coverage for these cases. If a customer adds a payment method but the first charge fails, Flowglad does not grant entitlements.
+
+## What happens if Flowglad is down?
+
+You can monitor service status on the [Flowglad status page](https://status.flowglad.com).
+
+## Is Flowglad the source of truth for entitlements?
+
+In the default setup, yes. Flowglad is working toward giving teams the option to store more of that source-of-truth data on their side while still benefiting from the data model and SDK.
+
+## How is this different from calling Stripe APIs directly?
+
+Even if you call Stripe directly, you still end up maintaining mappings and derived state across your backend and frontend. Flowglad centralizes those primitives and exposes the end result as a read-friendly layer.
+
+## Is Flowglad a merchant of record?
+
+Not yet. Today, you are the settlement merchant. Merchant of record support is on the roadmap.
+
+## Can I sell human services with Flowglad?
+
+Yes, when you are the settlement merchant. Merchant of record support will not support human services.
+
+## What countries does Flowglad support?
+
+Flowglad supports countries where Stripe can onboard merchants via Stripe Connect. Flowglad supports the [following countries and currencies](https://docs.flowglad.com/countries).
+
+## Can I use a payment provider other than Stripe?
+
+Not today. Flowglad does not currently support bring-your-own-processor.
+
+## What does Flowglad cost?
+
+Flowglad's billing layer is priced at 0.65% on top of standard processing fees (2.9%).
+
+## Is Flowglad fully open source?
+
+We open source everything that we possibly can. The core billing SaaS platform is fully open source, licensed under AGPLv3. The packages and the playground are MIT licensed. There is some technology related to compliance and risk that we cannot open source to protect the security of our customers.
+
+## What stacks are best supported today?
+
+The happiest path today is fullstack TypeScript with React. We're working on expanding this to additional frontend frameworks, such as Vue and Svelte.
+
+</div>
