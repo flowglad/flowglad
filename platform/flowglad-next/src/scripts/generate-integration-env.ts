@@ -10,7 +10,12 @@
  * Usage: bun run src/scripts/generate-integration-env.ts
  */
 
-import { existsSync, readFileSync, writeFileSync } from 'fs'
+import {
+  chmodSync,
+  existsSync,
+  readFileSync,
+  writeFileSync,
+} from 'fs'
 import { resolve } from 'path'
 
 const PROJECT_ROOT = resolve(import.meta.dir, '../..')
@@ -111,7 +116,11 @@ function main() {
     lines.push(`${key}=${formattedValue}`)
   }
 
-  writeFileSync(ENV_INTEGRATION_PATH, lines.join('\n') + '\n')
+  writeFileSync(ENV_INTEGRATION_PATH, lines.join('\n') + '\n', {
+    mode: 0o600, // Restrictive permissions: owner read/write only
+  })
+  // Ensure permissions are set even if file already existed
+  chmodSync(ENV_INTEGRATION_PATH, 0o600)
 
   console.log('✅ Generated .env.integration')
   console.log('   - Base: .env.test (database, app config)')

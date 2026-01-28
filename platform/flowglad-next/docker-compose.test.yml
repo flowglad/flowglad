@@ -17,11 +17,14 @@ services:
 
   stripe-mock:
     image: stripe/stripe-mock:v0.197.0
+    environment:
+      # Test key for stripe-mock healthcheck (not a real secret, just satisfies format requirement)
+      STRIPE_MOCK_API_KEY: sk_test_healthcheck
     ports:
       - '12111:12111'
       - '12112:12112'
     healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS -H "Authorization: Bearer sk_test_mock" http://localhost:12111/v1/customers > /dev/null']
+      test: ['CMD-SHELL', 'curl -fsS -H "Authorization: Bearer $STRIPE_MOCK_API_KEY" http://localhost:12111/v1/customers > /dev/null']
       interval: 2s
       timeout: 5s
       retries: 5

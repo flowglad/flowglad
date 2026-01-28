@@ -204,6 +204,7 @@ describeIfStripeKey(
       const originalItemIds = itemsBefore
         .filter((item) => !item.expiredAt)
         .map((item) => item.id)
+        .sort() // Sort for stable comparison
 
       await executeBillingRun(adjustmentBillingRun.id, {
         newSubscriptionItems:
@@ -232,6 +233,7 @@ describeIfStripeKey(
       const afterItemIds = itemsAfter
         .filter((item) => !item.expiredAt)
         .map((item) => item.id)
+        .sort() // Sort for stable comparison
 
       // Should still have original items, no new items
       expect(afterItemIds).toEqual(originalItemIds)
