@@ -56,20 +56,26 @@ describe('beforeEach setup', () => {
 // pricingModelsRouter.create
 describe('pricingModelsRouter.create', () => {
   it('creates pricing model, default product, and default price (subscription when interval provided)', async () => {
-    // Use testmode API key to create testmode pricing models
-    // This avoids the business rule conflict: only one livemode pricing model per org
+    // Use webapp auth (no API key) to create testmode pricing models
+    // This avoids PM-scoping since webapp auth has no pricing_model_id in JWT
+    // and avoids the business rule conflict: only one livemode pricing model per org
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
-      livemode: false, // testmode API key
+      livemode: false, // testmode context
     })
+    // Use webapp auth by setting mocked session and providing user in context
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const ctx = {
       organizationId: orgData.organization.id,
-      apiKey: apiKey.token!,
-      livemode: false, // testmode context to match API key
+      apiKey: undefined, // webapp auth - no PM scoping
+      livemode: false, // testmode context
       environment: 'test' as const,
-      isApi: true as any,
+      isApi: false as any,
       path: '',
+      user, // Required for auth middleware
     }
 
     const { pricingModel } = await pricingModelsRouter
@@ -100,19 +106,23 @@ describe('pricingModelsRouter.create', () => {
   })
 
   it('creates pricing model with single-payment default price when no interval provided', async () => {
-    // Use testmode API key to create testmode pricing models
+    // Use webapp auth (no API key) to create testmode pricing models
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,
     })
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const ctx = {
       organizationId: orgData.organization.id,
-      apiKey: apiKey.token!,
-      livemode: false, // testmode context to match API key
+      apiKey: undefined, // webapp auth - no PM scoping
+      livemode: false, // testmode context
       environment: 'test' as const,
-      isApi: true as any,
+      isApi: false as any,
       path: '',
+      user, // Required for auth middleware
     }
     const { pricingModel } = await pricingModelsRouter
       .createCaller(ctx)
@@ -134,20 +144,24 @@ describe('pricingModelsRouter.create', () => {
   })
 
   it('handles isDefault=true semantics per safelyInsertPricingModel', async () => {
-    // Use testmode to allow creating multiple pricing models
+    // Use webapp auth and testmode to allow creating multiple pricing models
     // (livemode only allows ONE pricing model per organization)
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,
     })
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const ctx = {
       organizationId: orgData.organization.id,
-      apiKey: apiKey.token!,
+      apiKey: undefined, // webapp auth - no PM scoping
       livemode: false,
       environment: 'test' as const,
-      isApi: true as any,
+      isApi: false as any,
       path: '',
+      user, // Required for auth middleware
     }
     const first = await pricingModelsRouter.createCaller(ctx).create({
       pricingModel: { name: 'Default A', isDefault: true },
@@ -170,19 +184,23 @@ describe('pricingModelsRouter.create', () => {
 // pricesRouter.create
 describe('pricesRouter.create', () => {
   it('auto-defaults the first price for a product when isDefault=false provided', async () => {
-    // Use testmode API key to create testmode records
+    // Use webapp auth (no API key) to create testmode records
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,
     })
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const ctx = {
       organizationId: orgData.organization.id,
-      apiKey: apiKey.token!,
-      livemode: false, // testmode context to match API key
+      apiKey: undefined, // webapp auth - no PM scoping
+      livemode: false, // testmode context
       environment: 'test' as const,
-      isApi: true as any,
+      isApi: false as any,
       path: '',
+      user, // Required for auth middleware
     }
     // Create pricing model outside of adminTransaction to use the correct ctx
     const { pricingModel } = await pricingModelsRouter
@@ -227,19 +245,23 @@ describe('pricesRouter.create', () => {
   })
 
   it('allows creating a second default price and deactivates the first', async () => {
-    // Use testmode API key to create testmode records
+    // Use webapp auth (no API key) to create testmode records
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,
     })
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const ctx = {
       organizationId: orgData.organization.id,
-      apiKey: apiKey.token!,
-      livemode: false, // testmode context to match API key
+      apiKey: undefined, // webapp auth - no PM scoping
+      livemode: false, // testmode context
       environment: 'test' as const,
-      isApi: true as any,
+      isApi: false as any,
       path: '',
+      user, // Required for auth middleware
     }
     const { pricingModel } = await pricingModelsRouter
       .createCaller(ctx)
@@ -315,19 +337,23 @@ describe('pricesRouter.create', () => {
   })
 
   it('allows creating the first price for a default product', async () => {
-    // Use testmode API key to create testmode records
+    // Use webapp auth (no API key) to create testmode records
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,
     })
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const ctx = {
       organizationId: orgData.organization.id,
-      apiKey: apiKey.token!,
-      livemode: false, // testmode context to match API key
+      apiKey: undefined, // webapp auth - no PM scoping
+      livemode: false, // testmode context
       environment: 'test' as const,
-      isApi: true as any,
+      isApi: false as any,
       path: '',
+      user, // Required for auth middleware
     }
     // Create a pricing model first, which will automatically create a default product with default price
     const { pricingModel } = await pricingModelsRouter
@@ -354,19 +380,23 @@ describe('pricesRouter.create', () => {
   })
 
   it('forbids additional prices for default products', async () => {
-    // Use testmode API key to create testmode records
+    // Use webapp auth (no API key) to create testmode records
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,
     })
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const ctx = {
       organizationId: orgData.organization.id,
-      apiKey: apiKey.token!,
-      livemode: false, // testmode context to match API key
+      apiKey: undefined, // webapp auth - no PM scoping
+      livemode: false, // testmode context
       environment: 'test' as const,
-      isApi: true as any,
+      isApi: false as any,
       path: '',
+      user, // Required for auth middleware
     }
     const { pricingModel } = await pricingModelsRouter
       .createCaller(ctx)
@@ -404,18 +434,23 @@ describe('pricesRouter.create', () => {
   })
 
   it('sets currency from organization and livemode from ctx', async () => {
-    const orgData = await setupOrg()
-    const { apiKey } = await setupUserAndApiKey({
+    // Use webapp auth (no API key) to avoid PM scoping issues
+    const orgData = await setupOrg({ skipPricingModel: true })
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,
     })
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const ctx = {
       organizationId: orgData.organization.id,
-      apiKey: apiKey.token!,
+      apiKey: undefined, // webapp auth - no PM scoping
       livemode: false,
       environment: 'test' as const,
-      isApi: true as any,
+      isApi: false as any,
       path: '',
+      user, // Required for auth middleware
     }
     const { pricingModel } = await pricingModelsRouter
       .createCaller(ctx)
@@ -468,44 +503,54 @@ describe('pricesRouter.create', () => {
 // pricingModelsRouter.clone
 describe('pricingModelsRouter.clone', () => {
   it('returns NOT_FOUND when cloning a pricing model from another organization', async () => {
-    // Use testmode to avoid livemode pricing model uniqueness constraint
+    // Use webapp auth (no API key) to avoid PM scoping issues
     const org1 = await setupOrg({ skipPricingModel: true })
     const org2 = await setupOrg({ skipPricingModel: true })
 
-    const { apiKey: org1ApiKey } = await setupUserAndApiKey({
-      organizationId: org1.organization.id,
-      livemode: false,
-    })
-    const { apiKey: org2ApiKey } = await setupUserAndApiKey({
-      organizationId: org2.organization.id,
-      livemode: false,
-    })
+    const { user: org1User, betterAuthId: org1BetterAuthId } =
+      await setupUserAndApiKey({
+        organizationId: org1.organization.id,
+        livemode: false,
+      })
+    const { user: org2User, betterAuthId: org2BetterAuthId } =
+      await setupUserAndApiKey({
+        organizationId: org2.organization.id,
+        livemode: false,
+      })
 
     const org1Ctx = {
       organizationId: org1.organization.id,
-      apiKey: org1ApiKey.token!,
+      apiKey: undefined, // webapp auth - no PM scoping
       livemode: false,
       environment: 'test' as const,
-      isApi: true as const,
+      isApi: false as const,
       path: '',
+      user: org1User, // Required for auth middleware
     }
 
     const org2Ctx = {
       organizationId: org2.organization.id,
-      apiKey: org2ApiKey.token!,
+      apiKey: undefined, // webapp auth - no PM scoping
       livemode: false,
       environment: 'test' as const,
-      isApi: true as const,
+      isApi: false as const,
       path: '',
+      user: org2User, // Required for auth middleware
     }
 
-    // Create a pricing model in org1
+    // Create a pricing model in org1 using webapp auth
+    globalThis.__mockedAuthSession = {
+      user: { id: org1BetterAuthId!, email: org1User.email },
+    }
     const { pricingModel: org1PricingModel } =
       await pricingModelsRouter.createCaller(org1Ctx).create({
         pricingModel: { name: 'Org1 PM', isDefault: false },
       })
 
-    // Attempt to clone org1's pricing model using org2's API key - should fail
+    // Attempt to clone org1's pricing model using org2's context - should fail
+    globalThis.__mockedAuthSession = {
+      user: { id: org2BetterAuthId!, email: org2User.email },
+    }
     try {
       await pricingModelsRouter.createCaller(org2Ctx).clone({
         id: org1PricingModel.id,
@@ -521,19 +566,23 @@ describe('pricingModelsRouter.clone', () => {
   })
 
   it('clones a pricing model within the same environment when no destinationEnvironment is specified', async () => {
-    // Use testmode because livemode only allows ONE pricing model per org
+    // Use webapp auth (no API key) because testmode allows multiple PMs but PM scoping would block access
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,
     })
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const ctx = {
       organizationId: orgData.organization.id,
-      apiKey: apiKey.token!,
+      apiKey: undefined, // webapp auth - no PM scoping
       livemode: false,
       environment: 'test' as const,
-      isApi: true as const,
+      isApi: false as const,
       path: '',
+      user, // Required for auth middleware
     }
 
     const { pricingModel: sourcePM } = await pricingModelsRouter
@@ -556,20 +605,24 @@ describe('pricingModelsRouter.clone', () => {
   })
 
   it('clones a pricing model from test mode to live mode when destinationEnvironment is livemode', async () => {
+    // Use webapp auth (no API key) to avoid PM scoping issues
     const orgData = await setupOrg({ skipPricingModel: true })
 
-    // Create test mode API key and pricing model
-    const { apiKey: testApiKey } = await setupUserAndApiKey({
+    const { user, betterAuthId } = await setupUserAndApiKey({
       organizationId: orgData.organization.id,
       livemode: false,
     })
+    globalThis.__mockedAuthSession = {
+      user: { id: betterAuthId!, email: user.email },
+    }
     const testCtx = {
       organizationId: orgData.organization.id,
-      apiKey: testApiKey.token!,
+      apiKey: undefined, // webapp auth - no PM scoping
       livemode: false,
       environment: 'test' as const,
-      isApi: true as const,
+      isApi: false as const,
       path: '',
+      user, // Required for auth middleware
     }
 
     const { pricingModel: testPM } = await pricingModelsRouter

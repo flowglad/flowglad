@@ -93,7 +93,7 @@ type ApiKeyVerificationResult = z.infer<
  *
  * If you need to test actual caching behavior, use one of these approaches:
  *
- * 1. Integration tests: Set REDIS_INTEGRATION_TEST_MODE=true to use real Redis
+ * 1. Integration tests: Use .env.integration with real Redis credentials
  *    (see cache.integration.test.ts for examples)
  *
  * 2. Stateful mock: Use _setTestRedisClient() to inject a mock that stores data
@@ -124,13 +124,25 @@ export const _setTestRedisClient = (client: any) => {
 }
 
 /**
+ * Returns true if Redis credentials appear to be real (not stubs).
+ */
+const hasRealRedisCredentials = () => {
+  const url = process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  // Check for stub values that won't work with real Redis
+  if (!url || !token) return false
+  if (url.includes('stub') || token.includes('stub')) return false
+  if (url.includes('mock') || token.includes('mock')) return false
+  return true
+}
+
+/**
  * Returns a Redis client.
  *
  * Priority:
  * 1. If _setTestRedisClient() was called, always use that client (test override)
- * 2. In integration tests (REDIS_INTEGRATION_TEST_MODE=true), returns real Redis
- * 3. In unit/db tests (NODE_ENV=test without integration mode), returns testStubClient
- * 4. In production, returns real Redis
+ * 2. In tests without real Redis credentials, returns testStubClient
+ * 3. In production or integration tests with real credentials, returns real Redis
  */
 export const redis = () => {
   // Always respect explicit test client injection (used for testing specific behaviors)
@@ -138,15 +150,12 @@ export const redis = () => {
     return _testRedisClient
   }
 
-  // In non-integration tests, use the no-op stub
-  if (
-    core.IS_TEST &&
-    process.env.REDIS_INTEGRATION_TEST_MODE !== 'true'
-  ) {
+  // In tests without real Redis credentials, use the no-op stub
+  if (core.IS_TEST && !hasRealRedisCredentials()) {
     return testStubClient
   }
 
-  // Integration tests and production use real Redis
+  // Integration tests (with real credentials) and production use real Redis
   return new Redis({
     url: core.envVariable('UPSTASH_REDIS_REST_URL'),
     token: core.envVariable('UPSTASH_REDIS_REST_TOKEN'),

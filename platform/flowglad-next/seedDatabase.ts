@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { snakeCase } from 'change-case'
 import { sql } from 'drizzle-orm'
 import * as R from 'ramda'
@@ -22,6 +23,7 @@ import { type Membership, memberships } from '@/db/schema/memberships'
 import type { BillingAddress } from '@/db/schema/organizations'
 import type { Payment } from '@/db/schema/payments'
 import { nulledPriceColumns, type Price } from '@/db/schema/prices'
+import type { PricingModel } from '@/db/schema/pricingModels'
 import type { ProductFeature } from '@/db/schema/productFeatures'
 import type { Purchase } from '@/db/schema/purchases'
 import type { Refund, refunds } from '@/db/schema/refunds'
@@ -184,6 +186,8 @@ export const setupOrg = async (params?: {
   countryCode?: CountryCode
   /** Skip creating pricing models, products, and prices. Useful for tests that need to create their own. */
   skipPricingModel?: boolean
+  /** Set up a Stripe account for the organization. Required for tests that make Stripe API calls in livemode. */
+  withStripeAccount?: boolean
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
@@ -207,6 +211,10 @@ export const setupOrg = async (params?: {
         stripeConnectContractType:
           params?.stripeConnectContractType ??
           StripeConnectContractType.Platform,
+        stripeAccountId: params?.withStripeAccount
+          ? `acct_test_${core.nanoid()}`
+          : undefined,
+        payoutsEnabled: params?.withStripeAccount ? true : undefined,
         featureFlags: {},
         contactEmail: 'test@test.com',
         billingAddress: {
@@ -1672,6 +1680,7 @@ export const setupUserAndApiKey = async ({
   organizationId,
   livemode,
   forceNewUser = false,
+  pricingModelId,
 }: {
   organizationId: string
   livemode: boolean
@@ -1686,24 +1695,51 @@ export const setupUserAndApiKey = async ({
    * not for authenticated API operations.
    */
   forceNewUser?: boolean
+  /**
+   * Optional pricing model ID to scope the API key to.
+   * When provided, the API key will be scoped to this specific pricing model.
+   * When omitted, the API key will be scoped to the default pricing model for the org+livemode.
+   *
+   * Use this when your test creates data under a non-default pricing model and needs
+   * the API key to have access to that data via RLS policies.
+   */
+  pricingModelId?: string
 }) => {
   return adminTransaction(async ({ transaction }) => {
-    // Get the default pricing model for this org+livemode, or create one if it doesn't exist
-    let defaultPricingModel = await selectDefaultPricingModel(
-      { organizationId, livemode },
-      transaction
-    )
-    if (!defaultPricingModel) {
-      // Create a minimal default pricing model for test setup
-      defaultPricingModel = await insertPricingModel(
-        {
-          name: `Test Pricing Model (${livemode ? 'live' : 'test'})`,
-          organizationId,
-          livemode,
-          isDefault: true,
-        },
+    // Get the pricing model for the API key - use provided PM or fall back to default
+    let targetPricingModel: PricingModel.Record | null = null
+
+    if (pricingModelId) {
+      // Use the explicitly provided pricing model
+      const pmResult = await selectPricingModelById(
+        pricingModelId,
         transaction
       )
+      if (Result.isError(pmResult)) {
+        throw new Error(
+          `Pricing model not found: ${pricingModelId}. ` +
+            `Ensure the pricing model exists before calling setupUserAndApiKey.`
+        )
+      }
+      targetPricingModel = pmResult.value
+    } else {
+      // Fall back to default pricing model for this org+livemode
+      targetPricingModel = await selectDefaultPricingModel(
+        { organizationId, livemode },
+        transaction
+      )
+      if (!targetPricingModel) {
+        // Create a minimal default pricing model for test setup
+        targetPricingModel = await insertPricingModel(
+          {
+            name: `Test Pricing Model (${livemode ? 'live' : 'test'})`,
+            organizationId,
+            livemode,
+            isDefault: true,
+          },
+          transaction
+        )
+      }
     }
 
     // Check if there's already a membership for this organization.
@@ -1771,7 +1807,7 @@ export const setupUserAndApiKey = async ({
         id: `fk_test_${core.nanoid()}`,
         token: apiKeyTokenValue,
         organizationId,
-        pricingModelId: defaultPricingModel.id,
+        pricingModelId: targetPricingModel.id,
         type: FlowgladApiKeyType.Secret,
         livemode: livemode,
         name: 'Test API Key',

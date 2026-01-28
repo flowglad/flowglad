@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
+import { mockGetStripeCharge } from '@/../bun.stripe.mocks'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -74,9 +75,6 @@ import {
 import core from '@/utils/core'
 import { IntentMetadataType } from '@/utils/stripe'
 
-// Use global mock from bun.db.mocks.ts
-const mockGetStripeCharge = globalThis.__mockGetStripeCharge
-
 import { isFirstPayment } from './billingRunHelpers'
 import { createSubscriptionWorkflow } from './createSubscription/workflow'
 import { processOutcomeForBillingRun } from './processBillingRunPaymentIntents'
@@ -87,6 +85,49 @@ import { processOutcomeForBillingRun } from './processBillingRunPaymentIntents'
  * it returns a charge object with a predictable amount (for example, 1000 for 'ch_success', 500 for 'ch_failed', etc.).
  */
 
+/**
+ * Configure mockGetStripeCharge with pattern-based status determination.
+ * Call this in beforeEach for any describe block that uses processOutcomeForBillingRun.
+ */
+function configureMockGetStripeCharge() {
+  mockGetStripeCharge.mockImplementation(async (chargeId: string) => {
+    // Determine status based on charge ID pattern
+    let status: 'succeeded' | 'pending' | 'failed' = 'succeeded'
+    let paid = true
+    if (chargeId.includes('failed')) {
+      status = 'failed'
+      paid = false
+    } else if (
+      chargeId.includes('pending') ||
+      chargeId.includes('processing')
+    ) {
+      status = 'pending'
+      paid = false
+    }
+
+    return createMockStripeCharge({
+      id: chargeId,
+      status,
+      amount: 1000,
+      paid,
+      captured: status === 'succeeded',
+      payment_method_details: {
+        type: 'card',
+        card: {
+          brand: 'visa',
+          last4: '4242',
+          exp_month: 12,
+          exp_year: 2030,
+          fingerprint: 'test_fingerprint',
+          funding: 'credit',
+          country: 'US',
+          network: 'visa',
+        },
+      } as any,
+    })
+  })
+}
+
 describe('processOutcomeForBillingRun integration tests', async () => {
   const { organization, price, product } = await setupOrg()
   let customer: Customer.Record
@@ -96,46 +137,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
   let billingPeriodItem: BillingPeriodItem.Record
   let subscription: Subscription.Record
   beforeEach(async () => {
-    // Configure mock to return a charge object based on the ID passed
-    // The status is determined by patterns in the charge ID
-    mockGetStripeCharge.mockImplementation(
-      async (chargeId: string) => {
-        // Determine status based on charge ID pattern
-        let status: 'succeeded' | 'pending' | 'failed' = 'succeeded'
-        let paid = true
-        if (chargeId.includes('failed')) {
-          status = 'failed'
-          paid = false
-        } else if (
-          chargeId.includes('pending') ||
-          chargeId.includes('processing')
-        ) {
-          status = 'pending'
-          paid = false
-        }
-
-        return createMockStripeCharge({
-          id: chargeId,
-          status,
-          amount: 1000,
-          paid,
-          captured: status === 'succeeded',
-          payment_method_details: {
-            type: 'card',
-            card: {
-              brand: 'visa',
-              last4: '4242',
-              exp_month: 12,
-              exp_year: 2030,
-              fingerprint: 'test_fingerprint',
-              funding: 'credit',
-              country: 'US',
-              network: 'visa',
-            },
-          } as any,
-        })
-      }
-    )
+    configureMockGetStripeCharge()
 
     customer = await setupCustomer({
       organizationId: organization.id,
@@ -1298,6 +1300,10 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
   const { organization: orgForGrants, pricingModel } =
     await setupOrg()
 
+  beforeEach(() => {
+    configureMockGetStripeCharge()
+  })
+
   it('should grant a "Once" usage credit after payment confirmation', async () => {
     // Create fresh product and price for this test to ensure isolation
     const product = await setupProduct({
@@ -1935,6 +1941,7 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
   let subscription: Subscription.Record
 
   beforeEach(async () => {
+    configureMockGetStripeCharge()
     customer = await setupCustomer({
       organizationId: organization.id,
     })

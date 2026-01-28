@@ -162,12 +162,19 @@ if (setupFile.includes('frontend')) {
 }
 preloadArgs.push('--preload', setupFile)
 
-// Run bun test with NODE_ENV=test so db-safety-preload.ts uses .env.test
+// Determine NODE_ENV based on test type
+// - Integration tests use NODE_ENV=integration to load .env.integration
+// - All other tests use NODE_ENV=test to load .env.test
+const nodeEnv = setupFile.includes('integration')
+  ? 'integration'
+  : 'test'
+
+// Run bun test with appropriate NODE_ENV so correct .env file is loaded
 const proc = Bun.spawn(
   ['bun', 'test', ...preloadArgs, ...extraArgs, ...filePaths],
   {
     stdio: ['inherit', 'inherit', 'inherit'],
-    env: { ...process.env, NODE_ENV: 'test' },
+    env: { ...process.env, NODE_ENV: nodeEnv },
   }
 )
 
