@@ -15,3 +15,14 @@ services:
       timeout: 5s
       retries: 5
 
+  stripe-mock:
+    image: stripe/stripe-mock:latest
+    ports:
+      - '12111:12111'
+      - '12112:12112'
+    healthcheck:
+      test: ['CMD', 'wget', '-q', '-O', '/dev/null', '--header', 'Authorization: Bearer sk_test_mock', 'http://localhost:12111/v1/customers']
+      interval: 2s
+      timeout: 3s
+      retries: 5
+

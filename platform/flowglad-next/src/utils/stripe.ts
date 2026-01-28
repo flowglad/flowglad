@@ -417,19 +417,30 @@ const stripeApiKey = (livemode: boolean) => {
     return key
   }
   if (core.IS_TEST) {
-    return 'sk_test_fake_key_1234567890abcdef'
+    // stripe-mock requires a valid-looking test mode key format
+    return 'sk_test_123'
   }
   return livemode
     ? core.envVariable('STRIPE_SECRET_KEY')
     : core.envVariable('STRIPE_TEST_MODE_SECRET_KEY') || ''
 }
 export const stripe = (livemode: boolean) => {
-  return new Stripe(stripeApiKey(livemode), {
+  const config: Stripe.StripeConfig = {
     apiVersion: '2024-09-30.acacia',
-    httpClient: core.IS_TEST
-      ? Stripe.createFetchHttpClient()
-      : undefined,
-  })
+  }
+
+  // Use stripe-mock for testing (unless using real Stripe integration test mode)
+  if (core.IS_TEST && !process.env.STRIPE_INTEGRATION_TEST_MODE) {
+    config.host = process.env.STRIPE_MOCK_HOST || 'localhost'
+    config.port = Number(process.env.STRIPE_MOCK_PORT || 12111)
+    config.protocol = 'http'
+  }
+
+  if (core.IS_TEST) {
+    config.httpClient = Stripe.createFetchHttpClient()
+  }
+
+  return new Stripe(stripeApiKey(livemode), config)
 }
 
 export const createConnectedAccount = async ({

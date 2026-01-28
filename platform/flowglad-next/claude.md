@@ -80,7 +80,7 @@ This project uses isolated-by-default test infrastructure. Tests are categorized
 | Category | File Pattern | Database | External APIs | Setup File |
 |----------|--------------|----------|---------------|------------|
 | **Pure Unit** | `*.unit.test.ts` | BLOCKED | MSW strict | `bun.unit.setup.ts` |
-| **DB-Backed** | `*.db.test.ts` | Full access | MSW strict | `bun.db.test.setup.ts` |
+| **DB-Backed** | `*.db.test.ts` | Full access | MSW strict + stripe-mock | `bun.db.test.setup.ts` |
 | **Backend** (legacy) | `*.test.ts` | Full access | MSW warn | `bun.setup.ts` |
 | **Integration** | `*.integration.test.ts` | Full access | Real APIs | `bun.integration.setup.ts` |
 | **RLS** | `*.rls.test.ts` | Full access | MSW | `bun.rls.setup.ts` |
@@ -115,6 +115,41 @@ bun run test:all
 - **Legacy Backend (`*.test.ts`)**: Existing tests. Migrate to `*.unit.test.ts` or `*.db.test.ts` for better isolation.
 
 - **Integration (`*.integration.test.ts`)**: Real API calls to Stripe, Redis, and other external services. Located in `src/` alongside other tests.
+
+### Stripe Testing with stripe-mock
+
+This project uses [stripe-mock](https://github.com/stripe/stripe-mock) for Stripe API testing instead of MSW mocking. stripe-mock is Stripe's official mock server that validates requests against Stripe's OpenAPI spec.
+
+**How it works:**
+- stripe-mock runs as a Docker container alongside the test postgres database
+- The Stripe SDK is configured to point to stripe-mock (`localhost:12111`) in test mode
+- Stripe API calls from tests go directly to stripe-mock (no MSW interception)
+- stripe-mock validates request/response schemas automatically
+
+**Starting stripe-mock:**
+```bash
+bun run test:setup  # Starts postgres AND stripe-mock via docker compose
+```
+
+**Configuration:**
+- `docker-compose.test.yml` - Defines the stripe-mock service
+- `src/utils/stripe.ts` - Configures Stripe SDK to use stripe-mock in test mode
+- `.env.test` - Contains `STRIPE_MOCK_HOST` and `STRIPE_MOCK_PORT`
+
+**Benefits over MSW mocking:**
+- No mock handlers to maintain (~480 lines removed)
+- Request/response validation against Stripe's OpenAPI spec
+- No module import order issues or test leakage
+- Consistent behavior without needing real Stripe keys locally
+
+**When you need real Stripe APIs:**
+- For testing card declines or specific Stripe behaviors, use `*.integration.test.ts`
+- Integration tests load real credentials from `.env.development`
+- Use Stripe's test card numbers (e.g., `4000000000000002` for declines)
+
+**Webhook testing:**
+- Use mock factories in `src/test/helpers/stripeMocks.ts` for webhook event payloads
+- These create properly-typed Stripe event objects without calling the API
 
 ### Automatic Isolation (No Opt-In Required)
 
@@ -203,7 +238,9 @@ In `*.unit.test.ts` and `*.db.test.ts` files, MSW runs in **strict mode**: any u
 - All external dependencies are explicitly mocked
 - Tests are deterministic and fast
 
-If a test legitimately needs real API calls, use `*.integration.test.ts` instead.
+**Exception:** Stripe API calls are passed through to stripe-mock (not intercepted by MSW). The MSW server has a passthrough handler for `http://localhost:12111/*`.
+
+If a test legitimately needs real API calls to external services other than Stripe, use `*.integration.test.ts` instead.
 
 #### 5. Global Mock State
 
@@ -230,7 +267,7 @@ afterEach(() => {
 ```
 
 ### Test Environments
-The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
+The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs (Svix, Trigger.dev, Unkey). Stripe API calls go directly to stripe-mock.
 
 **Tests using React or DOM APIs** (`.test.tsx` files) are run via `test:frontend` which uses happy-dom for DOM emulation. This includes:
 - React component tests
