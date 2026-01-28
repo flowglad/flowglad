@@ -33,21 +33,25 @@
   "navigation": {
     "tabs": [
       {
-        "tab": "Documentation",
+        "tab": "Introduction",
         "groups": [
           {
             "group": "Get Started",
-            "pages": [
-              "quickstart",
-              "integrate-by-prompt",
-              "integrate-by-http",
-              "mcp-server",
-              "faq"
-            ]
+            "pages": ["welcome", "quickstart", "faq"]
           },
+          {
+            "group": "Additional Resources",
+            "pages": ["integrate-by-http", "mcp-server"]
+          }
+        ]
+      },
+      {
+        "tab": "Features",
+        "groups": [
           {
             "group": "Features",
             "pages": [
+              "features/introduction",
               "features/pricing-models",
               "features/products",
               "features/prices",
@@ -56,7 +60,9 @@
               "features/checkout-sessions",
               "features/invoices",
               "features/usage",
-              "features/webhooks"
+              "features/resources",
+              "features/webhooks",
+              "features/notifications"
             ]
           },
           {
@@ -78,6 +84,7 @@
               "sdks/pricing-models-products",
               "sdks/checkout-sessions",
               "sdks/feature-access-usage",
+              "sdks/resources",
               "sdks/customer-purchases",
               "sdks/subscription-management"
             ]
@@ -93,6 +100,36 @@
         ]
       },
       {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["guides/introduction", "guides/pricing-models"]
+          },
+          {
+            "group": "Next.js",
+            "pages": [
+              "guides/nextjs/generation-based-subscription",
+              "guides/nextjs/pay-as-you-go",
+              "guides/nextjs/tiered-usage-gated-subscription",
+              "guides/nextjs/usage-limit-subscription"
+            ]
+          },
+          {
+            "group": "Tanstack Start",
+            "pages": [
+              "guides/tanstack-start/generation-based-subscription"
+            ]
+          },
+          {
+            "group": "React + Vite",
+            "pages": [
+              "guides/react-vite/generation-based-subscription"
+            ]
+          }
+        ]
+      },
+      {
         "tab": "API Reference",
         "openapi": {
           "source": "https://app.flowglad.com/api/openapi",
@@ -104,6 +141,10 @@
             "pages": ["api-reference/introduction"]
           }
         ]
+      },
+      {
+        "tab": "Changelog",
+        "pages": ["changelog"]
       }
     ],
     "global": {
@@ -112,6 +153,11 @@
           "anchor": "Community",
           "href": "https://app.flowglad.com/invite-discord",
           "icon": "discord"
+        },
+        {
+          "anchor": "Examples",
+          "href": "https://github.com/flowglad/examples",
+          "icon": "github"
         }
       ]
     }
@@ -141,8 +187,11 @@
   },
   "footer": {
     "socials": {
+      "x": "https://x.com/flowglad",
+      "discord": "https://discord.com/servers/flowglad-1273695198639161364",
       "github": "https://github.com/flowglad",
-      "x": "https://x.com/flowglad"
+      "linkedin": "https://www.linkedin.com/company/flowglad/",
+      "youtube": "https://www.youtube.com/watch?v=G6H0c1Cd2kU"
     }
   }
 }

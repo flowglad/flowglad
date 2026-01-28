@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { and, asc, eq, inArray, lt, not, or, sql } from 'drizzle-orm'
 import {
   type LedgerEntry,
@@ -12,10 +13,15 @@ import {
   createSelectById,
   createSelectFunction,
   createUpdateFunction,
-  NotFoundError,
   type ORMMethodCreatorConfig,
+  NotFoundError as TableNotFoundError,
   whereClauseFromObject,
 } from '@/db/tableUtils'
+import {
+  ConflictError,
+  NotFoundError,
+  ValidationError,
+} from '@/errors'
 import {
   type CurrencyCode,
   LedgerEntryDirection,
@@ -37,6 +43,7 @@ import {
 } from '../schema/usageMeters'
 import { createDateNotPassedFilter } from '../tableUtils'
 import type { DbTransaction } from '../types'
+import { derivePricingModelIdForLedgerEntryFromMaps } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromSubscription,
   pricingModelIdsForSubscriptions,
@@ -67,6 +74,9 @@ export const selectLedgerEntryById = createSelectById(
  * Derives pricingModelId for a ledger entry with COALESCE logic.
  * Priority: subscription > usageMeter
  * Used for ledger entry inserts.
+ *
+ * Returns Result.err(NotFoundError) when neither subscriptionId nor usageMeterId
+ * is provided, or when the pricing model cannot be found.
  */
 export const derivePricingModelIdForLedgerEntry = async (
   data: {
@@ -74,25 +84,61 @@ export const derivePricingModelIdForLedgerEntry = async (
     usageMeterId?: string | null
   },
   transaction: DbTransaction
-): Promise<string> => {
+): Promise<Result<string, NotFoundError>> => {
   // Try subscription first
   if (data.subscriptionId) {
-    return await derivePricingModelIdFromSubscription(
-      data.subscriptionId,
-      transaction
-    )
+    try {
+      const pricingModelId =
+        await derivePricingModelIdFromSubscription(
+          data.subscriptionId,
+          transaction
+        )
+      return Result.ok(pricingModelId)
+    } catch (error) {
+      if (
+        error instanceof NotFoundError ||
+        error instanceof TableNotFoundError
+      ) {
+        return Result.err(
+          new NotFoundError(
+            'pricingModelId',
+            `subscription ${data.subscriptionId} does not have a pricingModelId`
+          )
+        )
+      }
+      throw error
+    }
   }
 
   // Try usage meter second
   if (data.usageMeterId) {
-    return await derivePricingModelIdFromUsageMeter(
-      data.usageMeterId,
-      transaction
-    )
+    try {
+      const pricingModelId = await derivePricingModelIdFromUsageMeter(
+        data.usageMeterId,
+        transaction
+      )
+      return Result.ok(pricingModelId)
+    } catch (error) {
+      if (
+        error instanceof NotFoundError ||
+        error instanceof TableNotFoundError
+      ) {
+        return Result.err(
+          new NotFoundError(
+            'pricingModelId',
+            `usage meter ${data.usageMeterId} does not have a pricingModelId`
+          )
+        )
+      }
+      throw error
+    }
   }
 
-  throw new Error(
-    'Cannot derive pricingModelId: subscriptionId and usageMeterId are both null or missing pricingModelId'
+  return Result.err(
+    new NotFoundError(
+      'pricingModelId',
+      'subscriptionId and usageMeterId are both null'
+    )
   )
 }
 
@@ -104,23 +150,36 @@ const baseInsertLedgerEntry = createInsertFunction(
 export const insertLedgerEntry = async (
   ledgerEntryInsert: LedgerEntry.Insert,
   transaction: DbTransaction
-): Promise<LedgerEntry.Record> => {
-  const pricingModelId = ledgerEntryInsert.pricingModelId
-    ? ledgerEntryInsert.pricingModelId
-    : await derivePricingModelIdForLedgerEntry(
-        {
-          subscriptionId: ledgerEntryInsert.subscriptionId,
-          usageMeterId: ledgerEntryInsert.usageMeterId,
-        },
-        transaction
-      )
-  return baseInsertLedgerEntry(
+): Promise<Result<LedgerEntry.Record, NotFoundError>> => {
+  if (ledgerEntryInsert.pricingModelId) {
+    const record = await baseInsertLedgerEntry(
+      ledgerEntryInsert,
+      transaction
+    )
+    return Result.ok(record)
+  }
+
+  const pricingModelIdResult =
+    await derivePricingModelIdForLedgerEntry(
+      {
+        subscriptionId: ledgerEntryInsert.subscriptionId,
+        usageMeterId: ledgerEntryInsert.usageMeterId,
+      },
+      transaction
+    )
+
+  if (Result.isError(pricingModelIdResult)) {
+    return Result.err(pricingModelIdResult.error)
+  }
+
+  const record = await baseInsertLedgerEntry(
     {
       ...ledgerEntryInsert,
-      pricingModelId,
+      pricingModelId: pricingModelIdResult.value,
     },
     transaction
   )
+  return Result.ok(record)
 }
 
 export const updateLedgerEntry = createUpdateFunction(
@@ -141,7 +200,7 @@ const baseBulkInsertLedgerEntries = createBulkInsertFunction(
 export const bulkInsertLedgerEntries = async (
   ledgerEntryInserts: LedgerEntry.Insert[],
   transaction: DbTransaction
-): Promise<LedgerEntry.Record[]> => {
+): Promise<Result<LedgerEntry.Record[], NotFoundError>> => {
   // Collect all unique subscription and usage meter IDs
   const subscriptionIds = Array.from(
     new Set(
@@ -167,62 +226,37 @@ export const bulkInsertLedgerEntries = async (
   const usageMeterPricingModelIdMap =
     await pricingModelIdsForUsageMeters(usageMeterIds, transaction)
 
-  // Derive pricingModelId for each insert
-  const ledgerEntriesWithPricingModelId = ledgerEntryInserts.map(
-    (ledgerEntryInsert): LedgerEntry.Insert => {
-      if (ledgerEntryInsert.pricingModelId) {
-        return ledgerEntryInsert
-      }
-
-      // If we have a subscriptionId, we expect it to resolve in the batch map.
-      if (ledgerEntryInsert.subscriptionId) {
-        const subscriptionPricingModelId =
-          subscriptionPricingModelIdMap.get(
-            ledgerEntryInsert.subscriptionId
-          )
-
-        if (!subscriptionPricingModelId) {
-          throw new Error(
-            `Cannot derive pricingModelId: subscription ${ledgerEntryInsert.subscriptionId} not found or missing pricingModelId`
-          )
-        }
-
-        return {
-          ...ledgerEntryInsert,
-          pricingModelId: subscriptionPricingModelId,
-        }
-      }
-
-      // Otherwise fall back to usage meter if provided.
-      if (ledgerEntryInsert.usageMeterId) {
-        const usageMeterPricingModelId =
-          usageMeterPricingModelIdMap.get(
-            ledgerEntryInsert.usageMeterId
-          )
-
-        if (!usageMeterPricingModelId) {
-          throw new Error(
-            `Cannot derive pricingModelId: usage meter ${ledgerEntryInsert.usageMeterId} not found or missing pricingModelId`
-          )
-        }
-
-        return {
-          ...ledgerEntryInsert,
-          pricingModelId: usageMeterPricingModelId,
-        }
-      }
-
-      // No subscriptionId and no usageMeterId – nothing to derive from.
-      throw new Error(
-        'Cannot derive pricingModelId: subscriptionId and usageMeterId are both null or missing pricingModelId'
-      )
+  // Derive pricingModelId for each insert using the helper
+  const ledgerEntriesWithPricingModelId: LedgerEntry.Insert[] = []
+  for (const ledgerEntryInsert of ledgerEntryInserts) {
+    if (ledgerEntryInsert.pricingModelId) {
+      ledgerEntriesWithPricingModelId.push(ledgerEntryInsert)
+      continue
     }
-  )
 
-  return baseBulkInsertLedgerEntries(
+    const pricingModelIdResult =
+      derivePricingModelIdForLedgerEntryFromMaps({
+        subscriptionId: ledgerEntryInsert.subscriptionId,
+        usageMeterId: ledgerEntryInsert.usageMeterId,
+        subscriptionPricingModelIdMap,
+        usageMeterPricingModelIdMap,
+      })
+
+    if (Result.isError(pricingModelIdResult)) {
+      return Result.err(pricingModelIdResult.error)
+    }
+
+    ledgerEntriesWithPricingModelId.push({
+      ...ledgerEntryInsert,
+      pricingModelId: pricingModelIdResult.value,
+    })
+  }
+
+  const records = await baseBulkInsertLedgerEntries(
     ledgerEntriesWithPricingModelId,
     transaction
   )
+  return Result.ok(records)
 }
 
 const balanceTypeWhereStatement = (
@@ -524,7 +558,12 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
   >,
   anchorDate: Date | number,
   transaction: DbTransaction
-): Promise<UsageBillingInfo[]> => {
+): Promise<
+  Result<
+    UsageBillingInfo[],
+    ValidationError | NotFoundError | ConflictError
+  >
+> => {
   const result = await transaction
     .select()
     .from(ledgerEntries)
@@ -578,17 +617,9 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
   // Fetch usage events with their associated prices
   const usageEventIds = Array.from(entriesByUsageEventId.keys())
   if (usageEventIds.length === 0) {
-    return []
+    return Result.ok([])
   }
 
-  /**
-   * Usage events can be created with or without a priceId:
-   * - With priceId: Events created with priceId or priceSlug specified
-   * - Without priceId (null): Events created with usageMeterId or usageMeterSlug specified (no price)
-   *
-   * We use LEFT JOIN instead of INNER JOIN to include events without prices.
-   * This allows us to aggregate usage costs even when no price was specified at event creation time.
-   */
   const usageEventsWithPrices = await transaction
     .select({
       usageEventId: usageEvents.id,
@@ -605,73 +636,64 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       usageMeters,
       eq(usageEvents.usageMeterId, usageMeters.id)
     )
-    // LEFT JOIN allows events without prices (priceId is null)
-    .leftJoin(prices, eq(usageEvents.priceId, prices.id))
+    .innerJoin(prices, eq(usageEvents.priceId, prices.id))
     .where(inArray(usageEvents.id, usageEventIds))
 
-  // Type for usage events with validated price info
-  // For events without prices (priceId is null), we use default values
   type ValidatedUsageEventWithPrice = {
     usageEventId: string
-    priceId: string | null
+    priceId: string
     usageEventsPerUnit: number
     unitPrice: number
     livemode: boolean
     usageMeterName: string
-    currency: string | null
+    currency: string
     usageMeterId: string
   }
 
+  // Validate usage events with prices and return early on validation errors
   const validatedUsageEventsWithPrices: ValidatedUsageEventWithPrice[] =
-    usageEventsWithPrices.map((event) => {
-      /**
-       * For events without prices, we apply default values:
-       * - unitPrice: 0 (no per-unit cost since no price was specified)
-       * - usageEventsPerUnit: 1 (treat each event as 1 unit for aggregation purposes)
-       * - currency: null (no currency context without a price)
-       */
-      if (event.priceId === null) {
-        return {
-          usageEventId: event.usageEventId,
-          priceId: null,
-          usageEventsPerUnit: 1, // Default to 1 for events without prices
-          unitPrice: 0, // Events without prices have $0 cost
-          livemode: event.livemode,
-          usageMeterName: event.usageMeterName,
-          currency: null, // No currency for events without prices
-          usageMeterId: event.usageMeterId,
-        }
-      }
-      // For events with prices, validate that it's a usage price
-      if (event.usageEventsPerUnit === null) {
-        throw new Error(
+    []
+  for (const event of usageEventsWithPrices) {
+    // Validate that the price is a usage price with required fields
+    if (event.usageEventsPerUnit === null) {
+      return Result.err(
+        new ValidationError(
+          'usageEventsPerUnit',
           `Usage event ${event.usageEventId} references price ${event.priceId}, but the price was not found or is not a usage price (has null usageEventsPerUnit).`
         )
-      }
-      if (event.unitPrice === null) {
-        throw new Error(
+      )
+    }
+    if (event.unitPrice === null) {
+      return Result.err(
+        new ValidationError(
+          'unitPrice',
           `Usage event ${event.usageEventId} is associated with price ${event.priceId} which has null unitPrice.`
         )
-      }
-      return {
-        usageEventId: event.usageEventId,
-        priceId: event.priceId,
-        usageEventsPerUnit: event.usageEventsPerUnit,
-        unitPrice: event.unitPrice,
-        livemode: event.livemode,
-        usageMeterName: event.usageMeterName,
-        currency: event.currency,
-        usageMeterId: event.usageMeterId,
-      }
+      )
+    }
+    if (event.currency === null) {
+      return Result.err(
+        new ValidationError(
+          'currency',
+          `Usage event ${event.usageEventId} is associated with price ${event.priceId} which has null currency.`
+        )
+      )
+    }
+    validatedUsageEventsWithPrices.push({
+      usageEventId: event.usageEventId,
+      priceId: event.priceId,
+      usageEventsPerUnit: event.usageEventsPerUnit,
+      unitPrice: event.unitPrice,
+      livemode: event.livemode,
+      usageMeterName: event.usageMeterName,
+      currency: event.currency,
+      usageMeterId: event.usageMeterId,
     })
+  }
 
   const priceInfoByUsageEventId = new Map(
     validatedUsageEventsWithPrices.map((item) => {
-      // For events without prices, use a simple name without currency formatting
-      const name =
-        item.priceId === null
-          ? `Usage: ${item.usageMeterName} (no price)`
-          : `Usage: ${item.usageMeterName} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(item.currency as CurrencyCode, item.unitPrice)} per ${item.usageEventsPerUnit}`
+      const name = `Usage: ${item.usageMeterName} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(item.currency as CurrencyCode, item.unitPrice)} per ${item.usageEventsPerUnit}`
 
       return [
         item.usageEventId,
@@ -692,44 +714,36 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
    * Group ledger entries by (usageMeterId, priceId) for invoice line item aggregation.
    *
    * Key format: `${usageMeterId}-${priceId}`
-   * - For events with prices: `${usageMeterId}-${actualPriceId}`
-   * - For events without prices: `${usageMeterId}-null` (template string converts null to "null")
    *
-   * This grouping ensures:
-   * 1. Events with the same price are grouped together (for invoice display)
-   * 2. Events without prices are grouped separately by usage meter
-   * 3. The string "null" in the key is safe because priceIds are nanoids (never the literal string "null")
+   * This grouping ensures events with the same price are grouped together for invoice display.
    */
   const entriesByUsageMeterIdAndPriceId = new Map<
     string,
     LedgerEntry.Record[]
   >()
-  Array.from(entriesByUsageEventId.entries()).forEach(
-    ([usageEventId, entries]) => {
-      const priceInfo = priceInfoByUsageEventId.get(usageEventId)
-      if (!priceInfo) {
-        throw new Error(
-          `Price information not found for usage event ${usageEventId}`
-        )
-      }
-      // Template string converts null to "null", which is safe since priceIds are never the literal string "null"
-      const key = `${priceInfo.usageMeterId}-${priceInfo.priceId}`
-
-      if (!entriesByUsageMeterIdAndPriceId.has(key)) {
-        entriesByUsageMeterIdAndPriceId.set(key, [])
-      }
-      ;(entries as LedgerEntry.Record[]).forEach(
-        (item: LedgerEntry.Record) => {
-          entriesByUsageMeterIdAndPriceId.get(key)?.push(item)
-        }
-      )
+  for (const [
+    usageEventId,
+    entries,
+  ] of entriesByUsageEventId.entries()) {
+    const priceInfo = priceInfoByUsageEventId.get(usageEventId)
+    if (!priceInfo) {
+      return Result.err(new NotFoundError('priceInfo', usageEventId))
     }
-  )
+    const key = `${priceInfo.usageMeterId}-${priceInfo.priceId}`
+
+    if (!entriesByUsageMeterIdAndPriceId.has(key)) {
+      entriesByUsageMeterIdAndPriceId.set(key, [])
+    }
+    for (const item of entries as LedgerEntry.Record[]) {
+      entriesByUsageMeterIdAndPriceId.get(key)?.push(item)
+    }
+  }
+
   const priceInfoByUsageMeterIdAndPriceId = new Map<
     string,
     {
       usageMeterId: string
-      priceId: string | null
+      priceId: string
       usageEventsPerUnit: number
       unitPrice: number
       livemode: boolean
@@ -738,15 +752,9 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       usageEventIds: string[]
     }
   >()
-  validatedUsageEventsWithPrices.forEach((event) => {
-    // Template string converts null to "null", which is safe since priceIds are nanoids (never the literal string "null")
+  for (const event of validatedUsageEventsWithPrices) {
     const key = `${event.usageMeterId}-${event.priceId}`
-
-    // For events without prices, use a simple name without currency formatting
-    const name =
-      event.priceId === null
-        ? `Usage: ${event.usageMeterName} (no price)`
-        : `Usage: ${event.usageMeterName} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(event.currency as CurrencyCode, event.unitPrice)} per ${event.usageEventsPerUnit}`
+    const name = `Usage: ${event.usageMeterName} at ${stripeCurrencyAmountToHumanReadableCurrencyAmount(event.currency as CurrencyCode, event.unitPrice)} per ${event.usageEventsPerUnit}`
 
     const item = {
       usageMeterId: event.usageMeterId,
@@ -766,7 +774,7 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       // as we encounter more usage event entries with the same (usage meter id, price id).
       // so we have a list of usageEventIds for each (usage meter id, price id) for auditability
       const omitFields = ['usageEventIds', 'description']
-      const normalize = (obj: any) => {
+      const normalize = (obj: Record<string, unknown>) => {
         const omitted = core.omit(omitFields, obj)
         return JSON.stringify(omitted, Object.keys(omitted).sort())
       }
@@ -774,28 +782,33 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       const existingItem = priceInfoByUsageMeterIdAndPriceId.get(key)
       if (existingItem) {
         if (normalize(existingItem) !== normalize(item)) {
-          throw new Error(
-            `Existing and current item for ${key} have different values (excluding usageEventIds and description): \nexisting: ${JSON.stringify(existingItem)} vs \ncurrent: ${JSON.stringify(item)}`
+          return Result.err(
+            new ConflictError(
+              'priceInfo',
+              `Existing and current item for ${key} have different values (excluding usageEventIds and description): \nexisting: ${JSON.stringify(existingItem)} vs \ncurrent: ${JSON.stringify(item)}`
+            )
           )
         }
         existingItem.usageEventIds.push(event.usageEventId)
         existingItem.description += `, ${event.usageEventId}`
       }
     }
-  })
+  }
 
-  const balances: UsageBillingInfo[] = Array.from(
-    entriesByUsageMeterIdAndPriceId.entries()
-  ).map(([usageMeterIdPriceId, entries]) => {
+  const balances: UsageBillingInfo[] = []
+  for (const [
+    usageMeterIdPriceId,
+    entries,
+  ] of entriesByUsageMeterIdAndPriceId.entries()) {
     const priceInfo = priceInfoByUsageMeterIdAndPriceId.get(
       usageMeterIdPriceId
     )
     if (!priceInfo) {
-      throw new Error(
-        `Price information not found for usageMeterIdAndPriceId ${usageMeterIdPriceId}`
+      return Result.err(
+        new NotFoundError('priceInfo', usageMeterIdPriceId)
       )
     }
-    return {
+    balances.push({
       usageMeterIdPriceId,
       balance: balanceFromEntries(entries) * -1,
       ledgerAccountId: entries[0].ledgerAccountId,
@@ -807,18 +820,20 @@ export const aggregateOutstandingBalanceForUsageCosts = async (
       name: priceInfo.name,
       description: priceInfo.description,
       usageEventIds: priceInfo.usageEventIds,
-    }
-  })
-  return balances
+    })
+  }
+  return Result.ok(balances)
 }
 
 export const claimLedgerEntriesWithOutstandingBalances = async (
   usageEventIds: string[],
   billingRun: BillingRun.Record,
   transaction: DbTransaction
-): Promise<LedgerEntry.Record[]> => {
+): Promise<
+  Result<LedgerEntry.Record[], NotFoundError | ValidationError>
+> => {
   if (usageEventIds.length === 0) {
-    return []
+    return Result.ok([])
   }
   const ledgerEntryResults = await selectLedgerEntries(
     {
@@ -828,22 +843,28 @@ export const claimLedgerEntriesWithOutstandingBalances = async (
     transaction
   )
   if (ledgerEntryResults.length !== usageEventIds.length) {
-    throw new Error(
-      `Some ledger entries were not found: ${usageEventIds.join(', ')}`
+    return Result.err(
+      new NotFoundError('ledgerEntries', usageEventIds.join(', '))
     )
   }
-  ledgerEntryResults.forEach((entry) => {
+  for (const entry of ledgerEntryResults) {
     if (entry.entryType !== LedgerEntryType.UsageCost) {
-      throw new Error(
-        `Ledger entry ${entry.id} is not a usage cost. Can only claim usage costs`
+      return Result.err(
+        new ValidationError(
+          'entryType',
+          `Ledger entry ${entry.id} is not a usage cost. Can only claim usage costs`
+        )
       )
     }
     if (entry.subscriptionId !== billingRun.subscriptionId) {
-      throw new Error(
-        `Ledger entry ${entry.id} is not associated with the billing run. Can only claim usage costs for the billing run`
+      return Result.err(
+        new ValidationError(
+          'subscriptionId',
+          `Ledger entry ${entry.id} is not associated with the billing run. Can only claim usage costs for the billing run`
+        )
       )
     }
-  })
+  }
   const updatedLedgerEntries = await transaction
     .update(ledgerEntries)
     .set({
@@ -855,7 +876,9 @@ export const claimLedgerEntriesWithOutstandingBalances = async (
         eq(ledgerEntries.entryType, LedgerEntryType.UsageCost)
       )
     )
-  return updatedLedgerEntries.map((entry) =>
-    ledgerEntriesSelectSchema.parse(entry)
+  return Result.ok(
+    updatedLedgerEntries.map((entry) =>
+      ledgerEntriesSelectSchema.parse(entry)
+    )
   )
 }

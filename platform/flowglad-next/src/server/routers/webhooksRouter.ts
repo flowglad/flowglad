@@ -8,7 +8,6 @@ import {
 } from '@/db/schema/webhooks'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
-  insertWebhook,
   selectWebhookAndOrganizationByWebhookId,
   selectWebhookById,
   selectWebhooksTableRowData,
@@ -22,10 +21,10 @@ import {
 import { protectedProcedure } from '@/server/trpc'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import {
-  createSvixEndpoint,
   getSvixSigningSecret,
   updateSvixEndpoint,
 } from '@/utils/svix'
+import { createWebhookTransaction } from '@/utils/webhooks'
 import { router } from '../trpc'
 
 const { openApiMetas, routeConfigs } = generateOpenApiMetas({
@@ -46,28 +45,20 @@ export const createWebhook = protectedProcedure
   )
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, ctx, livemode }) => {
+      async ({ input, ctx, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const { livemode } = ctx
         const organization = ctx.organization
         if (!organization) {
           throw new Error('Organization not found')
         }
-        const webhook = await insertWebhook(
-          {
-            ...input.webhook,
-            organizationId: organization.id,
-            livemode,
-          },
-          transaction
-        )
-        await createSvixEndpoint({
-          webhook,
+
+        return createWebhookTransaction({
+          webhook: input.webhook,
           organization,
+          livemode,
+          transaction,
         })
-        const secret = await getSvixSigningSecret({
-          webhook,
-          organization,
-        })
-        return { webhook, secret: secret.key }
       }
     )
   )
@@ -78,7 +69,8 @@ export const updateWebhook = protectedProcedure
   .output(z.object({ webhook: webhookClientSelectSchema }))
   .mutation(
     authenticatedProcedureTransaction(
-      async ({ input, transaction, ctx }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const webhook = await updateWebhookDB(
           {
             ...input.webhook,
@@ -86,10 +78,12 @@ export const updateWebhook = protectedProcedure
           },
           transaction
         )
-        const organization = await selectOrganizationById(
-          webhook.organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(
+            webhook.organizationId,
+            transaction
+          )
+        ).unwrap()
         await updateSvixEndpoint({
           webhook,
           organization,
@@ -105,8 +99,11 @@ export const getWebhook = protectedProcedure
   .output(z.object({ webhook: webhookClientSelectSchema }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
-        const webhook = await selectWebhookById(input.id, transaction)
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        const webhook = (
+          await selectWebhookById(input.id, transaction)
+        ).unwrap()
         return { webhook }
       }
     )
@@ -117,7 +114,8 @@ export const requestWebhookSigningSecret = protectedProcedure
   .output(z.object({ secret: z.string() }))
   .query(
     authenticatedProcedureTransaction(
-      async ({ input, transaction }) => {
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
         const { webhook, organization } =
           await selectWebhookAndOrganizationByWebhookId(
             input.webhookId,
@@ -144,7 +142,12 @@ export const getTableRows = protectedProcedure
     createPaginatedTableRowOutputSchema(webhooksTableRowDataSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectWebhooksTableRowData)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectWebhooksTableRowData({ input, transaction })
+      }
+    )
   )
 
 export const webhooksRouter = router({

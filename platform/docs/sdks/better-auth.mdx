@@ -5,28 +5,30 @@ description: "Better Auth Plugin for Flowglad"
 
 [Flowglad](https://flowglad.com) is a payments and billing platform that provides a stateless, developer-friendly way to handle subscriptions, usage meters, and feature gating. The Better Auth plugin seamlessly integrates Flowglad with your Better Auth authentication setup.
 
-<Card href="https://discord.gg/flowglad" title="Get help on Flowglad's Discord">
-  We're online to help you with any questions you have.
-</Card>
-
 ## Features
 
-* **Automatic Customer Creation**: Customers are automatically created when users sign up or organizations are created
-* **Declarative Customer Mapping**: Choose whether customers are users or organizations with a simple configuration
-* **Custom Customer Extraction**: Full control over how customer data is extracted from your auth session
-* **Seamless Integration**: Works with Better Auth's hooks and endpoints
+The Flowglad Better Auth plugin provides three main capabilities:
+
+1. **Automatic Customer Creation**: When users sign up (for `customerType: "user"`) or organizations are created (for `customerType: "organization"`), the plugin automatically creates a corresponding Flowglad customer.
+
+2. **Billing API Endpoints**: The plugin exposes all Flowglad billing endpoints directly on your Better Auth API at `{basePath}/flowglad/*`. You no longer need to mount a dedicated flowglad route handler.
+
+3. **Customer External ID Resolution**: The plugin adds a `getExternalId` endpoint to your Better Auth API that automatically returns the correct customer external ID based on your `customerType` configuration:
+   - For `customerType: "user"`: Returns `session.session.userId`
+   - For `customerType: "organization"`: Returns `session.session.activeOrganizationId` (requires the organization plugin)
+   - For custom `getCustomer`: Returns the `externalId` from your custom function
 
 ## Setup
 
-    ### Add the Flowglad plugin to your `auth` config
+### Add the Flowglad plugin to your `auth` config
 
-The Flowglad plugin integrates with Better Auth to automatically create customers and provide a convenient way to get the customer external ID based on your authentication setup.
+The Flowglad plugin integrates with Better Auth to automatically create customers and expose all Flowglad billing endpoints through your existing Better Auth API. **You do not need to set up a separate route handler** — the plugin creates endpoints at `{your-better-auth-path}/flowglad/*`.
 
     <Tabs>
       <Tab title="User">
         ```ts title="lib/auth.ts"
         import { betterAuth } from "better-auth"
-        import { flowgladPlugin } from "@flowglad/server/better-auth"
+        import { flowgladPlugin } from "@flowglad/nextjs/better-auth"
 
         export const auth = betterAuth({
           // ... your Better Auth config
@@ -43,7 +45,7 @@ The Flowglad plugin integrates with Better Auth to automatically create customer
         ```ts title="lib/auth.ts"
         import { betterAuth } from "better-auth"
         import { organization } from "better-auth/plugins"
-        import { flowgladPlugin } from "@flowglad/server/better-auth"
+        import { flowgladPlugin } from "@flowglad/nextjs/better-auth"
 
         export const auth = betterAuth({
           // ... your Better Auth config
@@ -60,7 +62,7 @@ The Flowglad plugin integrates with Better Auth to automatically create customer
       <Tab title="Custom">
         ```ts title="lib/auth.ts"
         import { betterAuth } from "better-auth"
-        import { flowgladPlugin } from "@flowglad/server/better-auth"
+        import { flowgladPlugin } from "@flowglad/nextjs/better-auth"
 
         export const auth = betterAuth({
           // ... your Better Auth config
@@ -85,38 +87,16 @@ The Flowglad plugin integrates with Better Auth to automatically create customer
       Flowglad will auto-create your customers when they sign up (for `customerType: "user"`) or when organizations are created (for `customerType: "organization"`). You can choose who becomes a customer: individual users, organizations, or something custom using the `getCustomer` function.
     </Callout>
 
-### Next.js: Add FlowgladProvider wrapper
+### Add FlowgladProvider to your layout
 
-For Next.js applications using Better Auth, you must use a client-side wrapper component that reactively watches the session state to ensure `loadBilling` updates correctly when the user authenticates.
+Mount `FlowgladProvider` directly in your root layout with the `betterAuthBasePath` prop. This tells the Flowglad React SDK to route all API calls through your Better Auth endpoints instead of a standalone route handler.
 
-    ```tsx title="components/providers.tsx"
-    "use client"
-
-    import { FlowgladProvider } from "@flowglad/react"
-    import { authClient } from "@/lib/auth-client"
-
-    export function FlowgladProviderWrapper({
-      children,
-    }: {
-      children: React.ReactNode
-    }) {
-      // Use BetterAuth's useSession to watch for session changes reactively
-      const { data: session } = authClient.useSession()
-
-      // Derive loadBilling from session state reactively
-      // This ensures billing loads when session becomes available, even if layout didn't re-render
-      const loadBilling = !!session?.user
-
-      return (
-        <FlowgladProvider loadBilling={loadBilling}>
-          {children}
-        </FlowgladProvider>
-      )
-    }
-    ```
+<Callout type="warn">
+  **Important**: The `betterAuthBasePath` must match your Better Auth `basePath` configuration. If your Better Auth API is at `/api/auth`, set `betterAuthBasePath="/api/auth"`.
+</Callout>
 
     ```tsx title="app/layout.tsx"
-    import { FlowgladProviderWrapper } from "@/components/providers"
+    import { FlowgladProvider } from "@flowglad/nextjs"
 
     export default function RootLayout({
       children,
@@ -126,35 +106,61 @@ For Next.js applications using Better Auth, you must use a client-side wrapper c
       return (
         <html>
           <body>
-            <FlowgladProviderWrapper>
+            <FlowgladProvider betterAuthBasePath="/api/auth">
               {children}
-            </FlowgladProviderWrapper>
+            </FlowgladProvider>
           </body>
         </html>
       )
     }
     ```
 
-    <Callout type="warn">
-  For Better Auth apps in Next.js, you must use a client-side wrapper component that uses `authClient.useSession()` to reactively watch for session changes. Otherwise, you may hit an edge case where `loadBilling`'s value does not change when the user authenticates.
-    </Callout>
-
-## What It Does
-
-The Flowglad Better Auth plugin provides two main capabilities:
-
-1. **Automatic Customer Creation**: When users sign up (for `customerType: "user"`) or organizations are created (for `customerType: "organization"`), the plugin automatically creates a corresponding Flowglad customer.
-
-2. **Customer External ID Resolution**: The plugin adds a `getExternalId` endpoint to your Better Auth API that automatically returns the correct customer external ID based on your `customerType` configuration:
-   - For `customerType: "user"`: Returns `session.user.id`
-   - For `customerType: "organization"`: Returns `session.user.activeOrganizationId` (requires the organization plugin)
-   - For custom `getCustomer`: Returns the `externalId` from your custom function
+When `betterAuthBasePath` is set, all Flowglad client calls (like fetching billing data, creating checkout sessions, etc.) are routed to `{betterAuthBasePath}/flowglad/*` — for example, `/api/auth/flowglad/customers/billing`.
 
 ## Usage
 
-### Get Customer External ID
+### Using the React SDK
 
-Use the plugin's `getExternalId` endpoint to retrieve the customer external ID, which you can then pass to your Flowglad factory function.
+Once you've set up `FlowgladProvider` with `betterAuthBasePath`, use the `useBilling` hook to access billing data and actions:
+
+```tsx
+"use client"
+
+import { useBilling } from "@flowglad/nextjs"
+
+export function BillingPage() {
+  const billing = useBilling()
+
+  if (!billing.loaded) return <div>Loading...</div>
+  if (!billing.customer) return <div>Please sign in</div>
+
+  return (
+    <div>
+      <h1>Welcome, {billing.customer.name}</h1>
+      {billing.currentSubscription && (
+        <p>Current plan: {billing.currentSubscription.status}</p>
+      )}
+      <button
+        onClick={() =>
+          billing.createCheckoutSession({
+            priceId: "price_123",
+            successUrl: window.location.href,
+            cancelUrl: window.location.href,
+          })
+        }
+      >
+        Upgrade
+      </button>
+    </div>
+  )
+}
+```
+
+Once you've configured `FlowgladProvider` with `betterAuthBasePath`, **all standard Flowglad React hooks work exactly as documented** — the Better Auth plugin simply routes API calls through your auth endpoints instead of a standalone handler. See the [React SDK documentation](/sdks/react) for detailed usage of each hook.
+
+### Server-Side: Get Customer External ID
+
+For server-side operations, use the plugin's `getExternalId` endpoint to retrieve the customer external ID:
 
 ```ts
 import { auth } from "@/lib/auth"
@@ -173,37 +179,35 @@ if (!externalId) {
 const flowgladServer = flowglad(externalId)
 ```
 
-### Use in Route Handlers
-
-When setting up your Flowglad route handler, use `getExternalId` to automatically resolve the customer external ID:
-
-```ts title="app/api/flowglad/[...path]/route.ts"
-import { nextRouteHandler } from "@flowglad/nextjs/server"
-    import { flowglad } from "@/lib/flowglad"
-    import { auth } from "@/lib/auth"
-    import { headers } from "next/headers"
-
-export const { GET, POST } = nextRouteHandler({
-  flowglad,
-  getCustomerExternalId: async () => {
-    // Use the Flowglad plugin's getExternalId endpoint
-    // This handles the customerType configuration automatically
-      const { externalId } = await auth.api.getExternalId({
-        headers: await headers(),
-      })
-
-      if (!externalId) {
-      throw new Error("Unable to determine customer external ID")
-    }
-
-    return externalId
-  },
-})
-```
-
 ## Configuration Reference
 
-### FlowgladBetterAuthPluginOptions
+### FlowgladProvider
+
+When using Better Auth integration, configure `FlowgladProvider` with `betterAuthBasePath`:
+
+```ts
+interface FlowgladProviderProps {
+  /**
+   * Your Better Auth API base path (e.g., "/api/auth").
+   * When set, all Flowglad API calls route through Better Auth endpoints
+   * at {betterAuthBasePath}/flowglad/* instead of /api/flowglad/*.
+   *
+   * This must match your Better Auth basePath configuration.
+   */
+  betterAuthBasePath?: string
+
+  /**
+   * Optional custom headers to include with all Flowglad API requests.
+   */
+  requestConfig?: {
+    headers?: Record<string, string>
+  }
+
+  children: React.ReactNode
+}
+```
+
+### FlowgladBetterAuthPluginOptions (Server)
 
 ```ts
 type FlowgladBetterAuthPluginOptions = {
@@ -213,9 +217,14 @@ type FlowgladBetterAuthPluginOptions = {
   apiKey?: string
 
   /**
+   * Optional base URL for Flowglad API. Defaults to https://app.flowglad.com
+   */
+  baseURL?: string
+
+  /**
    * Type of customer to use. Defaults to "user".
-   * - "user": Uses session.user.id as externalId
-   * - "organization": Uses session.user.activeOrganizationId (requires org plugin)
+   * - "user": Uses session.session.userId as externalId
+   * - "organization": Uses session.session.activeOrganizationId (requires org plugin)
    */
   customerType?: "user" | "organization"
 
@@ -232,6 +241,20 @@ type FlowgladBetterAuthPluginOptions = {
     name: string
     email: string
   }>
+
+  /**
+   * Optional callback invoked when Flowglad customer auto-creation fails
+   * during sign-up or organization creation hooks.
+   *
+   * If not provided, failures are logged with console.error and the auth
+   * operation continues (best-effort customer creation).
+   */
+  onCustomerCreateError?: (params: {
+    hook: "afterSignUp" | "afterOrganizationCreate"
+    customerType: "user" | "organization"
+    session: InnerSession
+    error: unknown
+  }) => void | Promise<void>
 }
 ```
 
@@ -245,19 +268,20 @@ If you need to create a Flowglad customer for an organization programmatically (
 import {
   createFlowgladCustomerForOrganization,
   type FlowgladBetterAuthPluginOptions,
-} from "@flowglad/server/better-auth"
+} from "@flowglad/nextjs/better-auth"
 
 const flowgladConfig: FlowgladBetterAuthPluginOptions = {
   customerType: "organization",
 }
 
-await createFlowgladCustomerForOrganization(
-  flowgladConfig,
-  organizationId,
-  userId,
-  userEmail,
-  userName
-)
+await createFlowgladCustomerForOrganization(flowgladConfig, {
+  organizationId: "org_123",
+  userId: "user_456",
+  userEmail: "user@example.com",
+  userName: "John Doe", // optional
+  organizationName: "Acme Corp", // optional - defaults to userName
+  organizationEmail: "billing@acme.com", // optional - defaults to userEmail
+})
 ```
 
 ### Custom Customer Extraction
@@ -285,6 +309,18 @@ flowgladPlugin({
 
 ## Troubleshooting
 
+### Billing data not loading / API calls failing
+
+If `useBilling()` returns errors or billing data doesn't load:
+
+1. **Verify `betterAuthBasePath` matches your Better Auth configuration**:
+   - If your Better Auth route is at `/api/auth/[...all]/route.ts`, use `betterAuthBasePath="/api/auth"`
+   - The Flowglad SDK will make requests to `{betterAuthBasePath}/flowglad/*`
+
+2. **Check browser network tab** for failed requests to see the actual URL being called
+
+3. **Ensure the flowgladPlugin is installed** in your Better Auth config
+
 ### Customer not created after sign-up
 
 Make sure:
@@ -298,15 +334,18 @@ Make sure:
 This means the user is not authenticated. Make sure:
 - You're passing the correct headers to `auth.api.getExternalId()`
 - The user has an active session
-- For organization customers, make sure the organization plugin is installed and the user has an `activeOrganizationId`
-
-### loadBilling not updating reactively
-
-For Better Auth apps in Next.js, you must use a client-side wrapper component that uses `authClient.useSession()` to watch for session changes. See the Next.js setup section above.
+- For organization customers, make sure the organization plugin is installed and the session includes `activeOrganizationId` (Better Auth exposes this on `session.session.activeOrganizationId`)
 
 ### Organization customer creation issues
 
 Make sure:
 - The `organization()` plugin is installed before the `flowgladPlugin`
 - `customerType` is set to `"organization"`
-- The user has an `activeOrganizationId` in their `session` object once the organization has been created
+- The session includes `activeOrganizationId` (Better Auth exposes this on `session.session.activeOrganizationId`) once the organization has been created
+
+### "NO_ACTIVE_ORGANIZATION" error
+
+When using `customerType: "organization"`, this error occurs if the user hasn't selected an organization yet. Make sure:
+- The user has created or been added to an organization
+- The user has selected an active organization (Better Auth's organization plugin manages this)
+- The `activeOrganizationId` is present in the session

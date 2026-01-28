@@ -17,10 +17,9 @@ async function CheckoutSuccessPage({
   const { id } = await params
   const checkoutSession = await adminTransaction(
     async ({ transaction }) => {
-      const checkoutSession = await selectCheckoutSessionById(
-        id,
-        transaction
-      )
+      const checkoutSession = (
+        await selectCheckoutSessionById(id, transaction)
+      ).unwrap()
       return checkoutSession
     }
   )

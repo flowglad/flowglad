@@ -1,4 +1,4 @@
-import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import type { AuthenticatedProcedureTransactionParams } from '@/db/authenticatedTransaction'
 import type { BillingPeriod } from '@/db/schema/billingPeriods'
 import type { Customer } from '@/db/schema/customers'
@@ -18,11 +18,8 @@ import { selectCustomerById } from '@/db/tableMethods/customerMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPricesAndProductsByProductWhere } from '@/db/tableMethods/priceMethods'
-import { selectDefaultPricingModel } from '@/db/tableMethods/pricingModelMethods'
-import {
-  expireSubscriptionItems,
-  selectSubscriptionItems,
-} from '@/db/tableMethods/subscriptionItemMethods'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { expireSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
   currentSubscriptionStatuses,
   isSubscriptionCurrent,
@@ -32,8 +29,11 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
+import { NotFoundError, ValidationError } from '@/errors'
 import { releaseAllResourceClaimsForSubscription } from '@/resources/resourceClaimHelpers'
 import { createBillingRun } from '@/subscriptions/billingRunHelpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription'
@@ -59,8 +59,9 @@ import { constructSubscriptionCanceledEventHash } from '@/utils/eventHelpers'
 // Abort all scheduled billing runs for a subscription
 export const abortScheduledBillingRuns = async (
   subscriptionId: string,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const scheduledBillingRuns = await selectBillingRuns(
     {
       subscriptionId,
@@ -80,49 +81,35 @@ export const abortScheduledBillingRuns = async (
  * Re-adds a default-plan subscription when a cancellation leaves the customer without one.
  *
  * @param canceledSubscription Subscription record that was just canceled.
- * @param transaction Active database transaction.
+ * @param ctx Transaction context with database transaction and effect callbacks.
  * @returns Resolves when the reassignment logic finishes.
  */
 export const reassignDefaultSubscription = async (
   canceledSubscription: Subscription.Record,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   // don't need to re-add default subscription when upgrading to a paid plan
   if (canceledSubscription.isFreePlan) {
     return
   }
 
   try {
-    const customer = await selectCustomerById(
-      canceledSubscription.customerId,
-      transaction
-    )
-
-    const organization = await selectOrganizationById(
-      canceledSubscription.organizationId,
-      transaction
-    )
-
-    let pricingModelId = customer.pricingModelId
-
-    if (!pricingModelId) {
-      const defaultPricingModel = await selectDefaultPricingModel(
-        {
-          organizationId: organization.id,
-          livemode: canceledSubscription.livemode,
-        },
+    const customer = (
+      await selectCustomerById(
+        canceledSubscription.customerId,
         transaction
       )
+    ).unwrap()
 
-      pricingModelId = defaultPricingModel?.id ?? null
-    }
-
-    if (!pricingModelId) {
-      console.warn(
-        `reassignDefaultSubscription: no pricing model found for customer ${customer.id}`
+    const organization = (
+      await selectOrganizationById(
+        canceledSubscription.organizationId,
+        transaction
       )
-      return
-    }
+    ).unwrap()
+
+    const pricingModelId = customer.pricingModelId
 
     const [defaultProduct] =
       await selectPricesAndProductsByProductWhere(
@@ -199,7 +186,7 @@ export const reassignDefaultSubscription = async (
         autoStart: true,
         name: `${defaultProduct.name} Subscription`,
       },
-      transaction
+      ctx
     )
   } catch (error) {
     console.error(
@@ -258,8 +245,9 @@ export interface CancelSubscriptionImmediatelyParams {
 // Cancel a subscription immediately
 export const cancelSubscriptionImmediately = async (
   params: CancelSubscriptionImmediatelyParams,
-  transaction: DbTransaction
-): Promise<TransactionOutput<Subscription.Record>> => {
+  ctx: TransactionEffectsContext
+): Promise<Result<Subscription.Record, Error>> => {
+  const { transaction, invalidateCache, emitEvent } = ctx
   const {
     subscription,
     customer: providedCustomer,
@@ -269,24 +257,20 @@ export const cancelSubscriptionImmediately = async (
   } = params
   const customer =
     providedCustomer ??
-    (await selectCustomerById(subscription.customerId, transaction))
+    (
+      await selectCustomerById(subscription.customerId, transaction)
+    ).unwrap()
 
-  // Cache invalidation for this customer's subscriptions (used in all return paths)
-  const cacheInvalidations = [
-    CacheDependency.customerSubscriptions(subscription.customerId),
-  ]
+  // Cache invalidation for this customer's subscriptions
+  invalidateCache(
+    CacheDependency.customerSubscriptions(subscription.customerId)
+  )
 
   if (isSubscriptionInTerminalState(subscription.status)) {
-    return {
-      result: subscription,
-      eventsToInsert: [
-        constructSubscriptionCanceledEventInsert(
-          subscription,
-          customer
-        ),
-      ],
-      cacheInvalidations,
-    }
+    emitEvent(
+      constructSubscriptionCanceledEventInsert(subscription, customer)
+    )
+    return Result.ok(subscription)
   }
   if (
     subscription.canceledAt &&
@@ -297,16 +281,13 @@ export const cancelSubscriptionImmediately = async (
       SubscriptionStatus.Canceled,
       transaction
     )
-    return {
-      result: updatedSubscription,
-      eventsToInsert: [
-        constructSubscriptionCanceledEventInsert(
-          updatedSubscription,
-          customer
-        ),
-      ],
-      cacheInvalidations,
-    }
+    emitEvent(
+      constructSubscriptionCanceledEventInsert(
+        updatedSubscription,
+        customer
+      )
+    )
+    return Result.ok(updatedSubscription)
   }
   const endDate = Date.now()
   const status = SubscriptionStatus.Canceled
@@ -322,8 +303,11 @@ export const cancelSubscriptionImmediately = async (
     earliestBillingPeriod &&
     endDate < earliestBillingPeriod.startDate
   ) {
-    throw new Error(
-      `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
+    return Result.err(
+      new ValidationError(
+        'endDate',
+        `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
+      )
     )
   }
 
@@ -387,7 +371,7 @@ export const cancelSubscriptionImmediately = async (
   /**
    * Abort all scheduled billing runs for the subscription
    */
-  await abortScheduledBillingRuns(subscription.id, transaction)
+  await abortScheduledBillingRuns(subscription.id, ctx)
 
   /**
    * Expire all subscription items and their features
@@ -408,6 +392,13 @@ export const cancelSubscriptionImmediately = async (
     transaction
   )
 
+  // Add cache invalidation for each expired subscription item's features
+  invalidateCache(
+    ...itemsToExpire.map((item) =>
+      CacheDependency.subscriptionItemFeatures(item.id)
+    )
+  )
+
   // Release all active resource claims for this subscription
   await releaseAllResourceClaimsForSubscription(
     subscription.id,
@@ -420,10 +411,7 @@ export const cancelSubscriptionImmediately = async (
   }
 
   if (!skipReassignDefaultSubscription) {
-    await reassignDefaultSubscription(
-      updatedSubscription,
-      transaction
-    )
+    await reassignDefaultSubscription(updatedSubscription, ctx)
   }
 
   if (!skipNotifications) {
@@ -455,40 +443,45 @@ export const cancelSubscriptionImmediately = async (
     }
   }
 
-  return {
-    result: updatedSubscription,
-    eventsToInsert: [
-      constructSubscriptionCanceledEventInsert(
-        updatedSubscription,
-        customer
-      ),
-    ],
-    cacheInvalidations,
-  }
+  emitEvent(
+    constructSubscriptionCanceledEventInsert(
+      updatedSubscription,
+      customer
+    )
+  )
+  return Result.ok(updatedSubscription)
 }
 
 // Schedule a subscription cancellation for the future
 export const scheduleSubscriptionCancellation = async (
   params: ScheduleSubscriptionCancellationParams,
-  transaction: DbTransaction
-): Promise<Subscription.Record> => {
+  ctx: TransactionEffectsContext
+): Promise<
+  Result<Subscription.Record, ValidationError | NotFoundError>
+> => {
+  const { transaction } = ctx
   const { id, cancellation } =
     scheduleSubscriptionCancellationSchema.parse(params)
   const { timing } = cancellation
-  const subscription = await selectSubscriptionById(id, transaction)
+  const subscription = (
+    await selectSubscriptionById(id, transaction)
+  ).unwrap()
 
   /**
    * Prevent cancellation of free plans through the API/UI.
    * See note in cancelSubscriptionProcedureTransaction for details.
    */
   if (subscription.isFreePlan) {
-    throw new Error(
-      'Cannot cancel the default free plan. Please upgrade to a paid plan instead.'
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'Cannot cancel the default free plan. Please upgrade to a paid plan instead.'
+      )
     )
   }
 
   if (isSubscriptionInTerminalState(subscription.status)) {
-    return subscription
+    return Result.ok(subscription)
   }
 
   let endDate: number
@@ -503,7 +496,12 @@ export const scheduleSubscriptionCancellation = async (
         transaction
       )
     if (!currentBillingPeriod) {
-      throw new Error('No current billing period found')
+      return Result.err(
+        new NotFoundError(
+          'Current billing period',
+          `subscription ${subscription.id}`
+        )
+      )
     }
     endDate = currentBillingPeriod.endDate
   } else if (
@@ -511,7 +509,12 @@ export const scheduleSubscriptionCancellation = async (
   ) {
     endDate = Date.now()
   } else {
-    throw new Error('Invalid cancellation arrangement')
+    return Result.err(
+      new ValidationError(
+        'cancellation.timing',
+        'Invalid cancellation arrangement'
+      )
+    )
   }
 
   const status = SubscriptionStatus.CancellationScheduled
@@ -527,14 +530,20 @@ export const scheduleSubscriptionCancellation = async (
     earliestBillingPeriod &&
     endDate < earliestBillingPeriod.startDate
   ) {
-    throw new Error(
-      `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
+    return Result.err(
+      new ValidationError(
+        'endDate',
+        `Cannot end a subscription before its start date. Subscription start date: ${new Date(earliestBillingPeriod.startDate).toISOString()}, received end date: ${new Date(endDate).toISOString()}`
+      )
     )
   }
   const cancelScheduledAt = endDate
   if (!subscription.renews) {
-    throw new Error(
-      `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be cancelled (Should never hit this)`
+    return Result.err(
+      new ValidationError(
+        'subscription.renews',
+        `Subscription ${subscription.id} is a non-renewing subscription. Non-renewing subscriptions cannot be cancelled (Should never hit this)`
+      )
     )
   }
   let updatedSubscription = await updateSubscription(
@@ -563,7 +572,7 @@ export const scheduleSubscriptionCancellation = async (
   /**
    * Abort all scheduled billing runs for the subscription
    */
-  await abortScheduledBillingRuns(subscription.id, transaction)
+  await abortScheduledBillingRuns(subscription.id, ctx)
 
   const result = await safelyUpdateSubscriptionStatus(
     subscription,
@@ -601,13 +610,12 @@ export const scheduleSubscriptionCancellation = async (
       }
     )
   }
-  return updatedSubscription
+  return Result.ok(updatedSubscription)
 }
 
 type CancelSubscriptionProcedureParams =
   AuthenticatedProcedureTransactionParams<
     ScheduleSubscriptionCancellationParams,
-    { subscription: Subscription.ClientRecord },
     { apiKey?: string }
   >
 
@@ -625,22 +633,36 @@ type CancelSubscriptionProcedureParams =
  *
  * @param params - Procedure transaction parameters
  * @param params.input - Cancellation request with subscription ID and timing arrangement
- * @param params.transaction - Active database transaction
+ * @param params.transactionCtx - Transaction context with database transaction and effect callbacks
  * @param params.ctx - Request context (may contain apiKey)
- * @returns Promise resolving to TransactionOutput with the updated subscription (formatted for client) and events to insert
+ * @returns Promise resolving to Result with the updated subscription (formatted for client) and events to insert
  */
 export const cancelSubscriptionProcedureTransaction = async ({
   input,
-  transaction,
-  ctx,
+  transactionCtx,
 }: CancelSubscriptionProcedureParams): Promise<
-  TransactionOutput<{ subscription: Subscription.ClientRecord }>
+  Result<{ subscription: Subscription.ClientRecord }, Error>
 > => {
+  const {
+    transaction,
+    cacheRecomputationContext,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = transactionCtx
+  // Construct context for internal function calls
+  const ctx: TransactionEffectsContext = {
+    transaction,
+    cacheRecomputationContext,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  }
+
   // Fetch subscription first to check if it's a free plan
-  const subscription = await selectSubscriptionById(
-    input.id,
-    transaction
-  )
+  const subscription = (
+    await selectSubscriptionById(input.id, transaction)
+  ).unwrap()
 
   /**
    * Prevent cancellation of free plans through the API/UI.
@@ -652,11 +674,12 @@ export const cancelSubscriptionProcedureTransaction = async ({
    * programmatically cancel free plans as part of the upgrade flow.
    */
   if (subscription.isFreePlan) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Cannot cancel the default free plan. Please upgrade to a paid plan instead.',
-    })
+    return Result.err(
+      new ValidationError(
+        'subscription',
+        'Cannot cancel the default free plan. Please upgrade to a paid plan instead.'
+      )
+    )
   }
 
   if (
@@ -664,36 +687,15 @@ export const cancelSubscriptionProcedureTransaction = async ({
     SubscriptionCancellationArrangement.Immediately
   ) {
     // Note: subscription is already fetched above, can reuse it
-    const {
-      result: updatedSubscription,
-      eventsToInsert,
-      cacheInvalidations,
-    } = await cancelSubscriptionImmediately(
-      {
-        subscription,
-      },
-      transaction
+    const cancelResult = await cancelSubscriptionImmediately(
+      { subscription },
+      ctx
     )
-    return {
-      result: {
-        subscription: {
-          ...updatedSubscription,
-          current: isSubscriptionCurrent(
-            updatedSubscription.status,
-            updatedSubscription.cancellationReason
-          ),
-        },
-      },
-      eventsToInsert,
-      cacheInvalidations,
+    if (cancelResult.status === 'error') {
+      return Result.err(cancelResult.error)
     }
-  }
-  const updatedSubscription = await scheduleSubscriptionCancellation(
-    input,
-    transaction
-  )
-  return {
-    result: {
+    const updatedSubscription = cancelResult.value
+    return Result.ok({
       subscription: {
         ...updatedSubscription,
         current: isSubscriptionCurrent(
@@ -701,14 +703,31 @@ export const cancelSubscriptionProcedureTransaction = async ({
           updatedSubscription.cancellationReason
         ),
       },
-    },
-    eventsToInsert: [],
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(
-        updatedSubscription.customerId
-      ),
-    ],
+    })
   }
+  const scheduleResult = await scheduleSubscriptionCancellation(
+    input,
+    ctx
+  )
+  if (scheduleResult.status === 'error') {
+    return Result.err(scheduleResult.error)
+  }
+  const updatedSubscription = scheduleResult.value
+  // Queue cache invalidation via effects context
+  invalidateCache(
+    CacheDependency.customerSubscriptions(
+      updatedSubscription.customerId
+    )
+  )
+  return Result.ok({
+    subscription: {
+      ...updatedSubscription,
+      current: isSubscriptionCurrent(
+        updatedSubscription.status,
+        updatedSubscription.cancellationReason
+      ),
+    },
+  })
 }
 
 // ============================================================================
@@ -741,15 +760,19 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
   subscription: Subscription.Record,
   billingPeriods: BillingPeriod.Record[],
   transaction: DbTransaction
-): Promise<void> => {
+): Promise<Result<void, ValidationError>> => {
   // Get payment method for billing run creation (with fallback to backup)
   const paymentMethodId =
     subscription.defaultPaymentMethodId ??
     subscription.backupPaymentMethodId
 
-  const paymentMethod = paymentMethodId
+  const paymentMethodResult = paymentMethodId
     ? await selectPaymentMethodById(paymentMethodId, transaction)
     : null
+  const paymentMethod =
+    paymentMethodResult && Result.isOk(paymentMethodResult)
+      ? paymentMethodResult.value
+      : null
 
   // Security check: For paid subscriptions, require payment method
   // doNotCharge subscriptions are exempt from this requirement
@@ -758,16 +781,17 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
     !subscription.doNotCharge &&
     !paymentMethod
   ) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message:
-        'Cannot uncancel paid subscription without an active payment method. Please add a payment method first.',
-    })
+    return Result.err(
+      new ValidationError(
+        'paymentMethod',
+        'Cannot uncancel paid subscription without an active payment method. Please add a payment method first.'
+      )
+    )
   }
 
   if (!paymentMethod) {
     // Free or doNotCharge subscription with no payment method - no billing runs needed
-    return
+    return Result.ok(undefined)
   }
 
   // Filter to periods that need billing runs
@@ -817,7 +841,7 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
       : billingPeriod.endDate
 
     if (scheduledFor > Date.now()) {
-      await createBillingRun(
+      const billingRunResult = await createBillingRun(
         {
           billingPeriod,
           paymentMethod,
@@ -825,8 +849,12 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
         },
         transaction
       )
+      if (billingRunResult.status === 'error') {
+        return Result.err(billingRunResult.error)
+      }
     }
   }
+  return Result.ok(undefined)
 }
 
 /**
@@ -850,34 +878,24 @@ const rescheduleBillingRunsForUncanceledPeriods = async (
  */
 export const uncancelSubscription = async (
   subscription: Subscription.Record,
-  transaction: DbTransaction
-): Promise<TransactionOutput<Subscription.Record>> => {
+  ctx: TransactionEffectsContext
+): Promise<Result<Subscription.Record, ValidationError>> => {
+  const { transaction, invalidateCache } = ctx
+  // Cache invalidation for this customer's subscriptions
+  invalidateCache(
+    CacheDependency.customerSubscriptions(subscription.customerId)
+  )
+
   // Idempotent behavior: If subscription is in terminal state, silently succeed
   if (isSubscriptionInTerminalState(subscription.status)) {
-    return {
-      result: subscription,
-      eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
-    }
+    return Result.ok(subscription)
   }
 
   // Idempotent behavior: If subscription is not scheduled to cancel, silently succeed
   if (
     subscription.status !== SubscriptionStatus.CancellationScheduled
   ) {
-    return {
-      result: subscription,
-      eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
-    }
+    return Result.ok(subscription)
   }
 
   // Check if there's anything to undo
@@ -894,23 +912,19 @@ export const uncancelSubscription = async (
     !subscription.cancelScheduledAt &&
     !hasScheduledToCancelPeriods
   ) {
-    return {
-      result: subscription,
-      eventsToInsert: [],
-      cacheInvalidations: [
-        CacheDependency.customerSubscriptions(
-          subscription.customerId
-        ),
-      ],
-    }
+    return Result.ok(subscription)
   }
 
   // Security check for paid subscriptions (moved before state changes)
-  await rescheduleBillingRunsForUncanceledPeriods(
-    subscription,
-    billingPeriods,
-    transaction
-  )
+  const rescheduleResult =
+    await rescheduleBillingRunsForUncanceledPeriods(
+      subscription,
+      billingPeriods,
+      transaction
+    )
+  if (rescheduleResult.status === 'error') {
+    return Result.err(rescheduleResult.error)
+  }
 
   // Determine previous status
   const previousStatus =
@@ -945,21 +959,12 @@ export const uncancelSubscription = async (
   )
 
   // Note: No events are emitted for uncancel
-  return {
-    result: updatedSubscription,
-    eventsToInsert: [],
-    cacheInvalidations: [
-      CacheDependency.customerSubscriptions(
-        updatedSubscription.customerId
-      ),
-    ],
-  }
+  return Result.ok(updatedSubscription)
 }
 
 type UncancelSubscriptionProcedureParams =
   AuthenticatedProcedureTransactionParams<
     { id: string },
-    { subscription: Subscription.ClientRecord },
     { apiKey?: string }
   >
 
@@ -969,34 +974,47 @@ type UncancelSubscriptionProcedureParams =
  *
  * @param params - Procedure transaction parameters
  * @param params.input - Uncancel request with subscription ID
- * @param params.transaction - Active database transaction
+ * @param params.transactionCtx - Transaction context with database transaction and effect callbacks
  * @returns Promise resolving to TransactionOutput with the updated subscription
  */
 export const uncancelSubscriptionProcedureTransaction = async ({
   input,
-  transaction,
+  transactionCtx,
 }: UncancelSubscriptionProcedureParams): Promise<
-  TransactionOutput<{ subscription: Subscription.ClientRecord }>
+  Result<{ subscription: Subscription.ClientRecord }, Error>
 > => {
-  const subscription = await selectSubscriptionById(
-    input.id,
-    transaction
-  )
-
-  const { result: updatedSubscription, cacheInvalidations } =
-    await uncancelSubscription(subscription, transaction)
-
-  return {
-    result: {
-      subscription: {
-        ...updatedSubscription,
-        current: isSubscriptionCurrent(
-          updatedSubscription.status,
-          updatedSubscription.cancellationReason
-        ),
-      },
-    },
-    eventsToInsert: [],
-    cacheInvalidations,
+  const {
+    transaction,
+    cacheRecomputationContext,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
+  } = transactionCtx
+  const ctx: TransactionEffectsContext = {
+    transaction,
+    cacheRecomputationContext,
+    invalidateCache,
+    emitEvent,
+    enqueueLedgerCommand,
   }
+
+  const subscription = (
+    await selectSubscriptionById(input.id, transaction)
+  ).unwrap()
+
+  const uncancelResult = await uncancelSubscription(subscription, ctx)
+  if (uncancelResult.status === 'error') {
+    return Result.err(uncancelResult.error)
+  }
+  const updatedSubscription = uncancelResult.value
+
+  return Result.ok({
+    subscription: {
+      ...updatedSubscription,
+      current: isSubscriptionCurrent(
+        updatedSubscription.status,
+        updatedSubscription.cancellationReason
+      ),
+    },
+  })
 }

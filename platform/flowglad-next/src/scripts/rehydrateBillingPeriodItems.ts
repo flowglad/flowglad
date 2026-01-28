@@ -40,10 +40,9 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
     )
   }
   await db.transaction(async (transaction) => {
-    const billingPeriod = await selectBillingPeriodById(
-      billingPeriodId,
-      transaction
-    )
+    const billingPeriod = (
+      await selectBillingPeriodById(billingPeriodId, transaction)
+    ).unwrap()
     const result = await selectSubscriptionAndItems(
       { id: billingPeriod.subscriptionId },
       transaction
@@ -73,10 +72,9 @@ async function rehydrateBillingPeriodItems(db: PostgresJsDatabase) {
         if (item.createdAt > billingPeriod.startDate) {
           continue
         }
-        const price = await selectPriceById(
-          item.priceId!,
-          transaction
-        )
+        const price = (
+          await selectPriceById(item.priceId!, transaction)
+        ).unwrap()
         if (
           price.type === PriceType.Subscription ||
           price.type === PriceType.SinglePayment

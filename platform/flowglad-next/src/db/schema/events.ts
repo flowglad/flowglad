@@ -4,8 +4,9 @@ import { z } from 'zod'
 import {
   constructIndex,
   constructUniqueIndex,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
+  notNullStringForeignKey,
   nullableStringForeignKey,
   orgIdEqualsCurrentSQL,
   pgEnumColumn,
@@ -17,6 +18,7 @@ import { EventNoun, FlowgladEventType } from '@/types'
 import core from '@/utils/core'
 import { buildSchemas } from '../createZodSchemas'
 import { organizations } from './organizations'
+import { pricingModels } from './pricingModels'
 
 const TABLE_NAME = 'events'
 
@@ -63,38 +65,37 @@ export const events = pgTable(
       'organization_id',
       organizations
     ).notNull(),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.type]),
-      // constructIndex(TABLE_NAME, [table.eventCategory]),
-      // constructIndex(TABLE_NAME, [table.eventRetentionPolicy]),
-      // constructIndex(TABLE_NAME, [table.subjectEntity]),
-      constructIndex(TABLE_NAME, [table.objectEntity]),
-      // constructIndex(TABLE_NAME, [
-      //   table.subjectEntity,
-      //   table.subjectId,
-      // ]),
-      constructIndex(TABLE_NAME, [
-        table.objectEntity,
-        table.objectId,
-      ]),
-      constructUniqueIndex(TABLE_NAME, [table.hash]),
-      livemodePolicy(TABLE_NAME),
-      merchantPolicy('Enable insert for own organizations', {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'insert',
-        withCheck: orgIdEqualsCurrentSQL(),
-      }),
-      merchantPolicy('Enable all actions for own organization', {
-        as: 'permissive',
-        to: 'merchant',
-        for: 'select',
-        using: orgIdEqualsCurrentSQL(),
-      }),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.type]),
+    // constructIndex(TABLE_NAME, [table.eventCategory]),
+    // constructIndex(TABLE_NAME, [table.eventRetentionPolicy]),
+    // constructIndex(TABLE_NAME, [table.subjectEntity]),
+    constructIndex(TABLE_NAME, [table.objectEntity]),
+    // constructIndex(TABLE_NAME, [
+    //   table.subjectEntity,
+    //   table.subjectId,
+    // ]),
+    constructIndex(TABLE_NAME, [table.objectEntity, table.objectId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructUniqueIndex(TABLE_NAME, [table.hash]),
+    merchantPolicy('Enable insert for own organizations', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'insert',
+      withCheck: orgIdEqualsCurrentSQL(),
+    }),
+    merchantPolicy('Enable all actions for own organization', {
+      as: 'permissive',
+      to: 'merchant',
+      for: 'select',
+      using: orgIdEqualsCurrentSQL(),
+    }),
+  ])
 ).enableRLS()
 
 export const eventPayloadSchema = z.object({
@@ -121,12 +122,22 @@ const columnRefinements = {
   // objectId: core.safeZodPositiveInteger.nullable(),
 }
 
+const readOnlyColumns = {
+  pricingModelId: true,
+} as const
+
 export const {
   insert: eventsInsertSchema,
   select: eventsSelectSchema,
   update: eventsUpdateSchema,
 } = buildSchemas(events, {
   refine: columnRefinements,
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    readOnlyColumns,
+  },
 })
 
 export namespace Event {

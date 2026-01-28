@@ -3,6 +3,7 @@ import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { customers } from '@/db/schema/customers'
+import { pricingModels } from '@/db/schema/pricingModels'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -10,7 +11,7 @@ import {
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   notNullStringForeignKey,
@@ -27,6 +28,10 @@ const TABLE_NAME = 'payment_methods'
 const columns = {
   ...tableBase('pm'),
   customerId: notNullStringForeignKey('customer_id', customers),
+  pricingModelId: notNullStringForeignKey(
+    'pricing_model_id',
+    pricingModels
+  ),
   billingDetails: jsonb('billing_details').notNull(),
   type: pgEnumColumn({
     enumName: 'PaymentMethodType',
@@ -43,29 +48,27 @@ const columns = {
 export const paymentMethods = pgTable(
   TABLE_NAME,
   columns,
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.customerId]),
-      constructIndex(TABLE_NAME, [table.type]),
-      constructUniqueIndex(TABLE_NAME, [table.externalId]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"customer_id" in (select "id" from "customers")`,
-        }
-      ),
-      merchantPolicy(
-        'Enable read for own organizations via customer',
-        {
-          as: 'permissive',
-          to: 'all',
-          for: 'all',
-          using: sql`"customerId" in (select "id" from "customers")`,
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.customerId]),
+    constructIndex(TABLE_NAME, [table.type]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.externalId,
+      table.pricingModelId,
+    ]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"customer_id" in (select "id" from "customers")`,
+      }
+    ),
+    merchantPolicy('Enable read for own organizations via customer', {
+      as: 'permissive',
+      to: 'all',
+      for: 'all',
+      using: sql`"customer_id" in (select "id" from "customers")`,
+    }),
+  ])
 ).enableRLS()
 
 export const paymentMethodBillingDetailsSchema = z.object({
@@ -98,6 +101,9 @@ export const {
   refine: {
     ...columnRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
   client: {
     hiddenColumns: {
       stripePaymentMethodId: true,
@@ -106,6 +112,7 @@ export const {
     },
     readOnlyColumns: {
       livemode: true,
+      pricingModelId: true,
     },
     createOnlyColumns: {
       customerId: true,

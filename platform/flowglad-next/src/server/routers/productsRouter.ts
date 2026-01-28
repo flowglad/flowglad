@@ -1,9 +1,12 @@
 import { TRPCError } from '@trpc/server'
+import { Result } from 'better-result'
 import * as R from 'ramda'
 import { z } from 'zod'
 import {
+  authenticatedProcedureComprehensiveTransaction,
   authenticatedProcedureTransaction,
   authenticatedTransaction,
+  comprehensiveAuthenticatedTransaction,
 } from '@/db/authenticatedTransaction'
 import {
   createProductSchema,
@@ -56,15 +59,31 @@ export const createProduct = protectedProcedure
   .meta(openApiMetas.POST)
   .input(createProductSchema)
   .output(singleProductOutputSchema)
-  .mutation(async ({ input, ctx }) => {
-    try {
-      // Validate that default products cannot be created manually
-      validateProductCreation(input.product)
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { livemode, organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
+        try {
+          // Validate that default products cannot be created manually
+          const validationResult = validateProductCreation(
+            input.product
+          )
+          if (validationResult.status === 'error') {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: validationResult.error.reason,
+            })
+          }
 
-      const result = await authenticatedTransaction(
-        async ({ transaction, userId, livemode, organizationId }) => {
           const { product, price, featureIds } = input
-          return createProductTransaction(
+          const txResult = await createProductTransaction(
             {
               product,
               prices: [
@@ -75,42 +94,41 @@ export const createProduct = protectedProcedure
               ],
               featureIds,
             },
-            { transaction, userId, livemode, organizationId }
+            { ...transactionCtx, livemode, organizationId }
           )
-        },
-        {
-          apiKey: ctx.apiKey,
+          return Result.ok({
+            product: txResult.product,
+          })
+        } catch (error) {
+          errorHandlers.product.handle(error, {
+            operation: 'create',
+            details: {
+              productName: input.product.name,
+              hasPrice: !!input.price,
+              hasFeatures: !!input.featureIds,
+            },
+          })
+          throw error
         }
-      )
-      return {
-        product: result.product,
       }
-    } catch (error) {
-      errorHandlers.product.handle(error, {
-        operation: 'create',
-        details: {
-          productName: input.product.name,
-          hasPrice: !!input.price,
-          hasFeatures: !!input.featureIds,
-        },
-      })
-      throw error
-    }
-  })
+    )
+  )
 
 export const updateProduct = protectedProcedure
   .meta(openApiMetas.PUT)
   .input(editProductSchema)
   .output(singleProductOutputSchema)
   .mutation(
-    authenticatedProcedureTransaction(
-      async ({
-        transaction,
-        input,
-        livemode,
-        organizationId,
-        userId,
-      }) => {
+    authenticatedProcedureComprehensiveTransaction(
+      async ({ input, ctx, transactionCtx }) => {
+        const { livemode, organizationId } = ctx
+        if (!organizationId) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
+        }
         try {
           const updatedProduct = await editProductPricingModel(
             {
@@ -118,12 +136,12 @@ export const updateProduct = protectedProcedure
               featureIds: input.featureIds,
               price: input.price,
             },
-            { transaction, livemode, organizationId, userId }
+            { ...transactionCtx, livemode, organizationId }
           )
 
-          return {
+          return Result.ok({
             product: updatedProduct,
-          }
+          })
         } catch (error) {
           // Re-throw with enhanced error handling
           errorHandlers.product.handle(error, {
@@ -213,7 +231,7 @@ export const getTableRows = protectedProcedure
       z.object({
         active: z.boolean().optional(),
         pricingModelId: z.string().optional(),
-        excludeUsageProducts: z.boolean().optional(),
+        excludeProductsWithNoPrices: z.boolean().optional(),
       })
     )
   )
@@ -221,7 +239,12 @@ export const getTableRows = protectedProcedure
     createPaginatedTableRowOutputSchema(productsTableRowDataSchema)
   )
   .query(
-    authenticatedProcedureTransaction(selectProductsCursorPaginated)
+    authenticatedProcedureTransaction(
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectProductsCursorPaginated({ input, transaction })
+      }
+    )
   )
 
 const getCountsByStatusSchema = z.object({})

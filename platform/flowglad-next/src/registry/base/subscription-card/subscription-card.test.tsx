@@ -1,5 +1,5 @@
+import { describe, expect, it } from 'bun:test'
 import { render, screen } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
 import { SubscriptionCard } from './subscription-card'
 import type { Subscription } from './types'
 

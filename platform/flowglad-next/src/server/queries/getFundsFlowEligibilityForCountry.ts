@@ -12,7 +12,7 @@ export const getFundsFlowEligibilityForCountry = protectedProcedure
   )
   .output(
     z.object({
-      eligibleFlows: z.array(z.nativeEnum(StripeConnectContractType)),
+      eligibleFlows: z.array(z.enum(StripeConnectContractType)),
       isEligible: z.boolean(),
     })
   )

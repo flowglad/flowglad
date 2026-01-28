@@ -40,14 +40,9 @@ export const requestStripeConnectOnboardingLink = protectedProcedure
           )
         }
 
-        const country = await selectCountryById(
-          organization.countryId,
-          transaction
-        )
-
-        if (!country) {
-          throw new Error('Country not found')
-        }
+        const country = (
+          await selectCountryById(organization.countryId, transaction)
+        ).unwrap()
 
         return { organization, country }
       }

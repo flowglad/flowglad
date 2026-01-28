@@ -1,18 +1,11 @@
-// @ts-nocheck
+/// <reference lib="dom" />
+
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { render } from '@testing-library/react'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
-import CheckoutPageProvider, {
-  type CheckoutPageContextValues,
-  subscriptionDetailsFromCheckoutInfoCore,
-  useCheckoutPageContext,
-} from '@/contexts/checkoutPageContext'
+
+// Import types and non-mocked exports from the original module
+import type { CheckoutPageContextValues } from '@/contexts/checkoutPageContext'
+import { subscriptionDetailsFromCheckoutInfoCore } from '@/contexts/checkoutPageContext'
 import type { Discount } from '@/db/schema/discounts'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
 import type { InvoiceLineItem } from '@/db/schema/invoiceLineItems'
@@ -96,17 +89,21 @@ const mockCheckoutPageContext = (): CheckoutPageContextValues => {
   }
 }
 
-// Mock the checkout page context
-vi.mock('@/contexts/checkoutPageContext', async (importOriginal) => {
-  const actual =
-    await importOriginal<
-      typeof import('@/contexts/checkoutPageContext')
-    >()
-  return {
-    ...actual,
-    useCheckoutPageContext: vi.fn(),
-  }
-})
+// Declare global mock state for checkout context
+declare global {
+  var __mockedCheckoutContext: CheckoutPageContextValues | undefined
+}
+
+// Mock the checkout page context - tests control what useCheckoutPageContext returns
+// via globalThis.__mockedCheckoutContext
+mock.module('@/contexts/checkoutPageContext', () => ({
+  useCheckoutPageContext: () => globalThis.__mockedCheckoutContext,
+  // Re-export the original function we need for tests
+  subscriptionDetailsFromCheckoutInfoCore:
+    subscriptionDetailsFromCheckoutInfoCore,
+  // Default export for the provider (not used in these tests but needed for module shape)
+  default: ({ children }: { children: React.ReactNode }) => children,
+}))
 
 // Test data setup - shared across all tests
 const mockPrice = {
@@ -255,10 +252,6 @@ describe('calculateTotalBillingDetails', () => {
 })
 
 describe('price flow', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
   it('should handle basic no discount, no feeCalculation', async () => {
     // Arrange: type: 'price', price with non-usage type, purchase optional/undefined
     const params = {
@@ -346,13 +339,106 @@ describe('price flow', () => {
     expect(result.taxAmount).toBe(90) // feeCalculation.taxAmountFixed
     expect(result.totalDueAmount).toBe(990) // calculateTotalDueAmount(feeCalculation)
   })
+
+  it('should multiply base amount by quantity when quantity is greater than 1', async () => {
+    // Arrange: price with unitPrice of 100, quantity of 5
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: undefined,
+      feeCalculation: null,
+      discount: null,
+      quantity: 5,
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 100 * 5 = 500
+    expect(result.baseAmount).toBe(500)
+    expect(result.subtotalAmount).toBe(500)
+    expect(result.discountAmount).toBe(0)
+    expect(result.taxAmount).toBeNull()
+    expect(result.totalDueAmount).toBe(500)
+  })
+
+  it('should default quantity to 1 when not provided', async () => {
+    // Arrange: price without quantity specified
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: undefined,
+      feeCalculation: null,
+      discount: null,
+      // quantity not provided
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 100 * 1 = 100
+    expect(result.baseAmount).toBe(100)
+    expect(result.subtotalAmount).toBe(100)
+    expect(result.totalDueAmount).toBe(100)
+  })
+
+  it('should apply discount to quantity-multiplied base amount', async () => {
+    // Arrange: price with unitPrice of 100, quantity of 3, fixed discount of 200
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: undefined,
+      feeCalculation: null,
+      discount: mockDiscount, // fixed 200 discount
+      quantity: 3,
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 100 * 3 = 300, total due = 300 - 200 = 100
+    expect(result.baseAmount).toBe(300)
+    expect(result.subtotalAmount).toBe(300)
+    expect(result.discountAmount).toBe(200)
+    expect(result.totalDueAmount).toBe(100)
+  })
+
+  it('should not double-count quantity when purchase exists (purchase values already include quantity)', async () => {
+    // Arrange: purchase with pricePerBillingCycle of 500 (which already represents 5 * 100 unitPrice)
+    // When quantity is also passed, it should NOT multiply again
+    const purchaseWithQuantityIncluded = {
+      ...subscriptionWithTrialDummyPurchase,
+      pricePerBillingCycle: 500, // Already includes quantity (e.g., 5 seats at 100 each)
+      firstInvoiceValue: 500,
+      quantity: 5,
+    }
+
+    const params = {
+      type: 'price' as const,
+      price: mockPrice, // unitPrice: 100
+      invoice: undefined,
+      purchase: purchaseWithQuantityIncluded,
+      feeCalculation: null,
+      discount: null,
+      quantity: 5, // Same quantity, but should not be multiplied again
+    }
+
+    // Act: call function
+    const result = calculateTotalBillingDetails(params)
+
+    // Expect: base amount should be 500 (from purchase.pricePerBillingCycle), NOT 2500
+    // calculatePriceBaseAmount returns pricePerBillingCycle when purchase exists,
+    // and we should NOT multiply by quantity again
+    expect(result.baseAmount).toBe(500)
+    expect(result.subtotalAmount).toBe(500)
+    expect(result.totalDueAmount).toBe(500)
+  })
 })
 
 describe('invoice flow', () => {
-  beforeEach(() => {
-    vi.clearAllMocks()
-  })
-
   it('should handle basic no discount, no feeCalculation', async () => {
     // Arrange: type: 'invoice', invoice provided, invoiceLineItems provided
     const params = {
@@ -424,14 +510,15 @@ describe('invoice flow', () => {
 })
 
 describe('TotalBillingDetails', () => {
-  beforeEach(async () => {
-    vi.clearAllMocks()
+  beforeEach(() => {
+    // Clear global mock context before each test
+    globalThis.__mockedCheckoutContext = undefined
   })
 
   describe('component rendering', () => {
     it('should hide component entirely for Add Payment Method flow', () => {
       // Arrange: flowType = AddPaymentMethod
-      const mockContext = {
+      globalThis.__mockedCheckoutContext = {
         checkoutSession: stubbedCheckoutSession,
         feeCalculation: null,
         flowType: CheckoutFlowType.AddPaymentMethod,
@@ -470,9 +557,7 @@ describe('TotalBillingDetails', () => {
         sellerOrganization: dummyOrganization,
         redirectUrl: 'https://google.com',
         clientSecret: '123',
-      }
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      } as CheckoutPageContextValues
 
       // Act: render component
       const { container } = render(<TotalBillingDetails />)
@@ -483,7 +568,7 @@ describe('TotalBillingDetails', () => {
 
     it('should render price flow with no discount, no tax, no trial, non-usage', async () => {
       // Arrange context: flowType = Subscription, price non-usage, currency = USD
-      const mockContext = createMockCheckoutContext({
+      globalThis.__mockedCheckoutContext = createMockCheckoutContext({
         subscriptionDetails: {
           trialPeriodDays: null,
           intervalUnit: IntervalUnit.Month,
@@ -493,8 +578,6 @@ describe('TotalBillingDetails', () => {
           type: PriceType.Subscription,
         },
       })
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText, getByTestId } = render(
@@ -514,7 +597,7 @@ describe('TotalBillingDetails', () => {
 
     it('should render price flow with discount visible', async () => {
       // Arrange: as B2 but with discount present such that discount is 200 and total is 800
-      const mockContext = createMockCheckoutContext({
+      globalThis.__mockedCheckoutContext = createMockCheckoutContext({
         discount: mockDiscount,
         subscriptionDetails: {
           trialPeriodDays: null,
@@ -525,8 +608,6 @@ describe('TotalBillingDetails', () => {
           type: PriceType.Subscription,
         },
       })
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -540,7 +621,7 @@ describe('TotalBillingDetails', () => {
 
     it('should render price flow with feeCalculation showing tax and overridden subtotal', async () => {
       // Arrange: provide feeCalculation so that subtotalAmount = 1200, discountAmount = 300, taxAmount = 90, totalDueAmount = 990
-      const mockContext = createMockCheckoutContext({
+      globalThis.__mockedCheckoutContext = createMockCheckoutContext({
         feeCalculation: mockFeeCalculation,
         subscriptionDetails: {
           trialPeriodDays: null,
@@ -551,8 +632,6 @@ describe('TotalBillingDetails', () => {
           type: PriceType.Subscription,
         },
       })
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -569,7 +648,7 @@ describe('TotalBillingDetails', () => {
 
     it('should render subscription with trial showing "Total After Trial" and Total Due Today = $0.00', async () => {
       // Arrange: flowType = Subscription, subscriptionDetails.trialPeriodDays set (e.g., 14), pricePerBillingCycle = 1500, discountAmount = 200, isEligibleForTrial = true
-      const mockContext = createMockCheckoutContext({
+      globalThis.__mockedCheckoutContext = createMockCheckoutContext({
         discount: mockDiscount,
         isEligibleForTrial: true,
         subscriptionDetails: {
@@ -581,8 +660,6 @@ describe('TotalBillingDetails', () => {
           type: PriceType.Subscription,
         },
       })
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText, getByTestId } = render(
@@ -636,14 +713,12 @@ describe('TotalBillingDetails', () => {
       // Assert: The function correctly sets trialPeriodDays to null when not eligible
       expect(subscriptionDetails?.trialPeriodDays).toBeNull()
 
-      const mockContext = createMockCheckoutContext({
+      globalThis.__mockedCheckoutContext = createMockCheckoutContext({
         purchase,
         price,
         isEligibleForTrial: false,
         subscriptionDetails,
       })
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { queryByText, getByTestId } = render(
@@ -660,7 +735,7 @@ describe('TotalBillingDetails', () => {
 
     it('should render subscription with trial where discount exceeds price per billing cycle (clamped)', async () => {
       // Arrange: as B5 but pricePerBillingCycle = 100, discountAmount = 200
-      const mockContext = createMockCheckoutContext({
+      globalThis.__mockedCheckoutContext = createMockCheckoutContext({
         discount: mockDiscount,
         isEligibleForTrial: true, // Must be eligible to show trial
         subscriptionDetails: {
@@ -672,8 +747,6 @@ describe('TotalBillingDetails', () => {
           type: PriceType.Subscription,
         },
       })
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
 
       // Act: render component
       const { getByText, getByTestId } = render(
@@ -693,7 +766,7 @@ describe('TotalBillingDetails', () => {
 
     it('should hide total labels for usage-based price in subscription', async () => {
       // Arrange: flowType = Subscription, price.type = Usage
-      const mockContext: CheckoutPageContextValues = {
+      globalThis.__mockedCheckoutContext = {
         ...baseMockContext,
         flowType: CheckoutFlowType.Subscription,
         purchase: subscriptionWithTrialDummyPurchase,
@@ -710,9 +783,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Usage,
         },
-      }
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      } as CheckoutPageContextValues
 
       // Act: render component
       const { queryByText } = render(<TotalBillingDetails />)
@@ -725,7 +796,7 @@ describe('TotalBillingDetails', () => {
 
     it('should render invoice flow basic rendering', async () => {
       // Arrange: flowType = Invoice, provide invoice and invoiceLineItems
-      const mockContext: CheckoutPageContextValues = {
+      globalThis.__mockedCheckoutContext = {
         ...baseMockContext,
         flowType: CheckoutFlowType.Invoice,
         purchase: undefined,
@@ -737,9 +808,7 @@ describe('TotalBillingDetails', () => {
         feeCalculation: null,
         editCheckoutSessionLoading: false,
         subscriptionDetails: undefined,
-      }
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      } as CheckoutPageContextValues
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -753,7 +822,7 @@ describe('TotalBillingDetails', () => {
 
     it('should render invoice flow with discount & tax via feeCalculation', async () => {
       // Arrange: flowType = Invoice, feeCalculation provides baseAmount=3000, discountAmountFixed=500, taxAmountFixed=100, totalDueAmount=2600
-      const mockContext: CheckoutPageContextValues = {
+      globalThis.__mockedCheckoutContext = {
         ...baseMockContext,
         flowType: CheckoutFlowType.Invoice,
         purchase: undefined,
@@ -770,9 +839,7 @@ describe('TotalBillingDetails', () => {
         },
         editCheckoutSessionLoading: false,
         subscriptionDetails: undefined,
-      }
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      } as CheckoutPageContextValues
 
       // Act: render component
       const { getByText } = render(<TotalBillingDetails />)
@@ -790,7 +857,7 @@ describe('TotalBillingDetails', () => {
 
     it('should show loading state with skeletons', async () => {
       // Arrange: any flow where totals are shown and editCheckoutSessionLoading = true
-      const mockContext: CheckoutPageContextValues = {
+      globalThis.__mockedCheckoutContext = {
         ...baseMockContext,
         flowType: CheckoutFlowType.Subscription,
         purchase: subscriptionWithTrialDummyPurchase,
@@ -807,9 +874,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.USD,
           type: PriceType.Subscription,
         },
-      }
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      } as CheckoutPageContextValues
 
       // Act: render component
       const { container, queryByText } = render(
@@ -824,7 +889,7 @@ describe('TotalBillingDetails', () => {
 
     it('should apply currency formatting for non-USD currency', async () => {
       // Arrange: pick a non-USD currency (e.g., EUR), set amounts deterministically
-      const mockContext: CheckoutPageContextValues = {
+      globalThis.__mockedCheckoutContext = {
         ...baseMockContext,
         flowType: CheckoutFlowType.Subscription,
         purchase: subscriptionWithTrialDummyPurchase,
@@ -841,9 +906,7 @@ describe('TotalBillingDetails', () => {
           currency: CurrencyCode.EUR,
           type: PriceType.Subscription,
         },
-      }
-
-      vi.mocked(useCheckoutPageContext).mockReturnValue(mockContext)
+      } as CheckoutPageContextValues
 
       // Act: render component
       const { getByText, getAllByText } = render(

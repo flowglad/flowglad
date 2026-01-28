@@ -67,7 +67,9 @@ const getPaymentProcedure = protectedProcedure
   .query(async ({ ctx, input }) => {
     const payment = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPaymentById(input.id, transaction)
+        return (
+          await selectPaymentById(input.id, transaction)
+        ).unwrap()
       },
       {
         apiKey: ctx.apiKey,
@@ -80,7 +82,7 @@ const getTableRowsProcedure = protectedProcedure
   .input(
     createPaginatedTableRowInputSchema(
       z.object({
-        status: z.nativeEnum(PaymentStatus).optional(),
+        status: z.enum(PaymentStatus).optional(),
         customerId: z.string().optional(),
         subscriptionId: z.string().optional(),
       })
@@ -91,7 +93,13 @@ const getTableRowsProcedure = protectedProcedure
   )
   .query(
     authenticatedProcedureTransaction(
-      selectPaymentsCursorPaginatedWithTableRowData
+      async ({ input, transactionCtx }) => {
+        const { transaction } = transactionCtx
+        return selectPaymentsCursorPaginatedWithTableRowData({
+          input,
+          transaction,
+        })
+      }
     )
   )
 
@@ -100,7 +108,7 @@ const getCountsByStatusProcedure = protectedProcedure
   .output(
     z.array(
       z.object({
-        status: z.nativeEnum(PaymentStatus),
+        status: z.enum(PaymentStatus),
         count: z.number(),
       })
     )

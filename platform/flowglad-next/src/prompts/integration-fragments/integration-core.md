@@ -35,7 +35,8 @@ Your output should be **code changes only** (no commentary).
   - Exposes a Flowglad HTTP API surface via `/api/flowglad/[...path]` (or equivalent route pattern).
 - **Wire Flowglad client-side** so {FRONTEND_FRAMEWORK} components:
   - Use `useBilling` from `{FLOWGLAD_CLIENT_PACKAGE}` as the canonical billing source of truth.
-  - Rely on `billing.loaded`, `billing.loadBilling`, `billing.errors`, `billing.pricingModel`, `billing.currentSubscriptions`, and helpers like `billing.checkUsageBalance`, `billing.checkFeatureAccess`, `billing.getPrice`, `billing.createCheckoutSession`, `billing.cancelSubscription`, `billing.reload`.
+  - Use `usePricing` from `{FLOWGLAD_CLIENT_PACKAGE}` for public pricing model data (pricing pages, plan cards).
+  - Rely on `billing.loaded`, `billing.errors`, `billing.currentSubscriptions`, and helpers like `billing.checkUsageBalance`, `billing.checkFeatureAccess`, `billing.getPrice`, `billing.createCheckoutSession`, `billing.cancelSubscription`, `billing.reload`.
 - **Connect a Flowglad pricing model** to:
   - Subscription plans.
   - Usage meters ({USAGE_METER_EXAMPLES}).
@@ -126,7 +127,6 @@ Then, **delete** the obsolete local billing implementation file(s) that only exi
 Preserve all **call sites** and their semantics. Flowglad's `useBilling` is intentionally shaped to make this mostly a drop‑in replacement:
 
 - `billing.loaded`
-- `billing.loadBilling`
 - `billing.errors`
 - `billing.pricingModel`
 - `billing.currentSubscriptions`
@@ -175,8 +175,8 @@ Remove any mock logic that simply echoes back the request or stores usage locall
 Make sure all billing-aware UI components are updated to use Flowglad:
 
 - `{PRICING_COMPONENT_PATH}` (or equivalent pricing UI)
-  - Import `useBilling` from `{FLOWGLAD_CLIENT_PACKAGE}`.
-  - Use `billing.pricingModel.products` to derive subscription plans (filter out default/free products, build `PricingPlan` objects).
+  - Import `usePricing` (and `useBilling` for checkout actions) from `{FLOWGLAD_CLIENT_PACKAGE}`.
+  - Use `pricingModel.products` to derive subscription plans (filter out default/free products, build `PricingPlan` objects).
 - `{NAVBAR_COMPONENT_PATH}` (or equivalent account menu)
   - Import `useBilling` from `{FLOWGLAD_CLIENT_PACKAGE}`.
   - Use `billing.currentSubscriptions?.[0]` to derive the active subscription.

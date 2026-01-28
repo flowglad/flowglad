@@ -3,7 +3,7 @@ import omit from 'ramda/src/omit'
 import type { Feature } from '@/db/schema/features'
 import {
   type CreateProductPriceInput,
-  type Price,
+  Price,
   type ProductWithPrices,
   priceImmutableFields,
   pricesInsertSchema,
@@ -16,7 +16,6 @@ import {
   bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug,
   selectFeatures,
 } from '@/db/tableMethods/featureMethods'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import {
   bulkInsertPrices,
@@ -27,6 +26,7 @@ import {
   selectPricesAndProductsByProductWhere,
 } from '@/db/tableMethods/priceMethods'
 import {
+  hasLivemodePricingModel,
   insertPricingModel,
   selectPricingModelById,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
@@ -44,14 +44,23 @@ import {
 } from '@/db/tableMethods/productMethods'
 import {
   bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId,
+  derivePricingModelIdFromUsageMeter,
   selectUsageMeters,
 } from '@/db/tableMethods/usageMeterMethods'
 import type {
-  AuthenticatedTransactionParams,
   DbTransaction,
+  TransactionEffectsContext,
 } from '@/db/types'
-import { DestinationEnvironment } from '@/types'
+import {
+  DestinationEnvironment,
+  FeatureType,
+  PriceType,
+} from '@/types'
 import { validateDefaultProductUpdate } from '@/utils/defaultProductValidation'
+import {
+  validatePriceTypeProductIdConsistency,
+  validateProductPriceConstraints,
+} from '@/utils/priceValidation'
 
 export const isPriceChanged = (
   newPrice: Price.ClientInsert,
@@ -119,19 +128,19 @@ export const isPriceChanged = (
 
 export const createPrice = async (
   payload: Price.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
-  return insertPrice(payload, transaction)
+  return insertPrice(payload, ctx)
 }
 
 export const createPriceTransaction = async (
   payload: { price: Price.ClientInsert },
-  {
-    transaction,
-    livemode,
-    organizationId,
-  }: AuthenticatedTransactionParams
+  ctx: TransactionEffectsContext & {
+    livemode: boolean
+    organizationId: string
+  }
 ) => {
+  const { transaction, livemode, organizationId } = ctx
   const { price } = payload
   if (!organizationId) {
     throw new TRPCError({
@@ -140,66 +149,69 @@ export const createPriceTransaction = async (
     })
   }
 
-  // Get product to check if it's a default product
-  const product = await selectProductById(
-    price.productId,
-    transaction
-  )
+  // Validate price type and productId consistency (pure validation, no DB needed)
+  validatePriceTypeProductIdConsistency(price)
 
-  // Get all prices for this product to validate constraints
-  const existingPrices = await selectPrices(
-    { productId: price.productId },
-    transaction
-  )
-
-  // Forbid creating additional prices for default products
-  if (product.default && existingPrices.length > 0) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message: 'Cannot create additional prices for the default plan',
-    })
-  }
-
-  // Validate that default prices on default products must have unitPrice = 0
-  if (price.isDefault && product.default && price.unitPrice !== 0) {
-    throw new TRPCError({
-      code: 'BAD_REQUEST',
-      message:
-        'Default prices on default products must have unitPrice = 0',
-    })
-  }
-
-  // Forbid creating price of a different type
-  if (
-    existingPrices.length > 0 &&
-    existingPrices.some(
-      (existingPrice) => existingPrice.type !== price.type
+  // Product validation only applies to non-usage prices.
+  // Usage prices don't have productId, so skip product-related validation.
+  if (Price.clientInsertHasProductId(price)) {
+    const product = (
+      await selectProductById(price.productId, transaction)
+    ).unwrap()
+    const existingPrices = await selectPrices(
+      { productId: price.productId },
+      transaction
     )
-  ) {
-    throw new TRPCError({
-      code: 'FORBIDDEN',
-      message:
-        'Cannot create price of a different type than the existing prices for the product',
+
+    validateProductPriceConstraints({
+      price,
+      product,
+      existingPrices,
     })
   }
 
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
+
+  // For usage prices, derive pricingModelId from usageMeterId
+  let pricingModelId: string | undefined
+  if (price.type === PriceType.Usage && price.usageMeterId) {
+    pricingModelId = await derivePricingModelIdFromUsageMeter(
+      price.usageMeterId,
+      transaction
+    )
+  }
 
   // for now, created prices have default = true and active = true
   const newPrice = await safelyInsertPrice(
     {
       ...price,
+      ...(pricingModelId ? { pricingModelId } : {}),
       livemode: livemode ?? false,
       currency: organization.defaultCurrency,
       externalId: null,
     },
-    transaction
+    ctx
   )
 
   return newPrice
+}
+
+/**
+ * Checks if any of the given feature IDs are toggle features.
+ * Used to validate that toggle features are not associated with single payment products.
+ */
+const checkForToggleFeatures = async (
+  featureIds: string[],
+  transaction: DbTransaction
+): Promise<boolean> => {
+  if (!featureIds.length) return false
+  const features = await selectFeatures(
+    { id: featureIds },
+    transaction
+  )
+  return features.some((f) => f.type === FeatureType.Toggle)
 }
 
 export const createProductTransaction = async (
@@ -208,31 +220,52 @@ export const createProductTransaction = async (
     prices: CreateProductPriceInput[]
     featureIds?: string[]
   },
-  { userId, transaction, livemode }: AuthenticatedTransactionParams
+  ctx: TransactionEffectsContext & {
+    livemode: boolean
+    organizationId: string
+  }
 ) => {
+  const { transaction, livemode, organizationId, invalidateCache } =
+    ctx
+  if (!organizationId) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Organization ID is required to create a product.',
+    })
+  }
   // Validate that usage prices are not created with featureIds
   if (payload.featureIds && payload.featureIds.length > 0) {
     const hasUsagePrice = payload.prices.some(
-      (price) => price.type === 'usage'
+      (price) => price.type === PriceType.Usage
     )
     if (hasUsagePrice) {
       throw new Error(
         'Cannot create usage prices with feature assignments. Usage prices must be associated with usage meters only.'
       )
     }
+
+    // Validate that single payment products cannot have toggle features
+    const hasSinglePaymentPrice = payload.prices.some(
+      (price) => price.type === PriceType.SinglePayment
+    )
+    if (hasSinglePaymentPrice) {
+      const hasToggleFeatures = await checkForToggleFeatures(
+        payload.featureIds,
+        transaction
+      )
+      if (hasToggleFeatures) {
+        throw new Error(
+          'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+        )
+      }
+    }
   }
 
-  const [
-    {
-      organization: { id: organizationId, defaultCurrency },
-    },
-  ] = await selectMembershipAndOrganizations(
-    {
-      userId,
-      focused: true,
-    },
-    transaction
-  )
+  // Fetch organization directly for defaultCurrency
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
+  const { defaultCurrency } = organization
   const createdProduct = await insertProduct(
     {
       ...payload.product,
@@ -241,7 +274,7 @@ export const createProductTransaction = async (
       livemode,
       externalId: null,
     },
-    transaction
+    ctx
   )
   if (payload.featureIds) {
     await syncProductFeatures(
@@ -249,7 +282,7 @@ export const createProductTransaction = async (
         product: createdProduct,
         desiredFeatureIds: payload.featureIds,
       },
-      transaction
+      { transaction, invalidateCache }
     )
   }
   const pricesWithSafelyDefaultPrice = payload.prices.some(
@@ -264,17 +297,22 @@ export const createProductTransaction = async (
         ...payload.prices.slice(1),
       ]
   // Use bulk insert instead of multiple individual inserts
-  const priceInserts = pricesWithSafelyDefaultPrice.map((price) => ({
-    ...price,
-    productId: createdProduct.id,
-    livemode,
-    currency: defaultCurrency,
-    externalId: null,
-  }))
-  const createdPrices = await bulkInsertPrices(
-    priceInserts,
-    transaction
-  )
+  // Usage prices have productId: null and need explicit pricingModelId
+  // Non-usage prices have productId set to the created product
+  const priceInserts = pricesWithSafelyDefaultPrice.map((price) => {
+    const isUsagePrice = price.type === PriceType.Usage
+    return {
+      ...price,
+      productId: isUsagePrice ? null : createdProduct.id,
+      pricingModelId: isUsagePrice
+        ? createdProduct.pricingModelId
+        : undefined,
+      livemode,
+      currency: defaultCurrency,
+      externalId: null,
+    }
+  }) as Price.Insert[]
+  const createdPrices = await bulkInsertPrices(priceInserts, ctx)
   return {
     product: createdProduct,
     prices: createdPrices,
@@ -287,23 +325,26 @@ export const editProductTransaction = async (
     featureIds?: string[]
     price?: Price.ClientInsert
   },
-  {
-    transaction,
-    livemode,
-    organizationId,
-    userId,
-  }: AuthenticatedTransactionParams
+  ctx: TransactionEffectsContext & {
+    livemode: boolean
+    organizationId: string
+  }
 ) => {
+  const { transaction, livemode, organizationId, invalidateCache } =
+    ctx
   const { product, featureIds, price } = payload
 
-  // Fetch the existing product to check if it's a default product
-  const existingProduct = await selectProductById(
-    product.id,
-    transaction
-  )
-  if (!existingProduct) {
-    throw new Error('Product not found')
+  if (!organizationId) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: 'Organization ID is required to edit a product.',
+    })
   }
+
+  // Fetch the existing product to check if it's a default product
+  const existingProduct = (
+    await selectProductById(product.id, transaction)
+  ).unwrap()
 
   // Check if product slug is being mutated
   // Compare slug values, treating null and undefined as equivalent
@@ -319,24 +360,47 @@ export const editProductTransaction = async (
     : product
 
   // Validate that default products can only have certain fields updated
-  validateDefaultProductUpdate(enforcedProduct, existingProduct)
-
-  const updatedProduct = await updateProduct(
+  const validationResult = validateDefaultProductUpdate(
     enforcedProduct,
-    transaction
+    existingProduct
   )
+  if (validationResult.status === 'error') {
+    throw validationResult.error
+  }
+
+  const updatedProduct = await updateProduct(enforcedProduct, ctx)
 
   if (!updatedProduct) {
     throw new Error('Product not found or update failed')
   }
 
   if (featureIds !== undefined) {
+    // Validate that single payment products cannot have toggle features
+    if (featureIds.length > 0) {
+      const productPrices = await selectPrices(
+        { productId: product.id },
+        transaction
+      )
+      const defaultPrice = productPrices.find((p) => p.isDefault)
+      if (defaultPrice?.type === PriceType.SinglePayment) {
+        const hasToggleFeatures = await checkForToggleFeatures(
+          featureIds,
+          transaction
+        )
+        if (hasToggleFeatures) {
+          throw new Error(
+            'Cannot associate toggle features with single payment products. Toggle features require subscription-based pricing.'
+          )
+        }
+      }
+    }
+
     await syncProductFeatures(
       {
         product: updatedProduct,
         desiredFeatureIds: featureIds,
       },
-      transaction
+      { transaction, invalidateCache }
     )
   }
   /**
@@ -358,10 +422,9 @@ export const editProductTransaction = async (
 
       if (priceChanged) {
         // New price will be inserted - sync slug if product slug changed
-        const organization = await selectOrganizationById(
-          organizationId,
-          transaction
-        )
+        const organization = (
+          await selectOrganizationById(organizationId, transaction)
+        ).unwrap()
         await safelyInsertPrice(
           {
             ...price,
@@ -372,7 +435,7 @@ export const editProductTransaction = async (
             currency: organization.defaultCurrency,
             externalId: null,
           },
-          transaction
+          ctx
         )
       } else if (isSlugMutating && currentPrice) {
         // No new price inserted (immutable fields unchanged), but product slug changed - update existing price slug
@@ -382,7 +445,7 @@ export const editProductTransaction = async (
             type: currentPrice.type,
             slug: updatedProduct.slug,
           },
-          transaction
+          ctx
         )
       }
     } else if (isSlugMutating && currentPrice) {
@@ -393,7 +456,7 @@ export const editProductTransaction = async (
           type: currentPrice.type,
           slug: updatedProduct.slug,
         },
-        transaction
+        ctx
       )
     }
   }
@@ -402,15 +465,31 @@ export const editProductTransaction = async (
 
 export const clonePricingModelTransaction = async (
   input: ClonePricingModelInput,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
-  const pricingModel = await selectPricingModelById(
-    input.id,
-    transaction
-  )
+  const { transaction } = ctx
+  const pricingModel = (
+    await selectPricingModelById(input.id, transaction)
+  ).unwrap()
   const livemode = input.destinationEnvironment
     ? input.destinationEnvironment === DestinationEnvironment.Livemode
     : pricingModel.livemode
+
+  // Validate livemode uniqueness before creating
+  if (livemode) {
+    const exists = await hasLivemodePricingModel(
+      pricingModel.organizationId,
+      transaction
+    )
+    if (exists) {
+      throw new Error(
+        'Cannot clone to livemode: Your organization already has a livemode pricing model. ' +
+          'Each organization can have at most one livemode pricing model. ' +
+          'To clone this pricing model, please select "Test mode" as the destination environment instead.'
+      )
+    }
+  }
+
   const newPricingModel = await insertPricingModel(
     {
       name: input.name,
@@ -443,7 +522,7 @@ export const clonePricingModelTransaction = async (
       )
     await bulkInsertOrDoNothingUsageMetersBySlugAndPricingModelId(
       usageMeterInserts,
-      transaction
+      ctx
     )
   }
 
@@ -498,7 +577,7 @@ export const clonePricingModelTransaction = async (
     })
     await bulkInsertOrDoNothingFeaturesByPricingModelIdAndSlug(
       featureInserts,
-      transaction
+      ctx
     )
   }
   const productsWithPrices =
@@ -552,7 +631,7 @@ export const clonePricingModelTransaction = async (
   // Bulk insert all new products
   const newProducts = await bulkInsertProducts(
     Array.from(productInsertMap.values()),
-    transaction
+    ctx
   )
 
   // Create a map of existing product id => new product id
@@ -585,7 +664,7 @@ export const clonePricingModelTransaction = async (
   }
 
   // Bulk insert all new prices
-  await bulkInsertPrices(allPriceInserts, transaction)
+  await bulkInsertPrices(allPriceInserts, ctx)
 
   // Clone product features if any exist
   if (sourceProductFeatures.length > 0) {
@@ -631,10 +710,7 @@ export const clonePricingModelTransaction = async (
     }
 
     if (productFeatureInserts.length > 0) {
-      await bulkInsertProductFeatures(
-        productFeatureInserts,
-        transaction
-      )
+      await bulkInsertProductFeatures(productFeatureInserts, ctx)
     }
   }
 

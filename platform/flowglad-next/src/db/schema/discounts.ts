@@ -5,6 +5,7 @@ import * as R from 'ramda'
 import { z } from 'zod'
 import { buildSchemas } from '@/db/createZodSchemas'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import {
   constructIndex,
   constructUniqueIndex,
@@ -13,7 +14,7 @@ import {
   createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   orgIdEqualsCurrentSQL,
@@ -44,6 +45,10 @@ export const discounts = pgTable(
       'organization_id',
       organizations
     ),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
     name: text('name').notNull(),
     code: text('code').notNull(),
     amount: integer('amount').notNull(),
@@ -61,33 +66,30 @@ export const discounts = pgTable(
     numberOfPayments: integer('number_of_payments'),
     // externalId: text('external_id').notNull(),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.code]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.code,
-        table.organizationId,
-        table.livemode,
-      ]),
-      livemodePolicy(TABLE_NAME),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"organization_id" = current_organization_id() and "active" = true`,
-        }
-      ),
-      merchantPolicy(
-        'Enable all actions for discounts in own organization',
-        {
-          as: 'permissive',
-          to: 'all',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructIndex(TABLE_NAME, [table.code]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.code,
+      table.pricingModelId,
+    ]),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"organization_id" = current_organization_id() and "active" = true`,
+      }
+    ),
+    merchantPolicy(
+      'Enable all actions for discounts in own organization',
+      {
+        as: 'permissive',
+        to: 'all',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {
@@ -95,6 +97,7 @@ const columnRefinements = {
   amountType: core.createSafeZodEnum(DiscountAmountType),
   duration: core.createSafeZodEnum(DiscountDuration),
   numberOfPayments: core.safeZodPositiveInteger.nullable(),
+  pricingModelId: z.string(),
   code: z
     .string()
     .transform((code) => code.toUpperCase())
@@ -135,6 +138,14 @@ export const {
 } = buildSchemas(discounts, {
   discriminator: 'duration',
   refine: { ...columnRefinements, ...defaultDiscountsRefinements },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    createOnlyColumns: {
+      pricingModelId: true,
+    },
+  },
   entityName: 'DefaultDiscount',
 })
 
@@ -153,6 +164,14 @@ export const {
     ...columnRefinements,
     ...numberOfPaymentsDiscountsRefinements,
   },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    createOnlyColumns: {
+      pricingModelId: true,
+    },
+  },
   entityName: 'NumberOfPaymentsDiscount',
 })
 
@@ -168,6 +187,14 @@ export const {
 } = buildSchemas(discounts, {
   discriminator: 'duration',
   refine: { ...columnRefinements, ...foreverDiscountsRefinements },
+  insertRefine: {
+    pricingModelId: z.string().optional(),
+  },
+  client: {
+    createOnlyColumns: {
+      pricingModelId: true,
+    },
+  },
   entityName: 'ForeverDiscount',
 })
 
@@ -265,6 +292,10 @@ export const discountsPaginatedListWithRedemptionsSchema =
 export const discountsTableRowDataSchema = z.object({
   discount: discountClientSelectSchema,
   redemptionCount: z.number(),
+  pricingModel: z.object({
+    id: z.string(),
+    name: z.string(),
+  }),
 })
 
 export namespace Discount {

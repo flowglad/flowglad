@@ -50,13 +50,15 @@ const SubscriptionCheckoutSuccessPage = async ({
   if (checkoutSession.customerId) {
     const customer = await adminTransaction(
       async ({ transaction }) => {
-        return selectCustomerById(
-          checkoutSession.customerId!,
-          transaction
-        )
+        return (
+          await selectCustomerById(
+            checkoutSession.customerId!,
+            transaction
+          )
+        ).unwrap()
       }
     )
-    customerEmail = customer?.email || null
+    customerEmail = customer.email || null
   }
 
   if (innerPrice?.type === PriceType.Usage) {

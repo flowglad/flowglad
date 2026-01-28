@@ -1,6 +1,6 @@
 'use client'
 
-import { Check, DollarSign, Plus } from 'lucide-react'
+import { DollarSign, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -10,8 +10,13 @@ import CancelSubscriptionModal from '@/components/forms/CancelSubscriptionModal'
 import { ItemFeature } from '@/components/ItemFeature'
 import PageContainer from '@/components/PageContainer'
 import { ProductCard } from '@/components/ProductCard'
+import { SubscriptionResourceUsage } from '@/components/subscriptions/SubscriptionResourceUsage'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
+import {
+  statusConfigToPageHeaderBadge,
+  subscriptionStatusConfig,
+} from '@/components/ui/status-tag'
 import {
   Tooltip,
   TooltipContent,
@@ -22,14 +27,12 @@ import { useAuthContext } from '@/contexts/authContext'
 import type { Customer } from '@/db/schema/customers'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { PricingModel } from '@/db/schema/pricingModels'
-import {
-  getSubscriptionDateInfo,
-  getSubscriptionStatusBadge,
-} from '@/lib/subscription-utils'
+import { getSubscriptionDateInfo } from '@/lib/subscription-utils'
 import type { RichSubscription } from '@/subscriptions/schemas'
 import {
   FeatureType,
   FeatureUsageGrantFrequency,
+  PriceType,
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
@@ -115,7 +118,10 @@ const InnerSubscriptionPage = ({
     return <div>Loading...</div>
   }
 
-  const statusBadge = getSubscriptionStatusBadge(subscription.status)
+  const statusBadge = statusConfigToPageHeaderBadge(
+    subscription.status,
+    subscriptionStatusConfig
+  )
 
   return (
     <PageContainer>
@@ -129,18 +135,7 @@ const InnerSubscriptionPage = ({
           badges={[
             {
               ...statusBadge,
-              label: (
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <span>{statusBadge.label}</span>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom">
-                      <p>Status</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ),
+              tooltip: 'Subscription status',
             },
             ...(pricingModel
               ? [
@@ -202,9 +197,13 @@ const InnerSubscriptionPage = ({
                   )
 
                 // Get product ID and name from the price
-                const productId = item.price.productId
-                const productName =
-                  productNames[productId] || 'Unnamed Product'
+                const productId =
+                  item.price.type !== PriceType.Usage
+                    ? item.price.productId
+                    : null
+                const productName = productId
+                  ? (productNames[productId] ?? 'Unnamed Product')
+                  : 'Usage-Based'
 
                 // Get appropriate date info based on subscription lifecycle state
                 // (handles active/renewing, cancellation scheduled, and canceled states)
@@ -227,7 +226,9 @@ const InnerSubscriptionPage = ({
                     variant="subscription"
                     quantity={item.quantity}
                     renewalDate={renewalDate}
-                    href={`/products/${productId}`}
+                    href={
+                      productId ? `/products/${productId}` : undefined
+                    }
                   />
                 )
               })}
@@ -271,6 +272,11 @@ const InnerSubscriptionPage = ({
               )
             )}
           </div>
+        </ExpandSection>
+        <ExpandSection title="Resource Usage" defaultExpanded={false}>
+          <SubscriptionResourceUsage
+            subscriptionId={subscription.id}
+          />
         </ExpandSection>
         <BillingHistorySection
           subscriptionId={subscription.id}

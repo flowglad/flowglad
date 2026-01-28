@@ -67,14 +67,21 @@ export const createSecretApiKeyTransaction = async (
 
 export const rotateSecretApiKeyTransaction = async (
   input: RotateApiKeyInput,
-  { transaction, userId }: AuthenticatedTransactionParams
+  {
+    transaction,
+    userId,
+  }: Pick<AuthenticatedTransactionParams, 'transaction' | 'userId'>
 ) => {
   // Get the existing API key
-  const existingApiKey = await selectApiKeyById(input.id, transaction)
-  const organization = await selectOrganizationById(
-    existingApiKey.organizationId,
-    transaction
-  )
+  const existingApiKey = (
+    await selectApiKeyById(input.id, transaction)
+  ).unwrap()
+  const organization = (
+    await selectOrganizationById(
+      existingApiKey.organizationId,
+      transaction
+    )
+  ).unwrap()
   // Rotate the key in Unkey
   const { apiKeyInsert, shownOnlyOnceKey } =
     await replaceSecretApiKey({
@@ -116,7 +123,9 @@ export const deleteSecretApiKeyTransaction = async (
   { transaction, userId }: AuthenticatedTransactionParams
 ): Promise<void> => {
   // Fetch the API key by ID to verify it exists and user has access
-  const apiKey = await selectApiKeyById(input.id, transaction)
+  const apiKey = (
+    await selectApiKeyById(input.id, transaction)
+  ).unwrap()
 
   // Validate it's a secret key
   if (apiKey.type !== FlowgladApiKeyType.Secret) {

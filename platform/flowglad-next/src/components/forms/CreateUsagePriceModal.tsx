@@ -1,5 +1,6 @@
 'use client'
 
+import { Info } from 'lucide-react'
 import { useFormContext } from 'react-hook-form'
 import { toast } from 'sonner'
 import { z } from 'zod'
@@ -16,34 +17,37 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
-import { useAuthenticatedContext } from '@/contexts/authContext'
+import { Label } from '@/components/ui/label'
+import { Switch } from '@/components/ui/switch'
 import {
-  createProductFormSchema,
-  usagePriceDefaultColumns,
-} from '@/db/schema/prices'
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip'
+import { useAuthenticatedContext } from '@/contexts/authContext'
+import { createPriceFormSchema } from '@/db/schema/prices'
 import type { UsageMeter } from '@/db/schema/usageMeters'
-import { IntervalUnit } from '@/types'
+import { IntervalUnit, PriceType } from '@/types'
 import {
   isCurrencyZeroDecimal,
   rawStringAmountToCountableCurrencyAmount,
 } from '@/utils/stripe'
 
 /**
- * Custom schema for CreateUsagePriceModal that requires slug with minLength 1
+ * Form schema for CreateUsagePriceModal.
  *
- * Note: This extends createProductFormSchema because creating a usage price
- * requires creating a product behind the scenes (products and prices are
- * tightly coupled in the data model). The product is an implementation detail
- * hidden from the user, who only sees "usage price" in the UI.
+ * Uses createPriceFormSchema which wraps the prices.create API input.
+ * Adds a refinement to require a non-empty slug.
  */
-const createUsagePriceFormSchema = createProductFormSchema.refine(
+const createUsagePriceFormSchema = createPriceFormSchema.refine(
   (data) => {
-    const slug = data.product.slug?.trim()
+    const slug = data.price.slug?.trim()
     return slug !== undefined && slug !== null && slug.length >= 1
   },
   {
     message: 'Slug is required and must be at least 1 character',
-    path: ['product', 'slug'],
+    path: ['price', 'slug'],
   }
 )
 
@@ -62,7 +66,7 @@ function NameAndSlugFields() {
     <>
       <FormField
         control={control}
-        name="product.name"
+        name="price.name"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Name</FormLabel>
@@ -79,15 +83,15 @@ function NameAndSlugFields() {
       />
       <FormField
         control={control}
-        name="product.slug"
+        name="price.slug"
         render={({ field }) => (
           <FormItem>
             <FormLabel>Slug</FormLabel>
             <FormControl>
               <AutoSlugInput
                 {...field}
-                name="product.slug"
-                sourceName="product.name"
+                name="price.slug"
+                sourceName="price.name"
                 placeholder="usage-price-slug"
                 className="w-full"
               />
@@ -103,6 +107,62 @@ function NameAndSlugFields() {
   )
 }
 
+/**
+ * Toggle field for setting whether this price is the default for the usage meter.
+ */
+function IsDefaultField() {
+  const { control } = useFormContext<CreateUsagePriceFormSchema>()
+
+  return (
+    <FormField
+      control={control}
+      name="price.isDefault"
+      render={({ field }) => (
+        <FormItem>
+          <FormControl>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="price-isDefault"
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                aria-label="Set as default price"
+              />
+              <Label
+                htmlFor="price-isDefault"
+                className="cursor-pointer"
+              >
+                Make Default
+              </Label>
+              <TooltipProvider>
+                <Tooltip delayDuration={300}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex items-center text-muted-foreground hover:text-foreground transition-colors"
+                      aria-label="More information"
+                    >
+                      <Info className="h-4 w-4" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent
+                    variant="muted"
+                    side="top"
+                    className="max-w-xs text-sm px-3 py-2"
+                  >
+                    The default price is used when usage events are
+                    created with just the meter identifier.
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  )
+}
+
 interface CreateUsagePriceModalProps {
   isOpen: boolean
   setIsOpen: (isOpen: boolean) => void
@@ -113,8 +173,8 @@ interface CreateUsagePriceModalProps {
  * CreateUsagePriceModal component
  *
  * Creates a new usage price for a specific usage meter.
- * Behind the scenes, this creates a product with a usage price attached.
- * The product is an implementation detail hidden from the user.
+ * Usage prices belong directly to usage meters (not products),
+ * so this calls prices.create with productId: null.
  */
 export const CreateUsagePriceModal = ({
   isOpen,
@@ -122,7 +182,7 @@ export const CreateUsagePriceModal = ({
   usageMeter,
 }: CreateUsagePriceModalProps) => {
   const { organization } = useAuthenticatedContext()
-  const createProduct = trpc.products.create.useMutation()
+  const createPrice = trpc.prices.create.useMutation()
   const utils = trpc.useUtils()
 
   if (!organization) {
@@ -133,32 +193,24 @@ export const CreateUsagePriceModal = ({
     organization.defaultCurrency
   )
 
-  // Validate defaultValues with createProductFormSchema (allows empty slug).
-  // Form submission uses createUsagePriceFormSchema (requires slug minLength 1).
-  const defaultValues = createProductFormSchema.parse({
-    product: {
-      name: '',
-      active: true,
-      description: '',
-      imageURL: '',
-      singularQuantityLabel: null,
-      pluralQuantityLabel: null,
-      pricingModelId: usageMeter.pricingModelId,
-      default: false,
-      slug: '',
-    },
+  // Default values for usage price form
+  // Note: currency and pricingModelId are read-only and derived server-side
+  const defaultValues: CreateUsagePriceFormSchema = {
     price: {
-      ...usagePriceDefaultColumns,
-      currency: organization.defaultCurrency,
+      type: PriceType.Usage,
+      name: '',
+      slug: '',
       isDefault: true,
       usageMeterId: usageMeter.id,
       usageEventsPerUnit: 1,
+      unitPrice: 0,
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
-      unitPrice: 0,
+      trialPeriodDays: null, // Usage prices don't have trial periods
+      productId: null, // Usage prices belong to meters, not products
     },
     __rawPriceString: zeroDecimal ? '0' : '0.00',
-  })
+  }
 
   return (
     <FormModal
@@ -171,22 +223,23 @@ export const CreateUsagePriceModal = ({
           input.__rawPriceString!
         )
 
-        const trimmedSlug = input.product.slug?.trim() ?? ''
-        const trimmedName = input.product.name?.trim() || trimmedSlug
+        const trimmedSlug = input.price.slug?.trim() ?? ''
+        const trimmedName = input.price.name?.trim() || trimmedSlug
 
-        await createProduct.mutateAsync({
-          ...input,
-          product: {
-            ...input.product,
-            name: trimmedName,
-            slug: trimmedSlug,
-          },
+        await createPrice.mutateAsync({
           price: {
-            ...input.price,
-            unitPrice,
-            // Use name for price name, slug for price slug
+            type: PriceType.Usage,
             name: trimmedName,
             slug: trimmedSlug,
+            unitPrice,
+            usageMeterId: usageMeter.id,
+            usageEventsPerUnit: input.price.usageEventsPerUnit ?? 1,
+            isDefault: input.price.isDefault,
+            intervalUnit:
+              input.price.intervalUnit ?? IntervalUnit.Month,
+            intervalCount: input.price.intervalCount ?? 1,
+            trialPeriodDays: null,
+            productId: null,
           },
         })
       }}
@@ -197,6 +250,7 @@ export const CreateUsagePriceModal = ({
       }}
       isOpen={isOpen}
       setIsOpen={setIsOpen}
+      submitButtonText="Create Price"
     >
       <NameAndSlugFields />
       <PriceFormFields
@@ -207,6 +261,7 @@ export const CreateUsagePriceModal = ({
         hidePriceName={true}
         hidePriceType={true}
       />
+      <IsDefaultField />
     </FormModal>
   )
 }

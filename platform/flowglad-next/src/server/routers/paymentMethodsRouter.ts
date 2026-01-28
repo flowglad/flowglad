@@ -44,7 +44,9 @@ const getPaymentMethodProcedure = protectedProcedure
   .query(async ({ ctx, input }) => {
     const paymentMethod = await authenticatedTransaction(
       async ({ transaction }) => {
-        return selectPaymentMethodById(input.id, transaction)
+        return (
+          await selectPaymentMethodById(input.id, transaction)
+        ).unwrap()
       },
       {
         apiKey: ctx.apiKey,

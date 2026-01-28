@@ -1,5 +1,10 @@
 import { sql } from 'drizzle-orm'
-import { boolean, pgTable, text } from 'drizzle-orm/pg-core'
+import {
+  boolean,
+  pgTable,
+  text,
+  uniqueIndex,
+} from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
 import {
@@ -8,7 +13,7 @@ import {
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   orgIdEqualsCurrentSQL,
@@ -33,28 +38,28 @@ export const pricingModels = pgTable(
     name: text('name').notNull(),
     integrationGuideHash: text('integration_guide_hash'),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.name]),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"id" in (select "pricing_model_id" from "customers") OR ("is_default" = true AND "organization_id" = current_organization_id())`,
-        }
-      ),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'merchant',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.name]),
+    uniqueIndex('pricing_models_organization_id_livemode_unique_idx')
+      .on(table.organizationId)
+      .where(sql`${table.livemode} = true`),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"id" in (select "pricing_model_id" from "customers") OR ("is_default" = true AND "organization_id" = current_organization_id())`,
+      }
+    ),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'merchant',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 const readOnlyColumns = {
@@ -132,7 +137,9 @@ export type CreatePricingModelInput = z.infer<
 
 export const editPricingModelSchema = z.object({
   id: z.string(),
-  pricingModel: pricingModelsClientUpdateSchema,
+  pricingModel: pricingModelsClientUpdateSchema.extend({
+    name: z.string().min(1, 'Name is required'),
+  }),
 })
 
 export type EditPricingModelInput = z.infer<

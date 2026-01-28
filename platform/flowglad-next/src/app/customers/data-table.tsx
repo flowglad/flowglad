@@ -15,6 +15,10 @@ import { trpc } from '@/app/_trpc/client'
 import { usePaginatedTableState } from '@/app/hooks/usePaginatedTableState'
 import { useSearchDebounce } from '@/app/hooks/useSearchDebounce'
 import { Button } from '@/components/ui/button'
+import {
+  DataTableFilterPopover,
+  type FilterSection,
+} from '@/components/ui/data-table-filter-popover'
 import { DataTablePagination } from '@/components/ui/data-table-pagination'
 import { DataTableToolbar } from '@/components/ui/data-table-toolbar'
 import {
@@ -34,8 +38,41 @@ export interface CustomersTableFilters {
   pricingModelId?: string
 }
 
+/**
+ * Filter state for the customers filter popover.
+ */
+interface CustomerFilterValues {
+  [key: string]: string
+  status: string
+}
+
+/**
+ * Default filter values - what the filter starts with.
+ * Defaults to "Active" to match the previous Tabs implementation.
+ */
+const defaultFilterValues: CustomerFilterValues = {
+  status: 'active',
+}
+
+/**
+ * Neutral filter values - represents "no filter applied" state.
+ */
+const neutralFilterValues: CustomerFilterValues = {
+  status: 'all',
+}
+
+const statusFilterOptions = [
+  { value: 'all', label: 'All Customers' },
+  { value: 'active', label: 'Active' },
+  { value: 'archived', label: 'Archived' },
+]
+
 interface CustomersDataTableProps {
-  filters?: CustomersTableFilters
+  /** Optional external filters (e.g., organizationId) */
+  externalFilters?: Pick<
+    CustomersTableFilters,
+    'organizationId' | 'pricingModelId'
+  >
   title?: string
   onCreateCustomer?: () => void
   buttonVariant?:
@@ -49,7 +86,7 @@ interface CustomersDataTableProps {
 }
 
 export function CustomersDataTable({
-  filters = {},
+  externalFilters = {},
   title,
   onCreateCustomer,
   buttonVariant = 'secondary',
@@ -63,6 +100,40 @@ export function CustomersDataTable({
 
   // Page size state for server-side pagination
   const [currentPageSize, setCurrentPageSize] = React.useState(10)
+
+  // Filter state for status (active/archived)
+  const [filterValues, setFilterValues] =
+    React.useState<CustomerFilterValues>(defaultFilterValues)
+
+  // Build filter sections for the popover
+  const filterSections: FilterSection[] = React.useMemo(
+    () => [
+      {
+        id: 'status',
+        label: 'Status',
+        type: 'single-select' as const,
+        options: statusFilterOptions,
+      },
+    ],
+    []
+  )
+
+  // Derive server filters from UI filter state
+  const derivedFilters = React.useMemo((): CustomersTableFilters => {
+    const filters: CustomersTableFilters = {
+      ...externalFilters,
+    }
+
+    // Apply status filter
+    if (filterValues.status === 'active') {
+      filters.archived = false
+    } else if (filterValues.status === 'archived') {
+      filters.archived = true
+    }
+    // 'all' means no archived filter
+
+    return filters
+  }, [filterValues, externalFilters])
 
   const {
     pageIndex,
@@ -78,13 +149,13 @@ export function CustomersDataTable({
   >({
     initialCurrentCursor: undefined,
     pageSize: currentPageSize,
-    filters: filters,
+    filters: derivedFilters,
     searchQuery: searchQuery,
     useQuery: trpc.customers.getTableRows.useQuery,
   })
 
   // Reset to first page when filters change
-  const filtersKey = JSON.stringify(filters)
+  const filtersKey = JSON.stringify(derivedFilters)
   React.useEffect(() => {
     goToFirstPage()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -150,13 +221,17 @@ export function CustomersDataTable({
 
   const exportCsvMutation = trpc.customers.exportCsv.useMutation()
 
+  // Calculate if any filter deviates from neutral (for pagination display)
+  const hasActiveFilters =
+    filterValues.status !== neutralFilterValues.status
+
   const handleExport = React.useCallback(async () => {
     setIsExporting(true)
     try {
       const trimmedSearch = searchQuery.trim()
 
       const result = await exportCsvMutation.mutateAsync({
-        filters,
+        filters: derivedFilters,
         searchQuery: trimmedSearch || undefined,
       })
 
@@ -190,7 +265,7 @@ export function CustomersDataTable({
     } finally {
       setIsExporting(false)
     }
-  }, [filters, searchQuery, exportCsvMutation])
+  }, [derivedFilters, searchQuery, exportCsvMutation])
 
   return (
     <div className="w-full">
@@ -221,6 +296,22 @@ export function CustomersDataTable({
           isLoading={isLoading}
           isFetching={isFetching}
         >
+          <DataTableFilterPopover
+            sections={filterSections}
+            values={filterValues}
+            onChange={setFilterValues}
+            defaultValues={defaultFilterValues}
+            neutralValues={neutralFilterValues}
+            disabled={isLoading}
+            triggerLabel={
+              statusFilterOptions.find(
+                (opt) => opt.value === filterValues.status
+              )?.label ?? 'All Customers'
+            }
+            triggerVariant="secondary"
+            triggerIcon="chevron"
+            excludeFromBadgeCount={['status']}
+          />
           <Button
             variant="secondary"
             size="sm"
@@ -277,36 +368,39 @@ export function CustomersDataTable({
               </TableCell>
             </TableRow>
           ) : table.getRowModel().rows?.length ? (
-            table.getRowModel().rows.map((row) => (
-              <TableRow
-                key={row.id}
-                className={`cursor-pointer ${isFetching ? 'opacity-50' : ''}`}
-                onClick={(e) => {
-                  // Only navigate if not clicking on interactive elements
-                  const target = e.target as HTMLElement
-                  if (
-                    target.closest('button') ||
-                    target.closest('[role="checkbox"]') ||
-                    target.closest('input[type="checkbox"]') ||
-                    target.closest('[data-radix-collection-item]')
-                  ) {
-                    return // Don't navigate when clicking interactive elements
-                  }
-                  router.push(
-                    `/customers/${row.original.customer.id}`
-                  )
-                }}
-              >
-                {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
-                    {flexRender(
-                      cell.column.columnDef.cell,
-                      cell.getContext()
-                    )}
-                  </TableCell>
-                ))}
-              </TableRow>
-            ))
+            table.getRowModel().rows.map((row) => {
+              const isArchived = row.original.customer.archived
+              return (
+                <TableRow
+                  key={row.id}
+                  className={`cursor-pointer ${isFetching ? 'opacity-50' : ''} ${isArchived ? 'text-muted-foreground' : ''}`}
+                  onClick={(e) => {
+                    // Only navigate if not clicking on interactive elements
+                    const target = e.target as HTMLElement
+                    if (
+                      target.closest('button') ||
+                      target.closest('[role="checkbox"]') ||
+                      target.closest('input[type="checkbox"]') ||
+                      target.closest('[data-radix-collection-item]')
+                    ) {
+                      return // Don't navigate when clicking interactive elements
+                    }
+                    router.push(
+                      `/customers/${row.original.customer.id}`
+                    )
+                  }}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )
+            })
           ) : (
             <TableRow>
               <TableCell
@@ -325,9 +419,7 @@ export function CustomersDataTable({
         <DataTablePagination
           table={table}
           totalCount={data?.total}
-          isFiltered={
-            !!searchQuery || Object.keys(filters).length > 0
-          }
+          isFiltered={hasActiveFilters || !!searchQuery}
           filteredCount={data?.total}
           entityName="customer"
         />

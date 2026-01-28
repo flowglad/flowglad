@@ -16,16 +16,49 @@ import {
   constructHasPurchased,
   FlowgladActionKey,
   flowgladActionValidators,
+  type GetPricingModelResponse,
+  type PricingModel,
   type UncancelSubscriptionParams,
 } from '@flowglad/shared'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import type React from 'react'
-import { createContext, useContext } from 'react'
+import { useMemo } from 'react'
+import { useFlowgladConfig } from './FlowgladConfigContext'
 import { devError } from './lib/utils'
+import { USAGE_METERS_QUERY_KEY } from './useUsageMeters'
 import { validateUrl } from './utils'
 
-const getFlowgladRoute = (baseURL?: string): string => {
-  return baseURL ? `${baseURL}/api/flowglad` : '/api/flowglad'
+/**
+ * Constructs the base route for Flowglad API calls.
+ *
+ * @param baseURL - Optional base URL for the Flowglad API route handler
+ * @param betterAuthBasePath - Optional Better Auth base path for routing through Better Auth endpoints
+ * @returns The base route for Flowglad API calls
+ *
+ * When `betterAuthBasePath` is provided, routes are directed to Better Auth endpoints:
+ * - e.g., `/api/auth/flowglad/customers/billing`
+ *
+ * When only `baseURL` is provided (or neither), routes use the standalone handler:
+ * - e.g., `/api/flowglad/customers/billing`
+ */
+// Export for testing
+export const getFlowgladRoute = (
+  baseURL?: string,
+  betterAuthBasePath?: string
+): string => {
+  if (betterAuthBasePath) {
+    // Remove trailing slash to prevent malformed URLs like /api/auth//flowglad
+    const sanitizedPath = betterAuthBasePath
+      .trim()
+      .replace(/\/+$/, '')
+    // Better Auth routes are under {basePath}/flowglad
+    return `${sanitizedPath}/flowglad`
+  }
+  const sanitizedBaseURL = baseURL?.trim() ?? ''
+  if (sanitizedBaseURL !== '') {
+    // Remove trailing slashes to prevent malformed URLs like https://x.com//api/flowglad
+    return `${sanitizedBaseURL.replace(/\/+$/, '')}/api/flowglad`
+  }
+  return '/api/flowglad'
 }
 
 export type FrontendProductCreateCheckoutSessionParams =
@@ -52,7 +85,6 @@ type CreateCheckoutSessionResponse =
 
 export type LoadedFlowgladContextValues = BillingWithChecks & {
   loaded: true
-  loadBilling: true
   reload: () => Promise<void>
   cancelSubscription: (params: CancelSubscriptionParams) => Promise<{
     subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
@@ -78,7 +110,7 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
    * // With timing override
    * await adjustSubscription({
    *   priceSlug: 'pro-monthly',
-   *   timing: 'at_end_of_period'
+   *   timing: 'at_end_of_current_billing_period'
    * })
    *
    * // Explicit subscription ID (for multi-subscription customers)
@@ -103,7 +135,7 @@ export type LoadedFlowgladContextValues = BillingWithChecks & {
    * @param params.subscriptionItems - Array of items for multi-item adjustments
    * @param params.quantity - Number of units (default: 1)
    * @param params.subscriptionId - Subscription ID (auto-resolves if customer has exactly 1 subscription)
-   * @param params.timing - 'immediately' | 'at_end_of_period' | 'auto' (default: 'auto')
+   * @param params.timing - 'immediately' | 'at_end_of_current_billing_period' | 'auto' (default: 'auto')
    * @param params.prorate - Whether to prorate (default: true for immediate, false for end-of-period)
    */
   adjustSubscription: (params: AdjustSubscriptionParams) => Promise<{
@@ -140,6 +172,9 @@ export interface NonPresentContextValues {
   pricingModel: null
   billingPortalUrl: null
   reload: null
+  /**
+   * @deprecated Use `pricingModel` instead. This property is kept for backward compatibility.
+   */
   catalog: null
   invoices: []
   paymentMethods: []
@@ -154,21 +189,18 @@ export interface NonPresentContextValues {
 export interface NotLoadedFlowgladContextValues
   extends NonPresentContextValues {
   loaded: false
-  loadBilling: boolean
   errors: null
 }
 
 export interface NotAuthenticatedFlowgladContextValues
   extends NonPresentContextValues {
   loaded: true
-  loadBilling: false
   errors: null
 }
 
 export interface ErrorFlowgladContextValues
   extends NonPresentContextValues {
   loaded: true
-  loadBilling: boolean
   errors: Error[]
 }
 
@@ -202,13 +234,6 @@ const notPresentContextValues: NonPresentContextValues = {
   currentSubscription: null,
 }
 
-const FlowgladContext = createContext<FlowgladContextValues>({
-  loaded: false,
-  loadBilling: false,
-  errors: null,
-  ...notPresentContextValues,
-})
-
 type CheckoutSessionParamsBase = {
   successUrl: string
   cancelUrl: string
@@ -221,6 +246,7 @@ const constructCheckoutSessionCreator =
   <TParams extends CheckoutSessionParamsBase>(
     actionKey: FlowgladActionKey,
     baseURL: string | undefined,
+    betterAuthBasePath: string | undefined,
     requestConfig?: RequestConfig,
     mapPayload?: (
       params: TParams,
@@ -242,7 +268,10 @@ const constructCheckoutSessionCreator =
       mapPayload?.(params, basePayload) ??
       (basePayload as Record<string, unknown>)
 
-    const flowgladRoute = getFlowgladRoute(baseURL)
+    const flowgladRoute = getFlowgladRoute(
+      baseURL,
+      betterAuthBasePath
+    )
     const response = await fetch(`${flowgladRoute}/${actionKey}`, {
       method: 'POST',
       headers: {
@@ -271,6 +300,7 @@ const constructCheckoutSessionCreator =
 
 interface ConstructCancelSubscriptionParams {
   baseURL: string | undefined
+  betterAuthBasePath: string | undefined
   requestConfig?: RequestConfig
   queryClient: ReturnType<typeof useQueryClient>
 }
@@ -282,9 +312,17 @@ const constructCancelSubscription =
   ): Promise<{
     subscription: Flowglad.Subscriptions.SubscriptionCancelResponse
   }> => {
-    const { baseURL, requestConfig, queryClient } = constructParams
+    const {
+      baseURL,
+      betterAuthBasePath,
+      requestConfig,
+      queryClient,
+    } = constructParams
     const headers = requestConfig?.headers
-    const flowgladRoute = getFlowgladRoute(baseURL)
+    const flowgladRoute = getFlowgladRoute(
+      baseURL,
+      betterAuthBasePath
+    )
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.CancelSubscription}`,
       {
@@ -319,6 +357,7 @@ const constructCancelSubscription =
 
 interface ConstructUncancelSubscriptionParams {
   baseURL: string | undefined
+  betterAuthBasePath: string | undefined
   requestConfig?: RequestConfig
   queryClient: ReturnType<typeof useQueryClient>
 }
@@ -330,9 +369,17 @@ const constructUncancelSubscription =
   ): Promise<{
     subscription: Flowglad.Subscriptions.SubscriptionUncancelResponse
   }> => {
-    const { baseURL, requestConfig, queryClient } = constructParams
+    const {
+      baseURL,
+      betterAuthBasePath,
+      requestConfig,
+      queryClient,
+    } = constructParams
     const headers = requestConfig?.headers
-    const flowgladRoute = getFlowgladRoute(baseURL)
+    const flowgladRoute = getFlowgladRoute(
+      baseURL,
+      betterAuthBasePath
+    )
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.UncancelSubscription}`,
       {
@@ -367,6 +414,7 @@ const constructUncancelSubscription =
 
 interface ConstructAdjustSubscriptionParams {
   baseURL: string | undefined
+  betterAuthBasePath: string | undefined
   requestConfig?: RequestConfig
   queryClient: ReturnType<typeof useQueryClient>
   currentSubscriptions:
@@ -383,12 +431,16 @@ const constructAdjustSubscription =
   }> => {
     const {
       baseURL,
+      betterAuthBasePath,
       requestConfig,
       queryClient,
       currentSubscriptions,
     } = constructParams
     const headers = requestConfig?.headers
-    const flowgladRoute = getFlowgladRoute(baseURL)
+    const flowgladRoute = getFlowgladRoute(
+      baseURL,
+      betterAuthBasePath
+    )
 
     // Auto-resolve subscriptionId if not provided
     let subscriptionId = params.subscriptionId
@@ -463,7 +515,9 @@ const constructAdjustSubscription =
 
 interface ConstructCreateUsageEventParams {
   baseURL: string | undefined
+  betterAuthBasePath: string | undefined
   requestConfig?: RequestConfig
+  queryClient: ReturnType<typeof useQueryClient>
 }
 
 const constructCreateUsageEvent =
@@ -474,9 +528,17 @@ const constructCreateUsageEvent =
     | { usageEvent: { id: string } }
     | { error: { code: string; json: Record<string, unknown> } }
   > => {
-    const { baseURL, requestConfig } = constructParams
+    const {
+      baseURL,
+      betterAuthBasePath,
+      requestConfig,
+      queryClient,
+    } = constructParams
     const headers = requestConfig?.headers
-    const flowgladRoute = getFlowgladRoute(baseURL)
+    const flowgladRoute = getFlowgladRoute(
+      baseURL,
+      betterAuthBasePath
+    )
 
     const response = await fetch(
       `${flowgladRoute}/${FlowgladActionKey.CreateUsageEvent}`,
@@ -498,6 +560,12 @@ const constructCreateUsageEvent =
       )
       return { error: json.error }
     }
+
+    // Invalidate usage meter query key after successful creation
+    await queryClient.invalidateQueries({
+      queryKey: [USAGE_METERS_QUERY_KEY],
+    })
+
     return { usageEvent: { id: json.data.usageEvent.id } }
   }
 
@@ -516,46 +584,17 @@ export interface RequestConfig {
   fetch?: typeof fetch
 }
 
-interface CoreFlowgladContextProviderProps {
-  loadBilling?: boolean
-  baseURL?: string
-  requestConfig?: RequestConfig
-  children: React.ReactNode
-}
-
-/**
- * This is a special case for development mode,
- * used for developing UI powered by useBilling()
- */
-interface DevModeFlowgladContextProviderProps {
-  billingMocks: CustomerBillingDetails
-  children: React.ReactNode
-  __devMode: true
-}
-
-type FlowgladContextProviderProps =
-  | CoreFlowgladContextProviderProps
-  | DevModeFlowgladContextProviderProps
-
 type CustomerBillingRouteResponse = {
   data?: CustomerBillingDetails | null
   error?: { message: string } | null
 }
 
-const isDevModeProps = (
-  props: FlowgladContextProviderProps
-): props is DevModeFlowgladContextProviderProps => {
-  return '__devMode' in props
+type PricingModelRouteResponse = {
+  data?: GetPricingModelResponse | null
+  error?: { code: string; json: Record<string, unknown> } | null
 }
 
-const fetchCustomerBilling = async ({
-  baseURL,
-  requestConfig,
-}: Pick<
-  CoreFlowgladContextProviderProps,
-  'baseURL' | 'requestConfig'
->): Promise<CustomerBillingRouteResponse> => {
-  // Use custom fetch if provided (for React Native), otherwise use global fetch
+const getFetchImpl = (requestConfig?: RequestConfig) => {
   const fetchImpl =
     requestConfig?.fetch ??
     (typeof fetch !== 'undefined' ? fetch : undefined)
@@ -564,8 +603,45 @@ const fetchCustomerBilling = async ({
       'fetch is not available. In React Native environments, provide a fetch implementation via requestConfig.fetch'
     )
   }
+  return fetchImpl
+}
 
-  const flowgladRoute = getFlowgladRoute(baseURL)
+const hasDataOrError = (
+  value: unknown
+): value is { data?: unknown; error?: unknown } => {
+  if (typeof value !== 'object' || value === null) {
+    return false
+  }
+  return 'data' in value || 'error' in value
+}
+
+const isCustomerBillingRouteResponse = (
+  value: unknown
+): value is CustomerBillingRouteResponse => {
+  return hasDataOrError(value)
+}
+
+const isPricingModelRouteResponse = (
+  value: unknown
+): value is PricingModelRouteResponse => {
+  return hasDataOrError(value)
+}
+
+// Export for testing
+interface FetchFlowgladParams {
+  baseURL?: string
+  betterAuthBasePath?: string
+  requestConfig?: RequestConfig
+}
+
+export const fetchCustomerBilling = async ({
+  baseURL,
+  betterAuthBasePath,
+  requestConfig,
+}: FetchFlowgladParams): Promise<CustomerBillingRouteResponse> => {
+  const fetchImpl = getFetchImpl(requestConfig)
+
+  const flowgladRoute = getFlowgladRoute(baseURL, betterAuthBasePath)
   const response = await fetchImpl(
     `${flowgladRoute}/${FlowgladActionKey.GetCustomerBilling}`,
     {
@@ -573,18 +649,17 @@ const fetchCustomerBilling = async ({
         flowgladActionValidators[FlowgladActionKey.GetCustomerBilling]
           .method,
       body: JSON.stringify({}),
-      headers: requestConfig?.headers,
+      headers: {
+        'Content-Type': 'application/json',
+        ...requestConfig?.headers,
+      },
     }
   )
 
   try {
     const data: unknown = await response.json()
-    if (
-      typeof data === 'object' &&
-      data !== null &&
-      ('data' in data || 'error' in data)
-    ) {
-      return data as CustomerBillingRouteResponse
+    if (isCustomerBillingRouteResponse(data)) {
+      return data
     }
     return {
       data: null,
@@ -601,275 +676,388 @@ const fetchCustomerBilling = async ({
   }
 }
 
-export const FlowgladContextProvider = (
-  props: FlowgladContextProviderProps
+export const fetchPricingModel = async ({
+  baseURL,
+  betterAuthBasePath,
+  requestConfig,
+}: FetchFlowgladParams): Promise<PricingModelRouteResponse> => {
+  const fetchImpl = getFetchImpl(requestConfig)
+  const flowgladRoute = getFlowgladRoute(baseURL, betterAuthBasePath)
+  const response = await fetchImpl(
+    `${flowgladRoute}/${FlowgladActionKey.GetPricingModel}`,
+    {
+      method:
+        flowgladActionValidators[FlowgladActionKey.GetPricingModel]
+          .method,
+      body: JSON.stringify({}),
+      headers: {
+        'Content-Type': 'application/json',
+        ...requestConfig?.headers,
+      },
+    }
+  )
+
+  try {
+    const data: unknown = await response.json()
+    if (isPricingModelRouteResponse(data)) {
+      return data
+    }
+    return {
+      data: null,
+      error: {
+        code: 'UNEXPECTED_PRICING_MODEL_RESPONSE',
+        json: {
+          message: 'Unexpected pricing model response shape',
+        },
+      },
+    }
+  } catch (error) {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('Flowglad: Error fetching pricing model:', error)
+    }
+    return {
+      data: null,
+      error: {
+        code: 'PRICING_MODEL_JSON_PARSE_FAILED',
+        json: {
+          message: 'Failed to parse pricing model response JSON',
+        },
+      },
+    }
+  }
+}
+
+const getDevModeBillingMocks = (
+  billingMocks: CustomerBillingDetails | undefined
 ) => {
+  if (!billingMocks) {
+    throw new Error(
+      'FlowgladProvider: __devMode requires billingMocks'
+    )
+  }
+  return billingMocks
+}
+
+const buildDevModeBillingValue = (
+  billingData: CustomerBillingDetails
+): LoadedFlowgladContextValues => {
+  const getProduct = constructGetProduct(billingData.pricingModel)
+  const getPrice = constructGetPrice(billingData.pricingModel)
+  const checkFeatureAccess = constructCheckFeatureAccess(
+    billingData.currentSubscriptions ?? []
+  )
+  const checkUsageBalance = constructCheckUsageBalance(
+    billingData.currentSubscriptions ?? []
+  )
+  const hasPurchased = constructHasPurchased(
+    billingData.pricingModel,
+    billingData.purchases
+  )
+
+  return {
+    loaded: true,
+    errors: null,
+    createCheckoutSession: () =>
+      Promise.resolve({
+        id: 'checkout-session-id',
+        url: '',
+      }),
+    createAddPaymentMethodCheckoutSession: () =>
+      Promise.resolve({
+        id: 'checkout-session-id',
+        url: '',
+      }),
+    createActivateSubscriptionCheckoutSession: () =>
+      Promise.resolve({
+        id: 'checkout-session-id',
+        url: '',
+      }),
+    cancelSubscription: (params: CancelSubscriptionParams) => {
+      const subscription =
+        billingData.currentSubscriptions?.find(
+          (sub) => sub.id === params.id
+        ) ??
+        billingData.currentSubscription ??
+        billingData.subscriptions?.find((sub) => sub.id === params.id)
+      if (!subscription) {
+        return Promise.reject(
+          new Error(
+            `Dev mode: no subscription found for id "${params.id}"`
+          )
+        )
+      }
+
+      const now = Date.now()
+      return Promise.resolve({
+        subscription: {
+          subscription: {
+            ...subscription,
+            current: false,
+            status: 'canceled',
+            canceledAt: now,
+            cancelScheduledAt: null,
+            updatedAt: now,
+          },
+        },
+      })
+    },
+    uncancelSubscription: (params: UncancelSubscriptionParams) => {
+      const subscription =
+        billingData.currentSubscriptions?.find(
+          (sub) => sub.id === params.id
+        ) ??
+        billingData.currentSubscription ??
+        billingData.subscriptions?.find((sub) => sub.id === params.id)
+      if (!subscription) {
+        return Promise.reject(
+          new Error(
+            `Dev mode: no subscription found for id "${params.id}"`
+          )
+        )
+      }
+
+      const now = Date.now()
+      return Promise.resolve({
+        subscription: {
+          subscription: {
+            ...subscription,
+            current: true,
+            status: 'active',
+            canceledAt: null,
+            cancelScheduledAt: null,
+            updatedAt: now,
+          },
+        },
+      })
+    },
+    adjustSubscription: (params: AdjustSubscriptionParams) => {
+      // In dev mode, auto-resolve subscriptionId
+      let subscriptionId = params.subscriptionId
+      if (!subscriptionId) {
+        const currentSubs = billingData.currentSubscriptions ?? []
+        if (currentSubs.length === 0) {
+          return Promise.reject(
+            new Error(
+              'Dev mode: no active subscription found for this customer'
+            )
+          )
+        }
+        if (currentSubs.length > 1) {
+          return Promise.reject(
+            new Error(
+              'Dev mode: customer has multiple active subscriptions. Please specify subscriptionId in params.'
+            )
+          )
+        }
+        subscriptionId = currentSubs[0].id
+      }
+
+      const subscription =
+        billingData.currentSubscriptions?.find(
+          (sub) => sub.id === subscriptionId
+        ) ??
+        billingData.currentSubscription ??
+        billingData.subscriptions?.find(
+          (sub) => sub.id === subscriptionId
+        )
+      if (!subscription) {
+        return Promise.reject(
+          new Error(
+            `Dev mode: no subscription found for id "${subscriptionId}"`
+          )
+        )
+      }
+
+      const now = Date.now()
+      // Note: In dev mode, subscriptionItems returns an empty array.
+      // The real API returns the updated subscription items after adjustment.
+      return Promise.resolve({
+        subscription: {
+          subscription: {
+            ...subscription,
+            updatedAt: now,
+          },
+          subscriptionItems: [],
+          isUpgrade: false,
+          resolvedTiming: 'immediately',
+        },
+      })
+    },
+    createUsageEvent: () =>
+      Promise.resolve({
+        usageEvent: { id: 'dev-usage-event-id' },
+      }),
+    checkFeatureAccess,
+    checkUsageBalance,
+    hasPurchased,
+    getProduct,
+    getPrice,
+    reload: () => Promise.resolve(),
+    customer: billingData.customer,
+    subscriptions: billingData.subscriptions,
+    purchases: billingData.purchases,
+    invoices: billingData.invoices,
+    paymentMethods: billingData.paymentMethods,
+    currentSubscription: billingData.currentSubscription,
+    currentSubscriptions: billingData.currentSubscriptions,
+    billingPortalUrl: billingData.billingPortalUrl,
+    pricingModel: billingData.pricingModel,
+    // catalog is kept for SDK type compatibility (same data as pricingModel)
+    catalog: billingData.catalog,
+  }
+}
+
+/**
+ * Hook to access billing data and actions for the current authenticated customer.
+ *
+ * Automatically fetches billing data when mounted. The hook returns loading state,
+ * customer information, subscriptions, and action functions for managing billing.
+ *
+ * @returns {FlowgladContextValues} The billing context including:
+ *   - `loaded`: Whether billing data has been fetched
+ *   - `errors`: Any errors that occurred during fetch
+ *   - `customer`: The customer object (null if not authenticated)
+ *   - `subscriptions`: Array of customer subscriptions
+ *   - `currentSubscription`: The primary active subscription
+ *   - `pricingModel`: The pricing model with products and prices
+ *   - Action functions: `createCheckoutSession`, `cancelSubscription`, `adjustSubscription`, etc.
+ *
+ * @example
+ * ```tsx
+ * function BillingPage() {
+ *   const billing = useBilling()
+ *
+ *   if (!billing.loaded) return <Loading />
+ *   if (billing.errors) return <Error errors={billing.errors} />
+ *   if (!billing.customer) return <SignInPrompt />
+ *
+ *   return <SubscriptionDetails subscription={billing.currentSubscription} />
+ * }
+ * ```
+ */
+export const useBilling = (): FlowgladContextValues => {
   const queryClient = useQueryClient()
-  const devModeProps = isDevModeProps(props) ? props : null
-  const coreProps = isDevModeProps(props) ? null : props
-  const isDevMode = devModeProps !== null
-  // In a perfect world, this would be a useMutation hook rather than useQuery.
-  // Because technically, billing fetch requests run a "find or create" operation on
-  // the customer. But useQuery allows us to execute the call using `enabled`
-  // which allows us to avoid maintaining a useEffect hook.
+  const {
+    baseURL,
+    betterAuthBasePath,
+    requestConfig,
+    __devMode,
+    billingMocks,
+  } = useFlowgladConfig()
+
+  // Billing fetch only occurs when this hook is mounted.
   const {
     isPending: isPendingBilling,
     error: errorBilling,
     data: billing,
-  } = useQuery<CustomerBillingRouteResponse | null>({
+  } = useQuery<CustomerBillingRouteResponse, Error>({
     queryKey: [FlowgladActionKey.GetCustomerBilling],
-    enabled: Boolean(coreProps?.loadBilling),
-    queryFn: coreProps
-      ? () =>
-          fetchCustomerBilling({
-            baseURL: coreProps.baseURL,
-            requestConfig: coreProps.requestConfig,
-          })
-      : async () => null,
+    enabled: !__devMode,
+    queryFn: () =>
+      fetchCustomerBilling({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+      }),
   })
 
-  if (isDevMode) {
-    const billingData = devModeProps.billingMocks
-    const getProduct = constructGetProduct(billingData.catalog)
-    const getPrice = constructGetPrice(billingData.catalog)
-    const checkFeatureAccess = constructCheckFeatureAccess(
-      billingData.currentSubscriptions ?? []
-    )
-    const checkUsageBalance = constructCheckUsageBalance(
-      billingData.currentSubscriptions ?? []
-    )
-    const hasPurchased = constructHasPurchased(
-      billingData.catalog,
-      billingData.purchases
-    )
-
-    return (
-      <FlowgladContext.Provider
-        value={{
-          loaded: true,
-          loadBilling: true,
-          errors: null,
-          createCheckoutSession: () =>
-            Promise.resolve({
-              id: 'checkout-session-id',
-              url: '',
-            }),
-          createAddPaymentMethodCheckoutSession: () =>
-            Promise.resolve({
-              id: 'checkout-session-id',
-              url: '',
-            }),
-          createActivateSubscriptionCheckoutSession: () =>
-            Promise.resolve({
-              id: 'checkout-session-id',
-              url: '',
-            }),
-          cancelSubscription: (params: CancelSubscriptionParams) => {
-            const subscription =
-              billingData.currentSubscriptions?.find(
-                (sub) => sub.id === params.id
-              ) ??
-              billingData.currentSubscription ??
-              billingData.subscriptions?.find(
-                (sub) => sub.id === params.id
-              )
-            if (!subscription) {
-              return Promise.reject(
-                new Error(
-                  `Dev mode: no subscription found for id "${params.id}"`
-                )
-              )
-            }
-
-            const now = Date.now()
-            return Promise.resolve({
-              subscription: {
-                subscription: {
-                  ...subscription,
-                  current: false,
-                  status: 'canceled',
-                  canceledAt: now,
-                  cancelScheduledAt: null,
-                  updatedAt: now,
-                },
-              },
-            })
-          },
-          uncancelSubscription: (
-            params: UncancelSubscriptionParams
-          ) => {
-            const subscription =
-              billingData.currentSubscriptions?.find(
-                (sub) => sub.id === params.id
-              ) ??
-              billingData.currentSubscription ??
-              billingData.subscriptions?.find(
-                (sub) => sub.id === params.id
-              )
-            if (!subscription) {
-              return Promise.reject(
-                new Error(
-                  `Dev mode: no subscription found for id "${params.id}"`
-                )
-              )
-            }
-
-            const now = Date.now()
-            return Promise.resolve({
-              subscription: {
-                subscription: {
-                  ...subscription,
-                  current: true,
-                  status: 'active',
-                  canceledAt: null,
-                  cancelScheduledAt: null,
-                  updatedAt: now,
-                },
-              },
-            })
-          },
-          adjustSubscription: (params: AdjustSubscriptionParams) => {
-            // In dev mode, auto-resolve subscriptionId
-            let subscriptionId = params.subscriptionId
-            if (!subscriptionId) {
-              const currentSubs =
-                billingData.currentSubscriptions ?? []
-              if (currentSubs.length === 0) {
-                return Promise.reject(
-                  new Error(
-                    'Dev mode: no active subscription found for this customer'
-                  )
-                )
-              }
-              if (currentSubs.length > 1) {
-                return Promise.reject(
-                  new Error(
-                    'Dev mode: customer has multiple active subscriptions. Please specify subscriptionId in params.'
-                  )
-                )
-              }
-              subscriptionId = currentSubs[0].id
-            }
-
-            const subscription =
-              billingData.currentSubscriptions?.find(
-                (sub) => sub.id === subscriptionId
-              ) ??
-              billingData.currentSubscription ??
-              billingData.subscriptions?.find(
-                (sub) => sub.id === subscriptionId
-              )
-            if (!subscription) {
-              return Promise.reject(
-                new Error(
-                  `Dev mode: no subscription found for id "${subscriptionId}"`
-                )
-              )
-            }
-
-            const now = Date.now()
-            // Note: In dev mode, subscriptionItems returns an empty array.
-            // The real API returns the updated subscription items after adjustment.
-            return Promise.resolve({
-              subscription: {
-                subscription: {
-                  ...subscription,
-                  updatedAt: now,
-                },
-                subscriptionItems: [],
-              },
-            })
-          },
-          createUsageEvent: () =>
-            Promise.resolve({
-              usageEvent: { id: 'dev-usage-event-id' },
-            }),
-          checkFeatureAccess,
-          checkUsageBalance,
-          hasPurchased,
-          getProduct,
-          getPrice,
-          reload: () => Promise.resolve(),
-          customer: billingData.customer,
-          subscriptions: billingData.subscriptions,
-          purchases: billingData.purchases,
-          invoices: billingData.invoices,
-          paymentMethods: billingData.paymentMethods,
-          currentSubscription: billingData.currentSubscription,
-          currentSubscriptions: billingData.currentSubscriptions,
-          catalog: billingData.catalog,
-          billingPortalUrl: billingData.billingPortalUrl,
-          pricingModel: billingData.pricingModel,
-        }}
-      >
-        {props.children}
-      </FlowgladContext.Provider>
-    )
+  if (__devMode) {
+    const billingData = getDevModeBillingMocks(billingMocks)
+    return buildDevModeBillingValue(billingData)
   }
 
-  if (!coreProps) {
-    throw new Error('FlowgladContextProvider: missing core props')
-  }
-
-  const {
-    baseURL,
-    requestConfig,
-    loadBilling: loadBillingProp,
-  } = coreProps
-  const loadBilling = loadBillingProp ?? false
   // Each handler below gets its own Flowglad subroute, but still funnels through
   // the shared creator for validation and redirect behavior.
-  const createCheckoutSession =
-    constructCheckoutSessionCreator<FrontendProductCreateCheckoutSessionParams>(
-      FlowgladActionKey.CreateCheckoutSession,
+  const createCheckoutSession = useMemo(
+    () =>
+      constructCheckoutSessionCreator<FrontendProductCreateCheckoutSessionParams>(
+        FlowgladActionKey.CreateCheckoutSession,
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+        (_, basePayload) => ({
+          ...basePayload,
+          type: 'product',
+        })
+      ),
+    [baseURL, betterAuthBasePath, requestConfig]
+  )
+
+  const createAddPaymentMethodCheckoutSession = useMemo(
+    () =>
+      constructCheckoutSessionCreator<FrontendCreateAddPaymentMethodCheckoutSessionParams>(
+        FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
+        baseURL,
+        betterAuthBasePath,
+        requestConfig
+      ),
+    [baseURL, betterAuthBasePath, requestConfig]
+  )
+
+  const createActivateSubscriptionCheckoutSession = useMemo(
+    () =>
+      constructCheckoutSessionCreator<FrontendCreateActivateSubscriptionCheckoutSessionParams>(
+        FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
+        baseURL,
+        betterAuthBasePath,
+        requestConfig
+      ),
+    [baseURL, betterAuthBasePath, requestConfig]
+  )
+
+  const cancelSubscription = useMemo(
+    () =>
+      constructCancelSubscription({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+        queryClient,
+      }),
+    [baseURL, betterAuthBasePath, requestConfig, queryClient]
+  )
+
+  const uncancelSubscription = useMemo(
+    () =>
+      constructUncancelSubscription({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+        queryClient,
+      }),
+    [baseURL, betterAuthBasePath, requestConfig, queryClient]
+  )
+
+  const createUsageEvent = useMemo(
+    () =>
+      constructCreateUsageEvent({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+        queryClient,
+      }),
+    [baseURL, betterAuthBasePath, requestConfig, queryClient]
+  )
+
+  const adjustSubscription = useMemo(
+    () =>
+      constructAdjustSubscription({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+        queryClient,
+        currentSubscriptions:
+          billing?.data?.currentSubscriptions ?? null,
+      }),
+    [
       baseURL,
+      betterAuthBasePath,
       requestConfig,
-      (_, basePayload) => ({
-        ...basePayload,
-        type: 'product',
-      })
-    )
+      queryClient,
+      billing?.data?.currentSubscriptions,
+    ]
+  )
 
-  const createAddPaymentMethodCheckoutSession =
-    constructCheckoutSessionCreator<FrontendCreateAddPaymentMethodCheckoutSessionParams>(
-      FlowgladActionKey.CreateAddPaymentMethodCheckoutSession,
-      baseURL,
-      requestConfig
-    )
-
-  const createActivateSubscriptionCheckoutSession =
-    constructCheckoutSessionCreator<FrontendCreateActivateSubscriptionCheckoutSessionParams>(
-      FlowgladActionKey.CreateActivateSubscriptionCheckoutSession,
-      baseURL,
-      requestConfig
-    )
-
-  const cancelSubscription = constructCancelSubscription({
-    baseURL,
-    requestConfig,
-    queryClient,
-  })
-
-  const uncancelSubscription = constructUncancelSubscription({
-    baseURL,
-    requestConfig,
-    queryClient,
-  })
-
-  const createUsageEvent = constructCreateUsageEvent({
-    baseURL,
-    requestConfig,
-  })
-
-  let value: FlowgladContextValues
-  if (!loadBilling) {
-    value = {
-      loaded: true,
-      loadBilling,
-      errors: null,
-      ...notPresentContextValues,
-    }
-  } else if (billing) {
+  if (billing) {
     const billingError = billing.error
     const errors: Error[] = []
     if (billingError) {
@@ -885,22 +1073,14 @@ export const FlowgladContextProvider = (
           queryKey: [FlowgladActionKey.GetCustomerBilling],
         })
       }
-      const getProduct = constructGetProduct(billingData.catalog)
-      const getPrice = constructGetPrice(billingData.catalog)
+      const getProduct = constructGetProduct(billingData.pricingModel)
+      const getPrice = constructGetPrice(billingData.pricingModel)
       const hasPurchased = constructHasPurchased(
-        billingData.catalog,
+        billingData.pricingModel,
         billingData.purchases
       )
-      const adjustSubscription = constructAdjustSubscription({
-        baseURL,
-        requestConfig,
-        queryClient,
-        currentSubscriptions:
-          billingData.currentSubscriptions ?? null,
-      })
-      value = {
+      return {
         loaded: true,
-        loadBilling,
         customer: billingData.customer,
         createCheckoutSession,
         createAddPaymentMethodCheckoutSession,
@@ -918,7 +1098,6 @@ export const FlowgladContextProvider = (
         checkUsageBalance: constructCheckUsageBalance(
           billingData.currentSubscriptions ?? []
         ),
-        catalog: billingData.catalog,
         subscriptions: billingData.subscriptions,
         purchases: billingData.purchases,
         errors: null,
@@ -929,44 +1108,130 @@ export const FlowgladContextProvider = (
         currentSubscriptions: billingData.currentSubscriptions,
         billingPortalUrl: billingData.billingPortalUrl,
         pricingModel: billingData.pricingModel,
+        // catalog is kept for SDK type compatibility (same data as pricingModel)
+        catalog: billingData.catalog,
       }
-    } else {
-      value = {
+    }
+
+    if (errors.length > 0) {
+      return {
         loaded: true,
-        loadBilling,
         errors,
         ...notPresentContextValues,
       }
     }
-  } else if (isPendingBilling) {
-    value = {
-      loaded: false,
-      loadBilling,
+
+    return {
+      loaded: true,
       errors: null,
       ...notPresentContextValues,
     }
-  } else {
-    const errors: Error[] = [errorBilling].filter(
-      (error): error is Error => error !== null
-    )
-    value = {
+  }
+
+  if (isPendingBilling) {
+    return {
+      loaded: false,
+      errors: null,
+      ...notPresentContextValues,
+    }
+  }
+
+  const errors: Error[] = [errorBilling].filter(
+    (error): error is Error => error !== null
+  )
+
+  if (errors.length > 0) {
+    return {
       loaded: true,
-      loadBilling,
       errors,
       ...notPresentContextValues,
     }
   }
 
-  return (
-    <FlowgladContext.Provider value={value}>
-      {props.children}
-    </FlowgladContext.Provider>
-  )
+  return {
+    loaded: true,
+    errors: null,
+    ...notPresentContextValues,
+  }
 }
 
-export const useBilling = () => useContext(FlowgladContext)
+/**
+ * Hook to fetch public pricing data without requiring authentication.
+ *
+ * Unlike `useBilling`, this hook fetches only the pricing model (products and prices)
+ * from a public endpoint. Use this for pricing pages that should be visible to
+ * unauthenticated users.
+ *
+ * @returns {PricingModel | null} The pricing model containing products, prices, and
+ *   usage meters, or null while loading or if unavailable.
+ *
+ * @example
+ * ```tsx
+ * function PricingPage() {
+ *   const pricingModel = usePricingModel()
+ *
+ *   if (!pricingModel) return <Loading />
+ *
+ *   return (
+ *     <div>
+ *       {pricingModel.products.map(product => (
+ *         <PricingCard key={product.id} product={product} />
+ *       ))}
+ *     </div>
+ *   )
+ * }
+ * ```
+ */
+export const usePricingModel = (): PricingModel | null => {
+  const {
+    baseURL,
+    betterAuthBasePath,
+    requestConfig,
+    __devMode,
+    billingMocks,
+  } = useFlowgladConfig()
 
-export const useCatalog = () => {
-  const { catalog } = useBilling()
-  return catalog
+  const { data: pricingData, error: pricingError } = useQuery<
+    PricingModelRouteResponse,
+    Error
+  >({
+    queryKey: [FlowgladActionKey.GetPricingModel],
+    enabled: !__devMode,
+    queryFn: () =>
+      fetchPricingModel({
+        baseURL,
+        betterAuthBasePath,
+        requestConfig,
+      }),
+  })
+
+  if (__devMode) {
+    const billingData = getDevModeBillingMocks(billingMocks)
+    return billingData.pricingModel
+  }
+
+  if (pricingError) {
+    devError(`Flowglad route handler error: ${pricingError.message}`)
+    return null
+  }
+
+  if (pricingData?.error) {
+    devError(
+      `Flowglad route handler error: ${pricingData.error.code}`
+    )
+    return null
+  }
+
+  return pricingData?.data?.pricingModel ?? null
 }
+
+/**
+ * Alias for `usePricingModel`.
+ *
+ * This is a convenience alias for developers who prefer a shorter hook name.
+ * Functionally identical to `usePricingModel`.
+ *
+ * @returns {PricingModel | null} The pricing model, or null while loading or if unavailable.
+ * @see usePricingModel
+ */
+export const usePricing = () => usePricingModel()

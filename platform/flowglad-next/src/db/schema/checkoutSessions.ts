@@ -15,7 +15,7 @@ import {
   createPaginatedSelectSchema,
   customerPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   notNullStringForeignKey,
@@ -117,34 +117,31 @@ const columns = {
 export const checkoutSessions = pgTable(
   TABLE_NAME,
   columns,
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      constructIndex(TABLE_NAME, [table.priceId]),
-      constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.status]),
-      constructIndex(TABLE_NAME, [table.stripeSetupIntentId]),
-      constructIndex(TABLE_NAME, [table.purchaseId]),
-      constructIndex(TABLE_NAME, [table.discountId]),
-      constructIndex(TABLE_NAME, [table.customerId]),
-      merchantPolicy(
-        'Enable all actions for checkout_sessions in own organization',
-        {
-          as: 'permissive',
-          to: 'all',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-      customerPolicy('Enable select for customer', {
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    constructIndex(TABLE_NAME, [table.priceId]),
+    constructIndex(TABLE_NAME, [table.stripePaymentIntentId]),
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.status]),
+    constructIndex(TABLE_NAME, [table.stripeSetupIntentId]),
+    constructIndex(TABLE_NAME, [table.purchaseId]),
+    constructIndex(TABLE_NAME, [table.discountId]),
+    constructIndex(TABLE_NAME, [table.customerId]),
+    merchantPolicy(
+      'Enable all actions for checkout_sessions in own organization',
+      {
         as: 'permissive',
-        for: 'select',
-        using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id()`,
-      }),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+        to: 'all',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+    customerPolicy('Enable select for customer', {
+      as: 'permissive',
+      for: 'select',
+      using: sql`"customer_id" in (select id from "customers") and "organization_id" = current_organization_id()`,
+    }),
+  ])
 ).enableRLS()
 
 const insertRefine = {
@@ -622,9 +619,11 @@ const identifiedProductCheckoutSessionInputSchemaBase =
       ),
     quantity: z
       .number()
+      .int()
+      .min(1)
       .optional()
       .describe(
-        'The quantity of the purchase or subscription created when this checkout session succeeds. Ignored if the checkout session is of type `invoice`.'
+        'The quantity of the purchase or subscription created when this checkout session succeeds. Must be a positive integer. Defaults to 1 if not provided.'
       ),
     anonymous: z.literal(false).optional(),
     preserveBillingCycleAnchor: preserveBillingCycleAnchorSchema,

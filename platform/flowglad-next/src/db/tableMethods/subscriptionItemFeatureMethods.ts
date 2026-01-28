@@ -1,7 +1,11 @@
+// NOTE: Import utilities only - don't import server-only functions from subscriptionItemMethods.server.ts
+
+import { Result } from 'better-result'
 import { eq, inArray } from 'drizzle-orm'
 import {
   type SubscriptionItemFeature,
   subscriptionItemFeatures,
+  subscriptionItemFeaturesClientSelectSchema,
   subscriptionItemFeaturesInsertSchema,
   subscriptionItemFeaturesSelectSchema,
   subscriptionItemFeaturesUpdateSchema,
@@ -17,12 +21,20 @@ import {
   whereClauseFromObject,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { NotFoundError } from '@/errors'
+import {
+  CacheDependency,
+  cached,
+  cachedBulkLookup,
+} from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
 import { features } from '../schema/features'
 import { productFeatures } from '../schema/productFeatures'
 import {
   SubscriptionItem,
   subscriptionItems,
 } from '../schema/subscriptionItems'
+import { derivePricingModelIdFromMap } from './pricingModelIdHelpers'
 import {
   derivePricingModelIdFromSubscriptionItem,
   derivePricingModelIdsFromSubscriptionItems,
@@ -106,13 +118,23 @@ export const selectSubscriptionItemFeatures = createSelectFunction(
   config
 )
 
-export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
-  where: SubscriptionItemFeature.Where,
-  transaction: DbTransaction
+/**
+ * Internal implementation that fetches features with slug from the database.
+ * This is used by the cached version and can be called directly when ignoreCache is true.
+ * @param subscriptionItemId - The subscription item ID
+ * @param transaction - The database transaction
+ * @param _livemode - Included for cache key generation but not used in query
+ */
+const selectSubscriptionItemFeaturesWithFeatureSlugFromDb = async (
+  subscriptionItemId: string,
+  transaction: DbTransaction,
+  _livemode?: boolean
 ): Promise<SubscriptionItemFeature.ClientRecord[]> => {
   const whereClause = whereClauseFromObject(
     subscriptionItemFeatures,
-    where
+    {
+      subscriptionItemId,
+    }
   )
   const result = await transaction
     .select({
@@ -141,6 +163,184 @@ export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
   })
 }
 
+/**
+ * Cached version for single subscription item lookup (internal).
+ * Includes livemode in cache key to prevent cross-mode data leakage.
+ */
+const selectSubscriptionItemFeaturesWithFeatureSlugCachedInternal =
+  cached(
+    {
+      namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
+      keyFn: (
+        subscriptionItemId: string,
+        _transaction: DbTransaction,
+        livemode: boolean
+      ) => `${subscriptionItemId}:${livemode}`,
+      schema: subscriptionItemFeaturesClientSelectSchema.array(),
+      dependenciesFn: (features, subscriptionItemId: string) => [
+        // Set membership: invalidate when features are added/removed for this subscription item
+        CacheDependency.subscriptionItemFeatures(subscriptionItemId),
+        // Content: invalidate when any feature's properties change
+        ...features.map((feature) =>
+          CacheDependency.subscriptionItemFeature(feature.id)
+        ),
+      ],
+    },
+    selectSubscriptionItemFeaturesWithFeatureSlugFromDb
+  )
+
+export interface SelectSubscriptionItemFeaturesOptions {
+  /**
+   * If true, bypasses the cache and fetches directly from the database.
+   * Defaults to false.
+   */
+  ignoreCache?: boolean
+}
+
+/**
+ * Fetches subscription item features with feature name and slug for a single subscription item.
+ * Results are cached by default for performance.
+ *
+ * @param subscriptionItemId - The ID of the subscription item
+ * @param transaction - The database transaction
+ * @param livemode - Required for cache key generation to prevent cross-mode data leakage
+ * @param options - Optional settings including ignoreCache
+ */
+export const selectSubscriptionItemFeaturesWithFeatureSlug = async (
+  subscriptionItemId: string,
+  transaction: DbTransaction,
+  livemode: boolean,
+  options: SelectSubscriptionItemFeaturesOptions = {}
+): Promise<SubscriptionItemFeature.ClientRecord[]> => {
+  const { ignoreCache = false } = options
+
+  if (ignoreCache) {
+    return selectSubscriptionItemFeaturesWithFeatureSlugFromDb(
+      subscriptionItemId,
+      transaction,
+      livemode
+    )
+  }
+
+  return selectSubscriptionItemFeaturesWithFeatureSlugCachedInternal(
+    subscriptionItemId,
+    transaction,
+    livemode
+  )
+}
+
+/**
+ * Fetches subscription item features with feature name and slug for multiple subscription items.
+ * Used internally by the bulk cached function to fetch all cache misses in a single query.
+ */
+const selectSubscriptionItemFeaturesWithFeatureSlugBySubscriptionItemIds =
+  async (
+    subscriptionItemIds: string[],
+    transaction: DbTransaction
+  ): Promise<SubscriptionItemFeature.ClientRecord[]> => {
+    if (subscriptionItemIds.length === 0) {
+      return []
+    }
+
+    const result = await transaction
+      .select({
+        subscriptionItemFeature: subscriptionItemFeatures,
+        feature: {
+          name: features.name,
+          slug: features.slug,
+        },
+      })
+      .from(subscriptionItemFeatures)
+      .innerJoin(
+        features,
+        eq(subscriptionItemFeatures.featureId, features.id)
+      )
+      .where(
+        inArray(
+          subscriptionItemFeatures.subscriptionItemId,
+          subscriptionItemIds
+        )
+      )
+
+    return result.map((row) => {
+      const subscriptionItemFeature =
+        subscriptionItemFeaturesSelectSchema.parse(
+          row.subscriptionItemFeature
+        )
+      return {
+        ...subscriptionItemFeature,
+        name: row.feature.name,
+        slug: row.feature.slug,
+      }
+    })
+  }
+
+/**
+ * Fetches subscription item features with feature name and slug for multiple subscription items.
+ * Results are cached by default for performance using bulk cache lookup (single Redis MGET
+ * round-trip, single DB query for all cache misses).
+ *
+ * Individual cache entries are written for each subscription item, enabling fine-grained
+ * invalidation.
+ *
+ * @param subscriptionItemIds - Array of subscription item IDs to look up
+ * @param transaction - Database transaction
+ * @param livemode - Required for cache key generation to prevent cross-mode data leakage
+ * @param options - Optional settings including ignoreCache
+ * @returns Array of all subscription item features across all requested subscription items
+ */
+export const selectSubscriptionItemFeaturesWithFeatureSlugs = async (
+  subscriptionItemIds: string[],
+  transaction: DbTransaction,
+  livemode: boolean,
+  options: SelectSubscriptionItemFeaturesOptions = {}
+): Promise<SubscriptionItemFeature.ClientRecord[]> => {
+  if (subscriptionItemIds.length === 0) {
+    return []
+  }
+
+  const { ignoreCache = false } = options
+
+  // If ignoreCache is set, bypass the cache entirely
+  if (ignoreCache) {
+    return selectSubscriptionItemFeaturesWithFeatureSlugBySubscriptionItemIds(
+      subscriptionItemIds,
+      transaction
+    )
+  }
+
+  const resultsMap = await cachedBulkLookup<
+    string,
+    SubscriptionItemFeature.ClientRecord
+  >(
+    {
+      namespace: RedisKeyNamespace.FeaturesBySubscriptionItem,
+      keyFn: (subscriptionItemId: string) =>
+        `${subscriptionItemId}:${livemode}`,
+      schema: subscriptionItemFeaturesClientSelectSchema.array(),
+      dependenciesFn: (features, subscriptionItemId: string) => [
+        // Set membership: invalidate when features are added/removed for this subscription item
+        CacheDependency.subscriptionItemFeatures(subscriptionItemId),
+        // Content: invalidate when any feature's properties change
+        ...features.map((feature) =>
+          CacheDependency.subscriptionItemFeature(feature.id)
+        ),
+      ],
+    },
+    subscriptionItemIds,
+    async (missedSubscriptionItemIds: string[]) => {
+      return selectSubscriptionItemFeaturesWithFeatureSlugBySubscriptionItemIds(
+        missedSubscriptionItemIds,
+        transaction
+      )
+    },
+    (item: SubscriptionItemFeature.ClientRecord) =>
+      item.subscriptionItemId
+  )
+
+  return Array.from(resultsMap.values()).flat()
+}
+
 const baseUpsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
   createUpsertFunction(
     subscriptionItemFeatures,
@@ -157,7 +357,9 @@ export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
       | SubscriptionItemFeature.Insert
       | SubscriptionItemFeature.Insert[],
     transaction: DbTransaction
-  ): Promise<SubscriptionItemFeature.Record[]> => {
+  ): Promise<
+    Result<SubscriptionItemFeature.Record[], NotFoundError>
+  > => {
     const inserts = Array.isArray(insert) ? insert : [insert]
 
     // Derive pricingModelId for each insert
@@ -178,25 +380,33 @@ export const upsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId =
       )
 
     // Derive pricingModelId using the batch-fetched map
-    const insertsWithPricingModelId = inserts.map((insert) => {
-      const pricingModelId =
-        insert.pricingModelId ??
-        pricingModelIdMap.get(insert.subscriptionItemId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Could not derive pricingModelId for subscription item ${insert.subscriptionItemId}`
-        )
+    const insertsWithPricingModelId: SubscriptionItemFeature.Insert[] =
+      []
+    for (const insert of inserts) {
+      if (insert.pricingModelId) {
+        insertsWithPricingModelId.push(insert)
+      } else {
+        const pricingModelIdResult = derivePricingModelIdFromMap({
+          entityId: insert.subscriptionItemId,
+          entityType: 'subscriptionItem',
+          pricingModelIdMap,
+        })
+        if (Result.isError(pricingModelIdResult)) {
+          return Result.err(pricingModelIdResult.error)
+        }
+        insertsWithPricingModelId.push({
+          ...insert,
+          pricingModelId: pricingModelIdResult.value,
+        })
       }
-      return {
-        ...insert,
-        pricingModelId,
-      }
-    })
+    }
 
-    return baseUpsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
-      insertsWithPricingModelId,
-      transaction
-    )
+    const result =
+      await baseUpsertSubscriptionItemFeatureByProductFeatureIdAndSubscriptionId(
+        insertsWithPricingModelId,
+        transaction
+      )
+    return Result.ok(result)
   }
 
 const baseBulkUpsertSubscriptionItemFeatures =
@@ -206,7 +416,9 @@ export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscription
   async (
     inserts: SubscriptionItemFeature.Insert[],
     transaction: DbTransaction
-  ) => {
+  ): Promise<
+    Result<SubscriptionItemFeature.Record[], NotFoundError>
+  > => {
     // Collect unique subscriptionItemIds that need pricingModelId derivation
     const subscriptionItemIdsNeedingDerivation = Array.from(
       new Set(
@@ -224,22 +436,28 @@ export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscription
       )
 
     // Derive pricingModelId using the batch-fetched map
-    const insertsWithPricingModelId = inserts.map((insert) => {
-      const pricingModelId =
-        insert.pricingModelId ??
-        pricingModelIdMap.get(insert.subscriptionItemId)
-      if (!pricingModelId) {
-        throw new Error(
-          `Could not derive pricingModelId for subscription item ${insert.subscriptionItemId}`
-        )
+    const insertsWithPricingModelId: SubscriptionItemFeature.Insert[] =
+      []
+    for (const insert of inserts) {
+      if (insert.pricingModelId) {
+        insertsWithPricingModelId.push(insert)
+      } else {
+        const pricingModelIdResult = derivePricingModelIdFromMap({
+          entityId: insert.subscriptionItemId,
+          entityType: 'subscriptionItem',
+          pricingModelIdMap,
+        })
+        if (Result.isError(pricingModelIdResult)) {
+          return Result.err(pricingModelIdResult.error)
+        }
+        insertsWithPricingModelId.push({
+          ...insert,
+          pricingModelId: pricingModelIdResult.value,
+        })
       }
-      return {
-        ...insert,
-        pricingModelId,
-      }
-    })
+    }
 
-    return baseBulkUpsertSubscriptionItemFeatures(
+    const result = await baseBulkUpsertSubscriptionItemFeatures(
       insertsWithPricingModelId,
       [
         subscriptionItemFeatures.featureId,
@@ -247,6 +465,7 @@ export const bulkUpsertSubscriptionItemFeaturesByProductFeatureIdAndSubscription
       ],
       transaction
     )
+    return Result.ok(result)
   }
 
 export const expireSubscriptionItemFeature = async (

@@ -35,7 +35,7 @@ function formatDateUTC(
 
 /**
  * Formats a period boundary for display in the tooltip.
- * Shows date ranges that match LemonSqueezy's style:
+ * Shows date ranges in analytics dashboard style:
  * - Hour: "10:00 - 11:00, 21 Oct, 2025"
  * - Day: "21 Oct, 2025"
  * - Week: "12 Oct, 2025 - 18 Oct, 2025"

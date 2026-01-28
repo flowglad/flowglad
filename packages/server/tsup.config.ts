@@ -1,3 +1,4 @@
+import { fixImportsPlugin } from 'esbuild-fix-imports-plugin'
 import { defineConfig, type Options } from 'tsup'
 import { runAfterLast } from '../../scripts/runAfterLast'
 // @ts-expect-error
@@ -11,6 +12,7 @@ export default defineConfig((overrideOptions) => {
     entry: [
       './src/**/*.{ts,tsx,js,jsx}',
       '!./src/**/*.test.{ts,tsx}',
+      '!./src/**/__tests__/**',
     ],
     // We want to preserve original file structure
     // so that the "use client" directives are not lost
@@ -20,7 +22,8 @@ export default defineConfig((overrideOptions) => {
     minify: false,
     external: ['#safe-node-apis'],
     sourcemap: true,
-    legacyOutput: true,
+    // Plugin to add .mjs/.cjs extensions to relative imports (required for ESM)
+    esbuildPlugins: [fixImportsPlugin()],
     define: {
       PACKAGE_NAME: `"${name}"`,
       PACKAGE_VERSION: `"${version}"`,
@@ -31,21 +34,21 @@ export default defineConfig((overrideOptions) => {
   const esm: Options = {
     ...common,
     format: 'esm',
+    outDir: './dist/esm',
+    // Use .mjs extension so Node.js recognizes files as ESM without package.json marker
+    outExtension: () => ({ js: '.mjs' }),
   }
 
   const cjs: Options = {
     ...common,
     format: 'cjs',
     outDir: './dist/cjs',
+    // Use .cjs extension so Node.js recognizes files as CJS without package.json marker
+    outExtension: () => ({ js: '.cjs' }),
   }
-
-  // const copyPackageJson = (format: 'esm' | 'cjs') =>
-  //   `cp ./package.${format}.json ./dist/${format}/package.json`
 
   return runAfterLast([
     'bun run build:declarations',
-    // copyPackageJson('esm'),
-    // copyPackageJson('cjs'),
     shouldPublish && 'bun run publish:local',
   ])(esm, cjs)
 })

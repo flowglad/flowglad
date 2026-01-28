@@ -40,10 +40,9 @@ async function updateFeatureFlags(db: PostgresJsDatabase) {
   let featureFlagArgObj = JSON.parse(featureFlagArg)
 
   await db.transaction(async (transaction) => {
-    const org = await selectOrganizationById(
-      organizationIdArg,
-      transaction
-    )
+    const org = (
+      await selectOrganizationById(organizationIdArg, transaction)
+    ).unwrap()
 
     if (overwriteArg?.toLowerCase() !== 'true') {
       featureFlagArgObj = {

@@ -24,7 +24,7 @@ export default function RootLayout() {
 
   return (
     <FlowgladProvider
-      loadBilling={isAuthenticated}
+      // FIXME: migrate to better-auth plugin pattern
       baseURL="http://localhost:8081"
       requestConfig={requestConfig}
     >

@@ -1,11 +1,11 @@
+import { describe, expect, it, mock } from 'bun:test'
 import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
 import { CurrencyInput } from './currency-input'
 
 describe('CurrencyInput Component', () => {
   describe('Positive Numbers Only (Currency Behavior)', () => {
     it('should accept positive numbers', () => {
-      const onValueChange = vi.fn()
+      const onValueChange = mock()
       render(<CurrencyInput onValueChange={onValueChange} />)
 
       const input = screen.getByRole('textbox')
@@ -21,7 +21,7 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should accept zero', () => {
-      const onValueChange = vi.fn()
+      const onValueChange = mock()
       render(<CurrencyInput onValueChange={onValueChange} />)
 
       const input = screen.getByRole('textbox')
@@ -37,7 +37,7 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should reject negative numbers by not calling onValueChange', () => {
-      const onValueChange = vi.fn()
+      const onValueChange = mock()
       render(<CurrencyInput onValueChange={onValueChange} />)
 
       const input = screen.getByRole('textbox')
@@ -67,7 +67,7 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should accept decimal numbers', () => {
-      const onValueChange = vi.fn()
+      const onValueChange = mock()
       render(<CurrencyInput onValueChange={onValueChange} />)
 
       const input = screen.getByRole('textbox')
@@ -97,7 +97,7 @@ describe('CurrencyInput Component', () => {
 
   describe('Component Value Change Handler Logic', () => {
     it('should handle empty and null values correctly', () => {
-      const onValueChange = vi.fn()
+      const onValueChange = mock()
 
       // Test that our component handles empty/null values in the onValueChange handler
       // We'll test this by simulating what happens when the underlying library calls our handler
@@ -131,7 +131,7 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should only accept valid positive numbers', () => {
-      const onValueChange = vi.fn()
+      const onValueChange = mock()
       render(<CurrencyInput onValueChange={onValueChange} />)
 
       // Test that the component validates numbers correctly
@@ -156,7 +156,7 @@ describe('CurrencyInput Component', () => {
 
   describe('Security & Validation Tests', () => {
     it('should handle invalid input gracefully', () => {
-      const onValueChange = vi.fn()
+      const onValueChange = mock()
       render(<CurrencyInput onValueChange={onValueChange} />)
 
       const input = screen.getByRole('textbox')
@@ -193,7 +193,7 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should set minimum value to 0', () => {
-      const onValueChange = vi.fn()
+      const onValueChange = mock()
       render(<CurrencyInput onValueChange={onValueChange} />)
 
       const input = screen.getByRole('textbox') as HTMLInputElement
@@ -209,7 +209,7 @@ describe('CurrencyInput Component', () => {
     })
 
     it('should handle allowDecimals prop', () => {
-      const onValueChange = vi.fn()
+      const onValueChange = mock()
       render(
         <CurrencyInput
           allowDecimals={false}

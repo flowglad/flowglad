@@ -1,16 +1,19 @@
 {
   "name": "@flowglad/server",
-  "version": "0.16.2",
-  "main": "./dist/index.js",
-  "module": "./dist/index.mjs",
+  "version": "0.17.2",
+  "main": "./dist/cjs/index.cjs",
+  "module": "./dist/esm/index.mjs",
   "types": "./dist/types/index.d.ts",
   "typesVersions": {
     "*": {
       "better-auth": [
-        "./dist/types/better-auth.d.ts"
+        "./dist/types/better-auth/index.d.ts"
       ],
       "express": [
         "./dist/types/express/index.d.ts"
+      ],
+      "supabase": [
+        "./dist/types/supabase/index.d.ts"
       ]
     }
   },
@@ -24,14 +27,15 @@
     "build:declarations": "tsc -p tsconfig.declarations.json",
     "format": "biome format --write .",
     "format:check": "biome format .",
-    "check": "biome check . && tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "check": "biome check . && bun run typecheck",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@flowglad/shared": "workspace:*",
-    "@flowglad/node": "0.24.0",
+    "@flowglad/node": "0.29.0",
     "nanoid": "^3.3.11",
     "zod": "4.1.5"
   },
@@ -58,18 +62,23 @@
   "exports": {
     ".": {
       "types": "./dist/types/index.d.ts",
-      "import": "./dist/esm/index.js",
-      "require": "./dist/cjs/index.js"
+      "import": "./dist/esm/index.mjs",
+      "require": "./dist/cjs/index.cjs"
     },
     "./better-auth": {
-      "types": "./dist/types/better-auth.d.ts",
-      "import": "./dist/esm/better-auth.js",
-      "require": "./dist/cjs/better-auth.js"
+      "types": "./dist/types/better-auth/index.d.ts",
+      "import": "./dist/esm/better-auth/index.mjs",
+      "require": "./dist/cjs/better-auth/index.cjs"
     },
     "./express": {
       "types": "./dist/types/express/index.d.ts",
-      "import": "./dist/esm/express/index.js",
-      "require": "./dist/cjs/express/index.js"
+      "import": "./dist/esm/express/index.mjs",
+      "require": "./dist/cjs/express/index.cjs"
+    },
+    "./supabase": {
+      "types": "./dist/types/supabase/index.d.ts",
+      "import": "./dist/esm/supabase/index.mjs",
+      "require": "./dist/cjs/supabase/index.cjs"
     }
   },
   "repository": {

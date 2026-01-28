@@ -7,7 +7,9 @@
  * active status, etc.) are protected.
  */
 
+import { Result } from 'better-result'
 import * as R from 'ramda'
+import { ValidationError } from '@/errors'
 import type {
   SetupPricingModelInput,
   SetupPricingModelProductInput,
@@ -53,11 +55,11 @@ export const findProductBySlug = (
  * Validates that the proposed input doesn't have multiple default products.
  *
  * @param proposedInput - The proposed pricing model input
- * @throws Error if more than one product has default=true
+ * @returns Result with void on success, ValidationError if more than one product has default=true
  */
 export const validateSingleDefaultProduct = (
   proposedInput: SetupPricingModelInput
-): void => {
+): Result<void, ValidationError> => {
   const defaultProducts = proposedInput.products.filter(
     (p) => p.product.default === true
   )
@@ -66,10 +68,15 @@ export const validateSingleDefaultProduct = (
     const slugs = defaultProducts
       .map((p) => p.product.slug)
       .join(', ')
-    throw new Error(
-      `Only one product can be marked as default. Found ${defaultProducts.length} default products: ${slugs}`
+    return Result.err(
+      new ValidationError(
+        'products',
+        `Only one product can be marked as default. Found ${defaultProducts.length} default products: ${slugs}`
+      )
     )
   }
+
+  return Result.ok(undefined)
 }
 
 /**
@@ -164,7 +171,7 @@ export const mergeDefaultProduct = (
  * This function ensures that the default product cannot be removed or have its protected
  * fields modified. It applies the following logic:
  *
- * 1. Validates that proposed input has at most one default product (throws if multiple)
+ * 1. Validates that proposed input has at most one default product (returns error if multiple)
  * 2. If proposed has no default product:
  *    a. If proposed contains a product with the same slug as existing default (demotion attempt),
  *       route through merge path to preserve default: true
@@ -174,23 +181,30 @@ export const mergeDefaultProduct = (
  *
  * @param existingInput - The existing pricing model setup
  * @param proposedInput - The proposed pricing model setup
- * @returns A modified proposed input with the default product protected
- * @throws Error if proposed input has multiple default products
+ * @returns Result with modified proposed input on success, ValidationError on failure
  */
 export const protectDefaultProduct = (
   existingInput: SetupPricingModelInput,
   proposedInput: SetupPricingModelInput
-): SetupPricingModelInput => {
+): Result<SetupPricingModelInput, ValidationError> => {
   // Step 1: Validate no multiple defaults in proposed
-  validateSingleDefaultProduct(proposedInput)
+  const validationResult = validateSingleDefaultProduct(proposedInput)
+  if (Result.isError(validationResult)) {
+    return Result.err(validationResult.error)
+  }
 
   // Step 2: Find existing and proposed default products
   const existingDefault = findDefaultProduct(existingInput)
   const proposedDefault = findDefaultProduct(proposedInput)
 
-  // If no existing default, throw error
+  // If no existing default, return error
   if (!existingDefault) {
-    throw new Error('No default product found in existing input')
+    return Result.err(
+      new ValidationError(
+        'products',
+        'No default product found in existing input'
+      )
+    )
   }
 
   // Step 3: If proposed has no default product
@@ -216,17 +230,17 @@ export const protectDefaultProduct = (
           : p
       )
 
-      return {
+      return Result.ok({
         ...proposedInput,
         products: updatedProducts,
-      }
+      })
     }
 
     // No demoted default found, simply add back the existing default
-    return {
+    return Result.ok({
       ...proposedInput,
       products: [...proposedInput.products, existingDefault],
-    }
+    })
   }
 
   // Step 4: Proposed has a default product - check for protected field changes
@@ -242,12 +256,12 @@ export const protectDefaultProduct = (
       p.product.default === true ? mergedDefault : p
     )
 
-    return {
+    return Result.ok({
       ...proposedInput,
       products: updatedProducts,
-    }
+    })
   }
 
   // No protected changes detected, return proposed as-is
-  return proposedInput
+  return Result.ok(proposedInput)
 }

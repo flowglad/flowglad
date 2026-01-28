@@ -9,7 +9,7 @@ import {
   constructUniqueIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -58,7 +58,7 @@ export const features = pgTable(
     resourceId: nullableStringForeignKey('resource_id', resources),
     active: boolean('active').notNull().default(true),
   },
-  (table) => [
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.type]),
     constructUniqueIndex(TABLE_NAME, [
@@ -82,8 +82,7 @@ export const features = pgTable(
         using: sql`"organization_id" = current_organization_id() and "active" = true`,
       }
     ),
-    livemodePolicy(TABLE_NAME),
-  ]
+  ])
 ).enableRLS()
 
 /*
@@ -116,6 +115,7 @@ export const {
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
     readOnlyColumns: { organizationId: true },
+    createOnlyColumns: { pricingModelId: true },
   },
   entityName: 'ToggleFeature',
 })
@@ -152,6 +152,7 @@ export const {
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
     readOnlyColumns: { organizationId: true, livemode: true },
+    createOnlyColumns: { pricingModelId: true },
   },
   entityName: 'UsageCreditGrantFeature',
 })
@@ -186,6 +187,7 @@ export const {
   client: {
     hiddenColumns: hiddenColumnsForClientSchema,
     readOnlyColumns: { organizationId: true, livemode: true },
+    createOnlyColumns: { pricingModelId: true },
   },
   entityName: 'ResourceFeature',
 })

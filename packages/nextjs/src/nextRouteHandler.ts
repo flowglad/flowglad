@@ -35,6 +35,10 @@ export interface NextRouteHandlerOptions {
    * Side effect to run after the request is processed.
    */
   afterRequest?: () => Promise<void>
+  /**
+   * Base URL for the Flowglad API.
+   */
+  baseURL?: string
 }
 
 type NextRouteHandler = (
@@ -105,6 +109,7 @@ export const nextRouteHandler = (
     onError,
     beforeRequest,
     afterRequest,
+    baseURL,
   } = options
 
   const routeHandler = async (
@@ -121,6 +126,7 @@ export const nextRouteHandler = (
         onError,
         beforeRequest,
         afterRequest,
+        baseURL,
       })
 
       // Support both Next 14 and 15

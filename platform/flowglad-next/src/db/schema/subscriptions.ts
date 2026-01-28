@@ -18,14 +18,13 @@ import {
 } from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
 import {
-  clientWriteOmitsConstructor,
   constructIndex,
   constructUniqueIndex,
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   notNullStringForeignKey,
@@ -119,9 +118,11 @@ const columns = {
   ),
 }
 
-export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
-  return [
-    constructIndex(TABLE_NAME, [table.customerId]),
+export const subscriptions = pgTable(
+  TABLE_NAME,
+  columns,
+  livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
+    livemodeIndex([table.customerId]),
     constructIndex(TABLE_NAME, [table.priceId]),
     constructIndex(TABLE_NAME, [table.status]),
     constructIndex(TABLE_NAME, [table.replacedBySubscriptionId]),
@@ -155,9 +156,8 @@ export const subscriptions = pgTable(TABLE_NAME, columns, (table) => {
       for: 'delete',
       using: sql`false`,
     }),
-    livemodePolicy(TABLE_NAME),
-  ]
-}).enableRLS()
+  ])
+).enableRLS()
 
 const standardSubscriptionStatuses = Object.values(
   SubscriptionStatus
@@ -335,13 +335,14 @@ export const subscriptionsTableRowDataSchema = z.object({
   subscription: subscriptionClientSelectSchema,
   customer: customerClientSelectSchema,
   price: pricesClientSelectSchema,
-  product: productsClientSelectSchema,
+  // Product may be null for usage-based subscriptions
+  product: productsClientSelectSchema.nullable(),
 })
 
 export const subscriptionsPaginatedSelectSchema =
   createPaginatedSelectSchema(
     z.object({
-      status: z.nativeEnum(SubscriptionStatus).optional(),
+      status: z.enum(SubscriptionStatus).optional(),
       priceId: z.string().optional(),
       customerId: z.string().optional(),
       organizationId: z.string().optional(),
@@ -458,7 +459,7 @@ export const createSubscriptionInputSchema = z.object({
     .describe(
       'The time when the subscription starts. If not provided, defaults to current time.'
     ),
-  interval: z.nativeEnum(IntervalUnit),
+  interval: z.enum(IntervalUnit),
   intervalCount: z
     .number()
     .optional()

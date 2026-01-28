@@ -1,5 +1,5 @@
+import { describe, it } from 'bun:test'
 import Stripe from 'stripe'
-import { describe, it } from 'vitest'
 import core from '@/utils/core'
 
 /**
@@ -11,10 +11,15 @@ import core from '@/utils/core'
 
 /**
  * Gets the Stripe test mode secret key from environment variables.
- * Returns undefined if not set.
+ * Returns undefined if not set or if it's a stub key (like sk_test_stub).
  */
 export const getStripeTestModeSecretKey = (): string | undefined => {
-  return process.env.STRIPE_TEST_MODE_SECRET_KEY
+  const key = process.env.STRIPE_TEST_MODE_SECRET_KEY
+  // Detect stub keys that won't work with real Stripe API
+  if (!key || key === 'sk_test_stub' || key.includes('stub')) {
+    return undefined
+  }
+  return key
 }
 
 /**
@@ -78,13 +83,22 @@ export const itIfStripeKey = (
  * This should be called in afterEach or afterAll hooks.
  *
  * @param params - Object containing Stripe resource IDs to clean up
+ * @param params.skipApiCalls - If true, skips actual Stripe API calls (useful for reducing API calls in CI)
  */
 export const cleanupStripeTestData = async (params: {
   stripeAccountId?: string
   stripeCustomerId?: string
   stripePaymentIntentId?: string
   stripeSetupIntentId?: string
+  /** Skip actual Stripe API calls (data remains in Stripe test mode but avoids rate limits) */
+  skipApiCalls?: boolean
 }): Promise<void> => {
+  // Skip cleanup API calls if requested (reduces Stripe API usage)
+  // Test mode data is auto-cleaned by Stripe periodically anyway
+  if (params.skipApiCalls) {
+    return
+  }
+
   const stripe = getStripeTestClient()
 
   // Cancel payment intent if exists

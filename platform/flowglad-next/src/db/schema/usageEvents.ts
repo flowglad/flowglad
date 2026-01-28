@@ -8,11 +8,12 @@ import { usageMeters } from '@/db/schema/usageMeters'
 import {
   constructIndex,
   constructUniqueIndex,
+  createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
   createPaginatedTableRowInputSchema,
   createPaginatedTableRowOutputSchema,
   enableCustomerReadPolicy,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -32,7 +33,7 @@ import { usageMetersClientSelectSchema } from './usageMeters'
 
 const TABLE_NAME = 'usage_events'
 
-const usageEventPriceMustMatchUsageMeter = sql`"price_id" IS NULL OR "price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_meter_id")`
+const usageEventPriceMustMatchUsageMeter = sql`"price_id" in (select "id" from "prices" where "prices"."usage_meter_id" = "usage_events"."usage_meter_id")`
 
 const usageEventSubscriptionMustMatchCustomer = sql`"subscription_id" in (select "id" from "subscriptions" where "subscriptions"."customer_id" = "customer_id")`
 
@@ -59,97 +60,96 @@ export const usageEvents = pgTable(
       .notNull()
       .defaultNow(),
     transactionId: text('transaction_id').notNull(),
-    priceId: nullableStringForeignKey('price_id', prices),
+    priceId: notNullStringForeignKey('price_id', prices),
     properties: jsonb('properties'),
     pricingModelId: notNullStringForeignKey(
       'pricing_model_id',
       pricingModels
     ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.customerId]),
-      constructIndex(TABLE_NAME, [table.usageMeterId]),
-      constructIndex(TABLE_NAME, [table.billingPeriodId]),
-      constructIndex(TABLE_NAME, [table.subscriptionId]),
-      constructIndex(TABLE_NAME, [table.priceId]),
-      constructIndex(TABLE_NAME, [table.pricingModelId]),
-      constructUniqueIndex(TABLE_NAME, [
-        table.transactionId,
-        table.usageMeterId,
-      ]),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'all',
-          using: sql`"customer_id" in (select "id" from "customers" where "organization_id"=current_organization_id())`,
-        }
-      ),
-      merchantPolicy(
-        'On insert, only allow usage events for prices with matching usage meter',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'insert',
-          withCheck: usageEventPriceMustMatchUsageMeter,
-        }
-      ),
-      merchantPolicy(
-        'On update, only allow usage events for prices with matching usage meter',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'update',
-          using: usageEventPriceMustMatchUsageMeter,
-        }
-      ),
-      merchantPolicy(
-        'On insert, only allow usage events for subscriptions with matching customer',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'insert',
-          withCheck: usageEventSubscriptionMustMatchCustomer,
-        }
-      ),
-      merchantPolicy(
-        'On update, only allow usage events for subscriptions with matching customer',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'update',
-          withCheck: usageEventSubscriptionMustMatchCustomer,
-        }
-      ),
-      merchantPolicy(
-        'On insert, only allow usage events for billing periods with matching subscription',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'insert',
-          withCheck: usageEventBillingPeriodMustMatchSubscription,
-        }
-      ),
-      merchantPolicy(
-        'On update, only allow usage events for billing periods with matching subscription',
-        {
-          as: 'permissive',
-          to: 'permissive',
-          for: 'update',
-          withCheck: usageEventBillingPeriodMustMatchSubscription,
-        }
-      ),
-      enableCustomerReadPolicy(
-        `Enable read for customers (${TABLE_NAME})`,
-        {
-          using: sql`"customer_id" in (select "id" from "customers")`,
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.customerId]),
+    constructIndex(TABLE_NAME, [table.billingPeriodId]),
+    constructIndex(TABLE_NAME, [table.subscriptionId]),
+    constructIndex(TABLE_NAME, [table.priceId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    // Compound index for efficient usage volume queries by meter and date range
+    constructIndex(TABLE_NAME, [table.usageMeterId, table.usageDate]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.transactionId,
+      table.usageMeterId,
+    ]),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'all',
+        using: sql`"customer_id" in (select "id" from "customers" where "organization_id"=current_organization_id())`,
+      }
+    ),
+    merchantPolicy(
+      'On insert, only allow usage events for prices with matching usage meter',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'insert',
+        withCheck: usageEventPriceMustMatchUsageMeter,
+      }
+    ),
+    merchantPolicy(
+      'On update, only allow usage events for prices with matching usage meter',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'update',
+        using: usageEventPriceMustMatchUsageMeter,
+        withCheck: usageEventPriceMustMatchUsageMeter,
+      }
+    ),
+    merchantPolicy(
+      'On insert, only allow usage events for subscriptions with matching customer',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'insert',
+        withCheck: usageEventSubscriptionMustMatchCustomer,
+      }
+    ),
+    merchantPolicy(
+      'On update, only allow usage events for subscriptions with matching customer',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'update',
+        withCheck: usageEventSubscriptionMustMatchCustomer,
+      }
+    ),
+    merchantPolicy(
+      'On insert, only allow usage events for billing periods with matching subscription',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'insert',
+        withCheck: usageEventBillingPeriodMustMatchSubscription,
+      }
+    ),
+    merchantPolicy(
+      'On update, only allow usage events for billing periods with matching subscription',
+      {
+        as: 'permissive',
+        to: 'permissive',
+        for: 'update',
+        withCheck: usageEventBillingPeriodMustMatchSubscription,
+      }
+    ),
+    enableCustomerReadPolicy(
+      `Enable read for customers (${TABLE_NAME})`,
+      {
+        using: sql`"customer_id" in (select "id" from "customers")`,
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {
@@ -283,7 +283,7 @@ export namespace UsageEvent {
 // Schema for resolved usage event input (after slug resolution)
 // After resolution, priceSlug/usageMeterSlug are removed.
 // usageMeterId is always present (either from input or derived from priceId).
-// priceId is set when a price identifier was provided, or null when a usage meter identifier was provided.
+// priceId is always present - either from explicit input or resolved from the usage meter's default price.
 export const createUsageEventResolvedSchema = z.object({
   usageEvent: baseUsageEventsClientInsertSchema
     .omit({ priceId: true, usageMeterId: true })
@@ -295,9 +295,8 @@ export const createUsageEventResolvedSchema = z.object({
         ),
       priceId: z
         .string()
-        .nullable()
         .describe(
-          'Set when price identifier provided, null when usage meter identifier provided'
+          'Always present after resolution - either from explicit input or resolved from the usage meter default price'
         ),
     }),
 })
@@ -327,12 +326,8 @@ export const usageEventPaginatedSelectSchema =
     })
   )
 
-export const usageEventPaginatedListSchema = z.object({
-  items: z.array(usageEventsClientSelectSchema),
-  total: z.number(),
-  hasMore: z.boolean(),
-  nextCursor: z.string().optional(),
-})
+export const usageEventPaginatedListSchema =
+  createPaginatedListQuerySchema(usageEventsClientSelectSchema)
 
 // Table row data schema for enriched usage events with joins
 export const usageEventsTableRowDataSchema = z.object({
@@ -340,7 +335,7 @@ export const usageEventsTableRowDataSchema = z.object({
   customer: customerClientSelectSchema,
   subscription: subscriptionClientSelectSchema,
   usageMeter: usageMetersClientSelectSchema,
-  price: pricesClientSelectSchema.nullable(),
+  price: pricesClientSelectSchema,
 })
 
 // Paginated table row input schema

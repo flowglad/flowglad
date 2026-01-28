@@ -13,6 +13,7 @@ import {
   bulkInsertProducts,
   selectProducts,
 } from '@/db/tableMethods/productMethods'
+import { createTransactionEffectsContext } from '@/db/types'
 import { IntervalUnit, PriceType } from '@/types'
 import {
   createFreePlanPriceInsert,
@@ -30,6 +31,12 @@ async function addDefaultProductsToPricingModels(
   )
 
   await db.transaction(async (tx) => {
+    // Create transaction context with noop callbacks for scripts
+    const ctx = createTransactionEffectsContext(tx, {
+      type: 'admin',
+      livemode: true,
+    })
+
     // Get all organizations
     const organizations = await selectOrganizations({}, tx)
     console.log(`📦 Found ${organizations.length} organizations`)
@@ -89,7 +96,7 @@ async function addDefaultProductsToPricingModels(
       let products: Product.Record[]
       // Bulk insert products for this organization
       if (productsToInsert.length > 0) {
-        products = await bulkInsertProducts(productsToInsert, tx)
+        products = await bulkInsertProducts(productsToInsert, ctx)
         totalProductsCreated += productsToInsert.length
         console.log(
           `  📦 Created ${productsToInsert.length} default products`
@@ -105,7 +112,7 @@ async function addDefaultProductsToPricingModels(
 
       // Bulk insert prices for this organization
       if (pricesToInsert.length > 0) {
-        await bulkInsertPrices(pricesToInsert, tx)
+        await bulkInsertPrices(pricesToInsert, ctx)
         totalPricesCreated += pricesToInsert.length
         console.log(
           `  💰 Created ${pricesToInsert.length} default prices`

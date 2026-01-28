@@ -2,9 +2,10 @@ import { sql } from 'drizzle-orm'
 import { boolean, jsonb, pgTable, text } from 'drizzle-orm/pg-core'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import {
   constructIndex,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   orgIdEqualsCurrentSQL,
@@ -16,7 +17,7 @@ import { buildSchemas } from '../createZodSchemas'
 const TABLE_NAME = 'webhooks'
 
 export const webhookFilterTypes = z
-  .nativeEnum(FlowgladEventType)
+  .enum(FlowgladEventType)
   .array()
   .describe(
     'The list of event types for which this webhook will receive events.'
@@ -34,22 +35,24 @@ export const webhooks = pgTable(
     url: text('url').notNull(),
     name: text('name').notNull(),
     active: boolean('active').notNull().default(true),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
   },
-  (table) => {
-    return [
-      constructIndex(TABLE_NAME, [table.organizationId]),
-      constructIndex(TABLE_NAME, [table.active]),
-      merchantPolicy(
-        `Enable read for own organizations (${TABLE_NAME})`,
-        {
-          as: 'permissive',
-          for: 'all',
-          using: orgIdEqualsCurrentSQL(),
-        }
-      ),
-      livemodePolicy(TABLE_NAME),
-    ]
-  }
+  livemodePolicyTable(TABLE_NAME, (table) => [
+    constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.active]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
+    merchantPolicy(
+      `Enable read for own organizations (${TABLE_NAME})`,
+      {
+        as: 'permissive',
+        for: 'all',
+        using: orgIdEqualsCurrentSQL(),
+      }
+    ),
+  ])
 ).enableRLS()
 
 const columnRefinements = {
@@ -60,6 +63,10 @@ const columnRefinements = {
 const readOnlyColumns = {
   livemode: true,
   organizationId: true,
+} as const
+
+const createOnlyColumns = {
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {} as const
@@ -78,6 +85,7 @@ export const {
   client: {
     hiddenColumns,
     readOnlyColumns,
+    createOnlyColumns,
   },
 })
 
@@ -108,4 +116,5 @@ export type EditWebhookInput = z.infer<typeof editWebhookInputSchema>
 
 export const webhooksTableRowDataSchema = z.object({
   webhook: webhookClientSelectSchema,
+  pricingModelName: z.string().nullable(),
 })

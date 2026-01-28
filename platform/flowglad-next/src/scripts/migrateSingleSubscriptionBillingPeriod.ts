@@ -99,15 +99,9 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       }
     )
 
-  const customer = await selectCustomerById(
-    subscription.customerId,
-    transaction
-  )
-  if (!customer) {
-    throw new Error(
-      `Customer with id ${subscription.customerId} not found`
-    )
-  }
+  const customer = (
+    await selectCustomerById(subscription.customerId, transaction)
+  ).unwrap()
 
   const paymentMethods = await selectPaymentMethods(
     { customerId: customer.id },
@@ -135,6 +129,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       {
         organizationId: flowgladOrganizationId,
         livemode: true,
+        pricingModelId: customer.pricingModelId,
       },
       stripe
     )
@@ -230,7 +225,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
   }
 
   // Create the initial billing period
-  const { billingPeriod, billingPeriodItems } =
+  const { billingPeriod, billingPeriodItems } = (
     await createBillingPeriodAndItems(
       {
         subscription,
@@ -240,6 +235,7 @@ export const migrateSingleSubscriptionBillingPeriod = async (
       },
       transaction
     )
+  ).unwrap()
 
   console.log(
     `Created billing period ${billingPeriod.id} for subscription ${subscription.id}`
@@ -352,16 +348,12 @@ async function migrateSingleSubscriptionBillingPeriodScript(
     )
 
     // Get the organization for this subscription
-    const organization = await selectOrganizationById(
-      subscription.organizationId,
-      transaction
-    )
-
-    if (!organization) {
-      throw new Error(
-        `No organization found for subscription ${subscription.id}`
+    const organization = (
+      await selectOrganizationById(
+        subscription.organizationId,
+        transaction
       )
-    }
+    ).unwrap()
 
     console.log(
       `Found organization ${organization.id} for subscription ${subscription.id}`

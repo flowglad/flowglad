@@ -31,7 +31,7 @@ import {
   constructIndex,
   enableCustomerReadPolicy,
   hiddenColumnsForClientSchema,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   metadataSchema,
   newBaseZodSelectSchemaColumns,
@@ -112,13 +112,14 @@ const columns = {
   ),
 }
 
-export const purchases = pgTable(TABLE_NAME, columns, (table) => {
-  return [
+export const purchases = pgTable(
+  TABLE_NAME,
+  columns,
+  livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.customerId]),
     constructIndex(TABLE_NAME, [table.organizationId]),
     constructIndex(TABLE_NAME, [table.priceId]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
-    livemodePolicy(TABLE_NAME),
     enableCustomerReadPolicy(
       `Enable read for customers (${TABLE_NAME})`,
       {
@@ -139,8 +140,8 @@ export const purchases = pgTable(TABLE_NAME, columns, (table) => {
     // constructUniqueIndex(TABLE_NAME, [
     //   table.stripePaymentIntentId,
     // ]),
-  ]
-}).enableRLS()
+  ])
+).enableRLS()
 
 const refineColumns = {
   quantity: core.safeZodPositiveInteger,
@@ -357,7 +358,8 @@ export const purchaseClientSelectSchema = z
 
 export const purchasesTableRowDataSchema = z.object({
   purchase: purchaseClientSelectSchema,
-  product: productsClientSelectSchema,
+  // Product may be null for usage-based purchases
+  product: productsClientSelectSchema.nullable(),
   customer: customerClientSelectSchema,
   revenue: z.number().optional(),
   currency: currencyCodeSchema,

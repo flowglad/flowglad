@@ -1,0 +1,75 @@
+name: Test Stainless SDK
+
+on:
+  workflow_dispatch:
+    inputs:
+      commit_hash:
+        description: 'Stainless commit hash to test (7-40 hex characters)'
+        required: true
+        type: string
+
+  repository_dispatch:
+    types: [test-stainless-sdk]
+
+permissions: read-all
+
+jobs:
+  test-sdk:
+    name: Test SDK from Stainless
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+
+      - name: Setup Node.js
+        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v3
+        with:
+          node-version: '18'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@b7a1c7ccf290d58743029c4f6903da283811b979 # v2.1.0
+        with:
+          bun-version: '1.3.1'
+
+      - name: Get and validate commit hash
+        id: get-hash
+        run: |
+          # Get the hash based on event type
+          if [ "${{ github.event_name }}" == "repository_dispatch" ]; then
+            HASH="${{ github.event.client_payload.commit_hash }}"
+          else
+            HASH="${{ inputs.commit_hash }}"
+          fi
+
+          # Validate hash is 7-40 hex characters (short or full git SHA)
+          if ! echo "$HASH" | grep -qE '^[a-fA-F0-9]{7,40}$'; then
+            echo "::error::Invalid commit hash: must be 7-40 hexadecimal characters" >&2
+            echo "::error::Received: '$HASH'" >&2
+            exit 1
+          fi
+
+          echo "hash=$HASH" >> $GITHUB_OUTPUT
+
+      - name: Replace @flowglad/node with Stainless tarball
+        run: |
+          TARBALL_URL="https://pkg.stainless.com/s/flowglad-typescript/${{ steps.get-hash.outputs.hash }}/dist.tar.gz"
+          echo "Replacing @flowglad/node with: $TARBALL_URL"
+
+          # Replace in all package.json files
+          for pkg in packages/server packages/shared packages/nextjs packages/react; do
+            if [ -f "$pkg/package.json" ]; then
+              # Use jq to replace the dependency
+              jq --arg url "$TARBALL_URL" '.dependencies["@flowglad/node"] = $url' "$pkg/package.json" > tmp.json
+              mv tmp.json "$pkg/package.json"
+              echo "Updated $pkg/package.json"
+            fi
+          done
+
+      - name: Install dependencies
+        run: bun install --no-progress
+
+      - name: Build packages
+        run: bun run build
+
+      - name: Run tests
+        run: bun run test

@@ -5,6 +5,14 @@ import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { adminTransaction } from '@/db/adminTransaction'
 import { selectCustomerAndOrganizationByCustomerWhere } from '@/db/tableMethods/customerMethods'
+import { NotFoundError as DBNotFoundError } from '@/db/tableUtils'
+import {
+  AuthorizationError,
+  ConflictError,
+  NotFoundError as DomainNotFoundError,
+  TerminalStateError,
+  ValidationError,
+} from '@/errors'
 import type { FeatureFlag } from '@/types'
 import { IS_DEV } from '@/utils/core'
 import { getCustomerBillingPortalOrganizationId } from '@/utils/customerBillingPortalState'
@@ -19,10 +27,75 @@ const tracingMiddlewareFactory = createTracingMiddleware()
 // Create tracing middleware for this tRPC instance
 const tracingMiddleware = tracingMiddlewareFactory(t)
 
+/**
+ * Middleware that converts domain errors to TRPCErrors with appropriate HTTP status codes.
+ * This ensures that business logic errors result in correct HTTP responses:
+ * - NotFoundError (domain) → 404 NOT_FOUND
+ * - NotFoundError (DB/tableUtils) → 404 NOT_FOUND
+ * - ValidationError → 400 BAD_REQUEST
+ * - TerminalStateError → 400 BAD_REQUEST
+ * - ConflictError → 409 CONFLICT
+ * - AuthorizationError → 403 FORBIDDEN
+ */
+const domainErrorMiddleware = t.middleware(async ({ next }) => {
+  try {
+    return await next()
+  } catch (error) {
+    if (error instanceof TRPCError) {
+      throw error
+    }
+    if (error instanceof DomainNotFoundError) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: error.message,
+        cause: error,
+      })
+    }
+    if (error instanceof DBNotFoundError) {
+      throw new TRPCError({
+        code: 'NOT_FOUND',
+        message: error.message,
+        cause: error,
+      })
+    }
+    if (error instanceof ValidationError) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: error.message,
+        cause: error,
+      })
+    }
+    if (error instanceof TerminalStateError) {
+      throw new TRPCError({
+        code: 'BAD_REQUEST',
+        message: error.message,
+        cause: error,
+      })
+    }
+    if (error instanceof ConflictError) {
+      throw new TRPCError({
+        code: 'CONFLICT',
+        message: error.message,
+        cause: error,
+      })
+    }
+    if (error instanceof AuthorizationError) {
+      throw new TRPCError({
+        code: 'FORBIDDEN',
+        message: error.message,
+        cause: error,
+      })
+    }
+    throw error
+  }
+})
+
 export const router = t.router
 
-// Apply tracing middleware to base procedure
-const baseProcedure = t.procedure.use(tracingMiddleware)
+// Apply tracing and domain error middleware to base procedure
+const baseProcedure = t.procedure
+  .use(tracingMiddleware)
+  .use(domainErrorMiddleware)
 
 // Public procedure with tracing
 export const publicProcedure = baseProcedure

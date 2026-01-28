@@ -12,6 +12,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   nonRenewingStatusSchema,
   type Subscription,
@@ -36,6 +37,7 @@ import {
   type SelectConditions,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { SubscriptionTerminalStateError } from '@/errors'
 import { CancellationReason, SubscriptionStatus } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -44,7 +46,11 @@ import {
   customers,
 } from '../schema/customers'
 import type { PaymentMethod } from '../schema/paymentMethods'
-import { prices, pricesClientSelectSchema } from '../schema/prices'
+import {
+  Price,
+  prices,
+  pricesClientSelectSchema,
+} from '../schema/prices'
 import {
   products,
   productsClientSelectSchema,
@@ -123,8 +129,7 @@ export const selectSubscriptions = createSelectFunction(
 )
 
 /**
- * Selects subscriptions by customer ID with caching enabled by default.
- * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ * Selects subscriptions by customer ID with caching.
  *
  * This cache entry depends on customerSubscriptions - invalidate when
  * subscriptions for this customer are created, updated, or deleted.
@@ -132,38 +137,66 @@ export const selectSubscriptions = createSelectFunction(
  * Cache key includes livemode to prevent cross-mode data leakage, since RLS
  * filters subscriptions by livemode and the same customer could have different
  * subscriptions in live vs test mode.
+ *
+ * Note: This function uses cached() (not cachedRecomputable) because it doesn't
+ * need automatic recomputation - subscriptions are relatively stable and
+ * invalidation-only caching is sufficient.
  */
-export const selectSubscriptionsByCustomerId = cached(
+export const selectSubscriptionsByCustomerId = cached<
+  [customerId: string, livemode: boolean, transaction: DbTransaction],
+  Subscription.Record[]
+>(
   {
     namespace: RedisKeyNamespace.SubscriptionsByCustomer,
-    keyFn: (
-      customerId: string,
-      _transaction: DbTransaction,
-      livemode: boolean
-    ) => `${customerId}:${livemode}`,
+    keyFn: (customerId, livemode) => `${customerId}:${livemode}`,
     schema: subscriptionsSelectSchema.array(),
-    dependenciesFn: (customerId: string) => [
+    dependenciesFn: (subscriptions, customerId) => [
+      // Set membership: invalidate when subscriptions are added/removed for this customer
       CacheDependency.customerSubscriptions(customerId),
+      // Content: invalidate when any subscription's properties change
+      ...subscriptions.map((subscription) =>
+        CacheDependency.subscription(subscription.id)
+      ),
     ],
   },
-  async (
-    customerId: string,
-    transaction: DbTransaction,
-    // livemode is used by keyFn for cache key generation, not in the query itself
-    // (RLS filters by livemode context set on the transaction)
-    _livemode: boolean
-  ) => {
-    return selectSubscriptions({ customerId }, transaction)
+  async (customerId, livemode, transaction) => {
+    return selectSubscriptions({ customerId, livemode }, transaction)
   }
 )
+
+/**
+ * Terminal subscription states - subscriptions in these states cannot be mutated.
+ * Used to guard archived customer subscriptions since archiving cancels them.
+ */
+export const TERMINAL_SUBSCRIPTION_STATES = [
+  SubscriptionStatus.Canceled,
+  SubscriptionStatus.IncompleteExpired,
+] as const
 
 export const isSubscriptionInTerminalState = (
   status: SubscriptionStatus
 ) => {
-  return [
-    SubscriptionStatus.Canceled,
-    SubscriptionStatus.IncompleteExpired,
-  ].includes(status)
+  return (
+    TERMINAL_SUBSCRIPTION_STATES as readonly SubscriptionStatus[]
+  ).includes(status)
+}
+
+/**
+ * Guard function that throws if the subscription is in a terminal state.
+ * Use this to block mutations on subscriptions that have been canceled or expired.
+ *
+ * @param subscription - The subscription to check
+ * @throws SubscriptionTerminalStateError if subscription is in a terminal state
+ */
+export const assertSubscriptionNotTerminal = (
+  subscription: Subscription.Record
+): void => {
+  if (isSubscriptionInTerminalState(subscription.status)) {
+    throw new SubscriptionTerminalStateError(
+      subscription.id,
+      subscription.status
+    )
+  }
 }
 
 export const safelyUpdateSubscriptionStatus = async (
@@ -263,14 +296,14 @@ export const selectSubscriptionsTableRowData =
         .map((subscription) => subscription.customerId)
         .filter((id): id is string => id !== null)
 
-      // Query 1: Get prices with products
+      // Query 1: Get prices with products (leftJoin allows usage prices with null productId)
       const priceResults = await transaction
         .select({
           price: prices,
           product: products,
         })
         .from(prices)
-        .innerJoin(products, eq(products.id, prices.productId))
+        .leftJoin(products, eq(products.id, prices.productId))
         .where(inArray(prices.id, priceIds))
 
       // Query 2: Get customers
@@ -282,11 +315,11 @@ export const selectSubscriptionsTableRowData =
       const pricesById = new Map(
         priceResults.map((result) => [result.price.id, result.price])
       )
+      // Filter out null products (usage prices have no product)
       const productsById = new Map(
-        priceResults.map((result) => [
-          result.product.id,
-          result.product,
-        ])
+        priceResults
+          .filter((result) => result.product !== null)
+          .map((result) => [result.product!.id, result.product!])
       )
       const customersById = new Map(
         customerResults.map((customer) => [customer.id, customer])
@@ -299,19 +332,28 @@ export const selectSubscriptionsTableRowData =
           )
         }
 
-        const price = pricesById.get(subscription.priceId)
+        const rawPrice = pricesById.get(subscription.priceId)
         const customer = customersById.get(subscription.customerId)
 
-        if (!price || !customer) {
+        if (!rawPrice || !customer) {
           throw new Error(
             `Could not find price or customer for subscription ${subscription.id}`
           )
         }
 
-        const product = productsById.get(price.productId)
-        if (!product) {
+        // Parse price early so Price.hasProductId type guard works.
+        // This is needed because raw DB rows have type: string, but the type guard
+        // expects the parsed Price.Record with narrowed type.
+        const parsedPrice = pricesClientSelectSchema.parse(rawPrice)
+
+        // Get product only for non-usage prices
+        const product = Price.clientHasProductId(parsedPrice)
+          ? productsById.get(parsedPrice.productId)
+          : null
+        // For non-usage prices, product is required
+        if (Price.clientHasProductId(parsedPrice) && !product) {
           throw new Error(
-            `Could not find product for price ${price.id}`
+            `Could not find product for price ${parsedPrice.id}`
           )
         }
 
@@ -323,8 +365,11 @@ export const selectSubscriptionsTableRowData =
               subscription.cancellationReason
             ),
           },
-          price: pricesClientSelectSchema.parse(price),
-          product: productsClientSelectSchema.parse(product),
+          price: parsedPrice,
+          // Product may be null for usage prices
+          product: product
+            ? productsClientSelectSchema.parse(product)
+            : null,
           customer: customerClientSelectSchema.parse(customer),
         }
       })
@@ -613,7 +658,10 @@ export const derivePricingModelIdFromSubscription =
   createDerivePricingModelId(
     subscriptions,
     config,
-    selectSubscriptionById
+    async (id, transaction) => {
+      const result = await selectSubscriptionById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**

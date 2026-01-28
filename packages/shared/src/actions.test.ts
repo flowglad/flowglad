@@ -4,13 +4,19 @@ import {
   billingAddressSchema,
   bulkCreateUsageEventsSchema,
   cancelSubscriptionSchema,
+  claimResourceSchema,
   createActivateSubscriptionCheckoutSessionSchema,
   createAddPaymentMethodCheckoutSessionSchema,
   createProductCheckoutSessionSchema,
   createSubscriptionSchema,
   createUsageEventSchema,
   flowgladActionValidators,
+  getResourcesSchema,
+  getUsageMeterBalancesSchema,
+  listResourceClaimsSchema,
+  releaseResourceSchema,
   subscriptionAdjustmentTiming,
+  subscriptionAdjustmentTimingSchema,
   terseSubscriptionItemSchema,
   updateCustomerInputSchema,
   updateCustomerSchema,
@@ -948,6 +954,420 @@ describe('updateCustomerSchema', () => {
   })
 })
 
+describe('getResourcesSchema', () => {
+  it('accepts empty input', () => {
+    const result = getResourcesSchema.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts optional subscriptionId', () => {
+    const result = getResourcesSchema.safeParse({
+      subscriptionId: 'sub_123',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.subscriptionId).toBe('sub_123')
+    }
+  })
+})
+
+describe('claimResourceSchema', () => {
+  it('validates quantity mode with resourceSlug=seats and quantity=3, parsing successfully with externalId and externalIds undefined', () => {
+    const input = { resourceSlug: 'seats', quantity: 3 }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.quantity).toBe(3)
+      expect(result.data.externalId).toBeUndefined()
+      expect(result.data.externalIds).toBeUndefined()
+    }
+  })
+
+  it('validates externalId mode with resourceSlug=seats and externalId=user_123, parsing successfully with quantity and externalIds undefined', () => {
+    const input = { resourceSlug: 'seats', externalId: 'user_123' }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.externalId).toBe('user_123')
+      expect(result.data.quantity).toBeUndefined()
+      expect(result.data.externalIds).toBeUndefined()
+    }
+  })
+
+  it('validates externalIds mode with resourceSlug=seats and externalIds=[user_1, user_2], parsing successfully', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalIds: ['user_1', 'user_2'],
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.externalIds).toEqual(['user_1', 'user_2'])
+    }
+  })
+
+  it('rejects input with only resourceSlug=seats, returning validation error about exactly one mode required', () => {
+    const input = { resourceSlug: 'seats' }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const errorMessage = result.error.issues
+        .map((issue) => issue.message)
+        .join(', ')
+      expect(errorMessage).toContain('Exactly one of')
+    }
+  })
+
+  it('rejects input with both quantity=3 and externalId=user_123, returning validation error', () => {
+    const input = {
+      resourceSlug: 'seats',
+      quantity: 3,
+      externalId: 'user_123',
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with both quantity and externalIds', () => {
+    const input = {
+      resourceSlug: 'seats',
+      quantity: 3,
+      externalIds: ['user_1', 'user_2'],
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with both externalId and externalIds', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalId: 'user_1',
+      externalIds: ['user_2', 'user_3'],
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with all three modes provided', () => {
+    const input = {
+      resourceSlug: 'seats',
+      quantity: 1,
+      externalId: 'user_1',
+      externalIds: ['user_2'],
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('accepts optional subscriptionId', () => {
+    const input = {
+      resourceSlug: 'seats',
+      quantity: 1,
+      subscriptionId: 'sub_123',
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.subscriptionId).toBe('sub_123')
+    }
+  })
+
+  it('accepts optional metadata', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalId: 'user_123',
+      metadata: { assignedTo: 'John Doe', priority: 1, active: true },
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.metadata).toEqual({
+        assignedTo: 'John Doe',
+        priority: 1,
+        active: true,
+      })
+    }
+  })
+
+  it('rejects non-positive quantity', () => {
+    const input = { resourceSlug: 'seats', quantity: 0 }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects negative quantity', () => {
+    const input = { resourceSlug: 'seats', quantity: -1 }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects non-integer quantity', () => {
+    const input = { resourceSlug: 'seats', quantity: 1.5 }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects externalId longer than 255 characters', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalId: 'a'.repeat(256),
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects externalIds with items longer than 255 characters', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalIds: ['valid_id', 'a'.repeat(256)],
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects empty externalIds array', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalIds: [],
+    }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects missing resourceSlug', () => {
+    const input = { quantity: 3 }
+    const result = claimResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('releaseResourceSchema', () => {
+  it('validates all four modes (quantity, externalId, externalIds, claimIds) when each is provided alone', () => {
+    const quantityResult = releaseResourceSchema.safeParse({
+      resourceSlug: 'seats',
+      quantity: 2,
+    })
+    const externalIdResult = releaseResourceSchema.safeParse({
+      resourceSlug: 'seats',
+      externalId: 'user_1',
+    })
+    const externalIdsResult = releaseResourceSchema.safeParse({
+      resourceSlug: 'seats',
+      externalIds: ['user_1', 'user_2'],
+    })
+    const claimIdsResult = releaseResourceSchema.safeParse({
+      resourceSlug: 'seats',
+      claimIds: ['claim_1', 'claim_2'],
+    })
+
+    expect(quantityResult.success).toBe(true)
+    expect(externalIdResult.success).toBe(true)
+    expect(externalIdsResult.success).toBe(true)
+    expect(claimIdsResult.success).toBe(true)
+  })
+
+  it('rejects input with both claimIds and externalId, returning validation error', () => {
+    const input = {
+      resourceSlug: 'seats',
+      claimIds: ['claim_1'],
+      externalId: 'user_1',
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with both quantity and claimIds', () => {
+    const input = {
+      resourceSlug: 'seats',
+      quantity: 2,
+      claimIds: ['claim_1'],
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with both quantity and externalId', () => {
+    const input = {
+      resourceSlug: 'seats',
+      quantity: 2,
+      externalId: 'user_1',
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with both quantity and externalIds', () => {
+    const input = {
+      resourceSlug: 'seats',
+      quantity: 2,
+      externalIds: ['user_1', 'user_2'],
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with both externalId and externalIds', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalId: 'user_1',
+      externalIds: ['user_2', 'user_3'],
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects input with no mode provided', () => {
+    const input = { resourceSlug: 'seats' }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      const errorMessage = result.error.issues
+        .map((issue) => issue.message)
+        .join(', ')
+      expect(errorMessage).toContain('Exactly one of')
+    }
+  })
+
+  it('accepts optional subscriptionId', () => {
+    const input = {
+      resourceSlug: 'seats',
+      quantity: 1,
+      subscriptionId: 'sub_123',
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.subscriptionId).toBe('sub_123')
+    }
+  })
+
+  it('rejects non-positive quantity', () => {
+    const input = { resourceSlug: 'seats', quantity: 0 }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects negative quantity', () => {
+    const input = { resourceSlug: 'seats', quantity: -1 }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects non-integer quantity', () => {
+    const input = { resourceSlug: 'seats', quantity: 1.5 }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects externalId longer than 255 characters', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalId: 'a'.repeat(256),
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects externalIds with items longer than 255 characters', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalIds: ['valid_id', 'a'.repeat(256)],
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects empty externalIds array', () => {
+    const input = {
+      resourceSlug: 'seats',
+      externalIds: [],
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects empty claimIds array', () => {
+    const input = {
+      resourceSlug: 'seats',
+      claimIds: [],
+    }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects missing resourceSlug', () => {
+    const input = { quantity: 3 }
+    const result = releaseResourceSchema.safeParse(input)
+    expect(result.success).toBe(false)
+  })
+})
+
+describe('listResourceClaimsSchema', () => {
+  it('accepts empty input', () => {
+    const result = listResourceClaimsSchema.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts optional subscriptionId', () => {
+    const result = listResourceClaimsSchema.safeParse({
+      subscriptionId: 'sub_123',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.subscriptionId).toBe('sub_123')
+    }
+  })
+
+  it('accepts optional resourceSlug', () => {
+    const result = listResourceClaimsSchema.safeParse({
+      resourceSlug: 'seats',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.resourceSlug).toBe('seats')
+    }
+  })
+
+  it('accepts both subscriptionId and resourceSlug', () => {
+    const result = listResourceClaimsSchema.safeParse({
+      subscriptionId: 'sub_123',
+      resourceSlug: 'seats',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.subscriptionId).toBe('sub_123')
+      expect(result.data.resourceSlug).toBe('seats')
+    }
+  })
+})
+
+describe('getUsageMeterBalancesSchema', () => {
+  it('accepts empty object', () => {
+    const result = getUsageMeterBalancesSchema.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('accepts subscriptionId filter', () => {
+    const result = getUsageMeterBalancesSchema.safeParse({
+      subscriptionId: 'sub_1',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.subscriptionId).toBe('sub_1')
+    }
+  })
+
+  it('rejects unknown keys (strict)', () => {
+    const result = getUsageMeterBalancesSchema.safeParse({
+      unknown: 'x',
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe('unrecognized_keys')
+    }
+  })
+})
+
 describe('flowgladActionValidators', () => {
   it('has validators for all FlowgladActionKey values', () => {
     const expectedKeys = [
@@ -962,6 +1382,13 @@ describe('flowgladActionValidators', () => {
       FlowgladActionKey.CreateSubscription,
       FlowgladActionKey.UpdateCustomer,
       FlowgladActionKey.CreateUsageEvent,
+      FlowgladActionKey.GetResourceUsages,
+      FlowgladActionKey.GetResourceUsage,
+      FlowgladActionKey.ClaimResource,
+      FlowgladActionKey.ReleaseResource,
+      FlowgladActionKey.ListResourceClaims,
+      FlowgladActionKey.GetPricingModel,
+      FlowgladActionKey.GetUsageMeterBalances,
     ]
 
     for (const key of expectedKeys) {
@@ -976,7 +1403,6 @@ describe('flowgladActionValidators', () => {
       )
     }
   })
-
   it('all validators use POST method', () => {
     for (const key of Object.keys(
       flowgladActionValidators
@@ -986,7 +1412,6 @@ describe('flowgladActionValidators', () => {
       )
     }
   })
-
   it('GetCustomerBilling validator accepts externalId', () => {
     const validator =
       flowgladActionValidators[FlowgladActionKey.GetCustomerBilling]
@@ -1048,5 +1473,150 @@ describe('flowgladActionValidators', () => {
       timing: 'immediately',
     })
     expect(result.success).toBe(true)
+  })
+})
+
+describe('GetPricingModel validator', () => {
+  it('uses POST method and accepts empty object as input', () => {
+    // Setup: Get validator for FlowgladActionKey.GetPricingModel
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.GetPricingModel]
+
+    // Assert: validator.method === HTTPMethod.POST
+    expect(validator.method).toBe(HTTPMethod.POST)
+
+    // Assert: validator.inputValidator.safeParse({}).success === true
+    const result = validator.inputValidator.safeParse({})
+    expect(result.success).toBe(true)
+  })
+
+  it('rejects unknown fields due to strict() validation', () => {
+    const validator =
+      flowgladActionValidators[FlowgladActionKey.GetPricingModel]
+        .inputValidator
+    const result = validator.safeParse({
+      unknownField: 'should be rejected',
+      anotherField: 123,
+    })
+    // strict() causes validation to fail when unknown fields are present
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues[0].code).toBe('unrecognized_keys')
+    }
+  })
+})
+
+describe('flowgladActionValidators coverage', () => {
+  it('includes GetUsageMeterBalances', () => {
+    const validator =
+      flowgladActionValidators[
+        FlowgladActionKey.GetUsageMeterBalances
+      ]
+
+    // Verify entry exists and has expected structure
+    expect(validator).toEqual(
+      expect.objectContaining({
+        method: HTTPMethod.POST,
+        inputValidator: expect.objectContaining({
+          safeParse: expect.any(Function),
+        }),
+      })
+    )
+
+    // Verify validator accepts empty object
+    const emptyResult = validator.inputValidator.safeParse({})
+    expect(emptyResult.success).toBe(true)
+
+    // Verify validator accepts subscriptionId
+    const withSubResult = validator.inputValidator.safeParse({
+      subscriptionId: 'sub_123',
+    })
+    expect(withSubResult.success).toBe(true)
+  })
+})
+
+describe('subscriptionAdjustmentTimingSchema', () => {
+  it('parses "immediately" as valid timing and returns the exact value', () => {
+    const result =
+      subscriptionAdjustmentTimingSchema.safeParse('immediately')
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toBe('immediately')
+    }
+  })
+
+  it('parses "at_end_of_current_billing_period" as valid timing and returns the exact value', () => {
+    const result = subscriptionAdjustmentTimingSchema.safeParse(
+      'at_end_of_current_billing_period'
+    )
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toBe('at_end_of_current_billing_period')
+    }
+  })
+
+  it('parses "auto" as valid timing and returns the exact value', () => {
+    const result =
+      subscriptionAdjustmentTimingSchema.safeParse('auto')
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toBe('auto')
+    }
+  })
+
+  it('rejects the old timing value "at_end_of_period" which was changed in a breaking update', () => {
+    const result = subscriptionAdjustmentTimingSchema.safeParse(
+      'at_end_of_period'
+    )
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects arbitrary invalid timing strings', () => {
+    const result =
+      subscriptionAdjustmentTimingSchema.safeParse('next_week')
+    expect(result.success).toBe(false)
+  })
+
+  it('rejects non-string values', () => {
+    const resultNumber =
+      subscriptionAdjustmentTimingSchema.safeParse(123)
+    expect(resultNumber.success).toBe(false)
+
+    const resultNull =
+      subscriptionAdjustmentTimingSchema.safeParse(null)
+    expect(resultNull.success).toBe(false)
+
+    const resultObject = subscriptionAdjustmentTimingSchema.safeParse(
+      {
+        timing: 'immediately',
+      }
+    )
+    expect(resultObject.success).toBe(false)
+  })
+})
+
+describe('subscriptionAdjustmentTiming constant values', () => {
+  it('Immediately equals "immediately"', () => {
+    expect(subscriptionAdjustmentTiming.Immediately).toBe(
+      'immediately'
+    )
+  })
+
+  it('AtEndOfCurrentBillingPeriod equals "at_end_of_current_billing_period"', () => {
+    expect(
+      subscriptionAdjustmentTiming.AtEndOfCurrentBillingPeriod
+    ).toBe('at_end_of_current_billing_period')
+  })
+
+  it('Auto equals "auto"', () => {
+    expect(subscriptionAdjustmentTiming.Auto).toBe('auto')
+  })
+
+  it('contains exactly three timing options', () => {
+    const keys = Object.keys(subscriptionAdjustmentTiming)
+    expect(keys).toHaveLength(3)
+    expect(keys).toContain('Immediately')
+    expect(keys).toContain('AtEndOfCurrentBillingPeriod')
+    expect(keys).toContain('Auto')
   })
 })

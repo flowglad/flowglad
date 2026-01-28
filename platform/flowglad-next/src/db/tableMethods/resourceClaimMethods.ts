@@ -1,4 +1,13 @@
-import { and, count, eq, inArray, isNull } from 'drizzle-orm'
+import {
+  and,
+  count,
+  eq,
+  gt,
+  inArray,
+  isNull,
+  or,
+  sql,
+} from 'drizzle-orm'
 import {
   type ResourceClaim,
   resourceClaims,
@@ -58,42 +67,89 @@ export const selectResourceClaimsPaginated =
   createPaginatedSelectFunction(resourceClaims, config)
 
 /**
- * Selects only active (non-released) resource claims.
- * Active claims are those where releasedAt is null.
+ * Selects only active (non-released, non-expired) resource claims.
+ * Active claims are those where:
+ * - releasedAt IS NULL (not released)
+ * - AND (expiredAt IS NULL OR expiredAt > NOW()) (not expired)
+ *
  * Uses database-level filtering to leverage the partial index on releasedAt IS NULL.
+ *
+ * Supports both single values and arrays for subscriptionId, resourceId, and id fields.
  */
 export const selectActiveResourceClaims = async (
-  where: Omit<ResourceClaim.Where, 'releasedAt'>,
+  where: {
+    subscriptionId?: string | string[]
+    resourceId?: string | string[]
+    externalId?: string | null
+    organizationId?: string
+    pricingModelId?: string
+    id?: string | string[]
+  },
   transaction: DbTransaction
 ): Promise<ResourceClaim.Record[]> => {
-  return selectResourceClaims(
-    { ...where, releasedAt: null } as ResourceClaim.Where,
-    transaction
-  )
-}
+  const now = Date.now()
 
-/**
- * Counts active (non-released) claims for a given subscriptionItemFeatureId.
- * Useful for checking capacity against limits.
- * Uses a database COUNT query for efficiency instead of fetching all records.
- */
-export const countActiveClaimsForSubscriptionItemFeature = async (
-  subscriptionItemFeatureId: string,
-  transaction: DbTransaction
-): Promise<number> => {
-  const result = await transaction
-    .select({ count: count() })
-    .from(resourceClaims)
-    .where(
-      and(
-        eq(
-          resourceClaims.subscriptionItemFeatureId,
-          subscriptionItemFeatureId
-        ),
-        isNull(resourceClaims.releasedAt)
+  // Build conditions array
+  const conditions = [
+    isNull(resourceClaims.releasedAt),
+    or(
+      isNull(resourceClaims.expiredAt),
+      gt(resourceClaims.expiredAt, now)
+    ),
+  ]
+
+  // Add optional where conditions - handle both single values and arrays
+  if (where.subscriptionId !== undefined) {
+    if (Array.isArray(where.subscriptionId)) {
+      conditions.push(
+        inArray(resourceClaims.subscriptionId, where.subscriptionId)
       )
+    } else {
+      conditions.push(
+        eq(resourceClaims.subscriptionId, where.subscriptionId)
+      )
+    }
+  }
+  if (where.resourceId !== undefined) {
+    if (Array.isArray(where.resourceId)) {
+      conditions.push(
+        inArray(resourceClaims.resourceId, where.resourceId)
+      )
+    } else {
+      conditions.push(eq(resourceClaims.resourceId, where.resourceId))
+    }
+  }
+  if (where.externalId !== undefined) {
+    if (where.externalId === null) {
+      conditions.push(isNull(resourceClaims.externalId))
+    } else {
+      conditions.push(eq(resourceClaims.externalId, where.externalId))
+    }
+  }
+  if (where.organizationId !== undefined) {
+    conditions.push(
+      eq(resourceClaims.organizationId, where.organizationId)
     )
-  return result[0]?.count ?? 0
+  }
+  if (where.pricingModelId !== undefined) {
+    conditions.push(
+      eq(resourceClaims.pricingModelId, where.pricingModelId)
+    )
+  }
+  if (where.id !== undefined) {
+    if (Array.isArray(where.id)) {
+      conditions.push(inArray(resourceClaims.id, where.id))
+    } else {
+      conditions.push(eq(resourceClaims.id, where.id))
+    }
+  }
+
+  const result = await transaction
+    .select()
+    .from(resourceClaims)
+    .where(and(...conditions))
+
+  return resourceClaimsSelectSchema.array().parse(result)
 }
 
 /**
@@ -114,35 +170,6 @@ export const releaseResourceClaim = async (
     },
     transaction
   )
-}
-
-/**
- * Releases all active claims for a given subscriptionItemFeatureId.
- * Used when a subscription item feature is detached or expired.
- * Uses a single atomic UPDATE to avoid TOCTOU race conditions.
- */
-export const releaseAllClaimsForSubscriptionItemFeature = async (
-  subscriptionItemFeatureId: string,
-  releaseReason: string,
-  transaction: DbTransaction
-): Promise<ResourceClaim.Record[]> => {
-  const result = await transaction
-    .update(resourceClaims)
-    .set({
-      releasedAt: Date.now(),
-      releaseReason,
-    })
-    .where(
-      and(
-        eq(
-          resourceClaims.subscriptionItemFeatureId,
-          subscriptionItemFeatureId
-        ),
-        isNull(resourceClaims.releasedAt)
-      )
-    )
-    .returning()
-  return resourceClaimsSelectSchema.array().parse(result)
 }
 
 /**
@@ -169,17 +196,27 @@ export const selectActiveClaimByExternalId = async (
 }
 
 /**
- * Counts active (non-released) claims for a given subscription and resource.
+ * Counts active (non-released, non-expired) claims for a given subscription and resource.
+ * Active claims are those where:
+ * - releasedAt IS NULL (not released)
+ * - AND (expiredAt IS NULL OR expiredAt > anchorDate) (not expired)
+ *
  * Useful for validating downgrade capacity constraints.
  * Uses a database COUNT query for efficiency instead of fetching all records.
+ *
+ * @param params - subscriptionId, resourceId, and optional anchorDate for time-based filtering
+ * @param transaction - Database transaction
+ * @returns Count of active claims
  */
 export const countActiveResourceClaims = async (
   params: {
     subscriptionId: string
     resourceId: string
+    anchorDate?: number
   },
   transaction: DbTransaction
 ): Promise<number> => {
+  const now = params.anchorDate ?? Date.now()
   const result = await transaction
     .select({ count: count() })
     .from(resourceClaims)
@@ -187,16 +224,24 @@ export const countActiveResourceClaims = async (
       and(
         eq(resourceClaims.subscriptionId, params.subscriptionId),
         eq(resourceClaims.resourceId, params.resourceId),
-        isNull(resourceClaims.releasedAt)
+        isNull(resourceClaims.releasedAt),
+        or(
+          isNull(resourceClaims.expiredAt),
+          gt(resourceClaims.expiredAt, now)
+        )
       )
     )
   return result[0]?.count ?? 0
 }
 
 /**
- * Batch counts active (non-released) claims for a subscription across multiple resources.
+ * Batch counts active (non-released, non-expired) claims for a subscription across multiple resources.
  * More efficient than calling countActiveResourceClaims for each resource individually.
  * Uses a single GROUP BY query to count claims per resource.
+ *
+ * Active claims are those where:
+ * - releasedAt IS NULL (not released)
+ * - AND (expiredAt IS NULL OR expiredAt > NOW()) (not expired)
  *
  * @param params - subscriptionId and array of resourceIds to count
  * @param transaction - Database transaction
@@ -213,6 +258,7 @@ export const countActiveResourceClaimsBatch = async (
     return new Map()
   }
 
+  const now = Date.now()
   const result = await transaction
     .select({
       resourceId: resourceClaims.resourceId,
@@ -223,7 +269,11 @@ export const countActiveResourceClaimsBatch = async (
       and(
         eq(resourceClaims.subscriptionId, params.subscriptionId),
         inArray(resourceClaims.resourceId, params.resourceIds),
-        isNull(resourceClaims.releasedAt)
+        isNull(resourceClaims.releasedAt),
+        or(
+          isNull(resourceClaims.expiredAt),
+          gt(resourceClaims.expiredAt, now)
+        )
       )
     )
     .groupBy(resourceClaims.resourceId)
@@ -241,54 +291,11 @@ export const countActiveResourceClaimsBatch = async (
 }
 
 /**
- * Batch counts active (non-released) claims for multiple subscription item features.
- * More efficient than calling countActiveClaimsForSubscriptionItemFeature for each feature individually.
- * Uses a single GROUP BY query to count claims per subscriptionItemFeatureId.
- *
- * @param subscriptionItemFeatureIds - Array of subscriptionItemFeatureIds to count
- * @param transaction - Database transaction
- * @returns Map of subscriptionItemFeatureId to count of active claims
- */
-export const countActiveClaimsForSubscriptionItemFeatures = async (
-  subscriptionItemFeatureIds: string[],
-  transaction: DbTransaction
-): Promise<Map<string, number>> => {
-  if (subscriptionItemFeatureIds.length === 0) {
-    return new Map()
-  }
-
-  const result = await transaction
-    .select({
-      subscriptionItemFeatureId:
-        resourceClaims.subscriptionItemFeatureId,
-      count: count(),
-    })
-    .from(resourceClaims)
-    .where(
-      and(
-        inArray(
-          resourceClaims.subscriptionItemFeatureId,
-          subscriptionItemFeatureIds
-        ),
-        isNull(resourceClaims.releasedAt)
-      )
-    )
-    .groupBy(resourceClaims.subscriptionItemFeatureId)
-
-  // Build map with counts, defaulting to 0 for features with no claims
-  const countMap = new Map<string, number>()
-  for (const featureId of subscriptionItemFeatureIds) {
-    countMap.set(featureId, 0)
-  }
-  for (const row of result) {
-    countMap.set(row.subscriptionItemFeatureId, row.count)
-  }
-
-  return countMap
-}
-
-/**
  * Finds active claims by multiple externalIds for a given resource and subscription.
+ * Active claims are those where:
+ * - releasedAt IS NULL (not released)
+ * - AND (expiredAt IS NULL OR expiredAt > NOW()) (not expired)
+ *
  * Useful for batch idempotent claim operations.
  */
 export const selectActiveClaimsByExternalIds = async (
@@ -302,6 +309,7 @@ export const selectActiveClaimsByExternalIds = async (
   if (params.externalIds.length === 0) {
     return []
   }
+  const now = Date.now()
   const result = await transaction
     .select()
     .from(resourceClaims)
@@ -310,7 +318,11 @@ export const selectActiveClaimsByExternalIds = async (
         eq(resourceClaims.resourceId, params.resourceId),
         eq(resourceClaims.subscriptionId, params.subscriptionId),
         inArray(resourceClaims.externalId, params.externalIds),
-        isNull(resourceClaims.releasedAt)
+        isNull(resourceClaims.releasedAt),
+        or(
+          isNull(resourceClaims.expiredAt),
+          gt(resourceClaims.expiredAt, now)
+        )
       )
     )
   return resourceClaimsSelectSchema.array().parse(result)

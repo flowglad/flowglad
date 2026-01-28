@@ -18,10 +18,12 @@ const AddPaymentCheckoutSuccessPage = async ({
     try {
       const { subscription, price, organization } =
         await adminTransaction(async ({ transaction }) => {
-          const subscription = await selectSubscriptionById(
-            targetSubscriptionId,
-            transaction
-          )
+          const subscription = (
+            await selectSubscriptionById(
+              targetSubscriptionId,
+              transaction
+            )
+          ).unwrap()
           if (!subscription.priceId) {
             throw new Error('No price ID found for subscription')
           }

@@ -1,8 +1,9 @@
-import { eq, inArray, notExists, sql } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import * as R from 'ramda'
 import { z } from 'zod'
+import { payments } from '@/db/schema/payments'
 import {
-  type Price,
+  Price,
   prices,
   pricesClientSelectSchema,
   productsTableRowDataSchema,
@@ -19,6 +20,8 @@ import {
   productsSelectSchema,
   productsUpdateSchema,
 } from '@/db/schema/products'
+import { purchases } from '@/db/schema/purchases'
+import { subscriptions } from '@/db/schema/subscriptions'
 import {
   createBulkInsertOrDoNothingFunction,
   createCursorPaginatedSelectFunction,
@@ -32,9 +35,14 @@ import {
   createUpsertFunction,
   type ORMMethodCreatorConfig,
 } from '@/db/tableUtils'
-import { PriceType } from '@/types'
+import { PaymentStatus } from '@/types'
+import { CacheDependency, cached } from '@/utils/cache'
 import { groupBy } from '@/utils/core'
-import type { DbTransaction } from '../types'
+import { RedisKeyNamespace } from '@/utils/redis'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '../types'
 import { selectMembershipAndOrganizations } from './membershipMethods'
 import {
   selectPrices,
@@ -61,11 +69,44 @@ export const selectProductById = createSelectById(products, config)
 export const selectProducts = createSelectFunction(products, config)
 
 /**
+ * Select products by pricing model ID with caching.
+ * Cached by default; pass { ignoreCache: true } to bypass.
+ */
+export const selectProductsByPricingModelId = cached(
+  {
+    namespace: RedisKeyNamespace.ProductsByPricingModel,
+    keyFn: (pricingModelId: string, _transaction: DbTransaction) =>
+      pricingModelId,
+    schema: productsClientSelectSchema.array(),
+    dependenciesFn: (products, pricingModelId: string) => [
+      // Set membership: invalidate when products are added/removed from pricing model
+      CacheDependency.productsByPricingModel(pricingModelId),
+      // Content: invalidate when any returned product's data changes
+      ...products.map((p) => CacheDependency.product(p.id)),
+    ],
+  },
+  async (
+    pricingModelId: string,
+    transaction: DbTransaction
+  ): Promise<Product.ClientRecord[]> => {
+    const result = await selectProducts(
+      { pricingModelId },
+      transaction
+    )
+    return result.map((product) =>
+      productsClientSelectSchema.parse(product)
+    )
+  }
+)
+
+/**
  * Derives pricingModelId from a product.
  * Used for prices and productFeatures.
  */
 export const derivePricingModelIdFromProduct =
-  createDerivePricingModelId(products, config, selectProductById)
+  createDerivePricingModelId(products, config, async (id, tx) =>
+    (await selectProductById(id, tx)).unwrap()
+  )
 
 /**
  * Batch fetch pricingModelIds for multiple products.
@@ -77,9 +118,32 @@ export const pricingModelIdsForProducts = createDerivePricingModelIds(
   config
 )
 
-export const insertProduct = createInsertFunction(products, config)
+const baseInsertProduct = createInsertFunction(products, config)
 
-export const updateProduct = createUpdateFunction(products, config)
+export const insertProduct = async (
+  product: Product.Insert,
+  ctx: TransactionEffectsContext
+): Promise<Product.Record> => {
+  const result = await baseInsertProduct(product, ctx.transaction)
+  // Invalidate products cache for the pricing model (queued for after commit)
+  ctx.invalidateCache(
+    CacheDependency.productsByPricingModel(result.pricingModelId)
+  )
+  return result
+}
+
+const baseUpdateProduct = createUpdateFunction(products, config)
+
+export const updateProduct = async (
+  product: Product.Update,
+  ctx: TransactionEffectsContext
+): Promise<Product.Record> => {
+  const result = await baseUpdateProduct(product, ctx.transaction)
+  // Invalidate content cache (queued for after commit)
+  // Product data changed (name, description, active, etc.)
+  ctx.invalidateCache(CacheDependency.product(result.id))
+  return result
+}
 
 export const selectProductsPaginated = createPaginatedSelectFunction(
   products,
@@ -88,29 +152,69 @@ export const selectProductsPaginated = createPaginatedSelectFunction(
 
 export const bulkInsertProducts = async (
   productInserts: Product.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<Product.Record[]> => {
   if (productInserts.length === 0) {
     return []
   }
-  const results = await transaction
+  const results = await ctx.transaction
     .insert(products)
     .values(productInserts)
     .returning()
-  return results.map((result) => productsSelectSchema.parse(result))
+  const parsedResults = results.map((result) =>
+    productsSelectSchema.parse(result)
+  )
+
+  // Invalidate products cache for all affected pricing models (queued for after commit)
+  const pricingModelIds = [
+    ...new Set(parsedResults.map((p) => p.pricingModelId)),
+  ]
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productsByPricingModel(pricingModelId)
+    )
+  }
+
+  return parsedResults
 }
 
-export const bulkInsertOrDoNothingProducts =
+const baseBulkInsertOrDoNothingProducts =
   createBulkInsertOrDoNothingFunction(products, config)
+
+export const bulkInsertOrDoNothingProducts = async (
+  productInserts: Product.Insert[],
+  conflictTarget: Parameters<
+    typeof baseBulkInsertOrDoNothingProducts
+  >[1],
+  ctx: TransactionEffectsContext
+): Promise<Product.Record[]> => {
+  const results = await baseBulkInsertOrDoNothingProducts(
+    productInserts,
+    conflictTarget,
+    ctx.transaction
+  )
+
+  // Invalidate products cache for all affected pricing models (queued for after commit)
+  const pricingModelIds = [
+    ...new Set(results.map((p) => p.pricingModelId)),
+  ]
+  for (const pricingModelId of pricingModelIds) {
+    ctx.invalidateCache(
+      CacheDependency.productsByPricingModel(pricingModelId)
+    )
+  }
+
+  return results
+}
 
 export const bulkInsertOrDoNothingProductsByExternalId = (
   productInserts: Product.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
   return bulkInsertOrDoNothingProducts(
     productInserts,
     [products.externalId],
-    transaction
+    ctx
   )
 }
 
@@ -118,6 +222,95 @@ export interface ProductRow {
   prices: Price.ClientRecord[]
   product: Product.ClientRecord
   pricingModel?: PricingModel.ClientRecord
+}
+
+/**
+ * Aggregates total revenue per product from both purchases and subscriptions.
+ *
+ * Join paths:
+ * - Purchase-based: payments → purchases (via purchaseId) → prices (via priceId) → products (via productId)
+ * - Subscription-based: payments → subscriptions (via subscriptionId) → prices (via priceId) → products (via productId)
+ *
+ * Only counts succeeded payments, subtracting any refunded amounts.
+ * Subscription payments (where purchaseId is null) are included via the subscription path
+ * to avoid double-counting.
+ *
+ * @param productIds - Array of product IDs to aggregate revenue for
+ * @param transaction - Database transaction
+ * @returns Map of productId → totalRevenue (in cents)
+ */
+export const aggregateRevenueByProductIds = async (
+  productIds: string[],
+  transaction: DbTransaction
+): Promise<Map<string, number>> => {
+  if (productIds.length === 0) {
+    return new Map()
+  }
+
+  // Query for purchase-based revenue (payments with purchaseId)
+  const purchaseRevenueResults = await transaction
+    .select({
+      productId: prices.productId,
+      totalRevenue:
+        sql<number>`COALESCE(SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)), 0)`.mapWith(
+          Number
+        ),
+    })
+    .from(payments)
+    .innerJoin(purchases, eq(payments.purchaseId, purchases.id))
+    .innerJoin(prices, eq(purchases.priceId, prices.id))
+    .where(
+      and(
+        inArray(prices.productId, productIds),
+        eq(payments.status, PaymentStatus.Succeeded)
+      )
+    )
+    .groupBy(prices.productId)
+
+  // Query for subscription-based revenue (payments with subscriptionId but no purchaseId)
+  const subscriptionRevenueResults = await transaction
+    .select({
+      productId: prices.productId,
+      totalRevenue:
+        sql<number>`COALESCE(SUM(${payments.amount} - COALESCE(${payments.refundedAmount}, 0)), 0)`.mapWith(
+          Number
+        ),
+    })
+    .from(payments)
+    .innerJoin(
+      subscriptions,
+      eq(payments.subscriptionId, subscriptions.id)
+    )
+    .innerJoin(prices, eq(subscriptions.priceId, prices.id))
+    .where(
+      and(
+        inArray(prices.productId, productIds),
+        eq(payments.status, PaymentStatus.Succeeded),
+        isNull(payments.purchaseId) // Only count subscription payments not linked to a purchase
+      )
+    )
+    .groupBy(prices.productId)
+
+  // Combine results from both queries
+  const revenueMap = new Map<string, number>()
+
+  for (const row of purchaseRevenueResults) {
+    if (row.productId) {
+      revenueMap.set(row.productId, row.totalRevenue)
+    }
+  }
+
+  for (const row of subscriptionRevenueResults) {
+    if (row.productId) {
+      const existingRevenue = revenueMap.get(row.productId) ?? 0
+      revenueMap.set(
+        row.productId,
+        existingRevenue + row.totalRevenue
+      )
+    }
+  }
+
+  return revenueMap
 }
 
 export const getProductTableRows = async (
@@ -219,30 +412,46 @@ export const selectProductsCursorPaginated =
     config,
     productsTableRowDataSchema,
     async (data, transaction) => {
-      const pricesForProducts = await selectPrices(
-        {
-          productId: data.map((product) => product.id),
-        },
-        transaction
-      )
-      const pricingModelsForProducts = await selectPricingModels(
-        {
-          id: data.map((product) => product.pricingModelId),
-        },
-        transaction
-      )
+      const productIds = data.map((product) => product.id)
+
+      // Fetch related data in parallel for efficiency
+      const [
+        pricesForProducts,
+        pricingModelsForProducts,
+        revenueByProduct,
+      ] = await Promise.all([
+        selectPrices({ productId: productIds }, transaction),
+        selectPricingModels(
+          { id: data.map((product) => product.pricingModelId) },
+          transaction
+        ),
+        aggregateRevenueByProductIds(productIds, transaction),
+      ])
+
+      // Filter to only include prices with productId (non-usage prices)
+      // and group by productId
       const pricesByProductId: Record<string, Price.ClientRecord[]> =
-        groupBy((p) => p.productId, pricesForProducts)
+        {}
+      for (const p of pricesForProducts) {
+        if (Price.clientHasProductId(p)) {
+          const productId = p.productId
+          if (!pricesByProductId[productId]) {
+            pricesByProductId[productId] = []
+          }
+          pricesByProductId[productId].push(p)
+        }
+      }
       const pricingModelsById: Record<
         string,
         PricingModel.ClientRecord[]
       > = groupBy((c) => c.id, pricingModelsForProducts)
 
-      // Format products with prices and pricingModels
+      // Format products with prices, pricingModels, and revenue
       return data.map((product) => ({
         product,
         prices: pricesByProductId[product.id] ?? [],
         pricingModel: pricingModelsById[product.pricingModelId]?.[0],
+        totalRevenue: revenueByProduct.get(product.id) ?? 0,
       }))
     },
     // Searchable columns for ILIKE search on name and slug
@@ -262,20 +471,21 @@ export const selectProductsCursorPaginated =
       return eq(products.id, trimmedQuery)
     },
     /**
-     * Additional filter clause for excludeUsageProducts.
-     * Excludes products that have any usage price.
+     * Additional filter clause for excludeProductsWithNoPrices.
+     * Excludes products that have no prices associated with them.
+     * This is useful for hiding orphaned products (e.g., hidden products
+     * that were previously created as a workaround for usage prices).
      */
     ({ filters }) => {
       const typedFilters = filters as
-        | { excludeUsageProducts?: boolean }
+        | { excludeProductsWithNoPrices?: boolean }
         | undefined
-      if (!typedFilters?.excludeUsageProducts) return undefined
+      if (!typedFilters?.excludeProductsWithNoPrices) return undefined
 
-      // Exclude products that have any usage price
-      // NOT EXISTS (SELECT 1 FROM prices WHERE prices.product_id = products.id AND prices.type = 'usage')
-      return notExists(
-        sql`(SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id} AND ${prices.type} = ${PriceType.Usage})`
-      )
+      // Exclude products that have no prices
+      // EXISTS (SELECT 1 FROM prices WHERE prices.product_id = products.id)
+      // This ensures only products with at least one price are included
+      return sql`EXISTS (SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id})`
     }
   )
 
@@ -291,7 +501,9 @@ export const selectProductPriceAndFeaturesByProductId = async (
     )
   } catch (error) {
     // If product lookup fails because it has no prices, try to get the product directly
-    const product = await selectProductById(productId, transaction)
+    const product = (
+      await selectProductById(productId, transaction)
+    ).unwrap()
     const prices = await selectPrices({ productId }, transaction)
     productWithPrices = {
       ...product,

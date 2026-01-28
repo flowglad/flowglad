@@ -7,7 +7,6 @@ import type {
   Organization,
 } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
-import type { Product } from '@/db/schema/products'
 import type { Purchase } from '@/db/schema/purchases'
 import { selectCountryById } from '@/db/tableMethods/countryMethods'
 import { selectDiscountById } from '@/db/tableMethods/discountMethods'
@@ -92,7 +91,6 @@ const createBaseFeeCalculationInsert = ({
 export const createCheckoutSessionFeeCalculationInsertForPrice =
   async (params: {
     organization: Organization.Record
-    product: Product.Record
     price: Price.Record
     purchase?: Purchase.Record
     discount?: Discount.ClientRecord
@@ -104,7 +102,6 @@ export const createCheckoutSessionFeeCalculationInsertForPrice =
   }): Promise<FeeCalculation.Insert> => {
     const {
       organization,
-      product,
       price,
       purchase,
       discount,
@@ -136,7 +133,7 @@ export const createCheckoutSessionFeeCalculationInsertForPrice =
     ) {
       const calc = await calculateTaxes({
         discountInclusiveAmount: Math.max(base - discountAmt, 0),
-        product,
+        livemode,
         billingAddress,
         price,
         purchase,
@@ -172,13 +169,15 @@ export const createFeeCalculationForCheckoutSession = async (
   transaction: DbTransaction
 ): Promise<FeeCalculation.Record> => {
   const discount = checkoutSession.discountId
-    ? await selectDiscountById(
-        checkoutSession.discountId,
-        transaction
-      )
+    ? (
+        await selectDiscountById(
+          checkoutSession.discountId,
+          transaction
+        )
+      ).unwrap()
     : undefined
 
-  const [{ price, product, organization }] =
+  const [{ price, organization }] =
     await selectPriceProductAndOrganizationByPriceWhere(
       { id: checkoutSession.priceId! },
       transaction
@@ -187,20 +186,19 @@ export const createFeeCalculationForCheckoutSession = async (
   if (!organizationCountryId) {
     throw new Error('Organization country id is required')
   }
-  const organizationCountry = await selectCountryById(
-    organizationCountryId,
-    transaction
-  )
+  const organizationCountry = (
+    await selectCountryById(organizationCountryId, transaction)
+  ).unwrap()
   return createCheckoutSessionFeeCalculation(
     {
       organization,
-      product,
       price,
       discount,
       checkoutSessionId: checkoutSession.id,
       billingAddress: checkoutSession.billingAddress,
       paymentMethodType: checkoutSession.paymentMethodType,
       organizationCountry,
+      livemode: checkoutSession.livemode,
     },
     transaction
   )

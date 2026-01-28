@@ -4,7 +4,6 @@ import {
   customers,
 } from '@/db/schema/customers'
 import { prices, pricesClientSelectSchema } from '@/db/schema/prices'
-import { products } from '@/db/schema/products'
 import {
   subscriptionClientSelectSchema,
   subscriptions,
@@ -148,9 +147,10 @@ export const selectUsageEventsTableRowData =
         .map((usageEvent) => usageEvent.usageMeterId)
         .filter((id): id is string => id !== null)
 
-      const priceIds = usageEventsData
-        .map((usageEvent) => usageEvent.priceId)
-        .filter((id): id is string => !core.isNil(id))
+      // priceId is NOT NULL, so we can map directly without filtering
+      const priceIds = usageEventsData.map(
+        (usageEvent) => usageEvent.priceId
+      )
 
       // Query 1: Get customers
       const customerResults = await transaction
@@ -170,15 +170,15 @@ export const selectUsageEventsTableRowData =
         .from(usageMeters)
         .where(inArray(usageMeters.id, usageMeterIds))
 
-      // Query 4: Get prices with products
-      const priceResults = await transaction
-        .select({
-          price: prices,
-          product: products,
-        })
-        .from(prices)
-        .innerJoin(products, eq(products.id, prices.productId))
-        .where(inArray(prices.id, priceIds))
+      // Query 4: Get prices (usage prices don't have products - productId is null)
+      // Direct query without schema parsing for better debugging
+      const priceResults =
+        priceIds.length > 0
+          ? await transaction
+              .select()
+              .from(prices)
+              .where(inArray(prices.id, priceIds))
+          : []
 
       // Create lookup maps
       const customersById = new Map(
@@ -197,13 +197,7 @@ export const selectUsageEventsTableRowData =
         ])
       )
       const pricesById = new Map(
-        priceResults.map((result) => [result.price.id, result.price])
-      )
-      const productsById = new Map(
-        priceResults.map((result) => [
-          result.product.id,
-          result.product,
-        ])
+        priceResults.map((price) => [price.id, price])
       )
 
       return usageEventsData.map((usageEvent) => {
@@ -214,20 +208,18 @@ export const selectUsageEventsTableRowData =
         const usageMeter = usageMetersById.get(
           usageEvent.usageMeterId
         )
-        const price = usageEvent.priceId
-          ? pricesById.get(usageEvent.priceId)
-          : null
+        // priceId is NOT NULL, so we always expect a price to exist
+        const price = pricesById.get(usageEvent.priceId)
 
         if (!customer || !subscription || !usageMeter) {
           throw new Error(
             `Missing related data for usage event ${usageEvent.id}`
           )
         }
-        // pricesById only contains prices that passed the INNER JOIN with products.
-        // If priceId exists but price is missing, the price's product doesn't exist (data integrity issue).
-        if (usageEvent.priceId && !price) {
+
+        if (!price) {
           throw new Error(
-            `Price not found for usage event ${usageEvent.id} with priceId ${usageEvent.priceId}`
+            `Missing price for usage event ${usageEvent.id}, priceId: ${usageEvent.priceId}`
           )
         }
 
@@ -247,9 +239,7 @@ export const selectUsageEventsTableRowData =
           )
         const usageMeterClient =
           usageMetersClientSelectSchema.parse(usageMeter)
-        const priceClient = price
-          ? pricesClientSelectSchema.parse(price)
-          : null
+        const priceClient = pricesClientSelectSchema.parse(price)
 
         return {
           usageEvent,

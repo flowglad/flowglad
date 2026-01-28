@@ -7,5 +7,14 @@ export {
   type RequestHandlerOutput,
   requestHandler,
 } from './requestHandler'
-export { routeToHandlerMap } from './subrouteHandlers'
+export {
+  hybridRouteToHandlerMap,
+  isHybridActionKey,
+  routeToHandlerMap,
+} from './subrouteHandlers'
+export type {
+  GetPricingModelResponse,
+  HybridSubRouteHandler,
+  SubRouteHandler,
+} from './subrouteHandlers/types'
 export { verifyWebhook, WebhookVerificationError } from './webhook'

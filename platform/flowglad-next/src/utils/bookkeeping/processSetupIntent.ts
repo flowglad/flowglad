@@ -1,9 +1,10 @@
+import { Result } from 'better-result'
 import Stripe from 'stripe'
 import type { BillingRun } from '@/db/schema/billingRuns'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import { Customer } from '@/db/schema/customers'
 import { DiscountRedemption } from '@/db/schema/discountRedemptions'
-import { Event } from '@/db/schema/events'
+import type { Discount } from '@/db/schema/discounts'
 import type { Organization } from '@/db/schema/organizations'
 import type { PaymentMethod } from '@/db/schema/paymentMethods'
 import type { Price } from '@/db/schema/prices'
@@ -23,10 +24,7 @@ import {
 import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectPaymentMethodById } from '@/db/tableMethods/paymentMethodMethods'
 import { selectPriceProductAndOrganizationByPriceWhere } from '@/db/tableMethods/priceMethods'
-import {
-  selectPurchaseById,
-  updatePurchase,
-} from '@/db/tableMethods/purchaseMethods'
+import { updatePurchase } from '@/db/tableMethods/purchaseMethods'
 import { selectSubscriptionAndItems } from '@/db/tableMethods/subscriptionItemMethods'
 import {
   safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
@@ -34,8 +32,11 @@ import {
   selectSubscriptions,
   updateSubscription,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { TransactionOutput } from '@/db/transactionEnhacementTypes'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
+import { NotFoundError, ValidationError } from '@/errors'
 import { activateSubscription } from '@/subscriptions/createSubscription/helpers'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
 import {
@@ -46,6 +47,7 @@ import {
   PurchaseStatus,
   SubscriptionStatus,
 } from '@/types'
+import { CacheDependency } from '@/utils/cache'
 import {
   IntentMetadataType,
   StripeIntentMetadata,
@@ -93,14 +95,15 @@ export const processTerminalCheckoutSessionSetupIntent = async (
   checkoutSession: CheckoutSession.Record,
   transaction: DbTransaction
 ): Promise<ProcessTerminalCheckoutSessionSetupIntentResult> => {
-  const organization = await selectOrganizationById(
-    checkoutSession.organizationId,
-    transaction
-  )
-  const customer = await selectCustomerById(
-    checkoutSession.customerId!,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(
+      checkoutSession.organizationId,
+      transaction
+    )
+  ).unwrap()
+  const customer = (
+    await selectCustomerById(checkoutSession.customerId!, transaction)
+  ).unwrap()
   return {
     type: checkoutSession.type,
     checkoutSession,
@@ -115,13 +118,39 @@ export const processTerminalCheckoutSessionSetupIntent = async (
 export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
   async (
     setupIntent: CoreSripeSetupIntent,
-    transaction: DbTransaction
-  ) => {
-    const initialCheckoutSession =
+    ctx: TransactionEffectsContext
+  ): Promise<
+    Result<
+      {
+        purchase: Purchase.Record
+        checkoutSession: CheckoutSession.Record
+        price: Price.Record
+        organization: Organization.Record
+        product: Product.Record | null
+        customer: Customer.Record
+        discount: Discount.Record | null
+        feeCalculation:
+          | import('@/db/schema/feeCalculations').FeeCalculation.Record
+          | null
+        discountRedemption: DiscountRedemption.Record | null
+        paymentMethod: PaymentMethod.Record
+      },
+      NotFoundError | ValidationError
+    >
+  > => {
+    const { transaction } = ctx
+    const checkoutSessionResult =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
+    if (checkoutSessionResult.status === 'error') {
+      return Result.err(checkoutSessionResult.error)
+    }
+    const initialCheckoutSession = checkoutSessionResult.value
     if (checkoutSessionIsInTerminalState(initialCheckoutSession)) {
-      throw new Error(
-        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Checkout session is in terminal state (checkout session id: ${initialCheckoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.status',
+          `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Checkout session is in terminal state (checkout session id: ${initialCheckoutSession.id})`
+        )
       )
     }
     const checkoutSession = await updateCheckoutSession(
@@ -137,16 +166,22 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
     if (
       checkoutSession.type === CheckoutSessionType.AddPaymentMethod
     ) {
-      throw new Error(
-        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Add payment method checkout flow not support (checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Add payment method checkout flow not support (checkout session id: ${checkoutSession.id})`
+        )
       )
     }
     if (
       checkoutSession.type ===
       CheckoutSessionType.ActivateSubscription
     ) {
-      throw new Error(
-        `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Activate subscription checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded: Activate subscription checkout flow not supported (checkout session id: ${checkoutSession.id})`
+        )
       )
     }
 
@@ -157,13 +192,11 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       )
 
     const {
-      result: {
-        purchase,
-        customer,
-        discount,
-        feeCalculation,
-        discountRedemption,
-      },
+      purchase,
+      customer,
+      discount,
+      feeCalculation,
+      discountRedemption,
     } = await processPurchaseBookkeepingForCheckoutSession(
       {
         checkoutSession,
@@ -171,15 +204,15 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
           ? stripeIdFromObjectOrId(setupIntent.customer)
           : null,
       },
-      transaction
+      ctx
     )
     const { paymentMethod } =
       await pullStripeSetupIntentDataToDatabase(
         setupIntent,
         customer,
-        transaction
+        ctx
       )
-    return {
+    return Result.ok({
       purchase,
       checkoutSession,
       price,
@@ -190,7 +223,7 @@ export const processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded =
       feeCalculation,
       discountRedemption,
       paymentMethod,
-    }
+    })
   }
 
 export const calculateTrialEnd = (params: {
@@ -216,8 +249,9 @@ export const pullStripeSetupIntentDataToDatabase = async (
     Customer.Record,
     'id' | 'stripeCustomerId' | 'livemode'
   >,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction } = ctx
   const stripeCustomerId = setupIntent.customer
     ? stripeIdFromObjectOrId(setupIntent.customer)
     : null
@@ -241,7 +275,7 @@ export const pullStripeSetupIntentDataToDatabase = async (
       livemode: customer.livemode,
       customerId: customer.id,
     },
-    transaction
+    ctx
   )
   return {
     customer,
@@ -255,29 +289,47 @@ export const checkoutSessionFromSetupIntent = async (
     'status' | 'metadata' | 'id'
   >,
   transaction: DbTransaction
-) => {
+): Promise<
+  Result<CheckoutSession.Record, NotFoundError | ValidationError>
+> => {
   const metadata: StripeIntentMetadata =
     stripeIntentMetadataSchema.parse(setupIntent.metadata)
   if (!metadata) {
-    throw new Error('No metadata found')
+    return Result.err(
+      new NotFoundError('SetupIntentMetadata', setupIntent.id)
+    )
   }
   // FIXME: handle non-success cases
   if (setupIntent.status !== 'succeeded') {
-    throw new Error(
-      `Setup intent ${setupIntent.id} is not succeeded, but ${setupIntent.status}.`
+    return Result.err(
+      new ValidationError(
+        'setupIntent.status',
+        `Setup intent ${setupIntent.id} is not succeeded, but ${setupIntent.status}.`
+      )
     )
   }
   if (metadata.type !== IntentMetadataType.CheckoutSession) {
-    throw new Error(
-      `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
+    return Result.err(
+      new ValidationError(
+        'setupIntentMetadata.type',
+        `Metadata type is not checkout_session for setup intent ${setupIntent.id}`
+      )
     )
   }
   const checkoutSessionId = metadata.checkoutSessionId
-  const checkoutSession = await selectCheckoutSessionById(
+  const checkoutSessionResult = await selectCheckoutSessionById(
     checkoutSessionId,
     transaction
   )
-  return checkoutSession
+  if (Result.isError(checkoutSessionResult)) {
+    return Result.err(
+      new NotFoundError(
+        'CheckoutSession',
+        `Checkout session ${checkoutSessionId} not found for setup intent ${setupIntent.id}`
+      )
+    )
+  }
+  return Result.ok(checkoutSessionResult.value)
 }
 
 interface ProcessAddPaymentMethodSetupIntentSucceededResult {
@@ -296,12 +348,22 @@ interface ProcessAddPaymentMethodSetupIntentSucceededResult {
 
 export const processAddPaymentMethodSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
-  transaction: DbTransaction
-): Promise<ProcessAddPaymentMethodSetupIntentSucceededResult> => {
-  const initialCheckoutSession = await checkoutSessionFromSetupIntent(
+  ctx: TransactionEffectsContext
+): Promise<
+  Result<
+    ProcessAddPaymentMethodSetupIntentSucceededResult,
+    NotFoundError | ValidationError
+  >
+> => {
+  const { transaction, invalidateCache } = ctx
+  const checkoutSessionResult = await checkoutSessionFromSetupIntent(
     setupIntent,
     transaction
   )
+  if (checkoutSessionResult.status === 'error') {
+    return Result.err(checkoutSessionResult.error)
+  }
+  const initialCheckoutSession = checkoutSessionResult.value
   const checkoutSession = await updateCheckoutSession(
     {
       ...initialCheckoutSession,
@@ -311,24 +373,28 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
     },
     transaction
   )
-  const initialCustomer = await selectCustomerById(
-    checkoutSession.customerId!,
-    transaction
-  )
+  const initialCustomer = (
+    await selectCustomerById(checkoutSession.customerId!, transaction)
+  ).unwrap()
   const { customer, paymentMethod } =
     await pullStripeSetupIntentDataToDatabase(
       setupIntent,
       initialCustomer,
-      transaction
+      ctx
     )
   if (checkoutSession.targetSubscriptionId) {
-    const subscription = await selectSubscriptionById(
-      checkoutSession.targetSubscriptionId,
-      transaction
-    )
+    const subscription = (
+      await selectSubscriptionById(
+        checkoutSession.targetSubscriptionId,
+        transaction
+      )
+    ).unwrap()
     if (subscription.status === SubscriptionStatus.CreditTrial) {
-      throw new Error(
-        `Subscription ${subscription.id} is a credit trial subscription. To add a payment method to it, you must first upgrade to a paid plan.`
+      return Result.err(
+        new ValidationError(
+          'subscription.status',
+          `Subscription ${subscription.id} is a credit trial subscription. To add a payment method to it, you must first upgrade to a paid plan.`
+        )
       )
     }
     await updateSubscription(
@@ -348,12 +414,17 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
     )
   }
 
-  const organization = await selectOrganizationById(
-    checkoutSession.organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(
+      checkoutSession.organizationId,
+      transaction
+    )
+  ).unwrap()
 
-  return {
+  // Invalidate payment methods cache after adding a new payment method
+  invalidateCache(CacheDependency.customerPaymentMethods(customer.id))
+
+  return Result.ok({
     type: CheckoutSessionType.AddPaymentMethod,
     purchase: null,
     price: null,
@@ -362,7 +433,7 @@ export const processAddPaymentMethodSetupIntentSucceeded = async (
     checkoutSession,
     organization,
     customer,
-  }
+  })
 }
 
 interface ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult {
@@ -386,7 +457,12 @@ interface ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult {
 interface SetupIntentSucceededBookkeepingResult {
   checkoutSession: CheckoutSession.Record
   price: Price.Record
-  product: Product.Record
+  /**
+   * Product may be null for usage prices, but checkout sessions
+   * for subscription creation always require a product.
+   * The null case should be validated at runtime.
+   */
+  product: Product.Record | null
   purchase: Purchase.Record
   organization: Organization.Record
   customer: Customer.Record
@@ -409,19 +485,24 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     }: SetupIntentSucceededBookkeepingResult & {
       setupIntent: CoreSripeSetupIntent
     },
-    transaction: DbTransaction
+    ctx: TransactionEffectsContext
   ): Promise<
-    TransactionOutput<ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult>
+    Result<
+      ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult,
+      Error
+    >
   > => {
+    const { transaction, emitEvent } = ctx
     if (!customer) {
-      throw new Error(
-        `Customer is required for setup intent ${setupIntent.id}`
-      )
+      return Result.err(new NotFoundError('Customer', setupIntent.id))
     }
 
     if (!isCheckoutSessionSubscriptionCreating(checkoutSession)) {
-      throw new Error(
-        `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `createSubscriptionFromSetupIntentableCheckoutSession: checkout session ${checkoutSession.id} is not supported because it is of type ${checkoutSession.type}.`
+        )
       )
     }
     /**
@@ -430,29 +511,48 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
      * the checkout session was for adding a payment method
      */
     if (!price) {
-      throw new Error(
-        `Price not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+      return Result.err(
+        new NotFoundError(
+          'Price',
+          `for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+        )
       )
     }
 
     if (!product) {
-      throw new Error(
-        `Product not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+      return Result.err(
+        new NotFoundError(
+          'Product',
+          `for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+        )
       )
     }
 
     if (!purchase) {
-      throw new Error(
-        `Purchase not found for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+      return Result.err(
+        new NotFoundError(
+          'Purchase',
+          `for setup intent ${setupIntent.id}, and checkout session ${checkoutSession.id} of type ${checkoutSession.type}. This should only happen for add payment method checkout sessions.`
+        )
       )
     }
 
     if (!price.intervalUnit) {
-      throw new Error('Price interval unit is required')
+      return Result.err(
+        new ValidationError(
+          'price.intervalUnit',
+          'Price interval unit is required'
+        )
+      )
     }
 
     if (!price.intervalCount) {
-      throw new Error('Price interval count is required')
+      return Result.err(
+        new ValidationError(
+          'price.intervalCount',
+          'Price interval count is required'
+        )
+      )
     }
 
     const hasHadTrial = await hasCustomerUsedTrial(
@@ -463,7 +563,7 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
     const startDate = Date.now()
     const now = Date.now()
 
-    const output = await createSubscriptionWorkflow(
+    const workflowResult = await createSubscriptionWorkflow(
       {
         stripeSetupIntentId: setupIntent.id,
         defaultPaymentMethod: paymentMethod,
@@ -491,13 +591,13 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
         product,
         livemode: checkoutSession.livemode,
       },
-      transaction
+      ctx
     )
 
-    const eventInserts: Event.Insert[] = []
-    if (output.eventsToInsert) {
-      eventInserts.push(...output.eventsToInsert)
+    if (workflowResult.status === 'error') {
+      return Result.err(workflowResult.error)
     }
+    const output = workflowResult.value
 
     const updatedPurchase = await updatePurchase(
       {
@@ -508,8 +608,11 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
       transaction
     )
+    // Invalidate purchase cache after updating purchase content (status)
+    ctx.invalidateCache(CacheDependency.purchase(updatedPurchase.id))
 
-    eventInserts.push({
+    // Emit purchase completed event
+    emitEvent({
       type: FlowgladEventType.PurchaseCompleted,
       occurredAt: now,
       organizationId: organization.id,
@@ -528,20 +631,16 @@ export const createSubscriptionFromSetupIntentableCheckoutSession =
       },
     })
 
-    return {
-      ...output,
-      eventsToInsert: eventInserts,
-      result: {
-        purchase: updatedPurchase,
-        checkoutSession,
-        billingRun: output.result.billingRun,
-        price,
-        product,
-        organization,
-        customer,
-        type: checkoutSession.type,
-      },
-    }
+    return Result.ok({
+      purchase: updatedPurchase,
+      checkoutSession,
+      billingRun: output.billingRun,
+      price,
+      product,
+      organization,
+      customer,
+      type: checkoutSession.type,
+    })
   }
 
 export interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult {
@@ -558,10 +657,20 @@ export interface ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededR
 const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
   async (
     setupIntent: CoreSripeSetupIntent,
-    transaction: DbTransaction
-  ): Promise<ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult> => {
-    const initialCheckoutSession =
+    ctx: TransactionEffectsContext
+  ): Promise<
+    Result<
+      ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult,
+      NotFoundError | ValidationError
+    >
+  > => {
+    const { transaction } = ctx
+    const checkoutSessionResult =
       await checkoutSessionFromSetupIntent(setupIntent, transaction)
+    if (checkoutSessionResult.status === 'error') {
+      return Result.err(checkoutSessionResult.error)
+    }
+    const initialCheckoutSession = checkoutSessionResult.value
     const checkoutSession = await updateCheckoutSession(
       {
         ...initialCheckoutSession,
@@ -578,39 +687,46 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       transaction
     )
     if (!result) {
-      throw new Error(
-        `processActivateSubscriptionCheckoutSessionSetupIntentSucceeded: Subscription not found for checkout session ${checkoutSession.id}`
+      return Result.err(
+        new NotFoundError(
+          'Subscription',
+          checkoutSession.targetSubscriptionId!
+        )
       )
     }
 
     // Fetch customer and payment method (needed in all paths)
-    const customer = await selectCustomerById(
-      result.subscription.customerId,
-      transaction
-    )
+    const customer = (
+      await selectCustomerById(
+        result.subscription.customerId,
+        transaction
+      )
+    ).unwrap()
     const { paymentMethod } =
       await pullStripeSetupIntentDataToDatabase(
         setupIntent,
         customer,
-        transaction
+        ctx
       )
 
     // Defense-in-depth: Check if this exact setup intent was already processed
     // (outer idempotency check should catch this, but this provides additional safety)
     if (result.subscription.stripeSetupIntentId === setupIntent.id) {
-      return {
+      return Result.ok({
         type: CheckoutSessionType.ActivateSubscription as const,
         checkoutSession,
-        organization: await selectOrganizationById(
-          checkoutSession.organizationId,
-          transaction
-        ),
+        organization: (
+          await selectOrganizationById(
+            checkoutSession.organizationId,
+            transaction
+          )
+        ).unwrap(),
         customer,
         paymentMethod,
         billingRun: null,
         subscription: result.subscription,
         purchase: null,
-      }
+      })
     }
 
     // Set stripeSetupIntentId BEFORE activateSubscription to prevent race conditions
@@ -624,33 +740,43 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
       transaction
     )
 
-    const { billingRun } = await activateSubscription(
+    const activationResult = await activateSubscription(
       {
         subscription: updatedSubscription,
         subscriptionItems: result.subscriptionItems,
         defaultPaymentMethod: paymentMethod,
         autoStart: true,
       },
-      transaction
+      ctx
     )
+    if (activationResult.status === 'error') {
+      throw activationResult.error
+    }
+    const { billingRun } = activationResult.value
 
     // Fetch the subscription again to get the updated status after activation
-    const activatedSubscription = await selectSubscriptionById(
-      updatedSubscription.id,
-      transaction
-    )
+    const activatedSubscription = (
+      await selectSubscriptionById(
+        updatedSubscription.id,
+        transaction
+      )
+    ).unwrap()
 
-    return {
+    return Result.ok({
       type: CheckoutSessionType.ActivateSubscription as const,
       checkoutSession,
-      organization: await selectOrganizationById(
-        checkoutSession.organizationId,
-        transaction
-      ),
-      customer: await selectCustomerById(
-        checkoutSession.customerId!,
-        transaction
-      ),
+      organization: (
+        await selectOrganizationById(
+          checkoutSession.organizationId,
+          transaction
+        )
+      ).unwrap(),
+      customer: (
+        await selectCustomerById(
+          checkoutSession.customerId!,
+          transaction
+        )
+      ).unwrap(),
       paymentMethod: await paymentMethodForStripePaymentMethodId(
         {
           stripePaymentMethodId: stripeIdFromObjectOrId(
@@ -659,25 +785,27 @@ const processActivateSubscriptionCheckoutSessionSetupIntentSucceeded =
           livemode: checkoutSession.livemode,
           customerId: checkoutSession.customerId!,
         },
-        transaction
+        ctx
       ),
       billingRun,
       subscription: activatedSubscription,
       purchase: null,
-    }
+    })
   }
 
 export const processSetupIntentSucceeded = async (
   setupIntent: CoreSripeSetupIntent,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ): Promise<
-  TransactionOutput<
+  Result<
     | ProcessSubscriptionCreatingCheckoutSessionSetupIntentSucceededResult
     | ProcessAddPaymentMethodSetupIntentSucceededResult
     | ProcessTerminalCheckoutSessionSetupIntentResult
-    | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult
+    | ProcessActivateSubscriptionCheckoutSessionSetupIntentSucceededResult,
+    Error
   >
 > => {
+  const { transaction, invalidateCache } = ctx
   // Check if this setup intent was already processed (idempotency check)
   const existingSubscription = await selectSubscriptions(
     {
@@ -690,19 +818,22 @@ export const processSetupIntentSucceeded = async (
     // This setup intent was already processed, return the existing subscription
     // This prevents duplicate subscription creation in case of webhook replay
     const subscription = existingSubscription[0]
-    const checkoutSession = await checkoutSessionFromSetupIntent(
-      setupIntent,
-      transaction
-    )
-    const customer = await selectCustomerById(
-      subscription.customerId!,
-      transaction
-    )
+    const checkoutSessionResult =
+      await checkoutSessionFromSetupIntent(setupIntent, transaction)
+    if (checkoutSessionResult.status === 'error') {
+      return Result.err(checkoutSessionResult.error)
+    }
+    const checkoutSession = checkoutSessionResult.value
+    const customer = (
+      await selectCustomerById(subscription.customerId!, transaction)
+    ).unwrap()
     const paymentMethod = subscription.defaultPaymentMethodId
-      ? await selectPaymentMethodById(
-          subscription.defaultPaymentMethodId,
-          transaction
-        )
+      ? (
+          await selectPaymentMethodById(
+            subscription.defaultPaymentMethodId,
+            transaction
+          )
+        ).unwrap()
       : undefined
 
     // Determine result type based on checkout session type
@@ -710,42 +841,50 @@ export const processSetupIntentSucceeded = async (
       checkoutSession.type ===
       CheckoutSessionType.ActivateSubscription
     ) {
-      const organization = await selectOrganizationById(
-        checkoutSession.organizationId,
-        transaction
-      )
+      const organization = (
+        await selectOrganizationById(
+          checkoutSession.organizationId,
+          transaction
+        )
+      ).unwrap()
 
       // Ensure payment method exists for activation
       if (!paymentMethod) {
-        throw new Error(
-          `processSetupIntentSucceeded: Payment method required for subscription activation (checkout session id: ${checkoutSession.id})`
+        return Result.err(
+          new NotFoundError(
+            'PaymentMethod',
+            `processSetupIntentSucceeded: Payment method required for subscription activation (checkout session id: ${checkoutSession.id})`
+          )
         )
       }
 
-      return {
-        result: {
-          type: CheckoutSessionType.ActivateSubscription,
-          checkoutSession,
-          organization,
-          customer,
-          paymentMethod,
-          billingRun: null,
-          subscription,
-          purchase: null,
-        },
-        eventsToInsert: [],
-      }
+      return Result.ok({
+        type: CheckoutSessionType.ActivateSubscription,
+        checkoutSession,
+        organization,
+        customer,
+        paymentMethod,
+        billingRun: null,
+        subscription,
+        purchase: null,
+      })
     }
     if (checkoutSession.type === CheckoutSessionType.Purchase) {
-      throw new Error(
-        `processSetupIntentSucceeded: Purchase checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `processSetupIntentSucceeded: Purchase checkout flow not supported (checkout session id: ${checkoutSession.id})`
+        )
       )
     }
     if (
       checkoutSession.type === CheckoutSessionType.AddPaymentMethod
     ) {
-      throw new Error(
-        `processSetupIntentSucceeded: Add payment method checkout flow not supported (checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new ValidationError(
+          'checkoutSession.type',
+          `processSetupIntentSucceeded: Add payment method checkout flow not supported (checkout session id: ${checkoutSession.id})`
+        )
       )
     }
     // Default to subscription creating result type
@@ -757,76 +896,96 @@ export const processSetupIntentSucceeded = async (
 
     // Validate that price result exists
     if (!priceResult[0]) {
-      throw new Error(
-        `processSetupIntentSucceeded: Price not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id})`
+      return Result.err(
+        new NotFoundError(
+          'Price',
+          `processSetupIntentSucceeded: Price not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id})`
+        )
       )
     }
 
-    return {
-      result: {
-        type: checkoutSession.type,
-        checkoutSession,
-        price: priceResult[0].price,
-        product: priceResult[0].product,
-        organization: priceResult[0].organization,
-        customer,
-        billingRun: null,
-        purchase: null,
-      },
-      eventsToInsert: [],
+    // Validate that product exists - subscription creation requires a product
+    if (!priceResult[0].product) {
+      return Result.err(
+        new NotFoundError(
+          'Product',
+          `processSetupIntentSucceeded: Product not found for subscription (price id: ${subscription.priceId}, checkout session id: ${checkoutSession.id}). Usage prices are not supported for subscription checkout sessions.`
+        )
+      )
     }
+
+    return Result.ok({
+      type: checkoutSession.type,
+      checkoutSession,
+      price: priceResult[0].price,
+      product: priceResult[0].product,
+      organization: priceResult[0].organization,
+      customer,
+      billingRun: null,
+      purchase: null,
+    })
   }
 
-  const initialCheckoutSession = await checkoutSessionFromSetupIntent(
-    setupIntent,
-    transaction
-  )
+  const initialCheckoutSessionResult =
+    await checkoutSessionFromSetupIntent(setupIntent, transaction)
+  if (initialCheckoutSessionResult.status === 'error') {
+    return Result.err(initialCheckoutSessionResult.error)
+  }
+  const initialCheckoutSession = initialCheckoutSessionResult.value
 
   if (checkoutSessionIsInTerminalState(initialCheckoutSession)) {
     const result = await processTerminalCheckoutSessionSetupIntent(
       initialCheckoutSession,
       transaction
     )
-    return {
-      result,
-      eventsToInsert: [],
-    }
+    return Result.ok(result)
   }
 
   if (
     initialCheckoutSession.type ===
     CheckoutSessionType.AddPaymentMethod
   ) {
-    const result = await processAddPaymentMethodSetupIntentSucceeded(
-      setupIntent,
-      transaction
-    )
-    return {
-      result,
-      eventsToInsert: [],
+    const resultResult =
+      await processAddPaymentMethodSetupIntentSucceeded(
+        setupIntent,
+        ctx
+      )
+    if (resultResult.status === 'error') {
+      return Result.err(resultResult.error)
     }
+    return Result.ok(resultResult.value)
   }
 
   if (
     initialCheckoutSession.type ===
     CheckoutSessionType.ActivateSubscription
   ) {
-    const result =
+    const activateResult =
       await processActivateSubscriptionCheckoutSessionSetupIntentSucceeded(
         setupIntent,
-        transaction
+        ctx
       )
-    return {
-      result,
-      eventsToInsert: [],
+    if (Result.isError(activateResult)) {
+      return Result.err(activateResult.error)
     }
+    invalidateCache(
+      CacheDependency.customerSubscriptions(
+        activateResult.value.customer.id
+      )
+    )
+    return Result.ok(activateResult.value)
   }
 
-  const successProcessedResult =
+  const successProcessedResultResult =
     await processSubscriptionCreatingCheckoutSessionSetupIntentSucceeded(
       setupIntent,
-      transaction
+      ctx
     )
+
+  if (successProcessedResultResult.status === 'error') {
+    return Result.err(successProcessedResultResult.error)
+  }
+  const successProcessedResult = successProcessedResultResult.value
 
   const withSetupIntent = Object.assign(successProcessedResult, {
     setupIntent,
@@ -834,6 +993,6 @@ export const processSetupIntentSucceeded = async (
 
   return await createSubscriptionFromSetupIntentableCheckoutSession(
     withSetupIntent,
-    transaction
+    ctx
   )
 }

@@ -5,10 +5,10 @@
   "version": "0.0.0",
   "scripts": {
     "init:flowglad-next": "bun install && bun run build && bun run init:flowglad-next:link && bun run init:flowglad-next:packages && bun run init:flowglad-next:user && bun run init:flowglad-next:env",
-    "init:flowglad-next:link": "cd platform/flowglad-next && bunx vercel link --yes --scope flowglad --project $FLOWGLAD_VERCEL_PROJECT_ID",
+    "init:flowglad-next:link": "cd platform/flowglad-next && mkdir -p .vercel && printf '{\"projectId\":\"%s\",\"orgId\":\"%s\"}' \"$FLOWGLAD_VERCEL_PROJECT_ID\" \"$FLOWGLAD_VERCEL_ORG_ID\" > .vercel/project.json",
     "init:flowglad-next:packages": "cd platform/flowglad-next && bun install",
     "init:flowglad-next:user": "cd platform/flowglad-next && bun user $FLOWGLAD_LOCAL_USER",
-    "init:flowglad-next:env": "cd platform/flowglad-next && bun run vercel:env-pull",
+    "init:flowglad-next:env": "cd platform/flowglad-next && bun run vercel:env-pull:dev",
     "randombytes": "tsx scripts/randomBytes.ts",
     "test": "bunx turbo run test --filter=!@flowglad/playground-*",
     "format": "biome format --write .",
@@ -21,7 +21,7 @@
     "clean": "bunx turbo run clean",
     "changeset:empty": "bunx changeset --empty",
     "prebuild": "bun run build:declarations",
-    "preinstall": "bunx --bun only-allow bun",
+    "preinstall": "bun x --bun only-allow bun",
     "build": "bunx turbo run build --filter=!@flowglad/playground-*",
     "build:declarations": "bunx turbo run build:declarations",
     "packages:changeset": "changeset",
@@ -30,6 +30,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@flowglad/node": "0.29.0",
     "tsx": "4.17.0"
   },
   "devDependencies": {
@@ -39,7 +40,9 @@
     "@types/node": "^18.0.0",
     "@types/react": "18.3.12",
     "@types/react-dom": "19.0.0",
+    "bun-types": "^1.3.6",
     "conventional-changelog-cli": "^5.0.0",
+    "esbuild-fix-imports-plugin": "^1.0.23",
     "husky": "^9.1.7",
     "react": "19.2.1",
     "react-dom": "19.2.1",

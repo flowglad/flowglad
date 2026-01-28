@@ -8,6 +8,7 @@ import {
 import {
   constructGinIndex,
   constructIndex,
+  constructPartialUniqueIndex,
   constructUniqueIndex,
   createPaginatedListQuerySchema,
   createPaginatedSelectSchema,
@@ -15,7 +16,7 @@ import {
   createPaginatedTableRowOutputSchema,
   createSupabaseWebhookSchema,
   enableCustomerReadPolicy,
-  livemodePolicy,
+  livemodePolicyTable,
   merchantPolicy,
   notNullStringForeignKey,
   nullableStringForeignKey,
@@ -50,7 +51,7 @@ const columns = {
   billingAddress: jsonb('billing_address'),
   externalId: text('external_id').notNull(),
   userId: nullableStringForeignKey('user_id', users),
-  pricingModelId: nullableStringForeignKey(
+  pricingModelId: notNullStringForeignKey(
     'pricing_model_id',
     pricingModels
   ),
@@ -59,14 +60,12 @@ const columns = {
   ),
 }
 
-export const customers = pgTable(TABLE_NAME, columns, (table) => {
-  return [
-    constructIndex(TABLE_NAME, [table.organizationId]),
-    constructIndex(TABLE_NAME, [
-      table.email,
-      table.organizationId,
-      table.livemode,
-    ]),
+export const customers = pgTable(
+  TABLE_NAME,
+  columns,
+  livemodePolicyTable(TABLE_NAME, (table, livemodeIndex) => [
+    livemodeIndex([table.organizationId]),
+    constructIndex(TABLE_NAME, [table.email]),
     constructIndex(TABLE_NAME, [table.userId]),
     /**
      * Cannot have a unique index on email, because Stripe can have multiple
@@ -79,17 +78,21 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
     //   table.livemode,
     // ]),
     constructIndex(TABLE_NAME, [table.pricingModelId]),
+    // Partial unique index: only enforce uniqueness for non-archived customers.
+    // This allows archived customers' externalIds to be reused by new customers.
+    constructPartialUniqueIndex(
+      TABLE_NAME,
+      [table.pricingModelId, table.externalId],
+      sql`${table.archived} = false`
+    ),
     constructUniqueIndex(TABLE_NAME, [
-      table.organizationId,
-      table.externalId,
-      table.livemode,
-    ]),
-    constructUniqueIndex(TABLE_NAME, [
-      table.organizationId,
+      table.pricingModelId,
       table.invoiceNumberBase,
-      table.livemode,
     ]),
-    constructUniqueIndex(TABLE_NAME, [table.stripeCustomerId]),
+    constructUniqueIndex(TABLE_NAME, [
+      table.stripeCustomerId,
+      table.pricingModelId,
+    ]),
     constructGinIndex(TABLE_NAME, table.email),
     constructGinIndex(TABLE_NAME, table.name),
     merchantPolicy('Enable all actions for own organizations', {
@@ -110,15 +113,15 @@ export const customers = pgTable(TABLE_NAME, columns, (table) => {
       for: 'delete',
       using: sql`false`,
     }),
-    livemodePolicy(TABLE_NAME),
-  ]
-}).enableRLS()
+  ])
+).enableRLS()
 
 const readOnlyColumns = {
   livemode: true,
   billingAddress: true,
   invoiceNumberBase: true,
   organizationId: true,
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -165,7 +168,7 @@ export const editCustomerInputSchema = z.object({
   customer: customerClientUpdateSchema.omit({
     externalId: true,
     id: true,
-    pricingModelId: true,
+    archived: true, // Prevent archiving via update - use dedicated archive endpoint
   }),
   externalId: z.string(),
 })
@@ -252,7 +255,7 @@ export const customersPaginatedTableRowDataSchema = z.object({
   customer: customerClientSelectSchema,
   totalSpend: z.number().optional(),
   payments: z.number().optional(),
-  status: z.nativeEnum(InferredCustomerStatus),
+  status: z.enum(InferredCustomerStatus),
 })
 
 export const customersPaginatedTableRowOutputSchema =

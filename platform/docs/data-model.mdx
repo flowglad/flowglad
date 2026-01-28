@@ -7,8 +7,9 @@ Flowglad acts as the source of truth for your customers' billing state, includin
 
 ## Pricing Models
 
-Pricing models describe a grouping of products, features, usage meters, and prices. A pricing model can have many:
+Pricing models describe a grouping of products, features, usage meters, resources, and prices. A pricing model can have many:
 - usage meters, which measure how much of a resource in your product your customers have consumed
+- resources, which define claimable capacity like seats, API keys, or project limits
 - features, which describe either access to a service or functionality in your product or usage credits for specific usage meters
 - products, which group together features into offers that your customers can buy
 - customers, whose checkout options are restricted to that pricing model
@@ -46,9 +47,9 @@ Subscription prices are charged at a billing interval specified in their `interv
 
 Usage prices denominate how much a customer should pay for usage events for a given usage meter. Usage prices describe how many usage events correspond to a unit price, via `usageEventsPerUnit`. For example, to model 1,000,000 serverless invocations per $0.10, you would create a usage price with `{ usageEventsPerUnit: 1000000, unitPrice: 10 }`.
 
-Usage prices are not subscribable and cannot be checked out, meaning attempts to create a subscription or a checkout session with a usage price will fail. Instead, usage prices describe explicitly what the cost should be for a usage event. They clarify to settle overrages for a usage meter in the case that a customer runs an overrage.
+Usage prices are not subscribable and cannot be checked out, meaning attempts to create a subscription or a checkout session with a usage price will fail. Instead, usage prices describe explicitly what the cost should be for a usage event. They clarify how to settle overages for a usage meter in the case that a customer runs an overage.
 
-Usage prices are optional when creating a usage event. You can create usage events by referencing the usage meter directly (via `usageMeterSlug` or `usageMeterId`) without requiring a price. This is useful for tracking usage without billing. Events created without a price will have a `unitPrice` of $0 and won't generate charges. 
+Usage events always have a `priceId`—it's a required field. When you create usage events using a meter identifier (`usageMeterSlug` or `usageMeterId`), the system resolves to the meter's default price. Every usage meter has a guaranteed default price: either a price you've configured or an auto-generated [no-charge price](/features/usage#no-charge-prices) with `unitPrice: $0`. 
 
 ## Usage Meters
 
@@ -90,7 +91,7 @@ When a customer receives usage credits, it **increases** the usage balance on th
 
 ## Usage Events
 
-Usage events record a consumption of an event to a usage meter. Every usage event belongs to a usage meter and a subscription. Usage events may be associated with a usage price for billing purposes. When usage events are created, they **deduct** from the usage balance on the subscription.
+Usage events record a consumption of an event to a usage meter. Every usage event belongs to a usage meter and a subscription. Usage events are always associated with a usage price (the `priceId` field is required). When usage events are created, they **deduct** from the usage balance on the subscription.
 
 If the customer is on a renewing subscription, Flowglad will attempt to settle the outstanding usage balance for the prior billing period when there's a billing period transition.
 
@@ -99,6 +100,21 @@ If the customer is on a renewing subscription, Flowglad will attempt to settle t
 Features describe what your customer receives, either as `boolean` access to a capability or as a `usage_credit_grant` that provides credits for a usage meter. For usage credit grant features, you can configure the grant to be either one-time (issued immediately upon purchase or subscription creation) or recurring (granted at the start of each billing period).
 
 Features are independent resources in the Flowglad data model. Products can have multiple features, and individual features can be associated with multiple products simultaneously. The relationship between products and features (product < > feature) is how Flowglad determines which features are assigned to customers when they purchase or subscribe.
+
+## Resources
+
+Resources represent claimable capacity entitlements. Unlike usage meters (which track consumption), resources track allocation—reserving and releasing discrete units like team seats, API keys, or project limits.
+
+Each resource belongs to a pricing model and has a unique slug (e.g., `seats`, `api_keys`). When you add a resource feature to a product, you specify the capacity (e.g., 10 seats). Customers who subscribe receive that capacity to allocate as needed.
+
+### Resource Claims
+
+Resource claims are individual allocations from a customer's capacity pool. Claims can be:
+
+- **Named**: Include an `externalId` to track exactly what each allocation is for (e.g., "user_john has seat #3"). Named claims are idempotent—claiming the same ID twice returns the existing claim.
+- **Anonymous**: Simple quantity-based allocations without identifiers. Released in FIFO order (oldest first).
+
+When a subscription is canceled, all associated resource claims are automatically released. Downgrading to a plan with lower capacity is prevented if current claims exceed the new capacity.
 
 ## Customers
 
