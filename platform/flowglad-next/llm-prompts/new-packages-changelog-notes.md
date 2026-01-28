@@ -2,6 +2,20 @@ You are creating a new changelog announcement. These changelog notes will be use
 
 Use the git log to determine what changes in packages/* have happened since the last changelog (search the git log for the last time we had a commit "chore: version packages"). Group the notes thematically into sections. They may be grouped around new features, improvements, bug fixes, etc.
 
+**To get the full context of package changes, run this git command:**
+
+```bash
+LAST_VERSION_COMMIT=$(git log --all --grep="chore: version packages" --format="%H" -1) && \
+git log $LAST_VERSION_COMMIT..HEAD -- packages/ --stat --format="%H%n%an <%ae>%n%ad%n%s%n%b%n---"
+```
+
+This command will:
+1. Find the last commit with "chore: version packages" in the message
+2. Show all commits after that commit that touched files in `packages/`
+3. Include commit hash, author, date, subject, full body, and file changes
+
+Use this output to understand all the changes that need to be synthesized into changelog notes.
+
 Include links to commits for each individual change item (bullet points), but NOT for section headings. Section headings (###) are organizational and should not have commit links or commit hashes.
 
 Put your release notes in the markdown file found in the .changeset directory in project root.
