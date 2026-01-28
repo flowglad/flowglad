@@ -24,7 +24,8 @@ services:
       - '12111:12111'
       - '12112:12112'
     healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS -H "Authorization: Bearer $STRIPE_MOCK_API_KEY" http://localhost:12111/v1/customers > /dev/null']
+      # Use $$ to escape the $ so docker-compose passes it through to the container shell
+      test: ['CMD-SHELL', 'curl -fsS -H "Authorization: Bearer $$STRIPE_MOCK_API_KEY" http://localhost:12111/v1/customers > /dev/null']
       interval: 2s
       timeout: 5s
       retries: 5

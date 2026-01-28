@@ -175,7 +175,7 @@ function validateEnvironmentFiles(): void {
       console.warn('To set up: bun run test:setup')
     } else if (nodeEnv === 'integration') {
       console.warn(
-        'To set up: bun run vercel:env-pull:dev (generates .env.integration)'
+        'To set up: bun run vercel:env-pull:dev (post-hook generates .env.integration)'
       )
     }
     return

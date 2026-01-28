@@ -65,27 +65,30 @@ for (const line of envContent.split('\n')) {
   process.env[key] = value
 }
 
-// Explicitly delete STRIPE_MOCK_HOST - it may have been set by Bun loading .env.test
+// Check if .env.integration incorrectly contains STRIPE_MOCK_HOST
+// (This check must happen BEFORE we delete it below)
+if (process.env.STRIPE_MOCK_HOST) {
+  // Check if it came from .env.integration (we just loaded it) vs Bun's auto-load of .env.test
+  // If .env.integration has it, that's a configuration error
+  if (envContent.includes('STRIPE_MOCK_HOST')) {
+    console.error(
+      '\n❌ STRIPE_MOCK_HOST found in .env.integration but integration tests require real Stripe API.\n'
+    )
+    console.error(
+      'Remove STRIPE_MOCK_HOST from .env.integration, or regenerate it with:'
+    )
+    console.error('  bun run vercel:env-pull:dev\n')
+    process.exit(1)
+  }
+}
+
+// Delete STRIPE_MOCK_HOST - it may have been set by Bun loading .env.test
 // (due to script name starting with "test"), but integration tests need real Stripe
 delete process.env.STRIPE_MOCK_HOST
 
 // Set FORCE_TEST_MODE so IS_TEST=true in core.ts
 // This is needed because we use NODE_ENV=integration (not 'test')
 process.env.FORCE_TEST_MODE = '1'
-
-// Verify STRIPE_MOCK_HOST is NOT set - integration tests must use real Stripe API
-if (process.env.STRIPE_MOCK_HOST) {
-  console.error(
-    '\n❌ STRIPE_MOCK_HOST is set but integration tests require real Stripe API.\n'
-  )
-  console.error(
-    'Integration tests use .env.integration which should NOT contain STRIPE_MOCK_HOST.'
-  )
-  console.error(
-    'If you see this error, check your .env.integration file and remove STRIPE_MOCK_HOST.\n'
-  )
-  process.exit(1)
-}
 
 // ============================================================================
 // Step 2: NOW dynamically import modules that depend on env vars
