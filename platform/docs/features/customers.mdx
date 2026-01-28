@@ -27,12 +27,29 @@ The `externalId` is how you'll typically reference customers in your code. It mu
 
 ## Creating Customers
 
-### Via Checkout
+Customers are typically created automatically—you don't need to explicitly create them in most cases.
 
-Customers are automatically created when someone completes a [checkout session](/features/checkout-sessions). The customer's `externalId` is automatically set based on the authenticated user.
+### Automatic Creation (Recommended)
+
+When you use `FlowgladServer` with a scoped `customerExternalId`, customers are automatically created when needed. The `getCustomerDetails` callback provides the customer's name and email:
 
 ```typescript
-// Server-side: Creates a checkout session for the authenticated user
+// Set up the server with your user's ID
+const server = new FlowgladServer({
+  customerExternalId: user.id, // Your app's user ID
+  getCustomerDetails: async (id) => {
+    const user = await db.users.findOne({ id })
+    return { name: user.name, email: user.email }
+  },
+})
+
+// Customer is automatically created if they don't exist
+const billing = await server.getBilling()
+```
+
+This also works when creating checkout sessions—if the customer doesn't exist, they're created automatically:
+
+```typescript
 const checkoutSession = await flowglad(userId).createCheckoutSession({
   priceSlug: 'pro_plan',
   successUrl: 'https://example.com/success',
@@ -40,25 +57,9 @@ const checkoutSession = await flowglad(userId).createCheckoutSession({
 })
 ```
 
-### Via SDK
-
-Create customers directly when you need to set up customer records before checkout:
-
-```typescript
-const result = await flowglad(userId).createCustomer({
-  customer: {
-    externalId: 'user_123',
-    email: 'user@example.com',
-    name: 'Jane Smith',
-  },
-})
-```
-
-<Note>
-When using `FlowgladServer` with a scoped `customerExternalId`, customers are automatically created via `findOrCreateCustomer()` when needed. Direct customer creation is typically only needed for admin operations.
-</Note>
-
 ### Via Dashboard
+
+For manual customer creation:
 
 1. Navigate to the [Customers](https://app.flowglad.com/customers) page
 2. Click "Create Customer"
@@ -67,14 +68,13 @@ When using `FlowgladServer` with a scoped `customerExternalId`, customers are au
 
 ## Customer Metadata
 
-Store custom data on customer records using the `metadata` field. This is useful for syncing additional information from your system:
+Store custom data on customer records using the `metadata` field. This is useful for syncing additional information from your system.
+
+Update customer metadata using `updateCustomer`:
 
 ```typescript
-const result = await flowglad(userId).createCustomer({
+await flowglad(userId).updateCustomer({
   customer: {
-    externalId: 'user_123',
-    email: 'user@example.com',
-    name: 'Jane Smith',
     metadata: {
       plan: 'enterprise',
       accountManager: 'john@company.com',
@@ -84,7 +84,7 @@ const result = await flowglad(userId).createCustomer({
 })
 ```
 
-Metadata is returned with customer records and can be updated at any time.
+Metadata is returned with customer records when you call `getBilling()` or other customer methods.
 
 ## Archiving Customers
 
