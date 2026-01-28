@@ -1,5 +1,4 @@
-import type { Mock } from 'bun:test'
-import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import {
   setupBillingPeriod,
@@ -73,22 +72,10 @@ import {
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
-// Import actual stripe module before mocking
-import * as actualStripeModule from '@/utils/stripe'
 import { IntentMetadataType } from '@/utils/stripe'
 
-// Create mock for getStripeCharge
-const mockGetStripeCharge =
-  mock<typeof actualStripeModule.getStripeCharge>()
-
-// Mock getStripeCharge
-mock.module('@/utils/stripe', () => ({
-  ...actualStripeModule,
-  getStripeCharge: mockGetStripeCharge,
-}))
-
-// Import the mocked version for assertions
-import { getStripeCharge } from '@/utils/stripe'
+// Use global mock from bun.db.mocks.ts
+const mockGetStripeCharge = globalThis.__mockGetStripeCharge
 
 import { isFirstPayment } from './billingRunHelpers'
 import { createSubscriptionWorkflow } from './createSubscription/workflow'
@@ -111,7 +98,7 @@ describe('processOutcomeForBillingRun integration tests', async () => {
   beforeEach(async () => {
     // Configure mock to return a charge object based on the ID passed
     // The status is determined by patterns in the charge ID
-    ;(getStripeCharge as Mock<any>).mockImplementation(
+    mockGetStripeCharge.mockImplementation(
       async (chargeId: string) => {
         // Determine status based on charge ID pattern
         let status: 'succeeded' | 'pending' | 'failed' = 'succeeded'

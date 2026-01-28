@@ -1,12 +1,4 @@
-import type { Mock } from 'bun:test'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-} from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import {
   setupBillingPeriod,
@@ -59,30 +51,13 @@ import {
   SubscriptionItemType,
   SubscriptionStatus,
 } from '@/types'
-
-// Import actual stripe module before mocking
-import * as actualStripe from '@/utils/stripe'
-
-// Create mock functions
-const mockCreatePaymentIntentForBillingRun =
-  mock<typeof actualStripe.createPaymentIntentForBillingRun>()
-const mockConfirmPaymentIntentForBillingRun =
-  mock<typeof actualStripe.confirmPaymentIntentForBillingRun>()
-
-// Mock Stripe functions
-mock.module('@/utils/stripe', () => ({
-  ...actualStripe,
-  createPaymentIntentForBillingRun:
-    mockCreatePaymentIntentForBillingRun,
-  confirmPaymentIntentForBillingRun:
-    mockConfirmPaymentIntentForBillingRun,
-}))
-
-import {
-  confirmPaymentIntentForBillingRun,
-  createPaymentIntentForBillingRun,
-} from '@/utils/stripe'
 import { executeBillingRun } from './billingRunHelpers'
+
+// Use global mocks from bun.db.mocks.ts
+const mockCreatePaymentIntentForBillingRun =
+  globalThis.__mockCreatePaymentIntentForBillingRun
+const mockConfirmPaymentIntentForBillingRun =
+  globalThis.__mockConfirmPaymentIntentForBillingRun
 
 describe('executeBillingRun with adjustment and resource claims', () => {
   let organization: Organization.Record
@@ -98,17 +73,12 @@ describe('executeBillingRun with adjustment and resource claims', () => {
   let billingRun: BillingRun.Record
   let resource: Resource.Record
   let resourceFeature: Feature.ResourceRecord
-  let subscriptionItemFeature: SubscriptionItemFeature.ResourceRecord
-
-  const mockCreatePaymentIntent =
-    createPaymentIntentForBillingRun as Mock<any>
-  const mockConfirmPaymentIntent =
-    confirmPaymentIntentForBillingRun as Mock<any>
+  let subscriptionItemFeature: SubscriptionItemFeature.Record
 
   beforeEach(async () => {
     // Reset mocks
-    mockCreatePaymentIntent.mockReset()
-    mockConfirmPaymentIntent.mockReset()
+    mockCreatePaymentIntentForBillingRun.mockReset()
+    mockConfirmPaymentIntentForBillingRun.mockReset()
 
     // Setup organization and pricing model
     const orgData = await setupOrg()
@@ -255,7 +225,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       amount: 1000,
       status: 'requires_confirmation',
     })
-    mockCreatePaymentIntent.mockResolvedValue(
+    mockCreatePaymentIntentForBillingRun.mockResolvedValue(
       Result.ok(mockPaymentIntent)
     )
 
@@ -263,7 +233,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       mockPaymentIntentId,
       { status: 'succeeded' }
     )
-    mockConfirmPaymentIntent.mockResolvedValue(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValue(
+      mockConfirmationResult
+    )
 
     // Execute billing run with adjustment
     const newSubscriptionItems: SubscriptionItem.Insert[] = [
@@ -433,7 +405,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       amount: 500, // Proration amount
       status: 'requires_confirmation',
     })
-    mockCreatePaymentIntent.mockResolvedValue(
+    mockCreatePaymentIntentForBillingRun.mockResolvedValue(
       Result.ok(mockPaymentIntent)
     )
 
@@ -441,7 +413,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       mockPaymentIntentId,
       { status: 'succeeded' }
     )
-    mockConfirmPaymentIntent.mockResolvedValue(mockConfirmationResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValue(
+      mockConfirmationResult
+    )
 
     const newSubscriptionItems: SubscriptionItem.Insert[] = [
       {
@@ -572,7 +546,7 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       amount: 1000,
       status: 'requires_confirmation',
     })
-    mockCreatePaymentIntent.mockResolvedValue(
+    mockCreatePaymentIntentForBillingRun.mockResolvedValue(
       Result.ok(mockPaymentIntent)
     )
 
@@ -581,7 +555,9 @@ describe('executeBillingRun with adjustment and resource claims', () => {
       mockPaymentIntentId,
       { status: 'requires_payment_method' } // This indicates payment failed
     )
-    mockConfirmPaymentIntent.mockResolvedValue(mockFailedResult)
+    mockConfirmPaymentIntentForBillingRun.mockResolvedValue(
+      mockFailedResult
+    )
 
     const newSubscriptionItems: SubscriptionItem.Insert[] = [
       {

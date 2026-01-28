@@ -1246,18 +1246,24 @@ export const setupSubscriptionItem = async ({
   type = SubscriptionItemType.Static,
   usageMeterId,
   usageEventsPerUnit,
+  manuallyCreated = false,
 }: {
   subscriptionId: string
   name: string
   quantity: number
   unitPrice: number
-  priceId?: string
+  priceId?: string | null
   addedDate?: number
   removedDate?: number
   metadata?: Record<string, any>
   type?: SubscriptionItemType
   usageMeterId?: string
   usageEventsPerUnit?: number
+  /**
+   * If true, creates a manually created item (priceId will be null).
+   * Manual items are preserved during subscription adjustments.
+   */
+  manuallyCreated?: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
     const subscription = (
@@ -1280,18 +1286,33 @@ export const setupSubscriptionItem = async ({
         'Usage events per unit is not allowed for static items'
       )
     }
+
+    // For manual items, the database constraint requires:
+    //   priceId = null, unitPrice = 0, quantity = 0
+    // For regular items, priceId defaults to subscription's priceId if not provided
+    const resolvedPriceId = manuallyCreated
+      ? null
+      : priceId === null
+        ? null
+        : (priceId ?? subscription.priceId!)
+
+    // Manual items must have unitPrice=0 and quantity=0 per database constraint
+    const resolvedUnitPrice = manuallyCreated ? 0 : unitPrice
+    const resolvedQuantity = manuallyCreated ? 0 : quantity
+
     const insert: SubscriptionItem.StaticInsert = {
       subscriptionId: subscription.id,
       name,
-      quantity,
-      unitPrice,
+      quantity: resolvedQuantity,
+      unitPrice: resolvedUnitPrice,
       livemode: subscription.livemode,
-      priceId: priceId ?? subscription.priceId!,
+      priceId: resolvedPriceId,
       addedDate: addedDate ?? Date.now(),
       expiredAt: null,
       metadata: metadata ?? {},
       externalId: null,
       type: SubscriptionItemType.Static,
+      manuallyCreated,
     }
     return insertSubscriptionItem(insert, transaction)
   })

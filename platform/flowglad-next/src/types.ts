@@ -625,6 +625,12 @@ export enum FlowgladEventType {
   SubscriptionCreated = 'subscription.created',
   SubscriptionUpdated = 'subscription.updated',
   SubscriptionCanceled = 'subscription.canceled',
+  /**
+   * Notification that new events are available in the sync stream.
+   * Merchants subscribe to this event type to receive real-time notifications
+   * when events are added to their sync stream for consumption.
+   */
+  SyncEventsAvailable = 'sync.events_available',
 }
 
 export enum EventCategory {
@@ -648,6 +654,7 @@ export enum EventNoun {
   Payment = 'payment',
   Product = 'product',
   Subscription = 'subscription',
+  SyncStream = 'sync_stream',
 }
 
 /**

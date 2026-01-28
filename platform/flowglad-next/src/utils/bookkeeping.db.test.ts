@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
+import type Stripe from 'stripe'
 import {
   setupCustomer,
   setupInvoice,
@@ -71,6 +72,30 @@ describe('createCustomerBookkeeping', () => {
   let defaultPrice: Price.Record
 
   beforeEach(async () => {
+    // Configure the global createStripeCustomer mock to return a fake customer
+    globalThis.__mockCreateStripeCustomer.mockReset()
+    globalThis.__mockCreateStripeCustomer.mockImplementation(
+      async (params: {
+        email: string
+        name: string
+        organizationId: string
+        livemode: boolean
+        createdBy: string
+      }): Promise<Stripe.Customer> => {
+        return {
+          id: `cus_test_${params.email.replace(/[^a-zA-Z0-9]/g, '')}`,
+          object: 'customer',
+          email: params.email,
+          name: params.name,
+          livemode: params.livemode,
+          metadata: {
+            organizationId: params.organizationId,
+            createdBy: params.createdBy,
+          },
+        } as Stripe.Customer
+      }
+    )
+
     // Set up organization with default product and pricing
     const orgData = await setupOrg()
     organization = orgData.organization
@@ -728,6 +753,109 @@ describe('createCustomerBookkeeping', () => {
       expect(subscriptionInDb?.subscription.name).toContain(
         'Subscription'
       )
+    })
+
+    it('should create billing period with start date of now, not one month in the future', async () => {
+      // setup:
+      // - default price has interval unit (subscription type)
+      // - create a customer without payment method (like via UI)
+      // - billing period should start approximately now, not one month from now
+      //
+      // This test verifies the fix for a bug where activateSubscription was
+      // generating the "next" billing period from already-set dates, causing
+      // subscriptions created via UI to have billing periods starting one month
+      // in the future - which prevented migration and archival.
+
+      const now = Date.now()
+
+      const result = await comprehensiveAdminTransaction(
+        async ({
+          transaction,
+          invalidateCache,
+          emitEvent,
+          enqueueLedgerCommand,
+        }) => {
+          const output = await createCustomerBookkeeping(
+            {
+              customer: {
+                email: `test+${core.nanoid()}@example.com`,
+                name: 'Test Customer Billing Period Dates',
+                organizationId: organization.id,
+                externalId: `ext_${core.nanoid()}`,
+              },
+            },
+            withAdminCacheContext({
+              transaction,
+              organizationId: organization.id,
+              livemode,
+              invalidateCache,
+              emitEvent,
+              enqueueLedgerCommand,
+            })
+          )
+          return Result.ok(output)
+        }
+      )
+
+      // Verify subscription was created
+      expect(result.subscription).toMatchObject({})
+
+      // Get subscription and billing periods from database
+      const subscriptionInDb = await adminTransaction(
+        async ({ transaction }) => {
+          const sub = await selectSubscriptionAndItems(
+            {
+              customerId: result.customer.id,
+            },
+            transaction
+          )
+          return sub
+        }
+      )
+
+      const billingPeriods = await adminTransaction(
+        async ({ transaction }) => {
+          return await selectBillingPeriods(
+            { subscriptionId: result.subscription!.id },
+            transaction
+          )
+        }
+      )
+
+      // expects:
+      // - subscription's currentBillingPeriodStart should be approximately now
+      // - billing period record's startDate should be approximately now
+      // - neither should be one month (or more) in the future
+
+      expect(typeof subscriptionInDb).toBe('object')
+
+      // Subscription's billing period dates should start approximately now
+      const subscriptionBillingPeriodStart = new Date(
+        subscriptionInDb!.subscription.currentBillingPeriodStart!
+      ).getTime()
+
+      // Allow 5 minute tolerance for test execution time
+      const fiveMinutesTolerance = 5 * 60 * 1000
+      expect(
+        Math.abs(subscriptionBillingPeriodStart - now)
+      ).toBeLessThan(fiveMinutesTolerance)
+
+      // The billing period record should also start approximately now, not one month later
+      expect(billingPeriods.length).toBeGreaterThan(0)
+      const billingPeriodStartDate = new Date(
+        billingPeriods[0].startDate
+      ).getTime()
+      expect(Math.abs(billingPeriodStartDate - now)).toBeLessThan(
+        fiveMinutesTolerance
+      )
+
+      // Critical: billing period should NOT be one month in the future
+      // If the bug exists, startDate would be ~30 days from now
+      const oneMonthFromNow = now + 30 * 24 * 60 * 60 * 1000
+      const billingPeriodIsInFuture =
+        billingPeriodStartDate >
+        oneMonthFromNow - 2 * 24 * 60 * 60 * 1000 // 28+ days away
+      expect(billingPeriodIsInFuture).toBe(false)
     })
   })
 

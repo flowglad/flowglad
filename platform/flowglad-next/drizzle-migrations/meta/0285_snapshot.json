@@ -1,5 +1,5 @@
 {
-  "id": "89acb025-969b-43c0-a05c-19b2259bce0c",
+  "id": "a97bfb51-a6c2-4711-a493-5f8219eb736a",
   "prevId": "71394bc3-cd8f-4639-a93f-b53f27faa1c6",
   "version": "7",
   "dialect": "postgresql",
@@ -54,12 +54,6 @@
         },
         "organization_id": {
           "name": "organization_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "pricing_model_id": {
-          "name": "pricing_model_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -127,52 +121,28 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
-        },
-        "api_keys_pricing_model_id_idx": {
-          "name": "api_keys_pricing_model_id_idx",
-          "columns": [
-            {
-              "expression": "pricing_model_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "api_keys_organization_id_organizations_id_fk": {
           "name": "api_keys_organization_id_organizations_id_fk",
           "tableFrom": "api_keys",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "api_keys_pricing_model_id_pricing_models_id_fk": {
-          "name": "api_keys_pricing_model_id_pricing_models_id_fk",
-          "tableFrom": "api_keys",
-          "tableTo": "pricing_models",
-          "columnsFrom": ["pricing_model_id"],
-          "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "api_keys_id_unique": {
           "name": "api_keys_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -282,11 +252,11 @@
         "better_auth_account_user_id_better_auth_user_id_fk": {
           "name": "better_auth_account_user_id_better_auth_user_id_fk",
           "tableFrom": "better_auth_account",
-          "tableTo": "better_auth_user",
           "columnsFrom": ["user_id"],
+          "tableTo": "better_auth_user",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
@@ -353,19 +323,19 @@
         "better_auth_session_user_id_better_auth_user_id_fk": {
           "name": "better_auth_session_user_id_better_auth_user_id_fk",
           "tableFrom": "better_auth_session",
-          "tableTo": "better_auth_user",
           "columnsFrom": ["user_id"],
+          "tableTo": "better_auth_user",
           "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "cascade"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "better_auth_session_token_unique": {
           "name": "better_auth_session_token_unique",
-          "nullsNotDistinct": false,
-          "columns": ["token"]
+          "columns": ["token"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -438,8 +408,8 @@
       "uniqueConstraints": {
         "better_auth_user_email_unique": {
           "name": "better_auth_user_email_unique",
-          "nullsNotDistinct": false,
-          "columns": ["email"]
+          "columns": ["email"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -605,9 +575,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "billing_period_items_discount_redemption_id_idx": {
           "name": "billing_period_items_discount_redemption_id_idx",
@@ -620,9 +590,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "billing_period_items_pricing_model_id_idx": {
           "name": "billing_period_items_pricing_model_id_idx",
@@ -635,46 +605,46 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "billing_period_items_billing_period_id_billing_periods_id_fk": {
           "name": "billing_period_items_billing_period_id_billing_periods_id_fk",
           "tableFrom": "billing_period_items",
-          "tableTo": "billing_periods",
           "columnsFrom": ["billing_period_id"],
+          "tableTo": "billing_periods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "billing_period_items_discount_redemption_id_discount_redemptions_id_fk": {
           "name": "billing_period_items_discount_redemption_id_discount_redemptions_id_fk",
           "tableFrom": "billing_period_items",
-          "tableTo": "discount_redemptions",
           "columnsFrom": ["discount_redemption_id"],
+          "tableTo": "discount_redemptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "billing_period_items_pricing_model_id_pricing_models_id_fk": {
           "name": "billing_period_items_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "billing_period_items",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "billing_period_items_id_unique": {
           "name": "billing_period_items_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -802,9 +772,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "billing_periods_status_idx": {
           "name": "billing_periods_status_idx",
@@ -817,9 +787,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "billing_periods_pricing_model_id_idx": {
           "name": "billing_periods_pricing_model_id_idx",
@@ -832,37 +802,37 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "billing_periods_subscription_id_subscriptions_id_fk": {
           "name": "billing_periods_subscription_id_subscriptions_id_fk",
           "tableFrom": "billing_periods",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "billing_periods_pricing_model_id_pricing_models_id_fk": {
           "name": "billing_periods_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "billing_periods",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "billing_periods_id_unique": {
           "name": "billing_periods_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -1026,9 +996,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "billing_runs_status_idx": {
           "name": "billing_runs_status_idx",
@@ -1041,9 +1011,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "billing_runs_pricing_model_id_idx": {
           "name": "billing_runs_pricing_model_id_idx",
@@ -1056,55 +1026,55 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "billing_runs_billing_period_id_billing_periods_id_fk": {
           "name": "billing_runs_billing_period_id_billing_periods_id_fk",
           "tableFrom": "billing_runs",
-          "tableTo": "billing_periods",
           "columnsFrom": ["billing_period_id"],
+          "tableTo": "billing_periods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "billing_runs_subscription_id_subscriptions_id_fk": {
           "name": "billing_runs_subscription_id_subscriptions_id_fk",
           "tableFrom": "billing_runs",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "billing_runs_payment_method_id_payment_methods_id_fk": {
           "name": "billing_runs_payment_method_id_payment_methods_id_fk",
           "tableFrom": "billing_runs",
-          "tableTo": "payment_methods",
           "columnsFrom": ["payment_method_id"],
+          "tableTo": "payment_methods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "billing_runs_pricing_model_id_pricing_models_id_fk": {
           "name": "billing_runs_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "billing_runs",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "billing_runs_id_unique": {
           "name": "billing_runs_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -1336,9 +1306,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "checkout_sessions_price_id_idx": {
           "name": "checkout_sessions_price_id_idx",
@@ -1351,9 +1321,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "checkout_sessions_stripe_payment_intent_id_idx": {
           "name": "checkout_sessions_stripe_payment_intent_id_idx",
@@ -1366,9 +1336,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "checkout_sessions_organization_id_idx": {
           "name": "checkout_sessions_organization_id_idx",
@@ -1381,9 +1351,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "checkout_sessions_status_idx": {
           "name": "checkout_sessions_status_idx",
@@ -1396,9 +1366,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "checkout_sessions_stripe_setup_intent_id_idx": {
           "name": "checkout_sessions_stripe_setup_intent_id_idx",
@@ -1411,9 +1381,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "checkout_sessions_purchase_id_idx": {
           "name": "checkout_sessions_purchase_id_idx",
@@ -1426,9 +1396,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "checkout_sessions_discount_id_idx": {
           "name": "checkout_sessions_discount_id_idx",
@@ -1441,9 +1411,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "checkout_sessions_customer_id_idx": {
           "name": "checkout_sessions_customer_id_idx",
@@ -1456,82 +1426,82 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "checkout_sessions_pricing_model_id_pricing_models_id_fk": {
           "name": "checkout_sessions_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "checkout_sessions",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "checkout_sessions_price_id_prices_id_fk": {
           "name": "checkout_sessions_price_id_prices_id_fk",
           "tableFrom": "checkout_sessions",
-          "tableTo": "prices",
           "columnsFrom": ["price_id"],
+          "tableTo": "prices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "checkout_sessions_purchase_id_purchases_id_fk": {
           "name": "checkout_sessions_purchase_id_purchases_id_fk",
           "tableFrom": "checkout_sessions",
-          "tableTo": "purchases",
           "columnsFrom": ["purchase_id"],
+          "tableTo": "purchases",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "checkout_sessions_invoice_id_invoices_id_fk": {
           "name": "checkout_sessions_invoice_id_invoices_id_fk",
           "tableFrom": "checkout_sessions",
-          "tableTo": "invoices",
           "columnsFrom": ["invoice_id"],
+          "tableTo": "invoices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "checkout_sessions_organization_id_organizations_id_fk": {
           "name": "checkout_sessions_organization_id_organizations_id_fk",
           "tableFrom": "checkout_sessions",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "checkout_sessions_customer_id_customers_id_fk": {
           "name": "checkout_sessions_customer_id_customers_id_fk",
           "tableFrom": "checkout_sessions",
-          "tableTo": "customers",
           "columnsFrom": ["customer_id"],
+          "tableTo": "customers",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "checkout_sessions_discount_id_discounts_id_fk": {
           "name": "checkout_sessions_discount_id_discounts_id_fk",
           "tableFrom": "checkout_sessions",
-          "tableTo": "discounts",
           "columnsFrom": ["discount_id"],
+          "tableTo": "discounts",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "checkout_sessions_id_unique": {
           "name": "checkout_sessions_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -1627,9 +1597,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "countries_code_unique_idx": {
           "name": "countries_code_unique_idx",
@@ -1642,9 +1612,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -1652,18 +1622,18 @@
       "uniqueConstraints": {
         "countries_id_unique": {
           "name": "countries_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         },
         "countries_name_unique": {
           "name": "countries_name_unique",
-          "nullsNotDistinct": false,
-          "columns": ["name"]
+          "columns": ["name"],
+          "nullsNotDistinct": false
         },
         "countries_code_unique": {
           "name": "countries_code_unique",
-          "nullsNotDistinct": false,
-          "columns": ["code"]
+          "columns": ["code"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -1843,9 +1813,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "customers_email_idx": {
           "name": "customers_email_idx",
@@ -1858,9 +1828,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "customers_user_id_idx": {
           "name": "customers_user_id_idx",
@@ -1873,9 +1843,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "customers_pricing_model_id_idx": {
           "name": "customers_pricing_model_id_idx",
@@ -1888,9 +1858,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "customers_pricing_model_id_external_id_unique_idx_partial": {
           "name": "customers_pricing_model_id_external_id_unique_idx_partial",
@@ -1909,10 +1879,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"customers\".\"archived\" = false",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"customers\".\"archived\" = false",
+          "concurrently": false
         },
         "customers_pricing_model_id_invoice_number_base_unique_idx": {
           "name": "customers_pricing_model_id_invoice_number_base_unique_idx",
@@ -1931,9 +1901,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "customers_stripe_customer_id_pricing_model_id_unique_idx": {
           "name": "customers_stripe_customer_id_pricing_model_id_unique_idx",
@@ -1952,76 +1922,76 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "customers_email_idx_gin": {
           "name": "customers_email_idx_gin",
           "columns": [
             {
               "expression": "to_tsvector('english', \"email\")",
-              "asc": true,
               "isExpression": true,
+              "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "gin",
-          "with": {}
+          "concurrently": false
         },
         "customers_name_idx_gin": {
           "name": "customers_name_idx_gin",
           "columns": [
             {
               "expression": "to_tsvector('english', \"name\")",
-              "asc": true,
               "isExpression": true,
+              "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "gin",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "customers_organization_id_organizations_id_fk": {
           "name": "customers_organization_id_organizations_id_fk",
           "tableFrom": "customers",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "customers_user_id_users_id_fk": {
           "name": "customers_user_id_users_id_fk",
           "tableFrom": "customers",
-          "tableTo": "users",
           "columnsFrom": ["user_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "customers_pricing_model_id_pricing_models_id_fk": {
           "name": "customers_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "customers",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "customers_id_unique": {
           "name": "customers_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -2187,9 +2157,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "discount_redemptions_purchase_id_idx": {
           "name": "discount_redemptions_purchase_id_idx",
@@ -2202,9 +2172,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "discount_redemptions_purchase_id_unique_idx": {
           "name": "discount_redemptions_purchase_id_unique_idx",
@@ -2217,9 +2187,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "discount_redemptions_subscription_id_idx": {
           "name": "discount_redemptions_subscription_id_idx",
@@ -2232,9 +2202,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "discount_redemptions_pricing_model_id_idx": {
           "name": "discount_redemptions_pricing_model_id_idx",
@@ -2247,55 +2217,55 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "discount_redemptions_discount_id_discounts_id_fk": {
           "name": "discount_redemptions_discount_id_discounts_id_fk",
           "tableFrom": "discount_redemptions",
-          "tableTo": "discounts",
           "columnsFrom": ["discount_id"],
+          "tableTo": "discounts",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "discount_redemptions_purchase_id_purchases_id_fk": {
           "name": "discount_redemptions_purchase_id_purchases_id_fk",
           "tableFrom": "discount_redemptions",
-          "tableTo": "purchases",
           "columnsFrom": ["purchase_id"],
+          "tableTo": "purchases",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "discount_redemptions_subscription_id_subscriptions_id_fk": {
           "name": "discount_redemptions_subscription_id_subscriptions_id_fk",
           "tableFrom": "discount_redemptions",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "discount_redemptions_pricing_model_id_pricing_models_id_fk": {
           "name": "discount_redemptions_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "discount_redemptions",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "discount_redemptions_id_unique": {
           "name": "discount_redemptions_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -2442,9 +2412,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "discounts_pricing_model_id_idx": {
           "name": "discounts_pricing_model_id_idx",
@@ -2457,9 +2427,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "discounts_code_idx": {
           "name": "discounts_code_idx",
@@ -2472,9 +2442,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "discounts_code_pricing_model_id_unique_idx": {
           "name": "discounts_code_pricing_model_id_unique_idx",
@@ -2493,37 +2463,37 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "discounts_organization_id_organizations_id_fk": {
           "name": "discounts_organization_id_organizations_id_fk",
           "tableFrom": "discounts",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "discounts_pricing_model_id_pricing_models_id_fk": {
           "name": "discounts_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "discounts",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "discounts_id_unique": {
           "name": "discounts_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -2681,9 +2651,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "events_object_entity_idx": {
           "name": "events_object_entity_idx",
@@ -2696,9 +2666,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "events_object_entity_object_id_idx": {
           "name": "events_object_entity_object_id_idx",
@@ -2717,9 +2687,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "events_pricing_model_id_idx": {
           "name": "events_pricing_model_id_idx",
@@ -2732,9 +2702,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "events_hash_unique_idx": {
           "name": "events_hash_unique_idx",
@@ -2747,42 +2717,42 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "events_organization_id_organizations_id_fk": {
           "name": "events_organization_id_organizations_id_fk",
           "tableFrom": "events",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "events_pricing_model_id_pricing_models_id_fk": {
           "name": "events_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "events",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "events_id_unique": {
           "name": "events_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         },
         "events_hash_unique": {
           "name": "events_hash_unique",
-          "nullsNotDistinct": false,
-          "columns": ["hash"]
+          "columns": ["hash"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -2941,9 +2911,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "features_type_idx": {
           "name": "features_type_idx",
@@ -2956,9 +2926,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "features_organization_id_slug_pricing_model_id_unique_idx": {
           "name": "features_organization_id_slug_pricing_model_id_unique_idx",
@@ -2983,9 +2953,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "features_pricing_model_id_idx": {
           "name": "features_pricing_model_id_idx",
@@ -2998,9 +2968,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "features_resource_id_idx": {
           "name": "features_resource_id_idx",
@@ -3013,55 +2983,55 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "features_organization_id_organizations_id_fk": {
           "name": "features_organization_id_organizations_id_fk",
           "tableFrom": "features",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "features_usage_meter_id_usage_meters_id_fk": {
           "name": "features_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "features",
-          "tableTo": "usage_meters",
           "columnsFrom": ["usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "features_pricing_model_id_pricing_models_id_fk": {
           "name": "features_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "features",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "features_resource_id_resources_id_fk": {
           "name": "features_resource_id_resources_id_fk",
           "tableFrom": "features",
-          "tableTo": "resources",
           "columnsFrom": ["resource_id"],
+          "tableTo": "resources",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "features_id_unique": {
           "name": "features_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -3287,9 +3257,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "fee_calculations_pricing_model_id_idx": {
           "name": "fee_calculations_pricing_model_id_idx",
@@ -3302,9 +3272,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "fee_calculations_checkout_session_id_idx": {
           "name": "fee_calculations_checkout_session_id_idx",
@@ -3317,9 +3287,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "fee_calculations_purchase_id_idx": {
           "name": "fee_calculations_purchase_id_idx",
@@ -3332,9 +3302,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "fee_calculations_discount_id_idx": {
           "name": "fee_calculations_discount_id_idx",
@@ -3347,82 +3317,82 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "fee_calculations_organization_id_organizations_id_fk": {
           "name": "fee_calculations_organization_id_organizations_id_fk",
           "tableFrom": "fee_calculations",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fee_calculations_pricing_model_id_pricing_models_id_fk": {
           "name": "fee_calculations_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "fee_calculations",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fee_calculations_checkout_session_id_checkout_sessions_id_fk": {
           "name": "fee_calculations_checkout_session_id_checkout_sessions_id_fk",
           "tableFrom": "fee_calculations",
-          "tableTo": "checkout_sessions",
           "columnsFrom": ["checkout_session_id"],
+          "tableTo": "checkout_sessions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fee_calculations_purchase_id_purchases_id_fk": {
           "name": "fee_calculations_purchase_id_purchases_id_fk",
           "tableFrom": "fee_calculations",
-          "tableTo": "purchases",
           "columnsFrom": ["purchase_id"],
+          "tableTo": "purchases",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fee_calculations_discount_id_discounts_id_fk": {
           "name": "fee_calculations_discount_id_discounts_id_fk",
           "tableFrom": "fee_calculations",
-          "tableTo": "discounts",
           "columnsFrom": ["discount_id"],
+          "tableTo": "discounts",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fee_calculations_price_id_prices_id_fk": {
           "name": "fee_calculations_price_id_prices_id_fk",
           "tableFrom": "fee_calculations",
-          "tableTo": "prices",
           "columnsFrom": ["price_id"],
+          "tableTo": "prices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "fee_calculations_billing_period_id_billing_periods_id_fk": {
           "name": "fee_calculations_billing_period_id_billing_periods_id_fk",
           "tableFrom": "fee_calculations",
-          "tableTo": "billing_periods",
           "columnsFrom": ["billing_period_id"],
+          "tableTo": "billing_periods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "fee_calculations_id_unique": {
           "name": "fee_calculations_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -3566,9 +3536,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoice_line_items_price_id_idx": {
           "name": "invoice_line_items_price_id_idx",
@@ -3581,9 +3551,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoice_line_items_billing_run_id_idx": {
           "name": "invoice_line_items_billing_run_id_idx",
@@ -3596,9 +3566,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoice_line_items_ledger_account_id_idx": {
           "name": "invoice_line_items_ledger_account_id_idx",
@@ -3611,9 +3581,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoice_line_items_pricing_model_id_idx": {
           "name": "invoice_line_items_pricing_model_id_idx",
@@ -3626,64 +3596,64 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "invoice_line_items_invoice_id_invoices_id_fk": {
           "name": "invoice_line_items_invoice_id_invoices_id_fk",
           "tableFrom": "invoice_line_items",
-          "tableTo": "invoices",
           "columnsFrom": ["invoice_id"],
+          "tableTo": "invoices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoice_line_items_price_id_prices_id_fk": {
           "name": "invoice_line_items_price_id_prices_id_fk",
           "tableFrom": "invoice_line_items",
-          "tableTo": "prices",
           "columnsFrom": ["price_id"],
+          "tableTo": "prices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoice_line_items_billing_run_id_billing_runs_id_fk": {
           "name": "invoice_line_items_billing_run_id_billing_runs_id_fk",
           "tableFrom": "invoice_line_items",
-          "tableTo": "billing_runs",
           "columnsFrom": ["billing_run_id"],
+          "tableTo": "billing_runs",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoice_line_items_ledger_account_id_ledger_accounts_id_fk": {
           "name": "invoice_line_items_ledger_account_id_ledger_accounts_id_fk",
           "tableFrom": "invoice_line_items",
-          "tableTo": "ledger_accounts",
           "columnsFrom": ["ledger_account_id"],
+          "tableTo": "ledger_accounts",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoice_line_items_pricing_model_id_pricing_models_id_fk": {
           "name": "invoice_line_items_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "invoice_line_items",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "invoice_line_items_id_unique": {
           "name": "invoice_line_items_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -3954,9 +3924,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_purchase_id_idx": {
           "name": "invoices_purchase_id_idx",
@@ -3969,9 +3939,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_status_idx": {
           "name": "invoices_status_idx",
@@ -3984,9 +3954,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_customer_id_idx": {
           "name": "invoices_customer_id_idx",
@@ -3999,9 +3969,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_stripe_payment_intent_id_idx": {
           "name": "invoices_stripe_payment_intent_id_idx",
@@ -4014,9 +3984,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_organization_id_idx": {
           "name": "invoices_organization_id_idx",
@@ -4029,9 +3999,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_billing_run_id_idx": {
           "name": "invoices_billing_run_id_idx",
@@ -4044,9 +4014,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "invoices_pricing_model_id_idx": {
           "name": "invoices_pricing_model_id_idx",
@@ -4059,96 +4029,96 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "invoices_purchase_id_purchases_id_fk": {
           "name": "invoices_purchase_id_purchases_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "purchases",
           "columnsFrom": ["purchase_id"],
+          "tableTo": "purchases",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoices_billing_period_id_billing_periods_id_fk": {
           "name": "invoices_billing_period_id_billing_periods_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "billing_periods",
           "columnsFrom": ["billing_period_id"],
+          "tableTo": "billing_periods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoices_customer_id_customers_id_fk": {
           "name": "invoices_customer_id_customers_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "customers",
           "columnsFrom": ["customer_id"],
+          "tableTo": "customers",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoices_organization_id_organizations_id_fk": {
           "name": "invoices_organization_id_organizations_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoices_subscription_id_subscriptions_id_fk": {
           "name": "invoices_subscription_id_subscriptions_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoices_billing_run_id_billing_runs_id_fk": {
           "name": "invoices_billing_run_id_billing_runs_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "billing_runs",
           "columnsFrom": ["billing_run_id"],
+          "tableTo": "billing_runs",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoices_owner_membership_id_memberships_id_fk": {
           "name": "invoices_owner_membership_id_memberships_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "memberships",
           "columnsFrom": ["owner_membership_id"],
+          "tableTo": "memberships",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "invoices_pricing_model_id_pricing_models_id_fk": {
           "name": "invoices_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "invoices",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "invoices_id_unique": {
           "name": "invoices_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         },
         "invoices_invoice_number_unique": {
           "name": "invoices_invoice_number_unique",
-          "nullsNotDistinct": false,
-          "columns": ["invoice_number"]
+          "columns": ["invoice_number"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -4317,9 +4287,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_accounts_subscription_id_idx": {
           "name": "ledger_accounts_subscription_id_idx",
@@ -4332,9 +4302,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_accounts_subscription_id_usage_meter_id_unique_idx": {
           "name": "ledger_accounts_subscription_id_usage_meter_id_unique_idx",
@@ -4353,9 +4323,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_accounts_pricing_model_id_idx": {
           "name": "ledger_accounts_pricing_model_id_idx",
@@ -4368,55 +4338,55 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "ledger_accounts_organization_id_organizations_id_fk": {
           "name": "ledger_accounts_organization_id_organizations_id_fk",
           "tableFrom": "ledger_accounts",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_accounts_subscription_id_subscriptions_id_fk": {
           "name": "ledger_accounts_subscription_id_subscriptions_id_fk",
           "tableFrom": "ledger_accounts",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_accounts_usage_meter_id_usage_meters_id_fk": {
           "name": "ledger_accounts_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "ledger_accounts",
-          "tableTo": "usage_meters",
           "columnsFrom": ["usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_accounts_pricing_model_id_pricing_models_id_fk": {
           "name": "ledger_accounts_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "ledger_accounts",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "ledger_accounts_id_unique": {
           "name": "ledger_accounts_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -4659,9 +4629,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_ledger_account_id_idx": {
           "name": "ledger_entries_ledger_account_id_idx",
@@ -4674,9 +4644,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_entry_type_idx": {
           "name": "ledger_entries_entry_type_idx",
@@ -4689,9 +4659,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_status_discarded_at_idx": {
           "name": "ledger_entries_status_discarded_at_idx",
@@ -4710,9 +4680,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_ledger_transaction_id_idx": {
           "name": "ledger_entries_ledger_transaction_id_idx",
@@ -4725,9 +4695,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_source_usage_event_id_idx": {
           "name": "ledger_entries_source_usage_event_id_idx",
@@ -4740,9 +4710,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_source_usage_credit_id_idx": {
           "name": "ledger_entries_source_usage_credit_id_idx",
@@ -4755,9 +4725,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_source_credit_application_id_idx": {
           "name": "ledger_entries_source_credit_application_id_idx",
@@ -4770,9 +4740,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_pricing_model_id_idx": {
           "name": "ledger_entries_pricing_model_id_idx",
@@ -4785,9 +4755,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_source_credit_balance_adjustment_id_idx": {
           "name": "ledger_entries_source_credit_balance_adjustment_id_idx",
@@ -4800,9 +4770,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_source_billing_period_calculation_id_idx": {
           "name": "ledger_entries_source_billing_period_calculation_id_idx",
@@ -4815,9 +4785,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_applied_to_ledger_item_id_idx": {
           "name": "ledger_entries_applied_to_ledger_item_id_idx",
@@ -4830,9 +4800,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_billing_period_id_idx": {
           "name": "ledger_entries_billing_period_id_idx",
@@ -4845,9 +4815,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_usage_meter_id_idx": {
           "name": "ledger_entries_usage_meter_id_idx",
@@ -4860,9 +4830,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_entries_claimed_by_billing_run_id_idx": {
           "name": "ledger_entries_claimed_by_billing_run_id_idx",
@@ -4875,145 +4845,145 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "ledger_entries_ledger_account_id_ledger_accounts_id_fk": {
           "name": "ledger_entries_ledger_account_id_ledger_accounts_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "ledger_accounts",
           "columnsFrom": ["ledger_account_id"],
+          "tableTo": "ledger_accounts",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_ledger_transaction_id_ledger_transactions_id_fk": {
           "name": "ledger_entries_ledger_transaction_id_ledger_transactions_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "ledger_transactions",
           "columnsFrom": ["ledger_transaction_id"],
+          "tableTo": "ledger_transactions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_subscription_id_subscriptions_id_fk": {
           "name": "ledger_entries_subscription_id_subscriptions_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_source_usage_event_id_usage_events_id_fk": {
           "name": "ledger_entries_source_usage_event_id_usage_events_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "usage_events",
           "columnsFrom": ["source_usage_event_id"],
+          "tableTo": "usage_events",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_source_usage_credit_id_usage_credits_id_fk": {
           "name": "ledger_entries_source_usage_credit_id_usage_credits_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "usage_credits",
           "columnsFrom": ["source_usage_credit_id"],
+          "tableTo": "usage_credits",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_source_credit_application_id_usage_credit_applications_id_fk": {
           "name": "ledger_entries_source_credit_application_id_usage_credit_applications_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "usage_credit_applications",
           "columnsFrom": ["source_credit_application_id"],
+          "tableTo": "usage_credit_applications",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_source_credit_balance_adjustment_id_usage_credit_balance_adjustments_id_fk": {
           "name": "ledger_entries_source_credit_balance_adjustment_id_usage_credit_balance_adjustments_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "usage_credit_balance_adjustments",
           "columnsFrom": ["source_credit_balance_adjustment_id"],
+          "tableTo": "usage_credit_balance_adjustments",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_source_refund_id_refunds_id_fk": {
           "name": "ledger_entries_source_refund_id_refunds_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "refunds",
           "columnsFrom": ["source_refund_id"],
+          "tableTo": "refunds",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_billing_period_id_billing_periods_id_fk": {
           "name": "ledger_entries_billing_period_id_billing_periods_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "billing_periods",
           "columnsFrom": ["billing_period_id"],
+          "tableTo": "billing_periods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_usage_meter_id_usage_meters_id_fk": {
           "name": "ledger_entries_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "usage_meters",
           "columnsFrom": ["usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_expired_at_ledger_transaction_id_ledger_transactions_id_fk": {
           "name": "ledger_entries_expired_at_ledger_transaction_id_ledger_transactions_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "ledger_transactions",
           "columnsFrom": ["expired_at_ledger_transaction_id"],
+          "tableTo": "ledger_transactions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_claimed_by_billing_run_id_billing_runs_id_fk": {
           "name": "ledger_entries_claimed_by_billing_run_id_billing_runs_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "billing_runs",
           "columnsFrom": ["claimed_by_billing_run_id"],
+          "tableTo": "billing_runs",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_organization_id_organizations_id_fk": {
           "name": "ledger_entries_organization_id_organizations_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_entries_pricing_model_id_pricing_models_id_fk": {
           "name": "ledger_entries_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "ledger_entries",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "ledger_entries_id_unique": {
           "name": "ledger_entries_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -5157,9 +5127,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_transactions_subscription_id_idx": {
           "name": "ledger_transactions_subscription_id_idx",
@@ -5172,9 +5142,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_transactions_organization_id_idx": {
           "name": "ledger_transactions_organization_id_idx",
@@ -5187,9 +5157,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_transactions_pricing_model_id_idx": {
           "name": "ledger_transactions_pricing_model_id_idx",
@@ -5202,9 +5172,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_transactions_idempotency_key_subscription_id_unique_idx": {
           "name": "ledger_transactions_idempotency_key_subscription_id_unique_idx",
@@ -5223,9 +5193,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "ledger_transactions_type_initiating_source_type_initiating_source_id_livemode_organization_id_unique_idx": {
           "name": "ledger_transactions_type_initiating_source_type_initiating_source_id_livemode_organization_id_unique_idx",
@@ -5262,46 +5232,46 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "ledger_transactions_organization_id_organizations_id_fk": {
           "name": "ledger_transactions_organization_id_organizations_id_fk",
           "tableFrom": "ledger_transactions",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_transactions_subscription_id_subscriptions_id_fk": {
           "name": "ledger_transactions_subscription_id_subscriptions_id_fk",
           "tableFrom": "ledger_transactions",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "ledger_transactions_pricing_model_id_pricing_models_id_fk": {
           "name": "ledger_transactions_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "ledger_transactions",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "ledger_transactions_id_unique": {
           "name": "ledger_transactions_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -5424,9 +5394,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "memberships_organization_id_idx": {
           "name": "memberships_organization_id_idx",
@@ -5439,9 +5409,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "memberships_user_id_focused_idx": {
           "name": "memberships_user_id_focused_idx",
@@ -5460,9 +5430,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "memberships_user_id_organization_id_unique_idx": {
           "name": "memberships_user_id_organization_id_unique_idx",
@@ -5481,37 +5451,37 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "memberships_user_id_users_id_fk": {
           "name": "memberships_user_id_users_id_fk",
           "tableFrom": "memberships",
-          "tableTo": "users",
           "columnsFrom": ["user_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "memberships_organization_id_organizations_id_fk": {
           "name": "memberships_organization_id_organizations_id_fk",
           "tableFrom": "memberships",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "memberships_id_unique": {
           "name": "memberships_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -5725,9 +5695,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "organizations_stripe_account_id_unique_idx": {
           "name": "organizations_stripe_account_id_unique_idx",
@@ -5740,9 +5710,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "organizations_domain_unique_idx": {
           "name": "organizations_domain_unique_idx",
@@ -5755,9 +5725,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "organizations_external_id_unique_idx": {
           "name": "organizations_external_id_unique_idx",
@@ -5770,9 +5740,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "organizations_country_id_idx": {
           "name": "organizations_country_id_idx",
@@ -5785,48 +5755,48 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "organizations_country_id_countries_id_fk": {
           "name": "organizations_country_id_countries_id_fk",
           "tableFrom": "organizations",
-          "tableTo": "countries",
           "columnsFrom": ["country_id"],
+          "tableTo": "countries",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "organizations_id_unique": {
           "name": "organizations_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         },
         "organizations_stripe_account_id_unique": {
           "name": "organizations_stripe_account_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stripe_account_id"]
+          "columns": ["stripe_account_id"],
+          "nullsNotDistinct": false
         },
         "organizations_domain_unique": {
           "name": "organizations_domain_unique",
-          "nullsNotDistinct": false,
-          "columns": ["domain"]
+          "columns": ["domain"],
+          "nullsNotDistinct": false
         },
         "organizations_subdomain_slug_unique": {
           "name": "organizations_subdomain_slug_unique",
-          "nullsNotDistinct": false,
-          "columns": ["subdomain_slug"]
+          "columns": ["subdomain_slug"],
+          "nullsNotDistinct": false
         },
         "organizations_external_id_unique": {
           "name": "organizations_external_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["external_id"]
+          "columns": ["external_id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -5958,9 +5928,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payment_methods_type_idx": {
           "name": "payment_methods_type_idx",
@@ -5973,9 +5943,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payment_methods_pricing_model_id_idx": {
           "name": "payment_methods_pricing_model_id_idx",
@@ -5988,9 +5958,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payment_methods_external_id_pricing_model_id_unique_idx": {
           "name": "payment_methods_external_id_pricing_model_id_unique_idx",
@@ -6009,37 +5979,37 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "payment_methods_customer_id_customers_id_fk": {
           "name": "payment_methods_customer_id_customers_id_fk",
           "tableFrom": "payment_methods",
-          "tableTo": "customers",
           "columnsFrom": ["customer_id"],
+          "tableTo": "customers",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "payment_methods_pricing_model_id_pricing_models_id_fk": {
           "name": "payment_methods_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "payment_methods",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "payment_methods_id_unique": {
           "name": "payment_methods_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -6333,9 +6303,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_organization_id_idx": {
           "name": "payments_organization_id_idx",
@@ -6348,9 +6318,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_payment_method_idx": {
           "name": "payments_payment_method_idx",
@@ -6363,9 +6333,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_customer_id_idx": {
           "name": "payments_customer_id_idx",
@@ -6378,9 +6348,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_status_idx": {
           "name": "payments_status_idx",
@@ -6393,9 +6363,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_currency_idx": {
           "name": "payments_currency_idx",
@@ -6408,9 +6378,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_purchase_id_idx": {
           "name": "payments_purchase_id_idx",
@@ -6423,9 +6393,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_stripe_charge_id_unique_idx": {
           "name": "payments_stripe_charge_id_unique_idx",
@@ -6438,9 +6408,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_subscription_id_idx": {
           "name": "payments_subscription_id_idx",
@@ -6453,9 +6423,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "payments_pricing_model_id_idx": {
           "name": "payments_pricing_model_id_idx",
@@ -6468,91 +6438,91 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "payments_invoice_id_invoices_id_fk": {
           "name": "payments_invoice_id_invoices_id_fk",
           "tableFrom": "payments",
-          "tableTo": "invoices",
           "columnsFrom": ["invoice_id"],
+          "tableTo": "invoices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "payments_organization_id_organizations_id_fk": {
           "name": "payments_organization_id_organizations_id_fk",
           "tableFrom": "payments",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "payments_customer_id_customers_id_fk": {
           "name": "payments_customer_id_customers_id_fk",
           "tableFrom": "payments",
-          "tableTo": "customers",
           "columnsFrom": ["customer_id"],
+          "tableTo": "customers",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "payments_purchase_id_purchases_id_fk": {
           "name": "payments_purchase_id_purchases_id_fk",
           "tableFrom": "payments",
-          "tableTo": "purchases",
           "columnsFrom": ["purchase_id"],
+          "tableTo": "purchases",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "payments_subscription_id_subscriptions_id_fk": {
           "name": "payments_subscription_id_subscriptions_id_fk",
           "tableFrom": "payments",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "payments_payment_method_id_payment_methods_id_fk": {
           "name": "payments_payment_method_id_payment_methods_id_fk",
           "tableFrom": "payments",
-          "tableTo": "payment_methods",
           "columnsFrom": ["payment_method_id"],
+          "tableTo": "payment_methods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "payments_billing_period_id_billing_periods_id_fk": {
           "name": "payments_billing_period_id_billing_periods_id_fk",
           "tableFrom": "payments",
-          "tableTo": "billing_periods",
           "columnsFrom": ["billing_period_id"],
+          "tableTo": "billing_periods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "payments_pricing_model_id_pricing_models_id_fk": {
           "name": "payments_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "payments",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "payments_id_unique": {
           "name": "payments_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -6743,9 +6713,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "prices_product_id_idx": {
           "name": "prices_product_id_idx",
@@ -6758,9 +6728,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "prices_external_id_product_id_unique_idx": {
           "name": "prices_external_id_product_id_unique_idx",
@@ -6779,10 +6749,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"prices\".\"type\" != 'usage'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"prices\".\"type\" != 'usage'",
+          "concurrently": false
         },
         "prices_external_id_usage_meter_id_unique_idx": {
           "name": "prices_external_id_usage_meter_id_unique_idx",
@@ -6801,10 +6771,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"prices\".\"type\" = 'usage'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"prices\".\"type\" = 'usage'",
+          "concurrently": false
         },
         "prices_product_id_is_default_unique_idx": {
           "name": "prices_product_id_is_default_unique_idx",
@@ -6817,10 +6787,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"prices\".\"is_default\" AND \"prices\".\"type\" != 'usage'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"prices\".\"is_default\" AND \"prices\".\"type\" != 'usage'",
+          "concurrently": false
         },
         "prices_usage_meter_is_default_unique_idx": {
           "name": "prices_usage_meter_is_default_unique_idx",
@@ -6833,10 +6803,10 @@
             }
           ],
           "isUnique": true,
-          "where": "\"prices\".\"is_default\" AND \"prices\".\"type\" = 'usage'",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"prices\".\"is_default\" AND \"prices\".\"type\" = 'usage'",
+          "concurrently": false
         },
         "prices_usage_meter_id_idx": {
           "name": "prices_usage_meter_id_idx",
@@ -6849,9 +6819,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "prices_pricing_model_id_idx": {
           "name": "prices_pricing_model_id_idx",
@@ -6864,46 +6834,46 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "prices_product_id_products_id_fk": {
           "name": "prices_product_id_products_id_fk",
           "tableFrom": "prices",
-          "tableTo": "products",
           "columnsFrom": ["product_id"],
+          "tableTo": "products",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "prices_usage_meter_id_usage_meters_id_fk": {
           "name": "prices_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "prices",
-          "tableTo": "usage_meters",
           "columnsFrom": ["usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "prices_pricing_model_id_pricing_models_id_fk": {
           "name": "prices_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "prices",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "prices_id_unique": {
           "name": "prices_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -7024,9 +6994,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "pricing_models_name_idx": {
           "name": "pricing_models_name_idx",
@@ -7039,9 +7009,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "pricing_models_organization_id_livemode_unique_idx": {
           "name": "pricing_models_organization_id_livemode_unique_idx",
@@ -7054,29 +7024,29 @@
             }
           ],
           "isUnique": true,
-          "where": "\"pricing_models\".\"livemode\" = true",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"pricing_models\".\"livemode\" = true",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "pricing_models_organization_id_organizations_id_fk": {
           "name": "pricing_models_organization_id_organizations_id_fk",
           "tableFrom": "pricing_models",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "pricing_models_id_unique": {
           "name": "pricing_models_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -7202,9 +7172,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "product_features_product_id_idx": {
           "name": "product_features_product_id_idx",
@@ -7217,9 +7187,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "product_features_organization_id_idx": {
           "name": "product_features_organization_id_idx",
@@ -7232,9 +7202,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "product_features_pricing_model_id_idx": {
           "name": "product_features_pricing_model_id_idx",
@@ -7247,55 +7217,55 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "product_features_product_id_products_id_fk": {
           "name": "product_features_product_id_products_id_fk",
           "tableFrom": "product_features",
-          "tableTo": "products",
           "columnsFrom": ["product_id"],
+          "tableTo": "products",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "product_features_feature_id_features_id_fk": {
           "name": "product_features_feature_id_features_id_fk",
           "tableFrom": "product_features",
-          "tableTo": "features",
           "columnsFrom": ["feature_id"],
+          "tableTo": "features",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "product_features_organization_id_organizations_id_fk": {
           "name": "product_features_organization_id_organizations_id_fk",
           "tableFrom": "product_features",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "product_features_pricing_model_id_pricing_models_id_fk": {
           "name": "product_features_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "product_features",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "product_features_id_unique": {
           "name": "product_features_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -7474,9 +7444,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "products_active_idx": {
           "name": "products_active_idx",
@@ -7489,9 +7459,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "products_external_id_unique_idx": {
           "name": "products_external_id_unique_idx",
@@ -7504,9 +7474,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "products_pricing_model_id_slug_unique_idx": {
           "name": "products_pricing_model_id_slug_unique_idx",
@@ -7525,9 +7495,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "products_pricing_model_id_default_unique_idx": {
           "name": "products_pricing_model_id_default_unique_idx",
@@ -7540,38 +7510,38 @@
             }
           ],
           "isUnique": true,
-          "where": "\"products\".\"default\"",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"products\".\"default\"",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "products_organization_id_organizations_id_fk": {
           "name": "products_organization_id_organizations_id_fk",
           "tableFrom": "products",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "products_pricing_model_id_pricing_models_id_fk": {
           "name": "products_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "products",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "products_id_unique": {
           "name": "products_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -7801,9 +7771,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "purchases_organization_id_idx": {
           "name": "purchases_organization_id_idx",
@@ -7816,9 +7786,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "purchases_price_id_idx": {
           "name": "purchases_price_id_idx",
@@ -7831,9 +7801,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "purchases_pricing_model_id_idx": {
           "name": "purchases_pricing_model_id_idx",
@@ -7846,55 +7816,55 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "purchases_customer_id_customers_id_fk": {
           "name": "purchases_customer_id_customers_id_fk",
           "tableFrom": "purchases",
-          "tableTo": "customers",
           "columnsFrom": ["customer_id"],
+          "tableTo": "customers",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "purchases_organization_id_organizations_id_fk": {
           "name": "purchases_organization_id_organizations_id_fk",
           "tableFrom": "purchases",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "purchases_price_id_prices_id_fk": {
           "name": "purchases_price_id_prices_id_fk",
           "tableFrom": "purchases",
-          "tableTo": "prices",
           "columnsFrom": ["price_id"],
+          "tableTo": "prices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "purchases_pricing_model_id_pricing_models_id_fk": {
           "name": "purchases_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "purchases",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "purchases_id_unique": {
           "name": "purchases_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -8058,9 +8028,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "refunds_payment_id_idx": {
           "name": "refunds_payment_id_idx",
@@ -8073,9 +8043,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "refunds_subscription_id_idx": {
           "name": "refunds_subscription_id_idx",
@@ -8088,9 +8058,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "refunds_status_idx": {
           "name": "refunds_status_idx",
@@ -8103,55 +8073,55 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "refunds_pricing_model_id_pricing_models_id_fk": {
           "name": "refunds_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "refunds",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "refunds_payment_id_payments_id_fk": {
           "name": "refunds_payment_id_payments_id_fk",
           "tableFrom": "refunds",
-          "tableTo": "payments",
           "columnsFrom": ["payment_id"],
+          "tableTo": "payments",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "refunds_subscription_id_subscriptions_id_fk": {
           "name": "refunds_subscription_id_subscriptions_id_fk",
           "tableFrom": "refunds",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "refunds_organization_id_organizations_id_fk": {
           "name": "refunds_organization_id_organizations_id_fk",
           "tableFrom": "refunds",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "refunds_id_unique": {
           "name": "refunds_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -8302,9 +8272,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "resource_claims_resource_id_idx": {
           "name": "resource_claims_resource_id_idx",
@@ -8317,9 +8287,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "resource_claims_organization_id_idx": {
           "name": "resource_claims_organization_id_idx",
@@ -8332,9 +8302,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "resource_claims_pricing_model_id_idx": {
           "name": "resource_claims_pricing_model_id_idx",
@@ -8347,9 +8317,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "resource_claims_active_idx": {
           "name": "resource_claims_active_idx",
@@ -8368,10 +8338,10 @@
             }
           ],
           "isUnique": false,
-          "where": "\"resource_claims\".\"released_at\" IS NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"resource_claims\".\"released_at\" IS NULL",
+          "concurrently": false
         },
         "resource_claims_active_external_id_unique_idx": {
           "name": "resource_claims_active_external_id_unique_idx",
@@ -8396,56 +8366,56 @@
             }
           ],
           "isUnique": true,
-          "where": "\"resource_claims\".\"released_at\" IS NULL AND \"resource_claims\".\"external_id\" IS NOT NULL",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"resource_claims\".\"released_at\" IS NULL AND \"resource_claims\".\"external_id\" IS NOT NULL",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "resource_claims_organization_id_organizations_id_fk": {
           "name": "resource_claims_organization_id_organizations_id_fk",
           "tableFrom": "resource_claims",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "resource_claims_resource_id_resources_id_fk": {
           "name": "resource_claims_resource_id_resources_id_fk",
           "tableFrom": "resource_claims",
-          "tableTo": "resources",
           "columnsFrom": ["resource_id"],
+          "tableTo": "resources",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "resource_claims_subscription_id_subscriptions_id_fk": {
           "name": "resource_claims_subscription_id_subscriptions_id_fk",
           "tableFrom": "resource_claims",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "resource_claims_pricing_model_id_pricing_models_id_fk": {
           "name": "resource_claims_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "resource_claims",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "resource_claims_id_unique": {
           "name": "resource_claims_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -8566,9 +8536,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "resources_pricing_model_id_idx": {
           "name": "resources_pricing_model_id_idx",
@@ -8581,9 +8551,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "resources_organization_id_slug_pricing_model_id_unique_idx": {
           "name": "resources_organization_id_slug_pricing_model_id_unique_idx",
@@ -8608,37 +8578,37 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "resources_organization_id_organizations_id_fk": {
           "name": "resources_organization_id_organizations_id_fk",
           "tableFrom": "resources",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "resources_pricing_model_id_pricing_models_id_fk": {
           "name": "resources_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "resources",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "resources_id_unique": {
           "name": "resources_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -8815,9 +8785,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_item_features_feature_id_idx": {
           "name": "subscription_item_features_feature_id_idx",
@@ -8830,9 +8800,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_item_features_product_feature_id_idx": {
           "name": "subscription_item_features_product_feature_id_idx",
@@ -8845,9 +8815,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_item_features_type_idx": {
           "name": "subscription_item_features_type_idx",
@@ -8860,9 +8830,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_item_features_pricing_model_id_idx": {
           "name": "subscription_item_features_pricing_model_id_idx",
@@ -8875,9 +8845,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_item_features_resource_id_idx": {
           "name": "subscription_item_features_resource_id_idx",
@@ -8890,9 +8860,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_item_features_feature_id_subscription_item_id_unique_idx": {
           "name": "subscription_item_features_feature_id_subscription_item_id_unique_idx",
@@ -8911,73 +8881,73 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "subscription_item_features_subscription_item_id_subscription_items_id_fk": {
           "name": "subscription_item_features_subscription_item_id_subscription_items_id_fk",
           "tableFrom": "subscription_item_features",
-          "tableTo": "subscription_items",
           "columnsFrom": ["subscription_item_id"],
+          "tableTo": "subscription_items",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_item_features_feature_id_features_id_fk": {
           "name": "subscription_item_features_feature_id_features_id_fk",
           "tableFrom": "subscription_item_features",
-          "tableTo": "features",
           "columnsFrom": ["feature_id"],
+          "tableTo": "features",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_item_features_product_feature_id_product_features_id_fk": {
           "name": "subscription_item_features_product_feature_id_product_features_id_fk",
           "tableFrom": "subscription_item_features",
-          "tableTo": "product_features",
           "columnsFrom": ["product_feature_id"],
+          "tableTo": "product_features",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_item_features_usage_meter_id_usage_meters_id_fk": {
           "name": "subscription_item_features_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "subscription_item_features",
-          "tableTo": "usage_meters",
           "columnsFrom": ["usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_item_features_pricing_model_id_pricing_models_id_fk": {
           "name": "subscription_item_features_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "subscription_item_features",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_item_features_resource_id_resources_id_fk": {
           "name": "subscription_item_features_resource_id_resources_id_fk",
           "tableFrom": "subscription_item_features",
-          "tableTo": "resources",
           "columnsFrom": ["resource_id"],
+          "tableTo": "resources",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "subscription_item_features_id_unique": {
           "name": "subscription_item_features_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -9168,9 +9138,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_items_price_id_idx": {
           "name": "subscription_items_price_id_idx",
@@ -9183,9 +9153,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_items_pricing_model_id_idx": {
           "name": "subscription_items_pricing_model_id_idx",
@@ -9198,9 +9168,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_items_external_id_unique_idx": {
           "name": "subscription_items_external_id_unique_idx",
@@ -9213,46 +9183,46 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "subscription_items_subscription_id_subscriptions_id_fk": {
           "name": "subscription_items_subscription_id_subscriptions_id_fk",
           "tableFrom": "subscription_items",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_items_price_id_prices_id_fk": {
           "name": "subscription_items_price_id_prices_id_fk",
           "tableFrom": "subscription_items",
-          "tableTo": "prices",
           "columnsFrom": ["price_id"],
+          "tableTo": "prices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_items_pricing_model_id_pricing_models_id_fk": {
           "name": "subscription_items_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "subscription_items",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "subscription_items_id_unique": {
           "name": "subscription_items_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -9429,9 +9399,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_meter_period_calculations_usage_meter_id_idx": {
           "name": "subscription_meter_period_calculations_usage_meter_id_idx",
@@ -9444,9 +9414,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_meter_period_calculations_billing_period_id_idx": {
           "name": "subscription_meter_period_calculations_billing_period_id_idx",
@@ -9459,9 +9429,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_meter_period_calculations_organization_id_idx": {
           "name": "subscription_meter_period_calculations_organization_id_idx",
@@ -9474,9 +9444,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_meter_period_calculations_status_idx": {
           "name": "subscription_meter_period_calculations_status_idx",
@@ -9489,9 +9459,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_meter_period_calculations_billing_run_id_idx": {
           "name": "subscription_meter_period_calculations_billing_run_id_idx",
@@ -9504,9 +9474,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_meter_period_calculations_superseded_by_calculation_id_idx": {
           "name": "subscription_meter_period_calculations_superseded_by_calculation_id_idx",
@@ -9519,9 +9489,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_meter_period_calculations_source_invoice_id_idx": {
           "name": "subscription_meter_period_calculations_source_invoice_id_idx",
@@ -9534,9 +9504,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_meter_period_calculations_pricing_model_id_idx": {
           "name": "subscription_meter_period_calculations_pricing_model_id_idx",
@@ -9549,9 +9519,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscription_meter_period_calculations_active_calculation_uq": {
           "name": "subscription_meter_period_calculations_active_calculation_uq",
@@ -9582,92 +9552,92 @@
             }
           ],
           "isUnique": true,
-          "where": "\"subscription_meter_period_calculations\".\"status\" = $1",
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "where": "\"subscription_meter_period_calculations\".\"status\" = $1",
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "subscription_meter_period_calculations_billing_run_id_billing_runs_id_fk": {
           "name": "subscription_meter_period_calculations_billing_run_id_billing_runs_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
-          "tableTo": "billing_runs",
           "columnsFrom": ["billing_run_id"],
+          "tableTo": "billing_runs",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_meter_period_calculations_subscription_id_subscriptions_id_fk": {
           "name": "subscription_meter_period_calculations_subscription_id_subscriptions_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_meter_period_calculations_usage_meter_id_usage_meters_id_fk": {
           "name": "subscription_meter_period_calculations_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
-          "tableTo": "usage_meters",
           "columnsFrom": ["usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_meter_period_calculations_billing_period_id_billing_periods_id_fk": {
           "name": "subscription_meter_period_calculations_billing_period_id_billing_periods_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
-          "tableTo": "billing_periods",
           "columnsFrom": ["billing_period_id"],
+          "tableTo": "billing_periods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_meter_period_calculations_organization_id_organizations_id_fk": {
           "name": "subscription_meter_period_calculations_organization_id_organizations_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_meter_period_calculations_source_invoice_id_invoices_id_fk": {
           "name": "subscription_meter_period_calculations_source_invoice_id_invoices_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
-          "tableTo": "invoices",
           "columnsFrom": ["source_invoice_id"],
+          "tableTo": "invoices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_meter_period_calculations_pricing_model_id_pricing_models_id_fk": {
           "name": "subscription_meter_period_calculations_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscription_meter_period_calculations_superseded_by_id_fk": {
           "name": "subscription_meter_period_calculations_superseded_by_id_fk",
           "tableFrom": "subscription_meter_period_calculations",
-          "tableTo": "subscription_meter_period_calculations",
           "columnsFrom": ["superseded_by_calculation_id"],
+          "tableTo": "subscription_meter_period_calculations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "subscription_meter_period_calculations_id_unique": {
           "name": "subscription_meter_period_calculations_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -9918,9 +9888,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscriptions_price_id_idx": {
           "name": "subscriptions_price_id_idx",
@@ -9933,9 +9903,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscriptions_status_idx": {
           "name": "subscriptions_status_idx",
@@ -9948,9 +9918,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscriptions_replaced_by_subscription_id_idx": {
           "name": "subscriptions_replaced_by_subscription_id_idx",
@@ -9963,9 +9933,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscriptions_is_free_plan_idx": {
           "name": "subscriptions_is_free_plan_idx",
@@ -9978,9 +9948,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscriptions_cancellation_reason_idx": {
           "name": "subscriptions_cancellation_reason_idx",
@@ -9993,9 +9963,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscriptions_organization_id_idx": {
           "name": "subscriptions_organization_id_idx",
@@ -10008,9 +9978,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscriptions_pricing_model_id_idx": {
           "name": "subscriptions_pricing_model_id_idx",
@@ -10023,9 +9993,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscriptions_stripe_setup_intent_id_unique_idx": {
           "name": "subscriptions_stripe_setup_intent_id_unique_idx",
@@ -10038,9 +10008,9 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "subscriptions_external_id_organization_id_unique_idx": {
           "name": "subscriptions_external_id_organization_id_unique_idx",
@@ -10059,73 +10029,73 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "subscriptions_customer_id_customers_id_fk": {
           "name": "subscriptions_customer_id_customers_id_fk",
           "tableFrom": "subscriptions",
-          "tableTo": "customers",
           "columnsFrom": ["customer_id"],
+          "tableTo": "customers",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscriptions_organization_id_organizations_id_fk": {
           "name": "subscriptions_organization_id_organizations_id_fk",
           "tableFrom": "subscriptions",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscriptions_default_payment_method_id_payment_methods_id_fk": {
           "name": "subscriptions_default_payment_method_id_payment_methods_id_fk",
           "tableFrom": "subscriptions",
-          "tableTo": "payment_methods",
           "columnsFrom": ["default_payment_method_id"],
+          "tableTo": "payment_methods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscriptions_backup_payment_method_id_payment_methods_id_fk": {
           "name": "subscriptions_backup_payment_method_id_payment_methods_id_fk",
           "tableFrom": "subscriptions",
-          "tableTo": "payment_methods",
           "columnsFrom": ["backup_payment_method_id"],
+          "tableTo": "payment_methods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscriptions_price_id_prices_id_fk": {
           "name": "subscriptions_price_id_prices_id_fk",
           "tableFrom": "subscriptions",
-          "tableTo": "prices",
           "columnsFrom": ["price_id"],
+          "tableTo": "prices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "subscriptions_pricing_model_id_pricing_models_id_fk": {
           "name": "subscriptions_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "subscriptions",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "subscriptions_id_unique": {
           "name": "subscriptions_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -10272,9 +10242,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credit_applications_pricing_model_id_idx": {
           "name": "usage_credit_applications_pricing_model_id_idx",
@@ -10287,64 +10257,64 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "usage_credit_applications_usage_credit_id_usage_credits_id_fk": {
           "name": "usage_credit_applications_usage_credit_id_usage_credits_id_fk",
           "tableFrom": "usage_credit_applications",
-          "tableTo": "usage_credits",
           "columnsFrom": ["usage_credit_id"],
+          "tableTo": "usage_credits",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credit_applications_usage_event_id_usage_events_id_fk": {
           "name": "usage_credit_applications_usage_event_id_usage_events_id_fk",
           "tableFrom": "usage_credit_applications",
-          "tableTo": "usage_events",
           "columnsFrom": ["usage_event_id"],
+          "tableTo": "usage_events",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credit_applications_target_usage_meter_id_usage_meters_id_fk": {
           "name": "usage_credit_applications_target_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "usage_credit_applications",
-          "tableTo": "usage_meters",
           "columnsFrom": ["target_usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credit_applications_organization_id_organizations_id_fk": {
           "name": "usage_credit_applications_organization_id_organizations_id_fk",
           "tableFrom": "usage_credit_applications",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credit_applications_pricing_model_id_pricing_models_id_fk": {
           "name": "usage_credit_applications_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_credit_applications",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "usage_credit_applications_id_unique": {
           "name": "usage_credit_applications_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -10495,9 +10465,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credit_balance_adjustments_adjusted_usage_credit_id_idx": {
           "name": "usage_credit_balance_adjustments_adjusted_usage_credit_id_idx",
@@ -10510,9 +10480,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credit_balance_adjustments_adjusted_by_user_id_idx": {
           "name": "usage_credit_balance_adjustments_adjusted_by_user_id_idx",
@@ -10525,9 +10495,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credit_balance_adjustments_pricing_model_id_idx": {
           "name": "usage_credit_balance_adjustments_pricing_model_id_idx",
@@ -10540,64 +10510,64 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "usage_credit_balance_adjustments_organization_id_organizations_id_fk": {
           "name": "usage_credit_balance_adjustments_organization_id_organizations_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credit_balance_adjustments_usage_meter_id_usage_meters_id_fk": {
           "name": "usage_credit_balance_adjustments_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
-          "tableTo": "usage_meters",
           "columnsFrom": ["usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credit_balance_adjustments_adjusted_usage_credit_id_usage_credits_id_fk": {
           "name": "usage_credit_balance_adjustments_adjusted_usage_credit_id_usage_credits_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
-          "tableTo": "usage_credits",
           "columnsFrom": ["adjusted_usage_credit_id"],
+          "tableTo": "usage_credits",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credit_balance_adjustments_adjusted_by_user_id_users_id_fk": {
           "name": "usage_credit_balance_adjustments_adjusted_by_user_id_users_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
-          "tableTo": "users",
           "columnsFrom": ["adjusted_by_user_id"],
+          "tableTo": "users",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credit_balance_adjustments_pricing_model_id_pricing_models_id_fk": {
           "name": "usage_credit_balance_adjustments_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_credit_balance_adjustments",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "usage_credit_balance_adjustments_id_unique": {
           "name": "usage_credit_balance_adjustments_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -10781,9 +10751,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_organization_id_idx": {
           "name": "usage_credits_organization_id_idx",
@@ -10796,9 +10766,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_billing_period_id_idx": {
           "name": "usage_credits_billing_period_id_idx",
@@ -10811,9 +10781,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_usage_meter_id_idx": {
           "name": "usage_credits_usage_meter_id_idx",
@@ -10826,9 +10796,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_expires_at_idx": {
           "name": "usage_credits_expires_at_idx",
@@ -10841,9 +10811,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_credit_type_idx": {
           "name": "usage_credits_credit_type_idx",
@@ -10856,9 +10826,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_status_idx": {
           "name": "usage_credits_status_idx",
@@ -10871,9 +10841,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_payment_id_idx": {
           "name": "usage_credits_payment_id_idx",
@@ -10886,9 +10856,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_pricing_model_id_idx": {
           "name": "usage_credits_pricing_model_id_idx",
@@ -10901,9 +10871,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_source_reference_id_idx": {
           "name": "usage_credits_source_reference_id_idx",
@@ -10916,9 +10886,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_credits_payment_id_subscription_id_usage_meter_id_unique_idx": {
           "name": "usage_credits_payment_id_subscription_id_usage_meter_id_unique_idx",
@@ -10943,73 +10913,73 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "usage_credits_subscription_id_subscriptions_id_fk": {
           "name": "usage_credits_subscription_id_subscriptions_id_fk",
           "tableFrom": "usage_credits",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credits_organization_id_organizations_id_fk": {
           "name": "usage_credits_organization_id_organizations_id_fk",
           "tableFrom": "usage_credits",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credits_billing_period_id_billing_periods_id_fk": {
           "name": "usage_credits_billing_period_id_billing_periods_id_fk",
           "tableFrom": "usage_credits",
-          "tableTo": "billing_periods",
           "columnsFrom": ["billing_period_id"],
+          "tableTo": "billing_periods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credits_usage_meter_id_usage_meters_id_fk": {
           "name": "usage_credits_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "usage_credits",
-          "tableTo": "usage_meters",
           "columnsFrom": ["usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credits_payment_id_payments_id_fk": {
           "name": "usage_credits_payment_id_payments_id_fk",
           "tableFrom": "usage_credits",
-          "tableTo": "payments",
           "columnsFrom": ["payment_id"],
+          "tableTo": "payments",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_credits_pricing_model_id_pricing_models_id_fk": {
           "name": "usage_credits_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_credits",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "usage_credits_id_unique": {
           "name": "usage_credits_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -11160,9 +11130,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_events_billing_period_id_idx": {
           "name": "usage_events_billing_period_id_idx",
@@ -11175,9 +11145,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_events_subscription_id_idx": {
           "name": "usage_events_subscription_id_idx",
@@ -11190,9 +11160,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_events_price_id_idx": {
           "name": "usage_events_price_id_idx",
@@ -11205,9 +11175,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_events_pricing_model_id_idx": {
           "name": "usage_events_pricing_model_id_idx",
@@ -11220,9 +11190,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_events_usage_meter_id_usage_date_idx": {
           "name": "usage_events_usage_meter_id_usage_date_idx",
@@ -11241,9 +11211,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_events_transaction_id_usage_meter_id_unique_idx": {
           "name": "usage_events_transaction_id_usage_meter_id_unique_idx",
@@ -11262,73 +11232,73 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "usage_events_customer_id_customers_id_fk": {
           "name": "usage_events_customer_id_customers_id_fk",
           "tableFrom": "usage_events",
-          "tableTo": "customers",
           "columnsFrom": ["customer_id"],
+          "tableTo": "customers",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_events_subscription_id_subscriptions_id_fk": {
           "name": "usage_events_subscription_id_subscriptions_id_fk",
           "tableFrom": "usage_events",
-          "tableTo": "subscriptions",
           "columnsFrom": ["subscription_id"],
+          "tableTo": "subscriptions",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_events_usage_meter_id_usage_meters_id_fk": {
           "name": "usage_events_usage_meter_id_usage_meters_id_fk",
           "tableFrom": "usage_events",
-          "tableTo": "usage_meters",
           "columnsFrom": ["usage_meter_id"],
+          "tableTo": "usage_meters",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_events_billing_period_id_billing_periods_id_fk": {
           "name": "usage_events_billing_period_id_billing_periods_id_fk",
           "tableFrom": "usage_events",
-          "tableTo": "billing_periods",
           "columnsFrom": ["billing_period_id"],
+          "tableTo": "billing_periods",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_events_price_id_prices_id_fk": {
           "name": "usage_events_price_id_prices_id_fk",
           "tableFrom": "usage_events",
-          "tableTo": "prices",
           "columnsFrom": ["price_id"],
+          "tableTo": "prices",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_events_pricing_model_id_pricing_models_id_fk": {
           "name": "usage_events_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_events",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "usage_events_id_unique": {
           "name": "usage_events_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -11493,9 +11463,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_meters_pricing_model_id_idx": {
           "name": "usage_meters_pricing_model_id_idx",
@@ -11508,9 +11478,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "usage_meters_organization_id_slug_pricing_model_id_unique_idx": {
           "name": "usage_meters_organization_id_slug_pricing_model_id_unique_idx",
@@ -11535,37 +11505,37 @@
             }
           ],
           "isUnique": true,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "usage_meters_organization_id_organizations_id_fk": {
           "name": "usage_meters_organization_id_organizations_id_fk",
           "tableFrom": "usage_meters",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "usage_meters_pricing_model_id_pricing_models_id_fk": {
           "name": "usage_meters_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "usage_meters",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "usage_meters_id_unique": {
           "name": "usage_meters_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -11679,9 +11649,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "users_email_idx": {
           "name": "users_email_idx",
@@ -11694,9 +11664,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {},
@@ -11704,23 +11674,23 @@
       "uniqueConstraints": {
         "users_id_unique": {
           "name": "users_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         },
         "users_clerk_id_unique": {
           "name": "users_clerk_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["clerk_id"]
+          "columns": ["clerk_id"],
+          "nullsNotDistinct": false
         },
         "users_better_auth_id_unique": {
           "name": "users_better_auth_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["better_auth_id"]
+          "columns": ["better_auth_id"],
+          "nullsNotDistinct": false
         },
         "users_stack_auth_id_unique": {
           "name": "users_stack_auth_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["stack_auth_id"]
+          "columns": ["stack_auth_id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {},
@@ -11825,9 +11795,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "webhooks_active_idx": {
           "name": "webhooks_active_idx",
@@ -11840,9 +11810,9 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         },
         "webhooks_pricing_model_id_idx": {
           "name": "webhooks_pricing_model_id_idx",
@@ -11855,37 +11825,37 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
+          "with": {},
           "method": "btree",
-          "with": {}
+          "concurrently": false
         }
       },
       "foreignKeys": {
         "webhooks_organization_id_organizations_id_fk": {
           "name": "webhooks_organization_id_organizations_id_fk",
           "tableFrom": "webhooks",
-          "tableTo": "organizations",
           "columnsFrom": ["organization_id"],
+          "tableTo": "organizations",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         },
         "webhooks_pricing_model_id_pricing_models_id_fk": {
           "name": "webhooks_pricing_model_id_pricing_models_id_fk",
           "tableFrom": "webhooks",
-          "tableTo": "pricing_models",
           "columnsFrom": ["pricing_model_id"],
+          "tableTo": "pricing_models",
           "columnsTo": ["id"],
-          "onDelete": "no action",
-          "onUpdate": "no action"
+          "onUpdate": "no action",
+          "onDelete": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
         "webhooks_id_unique": {
           "name": "webhooks_id_unique",
-          "nullsNotDistinct": false,
-          "columns": ["id"]
+          "columns": ["id"],
+          "nullsNotDistinct": false
         }
       },
       "policies": {
@@ -11916,10 +11886,10 @@
     }
   },
   "schemas": {},
+  "views": {},
   "sequences": {},
   "roles": {},
   "policies": {},
-  "views": {},
   "_meta": {
     "columns": {},
     "schemas": {},

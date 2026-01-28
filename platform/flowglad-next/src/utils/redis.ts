@@ -175,6 +175,8 @@ export enum RedisKeyNamespace {
   PricesByPricingModel = 'pricesByPricingModel',
   FeaturesByPricingModel = 'featuresByPricingModel',
   ProductFeaturesByPricingModel = 'productFeaturesByPricingModel',
+  // Sync stream for SSE event streaming
+  SyncStream = 'syncStream',
 }
 
 const evictionPolicy: Record<
@@ -248,6 +250,11 @@ const evictionPolicy: Record<
   },
   [RedisKeyNamespace.ProductFeaturesByPricingModel]: {
     max: 100000,
+  },
+  // Sync streams use MAXLEN for eviction, not LRU
+  [RedisKeyNamespace.SyncStream]: {
+    maxlen: 100000, // Max 100k events per stream
+    ttl: 60 * 60 * 24 * 7, // 7 days retention
   },
 }
 
@@ -581,6 +588,20 @@ export function getMaxSizeForNamespace(
   namespace: RedisKeyNamespace
 ): number {
   return evictionPolicy[namespace]?.max ?? 10000
+}
+
+/**
+ * Get the SyncStream eviction policy configuration.
+ */
+export function getSyncStreamConfig(): {
+  maxlen: number
+  ttl: number
+} {
+  const policy = evictionPolicy[RedisKeyNamespace.SyncStream]
+  return {
+    maxlen: policy.maxlen ?? 100000,
+    ttl: policy.ttl ?? 60 * 60 * 24 * 7,
+  }
 }
 
 /**

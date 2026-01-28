@@ -5,6 +5,7 @@ import {
   constructPaymentSucceededEventHash,
   constructPurchaseCompletedEventHash,
   constructSubscriptionCreatedEventHash,
+  constructSyncEventsAvailableEventHash,
 } from './eventHelpers'
 
 describe('constructSubscriptionCreatedEventHash', () => {
@@ -215,6 +216,90 @@ describe('constructCustomerCreatedEventHash', () => {
     const hash2 = constructCustomerCreatedEventHash(customer2)
 
     expect(hash1).not.toBe(hash2)
+  })
+})
+
+describe('constructSyncEventsAvailableEventHash', () => {
+  test('generates same hash for same scopeId and latestSequence', () => {
+    const params1 = {
+      scopeId: 'org_123:live',
+      latestSequence: '1700000000000-0',
+    }
+
+    const params2 = {
+      scopeId: 'org_123:live',
+      latestSequence: '1700000000000-0',
+    }
+
+    const hash1 = constructSyncEventsAvailableEventHash(params1)
+    const hash2 = constructSyncEventsAvailableEventHash(params2)
+
+    expect(hash1).toBe(hash2)
+  })
+
+  test('generates different hashes for different scopeIds', () => {
+    const params1 = {
+      scopeId: 'org_123:live',
+      latestSequence: '1700000000000-0',
+    }
+
+    const params2 = {
+      scopeId: 'org_456:live',
+      latestSequence: '1700000000000-0',
+    }
+
+    const hash1 = constructSyncEventsAvailableEventHash(params1)
+    const hash2 = constructSyncEventsAvailableEventHash(params2)
+
+    expect(hash1).not.toBe(hash2)
+  })
+
+  test('generates different hashes for different latestSequence values', () => {
+    const params1 = {
+      scopeId: 'org_123:live',
+      latestSequence: '1700000000000-0',
+    }
+
+    const params2 = {
+      scopeId: 'org_123:live',
+      latestSequence: '1700000000000-1',
+    }
+
+    const hash1 = constructSyncEventsAvailableEventHash(params1)
+    const hash2 = constructSyncEventsAvailableEventHash(params2)
+
+    expect(hash1).not.toBe(hash2)
+  })
+
+  test('generates different hashes for live vs test mode (different scopeId suffix)', () => {
+    const params1 = {
+      scopeId: 'org_123:live',
+      latestSequence: '1700000000000-0',
+    }
+
+    const params2 = {
+      scopeId: 'org_123:test',
+      latestSequence: '1700000000000-0',
+    }
+
+    const hash1 = constructSyncEventsAvailableEventHash(params1)
+    const hash2 = constructSyncEventsAvailableEventHash(params2)
+
+    expect(hash1).not.toBe(hash2)
+  })
+
+  test('hash is stable across multiple calls', () => {
+    const params = {
+      scopeId: 'org_stable:live',
+      latestSequence: '1700000000000-0',
+    }
+
+    const hash1 = constructSyncEventsAvailableEventHash(params)
+    const hash2 = constructSyncEventsAvailableEventHash(params)
+    const hash3 = constructSyncEventsAvailableEventHash(params)
+
+    expect(hash1).toBe(hash2)
+    expect(hash2).toBe(hash3)
   })
 })
 
