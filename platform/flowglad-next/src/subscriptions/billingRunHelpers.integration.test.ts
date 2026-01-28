@@ -6,7 +6,7 @@
  *
  * Run with: bun run test:integration src/subscriptions/billingRunHelpers.integration.test.ts
  */
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, expect, it } from 'bun:test'
 import {
   setupBillingPeriod,
   setupBillingPeriodItem,
@@ -53,6 +53,7 @@ import {
 } from '@/db/tableMethods/subscriptionItemMethods'
 import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
+import { describeIfStripeKey } from '@/test/stripeIntegrationHelpers'
 import {
   BillingPeriodStatus,
   BillingRunStatus,
@@ -80,421 +81,426 @@ import { executeBillingRun } from './billingRunHelpers'
  * reliably tested even with integration tests. Those scenarios are documented
  * but not tested here.
  */
-describe('Billing Run Atomicity - Integration Tests', () => {
-  let organization: Organization.Record
-  let pricingModel: PricingModel.Record
-  let product: Product.Record
-  let staticPrice: Price.Record
-  let customer: Customer.Record
-  let paymentMethod: PaymentMethod.Record
-  let subscription: Subscription.Record
-  let billingPeriod: BillingPeriod.Record
-  let billingRun: BillingRun.Record
-  let staticBillingPeriodItem: BillingPeriodItem.Record
-  let usageMeter: UsageMeter.Record
-  let usageBasedPrice: Price.Record
-  let ledgerAccount: LedgerAccount.Record
-  let subscriptionItem: SubscriptionItem.Record
+describeIfStripeKey(
+  'Billing Run Atomicity - Integration Tests',
+  () => {
+    let organization: Organization.Record
+    let pricingModel: PricingModel.Record
+    let product: Product.Record
+    let staticPrice: Price.Record
+    let customer: Customer.Record
+    let paymentMethod: PaymentMethod.Record
+    let subscription: Subscription.Record
+    let billingPeriod: BillingPeriod.Record
+    let billingRun: BillingRun.Record
+    let staticBillingPeriodItem: BillingPeriodItem.Record
+    let usageMeter: UsageMeter.Record
+    let usageBasedPrice: Price.Record
+    let ledgerAccount: LedgerAccount.Record
+    let subscriptionItem: SubscriptionItem.Record
 
-  beforeEach(async () => {
-    const orgData = await setupOrg()
-    organization = orgData.organization
-    pricingModel = orgData.pricingModel
-    product = orgData.product
-    staticPrice = orgData.price
+    beforeEach(async () => {
+      const orgData = await setupOrg()
+      organization = orgData.organization
+      pricingModel = orgData.pricingModel
+      product = orgData.product
+      staticPrice = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
-
-    usageMeter = await setupUsageMeter({
-      organizationId: organization.id,
-      name: 'Integration Test Usage Meter',
-      pricingModelId: pricingModel.id,
-      livemode: true,
-    })
-
-    usageBasedPrice = await setupPrice({
-      name: 'Integration Usage Based Price',
-      type: PriceType.Usage,
-      unitPrice: 15,
-      intervalUnit: IntervalUnit.Month,
-      intervalCount: 1,
-      livemode: true,
-      isDefault: false,
-      currency: organization.defaultCurrency,
-      usageMeterId: usageMeter.id,
-    })
-
-    subscription = await setupSubscription({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: staticPrice.id,
-      paymentMethodId: paymentMethod.id,
-      status: SubscriptionStatus.Active,
-    })
-
-    subscriptionItem = await setupSubscriptionItem({
-      subscriptionId: subscription.id,
-      priceId: staticPrice.id,
-      name: staticPrice.name ?? 'Static Item Name',
-      quantity: 1,
-      unitPrice: staticPrice.unitPrice,
-      type: SubscriptionItemType.Static,
-    })
-
-    billingPeriod = await setupBillingPeriod({
-      subscriptionId: subscription.id,
-      startDate: subscription.currentBillingPeriodStart!,
-      endDate: subscription.currentBillingPeriodEnd!,
-      status: BillingPeriodStatus.Active,
-    })
-
-    billingRun = await setupBillingRun({
-      billingPeriodId: billingPeriod.id,
-      paymentMethodId: paymentMethod.id,
-      subscriptionId: subscription.id,
-      status: BillingRunStatus.Scheduled,
-    })
-
-    staticBillingPeriodItem = await setupBillingPeriodItem({
-      billingPeriodId: billingPeriod.id,
-      quantity: 1,
-      unitPrice: staticPrice.unitPrice,
-      name: staticPrice.name ?? 'Static Item Name',
-      type: SubscriptionItemType.Static,
-      description: 'Test Description',
-    })
-
-    ledgerAccount = await setupLedgerAccount({
-      organizationId: organization.id,
-      subscriptionId: subscription.id,
-      usageMeterId: usageMeter.id,
-      livemode: true,
-    })
-  })
-
-  afterEach(async () => {
-    if (organization) {
-      await teardownOrg({ organizationId: organization.id })
-    }
-  })
-
-  describe('Zero Amount Scenarios', () => {
-    it('handles overpayment by marking billing run as succeeded without new payment', async () => {
-      // Setup: Create an overpayment that covers the billing period amount
-      const invoice = await setupInvoice({
-        billingPeriodId: billingPeriod.id,
+      customer = await setupCustomer({
+        organizationId: organization.id,
+      })
+      paymentMethod = await setupPaymentMethod({
+        organizationId: organization.id,
         customerId: customer.id,
-        organizationId: organization.id,
-        priceId: staticPrice.id,
       })
 
-      await setupPayment({
-        stripeChargeId: 'ch_test_overpayment_' + core.nanoid(),
-        status: PaymentStatus.Succeeded,
-        amount: 1000000, // Overpayment
-        livemode: billingPeriod.livemode,
-        customerId: customer.id,
+      usageMeter = await setupUsageMeter({
         organizationId: organization.id,
-        stripePaymentIntentId: 'pi_overpayment_' + core.nanoid(),
-        invoiceId: invoice.id,
-        paymentMethod: paymentMethod.type,
-        billingPeriodId: billingPeriod.id,
-        subscriptionId: billingPeriod.subscriptionId,
-        paymentMethodId: paymentMethod.id,
+        name: 'Integration Test Usage Meter',
+        pricingModelId: pricingModel.id,
+        livemode: true,
       })
 
-      await executeBillingRun(billingRun.id)
-
-      // Verify billing run succeeded
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
-          )
-      )
-      expect(updatedBillingRun.status).toBe(
-        BillingRunStatus.Succeeded
-      )
-
-      // Verify invoice is marked as paid
-      const invoices = await adminTransaction(({ transaction }) =>
-        selectInvoices(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-      )
-      const finalInvoice = invoices.find(
-        (inv) => inv.billingPeriodId === billingPeriod.id
-      )
-      expect(finalInvoice!.status).toBe(InvoiceStatus.Paid)
-    })
-  })
-
-  describe('Validation Failures', () => {
-    it('marks billing run as failed when customer has no Stripe customer ID', async () => {
-      // Remove Stripe customer ID
-      await adminTransaction(async ({ transaction }) => {
-        await updateCustomer(
-          {
-            id: customer.id,
-            stripeCustomerId: null,
-          },
-          transaction
-        )
-      })
-
-      await executeBillingRun(billingRun.id)
-
-      // Verify billing run failed
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
-          )
-      )
-      expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-      expect(updatedBillingRun.errorDetails).toBeObject()
-
-      // Verify no payment was created
-      const payments = await adminTransaction(({ transaction }) =>
-        selectPayments(
-          { billingPeriodId: billingRun.billingPeriodId },
-          transaction
-        )
-      )
-      expect(payments).toHaveLength(0)
-    })
-
-    it('marks billing run as failed when payment method has no Stripe payment method ID', async () => {
-      // Remove Stripe payment method ID
-      await adminTransaction(
-        async ({
-          transaction,
-          cacheRecomputationContext,
-          invalidateCache,
-          emitEvent,
-          enqueueLedgerCommand,
-        }) => {
-          await safelyUpdatePaymentMethod(
-            {
-              id: paymentMethod.id,
-              stripePaymentMethodId: null,
-            },
-            {
-              transaction,
-              cacheRecomputationContext,
-              invalidateCache: invalidateCache!,
-              emitEvent: emitEvent!,
-              enqueueLedgerCommand: enqueueLedgerCommand!,
-            }
-          )
-        }
-      )
-
-      await executeBillingRun(billingRun.id)
-
-      // Verify billing run failed
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
-          )
-      )
-      expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-      expect(updatedBillingRun.errorDetails).toBeObject()
-
-      // Verify no payment was created
-      const payments = await adminTransaction(({ transaction }) =>
-        selectPayments(
-          { billingPeriodId: billingRun.billingPeriodId },
-          transaction
-        )
-      )
-      expect(payments).toHaveLength(0)
-    })
-  })
-
-  describe('Successful Payment Processing', () => {
-    it('creates payment and marks invoice as paid when billing run succeeds', async () => {
-      await executeBillingRun(billingRun.id)
-
-      // Verify billing run succeeded
-      const updatedBillingRun = await adminTransaction(
-        ({ transaction }) =>
-          selectBillingRunById(billingRun.id, transaction).then((r) =>
-            r.unwrap()
-          )
-      )
-      expect(updatedBillingRun.status).toBe(
-        BillingRunStatus.Succeeded
-      )
-
-      // Verify payment was created
-      const payments = await adminTransaction(({ transaction }) =>
-        selectPayments(
-          { billingPeriodId: billingRun.billingPeriodId },
-          transaction
-        )
-      )
-      expect(payments.length).toBeGreaterThan(0)
-      const payment = payments.find(
-        (p) => p.billingPeriodId === billingRun.billingPeriodId
-      )
-      expect(typeof payment).toBe('object')
-      expect(payment!.amount).toBe(staticBillingPeriodItem.unitPrice)
-
-      // Verify invoice was marked as paid
-      const invoices = await adminTransaction(({ transaction }) =>
-        selectInvoices(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-      )
-      const invoice = invoices.find(
-        (inv) => inv.billingPeriodId === billingPeriod.id
-      )
-      expect(typeof invoice).toBe('object')
-      expect(invoice!.status).toBe(InvoiceStatus.Paid)
-    })
-
-    it('grants usage credits when payment succeeds for subscription with credit grant feature', async () => {
-      // Setup: Create usage credit grant feature
-      const grantAmount = 5000
-      const feature = await setupUsageCreditGrantFeature({
-        organizationId: organization.id,
-        name: 'Test Usage Credit Grant',
+      usageBasedPrice = await setupPrice({
+        name: 'Integration Usage Based Price',
+        type: PriceType.Usage,
+        unitPrice: 15,
+        intervalUnit: IntervalUnit.Month,
+        intervalCount: 1,
+        livemode: true,
+        isDefault: false,
+        currency: organization.defaultCurrency,
         usageMeterId: usageMeter.id,
-        renewalFrequency: FeatureUsageGrantFrequency.Once,
-        amount: grantAmount,
-        livemode: true,
       })
 
-      await setupProductFeature({
+      subscription = await setupSubscription({
         organizationId: organization.id,
-        productId: product.id,
-        featureId: feature.id,
-        livemode: true,
+        customerId: customer.id,
+        priceId: staticPrice.id,
+        paymentMethodId: paymentMethod.id,
+        status: SubscriptionStatus.Active,
       })
 
-      await adminTransaction(async ({ transaction }) => {
-        const activeSubscriptionItems =
-          await selectCurrentlyActiveSubscriptionItems(
-            { subscriptionId: subscription.id },
-            billingPeriod.startDate,
+      subscriptionItem = await setupSubscriptionItem({
+        subscriptionId: subscription.id,
+        priceId: staticPrice.id,
+        name: staticPrice.name ?? 'Static Item Name',
+        quantity: 1,
+        unitPrice: staticPrice.unitPrice,
+        type: SubscriptionItemType.Static,
+      })
+
+      billingPeriod = await setupBillingPeriod({
+        subscriptionId: subscription.id,
+        startDate: subscription.currentBillingPeriodStart!,
+        endDate: subscription.currentBillingPeriodEnd!,
+        status: BillingPeriodStatus.Active,
+      })
+
+      billingRun = await setupBillingRun({
+        billingPeriodId: billingPeriod.id,
+        paymentMethodId: paymentMethod.id,
+        subscriptionId: subscription.id,
+        status: BillingRunStatus.Scheduled,
+      })
+
+      staticBillingPeriodItem = await setupBillingPeriodItem({
+        billingPeriodId: billingPeriod.id,
+        quantity: 1,
+        unitPrice: staticPrice.unitPrice,
+        name: staticPrice.name ?? 'Static Item Name',
+        type: SubscriptionItemType.Static,
+        description: 'Test Description',
+      })
+
+      ledgerAccount = await setupLedgerAccount({
+        organizationId: organization.id,
+        subscriptionId: subscription.id,
+        usageMeterId: usageMeter.id,
+        livemode: true,
+      })
+    })
+
+    afterEach(async () => {
+      if (organization) {
+        await teardownOrg({ organizationId: organization.id })
+      }
+    })
+
+    describe('Zero Amount Scenarios', () => {
+      it('handles overpayment by marking billing run as succeeded without new payment', async () => {
+        // Setup: Create an overpayment that covers the billing period amount
+        const invoice = await setupInvoice({
+          billingPeriodId: billingPeriod.id,
+          customerId: customer.id,
+          organizationId: organization.id,
+          priceId: staticPrice.id,
+        })
+
+        await setupPayment({
+          stripeChargeId: 'ch_test_overpayment_' + core.nanoid(),
+          status: PaymentStatus.Succeeded,
+          amount: 1000000, // Overpayment
+          livemode: billingPeriod.livemode,
+          customerId: customer.id,
+          organizationId: organization.id,
+          stripePaymentIntentId: 'pi_overpayment_' + core.nanoid(),
+          invoiceId: invoice.id,
+          paymentMethod: paymentMethod.type,
+          billingPeriodId: billingPeriod.id,
+          subscriptionId: billingPeriod.subscriptionId,
+          paymentMethodId: paymentMethod.id,
+        })
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run succeeded
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
+        )
+        expect(updatedBillingRun.status).toBe(
+          BillingRunStatus.Succeeded
+        )
+
+        // Verify invoice is marked as paid
+        const invoices = await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
             transaction
           )
+        )
+        const finalInvoice = invoices.find(
+          (inv) => inv.billingPeriodId === billingPeriod.id
+        )
+        expect(finalInvoice!.status).toBe(InvoiceStatus.Paid)
+      })
+    })
 
-        // If no items found, update the subscription item's addedDate to be <= billing period start
-        if (activeSubscriptionItems.length === 0) {
-          const allItems = await selectSubscriptionItems(
+    describe('Validation Failures', () => {
+      it('marks billing run as failed when customer has no Stripe customer ID', async () => {
+        // Remove Stripe customer ID
+        await adminTransaction(async ({ transaction }) => {
+          await updateCustomer(
             {
-              subscriptionId: subscription.id,
+              id: customer.id,
+              stripeCustomerId: null,
             },
             transaction
           )
+        })
 
-          if (allItems.length > 0) {
-            // Update addedDate to be at or before billing period start
-            await updateSubscriptionItem(
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeObject()
+
+        // Verify no payment was created
+        const payments = await adminTransaction(({ transaction }) =>
+          selectPayments(
+            { billingPeriodId: billingRun.billingPeriodId },
+            transaction
+          )
+        )
+        expect(payments).toHaveLength(0)
+      })
+
+      it('marks billing run as failed when payment method has no Stripe payment method ID', async () => {
+        // Remove Stripe payment method ID
+        await adminTransaction(
+          async ({
+            transaction,
+            cacheRecomputationContext,
+            invalidateCache,
+            emitEvent,
+            enqueueLedgerCommand,
+          }) => {
+            await safelyUpdatePaymentMethod(
               {
-                id: allItems[0].id,
-                addedDate: billingPeriod.startDate,
-                type: allItems[0].type,
+                id: paymentMethod.id,
+                stripePaymentMethodId: null,
+              },
+              {
+                transaction,
+                cacheRecomputationContext,
+                invalidateCache: invalidateCache!,
+                emitEvent: emitEvent!,
+                enqueueLedgerCommand: enqueueLedgerCommand!,
+              }
+            )
+          }
+        )
+
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run failed
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
+        )
+        expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
+        expect(updatedBillingRun.errorDetails).toBeObject()
+
+        // Verify no payment was created
+        const payments = await adminTransaction(({ transaction }) =>
+          selectPayments(
+            { billingPeriodId: billingRun.billingPeriodId },
+            transaction
+          )
+        )
+        expect(payments).toHaveLength(0)
+      })
+    })
+
+    describe('Successful Payment Processing', () => {
+      it('creates payment and marks invoice as paid when billing run succeeds', async () => {
+        await executeBillingRun(billingRun.id)
+
+        // Verify billing run succeeded
+        const updatedBillingRun = await adminTransaction(
+          ({ transaction }) =>
+            selectBillingRunById(billingRun.id, transaction).then(
+              (r) => r.unwrap()
+            )
+        )
+        expect(updatedBillingRun.status).toBe(
+          BillingRunStatus.Succeeded
+        )
+
+        // Verify payment was created
+        const payments = await adminTransaction(({ transaction }) =>
+          selectPayments(
+            { billingPeriodId: billingRun.billingPeriodId },
+            transaction
+          )
+        )
+        expect(payments.length).toBeGreaterThan(0)
+        const payment = payments.find(
+          (p) => p.billingPeriodId === billingRun.billingPeriodId
+        )
+        expect(typeof payment).toBe('object')
+        expect(payment!.amount).toBe(
+          staticBillingPeriodItem.unitPrice
+        )
+
+        // Verify invoice was marked as paid
+        const invoices = await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+        )
+        const invoice = invoices.find(
+          (inv) => inv.billingPeriodId === billingPeriod.id
+        )
+        expect(typeof invoice).toBe('object')
+        expect(invoice!.status).toBe(InvoiceStatus.Paid)
+      })
+
+      it('grants usage credits when payment succeeds for subscription with credit grant feature', async () => {
+        // Setup: Create usage credit grant feature
+        const grantAmount = 5000
+        const feature = await setupUsageCreditGrantFeature({
+          organizationId: organization.id,
+          name: 'Test Usage Credit Grant',
+          usageMeterId: usageMeter.id,
+          renewalFrequency: FeatureUsageGrantFrequency.Once,
+          amount: grantAmount,
+          livemode: true,
+        })
+
+        await setupProductFeature({
+          organizationId: organization.id,
+          productId: product.id,
+          featureId: feature.id,
+          livemode: true,
+        })
+
+        await adminTransaction(async ({ transaction }) => {
+          const activeSubscriptionItems =
+            await selectCurrentlyActiveSubscriptionItems(
+              { subscriptionId: subscription.id },
+              billingPeriod.startDate,
+              transaction
+            )
+
+          // If no items found, update the subscription item's addedDate to be <= billing period start
+          if (activeSubscriptionItems.length === 0) {
+            const allItems = await selectSubscriptionItems(
+              {
+                subscriptionId: subscription.id,
               },
               transaction
             )
 
-            // Re-query after update
-            const updatedItems =
-              await selectCurrentlyActiveSubscriptionItems(
-                { subscriptionId: subscription.id },
-                billingPeriod.startDate,
+            if (allItems.length > 0) {
+              // Update addedDate to be at or before billing period start
+              await updateSubscriptionItem(
+                {
+                  id: allItems[0].id,
+                  addedDate: billingPeriod.startDate,
+                  type: allItems[0].type,
+                },
                 transaction
               )
-            await createSubscriptionFeatureItems(
-              updatedItems,
-              transaction
-            )
-            return
+
+              // Re-query after update
+              const updatedItems =
+                await selectCurrentlyActiveSubscriptionItems(
+                  { subscriptionId: subscription.id },
+                  billingPeriod.startDate,
+                  transaction
+                )
+              await createSubscriptionFeatureItems(
+                updatedItems,
+                transaction
+              )
+              return
+            }
           }
-        }
 
-        await createSubscriptionFeatureItems(
-          activeSubscriptionItems,
-          transaction
-        )
-      })
-
-      // Execute billing run
-      await executeBillingRun(billingRun.id)
-
-      // Verify invoice is marked as Paid
-      const invoices = await adminTransaction(({ transaction }) =>
-        selectInvoices(
-          { billingPeriodId: billingPeriod.id },
-          transaction
-        )
-      )
-      const invoice = invoices.find(
-        (inv) => inv.billingPeriodId === billingPeriod.id
-      )
-      expect(invoice!.status).toBe(InvoiceStatus.Paid)
-
-      // Verify usage credits were granted
-      await adminTransaction(async ({ transaction }) => {
-        const ledgerAccounts = await selectLedgerAccounts(
-          {
-            subscriptionId: subscription.id,
-            usageMeterId: usageMeter.id,
-          },
-          transaction
-        )
-        expect(ledgerAccounts.length).toBe(1)
-        const ledgerAccount = ledgerAccounts[0]
-
-        const usageCredits = await selectUsageCredits(
-          { subscriptionId: subscription.id },
-          transaction
-        )
-        expect(usageCredits.length).toBe(1)
-        const usageCredit = usageCredits[0]
-        expect(usageCredit.issuedAmount).toBe(grantAmount)
-        expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
-        expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
-
-        // Verify correct grant amount in the ledger
-        const balance =
-          await aggregateBalanceForLedgerAccountFromEntries(
-            { ledgerAccountId: ledgerAccount.id },
-            'available',
+          await createSubscriptionFeatureItems(
+            activeSubscriptionItems,
             transaction
           )
-        expect(balance).toBe(grantAmount)
+        })
+
+        // Execute billing run
+        await executeBillingRun(billingRun.id)
+
+        // Verify invoice is marked as Paid
+        const invoices = await adminTransaction(({ transaction }) =>
+          selectInvoices(
+            { billingPeriodId: billingPeriod.id },
+            transaction
+          )
+        )
+        const invoice = invoices.find(
+          (inv) => inv.billingPeriodId === billingPeriod.id
+        )
+        expect(invoice!.status).toBe(InvoiceStatus.Paid)
+
+        // Verify usage credits were granted
+        await adminTransaction(async ({ transaction }) => {
+          const ledgerAccounts = await selectLedgerAccounts(
+            {
+              subscriptionId: subscription.id,
+              usageMeterId: usageMeter.id,
+            },
+            transaction
+          )
+          expect(ledgerAccounts.length).toBe(1)
+          const ledgerAccount = ledgerAccounts[0]
+
+          const usageCredits = await selectUsageCredits(
+            { subscriptionId: subscription.id },
+            transaction
+          )
+          expect(usageCredits.length).toBe(1)
+          const usageCredit = usageCredits[0]
+          expect(usageCredit.issuedAmount).toBe(grantAmount)
+          expect(usageCredit.status).toBe(UsageCreditStatus.Posted)
+          expect(usageCredit.creditType).toBe(UsageCreditType.Grant)
+
+          // Verify correct grant amount in the ledger
+          const balance =
+            await aggregateBalanceForLedgerAccountFromEntries(
+              { ledgerAccountId: ledgerAccount.id },
+              'available',
+              transaction
+            )
+          expect(balance).toBe(grantAmount)
+        })
       })
     })
-  })
 
-  /**
-   * Card Decline Scenarios
-   *
-   * NOTE: These tests would use Stripe test cards to trigger declines:
-   * - 4000000000000002: Generic decline
-   * - 4000000000000069: Expired card
-   * - 4000000000000127: Incorrect CVC
-   * - 4000000000009995: Insufficient funds
-   *
-   * However, testing card declines requires creating payment methods with
-   * these specific card numbers via Stripe Elements or the API, which is
-   * complex to set up in automated tests.
-   *
-   * For now, these scenarios are documented but not fully automated.
-   * The validation failure tests above verify the basic rollback behavior
-   * works correctly.
-   */
-})
+    /**
+     * Card Decline Scenarios
+     *
+     * NOTE: These tests would use Stripe test cards to trigger declines:
+     * - 4000000000000002: Generic decline
+     * - 4000000000000069: Expired card
+     * - 4000000000000127: Incorrect CVC
+     * - 4000000000009995: Insufficient funds
+     *
+     * However, testing card declines requires creating payment methods with
+     * these specific card numbers via Stripe Elements or the API, which is
+     * complex to set up in automated tests.
+     *
+     * For now, these scenarios are documented but not fully automated.
+     * The validation failure tests above verify the basic rollback behavior
+     * works correctly.
+     */
+  }
+)

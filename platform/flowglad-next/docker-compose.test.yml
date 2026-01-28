@@ -21,8 +21,8 @@ services:
       - '12111:12111'
       - '12112:12112'
     healthcheck:
-      test: ['CMD', 'wget', '-q', '-O', '/dev/null', '--header', 'Authorization: Bearer sk_test_mock', 'http://localhost:12111/v1/customers']
+      test: ['CMD-SHELL', 'curl -fsS -H "Authorization: Bearer sk_test_mock" http://localhost:12111/v1/customers > /dev/null']
       interval: 2s
-      timeout: 3s
+      timeout: 5s
       retries: 5
 
