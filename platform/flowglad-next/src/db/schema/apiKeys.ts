@@ -4,6 +4,7 @@ import { createInsertSchema, createSelectSchema } from 'drizzle-zod'
 import * as R from 'ramda'
 import { z } from 'zod'
 import { organizations } from '@/db/schema/organizations'
+import { pricingModels } from '@/db/schema/pricingModels'
 import {
   clientWriteOmitsConstructor,
   constructIndex,
@@ -34,6 +35,10 @@ export const apiKeys = pgTable(
       'organization_id',
       organizations
     ),
+    pricingModelId: notNullStringForeignKey(
+      'pricing_model_id',
+      pricingModels
+    ),
     name: text('name').notNull(),
     token: text('token').notNull(),
     active: boolean('active').notNull().default(true),
@@ -51,6 +56,7 @@ export const apiKeys = pgTable(
   },
   livemodePolicyTable(TABLE_NAME, (table) => [
     constructIndex(TABLE_NAME, [table.organizationId]),
+    constructIndex(TABLE_NAME, [table.pricingModelId]),
     merchantPolicy('Enable all actions for own organizations', {
       as: 'permissive',
       for: 'all',
@@ -67,6 +73,10 @@ const readOnlyColumns = {
   organizationId: true,
   livemode: true,
   token: true,
+} as const
+
+const createOnlyColumns = {
+  pricingModelId: true,
 } as const
 
 const hiddenColumns = {
@@ -96,6 +106,7 @@ export const {
   client: {
     hiddenColumns,
     readOnlyColumns,
+    createOnlyColumns,
   },
 })
 
@@ -121,6 +132,7 @@ export const {
   client: {
     hiddenColumns,
     readOnlyColumns,
+    createOnlyColumns,
   },
   entityName: 'SecretApiKey',
 })
