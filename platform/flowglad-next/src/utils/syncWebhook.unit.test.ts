@@ -93,14 +93,12 @@ describe('syncWebhook', () => {
       const payload = createSyncEventsAvailablePayload({
         scopeId: 'org_123:live',
         latestSequence: '1700000000000-0',
-        eventCount: 5,
       })
 
       expect(payload.id).toBe('org_123:live')
       expect(payload.object).toBe(EventNoun.SyncStream)
       expect(payload.scopeId).toBe('org_123:live')
       expect(payload.latestSequence).toBe('1700000000000-0')
-      expect(payload.eventCount).toBe(5)
     })
   })
 
@@ -111,7 +109,6 @@ describe('syncWebhook', () => {
         pricingModelId: 'pm_456',
         livemode: true,
         latestSequence: '1700000000000-0',
-        eventCount: 5,
       })
 
       expect(event.type).toBe(FlowgladEventType.SyncEventsAvailable)
@@ -120,7 +117,6 @@ describe('syncWebhook', () => {
       expect(event.livemode).toBe(true)
       expect(event.payload.scopeId).toBe('org_123:live')
       expect(event.payload.latestSequence).toBe('1700000000000-0')
-      expect(event.payload.eventCount).toBe(5)
       expect(event.payload.object).toBe(EventNoun.SyncStream)
     })
 
@@ -130,7 +126,6 @@ describe('syncWebhook', () => {
         pricingModelId: 'pm_456',
         livemode: true,
         latestSequence: '1700000000000-0',
-        eventCount: 5,
       })
 
       const event2 = createSyncEventsAvailableEvent({
@@ -138,7 +133,6 @@ describe('syncWebhook', () => {
         pricingModelId: 'pm_456',
         livemode: true,
         latestSequence: '1700000000000-1',
-        eventCount: 6,
       })
 
       expect(event1.hash).not.toBe(event2.hash)
@@ -150,7 +144,6 @@ describe('syncWebhook', () => {
         pricingModelId: 'pm_456',
         livemode: true,
         latestSequence: '1700000000000-0',
-        eventCount: 5,
       })
 
       const event2 = createSyncEventsAvailableEvent({
@@ -158,7 +151,6 @@ describe('syncWebhook', () => {
         pricingModelId: 'pm_456',
         livemode: true,
         latestSequence: '1700000000000-0',
-        eventCount: 10, // Different count, same sequence
       })
 
       expect(event1.hash).toBe(event2.hash)

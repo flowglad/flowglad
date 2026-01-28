@@ -23,8 +23,6 @@ export const syncEventsAvailablePayloadSchema = z.object({
   scopeId: z.string().min(1),
   /** Latest sequence ID in the stream (Redis Stream ID format) */
   latestSequence: z.string().min(1),
-  /** Number of events waiting in the stream since last notification */
-  eventCount: z.number().int().nonnegative(),
 })
 
 export type SyncEventsAvailablePayload = z.infer<
@@ -79,14 +77,12 @@ export const parseScopeId = (
 export const createSyncEventsAvailablePayload = (params: {
   scopeId: string
   latestSequence: string
-  eventCount: number
 }): SyncEventsAvailablePayload => {
   return {
     id: params.scopeId,
     object: EventNoun.SyncStream,
     scopeId: params.scopeId,
     latestSequence: params.latestSequence,
-    eventCount: params.eventCount,
   }
 }
 
@@ -102,28 +98,20 @@ export const createSyncEventsAvailablePayload = (params: {
  * @param params.pricingModelId - The pricing model ID (required for Svix routing)
  * @param params.livemode - Whether this is live or test mode
  * @param params.latestSequence - The latest Redis Stream sequence ID
- * @param params.eventCount - Number of events waiting in the stream
  */
 export const createSyncEventsAvailableEvent = (params: {
   organizationId: string
   pricingModelId: string
   livemode: boolean
   latestSequence: string
-  eventCount: number
 }): Event.Insert => {
-  const {
-    organizationId,
-    pricingModelId,
-    livemode,
-    latestSequence,
-    eventCount,
-  } = params
+  const { organizationId, pricingModelId, livemode, latestSequence } =
+    params
 
   const scopeId = buildScopeId(organizationId, livemode)
   const payload = createSyncEventsAvailablePayload({
     scopeId,
     latestSequence,
-    eventCount,
   })
 
   const now = Date.now()
