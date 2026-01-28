@@ -5,7 +5,15 @@ import {
   generateTestKeyPrefix,
   getRedisTestClient,
 } from '@/test/redisIntegrationHelpers'
-import type { SyncEventInsert } from '@/types/sync'
+import {
+  CurrencyCode,
+  IntervalUnit,
+  InvoiceStatus,
+  InvoiceType,
+  SubscriptionItemType,
+  SubscriptionStatus,
+} from '@/types'
+import type { SyncEvent, SyncEventInsert } from '@/types/sync'
 import {
   appendSyncEvent,
   getSyncStreamKey,
@@ -29,7 +37,115 @@ import {
  * - SDK cannot maintain persistent connections
  * - Webhooks wake up serverless functions
  * - Functions read from stream to sync state
+ *
+ * IMPORTANT: Sync event data contains the FULL entity state (not diffs).
+ * Clients use this complete payload to replace their local copy of the entity.
  */
+
+/**
+ * Factory functions for creating realistic test payloads.
+ * These match the structure of actual client-facing entity records.
+ */
+const createSubscriptionPayload = (
+  id: string,
+  overrides: {
+    status?: SubscriptionStatus
+    customerId?: string
+    priceId?: string
+  } = {}
+) => ({
+  id,
+  customerId: overrides.customerId ?? 'cust_test123',
+  organizationId: 'org_test456',
+  pricingModelId: 'pm_test789',
+  priceId: overrides.priceId ?? 'price_test001',
+  status: overrides.status ?? SubscriptionStatus.Active,
+  startDate: '2024-01-01T00:00:00.000Z',
+  currentBillingPeriodStart: '2024-01-01T00:00:00.000Z',
+  currentBillingPeriodEnd: '2024-02-01T00:00:00.000Z',
+  interval: IntervalUnit.Month,
+  intervalCount: 1,
+  renews: true,
+  livemode: true,
+  current: true,
+  name: 'Pro Plan',
+  metadata: {},
+  trialEnd: null,
+  canceledAt: null,
+  cancelScheduledAt: null,
+  cancellationReason: null,
+  defaultPaymentMethodId: 'pm_pay123',
+  backupPaymentMethodId: null,
+  billingCycleAnchorDate: '2024-01-01T00:00:00.000Z',
+  isFreePlan: false,
+  doNotCharge: false,
+  replacedBySubscriptionId: null,
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: '2024-01-15T12:00:00.000Z',
+})
+
+const createSubscriptionItemPayload = (
+  id: string,
+  overrides: {
+    subscriptionId?: string
+    quantity?: number
+    unitPrice?: number
+  } = {}
+) => ({
+  id,
+  subscriptionId: overrides.subscriptionId ?? 'sub_test123',
+  pricingModelId: 'pm_test789',
+  priceId: 'price_test001',
+  name: 'Pro Plan - Monthly',
+  addedDate: '2024-01-01T00:00:00.000Z',
+  unitPrice: overrides.unitPrice ?? 2999,
+  quantity: overrides.quantity ?? 1,
+  type: SubscriptionItemType.Static,
+  metadata: {},
+  expiredAt: null,
+  manuallyCreated: false,
+  livemode: true,
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: '2024-01-15T12:00:00.000Z',
+})
+
+const createInvoicePayload = (
+  id: string,
+  overrides: {
+    invoiceNumber?: string
+    status?: InvoiceStatus
+    totalAmount?: number
+  } = {}
+) => ({
+  id,
+  type: InvoiceType.Subscription,
+  invoiceNumber: overrides.invoiceNumber ?? `INV-${id.slice(-6)}`,
+  invoiceDate: '2024-01-01T00:00:00.000Z',
+  dueDate: '2024-01-15T00:00:00.000Z',
+  customerId: 'cust_test123',
+  organizationId: 'org_test456',
+  pricingModelId: 'pm_test789',
+  subscriptionId: 'sub_test123',
+  billingPeriodId: 'bp_test001',
+  billingPeriodStartDate: '2024-01-01T00:00:00.000Z',
+  billingPeriodEndDate: '2024-02-01T00:00:00.000Z',
+  status: overrides.status ?? InvoiceStatus.Paid,
+  currency: CurrencyCode.USD,
+  pdfURL: null,
+  receiptPdfURL: null,
+  memo: null,
+  bankPaymentOnly: false,
+  ownerMembershipId: null,
+  billingRunId: 'br_test001',
+  taxRatePercentage: null,
+  taxAmount: null,
+  taxType: null,
+  taxCountry: null,
+  applicationFee: null,
+  livemode: true,
+  createdAt: '2024-01-01T00:00:00.000Z',
+  updatedAt: '2024-01-15T12:00:00.000Z',
+})
 
 describeIfRedisKey('syncWebhook integration', () => {
   let testKeyPrefix: string
@@ -46,21 +162,37 @@ describeIfRedisKey('syncWebhook integration', () => {
   })
 
   it('webhook triggers stream read and catches up on missed events: given 5 events appended and webhook with lastSequence after event 2, reading stream returns events 3, 4, 5', async () => {
-    // Setup: Create a scope and append 5 events
+    // Setup: Create a scope and append 5 subscription update events
     const scopeId = `${testKeyPrefix}_org_webhook_catchup:live`
     const streamKey = getSyncStreamKey(scopeId)
     keysToCleanup.push(streamKey)
 
     const sequences: string[] = []
+    const subscriptionIds = [
+      'sub_001',
+      'sub_002',
+      'sub_003',
+      'sub_004',
+      'sub_005',
+    ]
 
-    // Append 5 events to the stream
+    // Append 5 events with full subscription payloads
+    // Each event represents the complete current state of the subscription
     for (let i = 0; i < 5; i++) {
+      const subscriptionId = subscriptionIds[i]
       const event: SyncEventInsert = {
         namespace: 'customerSubscriptions',
-        entityId: `sub_${i}`,
+        entityId: subscriptionId,
         scopeId,
         eventType: 'update',
-        data: { index: i, status: 'active' },
+        // Full entity payload - this is what clients use to replace their local copy
+        data: createSubscriptionPayload(subscriptionId, {
+          status:
+            i < 3
+              ? SubscriptionStatus.Active
+              : SubscriptionStatus.PastDue,
+          customerId: `cust_${100 + i}`,
+        }),
         livemode: true,
       }
 
@@ -92,10 +224,25 @@ describeIfRedisKey('syncWebhook integration', () => {
 
     // Should return exactly 2 events: indices 3 and 4
     expect(catchupEvents.length).toBe(2)
-    expect(catchupEvents[0].entityId).toBe('sub_3')
-    expect((catchupEvents[0].data as { index: number }).index).toBe(3)
-    expect(catchupEvents[1].entityId).toBe('sub_4')
-    expect((catchupEvents[1].data as { index: number }).index).toBe(4)
+    expect(catchupEvents[0].entityId).toBe('sub_004')
+    expect(catchupEvents[1].entityId).toBe('sub_005')
+
+    // Verify we received complete subscription payloads
+    type SubscriptionPayload = ReturnType<
+      typeof createSubscriptionPayload
+    >
+    const sub4Data = catchupEvents[0].data as SubscriptionPayload
+    const sub5Data = catchupEvents[1].data as SubscriptionPayload
+
+    expect(sub4Data.id).toBe('sub_004')
+    expect(sub4Data.status).toBe(SubscriptionStatus.PastDue)
+    expect(sub4Data.customerId).toBe('cust_103')
+    expect(sub4Data.interval).toBe(IntervalUnit.Month)
+    expect(sub4Data.renews).toBe(true)
+
+    expect(sub5Data.id).toBe('sub_005')
+    expect(sub5Data.status).toBe(SubscriptionStatus.PastDue)
+    expect(sub5Data.customerId).toBe('cust_104')
 
     // Verify sequences are correct
     expect(catchupEvents[0].sequence).toBe(sequences[3])
@@ -106,21 +253,28 @@ describeIfRedisKey('syncWebhook integration', () => {
   })
 
   it('webhook delivery failure does not lose events: events remain readable from stream regardless of webhook delivery status', async () => {
-    // Setup: Create a scope and append events
+    // Setup: Create a scope and append subscription item events
     const scopeId = `${testKeyPrefix}_org_webhook_durable:live`
     const streamKey = getSyncStreamKey(scopeId)
     keysToCleanup.push(streamKey)
 
     const sequences: string[] = []
+    const itemIds = ['si_001', 'si_002', 'si_003']
 
-    // Append 3 events to the stream
+    // Append 3 subscription item events with full payloads
     for (let i = 0; i < 3; i++) {
+      const itemId = itemIds[i]
       const event: SyncEventInsert = {
         namespace: 'subscriptionItems',
-        entityId: `item_${i}`,
+        entityId: itemId,
         scopeId,
         eventType: 'update',
-        data: { quantity: i + 1 },
+        // Full entity payload representing the complete subscription item state
+        data: createSubscriptionItemPayload(itemId, {
+          subscriptionId: 'sub_parent123',
+          quantity: i + 1,
+          unitPrice: (i + 1) * 1000, // $10, $20, $30 in cents
+        }),
         livemode: true,
       }
 
@@ -151,20 +305,29 @@ describeIfRedisKey('syncWebhook integration', () => {
 
     // All 3 events should still be readable
     expect(allEvents.length).toBe(3)
-    expect(allEvents[0].entityId).toBe('item_0')
-    expect(allEvents[1].entityId).toBe('item_1')
-    expect(allEvents[2].entityId).toBe('item_2')
+    expect(allEvents[0].entityId).toBe('si_001')
+    expect(allEvents[1].entityId).toBe('si_002')
+    expect(allEvents[2].entityId).toBe('si_003')
 
-    // Data integrity is preserved
-    expect((allEvents[0].data as { quantity: number }).quantity).toBe(
-      1
-    )
-    expect((allEvents[1].data as { quantity: number }).quantity).toBe(
-      2
-    )
-    expect((allEvents[2].data as { quantity: number }).quantity).toBe(
-      3
-    )
+    // Verify complete subscription item payloads are preserved
+    type SubscriptionItemPayload = ReturnType<
+      typeof createSubscriptionItemPayload
+    >
+    const item1 = allEvents[0].data as SubscriptionItemPayload
+    const item2 = allEvents[1].data as SubscriptionItemPayload
+    const item3 = allEvents[2].data as SubscriptionItemPayload
+
+    // Data integrity is preserved - quantities and prices match what was stored
+    expect(item1.quantity).toBe(1)
+    expect(item1.unitPrice).toBe(1000)
+    expect(item1.subscriptionId).toBe('sub_parent123')
+    expect(item1.type).toBe(SubscriptionItemType.Static)
+
+    expect(item2.quantity).toBe(2)
+    expect(item2.unitPrice).toBe(2000)
+
+    expect(item3.quantity).toBe(3)
+    expect(item3.unitPrice).toBe(3000)
 
     // Sequences are monotonically increasing
     for (let i = 1; i < allEvents.length; i++) {
@@ -183,14 +346,19 @@ describeIfRedisKey('syncWebhook integration', () => {
 
     const sequences: string[] = []
 
-    // Append 10 events to the stream
+    // Append 10 invoice events with full payloads
     for (let i = 0; i < 10; i++) {
+      const invoiceId = `inv_${String(i).padStart(3, '0')}`
       const event: SyncEventInsert = {
         namespace: 'invoices',
-        entityId: `inv_${i}`,
+        entityId: invoiceId,
         scopeId,
         eventType: 'update',
-        data: { amount: (i + 1) * 100 },
+        // Full invoice payload - clients use this to replace their local copy
+        data: createInvoicePayload(invoiceId, {
+          invoiceNumber: `INV-2024-${String(i + 1).padStart(4, '0')}`,
+          status: i < 5 ? InvoiceStatus.Paid : InvoiceStatus.Open,
+        }),
         livemode: true,
       }
 
@@ -206,8 +374,16 @@ describeIfRedisKey('syncWebhook integration', () => {
     })
 
     expect(batch1.length).toBe(3)
-    expect(batch1[0].entityId).toBe('inv_0')
-    expect(batch1[2].entityId).toBe('inv_2')
+    expect(batch1[0].entityId).toBe('inv_000')
+    expect(batch1[2].entityId).toBe('inv_002')
+
+    // Verify full invoice payloads
+    type InvoicePayload = ReturnType<typeof createInvoicePayload>
+    const firstInvoice = batch1[0].data as InvoicePayload
+    expect(firstInvoice.invoiceNumber).toBe('INV-2024-0001')
+    expect(firstInvoice.status).toBe(InvoiceStatus.Paid)
+    expect(firstInvoice.type).toBe(InvoiceType.Subscription)
+    expect(firstInvoice.currency).toBe(CurrencyCode.USD)
 
     // Use last sequence from batch1 to continue
     const batch2 = await readSyncEvents({
@@ -217,8 +393,8 @@ describeIfRedisKey('syncWebhook integration', () => {
     })
 
     expect(batch2.length).toBe(3)
-    expect(batch2[0].entityId).toBe('inv_3')
-    expect(batch2[2].entityId).toBe('inv_5')
+    expect(batch2[0].entityId).toBe('inv_003')
+    expect(batch2[2].entityId).toBe('inv_005')
 
     // Continue from batch2
     const batch3 = await readSyncEvents({
@@ -228,8 +404,12 @@ describeIfRedisKey('syncWebhook integration', () => {
     })
 
     expect(batch3.length).toBe(3)
-    expect(batch3[0].entityId).toBe('inv_6')
-    expect(batch3[2].entityId).toBe('inv_8')
+    expect(batch3[0].entityId).toBe('inv_006')
+    expect(batch3[2].entityId).toBe('inv_008')
+
+    // Verify status transition in later invoices
+    const laterInvoice = batch3[0].data as InvoicePayload
+    expect(laterInvoice.status).toBe(InvoiceStatus.Open)
 
     // Final batch - only 1 event remaining
     const batch4 = await readSyncEvents({
@@ -239,7 +419,7 @@ describeIfRedisKey('syncWebhook integration', () => {
     })
 
     expect(batch4.length).toBe(1)
-    expect(batch4[0].entityId).toBe('inv_9')
+    expect(batch4[0].entityId).toBe('inv_009')
 
     // One more read returns empty - merchant is caught up
     const emptyBatch = await readSyncEvents({
@@ -273,40 +453,50 @@ describeIfRedisKey('syncWebhook integration', () => {
     const streamKey = getSyncStreamKey(scopeId)
     keysToCleanup.push(streamKey)
 
-    // Append events from different namespaces interleaved
+    // Append events from different namespaces interleaved, each with full payloads
     await appendSyncEvent({
       namespace: 'customerSubscriptions',
-      entityId: 'sub_1',
+      entityId: 'sub_mixed_1',
       scopeId,
       eventType: 'update',
-      data: { status: 'active' },
+      data: createSubscriptionPayload('sub_mixed_1', {
+        status: SubscriptionStatus.Active,
+      }),
       livemode: true,
     })
 
     await appendSyncEvent({
       namespace: 'subscriptionItems',
-      entityId: 'item_1',
+      entityId: 'si_mixed_1',
       scopeId,
       eventType: 'update',
-      data: { quantity: 5 },
+      data: createSubscriptionItemPayload('si_mixed_1', {
+        quantity: 5,
+        unitPrice: 4999,
+      }),
       livemode: true,
     })
 
     await appendSyncEvent({
       namespace: 'invoices',
-      entityId: 'inv_1',
+      entityId: 'inv_mixed_1',
       scopeId,
       eventType: 'update',
-      data: { amount: 1000 },
+      data: createInvoicePayload('inv_mixed_1', {
+        invoiceNumber: 'INV-MIXED-001',
+        status: InvoiceStatus.Paid,
+      }),
       livemode: true,
     })
 
     await appendSyncEvent({
       namespace: 'customerSubscriptions',
-      entityId: 'sub_2',
+      entityId: 'sub_mixed_2',
       scopeId,
       eventType: 'update',
-      data: { status: 'trialing' },
+      data: createSubscriptionPayload('sub_mixed_2', {
+        status: SubscriptionStatus.Trialing,
+      }),
       livemode: true,
     })
 
@@ -317,23 +507,49 @@ describeIfRedisKey('syncWebhook integration', () => {
 
     // Verify ordering matches insertion order (not namespace grouping)
     expect(allEvents[0].namespace).toBe('customerSubscriptions')
-    expect(allEvents[0].entityId).toBe('sub_1')
+    expect(allEvents[0].entityId).toBe('sub_mixed_1')
 
     expect(allEvents[1].namespace).toBe('subscriptionItems')
-    expect(allEvents[1].entityId).toBe('item_1')
+    expect(allEvents[1].entityId).toBe('si_mixed_1')
 
     expect(allEvents[2].namespace).toBe('invoices')
-    expect(allEvents[2].entityId).toBe('inv_1')
+    expect(allEvents[2].entityId).toBe('inv_mixed_1')
 
     expect(allEvents[3].namespace).toBe('customerSubscriptions')
-    expect(allEvents[3].entityId).toBe('sub_2')
+    expect(allEvents[3].entityId).toBe('sub_mixed_2')
+
+    // Verify each event has complete payload for its entity type
+    type SubscriptionPayload = ReturnType<
+      typeof createSubscriptionPayload
+    >
+    type SubscriptionItemPayload = ReturnType<
+      typeof createSubscriptionItemPayload
+    >
+    type InvoicePayload = ReturnType<typeof createInvoicePayload>
+
+    const sub1 = allEvents[0].data as SubscriptionPayload
+    expect(sub1.status).toBe(SubscriptionStatus.Active)
+    expect(sub1.interval).toBe(IntervalUnit.Month)
+
+    const item1 = allEvents[1].data as SubscriptionItemPayload
+    expect(item1.quantity).toBe(5)
+    expect(item1.unitPrice).toBe(4999)
+    expect(item1.type).toBe(SubscriptionItemType.Static)
+
+    const inv1 = allEvents[2].data as InvoicePayload
+    expect(inv1.invoiceNumber).toBe('INV-MIXED-001')
+    expect(inv1.status).toBe(InvoiceStatus.Paid)
+    expect(inv1.currency).toBe(CurrencyCode.USD)
+
+    const sub2 = allEvents[3].data as SubscriptionPayload
+    expect(sub2.status).toBe(SubscriptionStatus.Trialing)
 
     // Client can filter by namespace if needed
     const subscriptionEvents = allEvents.filter(
-      (e) => e.namespace === 'customerSubscriptions'
+      (e: SyncEvent) => e.namespace === 'customerSubscriptions'
     )
     expect(subscriptionEvents.length).toBe(2)
-    expect(subscriptionEvents[0].entityId).toBe('sub_1')
-    expect(subscriptionEvents[1].entityId).toBe('sub_2')
+    expect(subscriptionEvents[0].entityId).toBe('sub_mixed_1')
+    expect(subscriptionEvents[1].entityId).toBe('sub_mixed_2')
   })
 })
