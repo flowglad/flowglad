@@ -3,6 +3,10 @@ import { Result } from 'better-result'
 import { sql } from 'drizzle-orm'
 import type Stripe from 'stripe'
 import {
+  mockCreateStripeCustomer,
+  mockGetStripeCharge,
+} from '@/../bun.stripe.mocks'
+import {
   setupBillingPeriod,
   setupBillingRun,
   setupCheckoutSession,
@@ -87,10 +91,6 @@ import {
   type StripeIntentMetadata,
 } from '@/utils/stripe'
 import core from '../core'
-
-// Use global mocks from bun.db.mocks.ts
-const mockGetStripeCharge = globalThis.__mockGetStripeCharge
-const mockCreateStripeCustomer = globalThis.__mockCreateStripeCustomer
 
 describe('ledgerCommandForPaymentSucceeded', () => {
   // Shared globals for setup reused across tests

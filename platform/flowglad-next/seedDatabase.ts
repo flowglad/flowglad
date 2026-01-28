@@ -181,6 +181,8 @@ export const setupOrg = async (params?: {
   countryCode?: CountryCode
   /** Skip creating pricing models, products, and prices. Useful for tests that need to create their own. */
   skipPricingModel?: boolean
+  /** Set up a Stripe account for the organization. Required for tests that make Stripe API calls in livemode. */
+  withStripeAccount?: boolean
 }) => {
   await insertCountries()
   return adminTransaction(async ({ transaction }) => {
@@ -204,6 +206,10 @@ export const setupOrg = async (params?: {
         stripeConnectContractType:
           params?.stripeConnectContractType ??
           StripeConnectContractType.Platform,
+        stripeAccountId: params?.withStripeAccount
+          ? `acct_test_${core.nanoid()}`
+          : undefined,
+        payoutsEnabled: params?.withStripeAccount ? true : undefined,
         featureFlags: {},
         contactEmail: 'test@test.com',
         billingAddress: {

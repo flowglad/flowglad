@@ -1,17 +1,25 @@
 /**
- * DB-Backed Test Setup
+ * Stripe-Mocked Test Setup
  *
- * This setup file is for tests that need database access.
+ * This setup file is for tests that need to mock Stripe utility functions
+ * to verify conditional API call logic or control specific response behaviors.
  *
- * Use for: Table methods, business logic with DB, service layer tests
- * File pattern: *.db.test.ts
+ * Use for: Tests that verify WHEN Stripe APIs are called, WITH WHAT parameters,
+ *          or need controlled response states (succeeded/failed/pending)
+ * File pattern: *.stripe.test.ts
  *
  * Features:
  * - Database access (seeded once in beforeAll)
+ * - Stripe utility functions are MOCKED (not routed to stripe-mock)
  * - MSW in STRICT mode (errors on unhandled requests)
  * - Environment variables auto-tracked and restored
  * - Spies auto-restored via globalSpyManager
  * - Global mock state reset after each test
+ * - Stripe mocks reset after each test
+ *
+ * When to use *.stripe.test.ts vs *.db.test.ts:
+ * - Use *.stripe.test.ts when tests verify mock call parameters or conditional logic
+ * - Use *.db.test.ts when tests just need Stripe APIs to work (routes to stripe-mock)
  *
  * Note: Tests share the database state. Use unique identifiers (nanoid)
  * to avoid collisions between tests.
@@ -22,8 +30,10 @@
 // IMPORTANT: Import mocks first, before any other imports
 // This also sets test environment variable defaults (UNKEY_*, BETTER_AUTH_URL)
 import './bun.mocks'
-// Block external services (Redis, Stripe, Unkey, etc.) - must come after bun.mocks
+// Block external services (Redis, Unkey, etc.) - must come after bun.mocks
 import './bun.db.mocks'
+// Import Stripe function mocks - must come after bun.db.mocks
+import { resetAllStripeMocks } from './bun.stripe.mocks'
 
 // Import consolidated global type declarations (after mocks)
 import '@/test/globals'
@@ -75,6 +85,9 @@ afterEach(() => {
 
   // Reset all global mock state (__mockedAuthSession, __mock*, etc.)
   resetAllGlobalMocks()
+
+  // Reset all Stripe function mocks
+  resetAllStripeMocks()
 })
 
 afterAll(() => {
