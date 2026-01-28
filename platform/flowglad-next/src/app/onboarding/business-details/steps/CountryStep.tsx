@@ -1,10 +1,19 @@
 'use client'
 
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Check, ChevronDown } from 'lucide-react'
+import * as React from 'react'
 import { trpc } from '@/app/_trpc/client'
 import { useMultiStepForm } from '@/components/onboarding/MultiStepForm'
 import { StepContainer } from '@/components/onboarding/StepContainer'
 import { Button } from '@/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command'
 import {
   FormControl,
   FormField,
@@ -12,18 +21,23 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
 import { isCountryEligibleForAnyFlow } from '@/utils/countries'
 import { type BusinessDetailsFormData } from './schemas'
 
+// Match SelectTrigger styling exactly (using bg-input-bg for input background)
+const selectTriggerClasses =
+  'flex h-12 w-full items-center justify-between whitespace-nowrap rounded border border-input bg-input-bg text-card-foreground px-3 py-2 text-sm shadow-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-foreground/20 focus-visible:border-foreground disabled:cursor-not-allowed disabled:opacity-50'
+
 export function CountryStep() {
   const { form } = useMultiStepForm<BusinessDetailsFormData>()
+  const [open, setOpen] = React.useState(false)
+
   const {
     data: countries,
     isLoading,
@@ -35,7 +49,24 @@ export function CountryStep() {
     .filter((country) => isCountryEligibleForAnyFlow(country.code))
     .sort((a, b) => a.name.localeCompare(b.name))
 
-  // Loading state with skeleton
+  const selectedCountryId = form.watch('organization.countryId')
+  const selectedCountry = eligibleCountries.find(
+    (c) => c.id === selectedCountryId
+  )
+
+  // Reset selection if country no longer exists in eligible list
+  React.useEffect(() => {
+    if (selectedCountryId && !isLoading) {
+      const countryExists = eligibleCountries.some(
+        (c) => c.id === selectedCountryId
+      )
+      if (!countryExists) {
+        form.setValue('organization.countryId', '')
+      }
+    }
+  }, [selectedCountryId, eligibleCountries, isLoading, form])
+
+  // Loading state (preserve existing skeleton layout)
   if (isLoading) {
     return (
       <StepContainer
@@ -50,7 +81,7 @@ export function CountryStep() {
     )
   }
 
-  // Error state with retry option
+  // Error state
   if (isError) {
     return (
       <StepContainer
@@ -89,7 +120,6 @@ export function CountryStep() {
     )
   }
 
-  // Normal state
   return (
     <StepContainer
       title="Where is your business located?"
@@ -101,21 +131,63 @@ export function CountryStep() {
         render={({ field }) => (
           <FormItem>
             <FormControl>
-              <Select
-                value={field.value}
-                onValueChange={field.onChange}
-              >
-                <SelectTrigger className="h-12">
-                  <SelectValue placeholder="Select your country" />
-                </SelectTrigger>
-                <SelectContent>
-                  {eligibleCountries.map((country) => (
-                    <SelectItem key={country.id} value={country.id}>
-                      {country.name} ({country.code})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={open} onOpenChange={setOpen}>
+                <PopoverTrigger asChild>
+                  {/* Styled to match SelectTrigger exactly */}
+                  <button
+                    type="button"
+                    role="combobox"
+                    aria-expanded={open}
+                    className={selectTriggerClasses}
+                  >
+                    <span
+                      className={cn(
+                        'line-clamp-1',
+                        !selectedCountry && 'text-muted-foreground'
+                      )}
+                    >
+                      {selectedCountry
+                        ? `${selectedCountry.name} (${selectedCountry.code})`
+                        : 'Select your country'}
+                    </span>
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  className="w-[--radix-popover-trigger-width] p-0"
+                  align="start"
+                >
+                  <Command>
+                    <CommandInput placeholder="Search countries..." />
+                    <CommandList className="max-h-64">
+                      <CommandEmpty>No country found.</CommandEmpty>
+                      <CommandGroup>
+                        {eligibleCountries.map((country) => (
+                          <CommandItem
+                            key={country.id}
+                            value={`${country.name} ${country.code}`}
+                            onSelect={() => {
+                              field.onChange(country.id)
+                              setOpen(false)
+                            }}
+                            className="cursor-pointer"
+                          >
+                            {country.name} ({country.code})
+                            <Check
+                              className={cn(
+                                'ml-auto h-4 w-4',
+                                field.value === country.id
+                                  ? 'opacity-100'
+                                  : 'opacity-0'
+                              )}
+                            />
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </FormControl>
             <FormMessage />
           </FormItem>
