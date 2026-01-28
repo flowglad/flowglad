@@ -773,10 +773,12 @@ describe('Customer Role vs Merchant Role Authentication', () => {
     differentOrg = otherOrgSetup.organization
 
     // Create merchant user with membership
-    const merchantSetup = await setupUserAndApiKey({
-      organizationId: customerOrg.id,
-      livemode: true,
-    })
+    const merchantSetup = (
+      await setupUserAndApiKey({
+        organizationId: customerOrg.id,
+        livemode: true,
+      })
+    ).unwrap()
     merchantUser = merchantSetup.user
     // Ensure merchantUser has a betterAuthId for authentication
     await adminTransaction(async ({ transaction }) => {
@@ -808,24 +810,30 @@ describe('Customer Role vs Merchant Role Authentication', () => {
     })
 
     // Create customers
-    customer1 = await setupCustomer({
-      organizationId: customerOrg.id,
-      email: customerUser.email!,
-      userId: customerUser.id,
-      livemode: true,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: customerOrg.id,
+        email: customerUser.email!,
+        userId: customerUser.id,
+        livemode: true,
+      })
+    ).unwrap()
 
-    customer2SameOrg = await setupCustomer({
-      organizationId: customerOrg.id,
-      email: 'customer2@test.com',
-      livemode: true,
-    })
+    customer2SameOrg = (
+      await setupCustomer({
+        organizationId: customerOrg.id,
+        email: 'customer2@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
-    customerDifferentOrg = await setupCustomer({
-      organizationId: differentOrg.id,
-      email: 'customer3@test.com',
-      livemode: true,
-    })
+    customerDifferentOrg = (
+      await setupCustomer({
+        organizationId: differentOrg.id,
+        email: 'customer3@test.com',
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   describe('dbInfoForCustomerBillingPortal', () => {
@@ -927,19 +935,23 @@ describe('Customer Role vs Merchant Role Authentication', () => {
       )
 
       // Create customers in both orgs
-      const customerOrg1 = await setupCustomer({
-        organizationId: customerOrg.id,
-        email: userWithMultipleCustomers.email!,
-        userId: userWithMultipleCustomers.id,
-        livemode: true,
-      })
+      const customerOrg1 = (
+        await setupCustomer({
+          organizationId: customerOrg.id,
+          email: userWithMultipleCustomers.email!,
+          userId: userWithMultipleCustomers.id,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const customerOrg2 = await setupCustomer({
-        organizationId: differentOrg.id,
-        email: userWithMultipleCustomers.email!,
-        userId: userWithMultipleCustomers.id,
-        livemode: true,
-      })
+      const customerOrg2 = (
+        await setupCustomer({
+          organizationId: differentOrg.id,
+          email: userWithMultipleCustomers.email!,
+          userId: userWithMultipleCustomers.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Authenticate for org1
       const org1Result = await dbInfoForCustomerBillingPortal({
@@ -974,11 +986,13 @@ describe('Customer Role vs Merchant Role Authentication', () => {
     })
 
     it('should throw for a test mode customer', async () => {
-      const testModeCustomer = await setupCustomer({
-        organizationId: customerOrg.id,
-        email: 'testmode@test.com',
-        livemode: false,
-      })
+      const testModeCustomer = (
+        await setupCustomer({
+          organizationId: customerOrg.id,
+          email: 'testmode@test.com',
+          livemode: false,
+        })
+      ).unwrap()
 
       const testModeUser = await adminTransaction(
         async ({ transaction }) => {
@@ -1012,11 +1026,13 @@ describe('Customer Role vs Merchant Role Authentication', () => {
 
     it('should select only livemode customer when both exist and set customer_id claim', async () => {
       // Create a separate livemode customer explicitly, and a test-mode customer for same org
-      const liveModeCustomer = await setupCustomer({
-        organizationId: customerOrg.id,
-        email: `livemode-${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const liveModeCustomer = (
+        await setupCustomer({
+          organizationId: customerOrg.id,
+          email: `livemode-${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
       const liveModeUser = await adminTransaction(
         async ({ transaction }) => {
           const [user] = await transaction
@@ -1036,11 +1052,13 @@ describe('Customer Role vs Merchant Role Authentication', () => {
         }
       )
 
-      const testModeCustomer = await setupCustomer({
-        organizationId: customerOrg.id,
-        email: `testmode-${core.nanoid()}@test.com`,
-        livemode: false,
-      })
+      const testModeCustomer = (
+        await setupCustomer({
+          organizationId: customerOrg.id,
+          email: `testmode-${core.nanoid()}@test.com`,
+          livemode: false,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         const [user] = await transaction
           .insert(users)
@@ -1163,11 +1181,13 @@ describe('Customer Role vs Merchant Role Authentication', () => {
 
     it('should handle NULL userId customers correctly in authentication', async () => {
       // Create customer with NULL userId
-      const nullUserCustomer = await setupCustomer({
-        organizationId: customerOrg.id,
-        email: 'nulluser@test.com',
-        livemode: true,
-      })
+      const nullUserCustomer = (
+        await setupCustomer({
+          organizationId: customerOrg.id,
+          email: 'nulluser@test.com',
+          livemode: true,
+        })
+      ).unwrap()
 
       // Create a user that doesn't match the customer
       const unrelatedUser = await adminTransaction(

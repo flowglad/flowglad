@@ -103,21 +103,25 @@ describe('Subscription Upgrade with Proration', () => {
     pricingModel = orgData.pricingModel
 
     // Create customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-      email: `test_${core.nanoid()}@example.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+        email: `test_${core.nanoid()}@example.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create payment method
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create free product and price
     freeProduct = await setupProduct({
@@ -180,16 +184,18 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       // Create checkout session without preserve flag (default)
-      checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        livemode: true,
-        priceId: paidPrice.id,
-        quantity: 1,
-        preserveBillingCycleAnchor: false, // Default behavior
-      })
+      checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          livemode: true,
+          priceId: paidPrice.id,
+          quantity: 1,
+          preserveBillingCycleAnchor: false, // Default behavior
+        })
+      ).unwrap()
 
       // Create purchase
       purchase = await setupPurchase({
@@ -410,16 +416,18 @@ describe('Subscription Upgrade with Proration', () => {
       })
 
       // Create checkout session WITH preserve flag
-      checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        livemode: true,
-        priceId: paidPrice.id,
-        quantity: 1,
-        preserveBillingCycleAnchor: true, // Preserve billing cycle
-      })
+      checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          livemode: true,
+          priceId: paidPrice.id,
+          quantity: 1,
+          preserveBillingCycleAnchor: true, // Preserve billing cycle
+        })
+      ).unwrap()
 
       // Create purchase
       purchase = await setupPurchase({
@@ -545,16 +553,18 @@ describe('Subscription Upgrade with Proration', () => {
         )
       })
 
-      checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        livemode: true,
-        priceId: paidPrice.id,
-        quantity: 1,
-        preserveBillingCycleAnchor: true,
-      })
+      checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          livemode: true,
+          priceId: paidPrice.id,
+          quantity: 1,
+          preserveBillingCycleAnchor: true,
+        })
+      ).unwrap()
 
       purchase = await setupPurchase({
         organizationId: organization.id,
@@ -662,16 +672,18 @@ describe('Subscription Upgrade with Proration', () => {
       // Update local reference to match database state
       freeSubscription.billingCycleAnchorDate = twoDaysAgo.getTime()
 
-      checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        livemode: true,
-        priceId: paidPrice.id,
-        quantity: 1,
-        preserveBillingCycleAnchor: true, // Try to preserve, but should fallback
-      })
+      checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          livemode: true,
+          priceId: paidPrice.id,
+          quantity: 1,
+          preserveBillingCycleAnchor: true, // Try to preserve, but should fallback
+        })
+      ).unwrap()
 
       purchase = await setupPurchase({
         organizationId: organization.id,
@@ -767,16 +779,18 @@ describe('Subscription Upgrade with Proration', () => {
       // Use the free subscription set up in beforeEach
       const upgradeDate = new Date() // Use current date
 
-      checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        livemode: true,
-        priceId: paidPrice.id,
-        quantity: 1,
-        preserveBillingCycleAnchor: true,
-      })
+      checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          livemode: true,
+          priceId: paidPrice.id,
+          quantity: 1,
+          preserveBillingCycleAnchor: true,
+        })
+      ).unwrap()
 
       purchase = await setupPurchase({
         organizationId: organization.id,
@@ -872,16 +886,18 @@ describe('Subscription Upgrade with Proration', () => {
       // Use the free subscription from beforeEach, no need to create another
 
       // Create checkout session with quantity > 1
-      checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        livemode: true,
-        priceId: paidPrice.id,
-        quantity: 3, // Testing with quantity of 3
-        preserveBillingCycleAnchor: true,
-      })
+      checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          livemode: true,
+          priceId: paidPrice.id,
+          quantity: 3, // Testing with quantity of 3
+          preserveBillingCycleAnchor: true,
+        })
+      ).unwrap()
 
       purchase = await setupPurchase({
         organizationId: organization.id,
@@ -988,16 +1004,18 @@ describe('Subscription Upgrade with Proration', () => {
         billingCycleAnchorDate: yesterday.getTime(),
       })
 
-      checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        livemode: true,
-        priceId: paidPrice.id,
-        quantity: 1,
-        preserveBillingCycleAnchor: true,
-      })
+      checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          livemode: true,
+          priceId: paidPrice.id,
+          quantity: 1,
+          preserveBillingCycleAnchor: true,
+        })
+      ).unwrap()
 
       purchase = await setupPurchase({
         organizationId: organization.id,

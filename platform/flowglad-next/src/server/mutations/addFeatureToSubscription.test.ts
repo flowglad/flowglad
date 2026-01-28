@@ -151,15 +151,19 @@ describe('addFeatureToSubscription mutation', () => {
 
   beforeEach(async () => {
     orgData = (await setupOrg()).unwrap()
-    customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     product = await setupProduct({
       organizationId: orgData.organization.id,

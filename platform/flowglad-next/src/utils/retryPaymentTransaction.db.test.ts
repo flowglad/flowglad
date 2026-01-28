@@ -24,9 +24,11 @@ describe('retryPaymentTransaction', () => {
 
   it('propagates Stripe Tax fields to the new payment record', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,

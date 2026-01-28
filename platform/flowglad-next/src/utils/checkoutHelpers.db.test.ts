@@ -223,18 +223,22 @@ describe('checkoutHelpers', () => {
       }
 
       const price = await setupPrice(priceParams)
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const session = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const session = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       return {
         organization,
         product,
@@ -383,15 +387,17 @@ describe('checkoutHelpers', () => {
           },
         ],
       })
-      const session = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const session = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         const result = await checkoutInfoForCheckoutSession(
           session.id,
@@ -405,9 +411,11 @@ describe('checkoutHelpers', () => {
   describe('hasCustomerUsedTrial', () => {
     it('should return false when customer has no subscriptions', async () => {
       const { organization } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         const result = await hasCustomerUsedTrial(
@@ -441,9 +449,11 @@ describe('checkoutHelpers', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Create subscription without trial
       await setupSubscription({
@@ -486,9 +496,11 @@ describe('checkoutHelpers', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Create subscription with trial
       const trialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 days from now
@@ -544,9 +556,11 @@ describe('checkoutHelpers', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Create subscription without trial
       await setupSubscription({
@@ -599,9 +613,11 @@ describe('checkoutHelpers', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Create cancelled subscription with trial (trialEnd should still be set)
       const trialEnd = Date.now() - 7 * 24 * 60 * 60 * 1000 // 7 days ago
@@ -645,9 +661,11 @@ describe('checkoutHelpers', () => {
         currency: CurrencyCode.USD,
         active: true,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         const result = await calculateTrialEligibility(
@@ -716,9 +734,11 @@ describe('checkoutHelpers', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Create subscription without trial
       await setupSubscription({
@@ -774,9 +794,11 @@ describe('checkoutHelpers', () => {
         intervalUnit: IntervalUnit.Month,
         intervalCount: 1,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Create subscription with trial (customer has used trial)
       const trialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000

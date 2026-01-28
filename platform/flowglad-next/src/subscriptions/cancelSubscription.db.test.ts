@@ -100,13 +100,17 @@ describe('Subscription Cancellation Test Suite', async () => {
   let billingPeriodItem: BillingPeriodItem.Record
   let subscription: Subscription.Record
   beforeEach(async () => {
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -141,10 +145,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: defaultPrice,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -206,10 +212,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: defaultPrice,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -278,10 +286,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: defaultPrice,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -345,10 +355,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: defaultPrice,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
       const canceledSubscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -382,9 +394,11 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: defaultPrice,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -437,10 +451,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         product,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -497,10 +513,12 @@ describe('Subscription Cancellation Test Suite', async () => {
         product,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -554,14 +572,18 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: defaultPrice,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -637,14 +659,18 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: defaultPrice,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const paidProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -2140,13 +2166,17 @@ describe('Subscription Cancellation Test Suite', async () => {
         livemode: true,
         isDefault: true,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
 
       const subscription = await setupSubscription({
         organizationId: organization.id,
@@ -2266,13 +2296,17 @@ describe('Subscription Cancellation Test Suite', async () => {
         livemode: true,
         isDefault: false,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
 
       const subscription = await setupSubscription({
         organizationId: organization.id,
@@ -2419,14 +2453,18 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: freePrice,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       // Ensure the price is free (unitPrice = 0)
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -2500,13 +2538,17 @@ describe('Subscription Cancellation Test Suite', async () => {
         livemode: true,
         isDefault: true,
       })
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const paidSubscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -2552,14 +2594,18 @@ describe('Subscription Cancellation Test Suite', async () => {
         price: freePrice,
         pricingModel,
       } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       await adminTransaction(async (ctx) => {
         const { transaction } = ctx
         await updatePrice(
@@ -3855,17 +3901,21 @@ describe('cancelSubscription with resources', async () => {
       name: 'Seats',
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test-cancel@test.com',
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test-cancel@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const product = await setupProduct({
       organizationId: organization.id,
@@ -4036,17 +4086,21 @@ describe('cancelSubscription with resources', async () => {
       name: 'API Keys',
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test-scheduled-cancel@test.com',
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test-scheduled-cancel@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const product = await setupProduct({
       organizationId: organization.id,
@@ -4183,9 +4237,11 @@ describe('Subscription cancellation cache invalidations', async () => {
   describe('cancelSubscriptionImmediately', () => {
     it('returns customerSubscriptions cache invalidation for the customer', async () => {
       const { organization, price } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -4214,12 +4270,16 @@ describe('Subscription cancellation cache invalidations', async () => {
 
     it('returns cache invalidation for the correct customer when canceling', async () => {
       const { organization, price } = (await setupOrg()).unwrap()
-      const customer1 = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const customer2 = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer1.id,
@@ -4253,13 +4313,17 @@ describe('Subscription cancellation cache invalidations', async () => {
   describe('cancelSubscriptionProcedureTransaction', () => {
     it('returns customerSubscriptions cache invalidation when scheduling cancellation', async () => {
       const { organization, price } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -4306,13 +4370,17 @@ describe('Subscription cancellation cache invalidations', async () => {
   describe('uncancelSubscription', () => {
     it('returns customerSubscriptions cache invalidation for the customer', async () => {
       const { organization, price } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -4337,16 +4405,22 @@ describe('Subscription cancellation cache invalidations', async () => {
 
     it('returns cache invalidation for the correct customer when uncanceling', async () => {
       const { organization, price } = (await setupOrg()).unwrap()
-      const customer1 = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const customer2 = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer1.id,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer1.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer1.id,

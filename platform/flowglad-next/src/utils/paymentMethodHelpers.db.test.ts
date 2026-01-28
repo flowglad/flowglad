@@ -106,11 +106,13 @@ describe('paymentMethodForStripePaymentMethodId', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should create a new payment method when no existing payment method with the stripePaymentMethodId exists', async () => {
@@ -178,13 +180,15 @@ describe('paymentMethodForStripePaymentMethodId', () => {
     const stripePaymentMethodId = `pm_${core.nanoid()}`
 
     // Create an existing payment method with this stripePaymentMethodId
-    const existingPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-      type: PaymentMethodType.Card,
-      stripePaymentMethodId,
-    })
+    const existingPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+        type: PaymentMethodType.Card,
+        stripePaymentMethodId,
+      })
+    ).unwrap()
 
     await adminTransaction(
       async ({

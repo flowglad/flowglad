@@ -56,10 +56,12 @@ describe('customersRouter.archive', () => {
     organization = orgSetup.organization
     priceId = orgSetup.price.id
 
-    const userApiKeySetup = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKeySetup = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeySetup.apiKey.token) {
       throw new Error('API key token not found after setup')
     }
@@ -68,11 +70,13 @@ describe('customersRouter.archive', () => {
 
   it('sets archived=true on customer and returns the archived customer record', async () => {
     // Setup: create active customer
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      externalId: `ext-archive-test-${Date.now()}`,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+        externalId: `ext-archive-test-${Date.now()}`,
+      })
+    ).unwrap()
 
     expect(customer.archived).toBe(false)
 
@@ -91,11 +95,13 @@ describe('customersRouter.archive', () => {
 
   it('cancels all active subscriptions when archiving a customer', async () => {
     // Setup: create customer with 2 active subscriptions
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      externalId: `ext-archive-subs-${Date.now()}`,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+        externalId: `ext-archive-subs-${Date.now()}`,
+      })
+    ).unwrap()
 
     const subscription1 = await setupSubscription({
       organizationId: organization.id,
@@ -157,11 +163,13 @@ describe('customersRouter.archive', () => {
   it('allows creating new customer with same externalId after archive (partial unique index)', async () => {
     // Setup: create customer
     const uniqueExternalId = `ext-reuse-${Date.now()}`
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      externalId: uniqueExternalId,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+        externalId: uniqueExternalId,
+      })
+    ).unwrap()
 
     const caller = createCaller(organization, apiKeyToken)
 
@@ -189,11 +197,13 @@ describe('customersRouter.archive', () => {
 
   it('is idempotent - archiving already archived customer is a no-op and returns the customer', async () => {
     // Setup: create and archive customer
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      externalId: `ext-idempotent-${Date.now()}`,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+        externalId: `ext-idempotent-${Date.now()}`,
+      })
+    ).unwrap()
 
     const caller = createCaller(organization, apiKeyToken)
 
@@ -241,10 +251,12 @@ describe('customersRouter.get', () => {
     const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
-    const userApiKeySetup = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKeySetup = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeySetup.apiKey.token) {
       throw new Error('API key token not found after setup')
     }
@@ -253,11 +265,13 @@ describe('customersRouter.get', () => {
 
   it('returns 404 for archived customers', async () => {
     // Setup: create customer, archive it
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      externalId: `ext-get-archived-${Date.now()}`,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+        externalId: `ext-get-archived-${Date.now()}`,
+      })
+    ).unwrap()
 
     const caller = createCaller(organization, apiKeyToken)
 
@@ -279,11 +293,13 @@ describe('customersRouter.get', () => {
 
   it('returns active customers normally', async () => {
     // Setup: create active customer
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      externalId: `ext-get-active-${Date.now()}`,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+        externalId: `ext-get-active-${Date.now()}`,
+      })
+    ).unwrap()
 
     const caller = createCaller(organization, apiKeyToken)
 
@@ -302,11 +318,13 @@ describe('customersRouter.get', () => {
     // Setup: create customer with externalId, archive it
     const sharedExternalId = `ext-reuse-get-${Date.now()}`
 
-    const archivedCustomer = await setupCustomer({
-      organizationId: organization.id,
-      email: `archived+${Date.now()}@test.com`,
-      externalId: sharedExternalId,
-    })
+    const archivedCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `archived+${Date.now()}@test.com`,
+        externalId: sharedExternalId,
+      })
+    ).unwrap()
 
     const caller = createCaller(organization, apiKeyToken)
 
@@ -345,21 +363,25 @@ describe('customersRouter.update', () => {
     const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
-    const userApiKeySetup = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKeySetup = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeySetup.apiKey.token) {
       throw new Error('API key token not found after setup')
     }
     apiKeyToken = userApiKeySetup.apiKey.token
 
     // Setup customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      externalId: `ext-update-test-${Date.now()}`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+        externalId: `ext-update-test-${Date.now()}`,
+      })
+    ).unwrap()
   })
 
   it('ignores archived field in update input schema, preventing archiving via update endpoint', async () => {

@@ -98,29 +98,35 @@ describe('setDefaultPaymentMethodForCustomer', () => {
     price = orgData.price
 
     // Set up customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test-customer-${core.nanoid()}@example.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test-customer-${core.nanoid()}@example.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set up first payment method (will be default initially)
-    paymentMethod1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-    })
+    paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+      })
+    ).unwrap()
 
     // Set up second payment method - setupPaymentMethod always creates as default, so we need to fix this
-    paymentMethod2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-    })
+    paymentMethod2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+      })
+    ).unwrap()
 
     // Fix the default settings - paymentMethod1 should be default, paymentMethod2 should not
     await adminTransaction(async (ctx) => {
@@ -264,30 +270,36 @@ describe('setDefaultPaymentMethodForCustomer', () => {
 
   it('should handle customer with no subscriptions', async () => {
     // Create a new customer with no subscriptions
-    const customerNoSubs = await setupCustomer({
-      organizationId: organization.id,
-      email: `no-subs-${core.nanoid()}@example.com`,
-      livemode: true,
-    })
+    const customerNoSubs = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `no-subs-${core.nanoid()}@example.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create two payment methods for this customer
-    const pm1NoSubs = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customerNoSubs.id,
-      type: PaymentMethodType.Card,
-      default: true,
-      livemode: true,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-    })
+    const pm1NoSubs = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerNoSubs.id,
+        type: PaymentMethodType.Card,
+        default: true,
+        livemode: true,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+      })
+    ).unwrap()
 
-    const pm2NoSubs = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customerNoSubs.id,
-      type: PaymentMethodType.Card,
-      default: false,
-      livemode: true,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-    })
+    const pm2NoSubs = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerNoSubs.id,
+        type: PaymentMethodType.Card,
+        default: false,
+        livemode: true,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+      })
+    ).unwrap()
 
     // Set the second payment method as default
     const result = await adminTransaction(async (ctx) => {
@@ -575,10 +587,12 @@ describe('setDefaultPaymentMethodForCustomer', () => {
 
     beforeEach(async () => {
       // Create a customer for testing
-      customer = await setupCustomer({
-        organizationId: organization.id,
-        email: 'billing-price-filtering@example.com',
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: 'billing-price-filtering@example.com',
+        })
+      ).unwrap()
 
       // Create a product with both active and inactive prices
       productWithMixedPrices = await setupProduct({
@@ -1252,11 +1266,13 @@ describe('customerBillingTransaction - currentSubscription field', () => {
     price = orgData.price
 
     // Set up customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test-current-sub-${core.nanoid()}@example.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test-current-sub-${core.nanoid()}@example.com`,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should return currentSubscription as the most recently created subscription', async () => {

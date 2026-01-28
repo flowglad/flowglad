@@ -71,27 +71,33 @@ describe('confirmCheckoutSessionTransaction', () => {
     price = setupData.price
     pricingModel = setupData.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
-    checkoutSession = await setupCheckoutSession({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    checkoutSession = (
+      await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Only create a purchase if the price is not free
     if (price.unitPrice > 0) {
@@ -186,7 +192,7 @@ describe('confirmCheckoutSessionTransaction', () => {
 
   describe('Fee Calculation', () => {
     it('should skip fee calculation when session type is AddPaymentMethod', async () => {
-      const addPaymentMethodCheckoutSession =
+      const addPaymentMethodCheckoutSession = (
         await setupCheckoutSession({
           organizationId: organization.id,
           customerId: customer.id,
@@ -196,6 +202,7 @@ describe('confirmCheckoutSessionTransaction', () => {
           quantity: 1,
           livemode: true,
         })
+      ).unwrap()
 
       const result = await adminTransaction(async (ctx) => {
         const { transaction } = ctx

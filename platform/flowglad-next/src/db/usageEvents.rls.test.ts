@@ -49,10 +49,12 @@ describe('usage_events RLS policies', () => {
   beforeEach(async () => {
     // Setup organization 1 with API key
     org1Data = (await setupOrg()).unwrap()
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: org1Data.organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: org1Data.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
@@ -60,36 +62,46 @@ describe('usage_events RLS policies', () => {
 
     // Setup organization 2 with API key
     org2Data = (await setupOrg()).unwrap()
-    const userApiKeyOrg2 = await setupUserAndApiKey({
-      organizationId: org2Data.organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg2 = (
+      await setupUserAndApiKey({
+        organizationId: org2Data.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg2.apiKey.token) {
       throw new Error('API key token not found after setup for org2')
     }
     org2ApiKeyToken = userApiKeyOrg2.apiKey.token
 
     // Setup customers for both organizations
-    customer1 = await setupCustomer({
-      organizationId: org1Data.organization.id,
-      email: `customer1+${Date.now()}@test.com`,
-    })
-    customer2 = await setupCustomer({
-      organizationId: org2Data.organization.id,
-      email: `customer2+${Date.now()}@test.com`,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: org1Data.organization.id,
+        email: `customer1+${Date.now()}@test.com`,
+      })
+    ).unwrap()
+    customer2 = (
+      await setupCustomer({
+        organizationId: org2Data.organization.id,
+        email: `customer2+${Date.now()}@test.com`,
+      })
+    ).unwrap()
 
     // Setup payment methods
-    paymentMethod1 = await setupPaymentMethod({
-      organizationId: org1Data.organization.id,
-      customerId: customer1.id,
-      type: PaymentMethodType.Card,
-    })
-    paymentMethod2 = await setupPaymentMethod({
-      organizationId: org2Data.organization.id,
-      customerId: customer2.id,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: org1Data.organization.id,
+        customerId: customer1.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
+    paymentMethod2 = (
+      await setupPaymentMethod({
+        organizationId: org2Data.organization.id,
+        customerId: customer2.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     // Setup usage meters
     usageMeter1 = await setupUsageMeter({
@@ -313,10 +325,12 @@ describe('usage_events RLS policies', () => {
     )
 
     // Try to read with testmode API key (should fail due to livemode policy)
-    const testmodeApiKey = await setupUserAndApiKey({
-      organizationId: org1Data.organization.id,
-      livemode: false,
-    })
+    const testmodeApiKey = (
+      await setupUserAndApiKey({
+        organizationId: org1Data.organization.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     if (!testmodeApiKey.apiKey.token) {
       throw new Error('Testmode API key token not found')

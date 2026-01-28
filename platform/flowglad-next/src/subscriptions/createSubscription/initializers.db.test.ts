@@ -36,9 +36,11 @@ describe('insertSubscriptionAndItems', () => {
     product = orgData.product
     defaultPrice = orgData.price
     pricingModel = orgData.pricingModel
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
   })
 
   describe('routing logic', () => {
@@ -100,10 +102,12 @@ describe('insertSubscriptionAndItems', () => {
       })
 
       // - Create a payment method for testing
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
 
       // - Construct params for insertSubscriptionAndItems using the default product
       const params = {
@@ -269,10 +273,12 @@ describe('insertSubscriptionAndItems', () => {
       // setup:
       // - Create a standard subscription price. (use default)
       // - Create a payment method for the customer.
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       // - Construct params with autoStart: true and the payment method, and no trialEnd.
       const params = {
         organization,

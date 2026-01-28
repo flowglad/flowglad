@@ -57,17 +57,21 @@ describe('Discount Redemption Tracking', () => {
     price = setupResult.price
     pricingModel = setupResult.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -372,10 +376,12 @@ describe('Discount Redemption Tracking', () => {
         )
       })
 
-      const otherCustomer = await setupCustomer({
-        organizationId: organization.id,
-        stripeCustomerId: `cus_${core.nanoid()}`,
-      })
+      const otherCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          stripeCustomerId: `cus_${core.nanoid()}`,
+        })
+      ).unwrap()
       const otherInvoice = await setupInvoice({
         organizationId: organization.id,
         customerId: otherCustomer.id,

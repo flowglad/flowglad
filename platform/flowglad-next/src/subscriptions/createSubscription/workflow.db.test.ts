@@ -81,13 +81,17 @@ describe('createSubscriptionWorkflow', async () => {
     product = orgData.product
     defaultPrice = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const stripeSetupIntentId = `setupintent_before_each_${core.nanoid()}`
     const workflowResult = await adminTransaction(
@@ -184,13 +188,17 @@ describe('createSubscriptionWorkflow', async () => {
 
   it('does not throw an error if creating a subscription for a customer with no active subscriptions, but past non-active subscriptions', async () => {
     // This test uses its own customer and payment method, independent of beforeEach
-    const newCustomer = await setupCustomer({
-      organizationId: organization.id, // Use org from beforeEach for consistency
-    })
-    const newPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: newCustomer.id,
-    })
+    const newCustomer = (
+      await setupCustomer({
+        organizationId: organization.id, // Use org from beforeEach for consistency
+      })
+    ).unwrap()
+    const newPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: newCustomer.id,
+      })
+    ).unwrap()
 
     // Create a past subscription that is now canceled for newCustomer
     await adminTransaction(async ({ transaction }) => {
@@ -254,13 +262,17 @@ describe('createSubscriptionWorkflow', async () => {
 
   it('creates billing periods correctly for trial subscriptions', async () => {
     // This test uses its own customer, payment method, and specific trial parameters
-    const trialCustomer = await setupCustomer({
-      organizationId: organization.id, // Use org from beforeEach
-    })
-    const trialPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: trialCustomer.id,
-    })
+    const trialCustomer = (
+      await setupCustomer({
+        organizationId: organization.id, // Use org from beforeEach
+      })
+    ).unwrap()
+    const trialPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: trialCustomer.id,
+      })
+    ).unwrap()
 
     const startDate = Date.now()
     const trialEnd = Date.now() + 7 * 24 * 60 * 60 * 1000
@@ -313,13 +325,17 @@ describe('createSubscriptionWorkflow', async () => {
     // It will set up its own customer and paymentMethod per test for clarity, or have its own beforeEach.
     // FIXME: Re-enable this once usage prices are fully deprecated
     it('throws an error when trying to create a subscription with usage price', async () => {
-      const usageCustomer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const usagePaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: usageCustomer.id,
-      })
+      const usageCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const usagePaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: usageCustomer.id,
+        })
+      ).unwrap()
       const usageMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Usage Meter',
@@ -381,13 +397,17 @@ describe('createSubscriptionWorkflow', async () => {
         )
       })
 
-      const usageFeatureCustomer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const usageFeaturePaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: usageFeatureCustomer.id,
-      })
+      const usageFeatureCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const usageFeaturePaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: usageFeatureCustomer.id,
+        })
+      ).unwrap()
       const usageFeatureMeter = await setupUsageMeter({
         organizationId: organization.id,
         name: 'Usage Meter',
@@ -436,13 +456,17 @@ describe('createSubscriptionWorkflow', async () => {
     })
 
     it('sets runBillingAtPeriodStart to true for subscription price', async () => {
-      const subPriceCustomer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const subPricePaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: subPriceCustomer.id,
-      })
+      const subPriceCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const subPricePaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: subPriceCustomer.id,
+        })
+      ).unwrap()
 
       // defaultPrice from outer beforeEach is already a subscription type
       const { subscription: subTypeSubscription } = (
@@ -471,14 +495,18 @@ describe('createSubscriptionWorkflow', async () => {
     })
 
     it('throws if price is not subscription type for a non-default product', async () => {
-      const singlePayCustomer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const singlePayCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
-      const singlePayPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: singlePayCustomer.id,
-      })
+      const singlePayPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: singlePayCustomer.id,
+        })
+      ).unwrap()
       const nonDefaultProduct = await setupProduct({
         organizationId: organization.id,
         pricingModelId: product.pricingModelId,
@@ -525,14 +553,18 @@ describe('createSubscriptionWorkflow', async () => {
     })
 
     it('creates a non-renewing subscription if provided a default product and non-subscribable price', async () => {
-      const defaultProductCustomer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const defaultProductCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
-      const defaultProductPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: defaultProductCustomer.id,
-      })
+      const defaultProductPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: defaultProductCustomer.id,
+        })
+      ).unwrap()
 
       // Use the default product from setupOrg
       const singlePaymentPrice = await setupPrice({
@@ -594,13 +626,17 @@ describe('createSubscriptionWorkflow', async () => {
   it("doesn't recreate subscriptions, billing periods, or billing period items for the same setup intent", async () => {
     // This test has specific setup requirements for an INCOMPLETE subscription first.
     const startDate = Date.now()
-    const intentCustomer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const intentPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: intentCustomer.id,
-    })
+    const intentCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const intentPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: intentCustomer.id,
+      })
+    ).unwrap()
 
     // Create initial subscription and set to Incomplete
     const firstSubscription = await setupSubscription({
@@ -688,9 +724,11 @@ describe('createSubscriptionWorkflow', async () => {
 
   it('should NOT have a billingRun if no defaultPaymentMethod is provided and customer has no payment method', async () => {
     // Specific setup: customer with no payment method
-    const customerWithoutPM = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customerWithoutPM = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const stripeSetupIntentIdNoPM = `setupintent_no_pm_${core.nanoid()}`
 
     const { billingRun: noPmBillingRun } = (
@@ -719,14 +757,18 @@ describe('createSubscriptionWorkflow', async () => {
 
   it('should execute with a billingRun if price has no trial period, customer has a default payment method, but no defaultPaymentMethodId is provided', async () => {
     // Specific setup: customer with a default payment method in DB
-    const customerWithDefaultPM = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const defaultCustPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customerWithDefaultPM.id,
-      default: true, // Set as default in DB
-    })
+    const customerWithDefaultPM = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const defaultCustPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerWithDefaultPM.id,
+        default: true, // Set as default in DB
+      })
+    ).unwrap()
     const stripeSetupIntentIdCustPM = `setupintent_cust_pm_${core.nanoid()}`
     expect(defaultPrice.trialPeriodDays).toBe(0)
     expect(defaultPrice.type).toBe(PriceType.Subscription)
@@ -762,10 +804,12 @@ describe('createSubscriptionWorkflow', async () => {
 
   it('returns an error if defaultPaymentMethod customerId does not match customer id', async () => {
     // Setup a different customer for the payment method
-    const anotherCustomer = await setupCustomer({
-      organizationId: organization.id, // Use org from beforeEach
-      email: `another+${core.nanoid()}@test.com`, // Ensure different email
-    })
+    const anotherCustomer = (
+      await setupCustomer({
+        organizationId: organization.id, // Use org from beforeEach
+        email: `another+${core.nanoid()}@test.com`, // Ensure different email
+      })
+    ).unwrap()
     const stripeSetupIntentIdMismatch = `setupintent_mismatch_${core.nanoid()}`
 
     const result = await adminTransaction(async ({ transaction }) => {
@@ -810,13 +854,17 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
 
   it('creates a billing run when price is subscription type and a default payment method exists', async () => {
     // customer and paymentMethod are specific to this test
-    const customer = await setupCustomer({
-      organizationId: organization.id, // from beforeEach
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id, // from beforeEach
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     // Ensure the price is of subscription type (defaultPriceForBillingRunTests should be, but make explicit)
     const subscriptionPrice = {
@@ -854,9 +902,11 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
   })
 
   it('does NOT create a billing run when price is subscription type but no default payment method exists', async () => {
-    const customerWithoutPM = await setupCustomer({
-      organizationId: organization.id, // from beforeEach
-    })
+    const customerWithoutPM = (
+      await setupCustomer({
+        organizationId: organization.id, // from beforeEach
+      })
+    ).unwrap()
 
     const subscriptionPrice = {
       ...defaultPriceForBillingRunTests,
@@ -890,13 +940,17 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
   })
 
   it('does NOT create a billing run when autoStart is false, even if price is subscription and payment method exists', async () => {
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const subscriptionPrice = {
       ...defaultPriceForBillingRunTests,
@@ -930,13 +984,17 @@ describe('createSubscriptionWorkflow billing run creation', async () => {
   })
 
   it('does not create a billing run if autoStart is not provided', async () => {
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const subscriptionPrice = {
       ...defaultPriceForBillingRunTests,
@@ -976,15 +1034,19 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const { organization, product, price, pricingModel } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const featureSpecs = [
       {
@@ -1087,15 +1149,19 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const { organization, product, price, pricingModel } = (
       await setupOrg()
     ).unwrap() // Create org/product/price with livemode false
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: false,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: false,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: false,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     const featureSpecs = [
       {
@@ -1161,13 +1227,17 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const { organization, product, price, pricingModel } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     const usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
@@ -1239,13 +1309,17 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const { subscriptionItems } = (
       await adminTransaction(async ({ transaction }) => {
@@ -1289,13 +1363,17 @@ describe('createSubscriptionWorkflow with SubscriptionItemFeatures', async () =>
     const { organization, product, price, pricingModel } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const featureSpecs = [
       {
@@ -1375,13 +1453,17 @@ describe('createSubscriptionWorkflow ledger account creation', async () => {
     defaultProduct = orgData.product
     defaultSubscriptionPrice = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
   })
 
   // FIXME: Re-enable this once usage prices are fully deprecated
@@ -1489,13 +1571,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     product = orgData.product
     defaultPrice = orgData.price
     pricingModel = orgData.pricingModel
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
   })
 
   it('should create a subscription with a single discount redemption', async () => {
@@ -1768,14 +1854,18 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         currency: organization.defaultCurrency,
       })
 
-      const newCustomer = await setupCustomer({
-        organizationId: organization.id,
-        livemode: false, // Must match pricing model livemode
-      })
-      const newPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: newCustomer.id,
-      })
+      const newCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          livemode: false, // Must match pricing model livemode
+        })
+      ).unwrap()
+      const newPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: newCustomer.id,
+        })
+      ).unwrap()
 
       const stripeSetupIntentId = `setupintent_nonrenewing_${core.nanoid()}`
       const { workflowResult, effects } = await adminTransaction(
@@ -1825,13 +1915,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
         currency: organization.defaultCurrency,
       })
 
-      const newCustomer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const newPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: newCustomer.id,
-      })
+      const newCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const newPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: newCustomer.id,
+        })
+      ).unwrap()
 
       const stripeSetupIntentId = `setupintent_free_${core.nanoid()}`
       const { workflowResult, effects } = await adminTransaction(
@@ -1872,13 +1966,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     })
 
     it('should NOT create billing period transition ledger command for standard renewing subscription', async () => {
-      const newCustomer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const newPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: newCustomer.id,
-      })
+      const newCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const newPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: newCustomer.id,
+        })
+      ).unwrap()
 
       const stripeSetupIntentId = `setupintent_standard_${core.nanoid()}`
       const { workflowResult, effects } = await adminTransaction(
@@ -1914,13 +2012,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     })
 
     it('should NOT create billing period transition ledger command when subscription status is Incomplete', async () => {
-      const newCustomer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const newPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: newCustomer.id,
-      })
+      const newCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const newPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: newCustomer.id,
+        })
+      ).unwrap()
 
       const stripeSetupIntentId = `setupintent_incomplete_${core.nanoid()}`
       const { workflowResult, effects } = await adminTransaction(
@@ -1956,13 +2058,17 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
     })
 
     it('should create billing period transition ledger command for trial subscription', async () => {
-      const newCustomer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const newPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: newCustomer.id,
-      })
+      const newCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const newPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: newCustomer.id,
+        })
+      ).unwrap()
 
       // Create a price with trial period
       const trialPrice = await setupPrice({
@@ -2028,15 +2134,19 @@ describe('createSubscriptionWorkflow with discount redemption', async () => {
 describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
   it('cancels existing free subscription and preserves billing cycle when preserveBillingCycleAnchor is true', async () => {
     const { organization, product } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a free price on a separate product to avoid multiple active prices on the same product
     const freeProduct = await setupProduct({
@@ -2157,15 +2267,19 @@ describe('createSubscriptionWorkflow free plan upgrade behavior', async () => {
 
   it('cancels existing free subscription and resets billing cycle when preserveBillingCycleAnchor is falsey', async () => {
     const { organization, product } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a free price on a separate product to avoid multiple active prices on the same product
     const freeProduct = await setupProduct({
@@ -2289,15 +2403,19 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     let capturedEffects: {
       cacheInvalidations: string[]
@@ -2340,19 +2458,25 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer1 = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const customer2 = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer1.id,
-      livemode: true,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer1.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     let capturedEffects: {
       cacheInvalidations: string[]
@@ -2397,15 +2521,19 @@ describe('createSubscriptionWorkflow cache invalidations', async () => {
 describe('createSubscriptionWorkflow trial eligibility', async () => {
   it('customer who has never used a trial gets a trial when eligible', async () => {
     const { organization, product } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a price with trial period
     const priceWithTrial = await setupPrice({
@@ -2454,15 +2582,19 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
   it('customer who has used a trial before does not get another trial', async () => {
     const { organization, product } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a price with trial period
     const priceWithTrial = await setupPrice({
@@ -2551,15 +2683,19 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
   it('customer with canceled subscription that had a trial does not get another trial', async () => {
     const { organization, product } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a price with trial period
     const priceWithTrial = await setupPrice({
@@ -2648,15 +2784,19 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
   it('trial eligibility check works when price has trialPeriodDays but no explicit trialEnd provided', async () => {
     const { organization, product } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a price with trial period
     const priceWithTrial = await setupPrice({
@@ -2745,15 +2885,19 @@ describe('createSubscriptionWorkflow trial eligibility', async () => {
 
   it('trial eligibility is undefined for non-subscription price types', async () => {
     const { organization, product } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a single payment price (not subscription type)
     const singlePaymentPrice = await setupPrice({

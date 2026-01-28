@@ -472,10 +472,12 @@ describe('batchUnexpireProductFeatures', () => {
 
   it('invalidates subscription item feature caches for affected subscription items when unexpiring product features', async () => {
     // Set up a customer and subscription with a subscription item using the product's price
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${core.nanoid()}@test.com`,
+      })
+    ).unwrap()
 
     const price = await setupPrice({
       productId: product.id,
@@ -534,10 +536,12 @@ describe('batchUnexpireProductFeatures', () => {
       pricingModelId: product.pricingModelId,
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${core.nanoid()}@test.com`,
+      })
+    ).unwrap()
 
     // Create prices for both products
     const price1 = await setupPrice({

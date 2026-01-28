@@ -101,17 +101,21 @@ describe('usageEventsRouter', () => {
 
   // beforeEach: Create fresh customer/subscription data for test isolation
   beforeEach(async () => {
-    customer1 = await setupCustomer({
-      organizationId: org1Data.organization.id,
-      email: `customer1+${Date.now()}@test.com`,
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: org1Data.organization.id,
+        email: `customer1+${Date.now()}@test.com`,
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
-    paymentMethod1 = await setupPaymentMethod({
-      organizationId: org1Data.organization.id,
-      customerId: customer1.id,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: org1Data.organization.id,
+        customerId: customer1.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription1 = await setupSubscription({
       organizationId: org1Data.organization.id,
@@ -131,25 +135,31 @@ describe('usageEventsRouter', () => {
   // Helper to create org2 data only when needed for cross-tenant tests
   async function setupOrg2() {
     const org2Data = (await setupOrg()).unwrap()
-    const userApiKeyOrg2 = await setupUserAndApiKey({
-      organizationId: org2Data.organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg2 = (
+      await setupUserAndApiKey({
+        organizationId: org2Data.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg2.apiKey.token) {
       throw new Error('API key token not found after setup for org2')
     }
 
-    const customer2 = await setupCustomer({
-      organizationId: org2Data.organization.id,
-      email: `customer2+${Date.now()}@test.com`,
-      pricingModelId: org2Data.pricingModel.id,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: org2Data.organization.id,
+        email: `customer2+${Date.now()}@test.com`,
+        pricingModelId: org2Data.pricingModel.id,
+      })
+    ).unwrap()
 
-    const paymentMethod2 = await setupPaymentMethod({
-      organizationId: org2Data.organization.id,
-      customerId: customer2.id,
-      type: PaymentMethodType.Card,
-    })
+    const paymentMethod2 = (
+      await setupPaymentMethod({
+        organizationId: org2Data.organization.id,
+        customerId: customer2.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     const usageMeter2 = await setupUsageMeter({
       organizationId: org2Data.organization.id,
@@ -270,10 +280,12 @@ describe('usageEventsRouter', () => {
     it('should handle empty results when no usage events exist', async () => {
       // Create isolated org quickly (parallel setup)
       const isolatedOrgData = (await setupOrg()).unwrap()
-      const userApiKey = await setupUserAndApiKey({
-        organizationId: isolatedOrgData.organization.id,
-        livemode: true,
-      })
+      const userApiKey = (
+        await setupUserAndApiKey({
+          organizationId: isolatedOrgData.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const caller = createCaller(
         isolatedOrgData.organization,
@@ -295,10 +307,12 @@ describe('usageEventsRouter', () => {
       // Create an isolated org for deterministic testing
       // (the list procedure's customerId filter doesn't affect total count)
       const isolatedOrgData = (await setupOrg()).unwrap()
-      const isolatedUserApiKey = await setupUserAndApiKey({
-        organizationId: isolatedOrgData.organization.id,
-        livemode: true,
-      })
+      const isolatedUserApiKey = (
+        await setupUserAndApiKey({
+          organizationId: isolatedOrgData.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const isolatedUsageMeter = await setupUsageMeter({
         organizationId: isolatedOrgData.organization.id,
@@ -317,17 +331,21 @@ describe('usageEventsRouter', () => {
         usageMeterId: isolatedUsageMeter.id,
       })
 
-      const isolatedCustomer = await setupCustomer({
-        organizationId: isolatedOrgData.organization.id,
-        email: `limit-test+${Date.now()}@test.com`,
-        pricingModelId: isolatedOrgData.pricingModel.id,
-      })
+      const isolatedCustomer = (
+        await setupCustomer({
+          organizationId: isolatedOrgData.organization.id,
+          email: `limit-test+${Date.now()}@test.com`,
+          pricingModelId: isolatedOrgData.pricingModel.id,
+        })
+      ).unwrap()
 
-      const isolatedPaymentMethod = await setupPaymentMethod({
-        organizationId: isolatedOrgData.organization.id,
-        customerId: isolatedCustomer.id,
-        type: PaymentMethodType.Card,
-      })
+      const isolatedPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: isolatedOrgData.organization.id,
+          customerId: isolatedCustomer.id,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const isolatedSubscription = await setupSubscription({
         organizationId: isolatedOrgData.organization.id,
@@ -465,10 +483,12 @@ describe('usageEventsRouter', () => {
     it('should handle empty results when no usage events exist', async () => {
       // Create isolated org quickly (parallel setup)
       const isolatedOrgData = (await setupOrg()).unwrap()
-      const userApiKey = await setupUserAndApiKey({
-        organizationId: isolatedOrgData.organization.id,
-        livemode: true,
-      })
+      const userApiKey = (
+        await setupUserAndApiKey({
+          organizationId: isolatedOrgData.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       const caller = createCaller(
         isolatedOrgData.organization,
@@ -487,17 +507,21 @@ describe('usageEventsRouter', () => {
 
     it('should respect cursor pagination', async () => {
       // Create isolated customer to have deterministic event count for pagination
-      const isolatedCustomer = await setupCustomer({
-        organizationId: org1Data.organization.id,
-        email: `pagination-test+${Date.now()}@test.com`,
-        pricingModelId: org1Data.pricingModel.id,
-      })
+      const isolatedCustomer = (
+        await setupCustomer({
+          organizationId: org1Data.organization.id,
+          email: `pagination-test+${Date.now()}@test.com`,
+          pricingModelId: org1Data.pricingModel.id,
+        })
+      ).unwrap()
 
-      const isolatedPaymentMethod = await setupPaymentMethod({
-        organizationId: org1Data.organization.id,
-        customerId: isolatedCustomer.id,
-        type: PaymentMethodType.Card,
-      })
+      const isolatedPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: org1Data.organization.id,
+          customerId: isolatedCustomer.id,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const isolatedSubscription = await setupSubscription({
         organizationId: org1Data.organization.id,

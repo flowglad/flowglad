@@ -134,13 +134,17 @@ describe('processOutcomeForBillingRun integration tests', async () => {
       }
     )
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -838,13 +842,17 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
   it('should cancel subscription on first payment failure', async () => {
     // Setup a fresh subscription with no previous payments
-    const testCustomer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const testPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: testCustomer.id,
-    })
+    const testCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const testPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: testCustomer.id,
+      })
+    ).unwrap()
 
     const testSubscription = await setupSubscription({
       organizationId: organization.id,
@@ -966,13 +974,17 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
   it('should NOT cancel free plan subscription on first payment failure', async () => {
     // Setup a fresh free plan subscription with no previous payments
-    const testCustomer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const testPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: testCustomer.id,
-    })
+    const testCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const testPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: testCustomer.id,
+      })
+    ).unwrap()
 
     // Create a free price for this test
     const freeProduct = await setupProduct({
@@ -1116,13 +1128,17 @@ describe('processOutcomeForBillingRun integration tests', async () => {
 
   it('should fail silently for adjustment billing run payment failures - no retry, no state changes, invoice line items deleted', async () => {
     // Setup fresh subscription for this test to avoid interference from existing scheduled runs
-    const testCustomer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const testPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: testCustomer.id,
-    })
+    const testCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const testPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: testCustomer.id,
+      })
+    ).unwrap()
     const testSubscription = await setupSubscription({
       organizationId: organization.id,
       customerId: testCustomer.id,
@@ -1316,13 +1332,17 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Create fresh customer and payment method for this test
-    const testCustomer = await setupCustomer({
-      organizationId: orgForGrants.id,
-    })
-    const testPaymentMethod = await setupPaymentMethod({
-      organizationId: orgForGrants.id,
-      customerId: testCustomer.id,
-    })
+    const testCustomer = (
+      await setupCustomer({
+        organizationId: orgForGrants.id,
+      })
+    ).unwrap()
+    const testPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgForGrants.id,
+        customerId: testCustomer.id,
+      })
+    ).unwrap()
     // Setup
     const grantAmount = 5000
     const usageMeter = await setupUsageMeter({
@@ -1502,13 +1522,17 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
     })
 
     // Create fresh customer and payment method for this test
-    const testCustomer = await setupCustomer({
-      organizationId: orgForGrants.id,
-    })
-    const testPaymentMethod = await setupPaymentMethod({
-      organizationId: orgForGrants.id,
-      customerId: testCustomer.id,
-    })
+    const testCustomer = (
+      await setupCustomer({
+        organizationId: orgForGrants.id,
+      })
+    ).unwrap()
+    const testPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgForGrants.id,
+        customerId: testCustomer.id,
+      })
+    ).unwrap()
 
     // Setup
     const grantAmount = 3000
@@ -1688,13 +1712,17 @@ describe('processOutcomeForBillingRun - usage credit grants', async () => {
       isDefault: true,
     })
 
-    const testCustomer = await setupCustomer({
-      organizationId: orgForGrants.id,
-    })
-    const testPaymentMethod = await setupPaymentMethod({
-      organizationId: orgForGrants.id,
-      customerId: testCustomer.id,
-    })
+    const testCustomer = (
+      await setupCustomer({
+        organizationId: orgForGrants.id,
+      })
+    ).unwrap()
+    const testPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgForGrants.id,
+        customerId: testCustomer.id,
+      })
+    ).unwrap()
 
     const grantAmount = 5000
     const usageMeter = await setupUsageMeter({
@@ -1927,13 +1955,17 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
   let subscription: Subscription.Record
 
   beforeEach(async () => {
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -2064,13 +2096,17 @@ describe('processOutcomeForBillingRun - effects callbacks', async () => {
 
   it('calls invalidateCache with customerSubscriptions after subscription status change to PastDue', async () => {
     // Setup a subscription that will be updated to PastDue on payment failure
-    const testCustomer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const testPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: testCustomer.id,
-    })
+    const testCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const testPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: testCustomer.id,
+      })
+    ).unwrap()
     const testSubscription = await setupSubscription({
       organizationId: organization.id,
       customerId: testCustomer.id,

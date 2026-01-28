@@ -79,9 +79,11 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
     pricingModel = orgData.pricingModel
 
     // Setup customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
     // Setup toggle feature and attach to product
     toggleFeature = await setupToggleFeature({
@@ -94,10 +96,12 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
 
   it('should handle activating a time trial subscription', async () => {
     // 0. Create a user/membership to drive product creation
-    const { user } = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const { user } = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     // 1. Create product and price via createProductTransaction
     const { product: createdProduct, prices } =
       await adminTransaction(

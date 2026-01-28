@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import {
   setupCustomer,
   setupDiscount,
@@ -49,6 +50,7 @@ describe('insertDiscount uniqueness constraints', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
     await expect(
@@ -68,6 +70,7 @@ describe('insertDiscount uniqueness constraints', () => {
           },
           transaction
         )
+        return Result.ok(undefined)
       })
     ).rejects.toThrow()
   })
@@ -105,30 +108,35 @@ describe('insertDiscount uniqueness constraints', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
-    const discountsOrg1 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectDiscounts(
-          {
-            organizationId: organization1.id,
-            code: 'UNIQUE123',
-          },
-          transaction
+    const discountsOrg1 = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectDiscounts(
+            {
+              organizationId: organization1.id,
+              code: 'UNIQUE123',
+            },
+            transaction
+          )
         )
-      }
-    )
-    const discountsOrg2 = await adminTransaction(
-      async ({ transaction }) => {
-        return selectDiscounts(
-          {
-            organizationId: organization2.id,
-            code: 'UNIQUE123',
-          },
-          transaction
+      })
+    ).unwrap()
+    const discountsOrg2 = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectDiscounts(
+            {
+              organizationId: organization2.id,
+              code: 'UNIQUE123',
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     expect(discountsOrg1.length).toBe(1)
     expect(discountsOrg2.length).toBe(1)
   })
@@ -166,18 +174,21 @@ describe('insertDiscount uniqueness constraints', () => {
         },
         transaction
       )
+      return Result.ok(undefined)
     })
 
-    const discounts = await adminTransaction(
-      async ({ transaction }) => {
-        return selectDiscounts(
-          {
-            organizationId: organization1.id,
-          },
-          transaction
+    const discounts = (
+      await adminTransaction(async ({ transaction }) => {
+        return Result.ok(
+          await selectDiscounts(
+            {
+              organizationId: organization1.id,
+            },
+            transaction
+          )
         )
-      }
-    )
+      })
+    ).unwrap()
     expect(discounts.length).toBe(2)
   })
 })
@@ -197,15 +208,17 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
   })
 
   it('should add redemptionCount of 0 for discounts with no redemptions', async () => {
-    const discount = await setupDiscount({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Discount',
-      code: 'TEST10',
-      amount: 10,
-      amountType: DiscountAmountType.Percent,
-      livemode: true,
-    })
+    const discount = (
+      await setupDiscount({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Discount',
+        code: 'TEST10',
+        amount: 10,
+        amountType: DiscountAmountType.Percent,
+        livemode: true,
+      })
+    ).unwrap()
 
     const discounts = await adminTransaction(
       async ({ transaction }) => {
@@ -225,22 +238,26 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
   })
 
   it('should correctly count redemptions for a discount', async () => {
-    const discount = await setupDiscount({
-      organizationId: organization.id,
-      pricingModelId: pricingModel.id,
-      name: 'Test Discount',
-      code: 'TEST10',
-      amount: 10,
-      amountType: DiscountAmountType.Percent,
-      livemode: true,
-    })
+    const discount = (
+      await setupDiscount({
+        organizationId: organization.id,
+        pricingModelId: pricingModel.id,
+        name: 'Test Discount',
+        code: 'TEST10',
+        amount: 10,
+        amountType: DiscountAmountType.Percent,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
     // Create 3 purchases and redemptions
-    const purchases = await Promise.all([
+    const purchaseResults = await Promise.all([
       setupPurchase({
         organizationId: organization.id,
         customerId: customer.id,
@@ -257,6 +274,7 @@ describe('enrichDiscountsWithRedemptionCounts', () => {
         priceId: price.id,
       }),
     ])
+    const purchases = purchaseResults.map((r) => r.unwrap())
 
     await Promise.all(
       purchases.map((purchase) =>

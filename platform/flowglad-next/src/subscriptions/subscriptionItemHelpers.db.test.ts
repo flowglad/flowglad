@@ -308,15 +308,19 @@ describe('subscriptionItemHelpers', () => {
 
     beforeEach(async () => {
       orgData = (await setupOrg()).unwrap()
-      customer = await setupCustomer({
-        organizationId: orgData.organization.id,
-        livemode: true,
-      })
-      paymentMethod = await setupPaymentMethod({
-        organizationId: orgData.organization.id,
-        customerId: customer.id,
-        livemode: true,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: orgData.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
+      paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: orgData.organization.id,
+          customerId: customer.id,
+          livemode: true,
+        })
+      ).unwrap()
       product = await setupProduct({
         organizationId: orgData.organization.id,
         name: 'Test Product',
@@ -3086,15 +3090,19 @@ describe('subscriptionItemHelpers', () => {
       describe('tenant isolation (multiple subscriptions)', () => {
         it('should NOT deduplicate credits across different subscriptions', async () => {
           // Create a second customer and subscription in the SAME organization
-          const customer2 = await setupCustomer({
-            organizationId: orgData.organization.id,
-            livemode: true,
-          })
-          const paymentMethod2 = await setupPaymentMethod({
-            organizationId: orgData.organization.id,
-            customerId: customer2.id,
-            livemode: true,
-          })
+          const customer2 = (
+            await setupCustomer({
+              organizationId: orgData.organization.id,
+              livemode: true,
+            })
+          ).unwrap()
+          const paymentMethod2 = (
+            await setupPaymentMethod({
+              organizationId: orgData.organization.id,
+              customerId: customer2.id,
+              livemode: true,
+            })
+          ).unwrap()
           const subscription2 = await setupSubscription({
             organizationId: orgData.organization.id,
             customerId: customer2.id,
@@ -3199,15 +3207,19 @@ describe('subscriptionItemHelpers', () => {
 
         it('should deduplicate within same subscription but not across subscriptions', async () => {
           // Create second subscription
-          const customer2 = await setupCustomer({
-            organizationId: orgData.organization.id,
-            livemode: true,
-          })
-          const paymentMethod2 = await setupPaymentMethod({
-            organizationId: orgData.organization.id,
-            customerId: customer2.id,
-            livemode: true,
-          })
+          const customer2 = (
+            await setupCustomer({
+              organizationId: orgData.organization.id,
+              livemode: true,
+            })
+          ).unwrap()
+          const paymentMethod2 = (
+            await setupPaymentMethod({
+              organizationId: orgData.organization.id,
+              customerId: customer2.id,
+              livemode: true,
+            })
+          ).unwrap()
           const subscription2 = await setupSubscription({
             organizationId: orgData.organization.id,
             customerId: customer2.id,

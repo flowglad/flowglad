@@ -114,13 +114,17 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     product = orgData.product
     staticPrice = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,

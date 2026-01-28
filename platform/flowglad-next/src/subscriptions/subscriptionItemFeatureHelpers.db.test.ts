@@ -164,15 +164,19 @@ describe('SubscriptionItemFeatureHelpers', () => {
 
   beforeEach(async () => {
     orgData = (await setupOrg()).unwrap() // Sets up org, default product, default price, default pricingModel
-    customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Use a specific product and price for these tests to ensure clarity
     productForFeatures = await setupProduct({

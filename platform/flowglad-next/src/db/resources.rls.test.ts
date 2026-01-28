@@ -32,10 +32,12 @@ describe('resources RLS - merchant role sequence permissions', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    const userApiKey = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKey = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKey = userApiKey.apiKey
   })
 
@@ -152,10 +154,12 @@ describe('resources RLS - merchant role sequence permissions', () => {
     it('cannot access resources from another organization', async () => {
       // Create a second organization
       const org2Data = (await setupOrg()).unwrap()
-      const org2ApiKey = await setupUserAndApiKey({
-        organizationId: org2Data.organization.id,
-        livemode: true,
-      })
+      const org2ApiKey = (
+        await setupUserAndApiKey({
+          organizationId: org2Data.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Insert a resource in org1
       await authenticatedTransaction(

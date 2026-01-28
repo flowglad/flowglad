@@ -128,10 +128,12 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
     pricingModel = orgData.pricingModel
     product = orgData.product
 
-    const userApiKey = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKey = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKey = userApiKey.apiKey
 
     usageMeter = await setupUsageMeter({
@@ -206,10 +208,12 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
     it('denies merchant from inserting a subscription price for another organization product', async () => {
       // Create another organization
       const org2Data = (await setupOrg()).unwrap()
-      const org2ApiKey = await setupUserAndApiKey({
-        organizationId: org2Data.organization.id,
-        livemode: true,
-      })
+      const org2ApiKey = (
+        await setupUserAndApiKey({
+          organizationId: org2Data.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Try to insert a price for org1's product using org2's API key
       const priceInsert: Price.SubscriptionInsert = {
@@ -241,10 +245,12 @@ describe('prices RLS - merchant role access via product or usage meter FK', () =
     it('denies merchant from inserting a usage price for another organization usage meter', async () => {
       // Create another organization
       const org2Data = (await setupOrg()).unwrap()
-      const org2ApiKey = await setupUserAndApiKey({
-        organizationId: org2Data.organization.id,
-        livemode: true,
-      })
+      const org2ApiKey = (
+        await setupUserAndApiKey({
+          organizationId: org2Data.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Try to insert a usage price for org1's usage meter using org2's API key
       const priceInsert: Price.UsageInsert = {
@@ -512,10 +518,12 @@ describe('prices RLS - merchant update policy for usage meter validation', () =>
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    const userApiKey = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKey = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKey = userApiKey.apiKey
 
     // Create two usage meters in the same pricing model
@@ -631,12 +639,14 @@ describe('prices RLS - customer read access', () => {
     })
 
     // Create a customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: customerUser.email!,
-      userId: customerUser.id,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: customerUser.email!,
+        userId: customerUser.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a usage meter
     usageMeter = await setupUsageMeter({

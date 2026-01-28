@@ -239,11 +239,13 @@ describe('Customer Role RLS Policies', () => {
     })
 
     // Setup customers for Org1
-    customerA_Org1 = await setupCustomer({
-      organizationId: org1.id,
-      email: userA.email!,
-      livemode: true,
-    })
+    customerA_Org1 = (
+      await setupCustomer({
+        organizationId: org1.id,
+        email: userA.email!,
+        livemode: true,
+      })
+    ).unwrap()
     // Update with userId
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -257,11 +259,13 @@ describe('Customer Role RLS Policies', () => {
       )
     })
 
-    customerB_Org1 = await setupCustomer({
-      organizationId: org1.id,
-      email: userB.email!,
-      livemode: true,
-    })
+    customerB_Org1 = (
+      await setupCustomer({
+        organizationId: org1.id,
+        email: userB.email!,
+        livemode: true,
+      })
+    ).unwrap()
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       customerB_Org1 = await updateCustomer(
@@ -275,21 +279,25 @@ describe('Customer Role RLS Policies', () => {
     })
 
     // CustomerC_Org1 without a userId - for testing NULL userId scenarios
-    customerC_Org1 = await setupCustomer({
-      organizationId: org1.id,
-      email: `customer_c_${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customerC_Org1 = (
+      await setupCustomer({
+        organizationId: org1.id,
+        email: `customer_c_${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
     // Note: Not setting userId for customerC_Org1 - this customer has no user association
 
     // Setup customers for Org2
     // Note: Changed to use userC instead of userA to avoid cross-org visibility issues
     // The current RLS policy shows ALL customers for a user across ALL orgs
-    customerA_Org2 = await setupCustomer({
-      organizationId: org2.id,
-      email: userC.email!,
-      livemode: true,
-    })
+    customerA_Org2 = (
+      await setupCustomer({
+        organizationId: org2.id,
+        email: userC.email!,
+        livemode: true,
+      })
+    ).unwrap()
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       customerA_Org2 = await updateCustomer(
@@ -302,11 +310,13 @@ describe('Customer Role RLS Policies', () => {
       )
     })
 
-    customerD_Org2 = await setupCustomer({
-      organizationId: org2.id,
-      email: userD.email!,
-      livemode: true,
-    })
+    customerD_Org2 = (
+      await setupCustomer({
+        organizationId: org2.id,
+        email: userD.email!,
+        livemode: true,
+      })
+    ).unwrap()
     await adminTransaction(async (ctx) => {
       const { transaction } = ctx
       customerD_Org2 = await updateCustomer(
@@ -320,26 +330,32 @@ describe('Customer Role RLS Policies', () => {
     })
 
     // Setup payment methods
-    paymentMethodA_Org1 = await setupPaymentMethod({
-      organizationId: org1.id,
-      customerId: customerA_Org1.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethodA_Org1 = (
+      await setupPaymentMethod({
+        organizationId: org1.id,
+        customerId: customerA_Org1.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
-    paymentMethodB_Org1 = await setupPaymentMethod({
-      organizationId: org1.id,
-      customerId: customerB_Org1.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethodB_Org1 = (
+      await setupPaymentMethod({
+        organizationId: org1.id,
+        customerId: customerB_Org1.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
-    paymentMethodA_Org2 = await setupPaymentMethod({
-      organizationId: org2.id,
-      customerId: customerA_Org2.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethodA_Org2 = (
+      await setupPaymentMethod({
+        organizationId: org2.id,
+        customerId: customerA_Org2.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Setup subscriptions
     subscriptionA_Org1 = await setupSubscription({
@@ -943,11 +959,13 @@ describe('Customer Role RLS Policies', () => {
 
     it('should handle empty results gracefully', async () => {
       // Create a customer with no related data
-      const emptyCustomer = await setupCustomer({
-        organizationId: org1.id,
-        email: `empty_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const emptyCustomer = (
+        await setupCustomer({
+          organizationId: org1.id,
+          email: `empty_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Create user for the empty customer
       const emptyUser = await adminTransaction(async (ctx) => {
@@ -1068,12 +1086,14 @@ describe('Customer Role RLS Policies', () => {
         isDefault: false,
       })
 
-      const customerWithDifferentPm = await setupCustomer({
-        organizationId: org1.id,
-        email: `diffpm_${core.nanoid()}@test.com`,
-        livemode: true,
-        pricingModelId: differentPm.id,
-      })
+      const customerWithDifferentPm = (
+        await setupCustomer({
+          organizationId: org1.id,
+          email: `diffpm_${core.nanoid()}@test.com`,
+          livemode: true,
+          pricingModelId: differentPm.id,
+        })
+      ).unwrap()
 
       const differentPmUser = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -1976,11 +1996,13 @@ describe('Customer Role RLS Policies', () => {
 
     it('should handle NULL userId customers correctly', async () => {
       // Create a customer with null userId
-      const nullUserCustomer = await setupCustomer({
-        organizationId: org1.id,
-        email: `nulluser_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const nullUserCustomer = (
+        await setupCustomer({
+          organizationId: org1.id,
+          email: `nulluser_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // CustomerA should not be able to see this customer (no userId association)
       const result = await authenticatedCustomerTransaction(
@@ -2136,20 +2158,24 @@ describe('Customer Role RLS Policies', () => {
       })
 
       // Create user and API key for authentication first
-      const userApiKey = await setupUserAndApiKey({
-        organizationId: organization.id,
-        livemode: true,
-      })
+      const userApiKey = (
+        await setupUserAndApiKey({
+          organizationId: organization.id,
+          livemode: true,
+        })
+      ).unwrap()
       user = userApiKey.user
       apiKey = userApiKey.apiKey
 
       // Create customer with default pricing model, using the same user as the API key
-      customerWithDefaultPricingModel = await setupCustomer({
-        organizationId: organization.id,
-        email: 'default-pricing-model@example.com',
-        userId: user.id,
-        pricingModelId: defaultPricingModel.id,
-      })
+      customerWithDefaultPricingModel = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: 'default-pricing-model@example.com',
+          userId: user.id,
+          pricingModelId: defaultPricingModel.id,
+        })
+      ).unwrap()
     })
 
     it('should allow customer with pricingModelId to access billing portal and get their pricing model', async () => {

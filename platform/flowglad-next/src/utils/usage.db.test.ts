@@ -30,10 +30,12 @@ describe('createUsageMeterTransaction', () => {
     pricingModel = orgSetup.pricingModel
 
     // Create a user for the organization
-    const userSetup = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: false,
-    })
+    const userSetup = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: false,
+      })
+    ).unwrap()
     userId = userSetup.user.id
   })
 

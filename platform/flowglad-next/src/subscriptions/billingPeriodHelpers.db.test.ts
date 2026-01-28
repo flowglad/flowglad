@@ -102,13 +102,17 @@ describe('Subscription Billing Period Transition', async () => {
   ).unwrap()
 
   beforeEach(async () => {
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     subscription = (await setupSubscription({
       organizationId: organization.id,
@@ -2273,13 +2277,17 @@ describe('Resource claim expiration during billing period transition', async () 
 
   it('releases resource claims with expiredAt set during billing period transition', async () => {
     // Setup customer and payment method
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     // Create subscription with billing period in the past (ready for transition)
     const now = Date.now()

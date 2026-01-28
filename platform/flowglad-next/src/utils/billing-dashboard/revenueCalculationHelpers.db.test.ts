@@ -463,13 +463,17 @@ describe('getBillingPeriodsForDateRange', () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     // Create a subscription
     const subscription = await adminTransaction(
@@ -598,13 +602,17 @@ describe('calculateMRRByMonth', () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
@@ -666,13 +674,17 @@ describe('calculateMRRByMonth', () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
@@ -739,13 +751,17 @@ describe('calculateMRRByMonth', () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-15T05:00:00.000Z') // Mid-January
     const endDate = new Date('2023-02-15T05:00:00.000Z') // Mid-February
@@ -819,13 +835,17 @@ describe('calculateMRRByMonth', () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
@@ -1024,13 +1044,17 @@ describe('calculateMRRByMonth', () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
@@ -1174,13 +1198,17 @@ describe('Edge Cases and Error Handling', () => {
 describe('calculateMRRByMonth with productId filter', () => {
   it('should return MRR for all products when productId is null', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
@@ -1252,13 +1280,17 @@ describe('calculateMRRByMonth with productId filter', () => {
       intervalCount: 1,
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
@@ -1403,13 +1435,17 @@ describe('calculateMRRByMonth with productId filter', () => {
       pricingModelId: pricingModel.id,
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')
@@ -1459,13 +1495,17 @@ describe('calculateMRRByMonth with productId filter', () => {
 
   it('should return zero MRR when productId does not exist', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-01-31T05:00:00.000Z')

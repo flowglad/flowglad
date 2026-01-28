@@ -215,10 +215,12 @@ describe('refundPaymentTransaction', () => {
     const setup = (await setupOrg()).unwrap()
     organization = setup.organization
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     invoice = await setupInvoice({
       customerId: customer.id,
@@ -533,10 +535,12 @@ describe('refundPaymentTransaction', () => {
       })
       morOrganization = setup.organization
 
-      morCustomer = await setupCustomer({
-        organizationId: morOrganization.id,
-        livemode: true,
-      })
+      morCustomer = (
+        await setupCustomer({
+          organizationId: morOrganization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       morInvoice = await setupInvoice({
         customerId: morCustomer.id,

@@ -60,20 +60,24 @@ describe('subscriptionsRouter', () => {
     const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
-    const userApiKeySetup = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKeySetup = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeySetup.apiKey.token) {
       throw new Error('API key token not found after setup')
     }
     apiKeyToken = userApiKeySetup.apiKey.token
 
     // Setup customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+      })
+    ).unwrap()
 
     // Setup subscription with doNotCharge: true
     doNotChargeSubscription = await setupSubscription({
@@ -155,10 +159,12 @@ describe('validateAndResolvePriceForSubscription', () => {
     })
 
     // Setup customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test-customer+${Date.now()}@test.com`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test-customer+${Date.now()}@test.com`,
+      })
+    ).unwrap()
   })
 
   it('returns price, product, and organization when given a valid subscription priceId', async () => {
@@ -284,11 +290,13 @@ describe('validateAndResolveCustomerForSubscription', () => {
     organization = setup.organization
 
     // Setup customer with externalId
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test-customer+${Date.now()}@test.com`,
-      externalId: `ext-${Date.now()}`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test-customer+${Date.now()}@test.com`,
+        externalId: `ext-${Date.now()}`,
+      })
+    ).unwrap()
   })
 
   it('returns customer when given a valid customerId', async () => {

@@ -112,15 +112,19 @@ describe('grantEntitlementUsageCredits', () => {
     basePrice = orgData.price
     pricingModel = orgData.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
     subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,

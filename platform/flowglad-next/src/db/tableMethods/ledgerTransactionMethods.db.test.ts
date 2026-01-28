@@ -47,11 +47,13 @@ describe('Ledger Transaction Methods', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,

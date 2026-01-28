@@ -46,10 +46,12 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
     org2 = orgSetup2.organization
     pricingModel2Id = orgSetup2.pricingModel.id
 
-    const uaOrg1 = await setupUserAndApiKey({
-      organizationId: org1.id,
-      livemode: true,
-    })
+    const uaOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: org1.id,
+        livemode: true,
+      })
+    ).unwrap()
     userA = uaOrg1.user
     apiKeyForOrg1 = uaOrg1.apiKey
 
@@ -66,23 +68,29 @@ describe('RLS (merchant) for customers via authenticatedTransaction', () => {
       )
     })
 
-    const ubOrg2 = await setupUserAndApiKey({
-      organizationId: org2.id,
-      livemode: true,
-    })
+    const ubOrg2 = (
+      await setupUserAndApiKey({
+        organizationId: org2.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKeyForOrg2 = ubOrg2.apiKey
 
-    customerOrg1 = await setupCustomer({
-      organizationId: org1.id,
-      email: `customer-org1+${Date.now()}@test.com`,
-      pricingModelId: pricingModel1Id,
-    })
+    customerOrg1 = (
+      await setupCustomer({
+        organizationId: org1.id,
+        email: `customer-org1+${Date.now()}@test.com`,
+        pricingModelId: pricingModel1Id,
+      })
+    ).unwrap()
 
-    customerOrg2 = await setupCustomer({
-      organizationId: org2.id,
-      email: `customer-org2+${Date.now()}@test.com`,
-      pricingModelId: pricingModel2Id,
-    })
+    customerOrg2 = (
+      await setupCustomer({
+        organizationId: org2.id,
+        email: `customer-org2+${Date.now()}@test.com`,
+        pricingModelId: pricingModel2Id,
+      })
+    ).unwrap()
   })
 
   it('does not allow selecting customers from another organization by id', async () => {

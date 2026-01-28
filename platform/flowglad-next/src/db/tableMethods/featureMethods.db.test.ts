@@ -265,13 +265,17 @@ describe('updateFeatureTransaction - active state synchronization', () => {
     })
 
     // Setup customer and subscription
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,

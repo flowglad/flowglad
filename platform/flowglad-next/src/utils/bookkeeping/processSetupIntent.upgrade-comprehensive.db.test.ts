@@ -126,21 +126,25 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     pricingModel = orgData.pricingModel
 
     // Create customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-      email: `test_${core.nanoid()}@example.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+        email: `test_${core.nanoid()}@example.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create payment method
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create free product and price
     freeProduct = await setupProduct({
@@ -198,17 +202,19 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     })
 
     // Create checkout session for paid product (common for upgrade tests)
-    checkoutSession = await setupCheckoutSession({
-      organizationId: organization.id,
-      customerId: customer.id,
-      type: CheckoutSessionType.Product,
-      status: CheckoutSessionStatus.Open,
-      livemode: true,
-      priceId: paidPrice.id,
-      quantity: 1,
-      outputMetadata: { upgraded: 'true' },
-      outputName: 'Pro Plan Subscription',
-    })
+    checkoutSession = (
+      await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: CheckoutSessionType.Product,
+        status: CheckoutSessionStatus.Open,
+        livemode: true,
+        priceId: paidPrice.id,
+        quantity: 1,
+        outputMetadata: { upgraded: 'true' },
+        outputName: 'Pro Plan Subscription',
+      })
+    ).unwrap()
 
     // Create purchase for checkout session
     purchase = await setupPurchase({
@@ -574,15 +580,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       expect(typeof firstPaidSubscriptionId).toBe('string')
 
       // Create a new checkout session for another paid product
-      const secondCheckoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        livemode: true,
-        priceId: paidPrice.id,
-        quantity: 1,
-      })
+      const secondCheckoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          livemode: true,
+          priceId: paidPrice.id,
+          quantity: 1,
+        })
+      ).unwrap()
 
       // Create a new purchase for the second checkout session
       await setupPurchase({
@@ -876,15 +884,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
     it('should prevent concurrent upgrade attempts', async () => {
       // Create two different checkout sessions for concurrent processing
-      const secondCheckoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        livemode: true,
-        priceId: paidPrice.id,
-        quantity: 1,
-      })
+      const secondCheckoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          livemode: true,
+          priceId: paidPrice.id,
+          quantity: 1,
+        })
+      ).unwrap()
 
       await setupPurchase({
         organizationId: organization.id,
@@ -1367,10 +1377,12 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
   describe('Terminal Checkout Session Handling', () => {
     it('should handle terminal checkout session without creating/canceling anything', async () => {
       // Create a new customer for this test to avoid interference
-      const testCustomer = await setupCustomer({
-        organizationId: organization.id,
-        email: `terminal-test-${core.nanoid()}@example.com`,
-      })
+      const testCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: `terminal-test-${core.nanoid()}@example.com`,
+        })
+      ).unwrap()
 
       // Create a free subscription for this customer
       const testFreeSubscription = await setupSubscription({
@@ -1382,15 +1394,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       })
 
       // Create a checkout session that's already succeeded
-      const terminalCheckoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: testCustomer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Succeeded, // Terminal state
-        priceId: paidPrice.id,
-        quantity: 1,
-        livemode: true,
-      })
+      const terminalCheckoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: testCustomer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Succeeded, // Terminal state
+          priceId: paidPrice.id,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: terminalCheckoutSession.id,
@@ -1441,10 +1455,12 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
     it('should handle Failed terminal checkout session', async () => {
       // Create a new customer for this test to avoid interference
-      const testCustomer = await setupCustomer({
-        organizationId: organization.id,
-        email: `failed-terminal-test-${core.nanoid()}@example.com`,
-      })
+      const testCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: `failed-terminal-test-${core.nanoid()}@example.com`,
+        })
+      ).unwrap()
 
       // Create a free subscription for this customer
       const testFreeSubscription = await setupSubscription({
@@ -1455,15 +1471,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         isFreePlan: true,
       })
 
-      const failedCheckoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: testCustomer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Failed, // Terminal state
-        priceId: paidPrice.id,
-        quantity: 1,
-        livemode: true,
-      })
+      const failedCheckoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: testCustomer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Failed, // Terminal state
+          priceId: paidPrice.id,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: failedCheckoutSession.id,
@@ -1527,15 +1545,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
     })
 
     it('should update checkout session status when processing succeeded setup intent', async () => {
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        priceId: paidPrice.id,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          priceId: paidPrice.id,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -1572,10 +1592,12 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
   describe('Trial Eligibility Logic', () => {
     it('should grant trial when customer never had a trial before', async () => {
       // Create a new customer without any trial history
-      const newCustomer = await setupCustomer({
-        organizationId: organization.id,
-        email: 'new-trial@example.com',
-      })
+      const newCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: 'new-trial@example.com',
+        })
+      ).unwrap()
 
       // Create a price with trial period
       const priceWithTrial = await setupPrice({
@@ -1590,15 +1612,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         isDefault: false,
       })
 
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: newCustomer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        priceId: priceWithTrial.id,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: newCustomer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          priceId: priceWithTrial.id,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -1641,10 +1665,12 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
     it('should NOT grant trial when customer had a previous trial', async () => {
       // Create a customer with trial history
-      const customerWithTrialHistory = await setupCustomer({
-        organizationId: organization.id,
-        email: 'had-trial@example.com',
-      })
+      const customerWithTrialHistory = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: 'had-trial@example.com',
+        })
+      ).unwrap()
 
       // Create a previous subscription with trial that ended
       const previousSub = await setupSubscription({
@@ -1669,15 +1695,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         isDefault: false,
       })
 
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customerWithTrialHistory.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        priceId: priceWithTrial.id,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customerWithTrialHistory.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          priceId: priceWithTrial.id,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -1741,16 +1769,18 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       })
 
       // Create an ActivateSubscription checkout session
-      const activateCheckoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.ActivateSubscription,
-        status: CheckoutSessionStatus.Pending,
-        priceId: paidPrice.id,
-        quantity: 1,
-        livemode: true,
-        targetSubscriptionId: subscriptionForActivation.id,
-      })
+      const activateCheckoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.ActivateSubscription,
+          status: CheckoutSessionStatus.Pending,
+          priceId: paidPrice.id,
+          quantity: 1,
+          livemode: true,
+          targetSubscriptionId: subscriptionForActivation.id,
+        })
+      ).unwrap()
 
       const setupIntentNoPM: CoreSripeSetupIntent = {
         status: 'succeeded',
@@ -1787,16 +1817,18 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         defaultPaymentMethodId: paymentMethod.id,
       })
 
-      const addPMCheckoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.AddPaymentMethod,
-        status: CheckoutSessionStatus.Pending,
-        priceId: paidPrice.id,
-        quantity: 1,
-        livemode: true,
-        targetSubscriptionId: targetSub.id,
-      })
+      const addPMCheckoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.AddPaymentMethod,
+          status: CheckoutSessionStatus.Pending,
+          priceId: paidPrice.id,
+          quantity: 1,
+          livemode: true,
+          targetSubscriptionId: targetSub.id,
+        })
+      ).unwrap()
 
       const newPaymentMethodId = `pm_new_${core.nanoid()}`
       const setupIntent: CoreSripeSetupIntent = {
@@ -1812,12 +1844,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
       await adminTransaction(async ({ transaction }) => {
         // Create the new payment method first
-        const newPM = await setupPaymentMethod({
-          organizationId: organization.id,
-          customerId: customer.id,
-          stripePaymentMethodId: newPaymentMethodId,
-          type: PaymentMethodType.Card,
-        })
+        const newPM = (
+          await setupPaymentMethod({
+            organizationId: organization.id,
+            customerId: customer.id,
+            stripePaymentMethodId: newPaymentMethodId,
+            type: PaymentMethodType.Card,
+          })
+        ).unwrap()
 
         await processSetupIntentSucceeded(
           setupIntent,
@@ -1850,16 +1884,18 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
         status: SubscriptionStatus.Active,
       })
 
-      const addPMCheckoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.AddPaymentMethod,
-        status: CheckoutSessionStatus.Pending,
-        priceId: paidPrice.id,
-        quantity: 1,
-        livemode: true,
-        automaticallyUpdateSubscriptions: true,
-      })
+      const addPMCheckoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.AddPaymentMethod,
+          status: CheckoutSessionStatus.Pending,
+          priceId: paidPrice.id,
+          quantity: 1,
+          livemode: true,
+          automaticallyUpdateSubscriptions: true,
+        })
+      ).unwrap()
 
       const newPaymentMethodId = `pm_auto_update_${core.nanoid()}`
       const setupIntent: CoreSripeSetupIntent = {
@@ -1874,12 +1910,14 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
       }
 
       // Create the new payment method
-      const newPM = await setupPaymentMethod({
-        customerId: customer.id,
-        stripePaymentMethodId: newPaymentMethodId,
-        type: PaymentMethodType.Card,
-        organizationId: organization.id,
-      })
+      const newPM = (
+        await setupPaymentMethod({
+          customerId: customer.id,
+          stripePaymentMethodId: newPaymentMethodId,
+          type: PaymentMethodType.Card,
+          organizationId: organization.id,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         await processSetupIntentSucceeded(
           setupIntent,
@@ -1903,15 +1941,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
   describe('Customer and PaymentMethod Syncing', () => {
     it('should associate payment method with correct customer', async () => {
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        priceId: paidPrice.id,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          priceId: paidPrice.id,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       const pmId = `pm_assoc_${core.nanoid()}`
       const setupIntent: CoreSripeSetupIntent = {
@@ -1961,16 +2001,18 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
   describe('Name and Metadata Propagation', () => {
     it('should copy outputName to subscription name field', async () => {
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        priceId: paidPrice.id,
-        quantity: 1,
-        livemode: true,
-        outputName: 'Premium Plan - Special Edition',
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          priceId: paidPrice.id,
+          quantity: 1,
+          livemode: true,
+          outputName: 'Premium Plan - Special Edition',
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,
@@ -2007,15 +2049,17 @@ describe('Subscription Upgrade Flow - Comprehensive Tests', () => {
 
   describe('Events Logging Validation', () => {
     it('should emit appropriate events via callback', async () => {
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        priceId: paidPrice.id,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          priceId: paidPrice.id,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,

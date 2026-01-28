@@ -71,13 +71,17 @@ describe('subscriptionItemFeatureMethods', () => {
     const { product, price, pricingModel } = orgData
 
     // Setup customer and payment method
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     // Setup subscription
     subscription = await setupSubscription({
@@ -527,11 +531,13 @@ describe('pricingModelId derivation', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test-pricing-model@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test-pricing-model@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -713,11 +719,13 @@ describe('Resource SubscriptionItemFeature schema and methods', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test-resource@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test-resource@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -1068,11 +1076,13 @@ describe('selectSubscriptionItemFeaturesWithFeatureSlug', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      email: 'cached-test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        email: 'cached-test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: orgData.organization.id,

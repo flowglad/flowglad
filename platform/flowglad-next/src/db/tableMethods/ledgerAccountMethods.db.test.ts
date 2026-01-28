@@ -57,17 +57,21 @@ describe('findOrCreateLedgerAccountsForSubscriptionAndUsageMeters', () => {
     product = orgData.product
     price = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -353,17 +357,21 @@ describe('Ledger Account Methods with pricingModelId', () => {
     product = orgData.product
     price = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,

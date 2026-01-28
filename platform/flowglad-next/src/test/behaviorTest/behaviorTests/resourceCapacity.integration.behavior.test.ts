@@ -107,20 +107,24 @@ describe('Resource Capacity Integration Tests', () => {
     })
 
     // Create customer
-    const customer = await setupCustomer({
-      organizationId,
-      email: `test-${nanoid}@test.flowglad.com`,
-      livemode,
-      pricingModelId,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId,
+        email: `test-${nanoid}@test.flowglad.com`,
+        livemode,
+        pricingModelId,
+      })
+    ).unwrap()
     customerId = customer.id
 
     // Create payment method
-    const paymentMethod = await setupPaymentMethod({
-      organizationId,
-      customerId,
-      livemode,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId,
+        customerId,
+        livemode,
+      })
+    ).unwrap()
 
     // Calculate billing period dates
     const now = new Date()

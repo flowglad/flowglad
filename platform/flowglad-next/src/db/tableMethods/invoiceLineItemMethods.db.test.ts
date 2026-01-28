@@ -51,11 +51,13 @@ describe('pricingModelId derivation', () => {
         currency: CurrencyCode.USD,
       })
 
-      customer = await setupCustomer({
-        organizationId: organization.id,
-        email: 'test@test.com',
-        livemode: true,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: 'test@test.com',
+          livemode: true,
+        })
+      ).unwrap()
 
       invoice = await setupInvoice({
         organizationId: organization.id,
@@ -139,11 +141,13 @@ describe('pricingModelId derivation', () => {
         currency: CurrencyCode.USD,
       })
 
-      customer = await setupCustomer({
-        organizationId: organization.id,
-        email: 'test@test.com',
-        livemode: true,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: 'test@test.com',
+          livemode: true,
+        })
+      ).unwrap()
 
       invoice = await setupInvoice({
         organizationId: organization.id,
@@ -252,11 +256,13 @@ describe('pricingModelId derivation', () => {
         currency: CurrencyCode.USD,
       })
 
-      customer = await setupCustomer({
-        organizationId: organization.id,
-        email: 'test@test.com',
-        livemode: true,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: 'test@test.com',
+          livemode: true,
+        })
+      ).unwrap()
 
       invoice = await setupInvoice({
         organizationId: organization.id,
@@ -373,11 +379,13 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create invoice with customer-facing status (Paid)
     invoice = await setupInvoice({
@@ -413,11 +421,13 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
   })
 
   it('should return empty array when customer has no invoices', async () => {
-    const customerWithNoInvoices = await setupCustomer({
-      organizationId: organization.id,
-      email: `empty+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    const customerWithNoInvoices = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `empty+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const result = await selectCustomerFacingInvoicesWithLineItems(
@@ -455,11 +465,13 @@ describe('selectCustomerFacingInvoicesWithLineItems', () => {
   })
 
   it('should only return invoices for the specified customer', async () => {
-    const otherCustomer = await setupCustomer({
-      organizationId: organization.id,
-      email: `other+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    const otherCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `other+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     const otherInvoice = await setupInvoice({
       organizationId: organization.id,

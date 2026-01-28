@@ -690,11 +690,13 @@ describe('selectPricingModelForCustomer', () => {
 
   it('should filter inactive products for customers with specific pricing model', async () => {
     // Create customer with specific pricing model
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@example.com',
-      pricingModelId: specificPricingModel.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@example.com',
+        pricingModelId: specificPricingModel.id,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -715,10 +717,12 @@ describe('selectPricingModelForCustomer', () => {
 
   it('should filter inactive products for customers with default pricing model', async () => {
     // Create customer without specific pricing model (uses default)
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'default@example.com',
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'default@example.com',
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -739,10 +743,12 @@ describe('selectPricingModelForCustomer', () => {
 
   it('should fallback to default pricing model when specific model not found', async () => {
     // Create customer with non-existent pricing model ID
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'fallback@example.com',
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'fallback@example.com',
+      })
+    ).unwrap()
 
     // Manually set a non-existent pricing model ID
     const customerWithBadId = {
@@ -773,10 +779,12 @@ describe('selectPricingModelForCustomer', () => {
     const fakeOrgId = 'org_fake_no_default'
     const fakePricingModelId = 'pricing_model_nonexistent'
 
-    const customer = await setupCustomer({
-      organizationId: organization.id, // Use real org for customer creation
-      email: 'nodefault@example.com',
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id, // Use real org for customer creation
+        email: 'nodefault@example.com',
+      })
+    ).unwrap()
 
     // Override both organizationId and pricingModelId to simulate:
     // - pricingModelId pointing to non-existent pricing model (causes fallback to default lookup)
@@ -808,11 +816,13 @@ describe('selectPricingModelForCustomer', () => {
       isDefault: false,
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'empty@example.com',
-      pricingModelId: emptyPricingModel.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'empty@example.com',
+        pricingModelId: emptyPricingModel.id,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -1154,11 +1164,13 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
       active: true,
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test-customer@example.com',
-      pricingModelId: pricingModel.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test-customer@example.com',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -1254,11 +1266,13 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
       )
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test-customer@example.com',
-      pricingModelId: pricingModel.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test-customer@example.com',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -1312,11 +1326,13 @@ describe('Inactive Price Filtering in selectPricingModelForCustomer', () => {
       active: true,
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test-customer@example.com',
-      pricingModelId: pricingModel.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test-customer@example.com',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
@@ -2339,11 +2355,13 @@ describe('Usage Meter Prices in Pricing Model Response', () => {
     })
 
     // Create a customer
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'usage-test@example.com',
-      pricingModelId: pricingModel.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'usage-test@example.com',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     // Query via selectPricingModelForCustomer (which applies active filtering)
     const result = await adminTransaction(async (ctx) => {

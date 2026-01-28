@@ -82,10 +82,12 @@ describe('resourceClaimsRouter', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    const userApiKeySetup = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKeySetup = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeySetup.apiKey.token) {
       throw new Error('API key token not found after setup')
     }
@@ -170,27 +172,33 @@ describe('resourceClaimsRouter', () => {
     // NOTE: org2's subscription is created in beforeAll (not beforeEach) because
     // it's only used for read-only permission boundary tests, never mutated
     org2Data = (await setupOrg()).unwrap()
-    const userApiKeyOrg2 = await setupUserAndApiKey({
-      organizationId: org2Data.organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg2 = (
+      await setupUserAndApiKey({
+        organizationId: org2Data.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg2.apiKey.token) {
       throw new Error('API key token not found after setup for org2')
     }
     org2ApiKeyToken = userApiKeyOrg2.apiKey.token
 
-    const customer2 = await setupCustomer({
-      organizationId: org2Data.organization.id,
-      email: `customer2+${Date.now()}@test.com`,
-      livemode: true,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: org2Data.organization.id,
+        email: `customer2+${Date.now()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const paymentMethod2 = await setupPaymentMethod({
-      organizationId: org2Data.organization.id,
-      customerId: customer2.id,
-      livemode: true,
-      type: PaymentMethodType.Card,
-    })
+    const paymentMethod2 = (
+      await setupPaymentMethod({
+        organizationId: org2Data.organization.id,
+        customerId: customer2.id,
+        livemode: true,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     org2Subscription = await setupSubscription({
       organizationId: org2Data.organization.id,
@@ -206,18 +214,22 @@ describe('resourceClaimsRouter', () => {
   // beforeEach: Create fresh subscription data for test isolation
   // This ensures each test has its own subscription without claims from other tests
   beforeEach(async () => {
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-      type: PaymentMethodType.Card,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -338,18 +350,22 @@ describe('resourceClaimsRouter', () => {
 
     it('throws NOT_FOUND when the subscription has no subscription items', async () => {
       // Create a new subscription without any subscription items
-      const customer2 = await setupCustomer({
-        organizationId: organization.id,
-        email: `empty-customer+${Date.now()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: `empty-customer+${Date.now()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const paymentMethod2 = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer2.id,
-        livemode: true,
-        type: PaymentMethodType.Card,
-      })
+      const paymentMethod2 = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer2.id,
+          livemode: true,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const emptyProduct = await setupProduct({
         organizationId: organization.id,
@@ -448,18 +464,22 @@ describe('resourceClaimsRouter', () => {
   describe('listResourceUsages procedure', () => {
     it('returns an empty array when the subscription has no subscription items', async () => {
       // Create a subscription without items
-      const customer2 = await setupCustomer({
-        organizationId: organization.id,
-        email: `empty-list-customer+${Date.now()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: `empty-list-customer+${Date.now()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const paymentMethod2 = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer2.id,
-        livemode: true,
-        type: PaymentMethodType.Card,
-      })
+      const paymentMethod2 = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer2.id,
+          livemode: true,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const emptyProduct = await setupProduct({
         organizationId: organization.id,
@@ -500,18 +520,22 @@ describe('resourceClaimsRouter', () => {
 
     it('returns an empty array when no resource features exist on subscription items', async () => {
       // Create a subscription with items but no resource features
-      const customer3 = await setupCustomer({
-        organizationId: organization.id,
-        email: `no-features-customer+${Date.now()}@test.com`,
-        livemode: true,
-      })
+      const customer3 = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: `no-features-customer+${Date.now()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const paymentMethod3 = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer3.id,
-        livemode: true,
-        type: PaymentMethodType.Card,
-      })
+      const paymentMethod3 = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer3.id,
+          livemode: true,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const noFeaturesProduct = await setupProduct({
         organizationId: organization.id,

@@ -58,11 +58,13 @@ describe('Fee Calculation Methods', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -79,15 +81,17 @@ describe('Fee Calculation Methods', () => {
       livemode: true,
     })
 
-    checkoutSession = await setupCheckoutSession({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    checkoutSession = (
+      await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   describe('derivePricingModelIdForFeeCalculation', () => {

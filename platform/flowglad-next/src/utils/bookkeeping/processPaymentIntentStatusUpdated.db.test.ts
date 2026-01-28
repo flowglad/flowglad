@@ -115,13 +115,17 @@ describe('ledgerCommandForPaymentSucceeded', () => {
     product = orgData.product
     subscriptionPrice = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -219,9 +223,11 @@ describe('ledgerCommandForPaymentSucceeded', () => {
         },
       ],
     })
-    const altCustomer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const altCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const altInvoice = await setupInvoice({
       organizationId: organization.id,
       customerId: altCustomer.id,
@@ -506,9 +512,11 @@ describe('Process payment intent status updated', async () => {
   let customer: Customer.Record
   let invoice: Invoice.Record
   beforeEach(async () => {
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     invoice = await setupInvoice({
       customerId: customer.id,
       organizationId: organization.id,
@@ -848,15 +856,17 @@ describe('Process payment intent status updated', async () => {
 
   describe('upsertPaymentForStripeCharge', () => {
     it('throws an error if the charge does not include a payment_intent', async () => {
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       const metadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -963,19 +973,23 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('correctly maps payment record fields for a product checkout session', async () => {
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
@@ -1019,15 +1033,17 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('propagates Stripe Tax fields from fee calculation to payment for checkout sessions', async () => {
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       const feeCalculation = await adminTransaction(async (ctx) => {
         const { transaction } = ctx
@@ -1120,15 +1136,17 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('selectFeeCalculationForPaymentIntent selects latest fee calculation for checkout sessions', async () => {
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       const feeCalculationOld = await adminTransaction(
         async (ctx) => {
@@ -1234,10 +1252,12 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('selectFeeCalculationForPaymentIntent selects latest fee calculation for billing runs', async () => {
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         livemode: true,
@@ -1356,19 +1376,23 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('maintains idempotency by not creating duplicate payment records', async () => {
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
@@ -1425,19 +1449,23 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('handles zero amount charges', async () => {
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
@@ -1500,19 +1528,23 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('handles partially refunded charges', async () => {
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       const metadata: StripeIntentMetadata = {
         checkoutSessionId: checkoutSession.id,
         type: IntentMetadataType.CheckoutSession,
@@ -1600,10 +1632,12 @@ describe('Process payment intent status updated', async () => {
 
     describe('Billing Run Flow', async () => {
       it('correctly processes a payment when metadata contains a billingRunId and a valid subscription', async () => {
-        const paymentMethod = await setupPaymentMethod({
-          organizationId: organization.id,
-          customerId: customer.id,
-        })
+        const paymentMethod = (
+          await setupPaymentMethod({
+            organizationId: organization.id,
+            customerId: customer.id,
+          })
+        ).unwrap()
         const subscription = await setupSubscription({
           organizationId: organization.id,
           livemode: true,
@@ -1742,19 +1776,23 @@ describe('Process payment intent status updated', async () => {
 
     describe('Product Flow through Checkout Session', () => {
       it('correctly processes a payment when metadata contains a checkoutSessionId for a product', async () => {
-        const paymentMethod = await setupPaymentMethod({
-          organizationId: organization.id,
-          customerId: customer.id,
-        })
-        const checkoutSession = await setupCheckoutSession({
-          organizationId: organization.id,
-          customerId: customer.id,
-          priceId: price.id,
-          status: CheckoutSessionStatus.Open,
-          type: CheckoutSessionType.Product,
-          quantity: 1,
-          livemode: true,
-        })
+        const paymentMethod = (
+          await setupPaymentMethod({
+            organizationId: organization.id,
+            customerId: customer.id,
+          })
+        ).unwrap()
+        const checkoutSession = (
+          await setupCheckoutSession({
+            organizationId: organization.id,
+            customerId: customer.id,
+            priceId: price.id,
+            status: CheckoutSessionStatus.Open,
+            type: CheckoutSessionType.Product,
+            quantity: 1,
+            livemode: true,
+          })
+        ).unwrap()
         await setupFeeCalculation({
           checkoutSessionId: checkoutSession.id,
           organizationId: organization.id,
@@ -1882,19 +1920,23 @@ describe('Process payment intent status updated', async () => {
     // })
 
     it('does not emit any events for PaymentIntent statuses other than "succeeded" or "canceled"', async () => {
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
@@ -1953,19 +1995,23 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('is idempotent when processing the same PaymentIntent update more than once, returning a consistent payment record', async () => {
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
         organizationId: organization.id,
@@ -2063,19 +2109,23 @@ describe('Process payment intent status updated', async () => {
       price = orgData.price
 
       // Set up customer
-      customer = await setupCustomer({
-        organizationId: organization.id,
-        externalId: `cus_${core.nanoid()}`,
-        livemode: true,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          externalId: `cus_${core.nanoid()}`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Set up payment method
-      paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: PaymentMethodType.Card,
-        livemode: true,
-      })
+      paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: PaymentMethodType.Card,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Set up invoice
       invoice = await setupInvoice({
@@ -2102,16 +2152,18 @@ describe('Process payment intent status updated', async () => {
       const paymentIntentId = `pi_test_${core.nanoid()}`
 
       // First, create the checkout session
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        type: CheckoutSessionType.Purchase,
-        status: CheckoutSessionStatus.Succeeded,
-        quantity: 1,
-        livemode: true,
-        purchaseId: purchase.id,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          type: CheckoutSessionType.Purchase,
+          status: CheckoutSessionStatus.Succeeded,
+          quantity: 1,
+          livemode: true,
+          purchaseId: purchase.id,
+        })
+      ).unwrap()
 
       // Create fee calculation for the checkout session
       await setupFeeCalculation({
@@ -2348,16 +2400,18 @@ describe('Process payment intent status updated', async () => {
         },
       } as any)
 
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        type: CheckoutSessionType.Purchase,
-        status: CheckoutSessionStatus.Succeeded,
-        quantity: 1,
-        livemode: true,
-        purchaseId: purchase.id,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          type: CheckoutSessionType.Purchase,
+          status: CheckoutSessionStatus.Succeeded,
+          quantity: 1,
+          livemode: true,
+          purchaseId: purchase.id,
+        })
+      ).unwrap()
 
       // Create fee calculation for the checkout session
       await setupFeeCalculation({
@@ -2431,16 +2485,18 @@ describe('Process payment intent status updated', async () => {
         },
       } as any)
 
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        type: CheckoutSessionType.Purchase,
-        status: CheckoutSessionStatus.Succeeded,
-        quantity: 1,
-        livemode: true,
-        purchaseId: purchase.id,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          type: CheckoutSessionType.Purchase,
+          status: CheckoutSessionStatus.Succeeded,
+          quantity: 1,
+          livemode: true,
+          purchaseId: purchase.id,
+        })
+      ).unwrap()
 
       // Create fee calculation for the checkout session
       await setupFeeCalculation({
@@ -2535,15 +2591,17 @@ describe('Process payment intent status updated', async () => {
       const paymentIntentId = `pi_test_${core.nanoid()}`
 
       // Create checkout session without invoice (Product type)
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Create fee calculation
       await setupFeeCalculation({
@@ -2621,16 +2679,18 @@ describe('Process payment intent status updated', async () => {
         livemode: true,
       })
 
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        type: CheckoutSessionType.Purchase,
-        status: CheckoutSessionStatus.Open,
-        purchaseId: pendingPurchase.id,
-        livemode: true,
-        quantity: 1,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          type: CheckoutSessionType.Purchase,
+          status: CheckoutSessionStatus.Open,
+          purchaseId: pendingPurchase.id,
+          livemode: true,
+          quantity: 1,
+        })
+      ).unwrap()
 
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
@@ -2739,15 +2799,17 @@ describe('Process payment intent status updated', async () => {
       const chargeId = `ch_test_${core.nanoid()}`
       const paymentIntentId = `pi_test_${core.nanoid()}`
 
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: price.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Open,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: price.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Open,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,
@@ -2837,15 +2899,17 @@ describe('Process payment intent status updated', async () => {
       const anonymousCheckoutSession = await adminTransaction(
         async (ctx) => {
           const { transaction } = ctx
-          const session = await setupCheckoutSession({
-            organizationId: organization.id,
-            customerId: customer.id, // Start with a customer, then remove it
-            priceId: price.id,
-            status: CheckoutSessionStatus.Open,
-            type: CheckoutSessionType.Product,
-            quantity: 1,
-            livemode: true,
-          })
+          const session = (
+            await setupCheckoutSession({
+              organizationId: organization.id,
+              customerId: customer.id, // Start with a customer, then remove it
+              priceId: price.id,
+              status: CheckoutSessionStatus.Open,
+              type: CheckoutSessionType.Product,
+              quantity: 1,
+              livemode: true,
+            })
+          ).unwrap()
 
           // Update to remove customer ID to make it anonymous
           return updateCheckoutSession(
@@ -2966,14 +3030,18 @@ describe('Process payment intent status updated', async () => {
       organization = orgData.organization
       product = orgData.product
 
-      customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
-      paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
 
       subscription = await setupSubscription({
         organizationId: organization.id,
@@ -3008,15 +3076,17 @@ describe('Process payment intent status updated', async () => {
         ],
       })
 
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: singlePaymentPrice.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: singlePaymentPrice.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
 
       await setupFeeCalculation({
         checkoutSessionId: checkoutSession.id,

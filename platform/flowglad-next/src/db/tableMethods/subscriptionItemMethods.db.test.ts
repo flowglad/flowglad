@@ -74,14 +74,18 @@ describe('subscriptionItemMethods', async () => {
     organization = orgData.organization
     price = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,

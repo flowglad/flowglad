@@ -45,10 +45,12 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
   // beforeAll: Set up shared data that doesn't change between tests
   beforeAll(async () => {
     orgData = (await setupOrg()).unwrap()
-    const userApiKey = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    const userApiKey = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKey.apiKey.token) {
       throw new Error('API key token not found')
     }
@@ -91,14 +93,18 @@ describe('usageEvents schema - priceId NOT NULL constraint', () => {
 
   // beforeEach: Create fresh customer/subscription data for test isolation
   beforeEach(async () => {
-    customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: orgData.organization.id,

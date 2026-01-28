@@ -132,11 +132,13 @@ describe('Pricing Model Migration Test Suite', async () => {
     })
 
     // Setup customer on pricing model 1
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      pricingModelId: pricingModel1.id,
-      livemode: false, // Must match pricing model livemode
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+        livemode: false, // Must match pricing model livemode
+      })
+    ).unwrap()
   })
 
   describe('Basic Migration Scenarios', () => {
@@ -1024,10 +1026,12 @@ describe('Pricing Model Migration Test Suite', async () => {
         status: SubscriptionStatus.Active,
       })
 
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
 
       const now = new Date()
       const billingPeriod = await setupBillingPeriod({
@@ -1558,11 +1562,13 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should not affect subscriptions of other customers on same pricing model', async () => {
       // Setup: Another customer on the same pricing model
-      const otherCustomer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        livemode: false, // Must match pricing model livemode
-      })
+      const otherCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          livemode: false, // Must match pricing model livemode
+        })
+      ).unwrap()
 
       const otherSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -1669,11 +1675,13 @@ describe('Pricing Model Migration Test Suite', async () => {
 
     it('should return correct customerSubscriptions cache invalidation for the specific customer', async () => {
       // Create another customer
-      const otherCustomer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-        livemode: false, // Must match pricing model livemode
-      })
+      const otherCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+          livemode: false, // Must match pricing model livemode
+        })
+      ).unwrap()
 
       await setupSubscription({
         organizationId: organization.id,

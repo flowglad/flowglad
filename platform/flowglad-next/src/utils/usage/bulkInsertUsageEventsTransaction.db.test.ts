@@ -83,15 +83,19 @@ describe('bulkInsertUsageEventsTransaction', () => {
     pricingModelId = orgSetup.pricingModel.id
     productId = orgSetup.product.id
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      pricingModelId: orgSetup.pricingModel.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: orgSetup.pricingModel.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
@@ -259,15 +263,19 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const product2Id = org2Setup.product.id
 
       // Create customer, payment method, usage meter, price, subscription for org2
-      const customer2 = await setupCustomer({
-        organizationId: org2.id,
-        pricingModelId: pricingModel2Id,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: org2.id,
+          pricingModelId: pricingModel2Id,
+        })
+      ).unwrap()
 
-      const paymentMethod2 = await setupPaymentMethod({
-        organizationId: org2.id,
-        customerId: customer2.id,
-      })
+      const paymentMethod2 = (
+        await setupPaymentMethod({
+          organizationId: org2.id,
+          customerId: customer2.id,
+        })
+      ).unwrap()
 
       const usageMeter2 = await setupUsageMeter({
         organizationId: org2.id,
@@ -388,15 +396,19 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const pricingModel2Id = org2Setup.pricingModel.id
 
       // Create customer, payment method, usage meter, subscription for org2
-      const customer2 = await setupCustomer({
-        organizationId: org2.id,
-        pricingModelId: pricingModel2Id,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: org2.id,
+          pricingModelId: pricingModel2Id,
+        })
+      ).unwrap()
 
-      const paymentMethod2 = await setupPaymentMethod({
-        organizationId: org2.id,
-        customerId: customer2.id,
-      })
+      const paymentMethod2 = (
+        await setupPaymentMethod({
+          organizationId: org2.id,
+          customerId: customer2.id,
+        })
+      ).unwrap()
 
       const usageMeter2 = await setupUsageMeter({
         organizationId: org2.id,
@@ -2206,15 +2218,19 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const orgSetup1 = (await setupOrg()).unwrap()
       const orgSetup2 = (await setupOrg()).unwrap()
 
-      const customer1 = await setupCustomer({
-        organizationId: orgSetup1.organization.id,
-        pricingModelId: orgSetup1.pricingModel.id,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: orgSetup1.organization.id,
+          pricingModelId: orgSetup1.pricingModel.id,
+        })
+      ).unwrap()
 
-      const customer2 = await setupCustomer({
-        organizationId: orgSetup2.organization.id,
-        pricingModelId: orgSetup2.pricingModel.id,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: orgSetup2.organization.id,
+          pricingModelId: orgSetup2.pricingModel.id,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(
         async ({ transaction }) => {
@@ -2242,10 +2258,12 @@ describe('bulkInsertUsageEventsTransaction', () => {
       const orgSetup = (await setupOrg()).unwrap()
 
       // When no explicit pricingModelId is provided, setupCustomer uses the default
-      const customer = await setupCustomer({
-        organizationId: orgSetup.organization.id,
-        // No explicit pricingModelId - will use default
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: orgSetup.organization.id,
+          // No explicit pricingModelId - will use default
+        })
+      ).unwrap()
 
       const result = await adminTransaction(
         async ({ transaction }) => {
@@ -2307,10 +2325,12 @@ describe('bulkInsertUsageEventsTransaction', () => {
         slug: 'test-price-slug',
       })
 
-      const customer = await setupCustomer({
-        organizationId: orgSetup.organization.id,
-        pricingModelId: orgSetup.pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: orgSetup.organization.id,
+          pricingModelId: orgSetup.pricingModel.id,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(
         async ({ transaction }) => {
@@ -2355,10 +2375,12 @@ describe('bulkInsertUsageEventsTransaction', () => {
   describe('resolvePriceSlugs and resolveUsageMeterSlugs - shared error handling', () => {
     it('should return error when pricing model is not found for customer in both functions', async () => {
       const orgSetup = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: orgSetup.organization.id,
-        pricingModelId: orgSetup.pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: orgSetup.organization.id,
+          pricingModelId: orgSetup.pricingModel.id,
+        })
+      ).unwrap()
 
       const getPricingModelForCustomer = (customerId: string) => {
         // Throw NotFoundError to simulate pricing model not found
@@ -2430,10 +2452,12 @@ describe('bulkInsertUsageEventsTransaction', () => {
 
     it('should return error when slug is not found in both functions', async () => {
       const orgSetup = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: orgSetup.organization.id,
-        pricingModelId: orgSetup.pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: orgSetup.organization.id,
+          pricingModelId: orgSetup.pricingModel.id,
+        })
+      ).unwrap()
 
       // Test resolvePriceSlugs - slug not found
       const priceSlugResult = await adminTransaction(
@@ -2528,10 +2552,12 @@ describe('bulkInsertUsageEventsTransaction', () => {
         slug: 'test-meter-slug',
       })
 
-      const customer = await setupCustomer({
-        organizationId: orgSetup.organization.id,
-        pricingModelId: orgSetup.pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: orgSetup.organization.id,
+          pricingModelId: orgSetup.pricingModel.id,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(
         async ({ transaction }) => {
@@ -2598,15 +2624,19 @@ describe('bulkInsertUsageEventsTransaction', () => {
         slug: 'meter-2-slug',
       })
 
-      const customer1 = await setupCustomer({
-        organizationId: orgSetup1.organization.id,
-        pricingModelId: orgSetup1.pricingModel.id,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: orgSetup1.organization.id,
+          pricingModelId: orgSetup1.pricingModel.id,
+        })
+      ).unwrap()
 
-      const customer2 = await setupCustomer({
-        organizationId: orgSetup2.organization.id,
-        pricingModelId: orgSetup2.pricingModel.id,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: orgSetup2.organization.id,
+          pricingModelId: orgSetup2.pricingModel.id,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(
         async ({ transaction }) => {

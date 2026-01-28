@@ -42,11 +42,13 @@ describe('createCursorPaginatedSelectFunction', () => {
 
     // Create 15 customers with different properties for testing
     for (let i = 0; i < 15; i++) {
-      const customer = await setupCustomer({
-        organizationId,
-        email: `test${i}-${core.nanoid()}@example.com`,
-        livemode: i % 2 === 0, // Alternate between livemode true/false
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId,
+          email: `test${i}-${core.nanoid()}@example.com`,
+          livemode: i % 2 === 0, // Alternate between livemode true/false
+        })
+      ).unwrap()
       customerIds.push(customer.id)
       customerEmails.push(customer.email)
     }
@@ -783,23 +785,29 @@ describe('createCursorPaginatedSelectFunction', () => {
       testOrgId = organization.id
 
       // Create test customers with different names
-      testCustomer1 = await setupCustomer({
-        organizationId: testOrgId,
-        name: 'Alice Smith',
-        email: 'alice@example.com',
-      })
+      testCustomer1 = (
+        await setupCustomer({
+          organizationId: testOrgId,
+          name: 'Alice Smith',
+          email: 'alice@example.com',
+        })
+      ).unwrap()
 
-      testCustomer2 = await setupCustomer({
-        organizationId: testOrgId,
-        name: 'Bob Jones',
-        email: 'bob@example.com',
-      })
+      testCustomer2 = (
+        await setupCustomer({
+          organizationId: testOrgId,
+          name: 'Bob Jones',
+          email: 'bob@example.com',
+        })
+      ).unwrap()
 
-      testCustomer3 = await setupCustomer({
-        organizationId: testOrgId,
-        name: 'Charlie Brown',
-        email: 'charlie@example.com',
-      })
+      testCustomer3 = (
+        await setupCustomer({
+          organizationId: testOrgId,
+          name: 'Charlie Brown',
+          email: 'charlie@example.com',
+        })
+      ).unwrap()
     })
 
     describe('buildAdditionalSearchClause', () => {
@@ -1524,11 +1532,13 @@ describe('createPaginatedSelectFunction', () => {
 
     // Create 25 customers for pagination testing
     for (let i = 0; i < 25; i++) {
-      const customer = await setupCustomer({
-        organizationId,
-        email: `paginated-test${i}-${core.nanoid()}@example.com`,
-        livemode: i % 3 === 0, // Every third customer is livemode
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId,
+          email: `paginated-test${i}-${core.nanoid()}@example.com`,
+          livemode: i % 3 === 0, // Every third customer is livemode
+        })
+      ).unwrap()
       customerIds.push(customer.id)
     }
   })
@@ -2142,24 +2152,30 @@ describe('buildWhereClauses', () => {
     const { organization } = (await setupOrg()).unwrap()
     organizationId = organization.id
 
-    customer1 = await setupCustomer({
-      organizationId,
-      email: 'alice@example.com',
-      name: 'Alice Smith',
-      livemode: true,
-    })
-    customer2 = await setupCustomer({
-      organizationId,
-      email: 'bob@test.com',
-      name: 'Bob Jones',
-      livemode: false,
-    })
-    customer3 = await setupCustomer({
-      organizationId,
-      email: 'charlie@example.com',
-      name: 'Charlie Brown',
-      livemode: true,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId,
+        email: 'alice@example.com',
+        name: 'Alice Smith',
+        livemode: true,
+      })
+    ).unwrap()
+    customer2 = (
+      await setupCustomer({
+        organizationId,
+        email: 'bob@test.com',
+        name: 'Bob Jones',
+        livemode: false,
+      })
+    ).unwrap()
+    customer3 = (
+      await setupCustomer({
+        organizationId,
+        email: 'charlie@example.com',
+        name: 'Charlie Brown',
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should return undefined when no filters or search provided', async () => {

@@ -88,18 +88,22 @@ describe('Proration Logic - Payment Status Scenarios', () => {
     })
 
     // Set up customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set up payment method
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set up subscription with billing period centered around current date for 50% split
     const nowMs = Date.now() // FIXME: Refactor to use static date instead of Date.now()

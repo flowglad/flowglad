@@ -43,17 +43,23 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
   it('updates all customers with no stackAuthUserBillingId that have the target email across organizations', async () => {
     // Create customers in both orgs
-    const customer1 = await setupCustomer({
-      organizationId: org1Id,
-    })
-    const customer2 = await setupCustomer({
-      organizationId: org2Id,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: org1Id,
+      })
+    ).unwrap()
+    const customer2 = (
+      await setupCustomer({
+        organizationId: org2Id,
+      })
+    ).unwrap()
 
     // Create a customer with different email
-    const customer3 = await setupCustomer({
-      organizationId: org1Id,
-    })
+    const customer3 = (
+      await setupCustomer({
+        organizationId: org1Id,
+      })
+    ).unwrap()
 
     // Update emails
     await adminTransaction(async ({ transaction }) => {
@@ -107,12 +113,16 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
 
   it('updates all customer records within the same organization that have matching email but no stack auth user id', async () => {
     // Create multiple customers in org1
-    const customer1 = await setupCustomer({
-      organizationId: org1Id,
-    })
-    const customer2 = await setupCustomer({
-      organizationId: org1Id,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: org1Id,
+      })
+    ).unwrap()
+    const customer2 = (
+      await setupCustomer({
+        organizationId: org1Id,
+      })
+    ).unwrap()
 
     // Update emails
     await adminTransaction(async ({ transaction }) => {
@@ -162,12 +172,16 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     const existingStackAuthId = `existing_${core.nanoid()}`
 
     // Create customers
-    const customerWithExistingId = await setupCustomer({
-      organizationId: org1Id,
-    })
-    const customerWithoutId = await setupCustomer({
-      organizationId: org1Id,
-    })
+    const customerWithExistingId = (
+      await setupCustomer({
+        organizationId: org1Id,
+      })
+    ).unwrap()
+    const customerWithoutId = (
+      await setupCustomer({
+        organizationId: org1Id,
+      })
+    ).unwrap()
 
     // Update emails and set existing stack auth id
     await adminTransaction(async ({ transaction }) => {
@@ -231,14 +245,18 @@ describe('assignStackAuthHostedBillingUserIdToCustomersWithMatchingEmailButNoSta
     const differentEmail = `different+${core.nanoid()}@test.com`
 
     // Create customers
-    const customerWithDifferentEmail = await setupCustomer({
-      organizationId: org1Id,
-      email: differentEmail,
-    })
-    const customerWithTargetEmail = await setupCustomer({
-      organizationId: org1Id,
-      email: targetEmail,
-    })
+    const customerWithDifferentEmail = (
+      await setupCustomer({
+        organizationId: org1Id,
+        email: differentEmail,
+      })
+    ).unwrap()
+    const customerWithTargetEmail = (
+      await setupCustomer({
+        organizationId: org1Id,
+        email: targetEmail,
+      })
+    ).unwrap()
 
     // Update emails
     await adminTransaction(async ({ transaction }) => {
@@ -303,16 +321,20 @@ describe('setUserIdForCustomerRecords', () => {
     organization = orgData.organization
 
     // Set up users
-    const userData1 = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userData1 = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     user1 = userData1.user
 
-    const userData2 = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userData2 = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     user2 = userData2.user
 
     targetEmail = `test+${core.nanoid()}@test.com`
@@ -320,18 +342,24 @@ describe('setUserIdForCustomerRecords', () => {
 
   it('should update all customer records with matching email to have the specified userId', async () => {
     // Create multiple customers with the same email
-    const customer1 = await setupCustomer({
-      organizationId: organization.id,
-      email: targetEmail,
-    })
-    const customer2 = await setupCustomer({
-      organizationId: organization.id,
-      email: targetEmail,
-    })
-    const customer3 = await setupCustomer({
-      organizationId: organization.id,
-      email: targetEmail,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: targetEmail,
+      })
+    ).unwrap()
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: targetEmail,
+      })
+    ).unwrap()
+    const customer3 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: targetEmail,
+      })
+    ).unwrap()
 
     // Execute the function
     await adminTransaction(async ({ transaction }) => {
@@ -366,14 +394,18 @@ describe('setUserIdForCustomerRecords', () => {
     const differentEmail = `different+${core.nanoid()}@test.com`
 
     // Create customers with different emails
-    const customerWithTargetEmail = await setupCustomer({
-      organizationId: organization.id,
-      email: targetEmail,
-    })
-    const customerWithDifferentEmail = await setupCustomer({
-      organizationId: organization.id,
-      email: differentEmail,
-    })
+    const customerWithTargetEmail = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: targetEmail,
+      })
+    ).unwrap()
+    const customerWithDifferentEmail = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: differentEmail,
+      })
+    ).unwrap()
 
     // Execute the function
     await adminTransaction(async ({ transaction }) => {
@@ -417,10 +449,12 @@ describe('setUserIdForCustomerRecords', () => {
 
   it('should overwrite existing userId when updating customer records', async () => {
     // Create customer with existing userId
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: targetEmail,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: targetEmail,
+      })
+    ).unwrap()
 
     // First, set userId to user2
     await adminTransaction(async ({ transaction }) => {
@@ -510,14 +544,18 @@ describe('setUserIdForCustomerRecords', () => {
     const organization2 = org2Data.organization
 
     // Create customers with same email in different organizations
-    const customerOrg1 = await setupCustomer({
-      organizationId: organization.id,
-      email: targetEmail,
-    })
-    const customerOrg2 = await setupCustomer({
-      organizationId: organization2.id,
-      email: targetEmail,
-    })
+    const customerOrg1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: targetEmail,
+      })
+    ).unwrap()
+    const customerOrg2 = (
+      await setupCustomer({
+        organizationId: organization2.id,
+        email: targetEmail,
+      })
+    ).unwrap()
 
     // Execute the function
     await adminTransaction(async ({ transaction }) => {
@@ -567,10 +605,12 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const externalId = `ext_${core.nanoid()}`
 
     // Create a customer and then archive it
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      externalId,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        externalId,
+      })
+    ).unwrap()
 
     // Archive the customer
     await adminTransaction(async ({ transaction }) => {
@@ -598,10 +638,12 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const externalId = `ext_${core.nanoid()}`
 
     // Create a customer and then archive it
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      externalId,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        externalId,
+      })
+    ).unwrap()
 
     // Archive the customer
     await adminTransaction(async ({ transaction }) => {
@@ -634,10 +676,12 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const externalId = `ext_${core.nanoid()}`
 
     // Create an active (non-archived) customer
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      externalId,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        externalId,
+      })
+    ).unwrap()
 
     // Lookup without includeArchived should return the customer
     const resultDefault = await adminTransaction(
@@ -695,10 +739,12 @@ describe('selectCustomerByExternalIdAndOrganizationId', () => {
     const externalId = `ext_${core.nanoid()}`
 
     // Create customer in org1
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      externalId,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        externalId,
+      })
+    ).unwrap()
 
     // Create a second organization
     const { organization: organization2 } = (
@@ -759,12 +805,14 @@ describe('Customer uniqueness constraints', () => {
       const sharedExternalId = `ext_archived_${core.nanoid()}`
 
       // Create first customer and archive it
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Archive the customer
       await adminTransaction(async ({ transaction }) => {
@@ -785,12 +833,14 @@ describe('Customer uniqueness constraints', () => {
       expect(archivedCustomer.archived).toBe(true)
 
       // Create new customer with same externalId - should succeed
-      const customer2 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer2_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer2_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       expect(customer2.externalId).toBe(sharedExternalId)
       expect(customer2.archived).toBe(false)
@@ -801,12 +851,14 @@ describe('Customer uniqueness constraints', () => {
       const duplicateExternalId = `ext_dup_${core.nanoid()}`
 
       // Create first active customer
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: duplicateExternalId,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: duplicateExternalId,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       expect(customer1.externalId).toBe(duplicateExternalId)
       expect(customer1.archived).toBe(false)
@@ -833,20 +885,24 @@ describe('Customer uniqueness constraints', () => {
       const sharedExternalId = `ext_cross_pm_${core.nanoid()}`
 
       // Create customer in pricingModel1
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Create customer with same externalId in pricingModel2 (different org has different pricing model)
-      const customer2 = await setupCustomer({
-        organizationId: organization2.id,
-        externalId: sharedExternalId,
-        email: `customer2_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization2.id,
+          externalId: sharedExternalId,
+          email: `customer2_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Both should be created successfully
       expect(customer1.externalId).toBe(sharedExternalId)
@@ -859,12 +915,14 @@ describe('Customer uniqueness constraints', () => {
       const sharedExternalId = `ext_multi_archived_${core.nanoid()}`
 
       // Create and archive first customer
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           { id: customer1.id, archived: true },
@@ -873,12 +931,14 @@ describe('Customer uniqueness constraints', () => {
       })
 
       // Create and archive second customer with same externalId
-      const customer2 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer2_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer2_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           { id: customer2.id, archived: true },
@@ -908,12 +968,14 @@ describe('Customer uniqueness constraints', () => {
       const sharedExternalId = `ext_unarchive_${core.nanoid()}`
 
       // Create and archive first customer
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
       await adminTransaction(async ({ transaction }) => {
         await updateCustomer(
           { id: customer1.id, archived: true },
@@ -922,12 +984,14 @@ describe('Customer uniqueness constraints', () => {
       })
 
       // Create second active customer with same externalId
-      const customer2 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer2_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer2_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       expect(customer2.archived).toBe(false)
 
@@ -958,20 +1022,24 @@ describe('Customer uniqueness constraints', () => {
       const sharedExternalId = `ext_123_${core.nanoid()}`
 
       // Create customer in organization1
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Create customer with same externalId in organization2
-      const customer2 = await setupCustomer({
-        organizationId: organization2.id,
-        externalId: sharedExternalId,
-        email: `customer2_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization2.id,
+          externalId: sharedExternalId,
+          email: `customer2_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Verify both customers were created successfully
       expect(customer1.externalId).toBe(sharedExternalId)
@@ -984,20 +1052,24 @@ describe('Customer uniqueness constraints', () => {
       const sharedExternalId = `ext_456_${core.nanoid()}`
 
       // Create customer with livemode=true
-      const customerLive = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer_live_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customerLive = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer_live_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Create customer with same externalId but livemode=false
-      const customerTest = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: sharedExternalId,
-        email: `customer_test_${core.nanoid()}@test.com`,
-        livemode: false,
-      })
+      const customerTest = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: sharedExternalId,
+          email: `customer_test_${core.nanoid()}@test.com`,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Verify both customers were created successfully
       expect(typeof customerLive).toBe('object')
@@ -1014,12 +1086,14 @@ describe('Customer uniqueness constraints', () => {
       const duplicateExternalId = `ext_789_${core.nanoid()}`
 
       // Create first customer
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: duplicateExternalId,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: duplicateExternalId,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       expect(customer1).toMatchObject({})
       expect(customer1.externalId).toBe(duplicateExternalId)
@@ -1044,19 +1118,23 @@ describe('Customer uniqueness constraints', () => {
 
     it('should allow updating a customer externalId if it does not conflict with existing constraints', async () => {
       // Create two customers
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: `ext_001_${core.nanoid()}`,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: `ext_001_${core.nanoid()}`,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const customer2 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: `ext_002_${core.nanoid()}`,
-        email: `customer2_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: `ext_002_${core.nanoid()}`,
+          email: `customer2_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       const newExternalId = `ext_003_${core.nanoid()}`
 
@@ -1083,19 +1161,23 @@ describe('Customer uniqueness constraints', () => {
       const externalId2 = `ext_002_${core.nanoid()}`
 
       // Create two customers
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: externalId1,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: externalId1,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const customer2 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: externalId2,
-        email: `customer2_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: externalId2,
+          email: `customer2_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Attempt to update customer2's externalId to match customer1's
       await expect(
@@ -1123,26 +1205,32 @@ describe('Customer uniqueness constraints', () => {
 
     it('should allow multiple customers with different externalIds in the same organization and livemode', async () => {
       // Create three customers with different externalIds
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: `ext_a_${core.nanoid()}`,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: `ext_a_${core.nanoid()}`,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const customer2 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: `ext_b_${core.nanoid()}`,
-        email: `customer2_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: `ext_b_${core.nanoid()}`,
+          email: `customer2_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const customer3 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: `ext_c_${core.nanoid()}`,
-        email: `customer3_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer3 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: `ext_c_${core.nanoid()}`,
+          email: `customer3_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Verify all customers were created successfully
       expect(customer1).toMatchObject({})
@@ -1389,26 +1477,32 @@ describe('Customer uniqueness constraints', () => {
 
     it('should auto-generate unique invoiceNumberBase when not provided', async () => {
       // Create multiple customers without specifying invoiceNumberBase
-      const customer1 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: `ext_${core.nanoid()}`,
-        email: `customer1_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: `ext_${core.nanoid()}`,
+          email: `customer1_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const customer2 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: `ext_${core.nanoid()}`,
-        email: `customer2_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: `ext_${core.nanoid()}`,
+          email: `customer2_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
-      const customer3 = await setupCustomer({
-        organizationId: organization1.id,
-        externalId: `ext_${core.nanoid()}`,
-        email: `customer3_${core.nanoid()}@test.com`,
-        livemode: true,
-      })
+      const customer3 = (
+        await setupCustomer({
+          organizationId: organization1.id,
+          externalId: `ext_${core.nanoid()}`,
+          email: `customer3_${core.nanoid()}@test.com`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Verify all customers have unique invoiceNumberBase values
       expect(typeof customer1.invoiceNumberBase).toBe('string')
@@ -1737,37 +1831,45 @@ describe('selectCustomersCursorPaginatedWithTableRowData', () => {
     pricingModel = orgData.pricingModel
 
     // Setup customers with different names for search testing
-    customer1 = await setupCustomer({
-      organizationId: organization.id,
-      name: 'Alice Smith',
-      email: 'alice@example.com',
-      pricingModelId: pricingModel.id,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        name: 'Alice Smith',
+        email: 'alice@example.com',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
-    customer2 = await setupCustomer({
-      organizationId: organization.id,
-      name: 'Bob Jones',
-      email: 'bob@example.com',
-      pricingModelId: pricingModel.id,
-    })
+    customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        name: 'Bob Jones',
+        email: 'bob@example.com',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
-    customer3 = await setupCustomer({
-      organizationId: organization.id,
-      name: 'Charlie Brown',
-      email: 'charlie@example.com',
-      pricingModelId: pricingModel.id,
-    })
+    customer3 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        name: 'Charlie Brown',
+        email: 'charlie@example.com',
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     // Setup second organization for isolation tests
     const orgData2 = (await setupOrg()).unwrap()
     organization2 = orgData2.organization
 
-    customerOtherOrg = await setupCustomer({
-      organizationId: organization2.id,
-      name: 'Alice Smith', // Same name as customer1 to test isolation
-      email: 'alice-other@example.com',
-      pricingModelId: orgData2.pricingModel.id,
-    })
+    customerOtherOrg = (
+      await setupCustomer({
+        organizationId: organization2.id,
+        name: 'Alice Smith', // Same name as customer1 to test isolation
+        email: 'alice-other@example.com',
+        pricingModelId: orgData2.pricingModel.id,
+      })
+    ).unwrap()
   })
 
   describe('search functionality', () => {
@@ -1953,17 +2055,21 @@ describe('selectCustomerPricingInfoBatch', () => {
     const pricingModel2CustomerIds: string[] = []
 
     for (let i = 0; i < 5; i++) {
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel1.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel1.id,
+        })
+      ).unwrap()
       pricingModel1CustomerIds.push(customer.id)
     }
     for (let i = 0; i < 5; i++) {
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: pricingModel2.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: pricingModel2.id,
+        })
+      ).unwrap()
       pricingModel2CustomerIds.push(customer.id)
     }
 
@@ -2019,14 +2125,18 @@ describe('selectCustomerPricingInfoBatch', () => {
   it('should handle customers with different pricingModelIds', async () => {
     // Note: pricingModelId cannot be null in the database schema (notNullStringForeignKey)
     // setupCustomer automatically assigns default pricing model if undefined
-    const customer1 = await setupCustomer({
-      organizationId: organization.id,
-      pricingModelId: pricingModel1.id,
-    })
-    const customer2 = await setupCustomer({
-      organizationId: organization.id,
-      pricingModelId: pricingModel2.id,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+      })
+    ).unwrap()
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel2.id,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomerPricingInfoBatch(
@@ -2048,11 +2158,13 @@ describe('selectCustomerPricingInfoBatch', () => {
     // Create 100 customers
     const customerIds: string[] = []
     for (let i = 0; i < 100; i++) {
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId:
-          i % 2 === 0 ? pricingModel1.id : pricingModel2.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId:
+            i % 2 === 0 ? pricingModel1.id : pricingModel2.id,
+        })
+      ).unwrap()
       customerIds.push(customer.id)
     }
 
@@ -2071,16 +2183,20 @@ describe('selectCustomerPricingInfoBatch', () => {
 
   it('should handle mixed livemode values', async () => {
     // Create customers with different livemode values
-    const customerLive = await setupCustomer({
-      organizationId: organization.id,
-      pricingModelId: pricingModel1.id,
-      livemode: true,
-    })
-    const customerTest = await setupCustomer({
-      organizationId: organization.id,
-      pricingModelId: pricingModel1.id,
-      livemode: false,
-    })
+    const customerLive = (
+      await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+        livemode: true,
+      })
+    ).unwrap()
+    const customerTest = (
+      await setupCustomer({
+        organizationId: organization.id,
+        pricingModelId: pricingModel1.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     const result = await adminTransaction(async ({ transaction }) => {
       return selectCustomerPricingInfoBatch(

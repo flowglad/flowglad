@@ -75,11 +75,13 @@ describe('doNotCharge subscription creation', () => {
     const orgData = (await setupOrg()).unwrap()
     organization = orgData.organization
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create paid product and price
     paidProduct = await setupProduct({
@@ -123,12 +125,14 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should set subscription item unitPrice to 0 when doNotCharge is true even if price.unitPrice > 0', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     const params: CreateSubscriptionParams = {
       customer,
@@ -164,12 +168,14 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should set isFreePlan to false when doNotCharge is true and price.unitPrice > 0 (treats as paid plan)', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     const params: CreateSubscriptionParams = {
       customer,
@@ -199,12 +205,14 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should send notifications when doNotCharge is true and price.unitPrice > 0 (treated as paid plan)', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     const params: CreateSubscriptionParams = {
       customer,
@@ -237,12 +245,14 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should cancel existing free subscriptions when doNotCharge is true and price.unitPrice > 0 (treated as paid plan)', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create an existing free subscription
     const existingFreeSubscription = await setupSubscription({
@@ -296,12 +306,14 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should set subscription item unitPrice to price.unitPrice when doNotCharge is false', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     const params: CreateSubscriptionParams = {
       customer,
@@ -332,12 +344,14 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should set subscription item unitPrice to price.unitPrice when doNotCharge is undefined', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     const params: CreateSubscriptionParams = {
       customer,
@@ -368,12 +382,14 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should set all subscription items to unitPrice 0 when doNotCharge is true and quantity > 1', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     const params: CreateSubscriptionParams = {
       customer,
@@ -458,12 +474,14 @@ describe('doNotCharge subscription creation', () => {
   })
 
   it('should treat doNotCharge subscription as paid plan in workflow logic (isFreePlan = false when price.unitPrice > 0)', async () => {
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create an existing free subscription
     const existingFreeSubscription = await setupSubscription({
@@ -590,12 +608,14 @@ describe('doNotCharge subscription creation', () => {
       // This test verifies defensive behavior: even if the workflow is called directly
       // (bypassing API validation), doNotCharge=true should prevent billing run creation.
       // This ensures the workflow is resilient to invalid input combinations.
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        livemode: true,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          livemode: true,
+        })
+      ).unwrap()
 
       const params: CreateSubscriptionParams = {
         customer,

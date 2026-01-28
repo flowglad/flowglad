@@ -81,10 +81,12 @@ describe('memberships RLS - notificationPreferences', () => {
     const org1Data = (await setupOrg()).unwrap()
     org1 = org1Data.organization
 
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: org1.id,
-      livemode: true,
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: org1.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
@@ -106,10 +108,12 @@ describe('memberships RLS - notificationPreferences', () => {
     const org2Data = (await setupOrg()).unwrap()
     org2 = org2Data.organization
 
-    const userApiKeyOrg2 = await setupUserAndApiKey({
-      organizationId: org2.id,
-      livemode: true,
-    })
+    const userApiKeyOrg2 = (
+      await setupUserAndApiKey({
+        organizationId: org2.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg2.apiKey.token) {
       throw new Error('API key token not found after setup for org2')
     }

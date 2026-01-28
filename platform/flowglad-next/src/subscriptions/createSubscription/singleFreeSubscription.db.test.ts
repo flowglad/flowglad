@@ -35,11 +35,13 @@ describe('Single Free Subscription Constraint', () => {
     organization = orgData.organization
 
     // Create customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create free product and price
     const freeProduct = await setupProduct({
@@ -135,12 +137,14 @@ describe('Single Free Subscription Constraint', () => {
       })
 
       // Create payment method
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        livemode: true,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          livemode: true,
+        })
+      ).unwrap()
 
       // Try to create paid subscription (should succeed)
       const params: CreateSubscriptionParams = {
@@ -232,12 +236,14 @@ describe('Single Free Subscription Constraint', () => {
       })
 
       // Create first paid subscription
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        livemode: true,
-      })
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          livemode: true,
+        })
+      ).unwrap()
 
       await setupSubscription({
         organizationId: organization.id,

@@ -65,13 +65,17 @@ describe('Renewing vs Non-Renewing Subscriptions', () => {
     product = orgData.product
     price = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
   })
 
   describe('Subscription Creation', () => {

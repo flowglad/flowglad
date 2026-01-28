@@ -30,10 +30,12 @@ describe('beforeEach setup', () => {
   beforeEach(async () => {
     const orgData = (await setupOrg()).unwrap()
     organizationId = orgData.organization.id
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId,
-      livemode: true,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode: true,
+      })
+    ).unwrap()
     apiKeyToken = apiKey.token!
     context = {
       organizationId,
@@ -57,10 +59,12 @@ describe('beforeEach setup', () => {
 describe('pricingModelsRouter.create', () => {
   it('creates pricing model, default product, and default price (subscription when interval provided)', async () => {
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
@@ -99,10 +103,12 @@ describe('pricingModelsRouter.create', () => {
 
   it('creates pricing model with single-payment default price when no interval provided', async () => {
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
@@ -134,10 +140,12 @@ describe('pricingModelsRouter.create', () => {
     // Use testmode to allow creating multiple pricing models
     // (livemode only allows ONE pricing model per organization)
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: false,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: false,
+      })
+    ).unwrap()
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
@@ -168,10 +176,12 @@ describe('pricingModelsRouter.create', () => {
 describe('pricesRouter.create', () => {
   it('auto-defaults the first price for a product when isDefault=false provided', async () => {
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
@@ -224,10 +234,12 @@ describe('pricesRouter.create', () => {
 
   it('allows creating a second default price and deactivates the first', async () => {
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
@@ -311,10 +323,12 @@ describe('pricesRouter.create', () => {
 
   it('allows creating the first price for a default product', async () => {
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
@@ -349,10 +363,12 @@ describe('pricesRouter.create', () => {
 
   it('forbids additional prices for default products', async () => {
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
@@ -398,10 +414,12 @@ describe('pricesRouter.create', () => {
 
   it('sets currency from organization and livemode from ctx', async () => {
     const orgData = (await setupOrg()).unwrap()
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: false,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: false,
+      })
+    ).unwrap()
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
@@ -465,14 +483,18 @@ describe('pricingModelsRouter.clone', () => {
     const org1 = await setupOrg({ skipPricingModel: true })
     const org2 = await setupOrg({ skipPricingModel: true })
 
-    const { apiKey: org1ApiKey } = await setupUserAndApiKey({
-      organizationId: org1.organization.id,
-      livemode: false,
-    })
-    const { apiKey: org2ApiKey } = await setupUserAndApiKey({
-      organizationId: org2.organization.id,
-      livemode: false,
-    })
+    const { apiKey: org1ApiKey } = (
+      await setupUserAndApiKey({
+        organizationId: org1.organization.id,
+        livemode: false,
+      })
+    ).unwrap()
+    const { apiKey: org2ApiKey } = (
+      await setupUserAndApiKey({
+        organizationId: org2.organization.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     const org1Ctx = {
       organizationId: org1.organization.id,
@@ -516,10 +538,12 @@ describe('pricingModelsRouter.clone', () => {
   it('clones a pricing model within the same environment when no destinationEnvironment is specified', async () => {
     // Use testmode because livemode only allows ONE pricing model per org
     const orgData = await setupOrg({ skipPricingModel: true })
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: false,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: false,
+      })
+    ).unwrap()
     const ctx = {
       organizationId: orgData.organization.id,
       apiKey: apiKey.token!,
@@ -552,10 +576,12 @@ describe('pricingModelsRouter.clone', () => {
     const orgData = await setupOrg({ skipPricingModel: true })
 
     // Create test mode API key and pricing model
-    const { apiKey: testApiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: false,
-    })
+    const { apiKey: testApiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: false,
+      })
+    ).unwrap()
     const testCtx = {
       organizationId: orgData.organization.id,
       apiKey: testApiKey.token!,
@@ -600,10 +626,12 @@ describe('pricingModelsRouter.clone', () => {
     const orgData = await setupOrg({ skipPricingModel: true })
 
     // Create live mode API key and pricing model
-    const { apiKey: liveApiKey } = await setupUserAndApiKey({
-      organizationId: orgData.organization.id,
-      livemode: true,
-    })
+    const { apiKey: liveApiKey } = (
+      await setupUserAndApiKey({
+        organizationId: orgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     const liveCtx = {
       organizationId: orgData.organization.id,
       apiKey: liveApiKey.token!,

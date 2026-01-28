@@ -17,9 +17,11 @@ describe('updateInvoiceTransaction', () => {
   describe('ID Mismatch Security Tests', () => {
     it('should throw error when id parameter does not match invoice.id', async () => {
       const { organization, price } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
       // Create a draft invoice (non-terminal)
       const draftInvoice = await setupInvoice({
         customerId: customer.id,
@@ -61,9 +63,11 @@ describe('updateInvoiceTransaction', () => {
 
     it('should succeed when id parameter matches invoice.id', async () => {
       const { organization, price } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
       const invoice = await setupInvoice({
         customerId: customer.id,
         organizationId: organization.id,
@@ -107,9 +111,9 @@ describe('updateInvoiceTransaction', () => {
   describe('Invoice Status Tests', () => {
     //     it('should successfully update a non-terminal invoice', async () => {
     //       const { organization, price } = (await setupOrg()).unwrap()
-    //       const customer = await setupCustomer({
+    //       const customer = (await setupCustomer({
     //         organizationId: organization.id,
-    //       })
+    //       })).unwrap()
     //       const invoice = await setupInvoice({
     //         customerId: customer.id,
     //         organizationId: organization.id,
@@ -148,9 +152,9 @@ describe('updateInvoiceTransaction', () => {
 
     //     it('should throw error when updating terminal state invoice', async () => {
     //       const { organization, price } = (await setupOrg()).unwrap()
-    //       const customer = await setupCustomer({
+    //       const customer = (await setupCustomer({
     //         organizationId: organization.id,
-    //       })
+    //       })).unwrap()
     //       const invoice = await setupInvoice({
     //         customerId: customer.id,
     //         organizationId: organization.id,
@@ -180,9 +184,9 @@ describe('updateInvoiceTransaction', () => {
 
     //     it('should throw error when updating to terminal state', async () => {
     //       const { organization, price } = (await setupOrg()).unwrap()
-    //       const customer = await setupCustomer({
+    //       const customer = (await setupCustomer({
     //         organizationId: organization.id,
-    //       })
+    //       })).unwrap()
     //       const invoice = await setupInvoice({
     //         customerId: customer.id,
     //         organizationId: organization.id,
@@ -214,9 +218,9 @@ describe('updateInvoiceTransaction', () => {
     //   describe('Line Item Management Tests', () => {
     //     it('should update invoice metadata without changing line items', async () => {
     //       const { organization, price } = (await setupOrg()).unwrap()
-    //       const customer = await setupCustomer({
+    //       const customer = (await setupCustomer({
     //         organizationId: organization.id,
-    //       })
+    //       })).unwrap()
     //       const invoice = await setupInvoice({
     //         customerId: customer.id,
     //         organizationId: organization.id,
@@ -255,9 +259,9 @@ describe('updateInvoiceTransaction', () => {
 
     //     it('should modify existing line items', async () => {
     //       const { organization, price } = (await setupOrg()).unwrap()
-    //       const customer = await setupCustomer({
+    //       const customer = (await setupCustomer({
     //         organizationId: organization.id,
-    //       })
+    //       })).unwrap()
     //       const invoice = await setupInvoice({
     //         customerId: customer.id,
     //         organizationId: organization.id,
@@ -298,9 +302,9 @@ describe('updateInvoiceTransaction', () => {
 
     //     it('should add new line items', async () => {
     //       const { organization, price } = (await setupOrg()).unwrap()
-    //       const customer = await setupCustomer({
+    //       const customer = (await setupCustomer({
     //         organizationId: organization.id,
-    //       })
+    //       })).unwrap()
     //       const invoice = await setupInvoice({
     //         customerId: customer.id,
     //         organizationId: organization.id,
@@ -348,9 +352,9 @@ describe('updateInvoiceTransaction', () => {
 
     //     it('should delete existing line items', async () => {
     //       const { organization, price } = (await setupOrg()).unwrap()
-    //       const customer = await setupCustomer({
+    //       const customer = (await setupCustomer({
     //         organizationId: organization.id,
-    //       })
+    //       })).unwrap()
     //       const invoice = await setupInvoice({
     //         customerId: customer.id,
     //         organizationId: organization.id,
@@ -379,9 +383,11 @@ describe('updateInvoiceTransaction', () => {
 
     it('should handle mixed changes to line items', async () => {
       const { organization, price } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
       const invoice = await setupInvoice({
         customerId: customer.id,
         organizationId: organization.id,
@@ -502,9 +508,9 @@ describe('updateInvoiceTransaction', () => {
 
   //     it('should maintain data integrity across operations', async () => {
   //       const { organization, price } = (await setupOrg()).unwrap()
-  //       const customer = await setupCustomer({
+  //       const customer = (await setupCustomer({
   //         organizationId: organization.id,
-  //       })
+  //       })).unwrap()
   //       const invoice = await setupInvoice({
   //         customerId: customer.id,
   //         organizationId: organization.id,
@@ -571,9 +577,9 @@ describe('updateInvoiceTransaction', () => {
   //   describe('Livemode Tests', () => {
   //     it('should propagate livemode flag to new line items', async () => {
   //       const { organization, price } = (await setupOrg()).unwrap()
-  //       const customer = await setupCustomer({
+  //       const customer = (await setupCustomer({
   //         organizationId: organization.id,
-  //       })
+  //       })).unwrap()
   //       const invoice = await setupInvoice({
   //         customerId: customer.id,
   //         organizationId: organization.id,

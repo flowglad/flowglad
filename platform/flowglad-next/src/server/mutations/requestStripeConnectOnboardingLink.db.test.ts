@@ -37,10 +37,12 @@ const createAuthedContext = async (params: {
   const livemode = params.livemode ?? true
 
   // Create a user with API key - this will be used for the mock
-  const { user } = await setupUserAndApiKey({
-    organizationId: organization.id,
-    livemode,
-  })
+  const { user } = (
+    await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode,
+    })
+  ).unwrap()
 
   // Mock getDatabaseAuthenticationInfo to return proper auth info
   // This bypasses the getSession() call which is problematic to mock

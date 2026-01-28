@@ -52,17 +52,21 @@ describe('RLS Access Control with selectOrganizations', () => {
     testOrg2 = org2Setup.organization
 
     // Setup users and API keys for each organization
-    const userApiKeyA = await setupUserAndApiKey({
-      organizationId: testOrg1.id,
-      livemode: true,
-    })
+    const userApiKeyA = (
+      await setupUserAndApiKey({
+        organizationId: testOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     userA = userApiKeyA.user
     apiKeyA = userApiKeyA.apiKey
 
-    const userApiKeyB = await setupUserAndApiKey({
-      organizationId: testOrg2.id,
-      livemode: true,
-    })
+    const userApiKeyB = (
+      await setupUserAndApiKey({
+        organizationId: testOrg2.id,
+        livemode: true,
+      })
+    ).unwrap()
     userB = userApiKeyB.user
     apiKeyB = userApiKeyB.apiKey
 
@@ -191,18 +195,22 @@ describe('RLS Access Control with selectMemberships', () => {
     testOrg2 = org2Setup.organization
 
     // Setup userA and API key for testOrg1
-    const userApiKeyA = await setupUserAndApiKey({
-      organizationId: testOrg1.id,
-      livemode: true,
-    })
+    const userApiKeyA = (
+      await setupUserAndApiKey({
+        organizationId: testOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     userA = userApiKeyA.user
     apiKeyA = userApiKeyA.apiKey
 
     // Setup userB for testOrg2
-    const userApiKeyB = await setupUserAndApiKey({
-      organizationId: testOrg2.id,
-      livemode: true,
-    })
+    const userApiKeyB = (
+      await setupUserAndApiKey({
+        organizationId: testOrg2.id,
+        livemode: true,
+      })
+    ).unwrap()
     userB = userApiKeyB.user
 
     // Create specific membership configurations for testing
@@ -371,10 +379,12 @@ describe('RLS for selectProducts', () => {
     prodPricingModel2 = orgSetup2.pricingModel
 
     // Create user A focused on org1 with an API key
-    const uaOrg1 = await setupUserAndApiKey({
-      organizationId: prodOrg1.id,
-      livemode: true,
-    })
+    const uaOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: prodOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     prodUserA = uaOrg1.user
     apiKeyAForOrg1 = uaOrg1.apiKey
 
@@ -394,17 +404,21 @@ describe('RLS for selectProducts', () => {
     })
 
     // Create user B focused on org2 for negative-access scenarios
-    const ubOrg2 = await setupUserAndApiKey({
-      organizationId: prodOrg2.id,
-      livemode: true,
-    })
+    const ubOrg2 = (
+      await setupUserAndApiKey({
+        organizationId: prodOrg2.id,
+        livemode: true,
+      })
+    ).unwrap()
     prodUserB = ubOrg2.user
 
     // Create an API key that authenticates into org2 context (for focus-switching scenarios)
-    const uaOrg2 = await setupUserAndApiKey({
-      organizationId: prodOrg2.id,
-      livemode: true,
-    })
+    const uaOrg2 = (
+      await setupUserAndApiKey({
+        organizationId: prodOrg2.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKeyAForOrg2 = uaOrg2.apiKey
   })
 
@@ -566,10 +580,12 @@ describe('RLS for selectProducts', () => {
     // live key (org1)
     const liveKey = apiKeyAForOrg1
     // test key (org1)
-    const testKey = await setupUserAndApiKey({
-      organizationId: prodOrg1.id,
-      livemode: false,
-    })
+    const testKey = (
+      await setupUserAndApiKey({
+        organizationId: prodOrg1.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     const liveProducts = await authenticatedTransaction(
       async ({ transaction }) => selectProducts({}, transaction),
@@ -637,18 +653,22 @@ describe('RLS for selectPricingModels', () => {
     pricingModel2 = orgSetup2.pricingModel
 
     // Create user A focused on org1 with an API key
-    const uaOrg1 = await setupUserAndApiKey({
-      organizationId: catOrg1.id,
-      livemode: true,
-    })
+    const uaOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: catOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     catUserA = uaOrg1.user
     apiKeyCatAOrg1 = uaOrg1.apiKey
 
     // Create a testmode API key for the insert test (to allow inserting testmode pricing models)
-    const uaOrg1Testmode = await setupUserAndApiKey({
-      organizationId: catOrg1.id,
-      livemode: false,
-    })
+    const uaOrg1Testmode = (
+      await setupUserAndApiKey({
+        organizationId: catOrg1.id,
+        livemode: false,
+      })
+    ).unwrap()
     apiKeyCatAOrg1Testmode = uaOrg1Testmode.apiKey
 
     // Also give user A a membership in org2, unfocused
@@ -667,17 +687,21 @@ describe('RLS for selectPricingModels', () => {
     })
 
     // Create user B focused on org2 for negative-access scenarios
-    const ubOrg2 = await setupUserAndApiKey({
-      organizationId: catOrg2.id,
-      livemode: true,
-    })
+    const ubOrg2 = (
+      await setupUserAndApiKey({
+        organizationId: catOrg2.id,
+        livemode: true,
+      })
+    ).unwrap()
     catUserB = ubOrg2.user
 
     // API key for org2 context (for focus switching scenarios)
-    const uaOrg2 = await setupUserAndApiKey({
-      organizationId: catOrg2.id,
-      livemode: true,
-    })
+    const uaOrg2 = (
+      await setupUserAndApiKey({
+        organizationId: catOrg2.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKeyCatAOrg2 = uaOrg2.apiKey
   })
 
@@ -812,10 +836,12 @@ describe('RLS for selectPricingModels', () => {
 
   it('respects livemode: live/test separation for pricingModels', async () => {
     const liveKey = apiKeyCatAOrg1
-    const testKey = await setupUserAndApiKey({
-      organizationId: catOrg1.id,
-      livemode: false,
-    })
+    const testKey = (
+      await setupUserAndApiKey({
+        organizationId: catOrg1.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     const livePricingModels = await authenticatedTransaction(
       async ({ transaction }) => selectPricingModels({}, transaction),
@@ -1006,10 +1032,12 @@ describe('Second-order RLS defense in depth', () => {
 
   it('API key and session both set RLS context correctly: parity test', async () => {
     const { organization } = (await setupOrg()).unwrap()
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     const apiKeyResult = await authenticatedTransaction(
       async ({ transaction }) => selectProducts({}, transaction),
       { apiKey: apiKey.token }
@@ -1024,10 +1052,12 @@ describe('Edge cases and robustness for second-order RLS', () => {
   it('API key always accesses its own org regardless of focused state', async () => {
     const { organization: o1 } = (await setupOrg()).unwrap()
     const { organization: o2 } = (await setupOrg()).unwrap()
-    const { user, apiKey } = await setupUserAndApiKey({
-      organizationId: o1.id,
-      livemode: true,
-    })
+    const { user, apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: o1.id,
+        livemode: true,
+      })
+    ).unwrap()
     const first = await authenticatedTransaction(
       async ({ transaction }) => selectProducts({}, transaction),
       { apiKey: apiKey.token }

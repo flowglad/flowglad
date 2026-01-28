@@ -25,10 +25,12 @@ describe('Pricing Models RLS - Organization Policy', async () => {
   beforeEach(async () => {
     // Setup Org 1 and its API key
     org1Data = (await setupOrg()).unwrap()
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: org1Data.organization.id,
-      livemode: false,
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: org1Data.organization.id,
+        livemode: false,
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }

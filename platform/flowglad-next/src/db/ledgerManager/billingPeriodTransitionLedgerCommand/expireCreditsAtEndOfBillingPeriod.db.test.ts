@@ -75,14 +75,18 @@ describe('expireCreditsAtEndOfBillingPeriod', () => {
     product = orgData.product
     price = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const currentPeriodStartDate = new Date('2024-07-01T00:00:00Z')
     const currentPeriodEndDate = new Date('2024-07-31T23:59:59Z')

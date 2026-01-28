@@ -32,18 +32,22 @@ describe('selectPaymentMethodsByCustomerId', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
   })
 
   it('should return payment method records for a customer', async () => {
@@ -68,11 +72,13 @@ describe('selectPaymentMethodsByCustomerId', () => {
   })
 
   it('should return empty array when customer has no payment methods', async () => {
-    const customerWithNoPaymentMethods = await setupCustomer({
-      organizationId: organization.id,
-      email: `empty+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    const customerWithNoPaymentMethods = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `empty+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const paymentMethods = await selectPaymentMethodsByCustomerId(
@@ -86,18 +92,22 @@ describe('selectPaymentMethodsByCustomerId', () => {
   })
 
   it('should only return payment methods for the specified customer', async () => {
-    const otherCustomer = await setupCustomer({
-      organizationId: organization.id,
-      email: `other+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    const otherCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `other+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    const otherPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: otherCustomer.id,
-      livemode: true,
-      type: PaymentMethodType.Card,
-    })
+    const otherPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        livemode: true,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const paymentMethods = await selectPaymentMethodsByCustomerId(
@@ -125,35 +135,43 @@ describe('safelyUpdatePaymentMethod', () => {
     organization = orgData.organization
 
     // Create two customers
-    customerA = await setupCustomer({
-      organizationId: organization.id,
-      email: `customerA+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customerA = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customerA+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    customerB = await setupCustomer({
-      organizationId: organization.id,
-      email: `customerB+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customerB = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customerB+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create a non-default payment method for customer A
-    paymentMethodA = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customerA.id,
-      livemode: true,
-      type: PaymentMethodType.Card,
-      default: false,
-    })
+    paymentMethodA = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerA.id,
+        livemode: true,
+        type: PaymentMethodType.Card,
+        default: false,
+      })
+    ).unwrap()
 
     // Create a default payment method for customer B
-    paymentMethodB = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customerB.id,
-      livemode: true,
-      type: PaymentMethodType.Card,
-      default: true,
-    })
+    paymentMethodB = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerB.id,
+        livemode: true,
+        type: PaymentMethodType.Card,
+        default: true,
+      })
+    ).unwrap()
   })
 
   it('clears existing default on new customer when moving a payment method to a different customer and setting it as default', async () => {

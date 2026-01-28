@@ -273,9 +273,11 @@ describe('usageMeterMethods', () => {
 
   describe('selectUsageMeterBySlugAndCustomerId', () => {
     it('should return the correct usage meter when slug matches', async () => {
-      const customer = await setupCustomer({
-        organizationId,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId,
+        })
+      ).unwrap()
       // Use the default pricing model since customer will use it
       const meter = await setupUsageMeter({
         organizationId,
@@ -298,9 +300,11 @@ describe('usageMeterMethods', () => {
     })
 
     it('should return null when no matching slug exists', async () => {
-      const customer = await setupCustomer({
-        organizationId,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId,
+        })
+      ).unwrap()
       // Use the default pricing model since customer will use it
       await setupUsageMeter({
         organizationId,
@@ -322,10 +326,12 @@ describe('usageMeterMethods', () => {
     it("should throw an error when customer's pricing model cannot be found and no default exists", async () => {
       // Create a customer with a valid pricing model first
       const orgData = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: orgData.organization.id,
-        pricingModelId: orgData.pricingModel.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: orgData.organization.id,
+          pricingModelId: orgData.pricingModel.id,
+        })
+      ).unwrap()
 
       // Simulate a scenario where:
       // 1. The customer's pricingModelId points to a non-existent pricing model

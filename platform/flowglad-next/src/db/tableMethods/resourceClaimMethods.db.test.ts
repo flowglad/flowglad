@@ -46,17 +46,21 @@ describe('resourceClaimMethods', () => {
       name: 'Seats',
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const product = await setupProduct({
       organizationId: organization.id,

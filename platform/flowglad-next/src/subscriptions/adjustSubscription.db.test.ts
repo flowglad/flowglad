@@ -185,13 +185,17 @@ describe('adjustSubscription Integration Tests', async () => {
     mockOrgNotification.mockClear()
     mockOrgNotification.mockResolvedValue(undefined)
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,

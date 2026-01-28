@@ -48,10 +48,12 @@ describe('selectUsageEventsPaginated', () => {
   // beforeAll: Set up shared data that doesn't change between tests
   beforeAll(async () => {
     org1Data = (await setupOrg()).unwrap()
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: org1Data.organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: org1Data.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
@@ -77,17 +79,21 @@ describe('selectUsageEventsPaginated', () => {
 
   // beforeEach: Create fresh customer/subscription data for test isolation
   beforeEach(async () => {
-    customer1 = await setupCustomer({
-      organizationId: org1Data.organization.id,
-      email: `customer1+${Date.now()}@test.com`,
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: org1Data.organization.id,
+        email: `customer1+${Date.now()}@test.com`,
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
-    paymentMethod1 = await setupPaymentMethod({
-      organizationId: org1Data.organization.id,
-      customerId: customer1.id,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: org1Data.organization.id,
+        customerId: customer1.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription1 = await setupSubscription({
       organizationId: org1Data.organization.id,
@@ -108,17 +114,21 @@ describe('selectUsageEventsPaginated', () => {
   async function setupOrg2() {
     const org2Data = (await setupOrg()).unwrap()
 
-    const customer2 = await setupCustomer({
-      organizationId: org2Data.organization.id,
-      email: `customer2+${Date.now()}@test.com`,
-      pricingModelId: org2Data.pricingModel.id,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: org2Data.organization.id,
+        email: `customer2+${Date.now()}@test.com`,
+        pricingModelId: org2Data.pricingModel.id,
+      })
+    ).unwrap()
 
-    const paymentMethod2 = await setupPaymentMethod({
-      organizationId: org2Data.organization.id,
-      customerId: customer2.id,
-      type: PaymentMethodType.Card,
-    })
+    const paymentMethod2 = (
+      await setupPaymentMethod({
+        organizationId: org2Data.organization.id,
+        customerId: customer2.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     const usageMeter2 = await setupUsageMeter({
       organizationId: org2Data.organization.id,
@@ -233,10 +243,12 @@ describe('selectUsageEventsPaginated', () => {
   it('should handle empty results when no usage events exist', async () => {
     // Create an isolated org with no usage events to test empty results
     const isolatedOrgData = (await setupOrg()).unwrap()
-    const userApiKeyIsolatedOrg = await setupUserAndApiKey({
-      organizationId: isolatedOrgData.organization.id,
-      livemode: true,
-    })
+    const userApiKeyIsolatedOrg = (
+      await setupUserAndApiKey({
+        organizationId: isolatedOrgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyIsolatedOrg.apiKey.token) {
       throw new Error('API key token not found for isolated org')
     }
@@ -265,26 +277,32 @@ describe('selectUsageEventsPaginated', () => {
   it('should respect limit parameter', async () => {
     // Create an isolated org to test limit behavior with known event count
     const isolatedOrgData = (await setupOrg()).unwrap()
-    const userApiKeyIsolatedOrg = await setupUserAndApiKey({
-      organizationId: isolatedOrgData.organization.id,
-      livemode: true,
-    })
+    const userApiKeyIsolatedOrg = (
+      await setupUserAndApiKey({
+        organizationId: isolatedOrgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyIsolatedOrg.apiKey.token) {
       throw new Error('API key token not found for isolated org')
     }
     const isolatedOrgApiKeyToken = userApiKeyIsolatedOrg.apiKey.token
 
-    const isolatedCustomer = await setupCustomer({
-      organizationId: isolatedOrgData.organization.id,
-      email: `customer_limit_test+${Date.now()}@test.com`,
-      pricingModelId: isolatedOrgData.pricingModel.id,
-    })
+    const isolatedCustomer = (
+      await setupCustomer({
+        organizationId: isolatedOrgData.organization.id,
+        email: `customer_limit_test+${Date.now()}@test.com`,
+        pricingModelId: isolatedOrgData.pricingModel.id,
+      })
+    ).unwrap()
 
-    const isolatedPaymentMethod = await setupPaymentMethod({
-      organizationId: isolatedOrgData.organization.id,
-      customerId: isolatedCustomer.id,
-      type: PaymentMethodType.Card,
-    })
+    const isolatedPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: isolatedOrgData.organization.id,
+        customerId: isolatedCustomer.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     const isolatedUsageMeter = await setupUsageMeter({
       organizationId: isolatedOrgData.organization.id,
@@ -453,26 +471,32 @@ describe('selectUsageEventsPaginated', () => {
   it('should handle invalid cursor gracefully by treating it as no cursor (returning first page)', async () => {
     // Create an isolated org to test invalid cursor behavior
     const isolatedOrgData = (await setupOrg()).unwrap()
-    const userApiKeyIsolatedOrg = await setupUserAndApiKey({
-      organizationId: isolatedOrgData.organization.id,
-      livemode: true,
-    })
+    const userApiKeyIsolatedOrg = (
+      await setupUserAndApiKey({
+        organizationId: isolatedOrgData.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyIsolatedOrg.apiKey.token) {
       throw new Error('API key token not found for isolated org')
     }
     const isolatedOrgApiKeyToken = userApiKeyIsolatedOrg.apiKey.token
 
-    const isolatedCustomer = await setupCustomer({
-      organizationId: isolatedOrgData.organization.id,
-      email: `customer_cursor_test+${Date.now()}@test.com`,
-      pricingModelId: isolatedOrgData.pricingModel.id,
-    })
+    const isolatedCustomer = (
+      await setupCustomer({
+        organizationId: isolatedOrgData.organization.id,
+        email: `customer_cursor_test+${Date.now()}@test.com`,
+        pricingModelId: isolatedOrgData.pricingModel.id,
+      })
+    ).unwrap()
 
-    const isolatedPaymentMethod = await setupPaymentMethod({
-      organizationId: isolatedOrgData.organization.id,
-      customerId: isolatedCustomer.id,
-      type: PaymentMethodType.Card,
-    })
+    const isolatedPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: isolatedOrgData.organization.id,
+        customerId: isolatedCustomer.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     const isolatedUsageMeter = await setupUsageMeter({
       organizationId: isolatedOrgData.organization.id,
@@ -562,10 +586,12 @@ describe('insertUsageEvent', () => {
   beforeAll(async () => {
     org1Data = (await setupOrg()).unwrap()
 
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: org1Data.organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: org1Data.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
@@ -591,17 +617,21 @@ describe('insertUsageEvent', () => {
 
   // beforeEach: Create fresh customer/subscription data for test isolation
   beforeEach(async () => {
-    customer1 = await setupCustomer({
-      organizationId: org1Data.organization.id,
-      email: `customer1+${Date.now()}@test.com`,
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: org1Data.organization.id,
+        email: `customer1+${Date.now()}@test.com`,
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
-    paymentMethod1 = await setupPaymentMethod({
-      organizationId: org1Data.organization.id,
-      customerId: customer1.id,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: org1Data.organization.id,
+        customerId: customer1.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription1 = await setupSubscription({
       organizationId: org1Data.organization.id,
@@ -722,10 +752,12 @@ describe('selectUsageEventsTableRowData', () => {
   // beforeAll: Set up shared data that doesn't change between tests
   beforeAll(async () => {
     org1Data = (await setupOrg()).unwrap()
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: org1Data.organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: org1Data.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
@@ -751,17 +783,21 @@ describe('selectUsageEventsTableRowData', () => {
 
   // beforeEach: Create fresh customer/subscription data for test isolation
   beforeEach(async () => {
-    customer1 = await setupCustomer({
-      organizationId: org1Data.organization.id,
-      email: `customer1+${Date.now()}@test.com`,
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: org1Data.organization.id,
+        email: `customer1+${Date.now()}@test.com`,
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
-    paymentMethod1 = await setupPaymentMethod({
-      organizationId: org1Data.organization.id,
-      customerId: customer1.id,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: org1Data.organization.id,
+        customerId: customer1.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription1 = await setupSubscription({
       organizationId: org1Data.organization.id,
@@ -911,10 +947,12 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
   beforeAll(async () => {
     org1Data = (await setupOrg()).unwrap()
 
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: org1Data.organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: org1Data.organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
@@ -946,17 +984,21 @@ describe('bulkInsertOrDoNothingUsageEventsByTransactionId', () => {
 
   // beforeEach: Create fresh customer/subscription data for test isolation
   beforeEach(async () => {
-    customer1 = await setupCustomer({
-      organizationId: org1Data.organization.id,
-      email: `customer1+${Date.now()}@test.com`,
-      pricingModelId: org1Data.pricingModel.id,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: org1Data.organization.id,
+        email: `customer1+${Date.now()}@test.com`,
+        pricingModelId: org1Data.pricingModel.id,
+      })
+    ).unwrap()
 
-    paymentMethod1 = await setupPaymentMethod({
-      organizationId: org1Data.organization.id,
-      customerId: customer1.id,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: org1Data.organization.id,
+        customerId: customer1.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription1 = await setupSubscription({
       organizationId: org1Data.organization.id,

@@ -54,20 +54,24 @@ describe('processNonPaymentCheckoutSession', () => {
       isDefault: false,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+      })
+    ).unwrap()
 
-    checkoutSession = await setupCheckoutSession({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    checkoutSession = (
+      await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   describe('Purchase State for Zero-Total Checkouts', () => {

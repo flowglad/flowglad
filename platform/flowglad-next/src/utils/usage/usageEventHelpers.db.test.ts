@@ -58,14 +58,18 @@ describe('usageEventHelpers', () => {
     await adminTransaction(async ({ transaction }) => {
       orgSetup = (await setupOrg()).unwrap()
       organization = orgSetup.organization
-      customer = await setupCustomer({
-        organizationId: organization.id,
-        pricingModelId: orgSetup.pricingModel.id,
-      })
-      paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          pricingModelId: orgSetup.pricingModel.id,
+        })
+      ).unwrap()
+      paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
 
       const defaultPricingModelForOrg = orgSetup.pricingModel
       const defaultProductForOrg = orgSetup.product
@@ -1319,13 +1323,17 @@ describe('usageEventHelpers', () => {
       const priceWithSlug = await adminTransaction(
         async ({ transaction }) => {
           const orgSetup = (await setupOrg()).unwrap()
-          const testCustomer = await setupCustomer({
-            organizationId: orgSetup.organization.id,
-          })
-          const testPaymentMethod = await setupPaymentMethod({
-            organizationId: orgSetup.organization.id,
-            customerId: testCustomer.id,
-          })
+          const testCustomer = (
+            await setupCustomer({
+              organizationId: orgSetup.organization.id,
+            })
+          ).unwrap()
+          const testPaymentMethod = (
+            await setupPaymentMethod({
+              organizationId: orgSetup.organization.id,
+              customerId: testCustomer.id,
+            })
+          ).unwrap()
           const testUsageMeter = await setupUsageMeter({
             organizationId: orgSetup.organization.id,
             name: 'Test Usage Meter with Slug',
@@ -1539,14 +1547,18 @@ describe('usageEventHelpers', () => {
       const usageMeterWithSlug = await adminTransaction(
         async ({ transaction }) => {
           const orgSetup = (await setupOrg()).unwrap()
-          const testCustomer = await setupCustomer({
-            organizationId: orgSetup.organization.id,
-            pricingModelId: orgSetup.pricingModel.id,
-          })
-          const testPaymentMethod = await setupPaymentMethod({
-            organizationId: orgSetup.organization.id,
-            customerId: testCustomer.id,
-          })
+          const testCustomer = (
+            await setupCustomer({
+              organizationId: orgSetup.organization.id,
+              pricingModelId: orgSetup.pricingModel.id,
+            })
+          ).unwrap()
+          const testPaymentMethod = (
+            await setupPaymentMethod({
+              organizationId: orgSetup.organization.id,
+              customerId: testCustomer.id,
+            })
+          ).unwrap()
           const testUsageMeter = await setupUsageMeter({
             organizationId: orgSetup.organization.id,
             name: 'Test Usage Meter with Slug',

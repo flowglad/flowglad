@@ -34,10 +34,12 @@ describe('createNonInvoiceCheckoutSession', () => {
     ).unwrap()
     pricingModel = pm
     organization = org
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+      })
+    ).unwrap()
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Usage Meter',

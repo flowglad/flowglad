@@ -80,17 +80,21 @@ describe('authenticatedTransaction', () => {
     testOrg2 = org2Setup.organization
 
     // Setup users and API keys for each organization
-    const userApiKeyA = await setupUserAndApiKey({
-      organizationId: testOrg1.id,
-      livemode: true,
-    })
+    const userApiKeyA = (
+      await setupUserAndApiKey({
+        organizationId: testOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     userA = userApiKeyA.user
     apiKeyA = userApiKeyA.apiKey
 
-    const userApiKeyB = await setupUserAndApiKey({
-      organizationId: testOrg2.id,
-      livemode: true,
-    })
+    const userApiKeyB = (
+      await setupUserAndApiKey({
+        organizationId: testOrg2.id,
+        livemode: true,
+      })
+    ).unwrap()
     userB = userApiKeyB.user
     apiKeyB = userApiKeyB.apiKey
 
@@ -199,10 +203,12 @@ describe('authenticatedTransaction', () => {
 
       // expects:
       // - livemode should be false in transaction params
-      const testModeApiKey = await setupUserAndApiKey({
-        organizationId: testOrg1.id,
-        livemode: false,
-      })
+      const testModeApiKey = (
+        await setupUserAndApiKey({
+          organizationId: testOrg1.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       const result = await authenticatedTransaction(
         async ({ livemode }) => {
@@ -325,10 +331,12 @@ describe('authenticatedTransaction', () => {
     const org2Setup = (await setupOrg()).unwrap()
     testOrg2 = org2Setup.organization
 
-    const userApiKeyA = await setupUserAndApiKey({
-      organizationId: testOrg1.id,
-      livemode: true,
-    })
+    const userApiKeyA = (
+      await setupUserAndApiKey({
+        organizationId: testOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     userA = userApiKeyA.user
     apiKeyA = userApiKeyA.apiKey
   })
@@ -436,10 +444,12 @@ describe('Authentication Method Tests', () => {
     const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
-    const userApiKeyA = await setupUserAndApiKey({
-      organizationId: testOrg1.id,
-      livemode: true,
-    })
+    const userApiKeyA = (
+      await setupUserAndApiKey({
+        organizationId: testOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     userA = userApiKeyA.user
     apiKeyA = userApiKeyA.apiKey
   })
@@ -504,10 +514,12 @@ describe('Error Handling Tests', () => {
     const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
-    const userApiKeyA = await setupUserAndApiKey({
-      organizationId: testOrg1.id,
-      livemode: true,
-    })
+    const userApiKeyA = (
+      await setupUserAndApiKey({
+        organizationId: testOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKeyA = userApiKeyA.apiKey
   })
 
@@ -622,10 +634,12 @@ describe('Procedure Wrapper Functions', () => {
     const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
-    const userApiKeyA = await setupUserAndApiKey({
-      organizationId: testOrg1.id,
-      livemode: true,
-    })
+    const userApiKeyA = (
+      await setupUserAndApiKey({
+        organizationId: testOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKeyA = userApiKeyA.apiKey
   })
 
@@ -719,10 +733,12 @@ describe('Edge Cases', () => {
     const org1Setup = (await setupOrg()).unwrap()
     testOrg1 = org1Setup.organization
 
-    const userApiKeyA = await setupUserAndApiKey({
-      organizationId: testOrg1.id,
-      livemode: true,
-    })
+    const userApiKeyA = (
+      await setupUserAndApiKey({
+        organizationId: testOrg1.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKeyA = userApiKeyA.apiKey
   })
 
@@ -784,10 +800,12 @@ describe('cacheRecomputationContext derivation', () => {
   it('sets type to customer with customerId from JWT metadata when using customer billing portal auth', async () => {
     // Setup organization with a customer linked to a user with betterAuthId
     const { organization } = (await setupOrg()).unwrap()
-    const { user } = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const { user } = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set betterAuthId on the user (required for customer billing portal auth)
     const betterAuthId = `ba_${core.nanoid()}`
@@ -800,11 +818,13 @@ describe('cacheRecomputationContext derivation', () => {
     })
 
     // Create customer linked to the user (required for customer billing portal lookup)
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-      userId: user.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+        userId: user.id,
+      })
+    ).unwrap()
 
     // Configure session mock to simulate logged-in user via Better Auth.
     // Use __testOnlyOrganizationId to trigger the customer billing portal auth path
@@ -849,10 +869,12 @@ describe('cacheRecomputationContext derivation', () => {
 
   it('sets type to merchant when using API key auth (non-customer role)', async () => {
     const { organization } = (await setupOrg()).unwrap()
-    const { user, apiKey } = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const { user, apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // API key auth should result in merchant context, not customer
     const result = await authenticatedTransaction(
@@ -885,10 +907,12 @@ describe('authenticatedTransactionUnwrap', () => {
     const orgSetup = (await setupOrg()).unwrap()
     testOrg = orgSetup.organization
 
-    const userApiKey = await setupUserAndApiKey({
-      organizationId: testOrg.id,
-      livemode: true,
-    })
+    const userApiKey = (
+      await setupUserAndApiKey({
+        organizationId: testOrg.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKey = userApiKey.apiKey
   })
 

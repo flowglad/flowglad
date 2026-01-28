@@ -105,13 +105,17 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
     product = orgData.product
     price = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const currentPeriodStartDate = new Date()
     const currentPeriodEndDate = new Date()
@@ -660,10 +664,12 @@ describe('processBillingPeriodTransitionLedgerCommand', () => {
       // Use existing organization from parent beforeEach
 
       // Create a separate customer for non-renewing tests
-      nonRenewingCustomer = await setupCustomer({
-        organizationId: organization.id,
-        email: `nonrenewing-${core.nanoid()}@test.com`,
-      })
+      nonRenewingCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          email: `nonrenewing-${core.nanoid()}@test.com`,
+        })
+      ).unwrap()
 
       // Create non-renewing subscription (CreditTrial)
       nonRenewingSubscription = await setupSubscription({

@@ -38,10 +38,12 @@ describe('productFeaturesRouter.create - Toggle Feature Validation', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!apiKey.token) {
       throw new Error('API key token not found after setup')
     }

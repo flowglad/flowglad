@@ -59,32 +59,40 @@ describe('Subscription Upgrade Selection Logic', () => {
     product = orgData.product
 
     // Setup customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${core.nanoid()}@example.com`,
-      livemode: false,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${core.nanoid()}@example.com`,
+        livemode: false,
+      })
+    ).unwrap()
 
     // Setup second customer for multi-customer tests
-    customer2 = await setupCustomer({
-      organizationId: organization.id,
-      email: `test2+${core.nanoid()}@example.com`,
-      livemode: false,
-    })
+    customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test2+${core.nanoid()}@example.com`,
+        livemode: false,
+      })
+    ).unwrap()
 
     // Setup payment method
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: false,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     // Setup payment method for customer2
-    paymentMethod2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer2.id,
-      livemode: false,
-    })
+    paymentMethod2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer2.id,
+        livemode: false,
+      })
+    ).unwrap()
 
     // Setup free price
     freePrice = await setupPrice({
@@ -1164,16 +1172,20 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       // Create subscription for org2
-      const customerOrg2 = await setupCustomer({
-        organizationId: organization2.id,
-        livemode: false,
-      })
+      const customerOrg2 = (
+        await setupCustomer({
+          organizationId: organization2.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      const pmOrg2 = await setupPaymentMethod({
-        organizationId: organization2.id,
-        customerId: customerOrg2.id,
-        livemode: false,
-      })
+      const pmOrg2 = (
+        await setupPaymentMethod({
+          organizationId: organization2.id,
+          customerId: customerOrg2.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       const priceOrg2 = await setupPrice({
         productId: product2.id,
@@ -1366,16 +1378,20 @@ describe('Subscription Upgrade Selection Logic', () => {
       })
 
       // Create customer and subscription for organization2
-      const org2Customer = await setupCustomer({
-        organizationId: organization2.id,
-        livemode: false,
-      })
+      const org2Customer = (
+        await setupCustomer({
+          organizationId: organization2.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      const org2PaymentMethod = await setupPaymentMethod({
-        organizationId: organization2.id,
-        customerId: org2Customer.id,
-        livemode: false,
-      })
+      const org2PaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization2.id,
+          customerId: org2Customer.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       const org2Price = await setupPrice({
         productId: product2.id,
@@ -1950,10 +1966,12 @@ describe('Subscription Upgrade Selection Logic', () => {
       const previousMonth = new Date('2024-01-01')
 
       // Create customer for third subscription
-      const thirdCustomer = await setupCustomer({
-        organizationId: organization.id,
-        livemode: false,
-      })
+      const thirdCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create various canceled subscriptions
       const canceledSubs = await Promise.all([
@@ -2029,28 +2047,36 @@ describe('Subscription Upgrade Selection Logic', () => {
       const previousMonth = new Date('2024-01-01')
 
       // Create customer for NonPayment cancellation
-      const nonPaymentCustomer = await setupCustomer({
-        organizationId: organization.id,
-        livemode: false,
-      })
+      const nonPaymentCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      const nonPaymentPM = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: nonPaymentCustomer.id,
-        livemode: false,
-      })
+      const nonPaymentPM = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: nonPaymentCustomer.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create customer for Other cancellation
-      const otherCustomer = await setupCustomer({
-        organizationId: organization.id,
-        livemode: false,
-      })
+      const otherCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      const otherPM = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: otherCustomer.id,
-        livemode: false,
-      })
+      const otherPM = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: otherCustomer.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create subscriptions canceled for different reasons
       const canceledSubs = await Promise.all([
@@ -2123,27 +2149,35 @@ describe('Subscription Upgrade Selection Logic', () => {
       const previousMonth = new Date('2024-01-01')
 
       // Create customers for boundary test cases
-      const lastDayCustomer = await setupCustomer({
-        organizationId: organization.id,
-        livemode: false,
-      })
+      const lastDayCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      const firstDayCustomer = await setupCustomer({
-        organizationId: organization.id,
-        livemode: false,
-      })
+      const firstDayCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      const lastDayPM = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: lastDayCustomer.id,
-        livemode: false,
-      })
+      const lastDayPM = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: lastDayCustomer.id,
+          livemode: false,
+        })
+      ).unwrap()
 
-      const firstDayPM = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: firstDayCustomer.id,
-        livemode: false,
-      })
+      const firstDayPM = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: firstDayCustomer.id,
+          livemode: false,
+        })
+      ).unwrap()
 
       // Create subscriptions with boundary cancellations
       const boundarySubs = await Promise.all([

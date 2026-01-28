@@ -37,11 +37,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
   it('should include customer.externalId in CustomerCreated event payload', async () => {
     // Set up minimal database state
     const orgData = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        externalId: `ext_cust_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Call the actual function
     await adminTransaction(async ({ transaction }) => {
@@ -74,11 +76,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
   it('should include customer.externalId in CustomerUpdated event payload', async () => {
     const orgData = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        externalId: `ext_cust_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       await commitCustomerUpdatedEvent(customer, transaction)
@@ -108,11 +112,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
   it('should include customer.externalId in PaymentSucceeded event payload', async () => {
     const orgData = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        externalId: `ext_cust_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set up required dependencies for payment
     const product = await setupProduct({
@@ -136,12 +142,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    const paymentMethod = await setupPaymentMethod({
-      customerId: customer.id,
-      organizationId: orgData.organization.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        customerId: customer.id,
+        organizationId: orgData.organization.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
     const payment = (
       await adminTransaction(async ({ transaction }) => {
@@ -192,11 +200,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
   it('should include customer.externalId in PaymentFailed event payload', async () => {
     const orgData = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        externalId: `ext_cust_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set up required dependencies for payment
     const product = await setupProduct({
@@ -220,12 +230,14 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       livemode: true,
     })
 
-    const paymentMethod = await setupPaymentMethod({
-      customerId: customer.id,
-      organizationId: orgData.organization.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        customerId: customer.id,
+        organizationId: orgData.organization.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
     const payment = (
       await adminTransaction(async ({ transaction }) => {
@@ -276,11 +288,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
   it('should include customer.externalId in PurchaseCompleted event payload', async () => {
     const orgData = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        externalId: `ext_cust_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set up required dependencies for purchase (use pricingModel from setupOrg to avoid livemode uniqueness constraint)
     const product = await setupProduct({
@@ -333,11 +347,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
   it('should include customer.externalId in SubscriptionCreated event payload', async () => {
     const orgData = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        externalId: `ext_cust_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set up required dependencies for subscription
     const product = await setupProduct({
@@ -354,11 +370,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       isDefault: false,
       livemode: true,
     })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const subscription = await setupSubscription({
       organizationId: orgData.organization.id,
@@ -396,11 +414,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
   it('should include customer.externalId in SubscriptionUpdated event payload', async () => {
     const orgData = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        externalId: `ext_cust_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set up required dependencies for subscription
     const product = await setupProduct({
@@ -417,11 +437,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       isDefault: false,
       livemode: true,
     })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const subscription = await setupSubscription({
       organizationId: orgData.organization.id,
@@ -459,11 +481,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
 
   it('should include customer.externalId in SubscriptionCanceled event payload', async () => {
     const orgData = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-      externalId: `ext_cust_${core.nanoid()}`,
-      livemode: true,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+        externalId: `ext_cust_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Set up required dependencies for subscription
     const product = await setupProduct({
@@ -480,11 +504,13 @@ describe('Webhook Event Payloads - Simple Real Tests', () => {
       isDefault: false,
       livemode: true,
     })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const subscription = await setupSubscription({
       organizationId: orgData.organization.id,

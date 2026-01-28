@@ -370,11 +370,13 @@ describe('createCheckoutSessionTransaction', () => {
       await setupOrg()
     ).unwrap()
     organization = org
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-      pricingModelId: pricingModel.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
       name: 'Usage Meter',
@@ -650,10 +652,12 @@ describe('createCheckoutSessionTransaction', () => {
         })
 
         // Create a customer for the default organization
-        const defaultCustomer = await setupCustomer({
-          organizationId: defaultOrg.id,
-          stripeCustomerId: `cus_${core.nanoid()}`,
-        })
+        const defaultCustomer = (
+          await setupCustomer({
+            organizationId: defaultOrg.id,
+            stripeCustomerId: `cus_${core.nanoid()}`,
+          })
+        ).unwrap()
 
         const checkoutSessionInput: CreateCheckoutSessionObject = {
           customerExternalId: defaultCustomer.externalId,
@@ -908,10 +912,12 @@ describe('createCheckoutSessionTransaction', () => {
         await setupOrg()
       ).unwrap()
       try {
-        const otherCustomer = await setupCustomer({
-          organizationId: otherOrg.id,
-          stripeCustomerId: `cus_${core.nanoid()}`,
-        })
+        const otherCustomer = (
+          await setupCustomer({
+            organizationId: otherOrg.id,
+            stripeCustomerId: `cus_${core.nanoid()}`,
+          })
+        ).unwrap()
         const otherSubscription = await setupSubscription({
           organizationId: otherOrg.id,
           customerId: otherCustomer.id,
@@ -948,10 +954,12 @@ describe('createCheckoutSessionTransaction', () => {
     })
 
     it('should throw when the target subscription belongs to another customer', async () => {
-      const otherCustomer = await setupCustomer({
-        organizationId: organization.id,
-        stripeCustomerId: `cus_${core.nanoid()}`,
-      })
+      const otherCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          stripeCustomerId: `cus_${core.nanoid()}`,
+        })
+      ).unwrap()
       const otherCustomerSubscription = await setupSubscription({
         organizationId: organization.id,
         customerId: otherCustomer.id,
@@ -994,11 +1002,13 @@ describe('createCheckoutSessionTransaction', () => {
       const setup = (await setupOrg()).unwrap()
       organization = setup.organization
       const testmodePricingModel = setup.testmodePricingModel
-      customer = await setupCustomer({
-        organizationId: organization.id,
-        stripeCustomerId: `cus_${core.nanoid()}`,
-        pricingModelId: testmodePricingModel.id,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          stripeCustomerId: `cus_${core.nanoid()}`,
+          pricingModelId: testmodePricingModel.id,
+        })
+      ).unwrap()
 
       // Create a non-default product and price for testing
       nonDefaultProduct = await setupProduct({

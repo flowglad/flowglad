@@ -62,10 +62,12 @@ describe('organizationsRouter - notification preferences', () => {
     const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
-    const userApiKeySetup = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKeySetup = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeySetup.apiKey.token) {
       throw new Error('API key token not found after setup')
     }
@@ -147,10 +149,12 @@ describe('organizationsRouter - notification preferences', () => {
     it('throws NOT_FOUND when membership does not exist', async () => {
       // Setup a second organization to get a user without membership in the first org
       const secondOrgSetup = (await setupOrg()).unwrap()
-      const secondUserSetup = await setupUserAndApiKey({
-        organizationId: secondOrgSetup.organization.id,
-        livemode: true,
-      })
+      const secondUserSetup = (
+        await setupUserAndApiKey({
+          organizationId: secondOrgSetup.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       if (!secondUserSetup.apiKey.token) {
         throw new Error('Second user API key token not found')
@@ -261,10 +265,12 @@ describe('organizationsRouter - notification preferences', () => {
     it('throws NOT_FOUND when membership does not exist', async () => {
       // Setup a second organization to get a user without membership in the first org
       const secondOrgSetup = (await setupOrg()).unwrap()
-      const secondUserSetup = await setupUserAndApiKey({
-        organizationId: secondOrgSetup.organization.id,
-        livemode: true,
-      })
+      const secondUserSetup = (
+        await setupUserAndApiKey({
+          organizationId: secondOrgSetup.organization.id,
+          livemode: true,
+        })
+      ).unwrap()
 
       if (!secondUserSetup.apiKey.token) {
         throw new Error('Second user API key token not found')

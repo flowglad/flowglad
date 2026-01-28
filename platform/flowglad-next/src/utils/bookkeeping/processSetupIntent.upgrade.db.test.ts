@@ -125,20 +125,24 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
     })
 
     // Create customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create payment method
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      stripePaymentMethodId: `pm_${core.nanoid()}`,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        stripePaymentMethodId: `pm_${core.nanoid()}`,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   describe('Customer with free subscription upgrading to paid', () => {
@@ -164,16 +168,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Create checkout session for paid product
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        purchaseId: purchase.id,
-        livemode: true,
-        quantity: 1,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          purchaseId: purchase.id,
+          livemode: true,
+          quantity: 1,
+        })
+      ).unwrap()
 
       // Create fee calculation for the checkout session
       await setupFeeCalculation({
@@ -270,17 +276,19 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       const checkoutMetadata = { referrer: 'dashboard' }
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        purchaseId: purchase.id,
-        outputMetadata: checkoutMetadata,
-        livemode: true,
-        quantity: 1,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          purchaseId: purchase.id,
+          outputMetadata: checkoutMetadata,
+          livemode: true,
+          quantity: 1,
+        })
+      ).unwrap()
 
       // Create fee calculation for the checkout session
       await setupFeeCalculation({
@@ -362,16 +370,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         livemode: true,
       })
 
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        purchaseId: purchase.id,
-        livemode: true,
-        quantity: 1,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          purchaseId: purchase.id,
+          livemode: true,
+          quantity: 1,
+        })
+      ).unwrap()
 
       // Create fee calculation for the checkout session
       await setupFeeCalculation({
@@ -478,16 +488,18 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
         livemode: true,
       })
 
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        priceId: paidPrice.id,
-        type: CheckoutSessionType.Product,
-        status: CheckoutSessionStatus.Pending,
-        purchaseId: purchase.id,
-        livemode: true,
-        quantity: 1,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          priceId: paidPrice.id,
+          type: CheckoutSessionType.Product,
+          status: CheckoutSessionStatus.Pending,
+          purchaseId: purchase.id,
+          livemode: true,
+          quantity: 1,
+        })
+      ).unwrap()
 
       // Create fee calculation for the checkout session
       await setupFeeCalculation({
@@ -623,15 +635,17 @@ describe('processSetupIntentSucceeded - Subscription Upgrade Flow', () => {
       })
 
       // Create AddPaymentMethod checkout session
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: CheckoutSessionType.AddPaymentMethod,
-        status: CheckoutSessionStatus.Pending,
-        livemode: true,
-        quantity: 1,
-        priceId: freePrice.id,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: CheckoutSessionType.AddPaymentMethod,
+          status: CheckoutSessionStatus.Pending,
+          livemode: true,
+          quantity: 1,
+          priceId: freePrice.id,
+        })
+      ).unwrap()
 
       const setupIntent = mockSucceededSetupIntent({
         checkoutSessionId: checkoutSession.id,

@@ -36,10 +36,12 @@ describe('RLS Integration Tests: organizationId integrity on pricingModels', () 
   let org1UserApiKey: ApiKey.Record & { token: string }
   beforeEach(async () => {
     org1Data = (await setupOrg()).unwrap() // Sets up org, product, price in livemode (presumably true)
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: org1Data.organization.id,
-      livemode: false, // Use testmode API key to allow inserting testmode pricing models
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: org1Data.organization.id,
+        livemode: false, // Use testmode API key to allow inserting testmode pricing models
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }

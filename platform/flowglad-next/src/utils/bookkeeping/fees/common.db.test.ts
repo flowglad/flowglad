@@ -711,9 +711,11 @@ describe('finalizeFeeCalculation', () => {
     const stripeChargeId1 = `ch_${core.nanoid()}`
     const stripeChargeId2 = `ch_${core.nanoid()}`
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,
@@ -783,9 +785,11 @@ describe('finalizeFeeCalculation', () => {
     const stripePaymentIntentId = `pi_${core.nanoid()}`
     const stripeChargeId = `ch_${core.nanoid()}`
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,
@@ -844,9 +848,11 @@ describe('finalizeFeeCalculation', () => {
 
   it('applies full fee regardless of resolved payment status', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,
@@ -915,9 +921,11 @@ describe('finalizeFeeCalculation', () => {
 
   it('applies full org fee regardless of resolved payments amount', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,
@@ -978,9 +986,11 @@ describe('finalizeFeeCalculation', () => {
     const { organization, price } = await setupOrg({
       feePercentage: '5.0',
     })
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,
@@ -1040,9 +1050,11 @@ describe('finalizeFeeCalculation', () => {
   it('does not exclude refunded payments from fee calculation', async () => {
     const stripeChargeId = `ch_${core.nanoid()}`
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,
@@ -1102,9 +1114,11 @@ describe('finalizeFeeCalculation', () => {
   it('ignores payments from previous months', async () => {
     const stripeChargeId = `ch_${core.nanoid()}`
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const invoice = await setupInvoice({
       organizationId: organization.id,
       customerId: customer.id,
@@ -1186,12 +1200,16 @@ describe('finalizeFeeCalculation', () => {
     ).unwrap()
     const { organization: org2 } = (await setupOrg()).unwrap()
 
-    const customer1 = await setupCustomer({
-      organizationId: org1.id,
-    })
-    const customer2 = await setupCustomer({
-      organizationId: org2.id,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: org1.id,
+      })
+    ).unwrap()
+    const customer2 = (
+      await setupCustomer({
+        organizationId: org2.id,
+      })
+    ).unwrap()
 
     const invoice1 = await setupInvoice({
       organizationId: org1.id,

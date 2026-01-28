@@ -34,7 +34,9 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
   beforeEach(async () => {
     const { organization, product } = (await setupOrg()).unwrap()
     organizationId = organization.id
-    const customer = await setupCustomer({ organizationId })
+    const customer = (
+      await setupCustomer({ organizationId })
+    ).unwrap()
     customerId = customer.id
     const price = await setupPrice({
       productId: product.id,
@@ -59,26 +61,30 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     // - create oldOpen (createdAt = now - 15d)
     // - create recentOpen (createdAt = now - 1d)
     // create recent (1d old)
-    const recent = await setupCheckoutSession({
-      organizationId,
-      customerId,
-      priceId,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    const recent = (
+      await setupCheckoutSession({
+        organizationId,
+        customerId,
+        priceId,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
 
     // create old (15d old) and backdate createdAt
-    const old = await setupCheckoutSession({
-      organizationId,
-      customerId,
-      priceId,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    const old = (
+      await setupCheckoutSession({
+        organizationId,
+        customerId,
+        priceId,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
     const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
     const backdate = Date.now() - fifteenDaysMs
     await adminTransaction(async ({ transaction }) => {
@@ -116,24 +122,28 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     // setup:
     // - create oldSucceeded (15d old)
     // - create oldPending (15d old)
-    const oldSucceeded = await setupCheckoutSession({
-      organizationId,
-      customerId,
-      priceId,
-      status: CheckoutSessionStatus.Succeeded,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
-    const oldPending = await setupCheckoutSession({
-      organizationId,
-      customerId,
-      priceId,
-      status: CheckoutSessionStatus.Pending,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    const oldSucceeded = (
+      await setupCheckoutSession({
+        organizationId,
+        customerId,
+        priceId,
+        status: CheckoutSessionStatus.Succeeded,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
+    const oldPending = (
+      await setupCheckoutSession({
+        organizationId,
+        customerId,
+        priceId,
+        status: CheckoutSessionStatus.Pending,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
     const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
     const backdate = Date.now() - fifteenDaysMs
     await adminTransaction(async ({ transaction }) => {
@@ -175,24 +185,28 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     // setup:
     // - create oldOpen (15d old) with fee calc
     // - create recentOpen (1d old) with fee calc
-    const recent = await setupCheckoutSession({
-      organizationId,
-      customerId,
-      priceId,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
-    const old = await setupCheckoutSession({
-      organizationId,
-      customerId,
-      priceId,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    const recent = (
+      await setupCheckoutSession({
+        organizationId,
+        customerId,
+        priceId,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
+    const old = (
+      await setupCheckoutSession({
+        organizationId,
+        customerId,
+        priceId,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
     const fifteenDaysMs = 15 * 24 * 60 * 60 * 1000
     const backdate = Date.now() - fifteenDaysMs
     await adminTransaction(async ({ transaction }) => {
@@ -230,15 +244,17 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
   it('no-op when nothing qualifies (all < 14d)', async () => {
     // setup:
     // - create only recent sessions
-    const recent = await setupCheckoutSession({
-      organizationId,
-      customerId,
-      priceId,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    const recent = (
+      await setupCheckoutSession({
+        organizationId,
+        customerId,
+        priceId,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
     const result = await adminTransaction(async ({ transaction }) =>
       deleteExpiredCheckoutSessionsAndFeeCalculations(transaction)
     )
@@ -256,15 +272,17 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     // setup:
     // - create sessions 15d old with statuses: Open, Failed, Expired, Succeeded, Pending
     const createOld = async (status: CheckoutSessionStatus) => {
-      const s = await setupCheckoutSession({
-        organizationId,
-        customerId,
-        priceId,
-        status,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: true,
-      })
+      const s = (
+        await setupCheckoutSession({
+          organizationId,
+          customerId,
+          priceId,
+          status,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: true,
+        })
+      ).unwrap()
       const backdate = Date.now() - 15 * 24 * 60 * 60 * 1000
       await adminTransaction(async ({ transaction }) => {
         await transaction
@@ -296,15 +314,17 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
   it('boundary: record at exactly 14d cutoff is not deleted (lt comparison)', async () => {
     // setup:
     // - create boundaryOpen with createdAt ~ now - 14d + 1s (just inside window)
-    const boundary = await setupCheckoutSession({
-      organizationId,
-      customerId,
-      priceId,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    const boundary = (
+      await setupCheckoutSession({
+        organizationId,
+        customerId,
+        priceId,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
     // set createdAt to now - 14d + 60s ⇒ not older than cutoff
     const backdate = Date.now() - 14 * 24 * 60 * 60 * 1000 + 60 * 1000
     await adminTransaction(async ({ transaction }) => {
@@ -324,15 +344,17 @@ describe('deleteExpiredCheckoutSessionsAndFeeCalculations (retention cleanup)', 
     // setup:
     // - create a deletable session (15d old)
     // - run cleanup twice
-    const old = await setupCheckoutSession({
-      organizationId,
-      customerId,
-      priceId,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    const old = (
+      await setupCheckoutSession({
+        organizationId,
+        customerId,
+        priceId,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
     const backdate = Date.now() - 15 * 24 * 60 * 60 * 1000
     await adminTransaction(async ({ transaction }) => {
       await transaction

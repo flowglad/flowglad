@@ -57,10 +57,12 @@ describe('paymentMethods.ts', () => {
     organization = setup.organization
 
     // Setup customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Setup invoice
     invoice = await setupInvoice({
@@ -441,10 +443,12 @@ describe('selectRevenueDataForOrganization', () => {
     price = orgData.price
     pricingModel = orgData.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('Scenario 1: Basic operation with revenue data present', async () => {
@@ -1864,26 +1868,32 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
     price = orgData.price
 
     // Setup customers with different names for search testing
-    customer1 = await setupCustomer({
-      organizationId: organization.id,
-      name: 'Alice Smith',
-      email: 'alice@example.com',
-      livemode: true,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        name: 'Alice Smith',
+        email: 'alice@example.com',
+        livemode: true,
+      })
+    ).unwrap()
 
-    customer2 = await setupCustomer({
-      organizationId: organization.id,
-      name: 'Bob Jones',
-      email: 'bob@example.com',
-      livemode: true,
-    })
+    customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        name: 'Bob Jones',
+        email: 'bob@example.com',
+        livemode: true,
+      })
+    ).unwrap()
 
-    customer3 = await setupCustomer({
-      organizationId: organization.id,
-      name: 'Charlie Brown',
-      email: 'charlie@example.com',
-      livemode: true,
-    })
+    customer3 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        name: 'Charlie Brown',
+        email: 'charlie@example.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     // Setup invoices
     invoice1 = await setupInvoice({
@@ -1945,12 +1955,14 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
     const orgData2 = (await setupOrg()).unwrap()
     organization2 = orgData2.organization
 
-    customerOtherOrg = await setupCustomer({
-      organizationId: organization2.id,
-      name: 'Alice Smith', // Same name as customer1 to test isolation
-      email: 'alice-other@example.com',
-      livemode: true,
-    })
+    customerOtherOrg = (
+      await setupCustomer({
+        organizationId: organization2.id,
+        name: 'Alice Smith', // Same name as customer1 to test isolation
+        email: 'alice-other@example.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     invoiceOtherOrg = await setupInvoice({
       customerId: customerOtherOrg.id,
@@ -2333,12 +2345,14 @@ describe('selectPaymentsCursorPaginatedWithTableRowData', () => {
     it('should find payments by customer name with special characters', async () => {
       await adminTransaction(async ({ transaction }) => {
         // Create a customer with special characters in the name
-        const specialCustomer = await setupCustomer({
-          organizationId: organization.id,
-          name: "O'Brien & Co.",
-          email: 'special@example.com',
-          livemode: true,
-        })
+        const specialCustomer = (
+          await setupCustomer({
+            organizationId: organization.id,
+            name: "O'Brien & Co.",
+            email: 'special@example.com',
+            livemode: true,
+          })
+        ).unwrap()
 
         const specialInvoice = await setupInvoice({
           customerId: specialCustomer.id,
@@ -2405,11 +2419,13 @@ describe('pricingModelId derivation', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,

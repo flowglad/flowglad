@@ -52,10 +52,12 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
     pricingModel = orgData.pricingModel
 
     // Set up API key for authenticated transactions
-    const userApiKey = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKey = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     apiKey = userApiKey.apiKey
 
     // Create a resource using admin transaction (bypasses RLS for setup)
@@ -74,17 +76,21 @@ describe('resource_claims RLS - merchant role sequence permissions', () => {
     })
 
     // Set up customer, payment method, product, price, subscription chain
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const product = await setupProduct({
       organizationId: organization.id,

@@ -76,10 +76,12 @@ describe('API Key RLS', () => {
     })
 
     // Setup user with API key in orgA
-    const userApiKeyA = await setupUserAndApiKey({
-      organizationId: orgA.id,
-      livemode: false, // Use testmode for tests
-    })
+    const userApiKeyA = (
+      await setupUserAndApiKey({
+        organizationId: orgA.id,
+        livemode: false, // Use testmode for tests
+      })
+    ).unwrap()
     userA = userApiKeyA.user
     apiKeyOrgA = userApiKeyA.apiKey
 
@@ -95,10 +97,12 @@ describe('API Key RLS', () => {
     )
 
     // Create another API key for orgB (different user)
-    const userApiKeyB = await setupUserAndApiKey({
-      organizationId: orgB.id,
-      livemode: false,
-    })
+    const userApiKeyB = (
+      await setupUserAndApiKey({
+        organizationId: orgB.id,
+        livemode: false,
+      })
+    ).unwrap()
     apiKeyOrgB = userApiKeyB.apiKey
 
     // Add userA to orgB with focused = true (simulating user switched to orgB)
@@ -140,15 +144,19 @@ describe('API Key RLS', () => {
     )
 
     // Create customers in each org
-    customerInOrgA = await setupCustomer({
-      organizationId: orgA.id,
-      livemode: false,
-    })
+    customerInOrgA = (
+      await setupCustomer({
+        organizationId: orgA.id,
+        livemode: false,
+      })
+    ).unwrap()
 
-    customerInOrgB = await setupCustomer({
-      organizationId: orgB.id,
-      livemode: false,
-    })
+    customerInOrgB = (
+      await setupCustomer({
+        organizationId: orgB.id,
+        livemode: false,
+      })
+    ).unwrap()
   })
 
   describe('Scenario 1: API Key with Focused Membership', () => {
@@ -328,20 +336,24 @@ describe('API Key RLS', () => {
 
     beforeEach(async () => {
       // Create livemode API key for orgA
-      const livemodeSetup = await setupUserAndApiKey({
-        organizationId: orgA.id,
-        livemode: true,
-      })
+      const livemodeSetup = (
+        await setupUserAndApiKey({
+          organizationId: orgA.id,
+          livemode: true,
+        })
+      ).unwrap()
       livemodeApiKey = livemodeSetup.apiKey
 
       // customerInOrgA is already testmode (livemode: false)
       testmodeCustomer = customerInOrgA
 
       // Create livemode customer
-      livemodeCustomer = await setupCustomer({
-        organizationId: orgA.id,
-        livemode: true,
-      })
+      livemodeCustomer = (
+        await setupCustomer({
+          organizationId: orgA.id,
+          livemode: true,
+        })
+      ).unwrap()
     })
 
     it('should NOT access livemode customers with testmode API key', async () => {

@@ -85,18 +85,22 @@ describe('Ledger Management System', async () => {
     pricingModel = orgData.pricingModel
     product = orgData.product
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,

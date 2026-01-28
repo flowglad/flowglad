@@ -1164,9 +1164,11 @@ describe('priceMethods.ts', () => {
       })
 
       // Setup customer
-      customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
     })
 
     it('should find price by slug for customer in default pricing model', async () => {

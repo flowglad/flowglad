@@ -65,21 +65,25 @@ describe('customers.getUsageBalances', () => {
     organization = orgSetup.organization
     pricingModelId = orgSetup.pricingModel.id
 
-    const userApiKeySetup = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKeySetup = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeySetup.apiKey.token) {
       throw new Error('API key token not found after setup')
     }
     apiKeyToken = userApiKeySetup.apiKey.token
 
     // Setup customer
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer+${Date.now()}@test.com`,
-      externalId: `ext-customer-${Date.now()}`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer+${Date.now()}@test.com`,
+        externalId: `ext-customer-${Date.now()}`,
+      })
+    ).unwrap()
 
     // Setup usage meter
     usageMeter = await setupUsageMeter({
@@ -102,11 +106,13 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Setup payment method
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Setup first subscription (active/current)
     subscription1 = await setupSubscription({
@@ -369,17 +375,21 @@ describe('customers.getUsageBalances', () => {
 
   it('rejects subscriptionId not owned by customer', async () => {
     // Setup another customer and subscription
-    const otherCustomer = await setupCustomer({
-      organizationId: organization.id,
-      email: `other+${Date.now()}@test.com`,
-      externalId: `ext-other-${Date.now()}`,
-    })
+    const otherCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `other+${Date.now()}@test.com`,
+        externalId: `ext-other-${Date.now()}`,
+      })
+    ).unwrap()
 
-    const otherPaymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: otherCustomer.id,
-      livemode: true,
-    })
+    const otherPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: otherCustomer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const otherSubscription = await setupSubscription({
       organizationId: organization.id,
@@ -407,11 +417,13 @@ describe('customers.getUsageBalances', () => {
 
   it('returns empty array when customer has no current subscriptions', async () => {
     // Create a new customer without subscriptions
-    const newCustomer = await setupCustomer({
-      organizationId: organization.id,
-      email: `new+${Date.now()}@test.com`,
-      externalId: `ext-new-${Date.now()}`,
-    })
+    const newCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `new+${Date.now()}@test.com`,
+        externalId: `ext-new-${Date.now()}`,
+      })
+    ).unwrap()
 
     const caller = createCaller(organization, apiKeyToken)
     const result = await caller.getUsageBalances({
@@ -485,11 +497,13 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Create a payment method for the canceled subscription customer
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Setup a canceled subscription for the same customer
     const orgSetup = (await setupOrg()).unwrap()
@@ -575,11 +589,13 @@ describe('customers.getUsageBalances', () => {
 
   it('returns balances for explicitly requested canceled subscription', async () => {
     // Create a payment method for the canceled subscription customer
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Setup a canceled subscription for the same customer
     const orgSetup = (await setupOrg()).unwrap()

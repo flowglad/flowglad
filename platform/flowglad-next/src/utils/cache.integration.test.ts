@@ -726,13 +726,17 @@ describeIfRedisKey(
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -803,9 +807,11 @@ describeIfRedisKey(
 
       // Setup test data - customer with no subscriptions
       const { organization } = (await setupOrg()).unwrap()
-      const customerWithNoSubs = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customerWithNoSubs = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Track the cache key for cleanup (livemode is true by default in admin transactions)
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customerWithNoSubs.id}:true`
@@ -840,13 +846,17 @@ describeIfRedisKey(
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,
@@ -921,9 +931,11 @@ describeIfRedisKey(
 
       // Setup test data
       const { organization } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Track keys for cleanup
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
@@ -965,12 +977,16 @@ describeIfRedisKey(
 
       // Setup test data - two customers
       const { organization } = (await setupOrg()).unwrap()
-      const customer1 = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const customer2 = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Track keys for cleanup
       const cacheKey1 = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer1.id}:true`
@@ -1029,9 +1045,11 @@ describeIfRedisKey(
 
       // Setup test data
       const { organization } = (await setupOrg()).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Track keys for cleanup
       const cacheKey = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer.id}:true`
@@ -1069,12 +1087,16 @@ describeIfRedisKey(
 
       // Setup test data - two customers
       const { organization } = (await setupOrg()).unwrap()
-      const customer1 = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const customer2 = await setupCustomer({
-        organizationId: organization.id,
-      })
+      const customer1 = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const customer2 = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
 
       // Track keys for cleanup
       const cacheKey1 = `${RedisKeyNamespace.SubscriptionsByCustomer}:${customer1.id}:true`
@@ -1176,11 +1198,13 @@ describeIfRedisKey(
         currency: CurrencyCode.USD,
       })
 
-      const customer = await setupCustomer({
-        organizationId: orgData.organization.id,
-        email: 'cache-integration-test@test.com',
-        livemode: true,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: orgData.organization.id,
+          email: 'cache-integration-test@test.com',
+          livemode: true,
+        })
+      ).unwrap()
 
       const subscription = await setupSubscription({
         organizationId: orgData.organization.id,
@@ -1290,11 +1314,13 @@ describeIfRedisKey(
         currency: CurrencyCode.USD,
       })
 
-      const customer = await setupCustomer({
-        organizationId: orgData.organization.id,
-        email: 'invalidation-integration-test@test.com',
-        livemode: true,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: orgData.organization.id,
+          email: 'invalidation-integration-test@test.com',
+          livemode: true,
+        })
+      ).unwrap()
 
       const subscription = await setupSubscription({
         organizationId: orgData.organization.id,
@@ -1702,13 +1728,17 @@ describeIfRedisKey(
       const { organization, pricingModel } = (
         await setupOrg()
       ).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const product = await setupProduct({
         organizationId: organization.id,
         pricingModelId: pricingModel.id,

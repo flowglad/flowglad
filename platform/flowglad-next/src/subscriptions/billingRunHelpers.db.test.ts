@@ -191,13 +191,17 @@ describe('billingRunHelpers', async () => {
     product = orgData.product
     staticPrice = orgData.price
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
@@ -496,11 +500,13 @@ describe('billingRunHelpers', async () => {
 
     it('should handle different payment methods correctly', async () => {
       // Create a different payment method
-      const testPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: PaymentMethodType.Card,
-      })
+      const testPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(({ transaction }) =>
         calculateFeeAndTotalAmountDueForBillingPeriod(
@@ -610,10 +616,12 @@ describe('billingRunHelpers', async () => {
     it('should generate invoice number based on customer invoice number base and count', async () => {
       // Create a customer with a specific invoice number base
       const invoiceNumberBase = `TEST-${core.nanoid()}`
-      const testCustomer = await setupCustomer({
-        organizationId: organization.id,
-        invoiceNumberBase,
-      })
+      const testCustomer = (
+        await setupCustomer({
+          organizationId: organization.id,
+          invoiceNumberBase,
+        })
+      ).unwrap()
 
       // Create some existing invoices for this customer
       await setupInvoice({
@@ -851,11 +859,13 @@ describe('billingRunHelpers', async () => {
 
     it('should handle different payment methods correctly', async () => {
       // Create a different payment method
-      const testPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        type: PaymentMethodType.Card,
-      })
+      const testPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const result = await adminTransaction(({ transaction }) =>
         calculateFeeAndTotalAmountDueForBillingPeriod(
@@ -2603,13 +2613,17 @@ describe('billingRunHelpers', async () => {
       price = orgData.price
       pricingModel = orgData.pricingModel
 
-      customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
 
       usageMeter = await setupUsageMeter({
         organizationId: organization.id,
@@ -3448,13 +3462,17 @@ describe('billingRunHelpers', async () => {
       product = orgData.product
       staticPrice = orgData.price
 
-      customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
 
       doNotChargeSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -3592,13 +3610,17 @@ describe('billingRunHelpers', async () => {
       product = orgData.product
       staticPrice = orgData.price
 
-      customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
 
       usageMeter = await setupUsageMeter({
         organizationId: organization.id,

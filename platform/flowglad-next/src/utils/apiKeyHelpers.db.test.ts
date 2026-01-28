@@ -34,9 +34,11 @@ describe('apiKeyHelpers', () => {
     organization = orgSetup.organization
 
     // Create a test customer
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
     // Create a test membership
     const membership = await setupMemberships({

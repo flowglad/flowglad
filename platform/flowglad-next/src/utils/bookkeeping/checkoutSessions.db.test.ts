@@ -182,10 +182,12 @@ describe('Checkout Sessions', () => {
 
   beforeEach(async () => {
     // Set up common test data
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      stripeCustomerId: `cus_${core.nanoid()}`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        stripeCustomerId: `cus_${core.nanoid()}`,
+      })
+    ).unwrap()
 
     await setupPaymentMethod({
       organizationId: organization.id,
@@ -194,15 +196,17 @@ describe('Checkout Sessions', () => {
       type: PaymentMethodType.Card,
     })
 
-    checkoutSession = await setupCheckoutSession({
-      organizationId: organization.id,
-      customerId: customer.id,
-      priceId: price.id,
-      status: CheckoutSessionStatus.Open,
-      type: CheckoutSessionType.Product,
-      quantity: 1,
-      livemode: true,
-    })
+    checkoutSession = (
+      await setupCheckoutSession({
+        organizationId: organization.id,
+        customerId: customer.id,
+        priceId: price.id,
+        status: CheckoutSessionStatus.Open,
+        type: CheckoutSessionType.Product,
+        quantity: 1,
+        livemode: true,
+      })
+    ).unwrap()
 
     purchase = await setupPurchase({
       customerId: customer.id,
@@ -1217,24 +1221,28 @@ describe('editCheckoutSessionBillingAddress', async () => {
       stripeConnectContractType:
         StripeConnectContractType.MerchantOfRecord,
     })
-  const morCustomer = await setupCustomer({
-    organizationId: morOrganization.id,
-  })
+  const morCustomer = (
+    await setupCustomer({
+      organizationId: morOrganization.id,
+    })
+  ).unwrap()
 
   describe('for MOR organizations', () => {
     let morCheckoutSession: CheckoutSession.Record
 
     beforeEach(async () => {
       // Set up MOR checkout session with paymentMethodType but no billingAddress
-      const session = await setupCheckoutSession({
-        organizationId: morOrganization.id,
-        customerId: morCustomer.id,
-        priceId: morPrice.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: false,
-      })
+      const session = (
+        await setupCheckoutSession({
+          organizationId: morOrganization.id,
+          customerId: morCustomer.id,
+          priceId: morPrice.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: false,
+        })
+      ).unwrap()
       // Update to remove billing address for testing
       morCheckoutSession = await adminTransaction(
         async ({ transaction }) => {
@@ -1346,15 +1354,17 @@ describe('editCheckoutSessionBillingAddress', async () => {
 
     it('returns null feeCalculation when session is not fee-ready (missing paymentMethodType)', async () => {
       // Create session and remove paymentMethodType
-      const session = await setupCheckoutSession({
-        organizationId: morOrganization.id,
-        customerId: morCustomer.id,
-        priceId: morPrice.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: false,
-      })
+      const session = (
+        await setupCheckoutSession({
+          organizationId: morOrganization.id,
+          customerId: morCustomer.id,
+          priceId: morPrice.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: false,
+        })
+      ).unwrap()
       // Update to remove paymentMethodType and billingAddress for testing
       const notFeeReadySession = await adminTransaction(
         async ({ transaction }) => {
@@ -1414,19 +1424,23 @@ describe('editCheckoutSessionBillingAddress', async () => {
     })
 
     it('returns null feeCalculation for Platform organizations (no tax calculation)', async () => {
-      const platformCustomer = await setupCustomer({
-        organizationId: platformOrganization.id,
-      })
+      const platformCustomer = (
+        await setupCustomer({
+          organizationId: platformOrganization.id,
+        })
+      ).unwrap()
 
-      const session = await setupCheckoutSession({
-        organizationId: platformOrganization.id,
-        customerId: platformCustomer.id,
-        priceId: platformPrice.id,
-        status: CheckoutSessionStatus.Open,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: false,
-      })
+      const session = (
+        await setupCheckoutSession({
+          organizationId: platformOrganization.id,
+          customerId: platformCustomer.id,
+          priceId: platformPrice.id,
+          status: CheckoutSessionStatus.Open,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: false,
+        })
+      ).unwrap()
       const platformCheckoutSession = await adminTransaction(
         async ({ transaction }) => {
           return updateCheckoutSession(
@@ -1495,15 +1509,17 @@ describe('editCheckoutSessionBillingAddress', async () => {
     })
 
     it("throws 'Checkout session is not open' when checkout session is not open", async () => {
-      const checkoutSession = await setupCheckoutSession({
-        organizationId: morOrganization.id,
-        customerId: morCustomer.id,
-        priceId: morPrice.id,
-        status: CheckoutSessionStatus.Succeeded,
-        type: CheckoutSessionType.Product,
-        quantity: 1,
-        livemode: false,
-      })
+      const checkoutSession = (
+        await setupCheckoutSession({
+          organizationId: morOrganization.id,
+          customerId: morCustomer.id,
+          priceId: morPrice.id,
+          status: CheckoutSessionStatus.Succeeded,
+          type: CheckoutSessionType.Product,
+          quantity: 1,
+          livemode: false,
+        })
+      ).unwrap()
 
       const billingAddress: BillingAddress = {
         address: {

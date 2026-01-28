@@ -64,18 +64,22 @@ describe('pricingModelIdsForEventPayloads', () => {
       active: true,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${Date.now()}@test.com`,
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${Date.now()}@test.com`,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -192,12 +196,14 @@ describe('pricingModelIdsForEventPayloads', () => {
   })
 
   it('returns pricingModelIds for multiple payloads of the same type', async () => {
-    const customer2 = await setupCustomer({
-      organizationId: organization.id,
-      email: `test2+${Date.now()}@test.com`,
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test2+${Date.now()}@test.com`,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const result = await pricingModelIdsForEventPayloads(
@@ -281,18 +287,22 @@ describe('derivePricingModelIdFromEventPayload', () => {
       active: true,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${Date.now()}@test.com`,
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${Date.now()}@test.com`,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -429,18 +439,22 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
       active: true,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${Date.now()}@test.com`,
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${Date.now()}@test.com`,
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -763,12 +777,14 @@ describe('bulkInsertOrDoNothingEventsByHash', () => {
 
   it('inserts events from multiple organizations in a single batch', async () => {
     const org2Data = (await setupOrg()).unwrap()
-    const customer2 = await setupCustomer({
-      organizationId: org2Data.organization.id,
-      email: `test2+${Date.now()}@test.com`,
-      livemode: true,
-      pricingModelId: org2Data.pricingModel.id,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: org2Data.organization.id,
+        email: `test2+${Date.now()}@test.com`,
+        livemode: true,
+        pricingModelId: org2Data.pricingModel.id,
+      })
+    ).unwrap()
 
     const hash1 = `hash_${core.nanoid()}`
     const hash2 = `hash_${core.nanoid()}`

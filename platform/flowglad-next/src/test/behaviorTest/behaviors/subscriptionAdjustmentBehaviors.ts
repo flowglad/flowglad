@@ -288,11 +288,13 @@ export const setupSubscriptionBehavior = defineBehavior({
     )
 
     // Create payment method
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode,
+      })
+    ).unwrap()
 
     // Calculate billing period dates (centered around now)
     const now = new Date()

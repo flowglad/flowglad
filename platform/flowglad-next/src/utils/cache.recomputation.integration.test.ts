@@ -70,13 +70,17 @@ describeIfRedisKey('cache recomputation integration', () => {
 
     // Setup: Create customer, subscription, and subscription item
     const { organization, pricingModel } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     const product = await setupProduct({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
@@ -202,15 +206,19 @@ describeIfRedisKey('cache recomputation integration', () => {
 
     // Setup: Create subscription item in testmode (livemode=false)
     const { organization, pricingModel } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-      livemode: false,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: false,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        livemode: false,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: false,
+      })
+    ).unwrap()
     const product = await setupProduct({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,
@@ -316,13 +324,17 @@ describeIfRedisKey('cache recomputation integration', () => {
 
     // Setup test data
     const { organization, pricingModel } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     const product = await setupProduct({
       organizationId: organization.id,
       pricingModelId: pricingModel.id,

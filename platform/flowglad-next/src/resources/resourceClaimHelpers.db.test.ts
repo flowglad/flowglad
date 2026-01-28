@@ -61,17 +61,21 @@ describe('resourceClaimHelpers', () => {
       name: 'Seats',
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const product = await setupProduct({
       organizationId: organization.id,
@@ -1258,17 +1262,21 @@ describe('expired_at functionality', () => {
       name: 'Seats',
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test-expired@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test-expired@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-      livemode: true,
-    })
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+        livemode: true,
+      })
+    ).unwrap()
 
     const product = await setupProduct({
       organizationId: organization.id,

@@ -46,14 +46,18 @@ describe('selectDistinctSubscriptionProductNames', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     // Setup second organization for isolation tests
     const orgData2 = (await setupOrg()).unwrap()
@@ -222,14 +226,18 @@ describe('selectDistinctSubscriptionProductNames', () => {
       isDefault: false,
     })
 
-    const customer2 = await setupCustomer({
-      organizationId: organization2.id,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization2.id,
+      })
+    ).unwrap()
 
-    const paymentMethod2 = await setupPaymentMethod({
-      organizationId: organization2.id,
-      customerId: customer2.id,
-    })
+    const paymentMethod2 = (
+      await setupPaymentMethod({
+        organizationId: organization2.id,
+        customerId: customer2.id,
+      })
+    ).unwrap()
 
     const subscriptionOrg1 = await setupSubscription({
       organizationId: organization.id,
@@ -299,38 +307,50 @@ describe('selectSubscriptionsTableRowData', () => {
     pricingModel = orgData.pricingModel
 
     // Setup customers with different names for search testing
-    customer1 = await setupCustomer({
-      organizationId: organization.id,
-      name: 'Alice Smith',
-      email: 'alice@example.com',
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        name: 'Alice Smith',
+        email: 'alice@example.com',
+      })
+    ).unwrap()
 
-    customer2 = await setupCustomer({
-      organizationId: organization.id,
-      name: 'Bob Jones',
-      email: 'bob@example.com',
-    })
+    customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        name: 'Bob Jones',
+        email: 'bob@example.com',
+      })
+    ).unwrap()
 
-    customer3 = await setupCustomer({
-      organizationId: organization.id,
-      name: 'Charlie Brown',
-      email: 'charlie@example.com',
-    })
+    customer3 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        name: 'Charlie Brown',
+        email: 'charlie@example.com',
+      })
+    ).unwrap()
 
-    paymentMethod1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer1.id,
-    })
+    paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer1.id,
+      })
+    ).unwrap()
 
-    paymentMethod2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer2.id,
-    })
+    paymentMethod2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer2.id,
+      })
+    ).unwrap()
 
-    paymentMethod3 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer3.id,
-    })
+    paymentMethod3 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer3.id,
+      })
+    ).unwrap()
 
     // Setup products for filter testing
     product1 = await setupProduct({
@@ -397,16 +417,20 @@ describe('selectSubscriptionsTableRowData', () => {
     organization2 = orgData2.organization
     pricingModel2 = orgData2.pricingModel
 
-    customerOtherOrg = await setupCustomer({
-      organizationId: organization2.id,
-      name: 'Alice Smith', // Same name as customer1 to test isolation
-      email: 'alice-other@example.com',
-    })
+    customerOtherOrg = (
+      await setupCustomer({
+        organizationId: organization2.id,
+        name: 'Alice Smith', // Same name as customer1 to test isolation
+        email: 'alice-other@example.com',
+      })
+    ).unwrap()
 
-    paymentMethodOtherOrg = await setupPaymentMethod({
-      organizationId: organization2.id,
-      customerId: customerOtherOrg.id,
-    })
+    paymentMethodOtherOrg = (
+      await setupPaymentMethod({
+        organizationId: organization2.id,
+        customerId: customerOtherOrg.id,
+      })
+    ).unwrap()
 
     productOtherOrg = await setupProduct({
       organizationId: organization2.id,
@@ -699,16 +723,20 @@ describe('selectSubscriptionsTableRowData', () => {
   describe('combined search and filter functionality', () => {
     it('should combine search and productName filter (AND semantics) with pagination', async () => {
       // Create another subscription with Premium Plan and customer name containing "bob"
-      const customer4 = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Bobby Johnson',
-        email: 'bobby@example.com',
-      })
+      const customer4 = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Bobby Johnson',
+          email: 'bobby@example.com',
+        })
+      ).unwrap()
 
-      const paymentMethod4 = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer4.id,
-      })
+      const paymentMethod4 = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer4.id,
+        })
+      ).unwrap()
 
       const subscription4 = await setupSubscription({
         organizationId: organization.id,
@@ -796,15 +824,19 @@ describe('selectSubscriptionsTableRowData', () => {
 
     beforeEach(async () => {
       // Create free plan subscriptions
-      const customerFree1 = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Free User 1',
-        email: 'free1@example.com',
-      })
-      const paymentMethodFree1 = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerFree1.id,
-      })
+      const customerFree1 = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Free User 1',
+          email: 'free1@example.com',
+        })
+      ).unwrap()
+      const paymentMethodFree1 = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerFree1.id,
+        })
+      ).unwrap()
       freeSubscription1 = await setupSubscription({
         organizationId: organization.id,
         customerId: customerFree1.id,
@@ -814,15 +846,19 @@ describe('selectSubscriptionsTableRowData', () => {
         isFreePlan: true,
       })
 
-      const customerFree2 = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Free User 2',
-        email: 'free2@example.com',
-      })
-      const paymentMethodFree2 = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerFree2.id,
-      })
+      const customerFree2 = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Free User 2',
+          email: 'free2@example.com',
+        })
+      ).unwrap()
+      const paymentMethodFree2 = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerFree2.id,
+        })
+      ).unwrap()
       freeSubscription2 = await setupSubscription({
         organizationId: organization.id,
         customerId: customerFree2.id,
@@ -833,15 +869,19 @@ describe('selectSubscriptionsTableRowData', () => {
       })
 
       // Create paid plan subscriptions
-      const customerPaid1 = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Paid User 1',
-        email: 'paid1@example.com',
-      })
-      const paymentMethodPaid1 = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerPaid1.id,
-      })
+      const customerPaid1 = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Paid User 1',
+          email: 'paid1@example.com',
+        })
+      ).unwrap()
+      const paymentMethodPaid1 = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerPaid1.id,
+        })
+      ).unwrap()
       paidSubscription1 = await setupSubscription({
         organizationId: organization.id,
         customerId: customerPaid1.id,
@@ -851,15 +891,19 @@ describe('selectSubscriptionsTableRowData', () => {
         isFreePlan: false,
       })
 
-      const customerPaid2 = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Paid User 2',
-        email: 'paid2@example.com',
-      })
-      const paymentMethodPaid2 = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerPaid2.id,
-      })
+      const customerPaid2 = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Paid User 2',
+          email: 'paid2@example.com',
+        })
+      ).unwrap()
+      const paymentMethodPaid2 = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerPaid2.id,
+        })
+      ).unwrap()
       paidSubscription2 = await setupSubscription({
         organizationId: organization.id,
         customerId: customerPaid2.id,
@@ -964,15 +1008,19 @@ describe('selectSubscriptionsTableRowData', () => {
 
     beforeEach(async () => {
       // Create subscriptions for combined filter tests
-      const customerA = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Customer A',
-        email: 'a@example.com',
-      })
-      const paymentMethodA = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerA.id,
-      })
+      const customerA = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Customer A',
+          email: 'a@example.com',
+        })
+      ).unwrap()
+      const paymentMethodA = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerA.id,
+        })
+      ).unwrap()
       freeSubscriptionPremium = await setupSubscription({
         organizationId: organization.id,
         customerId: customerA.id,
@@ -982,15 +1030,19 @@ describe('selectSubscriptionsTableRowData', () => {
         isFreePlan: true,
       })
 
-      const customerB = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Customer B',
-        email: 'b@example.com',
-      })
-      const paymentMethodB = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerB.id,
-      })
+      const customerB = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Customer B',
+          email: 'b@example.com',
+        })
+      ).unwrap()
+      const paymentMethodB = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerB.id,
+        })
+      ).unwrap()
       paidSubscriptionPremium = await setupSubscription({
         organizationId: organization.id,
         customerId: customerB.id,
@@ -1000,15 +1052,19 @@ describe('selectSubscriptionsTableRowData', () => {
         isFreePlan: false,
       })
 
-      const customerC = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Customer C',
-        email: 'c@example.com',
-      })
-      const paymentMethodC = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerC.id,
-      })
+      const customerC = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Customer C',
+          email: 'c@example.com',
+        })
+      ).unwrap()
+      const paymentMethodC = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerC.id,
+        })
+      ).unwrap()
       freeSubscriptionBasic = await setupSubscription({
         organizationId: organization.id,
         customerId: customerC.id,
@@ -1018,15 +1074,19 @@ describe('selectSubscriptionsTableRowData', () => {
         isFreePlan: true,
       })
 
-      const customerD = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Customer D',
-        email: 'd@example.com',
-      })
-      const paymentMethodD = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerD.id,
-      })
+      const customerD = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Customer D',
+          email: 'd@example.com',
+        })
+      ).unwrap()
+      const paymentMethodD = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerD.id,
+        })
+      ).unwrap()
       paidSubscriptionBasic = await setupSubscription({
         organizationId: organization.id,
         customerId: customerD.id,
@@ -1037,15 +1097,19 @@ describe('selectSubscriptionsTableRowData', () => {
       })
 
       // Create subscriptions for status + isFreePlan combined test
-      const customerE = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Customer E',
-        email: 'e@example.com',
-      })
-      const paymentMethodE = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerE.id,
-      })
+      const customerE = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Customer E',
+          email: 'e@example.com',
+        })
+      ).unwrap()
+      const paymentMethodE = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerE.id,
+        })
+      ).unwrap()
       activeFreeSub = await setupSubscription({
         organizationId: organization.id,
         customerId: customerE.id,
@@ -1055,15 +1119,19 @@ describe('selectSubscriptionsTableRowData', () => {
         isFreePlan: true,
       })
 
-      const customerF = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Customer F',
-        email: 'f@example.com',
-      })
-      const paymentMethodF = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerF.id,
-      })
+      const customerF = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Customer F',
+          email: 'f@example.com',
+        })
+      ).unwrap()
+      const paymentMethodF = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerF.id,
+        })
+      ).unwrap()
       canceledFreeSub = await setupSubscription({
         organizationId: organization.id,
         customerId: customerF.id,
@@ -1073,15 +1141,19 @@ describe('selectSubscriptionsTableRowData', () => {
         isFreePlan: true,
       })
 
-      const customerG = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Customer G',
-        email: 'g@example.com',
-      })
-      const paymentMethodG = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerG.id,
-      })
+      const customerG = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Customer G',
+          email: 'g@example.com',
+        })
+      ).unwrap()
+      const paymentMethodG = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerG.id,
+        })
+      ).unwrap()
       activePaidSub = await setupSubscription({
         organizationId: organization.id,
         customerId: customerG.id,
@@ -1091,15 +1163,19 @@ describe('selectSubscriptionsTableRowData', () => {
         isFreePlan: false,
       })
 
-      const customerH = await setupCustomer({
-        organizationId: organization.id,
-        name: 'Customer H',
-        email: 'h@example.com',
-      })
-      const paymentMethodH = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customerH.id,
-      })
+      const customerH = (
+        await setupCustomer({
+          organizationId: organization.id,
+          name: 'Customer H',
+          email: 'h@example.com',
+        })
+      ).unwrap()
+      const paymentMethodH = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customerH.id,
+        })
+      ).unwrap()
       canceledPaidSub = await setupSubscription({
         organizationId: organization.id,
         customerId: customerH.id,
@@ -1258,16 +1334,20 @@ describe('selectSubscriptionsTableRowData', () => {
         usageMeterId: usageMeter.id,
       })
 
-      const usageCustomer = await setupCustomer({
-        organizationId: org.id,
-        name: 'Usage Customer',
-        email: 'usage@example.com',
-      })
+      const usageCustomer = (
+        await setupCustomer({
+          organizationId: org.id,
+          name: 'Usage Customer',
+          email: 'usage@example.com',
+        })
+      ).unwrap()
 
-      const usagePaymentMethod = await setupPaymentMethod({
-        organizationId: org.id,
-        customerId: usageCustomer.id,
-      })
+      const usagePaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: org.id,
+          customerId: usageCustomer.id,
+        })
+      ).unwrap()
 
       // Create subscription with usage price
       const usageSubscription = await setupSubscription({
@@ -1320,14 +1400,18 @@ describe('insertSubscription', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     product = await setupProduct({
       organizationId: organization.id,
@@ -1443,14 +1527,18 @@ describe('bulkInsertOrDoNothingSubscriptionsByExternalId', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     product = await setupProduct({
       organizationId: organization.id,
@@ -1578,14 +1666,18 @@ describe('derivePricingModelIdFromSubscription', () => {
     organization = orgData.organization
     pricingModel = orgData.pricingModel
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
-    paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     product = await setupProduct({
       organizationId: organization.id,

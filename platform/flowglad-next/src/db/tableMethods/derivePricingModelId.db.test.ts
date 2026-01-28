@@ -209,11 +209,13 @@ describe('derivePricingModelIdFromUsageCredit', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     usageMeter = await setupUsageMeter({
       organizationId: organization.id,
@@ -291,12 +293,14 @@ describe('derivePricingModelIdForCheckoutSession', () => {
       active: true,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     purchase = await setupPurchase({
       organizationId: organization.id,
@@ -465,12 +469,14 @@ describe('derivePricingModelIdFromPayment', () => {
       active: true,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     invoice = await setupInvoice({
       organizationId: organization.id,
@@ -538,12 +544,14 @@ describe('insertCheckoutSession with derived pricingModelId', () => {
       active: true,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
   })
 
   it('should automatically derive and set pricingModelId when inserting Product checkout session', async () => {
@@ -611,12 +619,14 @@ describe('insertRefund with derived pricingModelId', () => {
       active: true,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-      pricingModelId: pricingModel.id,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+        pricingModelId: pricingModel.id,
+      })
+    ).unwrap()
 
     invoice = await setupInvoice({
       organizationId: organization.id,

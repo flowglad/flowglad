@@ -99,10 +99,12 @@ describe('clonePricingModelTransaction', () => {
       unitPrice: 1000,
     })
 
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: false,
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: false,
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
@@ -1928,10 +1930,12 @@ describe('createPriceTransaction', () => {
     organization = orgSetup.organization
     pricingModel = orgSetup.pricingModel
     defaultProduct = orgSetup.product
-    const userApiKey = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKey = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     userId = userApiKey.user.id
   })
 
@@ -2129,10 +2133,12 @@ describe('createProductTransaction', () => {
       livemode: false,
     })
 
-    const userApiKeyOrg1 = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg1 = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg1.apiKey.token) {
       throw new Error('API key token not found after setup for org1')
     }
@@ -2632,10 +2638,12 @@ describe('editProductTransaction - Feature Updates', () => {
     organization = orgSetup.organization
     product = orgSetup.product
 
-    const userApiKeyOrg = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const userApiKeyOrg = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     if (!userApiKeyOrg.apiKey.token) {
       throw new Error('API key token not found after setup')
     }
@@ -2932,10 +2940,12 @@ describe('editProductTransaction - Price Updates', () => {
     regularPriceId = regularSetup.price.id
 
     // Set up API key for authenticated transaction
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     if (!apiKey.token) {
       throw new Error('API key token not found')
     }
@@ -3245,10 +3255,12 @@ describe('editProductTransaction - Product Slug to Price Slug Sync', () => {
     regularPriceId = regularSetup.price.id
 
     // Set up API key for authenticated transaction
-    const { apiKey } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     if (!apiKey.token) {
       throw new Error('API key token not found')
     }

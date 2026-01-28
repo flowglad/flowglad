@@ -2388,11 +2388,13 @@ describe('updatePurchaseStatusToReflectLatestPayment', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     purchase = await setupPurchase({
       customerId: customer.id,
@@ -2597,11 +2599,13 @@ describe('updateInvoiceStatusToReflectLatestPayment', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     invoice = await setupInvoice({
       organizationId: organization.id,

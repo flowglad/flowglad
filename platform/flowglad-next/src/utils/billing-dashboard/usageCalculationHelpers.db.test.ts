@@ -66,13 +66,17 @@ describe('calculateUsageVolumeByInterval', () => {
       const { organization, pricingModel, price } = (
         await setupOrg()
       ).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -165,13 +169,17 @@ describe('calculateUsageVolumeByInterval', () => {
       const { organization, pricingModel, price } = (
         await setupOrg()
       ).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -249,13 +257,17 @@ describe('calculateUsageVolumeByInterval', () => {
       const { organization, pricingModel, price } = (
         await setupOrg()
       ).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -332,13 +344,17 @@ describe('calculateUsageVolumeByInterval', () => {
       const { organization, pricingModel, price } = (
         await setupOrg()
       ).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -424,13 +440,17 @@ describe('calculateUsageVolumeByInterval', () => {
       const { organization, pricingModel, price } = (
         await setupOrg()
       ).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -601,13 +621,17 @@ describe('calculateUsageVolumeByInterval', () => {
         pricingModelId: pm1.id,
       })
 
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -671,13 +695,17 @@ describe('calculateUsageVolumeByInterval', () => {
       const { organization, pricingModel, price } = (
         await setupOrg()
       ).unwrap()
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       const subscription = await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -743,13 +771,17 @@ describe('getUsageMetersWithEvents', () => {
     const { organization, pricingModel, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     const subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
@@ -886,13 +918,17 @@ describe('getUsageMetersWithEvents', () => {
       name: 'Second Pricing Model',
     })
 
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     const subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
@@ -973,13 +1009,17 @@ describe('getUsageMetersWithEvents', () => {
     const { organization, pricingModel, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     const subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
@@ -1034,13 +1074,17 @@ describe('getUsageMetersWithEvents', () => {
     const { organization, pricingModel, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     const subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,

@@ -87,45 +87,57 @@ describe('Analytics Upgrade Tracking', () => {
     })
 
     // Create multiple customers for testing
-    customer1 = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer1+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer1+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    customer2 = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer2+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer2+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
-    customer3 = await setupCustomer({
-      organizationId: organization.id,
-      email: `customer3+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer3 = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `customer3+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     // Create payment methods for customers
-    paymentMethod1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer1.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethod1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer1.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
-    paymentMethod2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer2.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethod2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer2.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
 
-    paymentMethod3 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer3.id,
-      type: PaymentMethodType.Card,
-      livemode: true,
-    })
+    paymentMethod3 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer3.id,
+        type: PaymentMethodType.Card,
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   describe('subscriberCalculationHelpers', () => {
@@ -225,31 +237,39 @@ describe('Analytics Upgrade Tracking', () => {
           const previousMonthTime = previousMonth.getTime()
 
           // Create additional customers for testing
-          const customer4 = await setupCustomer({
-            organizationId: organization.id,
-            email: `customer4+${core.nanoid()}@test.com`,
-            livemode: true,
-          })
+          const customer4 = (
+            await setupCustomer({
+              organizationId: organization.id,
+              email: `customer4+${core.nanoid()}@test.com`,
+              livemode: true,
+            })
+          ).unwrap()
 
-          const customer5 = await setupCustomer({
-            organizationId: organization.id,
-            email: `customer5+${core.nanoid()}@test.com`,
-            livemode: true,
-          })
+          const customer5 = (
+            await setupCustomer({
+              organizationId: organization.id,
+              email: `customer5+${core.nanoid()}@test.com`,
+              livemode: true,
+            })
+          ).unwrap()
 
-          const paymentMethod4 = await setupPaymentMethod({
-            organizationId: organization.id,
-            customerId: customer4.id,
-            type: PaymentMethodType.Card,
-            livemode: true,
-          })
+          const paymentMethod4 = (
+            await setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customer4.id,
+              type: PaymentMethodType.Card,
+              livemode: true,
+            })
+          ).unwrap()
 
-          const paymentMethod5 = await setupPaymentMethod({
-            organizationId: organization.id,
-            customerId: customer5.id,
-            type: PaymentMethodType.Card,
-            livemode: true,
-          })
+          const paymentMethod5 = (
+            await setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customer5.id,
+              type: PaymentMethodType.Card,
+              livemode: true,
+            })
+          ).unwrap()
 
           // In current month: create 2 new free subscriptions
           await setupSubscription({
@@ -315,18 +335,22 @@ describe('Analytics Upgrade Tracking', () => {
           const currentMonthTime = currentMonth.getTime()
 
           // Create additional customers for testing
-          const customer4 = await setupCustomer({
-            organizationId: organization.id,
-            email: `customer4+${core.nanoid()}@test.com`,
-            livemode: true,
-          })
+          const customer4 = (
+            await setupCustomer({
+              organizationId: organization.id,
+              email: `customer4+${core.nanoid()}@test.com`,
+              livemode: true,
+            })
+          ).unwrap()
 
-          const paymentMethod4 = await setupPaymentMethod({
-            organizationId: organization.id,
-            customerId: customer4.id,
-            type: PaymentMethodType.Card,
-            livemode: true,
-          })
+          const paymentMethod4 = (
+            await setupPaymentMethod({
+              organizationId: organization.id,
+              customerId: customer4.id,
+              type: PaymentMethodType.Card,
+              livemode: true,
+            })
+          ).unwrap()
 
           // Create 4 subscriptions in previous month
           const sub1 = await setupSubscription({
@@ -825,17 +849,21 @@ describe('Analytics Upgrade Tracking', () => {
           // Create additional customers
           const extraCustomers = await Promise.all(
             Array.from({ length: 4 }, async (_, i) => {
-              const customer = await setupCustomer({
-                organizationId: organization.id,
-                email: `extra${i}+${core.nanoid()}@test.com`,
-                livemode: true,
-              })
-              const paymentMethod = await setupPaymentMethod({
-                organizationId: organization.id,
-                customerId: customer.id,
-                type: PaymentMethodType.Card,
-                livemode: true,
-              })
+              const customer = (
+                await setupCustomer({
+                  organizationId: organization.id,
+                  email: `extra${i}+${core.nanoid()}@test.com`,
+                  livemode: true,
+                })
+              ).unwrap()
+              const paymentMethod = (
+                await setupPaymentMethod({
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  type: PaymentMethodType.Card,
+                  livemode: true,
+                })
+              ).unwrap()
               return { customer, paymentMethod }
             })
           )
@@ -1897,18 +1925,22 @@ describe('Analytics Upgrade Tracking', () => {
           // Create 10 free subscriptions within date range
           const freeSubs = []
           for (let i = 0; i < 10; i++) {
-            const customer = await setupCustomer({
-              organizationId: organization.id,
-              email: `test${i}+${core.nanoid()}@test.com`,
-              livemode: true,
-            })
+            const customer = (
+              await setupCustomer({
+                organizationId: organization.id,
+                email: `test${i}+${core.nanoid()}@test.com`,
+                livemode: true,
+              })
+            ).unwrap()
 
-            const paymentMethod = await setupPaymentMethod({
-              organizationId: organization.id,
-              customerId: customer.id,
-              type: PaymentMethodType.Card,
-              livemode: true,
-            })
+            const paymentMethod = (
+              await setupPaymentMethod({
+                organizationId: organization.id,
+                customerId: customer.id,
+                type: PaymentMethodType.Card,
+                livemode: true,
+              })
+            ).unwrap()
 
             const sub = await setupSubscription({
               organizationId: organization.id,
@@ -2006,17 +2038,21 @@ describe('Analytics Upgrade Tracking', () => {
           // Create additional customers
           const customers = await Promise.all(
             Array.from({ length: 10 }, async (_, i) => {
-              const customer = await setupCustomer({
-                organizationId: organization.id,
-                email: `test${i}+${core.nanoid()}@test.com`,
-                livemode: true,
-              })
-              const paymentMethod = await setupPaymentMethod({
-                organizationId: organization.id,
-                customerId: customer.id,
-                type: PaymentMethodType.Card,
-                livemode: true,
-              })
+              const customer = (
+                await setupCustomer({
+                  organizationId: organization.id,
+                  email: `test${i}+${core.nanoid()}@test.com`,
+                  livemode: true,
+                })
+              ).unwrap()
+              const paymentMethod = (
+                await setupPaymentMethod({
+                  organizationId: organization.id,
+                  customerId: customer.id,
+                  type: PaymentMethodType.Card,
+                  livemode: true,
+                })
+              ).unwrap()
               return { customer, paymentMethod }
             })
           )
@@ -2788,20 +2824,28 @@ describe('Analytics Upgrade Tracking', () => {
 
           const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
-          const customer1 = await setupCustomer({
-            organizationId: organization.id,
-          })
-          const customer2 = await setupCustomer({
-            organizationId: organization.id,
-          })
-          const paymentMethod1 = await setupPaymentMethod({
-            customerId: customer1.id,
-            organizationId: organization.id,
-          })
-          const paymentMethod2 = await setupPaymentMethod({
-            customerId: customer2.id,
-            organizationId: organization.id,
-          })
+          const customer1 = (
+            await setupCustomer({
+              organizationId: organization.id,
+            })
+          ).unwrap()
+          const customer2 = (
+            await setupCustomer({
+              organizationId: organization.id,
+            })
+          ).unwrap()
+          const paymentMethod1 = (
+            await setupPaymentMethod({
+              customerId: customer1.id,
+              organizationId: organization.id,
+            })
+          ).unwrap()
+          const paymentMethod2 = (
+            await setupPaymentMethod({
+              customerId: customer2.id,
+              organizationId: organization.id,
+            })
+          ).unwrap()
 
           const freePrice = await setupPrice({
             unitPrice: 0,
@@ -2876,14 +2920,18 @@ describe('Analytics Upgrade Tracking', () => {
 
           const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
-          const customer = await setupCustomer({
-            organizationId: organization.id,
-          })
-          const paymentMethod = await setupPaymentMethod({
-            customerId: customer.id,
-            type: PaymentMethodType.Card,
-            organizationId: organization.id,
-          })
+          const customer = (
+            await setupCustomer({
+              organizationId: organization.id,
+            })
+          ).unwrap()
+          const paymentMethod = (
+            await setupPaymentMethod({
+              customerId: customer.id,
+              type: PaymentMethodType.Card,
+              organizationId: organization.id,
+            })
+          ).unwrap()
 
           const freePrice = await setupPrice({
             unitPrice: 0,
@@ -2950,13 +2998,17 @@ describe('Analytics Upgrade Tracking', () => {
 
           const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
-          const customer = await setupCustomer({
-            organizationId: organization.id,
-          })
-          const paymentMethod = await setupPaymentMethod({
-            customerId: customer.id,
-            organizationId: organization.id,
-          })
+          const customer = (
+            await setupCustomer({
+              organizationId: organization.id,
+            })
+          ).unwrap()
+          const paymentMethod = (
+            await setupPaymentMethod({
+              customerId: customer.id,
+              organizationId: organization.id,
+            })
+          ).unwrap()
 
           const freePrice1 = await setupPrice({
             unitPrice: 0,
@@ -3040,21 +3092,29 @@ describe('Analytics Upgrade Tracking', () => {
           const { organization: org1, product: product1 } = orgData1
           const { organization: org2, product: product2 } = orgData2
 
-          const customer1 = await setupCustomer({
-            organizationId: org1.id,
-          })
-          const customer2 = await setupCustomer({
-            organizationId: org2.id,
-          })
+          const customer1 = (
+            await setupCustomer({
+              organizationId: org1.id,
+            })
+          ).unwrap()
+          const customer2 = (
+            await setupCustomer({
+              organizationId: org2.id,
+            })
+          ).unwrap()
 
-          const paymentMethod1 = await setupPaymentMethod({
-            customerId: customer1.id,
-            organizationId: org1.id,
-          })
-          const paymentMethod2 = await setupPaymentMethod({
-            customerId: customer2.id,
-            organizationId: org2.id,
-          })
+          const paymentMethod1 = (
+            await setupPaymentMethod({
+              customerId: customer1.id,
+              organizationId: org1.id,
+            })
+          ).unwrap()
+          const paymentMethod2 = (
+            await setupPaymentMethod({
+              customerId: customer2.id,
+              organizationId: org2.id,
+            })
+          ).unwrap()
 
           const freePrice1 = await setupPrice({
             unitPrice: 0,
@@ -3238,13 +3298,17 @@ describe('Analytics Upgrade Tracking', () => {
 
           const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
-          const customer = await setupCustomer({
-            organizationId: organization.id,
-          })
-          const paymentMethod = await setupPaymentMethod({
-            customerId: customer.id,
-            organizationId: organization.id,
-          })
+          const customer = (
+            await setupCustomer({
+              organizationId: organization.id,
+            })
+          ).unwrap()
+          const paymentMethod = (
+            await setupPaymentMethod({
+              customerId: customer.id,
+              organizationId: organization.id,
+            })
+          ).unwrap()
 
           const freePrice = await setupPrice({
             unitPrice: 0,
@@ -3333,13 +3397,17 @@ describe('Analytics Upgrade Tracking', () => {
 
           const orgData = (await setupOrg()).unwrap()
           const { organization, product } = orgData
-          const customer = await setupCustomer({
-            organizationId: organization.id,
-          })
-          const paymentMethod = await setupPaymentMethod({
-            customerId: customer.id,
-            organizationId: organization.id,
-          })
+          const customer = (
+            await setupCustomer({
+              organizationId: organization.id,
+            })
+          ).unwrap()
+          const paymentMethod = (
+            await setupPaymentMethod({
+              customerId: customer.id,
+              organizationId: organization.id,
+            })
+          ).unwrap()
 
           const freePrice = await setupPrice({
             unitPrice: 0,

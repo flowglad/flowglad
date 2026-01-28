@@ -62,13 +62,17 @@ describe('calculateActiveSubscribersByMonth', () => {
 
   it('should correctly count a single active subscription spanning the entire period', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
@@ -118,13 +122,17 @@ describe('calculateActiveSubscribersByMonth', () => {
 
     // Create three subscriptions with different lifecycles
     // Subscription 1: Active throughout
-    const customer1 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer1.id,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer1.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer1.id,
@@ -135,13 +143,17 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     // Subscription 2: Starts in February
-    const customer2 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer2.id,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer2.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer2.id,
@@ -152,13 +164,17 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     // Subscription 3: Canceled in February
-    const customer3 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm3 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer3.id,
-    })
+    const customer3 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm3 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer3.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer3.id,
@@ -220,13 +236,17 @@ describe('calculateActiveSubscribersByMonth', () => {
 
   it('should correctly count subscriptions that start before the period and end after it', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-02-01T05:00:00.000Z')
     const endDate = new Date('2023-02-28T05:00:00.000Z')
@@ -262,13 +282,17 @@ describe('calculateActiveSubscribersByMonth', () => {
 
   it('should correctly count subscriptions that start during the period and remain active', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
@@ -312,13 +336,17 @@ describe('calculateActiveSubscribersByMonth', () => {
 
   it('should correctly count subscriptions that started before the period and ended during it', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const startDate = new Date('2023-01-01T05:00:00.000Z')
     const endDate = new Date('2023-03-31T05:00:00.000Z')
@@ -366,13 +394,17 @@ describe('calculateActiveSubscribersByMonth', () => {
     const endDate = new Date('2023-03-31T05:00:00.000Z')
 
     // Subscription starting on the first day of a month
-    const customer1 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer1.id,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer1.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer1.id,
@@ -383,13 +415,17 @@ describe('calculateActiveSubscribersByMonth', () => {
     })
 
     // Subscription ending on the last day of a month
-    const customer2 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer2.id,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer2.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer2.id,
@@ -430,13 +466,17 @@ describe('calculateActiveSubscribersByMonth', () => {
 describe('calculateSubscriberBreakdown', () => {
   it('should handle no subscriber changes between months', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
@@ -467,13 +507,17 @@ describe('calculateSubscriberBreakdown', () => {
 
   it('should handle only new subscribers in the current month', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
@@ -506,13 +550,17 @@ describe('calculateSubscriberBreakdown', () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
@@ -545,20 +593,28 @@ describe('calculateSubscriberBreakdown', () => {
     const { organization, product, price } = (
       await setupOrg()
     ).unwrap()
-    const customer1 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer1.id,
-    })
-    const customer2 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer2.id,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer1.id,
+      })
+    ).unwrap()
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer2.id,
+      })
+    ).unwrap()
 
     const currentMonth = new Date('2023-02-01T05:00:00.000Z')
     const previousMonth = new Date('2023-01-01T05:00:00.000Z')
@@ -606,13 +662,17 @@ describe('calculateSubscriberBreakdown', () => {
 
     // Create two new subscriptions that started in February
     for (let i = 1; i <= 2; i++) {
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -627,13 +687,17 @@ describe('calculateSubscriberBreakdown', () => {
 
     // Create two subscriptions that were active in January but canceled in February
     for (let i = 1; i <= 2; i++) {
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -670,13 +734,17 @@ describe('calculateSubscriberBreakdown', () => {
     // Create three subscriptions that started in February
     const startDates = ['2023-02-10', '2023-02-20', '2023-02-25']
     for (const startDate of startDates) {
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -688,13 +756,17 @@ describe('calculateSubscriberBreakdown', () => {
     }
 
     // Create one subscription that was active in January but canceled in February
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
@@ -727,13 +799,17 @@ describe('calculateSubscriberBreakdown', () => {
     ).unwrap()
 
     // Create one subscription that started in February
-    const newCustomer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const newPm = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: newCustomer.id,
-    })
+    const newCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const newPm = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: newCustomer.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: newCustomer.id,
@@ -746,13 +822,17 @@ describe('calculateSubscriberBreakdown', () => {
     // Create three subscriptions that were active in January but canceled in February
     const cancelDates = ['2023-02-10', '2023-02-20', '2023-02-25']
     for (const cancelDate of cancelDates) {
-      const customer = await setupCustomer({
-        organizationId: organization.id,
-      })
-      const paymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-      })
+      const customer = (
+        await setupCustomer({
+          organizationId: organization.id,
+        })
+      ).unwrap()
+      const paymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+        })
+      ).unwrap()
       await setupSubscription({
         organizationId: organization.id,
         customerId: customer.id,
@@ -805,13 +885,17 @@ describe('calculateSubscriberBreakdown', () => {
     ).unwrap()
 
     // Create a subscription that churned on the first day of February
-    const customer1 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer1.id,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer1.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer1.id,
@@ -822,13 +906,17 @@ describe('calculateSubscriberBreakdown', () => {
     })
 
     // Create a subscription that churned on the last day of February
-    const customer2 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer2.id,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer2.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer2.id,
@@ -856,13 +944,17 @@ describe('calculateSubscriberBreakdown', () => {
 describe('getCurrentActiveSubscribers', () => {
   it('should return the current number of active subscribers', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     // Create an active subscription
     await setupSubscription({
@@ -905,13 +997,17 @@ describe('getCurrentActiveSubscribers', () => {
 
   it('should count subscriptions canceled during the month as active for that month', async () => {
     const { organization, price } = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
 
     // Create a subscription canceled during February - it should still count for February
     await setupSubscription({
@@ -945,13 +1041,17 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
     // Create 2 subscriptions
-    const customer1 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer1.id,
-    })
+    const customer1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer1.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer1.id,
@@ -962,13 +1062,17 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
       status: SubscriptionStatus.Active,
     })
 
-    const customer2 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer2.id,
-    })
+    const customer2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer2.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer2.id,
@@ -1025,13 +1129,17 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
     // Create 2 subscriptions for Product A
-    const customerA1 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pmA1 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customerA1.id,
-    })
+    const customerA1 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pmA1 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerA1.id,
+      })
+    ).unwrap()
     const subscriptionA1 = await setupSubscription({
       organizationId: organization.id,
       customerId: customerA1.id,
@@ -1049,13 +1157,17 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
       priceId: priceA.id,
     })
 
-    const customerA2 = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pmA2 = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customerA2.id,
-    })
+    const customerA2 = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pmA2 = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerA2.id,
+      })
+    ).unwrap()
     const subscriptionA2 = await setupSubscription({
       organizationId: organization.id,
       customerId: customerA2.id,
@@ -1074,13 +1186,17 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     })
 
     // Create 1 subscription for Product B
-    const customerB = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pmB = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customerB.id,
-    })
+    const customerB = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pmB = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customerB.id,
+      })
+    ).unwrap()
     const subscriptionB = await setupSubscription({
       organizationId: organization.id,
       customerId: customerB.id,
@@ -1171,13 +1287,17 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
     // Create subscription for Product A only
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
@@ -1215,13 +1335,17 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
     // Create subscription with multiple subscription items for the same product
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     const subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
@@ -1289,13 +1413,17 @@ describe('calculateActiveSubscribersByMonth with productId filter', () => {
     const endDate = new Date('2023-01-31T05:00:00.000Z')
 
     // Create subscription initially with Product A
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
-    const pm = await setupPaymentMethod({
-      organizationId: organization.id,
-      customerId: customer.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
+    const pm = (
+      await setupPaymentMethod({
+        organizationId: organization.id,
+        customerId: customer.id,
+      })
+    ).unwrap()
     const subscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,

@@ -45,10 +45,12 @@ describe('innerInviteUserToOrganizationHandler', () => {
     const { organization: org } = (await setupOrg()).unwrap()
     organization = org
 
-    const { user } = await setupUserAndApiKey({
-      organizationId: organization.id,
-      livemode: true,
-    })
+    const { user } = (
+      await setupUserAndApiKey({
+        organizationId: organization.id,
+        livemode: true,
+      })
+    ).unwrap()
     inviterUser = user
 
     focusedMembership = {
@@ -151,10 +153,12 @@ describe('innerInviteUserToOrganizationHandler', () => {
   describe('Existing User Invitation', () => {
     it('should add an existing user to the organization and send invitation email', async () => {
       const { organization: otherOrg } = (await setupOrg()).unwrap()
-      const { user: existingUser } = await setupUserAndApiKey({
-        organizationId: otherOrg.id,
-        livemode: true,
-      })
+      const { user: existingUser } = (
+        await setupUserAndApiKey({
+          organizationId: otherOrg.id,
+          livemode: true,
+        })
+      ).unwrap()
       const input = { email: existingUser.email! }
 
       const result = await innerInviteUserToOrganizationHandler(
@@ -187,10 +191,12 @@ describe('innerInviteUserToOrganizationHandler', () => {
     })
 
     it('should not send email if the existing user is already an active member of the organization', async () => {
-      const { user: existingUser } = await setupUserAndApiKey({
-        organizationId: organization.id,
-        livemode: true,
-      })
+      const { user: existingUser } = (
+        await setupUserAndApiKey({
+          organizationId: organization.id,
+          livemode: true,
+        })
+      ).unwrap()
       const input = { email: existingUser.email! }
 
       await adminTransaction(async ({ transaction }) => {
@@ -230,11 +236,12 @@ describe('innerInviteUserToOrganizationHandler', () => {
   describe('Membership Reactivation', () => {
     it('should reactivate a previously removed member and send invitation email', async () => {
       // Setup: create a user with a deactivated membership
-      const { user: removedUser, membership } =
+      const { user: removedUser, membership } = (
         await setupUserAndApiKey({
           organizationId: organization.id,
           livemode: true,
         })
+      ).unwrap()
 
       // Deactivate the membership
       await adminTransaction(async ({ transaction }) => {
@@ -290,11 +297,12 @@ describe('innerInviteUserToOrganizationHandler', () => {
     it('should reactivate and send email even when inviter has no name', async () => {
       const inviterUserWithoutName = { ...inviterUser, name: null }
 
-      const { user: removedUser, membership } =
+      const { user: removedUser, membership } = (
         await setupUserAndApiKey({
           organizationId: organization.id,
           livemode: true,
         })
+      ).unwrap()
 
       await adminTransaction(async ({ transaction }) => {
         await updateMembership(

@@ -45,11 +45,13 @@ describe('insertPurchase', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should successfully insert purchase and derive pricingModelId from price', async () => {
@@ -172,11 +174,13 @@ describe('bulkInsertPurchases', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should bulk insert purchases and derive pricingModelId for each', async () => {
@@ -256,11 +260,13 @@ describe('upsertPurchaseById', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should upsert purchase and derive pricingModelId from price', async () => {
@@ -344,11 +350,13 @@ describe('setupPurchase', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
   })
 
   it('should create purchase via setupPurchase and verify pricingModelId', async () => {
@@ -389,11 +397,13 @@ describe('derivePricingModelIdFromPurchase', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: 'test@test.com',
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: 'test@test.com',
+        livemode: true,
+      })
+    ).unwrap()
 
     purchase = await setupPurchase({
       organizationId: organization.id,
@@ -453,11 +463,13 @@ describe('selectPurchasesByCustomerId', () => {
       currency: CurrencyCode.USD,
     })
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     purchase = await setupPurchase({
       organizationId: organization.id,
@@ -488,11 +500,13 @@ describe('selectPurchasesByCustomerId', () => {
   })
 
   it('should return empty array when customer has no purchases', async () => {
-    const customerWithNoPurchases = await setupCustomer({
-      organizationId: organization.id,
-      email: `empty+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    const customerWithNoPurchases = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `empty+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     await adminTransaction(async ({ transaction }) => {
       const purchases = await selectPurchasesByCustomerId(
@@ -506,11 +520,13 @@ describe('selectPurchasesByCustomerId', () => {
   })
 
   it('should only return purchases for the specified customer', async () => {
-    const otherCustomer = await setupCustomer({
-      organizationId: organization.id,
-      email: `other+${core.nanoid()}@test.com`,
-      livemode: true,
-    })
+    const otherCustomer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `other+${core.nanoid()}@test.com`,
+        livemode: true,
+      })
+    ).unwrap()
 
     const otherPurchase = await setupPurchase({
       organizationId: organization.id,

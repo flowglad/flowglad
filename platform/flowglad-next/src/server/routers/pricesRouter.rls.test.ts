@@ -307,10 +307,12 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('router-level behaviors', () => {
     it('pricesRouter.update: throws NOT_FOUND for missing price id', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -331,10 +333,12 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('productsRouter.update: enforces cross-product price guard (BAD_REQUEST)', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const apiCtx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -403,10 +407,12 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('pricesRouter.create: enforces single default per product and auto-default for first price', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -534,10 +540,12 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('createPrice', () => {
     it('should forbid creating additional prices for default products', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -568,10 +576,12 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should allow default prices on non-default products to have non-zero unitPrice', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -673,10 +683,12 @@ describe('pricesRouter - Default Price Constraints', () => {
 
   describe('getPrice', () => {
     it('should return a price when a valid ID is provided', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -696,10 +708,12 @@ describe('pricesRouter - Default Price Constraints', () => {
     })
 
     it('should throw a TRPCError when an invalid ID is provided', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -966,10 +980,12 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   })
 
   it('returns only usage prices for a given usageMeterId', async () => {
-    const { apiKey, user } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey, user } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     const ctx = {
       organizationId,
       apiKey: apiKey.token!,
@@ -1012,10 +1028,12 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   })
 
   it('respects active filter when provided', async () => {
-    const { apiKey, user } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey, user } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     const ctx = {
       organizationId,
       apiKey: apiKey.token!,
@@ -1059,10 +1077,12 @@ describe('prices.getTableRows (usage-meter filters)', () => {
   })
 
   it('combines usageMeterId and type filters correctly', async () => {
-    const { apiKey, user } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey, user } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     const ctx = {
       organizationId,
       apiKey: apiKey.token!,
@@ -1173,10 +1193,12 @@ describe('pricesRouter - API Contract Updates', () => {
 
   describe('createPrice - price type and productId validation', () => {
     it('rejects usage price when productId is explicitly provided as a non-null string via schema validation', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -1208,10 +1230,12 @@ describe('pricesRouter - API Contract Updates', () => {
     })
 
     it('creates usage price with null productId successfully (pricingModelId derived from usageMeterId)', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -1246,10 +1270,12 @@ describe('pricesRouter - API Contract Updates', () => {
     })
 
     it('creates usage price when productId is omitted (pricingModelId derived from usageMeterId)', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -1284,10 +1310,12 @@ describe('pricesRouter - API Contract Updates', () => {
     })
 
     it('creates subscription price with productId successfully', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -1442,10 +1470,12 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('atomically creates new price and archives old price when immutable fields change', async () => {
-    const { apiKey, user } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey, user } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     const ctx = {
       organizationId,
       apiKey: apiKey.token!,
@@ -1493,10 +1523,12 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('throws BAD_REQUEST when attempting to replace a non-usage price', async () => {
-    const { apiKey, user } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey, user } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     const ctx = {
       organizationId,
       apiKey: apiKey.token!,
@@ -1530,10 +1562,12 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('throws NOT_FOUND when old price ID does not exist', async () => {
-    const { apiKey, user } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey, user } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     const ctx = {
       organizationId,
       apiKey: apiKey.token!,
@@ -1565,10 +1599,12 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('throws BAD_REQUEST when new price usageMeterId does not match old price', async () => {
-    const { apiKey, user } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey, user } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     const ctx = {
       organizationId,
       apiKey: apiKey.token!,
@@ -1602,10 +1638,12 @@ describe('pricesRouter.replaceUsagePrice', () => {
   })
 
   it('preserves other usage prices for the same meter when replacing one', async () => {
-    const { apiKey, user } = await setupUserAndApiKey({
-      organizationId,
-      livemode,
-    })
+    const { apiKey, user } = (
+      await setupUserAndApiKey({
+        organizationId,
+        livemode,
+      })
+    ).unwrap()
     const ctx = {
       organizationId,
       apiKey: apiKey.token!,
@@ -1789,10 +1827,12 @@ describe('pricesRouter - Reserved Slug Validation', () => {
 
   describe('createPrice - reserved slug validation', () => {
     it('rejects usage price creation with _no_charge suffix via API', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -1824,10 +1864,12 @@ describe('pricesRouter - Reserved Slug Validation', () => {
     })
 
     it('allows usage price creation with slug not ending in _no_charge', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -1858,10 +1900,12 @@ describe('pricesRouter - Reserved Slug Validation', () => {
     })
 
     it('allows subscription price creation with _no_charge suffix', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -1891,10 +1935,12 @@ describe('pricesRouter - Reserved Slug Validation', () => {
     })
 
     it('allows usage price creation with slug containing _no_charge but not at the end', async () => {
-      const { apiKey } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -1927,10 +1973,12 @@ describe('pricesRouter - Reserved Slug Validation', () => {
 
   describe('replaceUsagePrice - reserved slug validation', () => {
     it('throws BAD_REQUEST when new price has reserved _no_charge slug suffix', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -1964,10 +2012,12 @@ describe('pricesRouter - Reserved Slug Validation', () => {
     })
 
     it('allows replacement with slug not ending in _no_charge', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2004,10 +2054,12 @@ describe('pricesRouter - Reserved Slug Validation', () => {
 
   describe('updatePrice - reserved slug validation', () => {
     it('throws BAD_REQUEST when updating usage price slug to reserved _no_charge suffix', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2035,10 +2087,12 @@ describe('pricesRouter - Reserved Slug Validation', () => {
     })
 
     it('allows updating usage price slug to valid slug not ending in _no_charge', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2062,10 +2116,12 @@ describe('pricesRouter - Reserved Slug Validation', () => {
     })
 
     it('allows updating usage price fields other than slug without triggering slug validation', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2194,10 +2250,12 @@ describe('pricesRouter - No Charge Price Protection', () => {
 
   describe('updatePrice - No Charge Protection', () => {
     it('rejects archiving (active: false) for no_charge prices', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2223,10 +2281,12 @@ describe('pricesRouter - No Charge Price Protection', () => {
     })
 
     it('rejects slug changes for no_charge prices', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2252,10 +2312,12 @@ describe('pricesRouter - No Charge Price Protection', () => {
     })
 
     it('allows name changes for no_charge prices', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2279,10 +2341,12 @@ describe('pricesRouter - No Charge Price Protection', () => {
     })
 
     it('allows setting isDefault to true on no_charge prices when slug is unchanged in payload', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2325,10 +2389,12 @@ describe('pricesRouter - No Charge Price Protection', () => {
     })
 
     it('rejects unsetting isDefault on no_charge prices that are currently default', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2355,10 +2421,12 @@ describe('pricesRouter - No Charge Price Protection', () => {
 
   describe('archivePrice - No Charge Protection', () => {
     it('rejects archiving no_charge prices', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,
@@ -2378,10 +2446,12 @@ describe('pricesRouter - No Charge Price Protection', () => {
     })
 
     it('allows archiving regular usage prices', async () => {
-      const { apiKey, user } = await setupUserAndApiKey({
-        organizationId,
-        livemode,
-      })
+      const { apiKey, user } = (
+        await setupUserAndApiKey({
+          organizationId,
+          livemode,
+        })
+      ).unwrap()
       const ctx = {
         organizationId,
         apiKey: apiKey.token!,

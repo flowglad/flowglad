@@ -50,9 +50,11 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
       stripeConnectContractType:
         StripeConnectContractType.MerchantOfRecord,
     })
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const purchase = await setupPurchase({
       customerId: customer.id,
       organizationId: organization.id,
@@ -143,9 +145,11 @@ describe('createStripeTaxTransactionIfNeededForPayment', () => {
     const { organization, price } = await setupOrg({
       stripeConnectContractType: StripeConnectContractType.Platform,
     })
-    const customer = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
     const purchase = await setupPurchase({
       customerId: customer.id,
       organizationId: organization.id,

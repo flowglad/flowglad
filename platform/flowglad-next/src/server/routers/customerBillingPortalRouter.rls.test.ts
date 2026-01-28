@@ -112,21 +112,25 @@ beforeEach(async () => {
   customer = userAndCustomerSetup.customer
 
   // Set up API key for authenticated requests
-  const userAndApiKeySetup = await setupUserAndApiKey({
-    organizationId: organization.id,
-    livemode: true,
-  })
+  const userAndApiKeySetup = (
+    await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+  ).unwrap()
   apiKeyToken = userAndApiKeySetup.apiKey.token!
 
   // Set up payment method for customer
-  paymentMethod = await setupPaymentMethod({
-    organizationId: organization.id,
-    customerId: customer.id,
-    livemode: true,
-    default: true,
-    stripePaymentMethodId: `pm_${core.nanoid()}`,
-    type: PaymentMethodType.Card,
-  })
+  paymentMethod = (
+    await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+      livemode: true,
+      default: true,
+      stripePaymentMethodId: `pm_${core.nanoid()}`,
+      type: PaymentMethodType.Card,
+    })
+  ).unwrap()
 
   // Set up active subscription
   subscription = await setupSubscription({
@@ -787,14 +791,16 @@ describe('Customer Billing Portal Router', () => {
   describe('setDefaultPaymentMethod', () => {
     it('successfully sets default payment method', async () => {
       // Create additional payment method to test with
-      const additionalPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        livemode: true,
-        default: false,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        type: PaymentMethodType.Card,
-      })
+      const additionalPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          livemode: true,
+          default: false,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const ctx = createTestContext()
       const input = {
@@ -849,13 +855,15 @@ describe('Customer Billing Portal Router', () => {
         livemode: true,
       })
 
-      const otherPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: otherCustomerSetup.customer.id,
-        livemode: true,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        type: PaymentMethodType.Card,
-      })
+      const otherPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: otherCustomerSetup.customer.id,
+          livemode: true,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const ctx = createTestContext()
       const input = {
@@ -886,14 +894,16 @@ describe('Customer Billing Portal Router', () => {
 
     it('updates subscriptions to use new default payment method', async () => {
       // Create additional payment method
-      const newPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: customer.id,
-        livemode: true,
-        default: false,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        type: PaymentMethodType.Card,
-      })
+      const newPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: customer.id,
+          livemode: true,
+          default: false,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const ctx = createTestContext()
       const input = {
@@ -984,14 +994,16 @@ describe('Customer Billing Portal Router', () => {
       })
       const otherCustomer = otherUserAndCustomer.customer
 
-      const otherPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: otherCustomer.id,
-        livemode: true,
-        default: true,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        type: PaymentMethodType.Card,
-      })
+      const otherPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: otherCustomer.id,
+          livemode: true,
+          default: true,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       const otherSubscription = await setupSubscription({
         organizationId: organization.id,
@@ -1038,14 +1050,16 @@ describe('Customer Billing Portal Router', () => {
       })
       const otherCustomer = otherUserAndCustomer.customer
 
-      const otherPaymentMethod = await setupPaymentMethod({
-        organizationId: organization.id,
-        customerId: otherCustomer.id,
-        livemode: true,
-        default: false,
-        stripePaymentMethodId: `pm_${core.nanoid()}`,
-        type: PaymentMethodType.Card,
-      })
+      const otherPaymentMethod = (
+        await setupPaymentMethod({
+          organizationId: organization.id,
+          customerId: otherCustomer.id,
+          livemode: true,
+          default: false,
+          stripePaymentMethodId: `pm_${core.nanoid()}`,
+          type: PaymentMethodType.Card,
+        })
+      ).unwrap()
 
       // The middleware will query the database using the original user's ID
       // and the other customer's ID. Since they don't match, the query will

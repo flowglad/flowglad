@@ -36,10 +36,12 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
     const orgSetup = (await setupOrg()).unwrap()
     organization = orgSetup.organization
 
-    customer = await setupCustomer({
-      organizationId: organization.id,
-      email: `test+${Date.now()}@example.com`,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: organization.id,
+        email: `test+${Date.now()}@example.com`,
+      })
+    ).unwrap()
 
     subscription = await setupSubscription({
       organizationId: organization.id,
@@ -72,9 +74,11 @@ describe('runSendCustomerSubscriptionCanceledNotification', () => {
 
   it('returns ValidationError when customer has no email', async () => {
     // Create a customer and then update to remove email
-    const customerWithEmail = await setupCustomer({
-      organizationId: organization.id,
-    })
+    const customerWithEmail = (
+      await setupCustomer({
+        organizationId: organization.id,
+      })
+    ).unwrap()
 
     // Update customer to have empty email (null is not allowed by schema)
     await adminTransaction(async ({ transaction }) => {

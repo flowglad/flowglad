@@ -50,14 +50,18 @@ describe('createSubscriptionFeeCalculationInsert', () => {
 
   beforeEach(async () => {
     orgData = (await setupOrg()).unwrap()
-    customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-    })
-    paymentMethodRec = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-    })
+    customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+      })
+    ).unwrap()
+    paymentMethodRec = (
+      await setupPaymentMethod({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
     subscriptionRec = await setupSubscription({
       organizationId: orgData.organization.id,
       customerId: customer.id,
@@ -209,11 +213,13 @@ describe('createSubscriptionFeeCalculationInsert', () => {
       pricingModelId: orgData.pricingModel.id,
     }
 
-    let internationalPaymentMethod = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-    })
+    let internationalPaymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
     internationalPaymentMethod = {
       ...internationalPaymentMethod,
       billingDetails: {
@@ -276,14 +282,18 @@ describe('createSubscriptionFeeCalculationInsert', () => {
 describe('createAndFinalizeSubscriptionFeeCalculation', () => {
   it('creates a fee calculation for subscription with a usage price (no product lookup required)', async () => {
     const orgData = (await setupOrg()).unwrap()
-    const customer = await setupCustomer({
-      organizationId: orgData.organization.id,
-    })
-    const paymentMethod = await setupPaymentMethod({
-      organizationId: orgData.organization.id,
-      customerId: customer.id,
-      type: PaymentMethodType.Card,
-    })
+    const customer = (
+      await setupCustomer({
+        organizationId: orgData.organization.id,
+      })
+    ).unwrap()
+    const paymentMethod = (
+      await setupPaymentMethod({
+        organizationId: orgData.organization.id,
+        customerId: customer.id,
+        type: PaymentMethodType.Card,
+      })
+    ).unwrap()
     const usageMeter = await setupUsageMeter({
       organizationId: orgData.organization.id,
       name: 'Test Usage Meter for Error Path',
