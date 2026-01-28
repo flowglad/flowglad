@@ -88,8 +88,14 @@ interface SyncEventDelete extends SyncEventBase {
 }
 
 /**
- * A sync event represents a change to an entity that should be
- * streamed to connected clients via SSE.
+ * A sync event represents a change to an entity stored in a Redis Stream.
+ *
+ * Primary delivery pattern (serverless-first):
+ * 1. Webhook notification wakes SDK's serverless function
+ * 2. SDK reads from stream using lastSequence cursor to catch up
+ *
+ * Optional: SSE for persistent runtimes that can maintain connections.
+ *
  * Discriminated union based on eventType ensures data matches the event type.
  */
 export type SyncEvent = SyncEventUpdate | SyncEventDelete
