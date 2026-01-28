@@ -146,45 +146,28 @@ describe('Billing Period Methods', () => {
       updatedAt: Date.now(),
     })
 
-    it('returns true for Canceled status', () => {
-      const billingPeriod = createMockBillingPeriod(
-        BillingPeriodStatus.Canceled
-      )
-      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(true)
+    it('returns true for terminal statuses (Canceled, Completed)', () => {
+      const terminalStatuses = [
+        BillingPeriodStatus.Canceled,
+        BillingPeriodStatus.Completed,
+      ]
+      for (const status of terminalStatuses) {
+        const billingPeriod = createMockBillingPeriod(status)
+        expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(true)
+      }
     })
 
-    it('returns true for Completed status', () => {
-      const billingPeriod = createMockBillingPeriod(
-        BillingPeriodStatus.Completed
-      )
-      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(true)
-    })
-
-    it('returns false for Active status', () => {
-      const billingPeriod = createMockBillingPeriod(
-        BillingPeriodStatus.Active
-      )
-      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
-        false
-      )
-    })
-
-    it('returns false for Upcoming status', () => {
-      const billingPeriod = createMockBillingPeriod(
-        BillingPeriodStatus.Upcoming
-      )
-      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
-        false
-      )
-    })
-
-    it('returns false for ScheduledToCancel status', () => {
-      const billingPeriod = createMockBillingPeriod(
-        BillingPeriodStatus.ScheduledToCancel
-      )
-      expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(
-        false
-      )
+    it('returns false for non-terminal statuses (Active, Upcoming, ScheduledToCancel, PastDue)', () => {
+      const nonTerminalStatuses = [
+        BillingPeriodStatus.Active,
+        BillingPeriodStatus.Upcoming,
+        BillingPeriodStatus.ScheduledToCancel,
+        BillingPeriodStatus.PastDue,
+      ]
+      for (const status of nonTerminalStatuses) {
+        const billingPeriod = createMockBillingPeriod(status)
+        expect(isBillingPeriodInTerminalState(billingPeriod)).toBe(false)
+      }
     })
   })
 })

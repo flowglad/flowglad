@@ -2567,9 +2567,7 @@ describe('pricingModelId derivation', () => {
 })
 
 describe('isPaymentInTerminalState', () => {
-  const createMockPayment = (
-    status: PaymentStatus
-  ): Payment.Record => ({
+  const createMockPayment = (status: PaymentStatus): Payment.Record => ({
     id: 'pay_test',
     organizationId: 'org_test',
     customerId: 'cust_test',
@@ -2593,42 +2591,28 @@ describe('isPaymentInTerminalState', () => {
     updatedAt: Date.now(),
   })
 
-  // Terminal states - should return true
-  it('returns true for Succeeded status', () => {
-    const payment = createMockPayment(PaymentStatus.Succeeded)
-    expect(isPaymentInTerminalState(payment)).toBe(true)
+  it('returns true for terminal statuses (Succeeded, Refunded, Canceled, Failed)', () => {
+    const terminalStatuses = [
+      PaymentStatus.Succeeded,
+      PaymentStatus.Refunded,
+      PaymentStatus.Canceled,
+      PaymentStatus.Failed,
+    ]
+    for (const status of terminalStatuses) {
+      const payment = createMockPayment(status)
+      expect(isPaymentInTerminalState(payment)).toBe(true)
+    }
   })
 
-  it('returns true for Refunded status', () => {
-    const payment = createMockPayment(PaymentStatus.Refunded)
-    expect(isPaymentInTerminalState(payment)).toBe(true)
-  })
-
-  it('returns true for Canceled status', () => {
-    const payment = createMockPayment(PaymentStatus.Canceled)
-    expect(isPaymentInTerminalState(payment)).toBe(true)
-  })
-
-  it('returns true for Failed status', () => {
-    const payment = createMockPayment(PaymentStatus.Failed)
-    expect(isPaymentInTerminalState(payment)).toBe(true)
-  })
-
-  // Non-terminal states - should return false
-  it('returns false for Processing status', () => {
-    const payment = createMockPayment(PaymentStatus.Processing)
-    expect(isPaymentInTerminalState(payment)).toBe(false)
-  })
-
-  it('returns false for RequiresConfirmation status', () => {
-    const payment = createMockPayment(
-      PaymentStatus.RequiresConfirmation
-    )
-    expect(isPaymentInTerminalState(payment)).toBe(false)
-  })
-
-  it('returns false for RequiresAction status', () => {
-    const payment = createMockPayment(PaymentStatus.RequiresAction)
-    expect(isPaymentInTerminalState(payment)).toBe(false)
+  it('returns false for non-terminal statuses (Processing, RequiresConfirmation, RequiresAction)', () => {
+    const nonTerminalStatuses = [
+      PaymentStatus.Processing,
+      PaymentStatus.RequiresConfirmation,
+      PaymentStatus.RequiresAction,
+    ]
+    for (const status of nonTerminalStatuses) {
+      const payment = createMockPayment(status)
+      expect(isPaymentInTerminalState(payment)).toBe(false)
+    }
   })
 })
