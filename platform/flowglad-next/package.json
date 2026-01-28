@@ -24,7 +24,7 @@
     "test:frontend": "NODE_ENV=test bun test --preload ./bun.dom.preload.ts --preload ./bun.frontend.setup.ts --timeout 30000 ./src/**/*.test.tsx",
     "test:rls": "bun run src/scripts/run-bun-tests.ts ./bun.rls.setup.ts '*.rls.test.ts' --timeout 30000 --concurrency 1",
     "test:integration": "bun run src/scripts/run-bun-tests.ts ./bun.integration.setup.ts '*.integration.test.ts' --timeout 30000",
-    "test:behavior": "bun run src/scripts/run-bun-tests.ts ./bun.integration.setup.ts '*.behavior.test.ts' --timeout 60000",
+    "test:behavior": "bun run src/scripts/run-bun-tests.ts ./bun.db.test.setup.ts '*.behavior.test.ts' --timeout 60000",
     "test": "bun run test:unit && bun run test:db && bun run test:stripe && bun run test:frontend && bun run test:rls && bun run test:integration",
     "stripe:webhook-dev": "stripe listen --forward-to localhost:3000/api/webhook-stripe",
     "trigger:deploy": "bunx --bun trigger.dev@4.3.2 deploy --env $TRIGGER_ENV",
