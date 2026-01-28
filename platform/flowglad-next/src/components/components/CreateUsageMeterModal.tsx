@@ -51,7 +51,7 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
       setIsOpen={setIsOpen}
       title="Create Usage Meter"
       formSchema={createUsageMeterFormSchema}
-      defaultValues={{
+      defaultValues={() => ({
         usageMeter: {
           name: '',
           slug: '',
@@ -63,7 +63,7 @@ const CreateUsageMeterModal: React.FC<CreateUsageMeterModalProps> = ({
           usageEventsPerUnit: 1,
         },
         __rawPriceString: zeroDecimal ? '0' : '0.00',
-      }}
+      })}
       onSubmit={async (input) => {
         await createUsageMeter.mutateAsync({
           usageMeter: input.usageMeter,

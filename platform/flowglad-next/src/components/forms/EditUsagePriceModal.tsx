@@ -364,7 +364,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Usage Price"
       formSchema={editUsagePriceFormSchema}
-      defaultValues={{
+      defaultValues={() => ({
         price: {
           type: PriceType.Usage,
           id: price.id,
@@ -380,7 +380,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
           price.unitPrice
         ),
         usageEventsPerUnit: price.usageEventsPerUnit ?? 1,
-      }}
+      })}
       onSubmit={async (input) => {
         const newUnitPrice = rawStringAmountToCountableCurrencyAmount(
           organization.defaultCurrency,

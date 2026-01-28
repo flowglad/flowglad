@@ -1,6 +1,5 @@
 'use client'
 
-import { useMemo } from 'react'
 import { toast } from 'sonner'
 import type { z } from 'zod'
 import { trpc } from '@/app/_trpc/client'
@@ -38,14 +37,11 @@ export const AddSubscriptionFeatureModal = ({
   const defaultSubscriptionItemId =
     activeSubscriptionItems[0]?.id ?? ''
 
-  const defaultValues = useMemo(
-    () => ({
-      subscriptionItemId: defaultSubscriptionItemId,
-      featureId: '',
-      grantCreditsImmediately: false,
-    }),
-    [defaultSubscriptionItemId]
-  )
+  const getDefaultValues = () => ({
+    subscriptionItemId: defaultSubscriptionItemId,
+    featureId: '',
+    grantCreditsImmediately: false,
+  })
 
   const handleSubmit = async (
     values: AddSubscriptionFeatureFormValues
@@ -69,7 +65,7 @@ export const AddSubscriptionFeatureModal = ({
       setIsOpen={setIsOpen}
       title="Grant Feature"
       formSchema={addSubscriptionFeatureFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={handleSubmit}
       submitButtonText="Grant Feature"
       allowContentOverflow

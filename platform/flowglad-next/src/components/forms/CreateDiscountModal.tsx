@@ -32,7 +32,7 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
         )
         await createDiscount.mutateAsync(payload)
       }}
-      defaultValues={{
+      defaultValues={() => ({
         discount: {
           name: '',
           code: '',
@@ -43,7 +43,7 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
           pricingModelId: undefined, // Will be set by PricingModelSelect
         },
         __rawAmountString: '0',
-      }}
+      })}
     >
       <DiscountFormFields />
     </FormModal>

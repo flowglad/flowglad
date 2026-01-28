@@ -52,30 +52,28 @@ export const CreateProductModal = ({
 }) => {
   const { organization } = useAuthenticatedContext()
   const createProduct = trpc.products.create.useMutation()
-  if (!isOpen) {
-    return null
-  }
   if (!organization) {
     return <></>
   }
-  const finalDefaultValues = createProductFormSchema.parse(
-    defaultValues ?? {
-      product: {
-        ...defaultProduct,
-        pricingModelId: defaultPricingModelId,
-      },
-      price: {
-        ...defaultPrice,
-        currency: organization.defaultCurrency,
-      },
-      __rawPriceString: '0',
-    }
-  )
+  const getDefaultValues = () =>
+    createProductFormSchema.parse(
+      defaultValues ?? {
+        product: {
+          ...defaultProduct,
+          pricingModelId: defaultPricingModelId,
+        },
+        price: {
+          ...defaultPrice,
+          currency: organization.defaultCurrency,
+        },
+        __rawPriceString: '0',
+      }
+    )
   return (
     <FormModal
       title="Create Product"
       formSchema={createProductFormSchema}
-      defaultValues={finalDefaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (input) => {
         if (onSubmitStart) {
           onSubmitStart()

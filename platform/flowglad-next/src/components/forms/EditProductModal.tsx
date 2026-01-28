@@ -54,7 +54,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
       setIsOpen={setIsOpen}
       title={product.default ? 'Edit Default Plan' : 'Edit Product'}
       formSchema={editProductFormSchema}
-      defaultValues={{
+      defaultValues={() => ({
         product,
         price: defaultActivePrice ?? prices?.[0],
         id: product.id,
@@ -62,7 +62,7 @@ const EditProductModal: React.FC<EditProductModalProps> = ({
           organization.defaultCurrency,
           defaultActivePrice?.unitPrice! ?? prices?.[0]?.unitPrice!
         ),
-      }}
+      })}
       onSubmit={async (input) => {
         await editProduct.mutateAsync({
           ...input,

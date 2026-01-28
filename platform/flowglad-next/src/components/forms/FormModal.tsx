@@ -74,7 +74,14 @@ interface FormModalProps<T extends FieldValues>
   extends ModalInterfaceProps {
   onSuccess?: () => void
   formSchema: z.ZodSchema<T>
-  defaultValues: DefaultValues<T>
+  /**
+   * A function that returns the default values for the form.
+   * This function is only called when the modal opens, which prevents
+   * expensive computations (like schema.parse()) from running when
+   * the modal is closed. This avoids errors on pages where the modal
+   * is rendered but not visible.
+   */
+  defaultValues: () => DefaultValues<T>
   onSubmit: (data: T) => void
   title: string
   children: React.ReactNode
@@ -132,6 +139,7 @@ export const NestedFormModal = <T extends FieldValues>({
   mode = 'modal',
   allowContentOverflow = false,
 }: NestedFormModalProps<T>) => {
+  const resolvedDefaultValues = defaultValues()
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (
     <div className="flex flex-1 justify-end gap-2 w-full">
@@ -140,7 +148,7 @@ export const NestedFormModal = <T extends FieldValues>({
         size="default"
         onClick={() => {
           if (form) {
-            form.reset(defaultValues)
+            form.reset(resolvedDefaultValues)
           }
           setIsOpen(false)
         }}
@@ -257,6 +265,10 @@ const FormModal = <T extends FieldValues>({
 }: FormModalProps<T>) => {
   const id = useId()
   const router = useRouter()
+  // Call the defaultValues function to get the actual values
+  // This is only evaluated when the component renders with isOpen=true
+  // due to the conditional rendering in useShouldRenderContent
+  const resolvedDefaultValues = defaultValues()
   const form = useForm<T>({
     resolver: async (data, context, options) => {
       try {
@@ -301,7 +313,7 @@ const FormModal = <T extends FieldValues>({
         }
       }
     },
-    defaultValues,
+    defaultValues: resolvedDefaultValues,
   })
   const {
     handleSubmit,
@@ -309,7 +321,7 @@ const FormModal = <T extends FieldValues>({
     reset,
   } = form
   const hardResetFormValues = useCallback(() => {
-    form.reset(defaultValues, {
+    form.reset(resolvedDefaultValues, {
       keepDefaultValues: true,
       keepIsSubmitted: false,
       keepErrors: false,
@@ -317,7 +329,7 @@ const FormModal = <T extends FieldValues>({
       keepValues: false,
       keepTouched: false,
     })
-  }, [form, defaultValues])
+  }, [form, resolvedDefaultValues])
 
   const shouldRenderContent = useShouldRenderContent({
     isOpen,
@@ -330,7 +342,7 @@ const FormModal = <T extends FieldValues>({
         variant="secondary"
         size="default"
         onClick={() => {
-          form.reset(defaultValues)
+          form.reset(resolvedDefaultValues)
           setIsOpen(false)
         }}
       >

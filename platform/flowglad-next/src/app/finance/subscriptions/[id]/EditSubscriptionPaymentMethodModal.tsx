@@ -143,10 +143,10 @@ export function EditSubscriptionPaymentMethodModal({
     await updatePaymentMethod.mutateAsync(data)
   }
 
-  const defaultValues: UpdateSubscriptionPaymentMethod = {
+  const getDefaultValues = (): UpdateSubscriptionPaymentMethod => ({
     id: subscriptionId,
     paymentMethodId: currentPaymentMethodId || '',
-  }
+  })
 
   const hasNoPaymentMethods =
     !isLoading && paymentMethodsData?.data?.length === 0
@@ -184,7 +184,7 @@ export function EditSubscriptionPaymentMethodModal({
       setIsOpen={setIsOpen}
       title="Edit Payment Method"
       formSchema={updateSubscriptionPaymentMethodSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={handleSubmit}
       submitButtonText={isSubmitting ? 'Updating...' : 'Update'}
       autoClose={false}

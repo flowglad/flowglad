@@ -35,12 +35,17 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
       console.error('Webhook creation error:', error)
     },
   })
-  const webhookDefaultValues: Webhook.ClientInsert = {
-    name: '',
-    url: '',
-    filterTypes: [],
-    active: true,
-    pricingModelId: '',
+  const getDefaultValues = () => {
+    const webhookDefaultValues: Webhook.ClientInsert = {
+      name: '',
+      url: '',
+      filterTypes: [],
+      active: true,
+      pricingModelId: '',
+    }
+    return {
+      webhook: webhookDefaultValues,
+    }
   }
 
   return (
@@ -52,9 +57,7 @@ const CreateWebhookModal: React.FC<CreateWebhookModalProps> = ({
       }}
       title="Create Webhook"
       formSchema={createWebhookInputSchema}
-      defaultValues={{
-        webhook: webhookDefaultValues,
-      }}
+      defaultValues={getDefaultValues}
       onSubmit={async (data) => {
         await createWebhook.mutateAsync(data)
       }}

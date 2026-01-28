@@ -65,7 +65,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       setIsOpen(false)
     },
   })
-  const defaultValues = parseEditPriceDefaultValues(price)
+  const getDefaultValues = () => parseEditPriceDefaultValues(price)
 
   const { organization } = useAuthenticatedContext()
 
@@ -84,7 +84,7 @@ const EditPriceModal: React.FC<EditPriceModalProps> = ({
       setIsOpen={setIsOpen}
       title="Edit Price"
       formSchema={createPriceFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (input) => {
         await editPrice.mutateAsync({
           price: {

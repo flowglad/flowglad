@@ -33,13 +33,13 @@ const CreateCustomerFormModal = ({
     isLoading: isLoadingPricingModel,
   } = trpc.pricingModels.getDefault.useQuery({})
 
-  const defaultValues: CreateCustomerInputSchema = {
+  const getDefaultValues = (): CreateCustomerInputSchema => ({
     customer: {
       name: '',
       email: '',
       externalId: '',
     },
-  }
+  })
 
   const handleSubmit = async (data: CreateCustomerInputSchema) => {
     const customerData = {
@@ -56,7 +56,7 @@ const CreateCustomerFormModal = ({
     <FormModal
       title="Create Customer"
       formSchema={createCustomerFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={handleSubmit}
       isOpen={isOpen}
       setIsOpen={setIsOpen}

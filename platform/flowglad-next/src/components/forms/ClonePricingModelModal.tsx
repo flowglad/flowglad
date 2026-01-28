@@ -62,10 +62,10 @@ const ClonePricingModelModal: React.FC<
       setIsOpen={setIsOpen}
       title="Clone Pricing Model"
       formSchema={clonePricingModelInputSchema}
-      defaultValues={{
+      defaultValues={() => ({
         id: pricingModel.id,
         name: `${pricingModel.name} (Copy)`,
-      }}
+      })}
       onSubmit={clonePricingModelMutation.mutateAsync}
       submitButtonText="Clone Pricing Model"
       submitDisabled={showLivemodeWarning}
