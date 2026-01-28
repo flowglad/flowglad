@@ -122,7 +122,7 @@ This project uses [stripe-mock](https://github.com/stripe/stripe-mock) for Strip
 
 **How it works:**
 - stripe-mock runs as a Docker container alongside the test postgres database
-- The Stripe SDK is configured to point to stripe-mock (`localhost:12111`) in test mode
+- The Stripe SDK is configured to point to stripe-mock when `STRIPE_MOCK_HOST` is set
 - Stripe API calls from tests go directly to stripe-mock (no MSW interception)
 - stripe-mock validates request/response schemas automatically
 
@@ -133,8 +133,8 @@ bun run test:setup  # Starts postgres AND stripe-mock via docker compose
 
 **Configuration:**
 - `docker-compose.test.yml` - Defines the stripe-mock service
-- `src/utils/stripe.ts` - Configures Stripe SDK to use stripe-mock in test mode
-- `.env.test` - Contains `STRIPE_MOCK_HOST` and `STRIPE_MOCK_PORT`
+- `src/utils/stripe.ts` - Configures Stripe SDK to use stripe-mock when `STRIPE_MOCK_HOST` is set
+- `.env.test` - Contains `STRIPE_MOCK_HOST`, `STRIPE_MOCK_PORT`, `STRIPE_PROTOCOL`
 
 **Benefits over MSW mocking:**
 - No mock handlers to maintain (~480 lines removed)
@@ -142,10 +142,28 @@ bun run test:setup  # Starts postgres AND stripe-mock via docker compose
 - No module import order issues or test leakage
 - Consistent behavior without needing real Stripe keys locally
 
-**When you need real Stripe APIs:**
-- For testing card declines or specific Stripe behaviors, use `*.integration.test.ts`
-- Integration tests load real credentials from `.env.development`
-- Use Stripe's test card numbers (e.g., `4000000000000002` for declines)
+### Integration Tests with Real Stripe
+
+For testing card declines, specific error scenarios, or behaviors stripe-mock can't simulate, use integration tests (`*.integration.test.ts`).
+
+**Environment separation:**
+- `.env.test` - Used by unit/db tests, has `STRIPE_MOCK_HOST` → uses stripe-mock
+- `.env.integration` - Used by integration tests, NO `STRIPE_MOCK_HOST` → uses real Stripe API
+
+**Setup for integration tests:**
+```bash
+# Auto-generates .env.integration from .env.development + .env.test
+bun run vercel:env-pull:dev
+
+# Run integration tests
+bun run test:integration
+```
+
+**Test card numbers for integration tests:**
+- `4242424242424242` - Success
+- `4000000000000002` - Generic decline
+- `4000000000000069` - Expired card
+- `4000000000009995` - Insufficient funds
 
 **Webhook testing:**
 - Use mock factories in `src/test/helpers/stripeMocks.ts` for webhook event payloads

@@ -404,21 +404,9 @@ export const rawStringAmountToCountableCurrencyAmount = (
 }
 
 const stripeApiKey = (livemode: boolean) => {
-  // Allow integration tests to use real Stripe API key
-  // This env var is only set when running integration tests
-  if (process.env.STRIPE_INTEGRATION_TEST_MODE === 'true') {
-    const key = process.env.STRIPE_TEST_MODE_SECRET_KEY
-    if (!key) {
-      throw new Error(
-        'STRIPE_INTEGRATION_TEST_MODE is enabled but STRIPE_TEST_MODE_SECRET_KEY is not set. ' +
-          'Integration tests require a valid Stripe test mode secret key.'
-      )
-    }
-    return key
-  }
-  if (core.IS_TEST) {
-    // stripe-mock requires a valid-looking test mode key format
-    return 'sk_test_123'
+  // When using stripe-mock, use a dummy key (stripe-mock accepts any sk_test_* format)
+  if (process.env.STRIPE_MOCK_HOST) {
+    return 'sk_test_mock'
   }
   return livemode
     ? core.envVariable('STRIPE_SECRET_KEY')
@@ -430,11 +418,8 @@ export const stripe = (livemode: boolean) => {
   }
 
   // Use stripe-mock when STRIPE_MOCK_HOST is configured (via .env.test)
-  // unless STRIPE_INTEGRATION_TEST_MODE explicitly bypasses it
-  if (
-    process.env.STRIPE_MOCK_HOST &&
-    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
-  ) {
+  // Integration tests use .env.integration which does NOT set STRIPE_MOCK_HOST
+  if (process.env.STRIPE_MOCK_HOST) {
     config.host = process.env.STRIPE_MOCK_HOST
     config.port = Number(process.env.STRIPE_MOCK_PORT || 12111)
     config.protocol =
@@ -936,13 +921,11 @@ export const createStripeTaxCalculationByPrice = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  // Skip Stripe Tax API in tests unless explicitly enabled.
-  // Use SKIP_STRIPE_TAX_CALCULATIONS to mock tax even when other Stripe APIs are real.
-  // This avoids hitting Stripe's 1000 req/24hr tax API rate limit in test mode.
+  // Skip Stripe Tax API when using stripe-mock (it doesn't support tax endpoints)
+  // or when SKIP_STRIPE_TAX_CALCULATIONS is set (to avoid 1000 req/24hr rate limit)
   if (
-    core.IS_TEST &&
-    (process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true' ||
-      process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true')
+    process.env.STRIPE_MOCK_HOST ||
+    process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true'
   ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,
@@ -993,13 +976,11 @@ export const createStripeTaxCalculationByPurchase = async ({
 }): Promise<
   Pick<Stripe.Tax.Calculation, 'id' | 'tax_amount_exclusive'>
 > => {
-  // Skip Stripe Tax API in tests unless explicitly enabled.
-  // Use SKIP_STRIPE_TAX_CALCULATIONS to mock tax even when other Stripe APIs are real.
-  // This avoids hitting Stripe's 1000 req/24hr tax API rate limit in test mode.
+  // Skip Stripe Tax API when using stripe-mock (it doesn't support tax endpoints)
+  // or when SKIP_STRIPE_TAX_CALCULATIONS is set (to avoid 1000 req/24hr rate limit)
   if (
-    core.IS_TEST &&
-    (process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true' ||
-      process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true')
+    process.env.STRIPE_MOCK_HOST ||
+    process.env.SKIP_STRIPE_TAX_CALCULATIONS === 'true'
   ) {
     return {
       id: `testtaxcalc_${core.nanoid()}`,

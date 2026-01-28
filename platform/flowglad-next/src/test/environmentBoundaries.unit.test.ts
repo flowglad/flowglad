@@ -127,8 +127,8 @@ describe('Environment boundaries', () => {
         /mock\.module\(['"]@\/db\/adminTransaction['"].*throw/
       )
 
-      // Integration tests should enable real Stripe and Redis
-      expect(content).toMatch(/STRIPE_INTEGRATION_TEST_MODE/)
+      // Integration tests should verify .env.integration exists and enable real Redis
+      expect(content).toMatch(/\.env\.integration/)
       expect(content).toMatch(/REDIS_INTEGRATION_TEST_MODE/)
     })
 

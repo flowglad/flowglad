@@ -28,7 +28,7 @@
     "stripe:webhook-dev": "stripe listen --forward-to localhost:3000/api/webhook-stripe",
     "trigger:deploy": "bunx --bun trigger.dev@4.3.2 deploy --env $TRIGGER_ENV",
     "vercel:env-pull:dev": "bunx vercel env pull .env.development --environment=development",
-    "postvercel:env-pull:dev": "chmod +x ./src/scripts/set_local_user.sh && ./src/scripts/set_local_user.sh .env_user .env.development",
+    "postvercel:env-pull:dev": "chmod +x ./src/scripts/set_local_user.sh && ./src/scripts/set_local_user.sh .env_user .env.development && bun run src/scripts/generate-integration-env.ts",
     "vercel:env-pull:prod": "bunx vercel env pull .env.production --environment=production",
     "postvercel:env-pull:prod": "chmod +x ./src/scripts/set_local_user.sh && ./src/scripts/set_local_user.sh .env_user .env.production",
     "vercel:env-rm": "rm -rf .env.development .env.production",
