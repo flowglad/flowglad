@@ -9,7 +9,6 @@ import {
   editResourceSchema,
   resourcesClientSelectSchema,
 } from '@/db/schema/resources'
-import { selectMembershipAndOrganizations } from '@/db/tableMethods/membershipMethods'
 import {
   insertResource,
   resourcesTableRowOutputSchema,
@@ -74,10 +73,9 @@ const getProcedure = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const resource = await selectResourceById(
-          input.id,
-          transaction
-        )
+        const resource = (
+          await selectResourceById(input.id, transaction)
+        ).unwrap()
         return { resource }
       }
     )
@@ -91,26 +89,18 @@ const createProcedure = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, ctx, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const { livemode } = ctx
-        const userId = ctx.user?.id
-        if (!userId) {
+        const { livemode, organizationId } = ctx
+        if (!organizationId) {
           throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User authentication required',
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
           })
         }
-        const [{ organization }] =
-          await selectMembershipAndOrganizations(
-            {
-              userId,
-              focused: true,
-            },
-            transaction
-          )
         const resource = await insertResource(
           {
             ...input.resource,
-            organizationId: organization.id,
+            organizationId,
             livemode,
           },
           transaction

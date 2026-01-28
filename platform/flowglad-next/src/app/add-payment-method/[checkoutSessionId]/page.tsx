@@ -25,23 +25,29 @@ const CheckoutSessionPage = async ({
   const { checkoutSessionId } = await params
   const { checkoutSession, sellerOrganization, customer } =
     await adminTransaction(async ({ transaction }) => {
-      const checkoutSession = await selectCheckoutSessionById(
-        checkoutSessionId,
-        transaction
-      )
+      const checkoutSession = (
+        await selectCheckoutSessionById(
+          checkoutSessionId,
+          transaction
+        )
+      ).unwrap()
       if (
         checkoutSession.type !== CheckoutSessionType.AddPaymentMethod
       ) {
         notFound()
       }
-      const customer = await selectCustomerById(
-        checkoutSession.customerId,
-        transaction
-      )
-      const organization = await selectOrganizationById(
-        checkoutSession.organizationId,
-        transaction
-      )
+      const customer = (
+        await selectCustomerById(
+          checkoutSession.customerId,
+          transaction
+        )
+      ).unwrap()
+      const organization = (
+        await selectOrganizationById(
+          checkoutSession.organizationId,
+          transaction
+        )
+      ).unwrap()
       return {
         checkoutSession,
         sellerOrganization: organization,

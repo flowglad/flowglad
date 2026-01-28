@@ -89,16 +89,20 @@ export const migratePricingModelForCustomer = async (
     const subscriptionsOnNewPricingModel: Subscription.Record[] = []
     for (const subscription of currentSubscriptions) {
       if (subscription.priceId) {
-        const price = await selectPriceById(
+        const priceResult = await selectPriceById(
           subscription.priceId,
           transaction
         )
-        if (price?.productId) {
-          const product = await selectProductById(
+        if (Result.isOk(priceResult) && priceResult.value.productId) {
+          const price = priceResult.value
+          const productResult = await selectProductById(
             price.productId,
             transaction
           )
-          if (product?.pricingModelId === newPricingModelId) {
+          if (
+            Result.isOk(productResult) &&
+            productResult.value.pricingModelId === newPricingModelId
+          ) {
             subscriptionsOnNewPricingModel.push(subscription)
           }
         }
@@ -139,22 +143,28 @@ export const migratePricingModelForCustomer = async (
     let defaultFreeSubscription: Subscription.Record | undefined
     for (const subscription of subscriptionsOnNewPricingModel) {
       if (subscription.priceId) {
-        const price = await selectPriceById(
+        const priceResult = await selectPriceById(
           subscription.priceId,
           transaction
         )
-        if (
-          price?.unitPrice === 0 &&
-          price.isDefault &&
-          price.productId
-        ) {
-          const product = await selectProductById(
-            price.productId,
-            transaction
-          )
-          if (product?.default) {
-            defaultFreeSubscription = subscription
-            break
+        if (Result.isOk(priceResult)) {
+          const price = priceResult.value
+          if (
+            price.unitPrice === 0 &&
+            price.isDefault &&
+            price.productId
+          ) {
+            const productResult = await selectProductById(
+              price.productId,
+              transaction
+            )
+            if (
+              Result.isOk(productResult) &&
+              productResult.value.default
+            ) {
+              defaultFreeSubscription = subscription
+              break
+            }
           }
         }
       }
@@ -193,16 +203,17 @@ export const migratePricingModelForCustomer = async (
   }
 
   // Validate that the new pricing model exists
-  const newPricingModel = await selectPricingModelById(
+  const newPricingModelResult = await selectPricingModelById(
     newPricingModelId,
     transaction
   )
 
-  if (!newPricingModel) {
+  if (Result.isError(newPricingModelResult)) {
     return Result.err(
       new Error(`Pricing model ${newPricingModelId} not found`)
     )
   }
+  const newPricingModel = newPricingModelResult.unwrap()
 
   // Validate that the new pricing model belongs to the same organization
   if (newPricingModel.organizationId !== customer.organizationId) {
@@ -283,10 +294,9 @@ async function createDefaultSubscriptionOnPricingModel(
   ctx: TransactionEffectsContext
 ): Promise<Result<Subscription.Record, Error>> {
   const { transaction } = ctx
-  const organization = await selectOrganizationById(
-    customer.organizationId,
-    transaction
-  )
+  const organization = (
+    await selectOrganizationById(customer.organizationId, transaction)
+  ).unwrap()
 
   // Try to find default product on the new pricing model
   let [defaultProduct] = await selectPricesAndProductsByProductWhere(
@@ -386,6 +396,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
   > => {
     const {
       transaction,
+      cacheRecomputationContext,
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,
@@ -394,6 +405,7 @@ export const migrateCustomerPricingModelProcedureTransaction =
     const { externalId, newPricingModelId } = input
     const effectsCtx: TransactionEffectsContext = {
       transaction,
+      cacheRecomputationContext,
       invalidateCache,
       emitEvent,
       enqueueLedgerCommand,
@@ -421,17 +433,18 @@ export const migrateCustomerPricingModelProcedureTransaction =
     }
 
     // Validate that new pricing model exists and belongs to organization
-    const newPricingModel = await selectPricingModelById(
+    const newPricingModelResult = await selectPricingModelById(
       newPricingModelId,
       transaction
     )
 
-    if (!newPricingModel) {
+    if (Result.isError(newPricingModelResult)) {
       throw new TRPCError({
         code: 'NOT_FOUND',
         message: `Pricing model ${newPricingModelId} not found`,
       })
     }
+    const newPricingModel = newPricingModelResult.unwrap()
 
     if (newPricingModel.organizationId !== organizationId) {
       throw new TRPCError({

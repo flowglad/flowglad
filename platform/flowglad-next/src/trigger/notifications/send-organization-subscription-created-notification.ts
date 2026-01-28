@@ -1,67 +1,110 @@
 import { logger, task } from '@trigger.dev/sdk'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Membership } from '@/db/schema/memberships'
+import type { Organization } from '@/db/schema/organizations'
+import { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
 import type { Subscription } from '@/db/schema/subscriptions'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectMembershipsAndUsersByMembershipWhere } from '@/db/tableMethods/membershipMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
+import type { User } from '@/db/schema/users'
+import { selectPriceById } from '@/db/tableMethods/priceMethods'
+import { selectProductById } from '@/db/tableMethods/productMethods'
+import { NotFoundError } from '@/db/tableUtils'
 import { OrganizationSubscriptionCreatedNotificationEmail } from '@/email-templates/organization-subscription-notifications'
+import { ValidationError } from '@/errors'
 import {
   createTriggerIdempotencyKey,
   testSafeTriggerInvoker,
 } from '@/utils/backendCore'
-import core, { isNil } from '@/utils/core'
+import { isNil } from '@/utils/core'
 import {
   formatEmailSubject,
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 import { filterEligibleRecipients } from '@/utils/notifications'
 
-const sendOrganizationSubscriptionCreatedNotificationTask = task({
-  id: 'send-organization-subscription-created-notification',
-  run: async (
-    {
-      subscription,
-    }: {
-      subscription: Subscription.Record
-    },
-    { ctx }
-  ) => {
+/**
+ * Core run function for send-organization-subscription-created-notification task.
+ * Exported for testing purposes.
+ */
+export const runSendOrganizationSubscriptionCreatedNotification =
+  async (params: { subscription: Subscription.Record }) => {
+    const { subscription } = params
     logger.log(
       'Sending organization subscription created notification',
       {
         subscription,
-        ctx,
       }
     )
 
-    const { organization, customer, usersAndMemberships } =
-      await adminTransaction(async ({ transaction }) => {
-        const organization = await selectOrganizationById(
-          subscription.organizationId,
+    let dataResult: Result<
+      {
+        organization: Organization.Record
+        customer: Customer.Record
+        usersAndMemberships: Array<{
+          user: User.Record
+          membership: Membership.Record
+        }>
+        product: Product.Record | null
+      },
+      NotFoundError | ValidationError
+    >
+    try {
+      const data = await adminTransaction(async ({ transaction }) => {
+        const context = await buildNotificationContext(
+          {
+            organizationId: subscription.organizationId,
+            customerId: subscription.customerId,
+            include: ['usersAndMemberships'],
+          },
           transaction
         )
-        const customer = await selectCustomerById(
-          subscription.customerId,
-          transaction
-        )
-        const usersAndMemberships =
-          await selectMembershipsAndUsersByMembershipWhere(
-            {
-              organizationId: subscription.organizationId,
-            },
-            transaction
-          )
+
+        // Fetch the product associated with the subscription for user-friendly naming
+        const price = subscription.priceId
+          ? (
+              await selectPriceById(subscription.priceId, transaction)
+            ).unwrap()
+          : null
+        const product =
+          price && Price.hasProductId(price)
+            ? (
+                await selectProductById(price.productId, transaction)
+              ).unwrap()
+            : null
+
         return {
-          organization,
-          customer,
-          usersAndMemberships,
+          ...context,
+          product,
         }
       })
-
-    if (!organization || !customer) {
-      throw new Error('Organization or customer not found')
+      dataResult = Result.ok(data)
+    } catch (error) {
+      // Only convert NotFoundError to Result.err; rethrow other errors
+      // for Trigger.dev to retry (e.g., transient DB failures)
+      if (error instanceof NotFoundError) {
+        dataResult = Result.err(error)
+      } else if (
+        error instanceof Error &&
+        error.message.includes('not found')
+      ) {
+        // Handle errors from buildNotificationContext
+        dataResult = Result.err(
+          new NotFoundError('Resource', error.message)
+        )
+      } else {
+        throw error
+      }
     }
+
+    if (Result.isError(dataResult)) {
+      return dataResult
+    }
+    const { organization, customer, usersAndMemberships, product } =
+      dataResult.value
 
     const eligibleRecipients = filterEligibleRecipients(
       usersAndMemberships,
@@ -70,9 +113,9 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
     )
 
     if (eligibleRecipients.length === 0) {
-      return {
+      return Result.ok({
         message: 'No recipients opted in for this notification',
-      }
+      })
     }
 
     const recipientEmails = eligibleRecipients
@@ -82,22 +125,28 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
       )
 
     if (recipientEmails.length === 0) {
-      return {
+      return Result.ok({
         message: 'No valid email addresses for eligible recipients',
-      }
+      })
     }
+
+    const subscriptionName =
+      subscription.name || product?.name || 'a plan'
 
     await safeSend({
       from: 'Flowglad <notifications@flowglad.com>',
       bcc: getBccForLivemode(subscription.livemode),
       to: recipientEmails,
       subject: formatEmailSubject(
-        `New Subscription: ${customer.name} subscribed to ${subscription.name}`,
+        `New Subscription: ${customer.name} subscribed to ${subscriptionName}`,
         subscription.livemode
       ),
-      react: OrganizationSubscriptionCreatedNotificationEmail({
+      /**
+       * NOTE: await needed to prevent React 18 renderToPipeableStream error when used with Resend
+       */
+      react: await OrganizationSubscriptionCreatedNotificationEmail({
         organizationName: organization.name,
-        subscriptionName: subscription.name!,
+        subscriptionName,
         customerId: customer.id,
         customerName: customer.name,
         customerEmail: customer.email,
@@ -105,10 +154,22 @@ const sendOrganizationSubscriptionCreatedNotificationTask = task({
       }),
     })
 
-    return {
+    return Result.ok({
       message:
         'Organization subscription created notification sent successfully',
-    }
+    })
+  }
+
+const sendOrganizationSubscriptionCreatedNotificationTask = task({
+  id: 'send-organization-subscription-created-notification',
+  run: async (
+    payload: {
+      subscription: Subscription.Record
+    },
+    { ctx }
+  ) => {
+    logger.log('Task context', { ctx })
+    return runSendOrganizationSubscriptionCreatedNotification(payload)
   },
 })
 

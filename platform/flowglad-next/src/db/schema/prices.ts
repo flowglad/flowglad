@@ -1,6 +1,8 @@
+import { TRPCError } from '@trpc/server'
 import { sql } from 'drizzle-orm'
 import {
   boolean,
+  check,
   integer,
   pgTable,
   text,
@@ -63,6 +65,52 @@ const createOnlyColumns = {
 } as const
 
 export const priceImmutableFields = Object.keys(createOnlyColumns)
+
+/**
+ * Reserved suffix for auto-generated fallback prices on usage meters.
+ * When a usage meter has no explicitly configured price, the system
+ * generates a fallback price with this suffix (e.g., "api_requests_no_charge").
+ *
+ * Users cannot manually create usage prices with slugs ending in this suffix.
+ */
+export const RESERVED_USAGE_PRICE_SLUG_SUFFIX = '_no_charge' as const
+
+/**
+ * Check if a price slug uses the reserved `_no_charge` suffix.
+ * This suffix is reserved for auto-generated fallback prices on usage meters.
+ *
+ * Note: This restriction applies ONLY to usage prices.
+ * Subscription and single_payment prices can use any slug including `_no_charge` suffix.
+ *
+ * @param slug - The slug to check
+ * @returns true if the slug ends with `_no_charge`
+ */
+export const isReservedPriceSlug = (slug: string): boolean => {
+  return slug.endsWith(RESERVED_USAGE_PRICE_SLUG_SUFFIX)
+}
+
+/**
+ * Validates that a usage price slug doesn't use reserved suffixes.
+ * Throws TRPCError if validation fails.
+ *
+ * @param price - Price input with type and optional slug
+ * @throws TRPCError with BAD_REQUEST if slug uses reserved suffix
+ */
+export const validateUsagePriceSlug = (price: {
+  type: (typeof PriceType)[keyof typeof PriceType]
+  slug?: string | null
+}): void => {
+  if (
+    price.type === PriceType.Usage &&
+    price.slug &&
+    isReservedPriceSlug(price.slug)
+  ) {
+    throw new TRPCError({
+      code: 'BAD_REQUEST',
+      message: `Usage price slugs ending with "${RESERVED_USAGE_PRICE_SLUG_SUFFIX}" are reserved for auto-generated fallback prices`,
+    })
+  }
+}
 
 const hiddenColumns = {
   externalId: true,
@@ -177,6 +225,17 @@ export const prices = pgTable(
             ))
           )`,
     }),
+    // CHECK constraint: enforce mutual exclusivity between productId and usageMeterId based on price type
+    // Usage prices: must have usageMeterId, must NOT have productId
+    // Non-usage prices: must have productId, must NOT have usageMeterId
+    check(
+      'prices_product_usage_meter_mutual_exclusivity',
+      sql`(
+        ("type" = 'usage' AND "product_id" IS NULL AND "usage_meter_id" IS NOT NULL)
+        OR
+        ("type" != 'usage' AND "product_id" IS NOT NULL AND "usage_meter_id" IS NULL)
+      )`
+    ),
   ])
 ).enableRLS()
 
@@ -237,10 +296,9 @@ const subscriptionPriceColumns = {
 
 /**
  * Usage price columns.
- * Note: productId is handled differently for insert vs select schemas:
+ * Note: productId is null for usage prices - they belong to usage meters, not products.
  * - Insert: accepts null/undefined via safeZodNullOrUndefined
- * - Select (v1): coerces any existing productId value to null via z.any().transform(() => null)
- * This allows migration of existing records while enforcing null for new records.
+ * - Select (v2 strict): requires productId to be null, rejects non-null values
  */
 const usagePriceColumns = {
   ...subscriptionPriceColumns,
@@ -255,13 +313,8 @@ const usagePriceColumns = {
   ),
   type: z.literal(PriceType.Usage),
   // Override productId: usage prices don't have a productId (it's null)
-  // v1: coerce to null regardless of input (for migration compatibility)
-  // Uses z.unknown() to accept any input type, then transforms to null
-  // .pipe(z.null()) is required for OpenAPI schema generation compatibility
-  productId: z
-    .unknown()
-    .transform(() => null as null)
-    .pipe(z.null()),
+  // v2 strict: requires productId to be null, rejects non-null values
+  productId: z.null(),
 }
 
 /**

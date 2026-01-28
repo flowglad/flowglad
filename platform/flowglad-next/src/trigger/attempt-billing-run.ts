@@ -44,7 +44,7 @@ export const attemptBillingRunTask = task({
             return selectBillingRunById(
               payload.billingRun.id,
               transaction
-            )
+            ).then((r) => r.unwrap())
           }
         )
 

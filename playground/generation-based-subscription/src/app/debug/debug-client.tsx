@@ -70,12 +70,6 @@ export function DebugClient() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <div>
-                <strong>loadBilling:</strong>{' '}
-                <code className="bg-gray-100 px-2 py-1 rounded">
-                  {String(billing.loadBilling)}
-                </code>
-              </div>
-              <div>
                 <strong>loaded:</strong>{' '}
                 <code className="bg-gray-100 px-2 py-1 rounded">
                   {String(billing.loaded)}

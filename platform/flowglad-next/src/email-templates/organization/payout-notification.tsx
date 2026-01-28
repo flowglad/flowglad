@@ -1,7 +1,13 @@
 import { Img, Section } from '@react-email/components'
 import * as React from 'react'
+import { emailBaseUrl } from '@/utils/core'
 import { EmailButton } from '../components/EmailButton'
-import { EmailLayout, Header, Paragraph } from '../components/themed'
+import {
+  EmailLayout,
+  Footer,
+  Header,
+  Paragraph,
+} from '../components/themed'
 
 interface PayoutNotificationEmailProps {
   organizationName: string
@@ -18,14 +24,14 @@ export const OrganizationOnboardingCompletedNotificationEmail = ({
       variant="organization"
     >
       <Img
-        src={`https://cdn-flowglad.com/flowglad-banner-rounded.png`}
-        width="540"
-        height="199"
+        src={`${emailBaseUrl}/images/email/Flowglad-email-logo.jpg`}
+        width="40"
+        height="40"
         alt="Flowglad Logo"
-        style={{ margin: '0 auto', marginBottom: '32px' }}
+        style={{ marginBottom: '32px' }}
       />
       <Header
-        title={`Congratulations! ${organizationName} is fully onboarded`}
+        title={`${organizationName} has Completed Onboarding`}
         variant="organization"
       />
       <Paragraph variant="organization">
@@ -41,6 +47,10 @@ export const OrganizationOnboardingCompletedNotificationEmail = ({
           Contact Flowglad Team
         </EmailButton>
       </Section>
+      <Footer
+        organizationName={organizationName}
+        variant="organization"
+      />
     </EmailLayout>
   )
 }

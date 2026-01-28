@@ -9,6 +9,7 @@ import {
   DetailItem,
   DetailSection,
   EmailLayout,
+  Footer,
   Header,
   LineItem,
   Paragraph,
@@ -79,7 +80,7 @@ export const OrderReceiptEmail = ({
     <EmailLayout previewText={previewText}>
       <TestModeBanner livemode={livemode} />
       <Header
-        title="Thanks for your order!"
+        title="Your Order is Confirmed"
         organizationLogoUrl={sellerLogo}
       />
 
@@ -150,6 +151,15 @@ export const OrderReceiptEmail = ({
         name={signatureName}
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
+      />
+
+      <Footer
+        organizationName={organizationName}
+        variant="customer"
+        billingPortalUrl={core.customerBillingPortalURL({
+          organizationId,
+          customerId,
+        })}
       />
     </EmailLayout>
   )

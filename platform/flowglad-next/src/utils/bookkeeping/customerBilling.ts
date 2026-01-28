@@ -4,28 +4,34 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
 import { customerBillingCreatePricedCheckoutSessionInputSchema } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
-import { Price } from '@/db/schema/prices'
 import { selectCustomers } from '@/db/tableMethods/customerMethods'
-import { selectInvoiceLineItemsAndInvoicesByInvoiceWhere } from '@/db/tableMethods/invoiceLineItemMethods'
+import { selectCustomerFacingInvoicesWithLineItems } from '@/db/tableMethods/invoiceLineItemMethods'
 import {
   safelyUpdatePaymentMethod,
   selectPaymentMethodById,
-  selectPaymentMethods,
+  selectPaymentMethodsByCustomerId,
 } from '@/db/tableMethods/paymentMethodMethods'
 import {
   selectPriceById,
   selectPriceBySlugAndCustomerId,
 } from '@/db/tableMethods/priceMethods'
 import { selectPricingModelForCustomer } from '@/db/tableMethods/pricingModelMethods'
-import { selectPurchases } from '@/db/tableMethods/purchaseMethods'
-import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods'
+import { selectPurchasesByCustomerId } from '@/db/tableMethods/purchaseMethods'
+import { selectRichSubscriptionsAndActiveItems } from '@/db/tableMethods/subscriptionItemMethods.server'
 import {
   isSubscriptionCurrent,
   safelyUpdateSubscriptionsForCustomerToNewPaymentMethod,
 } from '@/db/tableMethods/subscriptionMethods'
-import type { DbTransaction } from '@/db/types'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '@/db/types'
 import type { RichSubscription } from '@/subscriptions/schemas'
-import { CheckoutSessionType, InvoiceStatus } from '@/types'
+import { CheckoutSessionType } from '@/types'
+import {
+  CacheDependency,
+  type CacheRecomputationContext,
+} from '@/utils/cache'
 import { customerBillingPortalURL } from '@/utils/core'
 import { createCheckoutSessionTransaction } from './createCheckoutSession'
 
@@ -34,41 +40,40 @@ export const customerBillingTransaction = async (
     externalId: string
     organizationId: string
   },
-  transaction: DbTransaction
+  transaction: DbTransaction,
+  cacheRecomputationContext: CacheRecomputationContext
 ) => {
   const [customer] = await selectCustomers(params, transaction)
-  const subscriptions = await selectRichSubscriptionsAndActiveItems(
-    { customerId: customer.id },
-    transaction,
-    customer.livemode
-  )
-  const pricingModel = await selectPricingModelForCustomer(
-    customer,
-    transaction
-  )
-  const customerFacingInvoiceStatuses: InvoiceStatus[] = [
-    InvoiceStatus.AwaitingPaymentConfirmation,
-    InvoiceStatus.Paid,
-    InvoiceStatus.PartiallyRefunded,
-    InvoiceStatus.Open,
-    InvoiceStatus.FullyRefunded,
-  ]
-  const invoices =
-    await selectInvoiceLineItemsAndInvoicesByInvoiceWhere(
-      {
-        customerId: customer.id,
-        status: customerFacingInvoiceStatuses,
-      },
-      transaction
-    )
-  const paymentMethods = await selectPaymentMethods(
-    { customerId: customer.id },
-    transaction
-  )
-  const purchases = await selectPurchases(
-    { customerId: customer.id },
-    transaction
-  )
+  // All queries below depend only on customer, so they can run in parallel
+  const [
+    subscriptions,
+    pricingModel,
+    invoices,
+    paymentMethods,
+    purchases,
+  ] = await Promise.all([
+    selectRichSubscriptionsAndActiveItems(
+      { customerId: customer.id },
+      transaction,
+      cacheRecomputationContext
+    ),
+    selectPricingModelForCustomer(customer, transaction),
+    selectCustomerFacingInvoicesWithLineItems(
+      customer.id,
+      transaction,
+      customer.livemode
+    ),
+    selectPaymentMethodsByCustomerId(
+      customer.id,
+      transaction,
+      customer.livemode
+    ),
+    selectPurchasesByCustomerId(
+      customer.id,
+      transaction,
+      customer.livemode
+    ),
+  ])
   const currentSubscriptions = subscriptions.filter((item) => {
     return isSubscriptionCurrent(item.status, item.cancellationReason)
   })
@@ -114,13 +119,13 @@ export const customerBillingTransaction = async (
 
 export const setDefaultPaymentMethodForCustomer = async (
   { paymentMethodId }: { paymentMethodId: string },
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   // Verify the payment method belongs to the customer
-  const paymentMethod = await selectPaymentMethodById(
-    paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(paymentMethodId, transaction)
+  ).unwrap()
 
   // Check if already default
   if (paymentMethod.default) {
@@ -141,11 +146,17 @@ export const setDefaultPaymentMethodForCustomer = async (
         id: paymentMethodId,
         default: true,
       },
-      transaction
+      ctx
     )
     await safelyUpdateSubscriptionsForCustomerToNewPaymentMethod(
       updatedPaymentMethod,
       transaction
+    )
+    // Invalidate payment methods cache after updating default payment method
+    invalidateCache(
+      CacheDependency.customerPaymentMethods(
+        updatedPaymentMethod.customerId
+      )
     )
     return {
       success: true,
@@ -237,7 +248,9 @@ export const customerBillingCreatePricedCheckoutSession = async ({
 
     const price = await authenticatedTransaction(
       async ({ transaction }) => {
-        return await selectPriceById(resolvedPriceId, transaction)
+        return (
+          await selectPriceById(resolvedPriceId, transaction)
+        ).unwrap()
       }
     )
     if (!price) {
@@ -257,7 +270,7 @@ export const customerBillingCreatePricedCheckoutSession = async ({
   })
 
   return await adminTransaction(async ({ transaction }) => {
-    return await createCheckoutSessionTransaction(
+    const result = await createCheckoutSessionTransaction(
       {
         checkoutSessionInput: {
           ...checkoutSessionInput,
@@ -269,6 +282,10 @@ export const customerBillingCreatePricedCheckoutSession = async ({
       },
       transaction
     )
+    if (result.status === 'error') {
+      throw result.error
+    }
+    return result.value
   })
 }
 
@@ -297,7 +314,7 @@ export const customerBillingCreateAddPaymentMethodSession = async (
   })
 
   return await adminTransaction(async ({ transaction }) => {
-    return await createCheckoutSessionTransaction(
+    const result = await createCheckoutSessionTransaction(
       {
         checkoutSessionInput: {
           customerExternalId: customer.externalId,
@@ -310,5 +327,9 @@ export const customerBillingCreateAddPaymentMethodSession = async (
       },
       transaction
     )
+    if (result.status === 'error') {
+      throw result.error
+    }
+    return result.value
   })
 }

@@ -29,7 +29,6 @@ import { FlowgladProvider } from '@flowglad/react';
 export default function RootLayout({ children }) {
   return (
     <FlowgladProvider
-      loadBilling={true} // Set to true if you want to load billing data
       requestConfig={{
         headers: {
           // Add any custom headers here
@@ -76,7 +75,6 @@ The main provider component that must wrap your application to enable Flowglad f
 
 ```tsx
 <FlowgladProvider
-  loadBilling={boolean}
   requestConfig={{
     headers?: Record<string, string>
   }}
@@ -84,6 +82,9 @@ The main provider component that must wrap your application to enable Flowglad f
   {children}
 </FlowgladProvider>
 ```
+
+Billing data loads automatically when `useBilling` mounts. Use `usePricingModel`
+or `usePricing` to fetch public pricing data without loading billing.
 
 ### useBilling
 

@@ -18,7 +18,22 @@
  * 3. **MoR Tax Jurisdictions** - Tax behavior varies by customer location
  */
 
-import { expect } from 'vitest'
+import { expect } from 'bun:test'
+import { teardownOrg } from '@/../seedDatabase'
+import { authenticateUserBehavior } from '@/test/behaviorTest/behaviors/authBehaviors'
+import {
+  applyDiscountBehavior,
+  createProductWithPriceBehavior,
+  initiateCheckoutSessionBehavior,
+  type ProvideBillingAddressResult,
+  provideBillingAddressBehavior,
+} from '@/test/behaviorTest/behaviors/checkoutBehaviors'
+import { createOrganizationBehavior } from '@/test/behaviorTest/behaviors/orgSetupBehaviors'
+import { completeStripeOnboardingBehavior } from '@/test/behaviorTest/behaviors/stripeOnboardingBehaviors'
+import { CountryDep } from '@/test/behaviorTest/dependencies/countryDependencies'
+import { CustomerResidencyDep } from '@/test/behaviorTest/dependencies/customerResidencyDependencies'
+import { DiscountDep } from '@/test/behaviorTest/dependencies/discountDependencies'
+import { behaviorTest } from '@/test/behaviorTest/index'
 import {
   CheckoutSessionStatus,
   CurrencyCode,
@@ -26,21 +41,6 @@ import {
   PriceType,
   StripeConnectContractType,
 } from '@/types'
-import { teardownOrg } from '../../../../seedDatabase'
-import { authenticateUserBehavior } from '../behaviors/authBehaviors'
-import {
-  applyDiscountBehavior,
-  createProductWithPriceBehavior,
-  initiateCheckoutSessionBehavior,
-  type ProvideBillingAddressResult,
-  provideBillingAddressBehavior,
-} from '../behaviors/checkoutBehaviors'
-import { createOrganizationBehavior } from '../behaviors/orgSetupBehaviors'
-import { completeStripeOnboardingBehavior } from '../behaviors/stripeOnboardingBehaviors'
-import { CountryDep } from '../dependencies/countryDependencies'
-import { CustomerResidencyDep } from '../dependencies/customerResidencyDependencies'
-import { DiscountDep } from '../dependencies/discountDependencies'
-import { behaviorTest } from '../index'
 
 // =============================================================================
 // Shared teardown function

@@ -1,6 +1,10 @@
 import type { Flowglad } from '@flowglad/node'
 import { type ZodType, z } from 'zod'
-import { FlowgladActionKey, HTTPMethod } from './types/sdk'
+import {
+  FlowgladActionKey,
+  HTTPMethod,
+  UsageMeterBalance,
+} from './types/sdk'
 
 export type FlowgladActionValidatorMap = {
   [K in FlowgladActionKey]: {
@@ -572,6 +576,25 @@ export type ListResourceClaimsParams = z.infer<
   typeof listResourceClaimsSchema
 >
 
+/**
+ * Schema for fetching usage meter balances for a customer.
+ * Returns usage meter balances for current subscriptions, optionally filtered by subscriptionId.
+ * The customer externalId is derived server-side from the authenticated session.
+ */
+export const getUsageMeterBalancesSchema = z
+  .object({
+    subscriptionId: z.string().optional(),
+  })
+  .strict()
+
+export type GetUsageMeterBalancesParams = z.infer<
+  typeof getUsageMeterBalancesSchema
+>
+
+export type GetUsageMeterBalancesResponse = {
+  usageMeterBalances: UsageMeterBalance[]
+}
+
 export const flowgladActionValidators = {
   [FlowgladActionKey.GetCustomerBilling]: {
     method: HTTPMethod.POST,
@@ -640,5 +663,13 @@ export const flowgladActionValidators = {
   [FlowgladActionKey.GetResourceUsage]: {
     method: HTTPMethod.POST,
     inputValidator: getResourceUsageSchema,
+  },
+  [FlowgladActionKey.GetPricingModel]: {
+    method: HTTPMethod.POST,
+    inputValidator: z.object({}).strict(),
+  },
+  [FlowgladActionKey.GetUsageMeterBalances]: {
+    method: HTTPMethod.POST,
+    inputValidator: getUsageMeterBalancesSchema,
   },
 } as const satisfies FlowgladActionValidatorMap

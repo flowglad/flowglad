@@ -16,7 +16,12 @@ import {
   type ORMMethodCreatorConfig,
   onConflictDoUpdateSetValues,
 } from '@/db/tableUtils'
-import type { DbTransaction } from '../types'
+import { CacheDependency, cached } from '@/utils/cache'
+import { RedisKeyNamespace } from '@/utils/redis'
+import type {
+  DbTransaction,
+  TransactionEffectsContext,
+} from '../types'
 import {
   derivePricingModelIdFromCustomer,
   pricingModelIdsForCustomers,
@@ -74,50 +79,158 @@ export const selectPaymentMethods = createSelectFunction(
   config
 )
 
+/**
+ * Selects payment methods by customer ID with caching enabled by default.
+ * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ *
+ * This cache entry depends on customerPaymentMethods - invalidate when
+ * payment methods for this customer are created, updated, or deleted.
+ *
+ * Cache key includes livemode to prevent cross-mode data leakage, since RLS
+ * filters payment methods by livemode and the same customer could have different
+ * payment methods in live vs test mode.
+ */
+export const selectPaymentMethodsByCustomerId = cached(
+  {
+    namespace: RedisKeyNamespace.PaymentMethodsByCustomer,
+    keyFn: (
+      customerId: string,
+      _transaction: DbTransaction,
+      livemode: boolean
+    ) => `${customerId}:${livemode}`,
+    schema: paymentMethodsSelectSchema.array(),
+    dependenciesFn: (paymentMethods, customerId: string) => [
+      // Set membership: invalidate when payment methods are added/removed for this customer
+      CacheDependency.customerPaymentMethods(customerId),
+      // Content: invalidate when any payment method's properties change
+      ...paymentMethods.map((pm) =>
+        CacheDependency.paymentMethod(pm.id)
+      ),
+    ],
+  },
+  async (
+    customerId: string,
+    transaction: DbTransaction,
+    // livemode is used by keyFn for cache key generation, not in the query itself
+    // (RLS filters by livemode context set on the transaction)
+    _livemode: boolean
+  ) => {
+    return selectPaymentMethods({ customerId }, transaction)
+  }
+)
+
 export const selectPaymentMethodsPaginated =
   createPaginatedSelectFunction(paymentMethods, config)
 
 const setPaymentMethodsForCustomerToNonDefault = async (
   customerId: string,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
+  // Get all payment methods that will be changed before updating
+  const paymentMethodsToUpdate = await selectPaymentMethods(
+    { customerId, default: true },
+    transaction
+  )
   await transaction
     .update(paymentMethods)
     .set({ default: false })
     .where(eq(paymentMethods.customerId, customerId))
+  // Invalidate content for each payment method that was changed
+  for (const pm of paymentMethodsToUpdate) {
+    invalidateCache(CacheDependency.paymentMethod(pm.id))
+  }
+}
+
+/**
+ * Invalidates cache entries when a payment method's customerId changes.
+ * Both the old customer (lost the payment method) and new customer (gained the payment method)
+ * need their set membership caches invalidated.
+ */
+const invalidateCacheForCustomerIdChange = (
+  oldCustomerId: string,
+  newCustomerId: string,
+  invalidateCache: (key: string) => void
+) => {
+  // Old customer lost this payment method
+  invalidateCache(
+    CacheDependency.customerPaymentMethods(oldCustomerId)
+  )
+  // New customer gained this payment method
+  invalidateCache(
+    CacheDependency.customerPaymentMethods(newCustomerId)
+  )
 }
 
 export const safelyUpdatePaymentMethod = async (
   paymentMethod: PaymentMethod.Update,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
-  /**
-   * If payment method is default
-   */
-  if (paymentMethod.default) {
-    const existingPaymentMethod = await selectPaymentMethodById(
-      paymentMethod.id,
-      transaction
-    )
+  const { transaction, invalidateCache } = ctx
+
+  // Fetch existing payment method if we need to handle default or customerId change
+  const existingPaymentMethod =
+    paymentMethod.default || paymentMethod.customerId
+      ? (
+          await selectPaymentMethodById(paymentMethod.id, transaction)
+        ).unwrap()
+      : null
+
+  // If payment method is becoming default, set existing defaults to non-default
+  // Use the new customerId if provided (payment method is moving), otherwise use existing
+  if (paymentMethod.default && existingPaymentMethod) {
+    const targetCustomerId =
+      paymentMethod.customerId ?? existingPaymentMethod.customerId
     await setPaymentMethodsForCustomerToNonDefault(
-      existingPaymentMethod.customerId,
-      transaction
+      targetCustomerId,
+      ctx
     )
   }
-  return updatePaymentMethod(paymentMethod, transaction)
+
+  const updatedPaymentMethod = await updatePaymentMethod(
+    paymentMethod,
+    transaction
+  )
+
+  // Invalidate content for the updated payment method
+  invalidateCache(CacheDependency.paymentMethod(paymentMethod.id))
+
+  // If customerId changed, invalidate both old and new customer's set membership caches
+  if (
+    paymentMethod.customerId &&
+    existingPaymentMethod &&
+    paymentMethod.customerId !== existingPaymentMethod.customerId
+  ) {
+    invalidateCacheForCustomerIdChange(
+      existingPaymentMethod.customerId,
+      paymentMethod.customerId,
+      invalidateCache
+    )
+  }
+
+  return updatedPaymentMethod
 }
 
 export const safelyInsertPaymentMethod = async (
   paymentMethod: PaymentMethod.Insert,
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   if (paymentMethod.default) {
     await setPaymentMethodsForCustomerToNonDefault(
       paymentMethod.customerId,
-      transaction
+      ctx
     )
   }
-  return dangerouslyInsertPaymentMethod(paymentMethod, transaction)
+  const insertedPaymentMethod = await dangerouslyInsertPaymentMethod(
+    paymentMethod,
+    transaction
+  )
+  // Invalidate set membership for customer's payment methods collection
+  invalidateCache(
+    CacheDependency.customerPaymentMethods(paymentMethod.customerId)
+  )
+  return insertedPaymentMethod
 }
 
 const bulkInsertOrDoNothingPaymentMethods =
@@ -167,8 +280,9 @@ export const bulkInsertOrDoNothingPaymentMethodsByExternalId = async (
 
 export const bulkUpsertPaymentMethodsByExternalId = async (
   inserts: PaymentMethod.Insert[],
-  transaction: DbTransaction
+  ctx: TransactionEffectsContext
 ) => {
+  const { transaction, invalidateCache } = ctx
   // Collect unique customerIds that need pricingModelId derivation
   const customerIdsNeedingDerivation = Array.from(
     new Set(
@@ -211,7 +325,7 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
     }
   })
 
-  await transaction
+  const upsertedPaymentMethods = await transaction
     .insert(paymentMethods)
     .values(parsedData)
     .onConflictDoUpdate({
@@ -224,4 +338,19 @@ export const bulkUpsertPaymentMethodsByExternalId = async (
       ]),
     })
     .returning()
+
+  // Invalidate cache for all affected customers (set membership)
+  const uniqueCustomerIds = Array.from(
+    new Set(inserts.map((insert) => insert.customerId))
+  )
+  for (const customerId of uniqueCustomerIds) {
+    invalidateCache(
+      CacheDependency.customerPaymentMethods(customerId)
+    )
+  }
+
+  // Invalidate content for each upserted payment method
+  for (const pm of upsertedPaymentMethods) {
+    invalidateCache(CacheDependency.paymentMethod(pm.id))
+  }
 }

@@ -1,3 +1,4 @@
+import { TRPCError } from '@trpc/server'
 import { Result } from 'better-result'
 import { z } from 'zod'
 import {
@@ -23,6 +24,7 @@ import {
   createPaginatedTableRowOutputSchema,
   idInputSchema,
 } from '@/db/tableUtils'
+import { CacheDependency } from '@/utils/cache'
 import { generateOpenApiMetas } from '@/utils/openapi'
 import { createUsageMeterTransaction } from '@/utils/usage'
 import { protectedProcedure, router } from '../trpc'
@@ -42,18 +44,18 @@ export const createUsageMeter = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
+        const {
+          transaction,
+          cacheRecomputationContext,
+          invalidateCache,
+        } = transactionCtx
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
-        if (!userId) {
-          throw new Error(
-            'userId is required to create a usage meter'
-          )
-        }
         if (!organizationId) {
-          throw new Error(
-            'organizationId is required to create a usage meter'
-          )
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message:
+              'Organization ID is required for this operation.',
+          })
         }
         try {
           const { usageMeter } = await createUsageMeterTransaction(
@@ -63,7 +65,7 @@ export const createUsageMeter = protectedProcedure
             },
             {
               transaction,
-              userId,
+              cacheRecomputationContext,
               livemode,
               organizationId,
               invalidateCache,
@@ -98,18 +100,23 @@ const updateUsageMeter = protectedProcedure
   .input(editUsageMeterSchema)
   .output(z.object({ usageMeter: usageMetersClientSelectSchema }))
   .mutation(
-    authenticatedProcedureTransaction(
+    authenticatedProcedureComprehensiveTransaction(
       async ({ input, transactionCtx }) => {
-        const { transaction } = transactionCtx
+        const { invalidateCache } = transactionCtx
         try {
           const usageMeter = await updateUsageMeterDB(
             {
               ...input.usageMeter,
               id: input.id,
             },
-            transaction
+            transactionCtx
           )
-          return { usageMeter }
+
+          // Invalidate cache for this specific meter's content change
+          // (not pricingModelUsageMeters since set membership hasn't changed)
+          invalidateCache(CacheDependency.usageMeter(input.id))
+
+          return Result.ok({ usageMeter })
         } catch (error) {
           errorHandlers.usageMeter.handle(error, {
             operation: 'update',
@@ -129,10 +136,9 @@ const getUsageMeter = protectedProcedure
     authenticatedProcedureTransaction(
       async ({ input, transactionCtx }) => {
         const { transaction } = transactionCtx
-        const usageMeter = await selectUsageMeterById(
-          input.id,
-          transaction
-        )
+        const usageMeter = (
+          await selectUsageMeterById(input.id, transaction)
+        ).unwrap()
         return { usageMeter }
       }
     )

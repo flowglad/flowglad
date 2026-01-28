@@ -145,17 +145,17 @@ export const calculateFeeAndTotalAmountDueForBillingPeriod = async (
         `Organization: ${organization.id}; Billing Period: ${billingPeriod.id}`
     )
   }
-  const organizationCountry = await selectCountryById(
-    countryId,
-    transaction
-  )
-  await claimLedgerEntriesWithOutstandingBalances(
+  const organizationCountry = (
+    await selectCountryById(countryId, transaction)
+  ).unwrap()
+  const claimResult = await claimLedgerEntriesWithOutstandingBalances(
     usageOverages.flatMap(
       (usageOverage) => usageOverage.usageEventIds
     ),
     billingRun,
     transaction
   )
+  claimResult.unwrap()
   const feeCalculation =
     await createAndFinalizeSubscriptionFeeCalculation(
       {
@@ -225,9 +225,7 @@ export const tabulateOutstandingUsageCosts = async (
     string,
     OutstandingUsageCostAggregation
   >
-  rawOutstandingUsageCosts: Awaited<
-    ReturnType<typeof aggregateOutstandingBalanceForUsageCosts>
-  >
+  rawOutstandingUsageCosts: UsageBillingInfo[]
 }> => {
   const ledgerAccountsForSubscription = await selectLedgerAccounts(
     {
@@ -235,7 +233,7 @@ export const tabulateOutstandingUsageCosts = async (
     },
     transaction
   )
-  const rawOutstandingUsageCosts =
+  const rawOutstandingUsageCostsResult =
     await aggregateOutstandingBalanceForUsageCosts(
       {
         ledgerAccountId: ledgerAccountsForSubscription.map(
@@ -245,6 +243,8 @@ export const tabulateOutstandingUsageCosts = async (
       billingPeriodEndDate,
       transaction
     )
+  const rawOutstandingUsageCosts =
+    rawOutstandingUsageCostsResult.unwrap()
 
   const outstandingUsageCostsByLedgerAccountId = new Map()
   rawOutstandingUsageCosts.forEach((usageCost) => {
@@ -435,10 +435,12 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
       transaction
     )
 
-  const paymentMethod = await selectPaymentMethodById(
-    billingRun.paymentMethodId,
-    transaction
-  )
+  const paymentMethod = (
+    await selectPaymentMethodById(
+      billingRun.paymentMethodId,
+      transaction
+    )
+  ).unwrap()
 
   // For doNotCharge subscriptions, skip usage overages - they're recorded but not charged
   const { rawOutstandingUsageCosts } =
@@ -619,6 +621,39 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     }
   }
 
+  /**
+   * Guard: Only create a payment record if there's actually an amount to charge.
+   * This prevents orphaned $0 payment records when the invoice is already fully
+   * paid via credits or prior payments (amountToCharge = 0).
+   * This check must come BEFORE Stripe ID validation since we don't need
+   * Stripe IDs when there's nothing to charge.
+   * See: https://github.com/flowglad/flowglad/issues/1317
+   */
+  if (amountToCharge <= 0) {
+    const processBillingPeriodResult =
+      await processNoMoreDueForBillingPeriod(
+        {
+          billingRun,
+          billingPeriod,
+          invoice,
+        },
+        transaction
+      )
+    return {
+      invoice: processBillingPeriodResult.invoice,
+      feeCalculation,
+      customer,
+      organization,
+      billingPeriod: processBillingPeriodResult.billingPeriod,
+      subscription,
+      paymentMethod,
+      totalDueAmount,
+      totalAmountPaid,
+      amountToCharge,
+      payments,
+    }
+  }
+
   const stripeCustomerId = customer.stripeCustomerId
   const stripePaymentMethodId = paymentMethod.stripePaymentMethodId
   if (!stripeCustomerId) {
@@ -665,7 +700,11 @@ export const executeBillingRunCalculationAndBookkeepingSteps = async (
     billingPeriodId: billingPeriod.id,
   }
 
-  const payment = await insertPayment(paymentInsert, transaction)
+  const paymentResult = await insertPayment(
+    paymentInsert,
+    transaction
+  )
+  const payment = paymentResult.unwrap()
 
   /**
    * Eagerly update the billing run status to AwaitingPaymentConfirmation
@@ -750,7 +789,9 @@ export const executeBillingRun = async (
   }
 ) => {
   const billingRun = await adminTransaction(({ transaction }) => {
-    return selectBillingRunById(billingRunId, transaction)
+    return selectBillingRunById(billingRunId, transaction).then((r) =>
+      r.unwrap()
+    )
   })
 
   if (billingRun.status !== BillingRunStatus.Scheduled) {
@@ -857,19 +898,24 @@ export const executeBillingRun = async (
               )
             }
 
-            paymentIntent = await createPaymentIntentForBillingRun({
-              amount: amountToCharge,
-              currency: resultFromSteps.invoice.currency,
-              stripeCustomerId:
-                resultFromSteps.customer.stripeCustomerId,
-              stripePaymentMethodId:
-                resultFromSteps.paymentMethod.stripePaymentMethodId,
-              billingPeriodId: billingRun.billingPeriodId,
-              billingRunId: billingRun.id,
-              feeCalculation: resultFromSteps.feeCalculation,
-              organization: resultFromSteps.organization,
-              livemode: billingRun.livemode,
-            })
+            const paymentIntentResult =
+              await createPaymentIntentForBillingRun({
+                amount: amountToCharge,
+                currency: resultFromSteps.invoice.currency,
+                stripeCustomerId:
+                  resultFromSteps.customer.stripeCustomerId,
+                stripePaymentMethodId:
+                  resultFromSteps.paymentMethod.stripePaymentMethodId,
+                billingPeriodId: billingRun.billingPeriodId,
+                billingRunId: billingRun.id,
+                feeCalculation: resultFromSteps.feeCalculation,
+                organization: resultFromSteps.organization,
+                livemode: billingRun.livemode,
+              })
+            if (Result.isError(paymentIntentResult)) {
+              return Result.err(paymentIntentResult.error)
+            }
+            paymentIntent = paymentIntentResult.value
 
             // Update payment record with payment intent ID
             await updatePayment(
@@ -972,6 +1018,7 @@ export const executeBillingRun = async (
       await comprehensiveAdminTransaction(async (params) => {
         const effectsCtx: TransactionEffectsContext = {
           transaction: params.transaction,
+          cacheRecomputationContext: params.cacheRecomputationContext,
           invalidateCache: params.invalidateCache,
           emitEvent: params.emitEvent,
           enqueueLedgerCommand: params.enqueueLedgerCommand,
@@ -983,7 +1030,7 @@ export const executeBillingRun = async (
           },
           effectsCtx
         )
-        return Result.ok(result)
+        return result
       })
     }
 

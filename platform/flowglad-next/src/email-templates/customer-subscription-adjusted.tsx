@@ -8,6 +8,7 @@ import {
   DetailItem,
   DetailSection,
   EmailLayout,
+  Footer,
   Header,
   Paragraph,
   Signature,
@@ -186,6 +187,11 @@ export const CustomerSubscriptionAdjustedEmail = ({
       <Hr
         style={{
           borderColor: '#e6e6e6',
+          borderTop: 'none',
+          borderLeft: 'none',
+          borderRight: 'none',
+          borderBottomWidth: '1px',
+          borderBottomStyle: 'dashed',
           margin: '16px 0',
         }}
       />
@@ -277,6 +283,14 @@ export const CustomerSubscriptionAdjustedEmail = ({
         name={organizationName}
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
+      />
+
+      <Footer
+        organizationName={organizationName}
+        variant="customer"
+        billingPortalUrl={core.organizationBillingPortalURL({
+          organizationId,
+        })}
       />
     </EmailLayout>
   )

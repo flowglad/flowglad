@@ -144,14 +144,16 @@ export const createOrganizationBehavior = defineBehavior({
             fullName: prev.user.name ?? undefined,
             email: prev.user.email,
           },
-          transaction
+          transaction,
+          { type: 'admin', livemode: true }
         )
 
       // Get the full organization record (including stripeAccountId)
-      const organization = await selectOrganizationById(
+      const organizationResult = await selectOrganizationById(
         clientOrg.id,
         transaction
       )
+      const organization = organizationResult.unwrap()
 
       // Get the membership that was created
       const [membership] = await selectMemberships(

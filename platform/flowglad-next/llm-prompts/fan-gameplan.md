@@ -71,8 +71,27 @@ Do NOT attempt to use `WebFetch` or `curl` for Notion URLs—Notion requires aut
 ## Your Task
 {Patch instructions verbatim from gameplan, including files to modify/create and specific changes}
 
-## Tests to Implement
-{Test stubs for this patch only, verbatim from gameplan}
+## Test Stubs to Add
+{If this patch introduces test stubs (from Test Map where Stub Patch = N), list them here with file paths}
+{Format: "Add the following `.skip` tests to {file}:" followed by the test stub code from the gameplan}
+{If none, write: "None - this patch does not introduce test stubs."}
+
+## Tests to Unskip and Implement
+{If this patch implements tests (from Test Map where Impl Patch = N), list them here}
+{Format for each test:}
+- **Test**: `{full test name from Test Map}`
+- **File**: `{file path}`
+- **Stub Patch**: {N} (the test stub with setup/expectation comments is already in the codebase)
+- **Action**: Remove `.skip`, implement the test body per the stub comments
+
+{If none, write: "None - this patch does not implement tests."}
+
+## Setup Instructions (REQUIRED)
+Before starting any development work, you MUST run the initialization script:
+```bash
+bun run init:flowglad-next
+```
+This script pulls environment variables and sets up the local development environment. Without this, builds and tests will fail.
 
 ## Git Instructions
 - Branch from: `{base branch determined in step 5 for this patch}`

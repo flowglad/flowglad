@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { cookies } from 'next/headers'
 import { z } from 'zod'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
@@ -13,6 +14,7 @@ import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
 import { selectProductById } from '@/db/tableMethods/productMethods'
 import { idInputSchema } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { ValidationError } from '@/errors'
 import {
   CheckoutSessionStatus,
   CheckoutSessionType,
@@ -171,7 +173,7 @@ export const createNonInvoiceCheckoutSession = async (
     customerId,
   }: CreateNonInvoiceCheckoutSessionParams,
   transaction: DbTransaction
-) => {
+): Promise<Result<CheckoutSession.Record, ValidationError>> => {
   const checkoutSessionInsertCore = {
     priceId: price.id,
     status: CheckoutSessionStatus.Open,
@@ -218,22 +220,30 @@ export const createNonInvoiceCheckoutSession = async (
   // 2. Creating payment intents for single payment prices
   let product = null
   if (Price.hasProductId(price)) {
-    product = await selectProductById(price.productId, transaction)
+    product = (
+      await selectProductById(price.productId, transaction)
+    ).unwrap()
     if (product.default) {
-      throw new Error(
-        'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+      return Result.err(
+        new ValidationError(
+          'product',
+          'Checkout sessions cannot be created for default products. Default products are automatically assigned to customers and do not require manual checkout.'
+        )
       )
     }
   }
 
-  const checkoutSession = await insertCheckoutSession(
+  const checkoutSessionResult = await insertCheckoutSession(
     checkoutSessionInsert,
     transaction
   )
-  const organization = await selectOrganizationById(
-    organizationId,
-    transaction
-  )
+  if (checkoutSessionResult.status === 'error') {
+    return checkoutSessionResult
+  }
+  const checkoutSession = checkoutSessionResult.value
+  const organization = (
+    await selectOrganizationById(organizationId, transaction)
+  ).unwrap()
 
   let stripeSetupIntentId: string | null = null
   let stripePaymentIntentId: string | null = null
@@ -248,7 +258,7 @@ export const createNonInvoiceCheckoutSession = async (
       price.type === PriceType.Usage
     ) {
       const customer = customerId
-        ? await selectCustomerById(customerId, transaction)
+        ? (await selectCustomerById(customerId, transaction)).unwrap()
         : undefined
       const setupIntent = await createSetupIntentForCheckoutSession({
         organization,
@@ -264,7 +274,7 @@ export const createNonInvoiceCheckoutSession = async (
           `Product is required for single payment checkout session but was null for price ${price.id}`
         )
       }
-      const paymentIntent =
+      const paymentIntentResult =
         await createPaymentIntentForCheckoutSession({
           price,
           product,
@@ -272,7 +282,10 @@ export const createNonInvoiceCheckoutSession = async (
           checkoutSession,
           organization,
         })
-      stripePaymentIntentId = paymentIntent.id
+      if (Result.isError(paymentIntentResult)) {
+        return Result.err(paymentIntentResult.error)
+      }
+      stripePaymentIntentId = paymentIntentResult.value.id
     }
   }
 
@@ -285,7 +298,7 @@ export const createNonInvoiceCheckoutSession = async (
     transaction
   )
 
-  return updatedCheckoutSession
+  return Result.ok(updatedCheckoutSession)
 }
 
 export const findOrCreateCheckoutSession = async (
@@ -303,7 +316,7 @@ export const findOrCreateCheckoutSession = async (
     type: CheckoutSessionType.Product | CheckoutSessionType.Purchase
   },
   transaction: DbTransaction
-) => {
+): Promise<Result<CheckoutSession.Record, ValidationError>> => {
   const checkoutSession = await findCheckoutSession(
     {
       productId: productId,
@@ -327,7 +340,7 @@ export const findOrCreateCheckoutSession = async (
       transaction
     )
   }
-  return checkoutSession
+  return Result.ok(checkoutSession)
 }
 
 type SetCheckoutSessionCookieParams = {

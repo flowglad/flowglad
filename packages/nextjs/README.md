@@ -60,7 +60,6 @@ export default function RootLayout({ children }) {
   return (
     <FlowgladProvider
       baseURL="https://your-app.com" // Base URL of your app (optional, defaults to relative /api/flowglad)
-      loadBilling={true} // Set to true to load billing data
     >
       {children}
     </FlowgladProvider>
@@ -68,9 +67,10 @@ export default function RootLayout({ children }) {
 }
 
 // In your components
-import { useBilling } from '@flowglad/nextjs';
+import { useBilling, usePricing } from '@flowglad/nextjs';
 
 function BillingComponent() {
+  const pricingModel = usePricing();
   const { 
     customer,
     subscriptions,
@@ -81,7 +81,7 @@ function BillingComponent() {
     errors 
   } = useBilling();
 
-  if (!loaded) {
+  if (!loaded || !pricingModel) {
     return <div>Loading...</div>;
   }
 
@@ -101,11 +101,16 @@ function BillingComponent() {
         </div>
       ))}
       
-      <button onClick={() => createCheckoutSession({
-        successUrl: 'https://your-app.com/success',
-        cancelUrl: 'https://your-app.com/cancel',
-        priceId: 'price_123'
-      })}>
+      <button
+        disabled={!pricingModel.products[0]?.defaultPrice}
+        onClick={() =>
+          createCheckoutSession({
+            successUrl: 'https://your-app.com/success',
+            cancelUrl: 'https://your-app.com/cancel',
+            priceSlug: pricingModel.products[0]?.defaultPrice?.slug,
+          })
+        }
+      >
         Subscribe
       </button>
     </div>

@@ -1,16 +1,24 @@
 import { Link } from '@react-email/components'
-import * as React from 'react'
+import type * as React from 'react'
 import { type CurrencyCode, IntervalUnit } from '@/types'
 import core, { formatDate } from '@/utils/core'
 import { stripeCurrencyAmountToHumanReadableCurrencyAmount } from '@/utils/stripe'
+import { EmailButton } from './components/EmailButton'
 import {
   DetailRow,
   DetailTable,
   EmailLayout,
+  Footer,
   Header,
+  HelpfulLinks,
   Paragraph,
   Signature,
 } from './components/themed'
+
+/**
+ * Brand color for links - matches globals.css
+ */
+const LINK_COLOR = '#DA853A'
 
 export interface TrialInfo {
   trialEndDate: Date
@@ -152,7 +160,7 @@ export const CustomerSubscriptionCreatedEmail = ({
             <Link
               href={billingPortalUrl}
               style={{
-                color: '#2563eb',
+                color: LINK_COLOR,
                 textDecoration: 'underline',
               }}
             >
@@ -169,7 +177,7 @@ export const CustomerSubscriptionCreatedEmail = ({
             <Link
               href={billingPortalUrl}
               style={{
-                color: '#2563eb',
+                color: LINK_COLOR,
                 textDecoration: 'underline',
               }}
             >
@@ -180,11 +188,26 @@ export const CustomerSubscriptionCreatedEmail = ({
         </div>
       )}
 
+      <EmailButton
+        href={billingPortalUrl}
+        testId="manage-subscription-cta"
+      >
+        Manage Subscription →
+      </EmailButton>
+
+      <HelpfulLinks billingPortalUrl={billingPortalUrl} />
+
       <Signature
         greeting="Thanks,"
         name={organizationName}
         greetingDataTestId="signature-thanks"
         nameDataTestId="signature-org-name"
+      />
+
+      <Footer
+        organizationName={organizationName}
+        variant="customer"
+        billingPortalUrl={billingPortalUrl}
       />
     </EmailLayout>
   )

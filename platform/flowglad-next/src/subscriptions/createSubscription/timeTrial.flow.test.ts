@@ -1,5 +1,12 @@
+import {
+  beforeEach,
+  describe,
+  expect,
+  it,
+  mock,
+  spyOn,
+} from 'bun:test'
 import { Result } from 'better-result'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   setupCustomer,
   setupOrg,
@@ -39,6 +46,7 @@ import {
   type CoreSripeSetupIntent,
   processSetupIntentSucceeded,
 } from '@/utils/bookkeeping/processSetupIntent'
+import type { CacheRecomputationContext } from '@/utils/cache'
 import {
   checkoutInfoForCheckoutSession,
   checkoutInfoForPriceWhere,
@@ -47,7 +55,7 @@ import core from '@/utils/core'
 import { createProductTransaction } from '@/utils/pricingModel'
 import { IntentMetadataType } from '@/utils/stripe'
 
-vi.mock('next/headers', () => ({
+mock.module('next/headers', () => ({
   cookies: () => ({
     get: () => undefined,
     set: () => {},
@@ -124,11 +132,16 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
               ],
             },
             {
-              userId: user.id,
               transaction,
+              cacheRecomputationContext: {
+                type: 'admin',
+                livemode: true,
+              },
               livemode: true,
               organizationId: organization.id,
               invalidateCache,
+              emitEvent: () => {},
+              enqueueLedgerCommand: () => {},
             }
           )
           return Result.ok(result)
@@ -184,7 +197,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             successUrl: 'https://test.com/success',
             cancelUrl: 'https://test.com/cancel',
           }
-        const { checkoutSession } =
+        const { checkoutSession } = (
           await createCheckoutSessionTransaction(
             {
               checkoutSessionInput,
@@ -193,6 +206,7 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
             },
             transaction
           )
+        ).unwrap()
         // 2. Update billing address & payment method
         await updateCheckoutSessionBillingAddress(
           {
@@ -247,57 +261,64 @@ describe('Subscription Activation Workflow E2E - Time Trial', () => {
       return Result.ok(null)
     })
 
-    await comprehensiveAdminTransaction(async ({ transaction }) => {
-      // 5. Process setup intent
-      const setupIntent: CoreSripeSetupIntent = {
-        id: `si_${core.nanoid()}`,
-        status: 'succeeded',
-        customer: customer.stripeCustomerId,
-        payment_method: `pm_${core.nanoid()}`,
-        metadata: {
-          type: IntentMetadataType.CheckoutSession,
-          checkoutSessionId: checkoutSession.id,
-        },
-      }
-      await processSetupIntentSucceeded(
-        setupIntent,
-        createDiscardingEffectsContext(transaction)
-      )
-      // 6. Final billing state
-      const billingState = await customerBillingTransaction(
-        {
-          externalId: customer.externalId,
-          organizationId: organization.id,
-        },
-        transaction
-      )
-      const sub = billingState.subscriptions[0]
-      expect(sub.status).toBe(SubscriptionStatus.Trialing)
-      expect(typeof sub.trialEnd).toBe('number')
-      const diff = sub.trialEnd! - Date.now()
-      expect(diff).toBeGreaterThanOrEqual(
-        trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
-      )
-      expect(diff).toBeLessThanOrEqual(
-        trialPeriodDays * 24 * 60 * 60 * 1000 + 1000
-      )
-      expect(
-        sub.experimental?.featureItems.some(
-          (fi) => fi.featureId === toggleFeature.id
+    await comprehensiveAdminTransaction(
+      async ({ transaction, livemode }) => {
+        // 5. Process setup intent
+        const setupIntent: CoreSripeSetupIntent = {
+          id: `si_${core.nanoid()}`,
+          status: 'succeeded',
+          customer: customer.stripeCustomerId,
+          payment_method: `pm_${core.nanoid()}`,
+          metadata: {
+            type: IntentMetadataType.CheckoutSession,
+            checkoutSessionId: checkoutSession.id,
+          },
+        }
+        await processSetupIntentSucceeded(
+          setupIntent,
+          createDiscardingEffectsContext(transaction)
         )
-      ).toBe(true)
-      expect(typeof sub.defaultPaymentMethodId).toBe('string')
-      expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(0)
+        // 6. Final billing state
+        const cacheRecomputationContext: CacheRecomputationContext = {
+          type: 'admin',
+          livemode,
+        }
+        const billingState = await customerBillingTransaction(
+          {
+            externalId: customer.externalId,
+            organizationId: organization.id,
+          },
+          transaction,
+          cacheRecomputationContext
+        )
+        const sub = billingState.subscriptions[0]
+        expect(sub.status).toBe(SubscriptionStatus.Trialing)
+        expect(typeof sub.trialEnd).toBe('number')
+        const diff = sub.trialEnd! - Date.now()
+        expect(diff).toBeGreaterThanOrEqual(
+          trialPeriodDays * 24 * 60 * 60 * 1000 - 1000
+        )
+        expect(diff).toBeLessThanOrEqual(
+          trialPeriodDays * 24 * 60 * 60 * 1000 + 1000
+        )
+        expect(
+          sub.experimental?.featureItems.some(
+            (fi) => fi.featureId === toggleFeature.id
+          )
+        ).toBe(true)
+        expect(typeof sub.defaultPaymentMethodId).toBe('string')
+        expect(sub.defaultPaymentMethodId!.length).toBeGreaterThan(0)
 
-      // After processing setup intent, verify checkoutSession status
-      const finalSession = await selectCheckoutSessionById(
-        checkoutSession.id,
-        transaction
-      )
-      expect(finalSession.status).toBe(
-        CheckoutSessionStatus.Succeeded
-      )
-      return Result.ok(null)
-    })
+        // After processing setup intent, verify checkoutSession status
+        const finalSession = await selectCheckoutSessionById(
+          checkoutSession.id,
+          transaction
+        )
+        expect(finalSession.status).toBe(
+          CheckoutSessionStatus.Succeeded
+        )
+        return Result.ok(null)
+      }
+    )
   })
 })

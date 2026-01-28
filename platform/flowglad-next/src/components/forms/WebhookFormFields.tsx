@@ -10,11 +10,15 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import {
+  ActiveStatusTag,
+  booleanToActiveStatus,
+} from '@/components/ui/status-tag'
 import { Switch } from '@/components/ui/switch'
 import type { CreateWebhookInput } from '@/db/schema/webhooks'
 import { FlowgladEventType } from '@/types'
-import StatusBadge from '../StatusBadge'
 import MultiSelect, { type Option } from './MultiSelect'
+import PricingModelSelect from './PricingModelSelect'
 
 const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
   const form = useFormContext<CreateWebhookInput>()
@@ -41,6 +45,14 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
           </FormItem>
         )}
       />
+      {!edit && (
+        <div className="w-full relative flex flex-col gap-3">
+          <PricingModelSelect
+            name="webhook.pricingModelId"
+            control={form.control}
+          />
+        </div>
+      )}
       <FormField
         control={form.control}
         name="webhook.url"
@@ -98,11 +110,11 @@ const WebhookFormFields = ({ edit = false }: { edit?: boolean }) => {
                   htmlFor="webhook-active"
                   className="cursor-pointer w-full"
                 >
-                  {field.value ? (
-                    <StatusBadge active={true} />
-                  ) : (
-                    <StatusBadge active={false} />
-                  )}
+                  <ActiveStatusTag
+                    status={booleanToActiveStatus(
+                      field.value ?? false
+                    )}
+                  />
                 </Label>
               </div>
             )}

@@ -12,6 +12,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm'
+import { z } from 'zod'
 import {
   nonRenewingStatusSchema,
   type Subscription,
@@ -36,6 +37,7 @@ import {
   type SelectConditions,
 } from '@/db/tableUtils'
 import type { DbTransaction } from '@/db/types'
+import { SubscriptionTerminalStateError } from '@/errors'
 import { CancellationReason, SubscriptionStatus } from '@/types'
 import { CacheDependency, cached } from '@/utils/cache'
 import { RedisKeyNamespace } from '@/utils/redis'
@@ -127,8 +129,7 @@ export const selectSubscriptions = createSelectFunction(
 )
 
 /**
- * Selects subscriptions by customer ID with caching enabled by default.
- * Pass { ignoreCache: true } as the last argument to bypass the cache.
+ * Selects subscriptions by customer ID with caching.
  *
  * This cache entry depends on customerSubscriptions - invalidate when
  * subscriptions for this customer are created, updated, or deleted.
@@ -136,38 +137,66 @@ export const selectSubscriptions = createSelectFunction(
  * Cache key includes livemode to prevent cross-mode data leakage, since RLS
  * filters subscriptions by livemode and the same customer could have different
  * subscriptions in live vs test mode.
+ *
+ * Note: This function uses cached() (not cachedRecomputable) because it doesn't
+ * need automatic recomputation - subscriptions are relatively stable and
+ * invalidation-only caching is sufficient.
  */
-export const selectSubscriptionsByCustomerId = cached(
+export const selectSubscriptionsByCustomerId = cached<
+  [customerId: string, livemode: boolean, transaction: DbTransaction],
+  Subscription.Record[]
+>(
   {
     namespace: RedisKeyNamespace.SubscriptionsByCustomer,
-    keyFn: (
-      customerId: string,
-      _transaction: DbTransaction,
-      livemode: boolean
-    ) => `${customerId}:${livemode}`,
+    keyFn: (customerId, livemode) => `${customerId}:${livemode}`,
     schema: subscriptionsSelectSchema.array(),
-    dependenciesFn: (customerId: string) => [
+    dependenciesFn: (subscriptions, customerId) => [
+      // Set membership: invalidate when subscriptions are added/removed for this customer
       CacheDependency.customerSubscriptions(customerId),
+      // Content: invalidate when any subscription's properties change
+      ...subscriptions.map((subscription) =>
+        CacheDependency.subscription(subscription.id)
+      ),
     ],
   },
-  async (
-    customerId: string,
-    transaction: DbTransaction,
-    // livemode is used by keyFn for cache key generation, not in the query itself
-    // (RLS filters by livemode context set on the transaction)
-    _livemode: boolean
-  ) => {
-    return selectSubscriptions({ customerId }, transaction)
+  async (customerId, livemode, transaction) => {
+    return selectSubscriptions({ customerId, livemode }, transaction)
   }
 )
+
+/**
+ * Terminal subscription states - subscriptions in these states cannot be mutated.
+ * Used to guard archived customer subscriptions since archiving cancels them.
+ */
+export const TERMINAL_SUBSCRIPTION_STATES = [
+  SubscriptionStatus.Canceled,
+  SubscriptionStatus.IncompleteExpired,
+] as const
 
 export const isSubscriptionInTerminalState = (
   status: SubscriptionStatus
 ) => {
-  return [
-    SubscriptionStatus.Canceled,
-    SubscriptionStatus.IncompleteExpired,
-  ].includes(status)
+  return (
+    TERMINAL_SUBSCRIPTION_STATES as readonly SubscriptionStatus[]
+  ).includes(status)
+}
+
+/**
+ * Guard function that throws if the subscription is in a terminal state.
+ * Use this to block mutations on subscriptions that have been canceled or expired.
+ *
+ * @param subscription - The subscription to check
+ * @throws SubscriptionTerminalStateError if subscription is in a terminal state
+ */
+export const assertSubscriptionNotTerminal = (
+  subscription: Subscription.Record
+): void => {
+  if (isSubscriptionInTerminalState(subscription.status)) {
+    throw new SubscriptionTerminalStateError(
+      subscription.id,
+      subscription.status
+    )
+  }
 }
 
 export const safelyUpdateSubscriptionStatus = async (
@@ -629,7 +658,10 @@ export const derivePricingModelIdFromSubscription =
   createDerivePricingModelId(
     subscriptions,
     config,
-    selectSubscriptionById
+    async (id, transaction) => {
+      const result = await selectSubscriptionById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**

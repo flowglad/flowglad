@@ -1,12 +1,10 @@
+import { afterEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
 import Stripe from 'stripe'
-import { afterEach, describe, expect, it } from 'vitest'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
 import type { FeeCalculation } from '@/db/schema/feeCalculations'
-import {
-  type BillingAddress,
-  type Organization,
-} from '@/db/schema/organizations'
+import type { Organization } from '@/db/schema/organizations'
 import type { Price } from '@/db/schema/prices'
 import type { Product } from '@/db/schema/products'
 import type { Purchase } from '@/db/schema/purchases'
@@ -37,8 +35,6 @@ import {
   createPaymentIntentForCheckoutSession,
   createSetupIntentForCheckoutSession,
   createStripeCustomer,
-  createStripeTaxCalculationByPrice,
-  createStripeTaxCalculationByPurchase,
   createStripeTaxTransactionFromCalculation,
   dateFromStripeTimestamp,
   getLatestChargeForPaymentIntent,
@@ -351,7 +347,7 @@ const createSucceededBillingPayment = async (
   })
 
   // Use the application function to create and confirm payment
-  const paymentIntent =
+  const paymentIntentResult =
     await createAndConfirmPaymentIntentForBillingRun({
       amount,
       currency: CurrencyCode.USD,
@@ -363,6 +359,13 @@ const createSucceededBillingPayment = async (
       organization,
       livemode: false,
     })
+
+  if (Result.isError(paymentIntentResult)) {
+    throw new Error(
+      `Failed to create and confirm payment intent: ${paymentIntentResult.error.message}`
+    )
+  }
+  const paymentIntent = paymentIntentResult.value
 
   const chargeId =
     typeof paymentIntent.latest_charge === 'string'
@@ -476,14 +479,21 @@ describeIfStripeKey('Stripe Integration Tests', () => {
       }
 
       // Use the application function
-      const clientSecret =
+      const clientSecretResult =
         await createCustomerSessionForCheckout(customerRecord)
+
+      if (Result.isError(clientSecretResult)) {
+        throw new Error(
+          `Failed to create customer session: ${clientSecretResult.error.message}`
+        )
+      }
+      const clientSecret = clientSecretResult.value
 
       expect(typeof clientSecret).toBe('string')
       expect(clientSecret).toContain('_secret_')
     })
 
-    it('throws error when customer has no stripeCustomerId', async () => {
+    it('returns error Result when customer has no stripeCustomerId', async () => {
       const customerRecord: Customer.Record = {
         id: `cust_${core.nanoid()}`,
         createdAt: Date.now(),
@@ -509,11 +519,15 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         livemode: false,
       }
 
-      await expect(
-        createCustomerSessionForCheckout(customerRecord)
-      ).rejects.toThrow(
-        'Missing stripeCustomerId for customer session creation'
-      )
+      const result =
+        await createCustomerSessionForCheckout(customerRecord)
+
+      expect(Result.isError(result)).toBe(true)
+      if (Result.isError(result)) {
+        expect(result.error.message).toBe(
+          'stripeCustomerId not found: Missing stripeCustomerId for customer session creation'
+        )
+      }
     })
   })
 
@@ -543,13 +557,20 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Use the application function
-        const paymentIntent =
+        const paymentIntentResult =
           await createPaymentIntentForCheckoutSession({
             price,
             organization,
             product,
             checkoutSession,
           })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
 
         createdPaymentIntentId = paymentIntent.id
 
@@ -617,13 +638,21 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Create a payment intent without a customer using app function
-        const paymentIntent =
+        const paymentIntentResult =
           await createPaymentIntentForCheckoutSession({
             price,
             organization,
             product,
             checkoutSession,
           })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
+
         createdPaymentIntentId = paymentIntent.id
 
         // Create a customer to associate
@@ -654,13 +683,21 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Create a payment intent using app function
-        const paymentIntent =
+        const paymentIntentResult =
           await createPaymentIntentForCheckoutSession({
             price,
             organization,
             product,
             checkoutSession,
           })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
+
         createdPaymentIntentId = paymentIntent.id
 
         // Update the payment intent with new amount using app function
@@ -700,13 +737,21 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Create a payment intent using app function
-        const paymentIntent =
+        const paymentIntentResult =
           await createPaymentIntentForCheckoutSession({
             price,
             organization,
             product,
             checkoutSession,
           })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
+
         createdPaymentIntentId = paymentIntent.id
 
         // Retrieve using the app function (which tries live then test)
@@ -774,17 +819,25 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Action: call the actual application function
-        const paymentIntent = await createPaymentIntentForBillingRun({
-          amount,
-          currency: CurrencyCode.USD,
-          stripeCustomerId: stripeCustomer.id,
-          stripePaymentMethodId: paymentMethod.id,
-          billingPeriodId,
-          billingRunId,
-          feeCalculation,
-          organization,
-          livemode: false,
-        })
+        const paymentIntentResult =
+          await createPaymentIntentForBillingRun({
+            amount,
+            currency: CurrencyCode.USD,
+            stripeCustomerId: stripeCustomer.id,
+            stripePaymentMethodId: paymentMethod.id,
+            billingPeriodId,
+            billingRunId,
+            feeCalculation,
+            organization,
+            livemode: false,
+          })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
 
         createdPaymentIntentId = paymentIntent.id
 
@@ -862,7 +915,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Action: call the actual application function
-        const paymentIntent =
+        const paymentIntentResult =
           await createAndConfirmPaymentIntentForBillingRun({
             amount,
             currency: CurrencyCode.USD,
@@ -874,6 +927,13 @@ describeIfStripeKey('Stripe Integration Tests', () => {
             organization,
             livemode: false,
           })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create and confirm payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
 
         // Verify payment intent ID format
         expect(paymentIntent.id).toMatch(/^pi_/)
@@ -941,17 +1001,25 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Create unconfirmed payment intent using the app function
-        const paymentIntent = await createPaymentIntentForBillingRun({
-          amount,
-          currency: CurrencyCode.USD,
-          stripeCustomerId: stripeCustomer.id,
-          stripePaymentMethodId: paymentMethod.id,
-          billingPeriodId,
-          billingRunId,
-          feeCalculation,
-          organization,
-          livemode: false,
-        })
+        const paymentIntentResult =
+          await createPaymentIntentForBillingRun({
+            amount,
+            currency: CurrencyCode.USD,
+            stripeCustomerId: stripeCustomer.id,
+            stripePaymentMethodId: paymentMethod.id,
+            billingPeriodId,
+            billingRunId,
+            feeCalculation,
+            organization,
+            livemode: false,
+          })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
 
         createdPaymentIntentId = paymentIntent.id
 
@@ -1003,7 +1071,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Create and immediately confirm using the app function
-        const paymentIntent =
+        const paymentIntentResult =
           await createAndConfirmPaymentIntentForBillingRun({
             amount,
             currency: CurrencyCode.USD,
@@ -1015,6 +1083,13 @@ describeIfStripeKey('Stripe Integration Tests', () => {
             organization,
             livemode: false,
           })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create and confirm payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
 
         // Action & Expectation: attempting to confirm again should fail
         await expect(
@@ -1054,7 +1129,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Create and confirm payment intent using the app function
-        const paymentIntent =
+        const paymentIntentResult =
           await createAndConfirmPaymentIntentForBillingRun({
             amount,
             currency: CurrencyCode.USD,
@@ -1066,6 +1141,13 @@ describeIfStripeKey('Stripe Integration Tests', () => {
             organization,
             livemode: false,
           })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create and confirm payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
 
         // Get the latest charge using the app function
         const charge = await getLatestChargeForPaymentIntent(
@@ -1108,17 +1190,25 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Create unconfirmed payment intent using the app function
-        const paymentIntent = await createPaymentIntentForBillingRun({
-          amount,
-          currency: CurrencyCode.USD,
-          stripeCustomerId: stripeCustomer.id,
-          stripePaymentMethodId: paymentMethod.id,
-          billingPeriodId,
-          billingRunId,
-          feeCalculation,
-          organization,
-          livemode: false,
-        })
+        const paymentIntentResult =
+          await createPaymentIntentForBillingRun({
+            amount,
+            currency: CurrencyCode.USD,
+            stripeCustomerId: stripeCustomer.id,
+            stripePaymentMethodId: paymentMethod.id,
+            billingPeriodId,
+            billingRunId,
+            feeCalculation,
+            organization,
+            livemode: false,
+          })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
 
         // Cleanup the unconfirmed payment intent
         await cleanupStripeTestData({
@@ -1156,7 +1246,7 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Create and confirm payment intent using the app function
-        const paymentIntent =
+        const paymentIntentResult =
           await createAndConfirmPaymentIntentForBillingRun({
             amount,
             currency: CurrencyCode.USD,
@@ -1168,6 +1258,13 @@ describeIfStripeKey('Stripe Integration Tests', () => {
             organization,
             livemode: false,
           })
+
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create and confirm payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
 
         // Retrieve payment intent without expansion to get string charge id
         const retrievedPaymentIntent =
@@ -1470,13 +1567,19 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         createdCustomerId = customerId
 
         // Action: refund using the application function
-        const refund = await refundPayment(
+        const refundResult = await refundPayment(
           paymentIntentId,
           null, // full refund
           false // livemode
         )
 
         // Verify refund was created
+        if (Result.isError(refundResult)) {
+          throw new Error(
+            `Failed to refund payment: ${refundResult.error.message}`
+          )
+        }
+        const refund = refundResult.value
         expect(refund.id).toMatch(/^re_/)
         expect(refund.status).toBe('succeeded')
         expect(refund.amount).toBe(amount)
@@ -1492,19 +1595,25 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         createdCustomerId = customerId
 
         // Action: partial refund using the application function
-        const refund = await refundPayment(
+        const refundResult = await refundPayment(
           paymentIntentId,
           partialRefundAmount,
           false // livemode
         )
 
         // Verify partial refund was created
+        if (Result.isError(refundResult)) {
+          throw new Error(
+            `Failed to refund payment: ${refundResult.error.message}`
+          )
+        }
+        const refund = refundResult.value
         expect(refund.id).toMatch(/^re_/)
         expect(refund.status).toBe('succeeded')
         expect(refund.amount).toBe(partialRefundAmount)
       })
 
-      it('throws error when payment intent has no charge', async () => {
+      it('returns error Result when payment intent has no charge', async () => {
         // Setup: create an unconfirmed payment intent (no charge)
         const stripeCustomer = await createTestStripeCustomer()
         createdCustomerId = stripeCustomer.id
@@ -1520,22 +1629,39 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         })
 
         // Create but don't confirm the payment intent
-        const paymentIntent = await createPaymentIntentForBillingRun({
-          amount: 5000,
-          currency: CurrencyCode.USD,
-          stripeCustomerId: stripeCustomer.id,
-          stripePaymentMethodId: paymentMethod.id,
-          billingPeriodId: `bp_${core.nanoid()}`,
-          billingRunId: `br_${core.nanoid()}`,
-          feeCalculation,
-          organization,
-          livemode: false,
-        })
+        const paymentIntentResult =
+          await createPaymentIntentForBillingRun({
+            amount: 5000,
+            currency: CurrencyCode.USD,
+            stripeCustomerId: stripeCustomer.id,
+            stripePaymentMethodId: paymentMethod.id,
+            billingPeriodId: `bp_${core.nanoid()}`,
+            billingRunId: `br_${core.nanoid()}`,
+            feeCalculation,
+            organization,
+            livemode: false,
+          })
+        if (Result.isError(paymentIntentResult)) {
+          throw new Error(
+            `Failed to create payment intent: ${paymentIntentResult.error.message}`
+          )
+        }
+        const paymentIntent = paymentIntentResult.value
 
-        // Action & Verify: attempting to refund should throw
-        await expect(
-          refundPayment(paymentIntent.id, null, false)
-        ).rejects.toThrow('No charge found for payment intent')
+        // Action: attempt to refund
+        const refundResult = await refundPayment(
+          paymentIntent.id,
+          null,
+          false
+        )
+
+        // Verify: should return error Result
+        expect(Result.isError(refundResult)).toBe(true)
+        if (Result.isError(refundResult)) {
+          expect(refundResult.error.message).toBe(
+            'charge not found: No charge found for payment intent'
+          )
+        }
 
         // Cleanup the unconfirmed payment intent
         await cleanupStripeTestData({
@@ -1580,11 +1706,17 @@ describeIfStripeKey('Stripe Integration Tests', () => {
         createdCustomerId = customerId
 
         // Refund the payment using app function
-        const refund = await refundPayment(
+        const refundResult = await refundPayment(
           paymentIntentId,
           null, // full refund
           false
         )
+        if (Result.isError(refundResult)) {
+          throw new Error(
+            `Failed to refund payment: ${refundResult.error.message}`
+          )
+        }
+        const refund = refundResult.value
 
         // Action: list refunds using application function
         const refunds = await listRefundsForCharge(chargeId, false)
@@ -1600,135 +1732,41 @@ describeIfStripeKey('Stripe Integration Tests', () => {
 })
 
 /**
- * Creates a test BillingAddress for US-based tax calculations.
+ * Tax calculation business logic tests.
+ * These tests verify guard clauses and don't hit the real Stripe Tax API.
+ * Tests that hit the real Tax API have been removed due to rate limits
+ * (1000 requests/24hr in test mode).
  */
-const createTestBillingAddress = (): BillingAddress => {
-  return {
-    name: 'Test Customer',
-    firstName: 'Test',
-    lastName: 'Customer',
-    email: 'test@example.com',
-    address: {
-      name: 'Test Customer',
-      line1: '354 Oyster Point Blvd',
-      line2: null,
-      city: 'South San Francisco',
-      state: 'CA',
-      postal_code: '94080',
-      country: 'US',
-    },
-    phone: null,
-  }
-}
-
 describeIfStripeKey('Tax Calculations', () => {
-  describe('createStripeTaxCalculationByPrice', () => {
-    it('creates a tax calculation for a US address and returns calculation id and tax amount', async () => {
-      const price = createTestPrice({
-        unitPrice: 10000, // $100.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      // Action: call the application function
-      const result = await createStripeTaxCalculationByPrice({
-        price,
-        billingAddress,
-        discountInclusiveAmount: 10000,
-        livemode: false,
-      })
-
-      // Verify we got a real Stripe tax calculation ID (not the test prefix)
-      expect(result.id).toMatch(/^taxcalc_/)
-
-      // Verify tax_amount_exclusive is a number (could be 0 or positive depending on Stripe Tax settings)
-      expect(typeof result.tax_amount_exclusive).toBe('number')
-      expect(result.tax_amount_exclusive).toBeGreaterThanOrEqual(0)
-    })
-  })
-
   describe('createStripeTaxTransactionFromCalculation', () => {
     it('returns null when stripeTaxCalculationId is null', async () => {
-      // Action: call the application function with null
       const result = await createStripeTaxTransactionFromCalculation({
         stripeTaxCalculationId: null,
         reference: `test_reference_${core.nanoid()}`,
         livemode: false,
       })
 
-      // Verify null is returned (business logic guard)
       expect(result).toBeNull()
     })
 
     it('returns null when stripeTaxCalculationId starts with notaxoverride_', async () => {
-      // Action: call the application function with notaxoverride prefix
       const result = await createStripeTaxTransactionFromCalculation({
         stripeTaxCalculationId: 'notaxoverride_xyz',
         reference: `test_reference_${core.nanoid()}`,
         livemode: false,
       })
 
-      // Verify null is returned (business logic guard for tax-exempt scenarios)
       expect(result).toBeNull()
     })
 
-    it('creates a tax transaction from a valid calculation', async () => {
-      // Setup: first create a tax calculation
-      const price = createTestPrice({
-        unitPrice: 5000, // $50.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      const calculation = await createStripeTaxCalculationByPrice({
-        price,
-        billingAddress,
-        discountInclusiveAmount: 5000,
-        livemode: false,
-      })
-
-      // Action: create a tax transaction from the calculation
-      const reference = `test_txn_${core.nanoid()}`
+    it('returns null when stripeTaxCalculationId starts with testtaxcalc_', async () => {
       const result = await createStripeTaxTransactionFromCalculation({
-        stripeTaxCalculationId: calculation.id,
-        reference,
+        stripeTaxCalculationId: 'testtaxcalc_xyz',
+        reference: `test_reference_${core.nanoid()}`,
         livemode: false,
       })
 
-      // Verify we got a real tax transaction
-      expect(result).toMatchObject({ reference: reference })
-      expect(result!.id).toMatch(/^tax_/)
-      expect(result!.reference).toBe(reference)
-    })
-  })
-
-  describe('createStripeTaxCalculationByPurchase', () => {
-    it('creates a tax calculation for a purchase with US billing address', async () => {
-      const purchase = createTestPurchase()
-      const price = createTestPrice({
-        unitPrice: 7500, // $75.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      // Action: call the application function
-      const result = await createStripeTaxCalculationByPurchase({
-        purchase,
-        price,
-        billingAddress,
-        discountInclusiveAmount: 7500,
-        livemode: false,
-      })
-
-      // Verify we got a real Stripe tax calculation ID
-      expect(result.id).toMatch(/^taxcalc_/)
-
-      // Verify tax_amount_exclusive is a number
-      expect(typeof result.tax_amount_exclusive).toBe('number')
-      expect(result.tax_amount_exclusive).toBeGreaterThanOrEqual(0)
+      expect(result).toBeNull()
     })
   })
 
@@ -1764,97 +1802,6 @@ describeIfStripeKey('Tax Calculations', () => {
       })
 
       expect(result).toBeNull()
-    })
-
-    it('creates a full reversal for a valid tax transaction', async () => {
-      // Setup: create a tax calculation and transaction first
-      const price = createTestPrice({
-        unitPrice: 6000, // $60.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      const calculation = await createStripeTaxCalculationByPrice({
-        price,
-        billingAddress,
-        discountInclusiveAmount: 6000,
-        livemode: false,
-      })
-
-      const txnReference = `test_txn_${core.nanoid()}`
-      const transaction =
-        await createStripeTaxTransactionFromCalculation({
-          stripeTaxCalculationId: calculation.id,
-          reference: txnReference,
-          livemode: false,
-        })
-
-      // Skip if no transaction was created (can happen in some test environments)
-      if (!transaction) {
-        return
-      }
-
-      // Action: reverse the tax transaction
-      const reversalReference = `test_reversal_${core.nanoid()}`
-      const result = await reverseStripeTaxTransaction({
-        stripeTaxTransactionId: transaction.id,
-        reference: reversalReference,
-        livemode: false,
-        mode: 'full',
-      })
-
-      // Verify we got a reversal transaction
-      expect(result).toMatchObject({ reference: reversalReference })
-      expect(result!.id).toMatch(/^tax_/)
-      expect(result!.reference).toBe(reversalReference)
-      expect(result!.type).toBe('reversal')
-    })
-
-    it('creates a partial reversal with flat_amount for a valid tax transaction', async () => {
-      // Setup: create a tax calculation and transaction first
-      const price = createTestPrice({
-        unitPrice: 10000, // $100.00
-        currency: CurrencyCode.USD,
-      })
-      const product = createTestProduct()
-      const billingAddress = createTestBillingAddress()
-
-      const calculation = await createStripeTaxCalculationByPrice({
-        price,
-        billingAddress,
-        discountInclusiveAmount: 10000,
-        livemode: false,
-      })
-
-      const txnReference = `test_txn_partial_${core.nanoid()}`
-      const transaction =
-        await createStripeTaxTransactionFromCalculation({
-          stripeTaxCalculationId: calculation.id,
-          reference: txnReference,
-          livemode: false,
-        })
-
-      // Skip if no transaction was created
-      if (!transaction) {
-        return
-      }
-
-      // Action: partial reversal for $50 (5000 cents) - Stripe requires negative flat_amount
-      const reversalReference = `test_partial_reversal_${core.nanoid()}`
-      const result = await reverseStripeTaxTransaction({
-        stripeTaxTransactionId: transaction.id,
-        reference: reversalReference,
-        livemode: false,
-        mode: 'partial',
-        flatAmount: -5000,
-      })
-
-      // Verify we got a reversal transaction
-      expect(result).toMatchObject({ reference: reversalReference })
-      expect(result!.id).toMatch(/^tax_/)
-      expect(result!.reference).toBe(reversalReference)
-      expect(result!.type).toBe('reversal')
     })
   })
 })
@@ -1969,7 +1916,7 @@ describeIfStripeKey('Stripe Utility Functions', () => {
         const charge = await getStripeCharge(chargeId!)
 
         // Expectations
-        expect(charge.id).toBe(chargeId)
+        expect(charge.id).toBe(chargeId!)
         expect(charge.amount).toBe(2500)
         expect(charge.currency).toBe('usd')
         expect(charge.payment_method_details?.type).toBe('card')
@@ -2032,10 +1979,15 @@ describeIfStripeKey('Stripe Utility Functions', () => {
         const result = paymentMethodFromStripeCharge(charge)
 
         // Expectation
-        expect(result).toBe(PaymentMethodType.Card)
+        if (Result.isError(result)) {
+          throw new Error(
+            `Failed to get payment method: ${result.error.message}`
+          )
+        }
+        expect(result.value).toBe(PaymentMethodType.Card)
       })
 
-      it('throws error "Unknown payment method type: unknown_type" for unrecognized payment method type', () => {
+      it('returns error for unrecognized payment method type', () => {
         // Setup: create a mock charge with an unknown payment method type
         const mockCharge = {
           id: 'ch_mock',
@@ -2044,23 +1996,31 @@ describeIfStripeKey('Stripe Utility Functions', () => {
           },
         } as unknown as Stripe.Charge
 
-        // Action & Expectation: should throw
-        expect(() =>
-          paymentMethodFromStripeCharge(mockCharge)
-        ).toThrow('Unknown payment method type: unknown_type')
+        // Action & Expectation: should return error result
+        const result = paymentMethodFromStripeCharge(mockCharge)
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'Unknown payment method type'
+          )
+        }
       })
 
-      it('throws error when charge has no payment_method_details', () => {
+      it('returns error when charge has no payment_method_details', () => {
         // Setup: create a mock charge without payment method details
         const mockCharge = {
           id: 'ch_mock',
           payment_method_details: null,
         } as unknown as Stripe.Charge
 
-        // Action & Expectation: should throw
-        expect(() =>
-          paymentMethodFromStripeCharge(mockCharge)
-        ).toThrow('No payment method details found for charge')
+        // Action & Expectation: should return error result
+        const result = paymentMethodFromStripeCharge(mockCharge)
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error.message).toContain(
+            'No payment method details found for charge'
+          )
+        }
       })
     })
   })
@@ -2083,9 +2043,9 @@ describe('calculatePlatformApplicationFee', () => {
     })
 
     // Expected: subtotal * (0.65% + 2.9%) + $0.50 = 10000 * 0.0355 + 50 = 355 + 50 = 405
-    // Note: Due to floating point precision, 0.65/100 = 0.006500000000000001, resulting in ceil(405.0000...)
-    // With ceiling: ceil(405.0000...) = 406
-    expect(result).toBe(406)
+    // Note: Uses BigNumber for precise decimal arithmetic, avoiding floating point errors
+    // (Previously returned 406 due to parseFloat precision issue)
+    expect(result).toBe(405)
   })
 
   it('calculates fee with 1% take rate plus 2.9% + $0.50 for $50 subtotal', () => {

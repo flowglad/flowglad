@@ -7,6 +7,13 @@ import { TRPCError } from '@trpc/server'
 import type { TRPC_ERROR_CODE_KEY } from '@trpc/server/rpc'
 import { NotFoundError } from '@/db/tableUtils'
 import {
+  AuthorizationError,
+  ConflictError,
+  NotFoundError as DomainNotFoundError,
+  TerminalStateError,
+  ValidationError,
+} from '@/errors'
+import {
   extractPostgresError,
   parsePostgresError,
 } from './postgresErrorParser'
@@ -43,7 +50,7 @@ export function extractErrorDetails(error: unknown): {
     }
   }
 
-  // Handle NotFoundError with type-safe instanceof check
+  // Handle NotFoundError with type-safe instanceof check (from @/db/tableUtils)
   if (error instanceof NotFoundError) {
     return {
       userMessage: `The requested ${error.resourceType} could not be found.`,
@@ -53,6 +60,73 @@ export function extractErrorDetails(error: unknown): {
         resource: error.resourceType,
         id: error.resourceId,
         errorType: 'not_found',
+      },
+    }
+  }
+
+  // Handle domain errors from @/errors
+  if (error instanceof DomainNotFoundError) {
+    return {
+      userMessage: `The requested ${error.resource} could not be found.`,
+      developerMessage: error.message,
+      code: 'NOT_FOUND',
+      context: {
+        resource: error.resource,
+        id: error.id,
+        errorType: 'not_found',
+      },
+    }
+  }
+
+  if (error instanceof ValidationError) {
+    return {
+      userMessage: error.reason,
+      developerMessage: error.message,
+      code: 'BAD_REQUEST',
+      context: {
+        field: error.field,
+        reason: error.reason,
+        errorType: 'validation_error',
+      },
+    }
+  }
+
+  if (error instanceof TerminalStateError) {
+    return {
+      userMessage: `Cannot perform operation: ${error.resource} is in ${error.state} state.`,
+      developerMessage: error.message,
+      code: 'BAD_REQUEST',
+      context: {
+        resource: error.resource,
+        id: error.id,
+        state: error.state,
+        errorType: 'terminal_state_error',
+      },
+    }
+  }
+
+  if (error instanceof ConflictError) {
+    return {
+      userMessage: error.conflict,
+      developerMessage: error.message,
+      code: 'CONFLICT',
+      context: {
+        resource: error.resource,
+        conflict: error.conflict,
+        errorType: 'conflict_error',
+      },
+    }
+  }
+
+  if (error instanceof AuthorizationError) {
+    return {
+      userMessage: `Not authorized to ${error.action} ${error.resource}.`,
+      developerMessage: error.message,
+      code: 'FORBIDDEN',
+      context: {
+        action: error.action,
+        resource: error.resource,
+        errorType: 'authorization_error',
       },
     }
   }

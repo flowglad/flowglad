@@ -1,3 +1,4 @@
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
 import type { CheckoutSession } from '@/db/schema/checkoutSessions'
 import type { Customer } from '@/db/schema/customers'
@@ -71,8 +72,11 @@ export async function getClientSecretsForCheckoutSession(
       customer?.stripeCustomerId &&
       paymentIntent.customer === customer.stripeCustomerId
     ) {
-      customerSessionClientSecret =
+      const customerSessionResult =
         await createCustomerSessionForCheckout(customer)
+      if (Result.isOk(customerSessionResult)) {
+        customerSessionClientSecret = customerSessionResult.value
+      }
     }
   } else if (checkoutSession.stripeSetupIntentId) {
     const setupIntent = await getSetupIntent(
@@ -86,8 +90,11 @@ export async function getClientSecretsForCheckoutSession(
       customer?.stripeCustomerId &&
       setupIntent.customer === customer.stripeCustomerId
     ) {
-      customerSessionClientSecret =
+      const customerSessionResult =
         await createCustomerSessionForCheckout(customer)
+      if (Result.isOk(customerSessionResult)) {
+        customerSessionClientSecret = customerSessionResult.value
+      }
     }
   }
 
@@ -201,7 +208,7 @@ export async function checkoutInfoForPriceWhere(
      * If not found, or the price id does not match, create a new purchase session
      * and save it to cookies.
      */
-    const checkoutSession = await findOrCreateCheckoutSession(
+    const checkoutSessionResult = await findOrCreateCheckoutSession(
       {
         productId: product.id,
         organizationId: organization.id,
@@ -210,11 +217,28 @@ export async function checkoutInfoForPriceWhere(
       },
       transaction
     )
+    if (checkoutSessionResult.status === 'error') {
+      return {
+        product,
+        price,
+        organization,
+        features: [],
+        checkoutSession: null,
+        discount: null,
+        feeCalculation: null,
+        maybeCustomer: null,
+        isEligibleForTrial: undefined,
+        error: checkoutSessionResult.error,
+      }
+    }
+    const checkoutSession = checkoutSessionResult.value
     const discount = checkoutSession.discountId
-      ? await selectDiscountById(
-          checkoutSession.discountId,
-          transaction
-        )
+      ? (
+          await selectDiscountById(
+            checkoutSession.discountId,
+            transaction
+          )
+        ).unwrap()
       : null
     const feeCalculation = await selectLatestFeeCalculation(
       {
@@ -227,10 +251,12 @@ export async function checkoutInfoForPriceWhere(
       transaction
     )
     const maybeCustomer = checkoutSession.customerId
-      ? await selectCustomerById(
-          checkoutSession.customerId,
-          transaction
-        )
+      ? (
+          await selectCustomerById(
+            checkoutSession.customerId,
+            transaction
+          )
+        ).unwrap()
       : null
 
     // Calculate trial eligibility
@@ -252,14 +278,16 @@ export async function checkoutInfoForPriceWhere(
       isEligibleForTrial,
     }
   })
-  const { checkoutSession, organization, features } = result
-  if (!checkoutSession) {
+  const { checkoutSession, organization, features, error } = result
+  if (!checkoutSession || error) {
     // FIXME: ERROR PAGE UI
     return {
       checkoutInfo: null,
       success: false,
       organization,
-      error: `This checkout link is no longer valid. Please contact the ${organization.name} team for assistance.`,
+      error:
+        error?.message ??
+        `This checkout link is no longer valid. Please contact the ${organization.name} team for assistance.`,
     }
   }
 
@@ -345,10 +373,9 @@ export async function checkoutInfoForCheckoutSession(
   discount: Discount.Record | null
   isEligibleForTrial?: boolean
 }> {
-  const checkoutSession = await selectCheckoutSessionById(
-    checkoutSessionId,
-    transaction
-  )
+  const checkoutSession = (
+    await selectCheckoutSessionById(checkoutSessionId, transaction)
+  ).unwrap()
   /**
    * Currently, only price / product checkout flows
    * are supported on this page.
@@ -380,16 +407,20 @@ export async function checkoutInfoForCheckoutSession(
     transaction
   )
   const discount = checkoutSession.discountId
-    ? await selectDiscountById(
-        checkoutSession.discountId,
-        transaction
-      )
+    ? (
+        await selectDiscountById(
+          checkoutSession.discountId,
+          transaction
+        )
+      ).unwrap()
     : null
   const maybeCustomer = checkoutSession.customerId
-    ? await selectCustomerById(
-        checkoutSession.customerId,
-        transaction
-      )
+    ? (
+        await selectCustomerById(
+          checkoutSession.customerId,
+          transaction
+        )
+      ).unwrap()
     : null
   const maybeCurrentSubscriptions =
     maybeCustomer &&

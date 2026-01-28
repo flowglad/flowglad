@@ -62,9 +62,7 @@ export const createProduct = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
         if (!organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
@@ -72,15 +70,17 @@ export const createProduct = protectedProcedure
               'Organization ID is required for this operation.',
           })
         }
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User ID is required for this operation.',
-          })
-        }
         try {
           // Validate that default products cannot be created manually
-          validateProductCreation(input.product)
+          const validationResult = validateProductCreation(
+            input.product
+          )
+          if (validationResult.status === 'error') {
+            throw new TRPCError({
+              code: 'FORBIDDEN',
+              message: validationResult.error.reason,
+            })
+          }
 
           const { product, price, featureIds } = input
           const txResult = await createProductTransaction(
@@ -94,13 +94,7 @@ export const createProduct = protectedProcedure
               ],
               featureIds,
             },
-            {
-              transaction,
-              userId,
-              livemode,
-              organizationId,
-              invalidateCache,
-            }
+            { ...transactionCtx, livemode, organizationId }
           )
           return Result.ok({
             product: txResult.product,
@@ -127,20 +121,12 @@ export const updateProduct = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       async ({ input, ctx, transactionCtx }) => {
-        const { transaction, invalidateCache } = transactionCtx
         const { livemode, organizationId } = ctx
-        const userId = ctx.user?.id
         if (!organizationId) {
           throw new TRPCError({
             code: 'BAD_REQUEST',
             message:
               'Organization ID is required for this operation.',
-          })
-        }
-        if (!userId) {
-          throw new TRPCError({
-            code: 'UNAUTHORIZED',
-            message: 'User ID is required for this operation.',
           })
         }
         try {
@@ -150,13 +136,7 @@ export const updateProduct = protectedProcedure
               featureIds: input.featureIds,
               price: input.price,
             },
-            {
-              transaction,
-              livemode,
-              organizationId,
-              userId,
-              invalidateCache,
-            }
+            { ...transactionCtx, livemode, organizationId }
           )
 
           return Result.ok({
@@ -251,7 +231,7 @@ export const getTableRows = protectedProcedure
       z.object({
         active: z.boolean().optional(),
         pricingModelId: z.string().optional(),
-        excludeUsageProducts: z.boolean().optional(),
+        excludeProductsWithNoPrices: z.boolean().optional(),
       })
     )
   )

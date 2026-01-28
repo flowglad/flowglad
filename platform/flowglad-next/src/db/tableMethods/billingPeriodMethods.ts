@@ -66,7 +66,10 @@ export const derivePricingModelIdFromBillingPeriod =
   createDerivePricingModelId(
     billingPeriods,
     config,
-    selectBillingPeriodById
+    async (id, transaction) => {
+      const result = await selectBillingPeriodById(id, transaction)
+      return result.unwrap()
+    }
   )
 
 /**

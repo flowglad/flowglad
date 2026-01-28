@@ -1,12 +1,16 @@
 import { logger, task } from '@trigger.dev/sdk'
-import { kebabCase } from 'change-case'
+import { Result } from 'better-result'
 import { adminTransaction } from '@/db/adminTransaction'
-import { selectCustomerById } from '@/db/tableMethods/customerMethods'
-import { selectOrganizationById } from '@/db/tableMethods/organizationMethods'
-import { selectPaymentMethods } from '@/db/tableMethods/paymentMethodMethods'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Subscription } from '@/db/schema/subscriptions'
 import { selectPriceById } from '@/db/tableMethods/priceMethods'
 import { selectSubscriptionById } from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError } from '@/db/tableUtils'
 import { CustomerSubscriptionUpgradedEmail } from '@/email-templates/customer-subscription-upgraded'
+import { PaymentError, ValidationError } from '@/errors'
 import { SubscriptionStatus } from '@/types'
 import {
   createTriggerIdempotencyKey,
@@ -17,99 +21,149 @@ import {
   getBccForLivemode,
   safeSend,
 } from '@/utils/email'
+import { getFromAddress } from '@/utils/email/fromAddress'
+import { buildNotificationContext } from '@/utils/email/notificationContext'
 
-const sendCustomerSubscriptionUpgradedNotificationTask = task({
-  id: 'send-customer-subscription-upgraded-notification',
-  maxDuration: 60,
-  queue: { concurrencyLimit: 10 },
-  run: async (
-    payload: {
-      customerId: string
-      newSubscriptionId: string
-      previousSubscriptionId: string
-      organizationId: string
-    },
-    { ctx }
-  ) => {
+/**
+ * Core run function for send-customer-subscription-upgraded-notification task.
+ * Exported for testing purposes.
+ */
+export const runSendCustomerSubscriptionUpgradedNotification =
+  async (params: {
+    customerId: string
+    newSubscriptionId: string
+    previousSubscriptionId: string
+    organizationId: string
+  }) => {
     logger.log(
       'Sending customer subscription upgraded notification',
       {
-        payload,
-        attempt: ctx.attempt,
+        payload: params,
       }
     )
 
+    let dataResult: Result<
+      {
+        organization: Organization.Record
+        customer: Customer.Record
+        newSubscription: Subscription.Record
+        newPrice: Price.Record | null
+        previousSubscription: Subscription.Record
+        previousPrice: Price.Record | null
+        paymentMethod: PaymentMethod.Record | null
+      },
+      NotFoundError | ValidationError
+    >
+    try {
+      const data = await adminTransaction(async ({ transaction }) => {
+        // Use buildNotificationContext for new subscription context
+        const {
+          organization,
+          customer,
+          subscription: newSubscription,
+          price: newPrice,
+          paymentMethod,
+        } = await buildNotificationContext(
+          {
+            organizationId: params.organizationId,
+            customerId: params.customerId,
+            subscriptionId: params.newSubscriptionId,
+            include: ['price', 'defaultPaymentMethod'],
+          },
+          transaction
+        )
+
+        // Fetch previous subscription separately (not supported by buildNotificationContext)
+        const previousSubscription = (
+          await selectSubscriptionById(
+            params.previousSubscriptionId,
+            transaction
+          )
+        ).unwrap()
+
+        const previousPrice = previousSubscription.priceId
+          ? (
+              await selectPriceById(
+                previousSubscription.priceId,
+                transaction
+              )
+            ).unwrap()
+          : null
+
+        return {
+          organization,
+          customer,
+          newSubscription,
+          newPrice,
+          previousSubscription,
+          previousPrice,
+          paymentMethod,
+        }
+      })
+      dataResult = Result.ok(data)
+    } catch (error) {
+      // Only convert NotFoundError to Result.err; rethrow other errors
+      // for Trigger.dev to retry (e.g., transient DB failures)
+      if (error instanceof NotFoundError) {
+        dataResult = Result.err(error)
+      } else if (
+        error instanceof Error &&
+        error.message.includes('not found')
+      ) {
+        // Handle errors from buildNotificationContext
+        dataResult = Result.err(
+          new NotFoundError('Resource', error.message)
+        )
+      } else {
+        throw error
+      }
+    }
+
+    if (Result.isError(dataResult)) {
+      return dataResult
+    }
     const {
       organization,
       customer,
       newSubscription,
-      previousSubscription,
       newPrice,
+      previousSubscription,
       previousPrice,
       paymentMethod,
-    } = await adminTransaction(async ({ transaction }) => {
-      const organization = await selectOrganizationById(
-        payload.organizationId,
-        transaction
-      )
-      const customer = await selectCustomerById(
-        payload.customerId,
-        transaction
-      )
-      const newSubscription = await selectSubscriptionById(
-        payload.newSubscriptionId,
-        transaction
-      )
-      const previousSubscription = await selectSubscriptionById(
-        payload.previousSubscriptionId,
-        transaction
-      )
-      const newPrice = newSubscription.priceId
-        ? await selectPriceById(newSubscription.priceId, transaction)
-        : null
-      const previousPrice = previousSubscription.priceId
-        ? await selectPriceById(
-            previousSubscription.priceId,
-            transaction
-          )
-        : null
-      const paymentMethods = await selectPaymentMethods(
-        { customerId: payload.customerId },
-        transaction
-      )
-      const paymentMethod =
-        paymentMethods.find((pm) => pm.default) || paymentMethods[0]
+    } = dataResult.value
 
-      return {
-        organization,
-        customer,
-        newSubscription,
-        previousSubscription,
-        newPrice,
-        previousPrice,
-        paymentMethod,
-      }
-    })
-
-    if (
-      !organization ||
-      !customer ||
-      !newSubscription ||
-      !newPrice ||
-      !previousSubscription ||
-      !previousPrice
-    ) {
-      throw new Error('Required data not found')
+    if (!newPrice) {
+      return Result.err(
+        new NotFoundError(
+          'Price',
+          newSubscription.priceId ?? 'unknown'
+        )
+      )
+    }
+    if (!previousPrice) {
+      return Result.err(
+        new NotFoundError(
+          'Price',
+          previousSubscription.priceId ?? 'unknown'
+        )
+      )
     }
 
-    if (!customer.email) {
-      logger.warn('Customer has no email address', {
-        customerId: customer.id,
-      })
-      return {
-        message:
-          'Customer has no email address - skipping notification',
-      }
+    // Validate customer email - return ValidationError per PR spec
+    if (!customer.email || customer.email.trim() === '') {
+      logger.log(
+        'Customer subscription upgraded notification failed: customer email is missing or empty',
+        {
+          customerId: customer.id,
+          subscriptionId: newSubscription.id,
+        }
+      )
+      return Result.err(
+        new ValidationError(
+          'email',
+          'customer email is missing or empty'
+        )
+      )
     }
 
     // Calculate next billing date based on new subscription start and interval
@@ -149,7 +203,10 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
     // Unified subject line for Free → Paid upgrades (first-time paid subscription)
     // per Apple-inspired patterns in subscription-email-improvements.md
     const result = await safeSend({
-      from: `${organization.name} Billing <${kebabCase(organization.name)}-notifications@flowglad.com>`,
+      from: getFromAddress({
+        recipientType: 'customer',
+        organizationName: organization.name,
+      }),
       bcc: getBccForLivemode(newSubscription.livemode),
       to: [customer.email],
       subject: formatEmailSubject(
@@ -162,15 +219,11 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
         organizationLogoUrl: organization.logoURL || undefined,
         organizationId: organization.id,
         customerExternalId: customer.externalId,
-        previousPlanName:
-          previousSubscription.name ||
-          previousPrice.name ||
-          'Free Plan',
+        previousPlanName: previousSubscription.name || 'Free Plan',
         previousPlanPrice: previousPrice.unitPrice,
         previousPlanCurrency: previousPrice.currency,
         previousPlanInterval: previousPrice.intervalUnit || undefined,
-        newPlanName:
-          newSubscription.name || newPrice.name || 'Subscription',
+        newPlanName: newSubscription.name || 'Subscription',
         price: newPrice.unitPrice,
         currency: newPrice.currency,
         interval: newPrice.intervalUnit || undefined,
@@ -191,13 +244,30 @@ const sendCustomerSubscriptionUpgradedNotificationTask = task({
           error: result.error,
         }
       )
-      throw new Error('Failed to send email')
+      return Result.err(new PaymentError('Failed to send email'))
     }
 
-    return {
+    return Result.ok({
       message:
         'Customer subscription upgraded notification sent successfully',
-    }
+    })
+  }
+
+const sendCustomerSubscriptionUpgradedNotificationTask = task({
+  id: 'send-customer-subscription-upgraded-notification',
+  maxDuration: 60,
+  queue: { concurrencyLimit: 10 },
+  run: async (
+    payload: {
+      customerId: string
+      newSubscriptionId: string
+      previousSubscriptionId: string
+      organizationId: string
+    },
+    { ctx }
+  ) => {
+    logger.log('Task context', { ctx, attempt: ctx.attempt })
+    return runSendCustomerSubscriptionUpgradedNotification(payload)
   },
 })
 

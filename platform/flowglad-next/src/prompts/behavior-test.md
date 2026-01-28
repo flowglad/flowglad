@@ -184,7 +184,7 @@ src/test/behaviorTest/
  * Key invariant: <the main thing being verified>
  */
 
-import { expect } from 'vitest'
+import { expect } from 'bun:test'
 import { behaviorTest, Dependency, defineBehavior } from './index'
 import { teardownOrg } from '@/../seedDatabase'
 
@@ -487,4 +487,4 @@ The user will describe a user experience area or flow immediately after this pro
 3. Identify dependencies (what configurations should be tested)
 4. Identify key invariants (what must always be true)
 5. Implement the test following the structure above
-6. Ensure tests pass with `bunx vitest run <your-test-file>`
+6. Ensure tests pass with `bun test <your-test-file>`

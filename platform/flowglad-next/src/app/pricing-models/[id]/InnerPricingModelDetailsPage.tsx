@@ -106,7 +106,7 @@ function InnerPricingModelDetailsPage({
   const getProductFilterForTab = (tab: string) => {
     const baseFilter = {
       pricingModelId: pricingModel.id,
-      excludeUsageProducts: true,
+      excludeProductsWithNoPrices: true,
     }
 
     if (tab === 'all') {
@@ -323,7 +323,7 @@ function InnerPricingModelDetailsPage({
           contentPadding={false}
         >
           <CustomersDataTable
-            filters={{ pricingModelId: pricingModel.id }}
+            externalFilters={{ pricingModelId: pricingModel.id }}
             onCreateCustomer={() =>
               setIsCreateCustomerModalOpen(true)
             }

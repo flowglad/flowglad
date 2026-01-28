@@ -1,9 +1,5 @@
-/**
- * @vitest-environment jsdom
- */
-
+import { describe, expect, it } from 'bun:test'
 import { render } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
 import { FLOWGLAD_LEGAL_ENTITY } from '@/constants/mor'
 import { CurrencyCode } from '@/types'
 import core from '@/utils/core'
@@ -44,7 +40,7 @@ describe('OrderReceiptEmail', () => {
 
     // Check header content
     expect(getByTestId('email-title')).toHaveTextContent(
-      'Thanks for your order!'
+      'Your Order is Confirmed'
     )
     expect(getByAltText('Logo')).toHaveAttribute(
       'src',
@@ -62,24 +58,19 @@ describe('OrderReceiptEmail', () => {
       'Payment: $60.00'
     )
 
-    // Check line items
+    // Check line items - quantity is displayed inline with name (×N) format for qty > 1
     expect(getByTestId('line-item-name-0')).toHaveTextContent(
-      'Test Product'
+      'Test Product (×2)'
     )
     expect(getByTestId('line-item-price-0')).toHaveTextContent(
       '$25.00'
     )
-    expect(getByTestId('line-item-quantity-0')).toHaveTextContent(
-      'Quantity: 2'
-    )
+    // Second item has quantity 1, so no quantity suffix is shown
     expect(getByTestId('line-item-name-1')).toHaveTextContent(
       'Another Product'
     )
     expect(getByTestId('line-item-price-1')).toHaveTextContent(
       '$10.00'
-    )
-    expect(getByTestId('line-item-quantity-1')).toHaveTextContent(
-      'Quantity: 1'
     )
 
     // Check totals - should not show subtotal when there's no tax

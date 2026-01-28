@@ -11,13 +11,20 @@ export type {
   NotLoadedFlowgladContextValues,
   UseResourceResult,
   UseResourcesResult,
+  UseUsageMeterResult,
+  UseUsageMetersResult,
 } from '@flowglad/react'
 export {
   FlowgladProvider,
   RESOURCE_CLAIMS_QUERY_KEY,
   RESOURCES_QUERY_KEY,
+  USAGE_METERS_QUERY_KEY,
   useBilling,
+  usePricing,
+  usePricingModel,
   useResource,
   useResources,
+  useUsageMeter,
+  useUsageMeters,
 } from '@flowglad/react'
 export type * from '@flowglad/shared'

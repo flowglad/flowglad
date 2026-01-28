@@ -36,6 +36,7 @@ import {
   bulkInsertOrDoNothingSubscriptionsByExternalId,
   selectSubscriptions,
 } from '@/db/tableMethods/subscriptionMethods'
+import { createTransactionEffectsContext } from '@/db/types'
 import {
   stripeCustomerToCustomerInsert,
   stripePaymentMethodToPaymentMethodInsert,
@@ -196,9 +197,20 @@ const migrateStripeCustomerDataToFlowglad = async (
             paymentMethods
           )
         })
+      // For migration scripts, we use a no-op context since cache invalidation
+      // isn't needed during one-time data migrations
       await bulkUpsertPaymentMethodsByExternalId(
         paymentMethodInserts,
-        transaction
+        {
+          transaction,
+          cacheRecomputationContext: {
+            type: 'admin',
+            livemode: true,
+          },
+          invalidateCache: () => {},
+          emitEvent: () => {},
+          enqueueLedgerCommand: () => {},
+        }
       )
       const paymentMethodRecords = await selectPaymentMethods(
         {
@@ -462,6 +474,12 @@ const migrateStripeCatalogDataToFlowglad = async (
   )
 
   await db.transaction(async (transaction) => {
+    // Create transaction context with noop callbacks for scripts
+    const ctx = createTransactionEffectsContext(transaction, {
+      type: 'admin',
+      livemode: true,
+    })
+
     const defaultCatalog = await selectDefaultPricingModel(
       {
         organizationId: migrationParams.flowgladOrganizationId,
@@ -482,7 +500,7 @@ const migrateStripeCatalogDataToFlowglad = async (
     )
     await bulkInsertOrDoNothingProductsByExternalId(
       productInserts,
-      transaction
+      ctx
     )
     const productRecords = await selectProducts(
       {
@@ -509,10 +527,7 @@ const migrateStripeCatalogDataToFlowglad = async (
         }
       )
     )
-    await bulkInsertOrDoNothingPricesByExternalId(
-      priceInserts,
-      transaction
-    )
+    await bulkInsertOrDoNothingPricesByExternalId(priceInserts, ctx)
   })
 }
 

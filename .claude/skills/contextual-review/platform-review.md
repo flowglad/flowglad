@@ -39,6 +39,13 @@ platform/flowglad-next/src/
 - [ ] Indexes exist for query patterns
 - [ ] No N+1 query patterns
 - [ ] Proper error handling for constraint violations
+- [ ] No raw Drizzle calls in business logic (use tableMethods instead)
+
+### Table Methods (`db/tableMethods/`)
+- [ ] All inputs validated with Zod schemas
+- [ ] All outputs validated with Zod schemas
+- [ ] Validation applied even for "obvious" types (see rationale below)
+- [ ] No redundant methods (e.g., `selectFooById` when `selectFoos` suffices)
 
 ### Business Logic (`server/`, `subscriptions/`)
 - [ ] Edge cases handled
@@ -127,7 +134,90 @@ Use typed errors with `better-result` patterns. Functions return `Result<T, Erro
 Zod schemas for all external input.
 
 ### Database Access
-Drizzle ORM with typed queries.
+**Never use raw Drizzle calls in business logic.** All database access in `server/`, `subscriptions/`, `trigger/`, and other business logic should go through `db/tableMethods/` methods.
+
+Raw Drizzle calls are only acceptable inside `db/tableMethods/` itself. This ensures:
+- Consistent validation at the data access boundary
+- Centralized query logic that's easier to audit and optimize
+- Clear separation between business logic and data access
+
+```typescript
+// WRONG - raw Drizzle in business logic
+const customer = await db.query.customers.findFirst({ where: eq(customers.id, id) })
+
+// CORRECT - use tableMethods
+const customer = await selectCustomerById({ customerId: id })
+```
+
+### Table Methods Zod Validation
+**All methods in `db/tableMethods/` must have Zod validation for both inputs and outputs.**
+
+This ensures full unity between runtime behavior and the type system. Apply validation even when it seems redundant or "silly" — the goal is consistency and runtime safety, not minimal code.
+
+**Why this matters:**
+- TypeScript types are erased at runtime; Zod provides runtime guarantees
+- Database queries can return unexpected shapes (nulls, missing fields, wrong types from raw SQL)
+- Drizzle's type inference isn't always accurate, especially with complex joins or raw queries
+- Consistent validation catches bugs at the boundary, not deep in business logic
+- Makes refactoring safer — schema changes surface immediately as validation errors
+
+**Pattern:**
+```typescript
+// Input validation - even for simple queries
+const getCustomerByIdInputSchema = z.object({
+  customerId: z.string().uuid(),
+})
+
+// Output validation - even when Drizzle provides types
+const customerOutputSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  email: z.string().email(),
+  // ... all fields explicitly validated
+})
+
+export const getCustomerById = async (input: unknown) => {
+  const { customerId } = getCustomerByIdInputSchema.parse(input)
+  const result = await db.query.customers.findFirst({ where: eq(customers.id, customerId) })
+  return customerOutputSchema.parse(result)
+}
+```
+
+**Review guidance:**
+- Reject PRs that add table methods without Zod validation
+- "The types are already correct" is not a valid reason to skip validation
+- Output validation is just as important as input validation
+
+### Avoiding Redundant Table Methods
+**Do not create new table methods when existing ones suffice.**
+
+The most common violation is creating `selectFooById` or `selectFooByBar` methods when a general `selectFoos` method with filtering already exists.
+
+```typescript
+// WRONG - creating a redundant method (even with proper Zod validation)
+const selectCustomerByEmailInputSchema = z.object({
+  email: z.string().email(),
+})
+
+export const selectCustomerByEmail = async (input: unknown) => {
+  const { email } = selectCustomerByEmailInputSchema.parse(input)
+  const result = await db.query.customers.findFirst({ where: eq(customers.email, email) })
+  return selectCustomerSchema.parse(result)
+}
+// This method is redundant because selectCustomers already supports email filtering
+
+// CORRECT - use the existing selectCustomers with a filter
+const customer = await selectCustomers({ filters: { email } })
+```
+
+**When a new method IS appropriate:**
+- Complex joins or aggregations that don't fit the existing method's pattern
+- Performance-critical paths that need specialized queries
+- Queries that return a fundamentally different shape than the general method
+
+**Review guidance:**
+- Before approving a new `selectFooByX` method, check if `selectFoos` already supports that filter
+- Ask: "Could this be a parameter on an existing method instead?"
 
 ### State Management
 React contexts for client state, server state via React Query patterns.
@@ -172,19 +262,51 @@ The order of effect processing is **critical** for correctness:
 
 ## Caching Patterns
 
+### Key Review Question for Mutations
+**When reviewing any mutating logic, always ask: "Does this need cache invalidations?"**
+
+If the mutation changes data that could be cached elsewhere, invalidation is required. Missing invalidations cause stale data bugs that are hard to reproduce and debug.
+
 ### Fail-Open Pattern
 The codebase uses a "fail-open" pattern for Redis:
 - Redis errors become cache misses, **never** request failures
 - Don't add error handling that throws on cache failures
 - Cache reads validate against Zod schemas
 
+### Dependency Types
+Cache dependencies come in two flavors:
+
+| Type | Purpose | Example |
+|------|---------|---------|
+| **Set membership** | Invalidate when items are added/removed from a collection | `customerPaymentMethods(customerId)` |
+| **Content** | Invalidate when a specific item's properties change | `paymentMethod(paymentMethodId)` |
+
+A cached query typically depends on both:
+- Set membership dep for the collection being queried
+- Content deps for each item in the result
+
 ### CacheDependency Keys
 Predefined dependency keys for cache invalidation:
 
 ```typescript
+// Set membership dependencies
 CacheDependency.customerSubscriptions(customerId)
+CacheDependency.customerPaymentMethods(customerId)
+CacheDependency.customerPurchases(customerId)
+CacheDependency.customerInvoices(customerId)
 CacheDependency.subscriptionItems(subscriptionId)
 CacheDependency.subscriptionItemFeatures(subscriptionItemId)
+CacheDependency.pricingModelUsageMeters(pricingModelId)
+
+// Content dependencies
+CacheDependency.subscription(subscriptionId)
+CacheDependency.subscriptionItem(subscriptionItemId)
+CacheDependency.subscriptionItemFeature(subscriptionItemFeatureId)
+CacheDependency.paymentMethod(paymentMethodId)
+CacheDependency.usageMeter(usageMeterId)
+CacheDependency.invoice(invoiceId)
+CacheDependency.invoiceLineItem(invoiceLineItemId)
+CacheDependency.purchase(purchaseId)
 CacheDependency.subscriptionLedger(subscriptionId)
 ```
 
@@ -193,11 +315,87 @@ The `cached()` combinator adds caching with schema validation:
 
 ```typescript
 const getCachedData = cached(
-  fetchData,
-  { ttl: 3600, dependencies: [CacheDependency.customerSubscriptions(id)] },
-  dataSchema
+  {
+    namespace: RedisKeyNamespace.SomeNamespace,
+    keyFn: (id: string) => id,
+    schema: dataSchema,
+    dependenciesFn: (result, id) => [
+      CacheDependency.someCollection(id),      // Set membership
+      ...result.map(item => CacheDependency.someItem(item.id)),  // Content
+    ],
+  },
+  async (id: string, transaction: DbTransaction) => {
+    return fetchData(id, transaction)
+  }
 )
 ```
+
+### Review Checklist for Cache Invalidation
+
+When reviewing mutating functions, verify:
+
+- [ ] **Inserts**: Invalidate set membership for the parent collection
+  ```typescript
+  // When inserting a payment method
+  invalidateCache(CacheDependency.customerPaymentMethods(customerId))
+  ```
+
+- [ ] **Updates**: Invalidate content for the updated item
+  ```typescript
+  // When updating a payment method
+  invalidateCache(CacheDependency.paymentMethod(paymentMethodId))
+  ```
+
+- [ ] **Deletes**: Invalidate both set membership AND content
+  ```typescript
+  // When deleting a payment method
+  invalidateCache(CacheDependency.customerPaymentMethods(customerId))
+  invalidateCache(CacheDependency.paymentMethod(paymentMethodId))
+  ```
+
+- [ ] **Moves** (changing parent): Invalidate set membership for BOTH old and new parent
+  ```typescript
+  // When moving payment method from customerA to customerB
+  invalidateCache(CacheDependency.customerPaymentMethods(oldCustomerId))
+  invalidateCache(CacheDependency.customerPaymentMethods(newCustomerId))
+  invalidateCache(CacheDependency.paymentMethod(paymentMethodId))
+  ```
+
+- [ ] **Cascading changes**: If an update affects other records, invalidate those too
+  ```typescript
+  // When setting a payment method as default, other payment methods lose default status
+  for (const pm of paymentMethodsThatLostDefault) {
+    invalidateCache(CacheDependency.paymentMethod(pm.id))
+  }
+  ```
+
+### Common Cache Invalidation Bugs
+
+1. **Forgetting to invalidate on insert**: New items don't appear in cached lists
+2. **Forgetting content invalidation on update**: Updated properties show stale values
+3. **Invalidating wrong parent on move**: Item "disappears" from new parent's cached list
+4. **Missing cascading invalidation**: Related items show stale state (e.g., old default still shows as default)
+5. **Invalidating before commit**: Race condition where cache is re-populated with stale data before transaction commits
+
+### TransactionEffectsContext Pattern
+Mutating functions that need cache invalidation should accept `TransactionEffectsContext`:
+
+```typescript
+export const safelyUpdateFoo = async (
+  foo: Foo.Update,
+  ctx: TransactionEffectsContext
+) => {
+  const { transaction, invalidateCache } = ctx
+
+  const updated = await updateFoo(foo, transaction)
+
+  invalidateCache(CacheDependency.foo(foo.id))
+
+  return updated
+}
+```
+
+The `invalidateCache` callback queues invalidations to run **after** the transaction commits, preventing race conditions.
 
 ## Subscription & Billing Patterns
 
@@ -352,3 +550,19 @@ Both `Processing` and `Succeeded` statuses count toward existing payments in pro
 
 ### 7. End-of-Period Adjustments
 Only allowed for downgrades (netCharge <= 0). Upgrades must apply immediately.
+
+### 8. Table Methods Must Have Zod Validation
+All methods in `db/tableMethods/` require Zod validation for inputs AND outputs, even when it seems unnecessary. This ensures runtime/type system unity. "The types already cover this" is not an acceptable justification for skipping validation.
+
+### 9. No Raw Drizzle in Business Logic
+Business logic (`server/`, `subscriptions/`, `trigger/`) must never contain raw Drizzle calls. Always go through `db/tableMethods/`. Raw Drizzle is only acceptable inside tableMethods itself.
+
+### 10. Avoid Redundant Table Methods
+Before creating `selectFooById` or `selectFooByBar`, check if `selectFoos` already supports that query pattern. Prefer adding parameters to existing methods over creating specialized variants.
+
+### 11. Mutations Require Cache Invalidation Review
+When reviewing any mutating function (insert, update, delete), ask: "Does this need cache invalidations?" Check for:
+- Set membership invalidation for inserts/deletes
+- Content invalidation for updates
+- Both old AND new parent invalidation for moves
+- Cascading invalidation when updates affect related records

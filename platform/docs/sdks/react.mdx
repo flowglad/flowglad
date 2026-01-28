@@ -37,7 +37,7 @@ interface FlowgladProviderProps {
     headers?: Record<string, string>
   }
   baseURL?: string
-  loadBilling: boolean
+  betterAuthBasePath?: string
   children: React.ReactNode
 }
 ```
@@ -46,7 +46,6 @@ interface FlowgladProviderProps {
 
 ```tsx
 <FlowgladProvider
-  loadBilling={true}
   requestConfig={{
     headers: {
       'X-Custom-Header': 'value',
@@ -66,14 +65,12 @@ Access billing data and functions throughout your application.
 The hook surfaces billing lifecycle metadata you can use to gate UI:
 
 - `loaded: boolean` – `true` once billing data has settled (success or error).
-- `loadBilling: boolean` – Mirrors the provider prop; if `false`, billing is intentionally skipped.
 - `errors: Error[] | null` – Populated when the last fetch failed.
 - `reload: () => Promise<void>` – Invalidates and refetches billing data.
 
 ```tsx
-const { loaded, loadBilling, errors, reload } = useBilling()
+const { loaded, errors, reload } = useBilling()
 
-if (!loadBilling) return <p>Billing disabled for this view.</p>
 if (!loaded) return <p>Loading billing…</p>
 if (errors?.length) {
   return (
@@ -134,14 +131,9 @@ interface BillingContext {
 
   // Usage tracking
   createUsageEvent: (params: CreateUsageEventParams) => Promise<UsageEventResult>
-
-  // Loading states
-  isLoading: boolean
-  error: Error | null
   
   // Refresh data
   reload: () => Promise<void>
-  loadBilling: boolean
   loaded: boolean
   errors: Error[] | null
 }
@@ -180,6 +172,51 @@ function FeatureGate({ featureSlug, children }) {
   }
 
   return <>{children}</>
+}
+```
+
+### usePricing Hook
+
+Fetch public pricing data without requiring authentication. Use this for pricing pages and plan cards where you only need the pricing model.
+
+```tsx
+import { useBilling, usePricing } from '@flowglad/react'
+
+function PricingCards() {
+  const pricingModel = usePricing()
+  const { createCheckoutSession } = useBilling()
+
+  if (!pricingModel) {
+    return <div>Loading pricing...</div>
+  }
+
+  return (
+    <div>
+      {pricingModel.products.map((product) => {
+        const defaultPrice = product.defaultPrice ?? product.prices?.[0]
+        if (!defaultPrice) return null
+
+        return (
+          <article key={product.id}>
+            <h3>{product.name}</h3>
+            <p>{product.description}</p>
+            <button
+              onClick={() =>
+                createCheckoutSession({
+                  priceSlug: defaultPrice.slug,
+                  successUrl: window.location.href,
+                  cancelUrl: window.location.href,
+                  autoRedirect: true,
+                })
+              }
+            >
+              Choose {defaultPrice.name ?? product.name}
+            </button>
+          </article>
+        )
+      })}
+    </div>
+  )
 }
 ```
 
@@ -732,4 +769,3 @@ Make sure you have set up the server routes:
     See complete code examples
   </Card>
 </CardGroup>
-

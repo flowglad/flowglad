@@ -1,11 +1,9 @@
 'use client'
 
-import { FlowgladProvider } from '@flowglad/nextjs'
 import {
   QueryClient,
   QueryClientProvider,
 } from '@tanstack/react-query'
-import { authClient } from '@/lib/auth-client'
 
 const createQueryClient = () =>
   new QueryClient({
@@ -28,34 +26,14 @@ const getQueryClient = () => {
   return (clientQueryClientSingleton ??= createQueryClient())
 }
 
-export function ReactQueryProvider(props: {
+export const ReactQueryProvider = (props: {
   children: React.ReactNode
-}) {
+}) => {
   const queryClient = getQueryClient()
 
   return (
     <QueryClientProvider client={queryClient}>
       {props.children}
     </QueryClientProvider>
-  )
-}
-
-export function FlowgladProviderWrapper(props: {
-  children: React.ReactNode
-}) {
-  // Use BetterAuth's useSession to watch for session changes reactively
-  const { data: session } = authClient.useSession()
-
-  // Derive loadBilling from session state reactively
-  // This ensures billing loads when session becomes available, even if layout didn't re-render
-  const loadBilling = !!session?.user
-
-  return (
-    <FlowgladProvider
-      loadBilling={loadBilling}
-      betterAuthBasePath="/api/auth"
-    >
-      {props.children}
-    </FlowgladProvider>
   )
 }

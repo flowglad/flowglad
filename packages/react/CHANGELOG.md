@@ -1,5 +1,89 @@
 # @flowglad/react
 
+## 0.17.1
+
+### Patch Changes
+
+- 7170932: ### Better Auth Plugin Improvements
+
+  - [790042dd](https://github.com/flowglad/flowglad/commit/790042dd): Rework Better Auth plugin with organization support
+
+    - Organization customer resolution when `customerType="organization"` using `session.activeOrganizationId` (and adapter lookups) if no custom `getCustomer` is provided
+    - Added `getExternalId`, `billing/pricing`, and `getUsageMeterBalances` endpoints integrated with Better Auth
+    - Optimized organization lookup and added membership verification in billing endpoints for defense-in-depth
+    - Expanded test coverage for endpoints, plugin behavior, and utilities
+    - Updated example projects to use the plugin pattern and removed standalone `/api/flowglad` route requirement
+    - Migration: Use `flowgladPlugin` in Better Auth and set `FlowgladProvider betterAuthBasePath="/api/auth"` in apps
+
+  - [037f19e2](https://github.com/flowglad/flowglad/commit/037f19e2): Update Better Auth documentation and type annotations
+    - Clarified external ID resolution using `session.session.userId` and `session.session.activeOrganizationId`
+    - Added notes about customer auto-creation hooks behavior
+    - Updated examples and troubleshooting documentation
+    - Documented optional `baseURL` parameter
+
+  ### Usage Meter Hooks
+
+  - [3fd2a3ae](https://github.com/flowglad/flowglad/commit/3fd2a3ae): Add `useUsageMeters()` and `useUsageMeter()` hooks to `@flowglad/react`
+
+    - Provides dedicated and efficient way to fetch usage meter balances without relying on the full billing payload
+    - Wired `createUsageEvent` to invalidate caches for these new usage meter hooks, ensuring automatic refresh after usage events
+    - Includes dev-mode support and comprehensive tests
+
+  - [71fd192a](https://github.com/flowglad/flowglad/commit/71fd192a): Implement server-side integration for `GetUsageMeterBalances` action
+
+    - Added `getUsageMeterBalances` to `FlowgladServer` to call the platform endpoint
+    - Created and registered new subroute handler for `GetUsageMeterBalances`
+    - Wired the new action into the Better Auth plugin for authentication and authorization
+    - Includes comprehensive tests for the new handler and updated auth mappings
+
+  - [9dcbf5eb](https://github.com/flowglad/flowglad/commit/9dcbf5eb): Add shared usage meter schema and action key
+    - Introduced new authenticated action key (`usage-meters/balances`) and Zod schema in the shared SDK
+    - Enables dedicated, narrow endpoint for fetching usage meter balances
+    - Decouples usage meter reads from the larger `GetCustomerBilling` payload
+    - Includes comprehensive tests for the new schema and action validator
+
+- Updated dependencies [7170932]
+  - @flowglad/shared@0.17.1
+
+## 0.17.0
+
+### Minor Changes
+
+- 6248889: ### React SDK Hook Architecture
+
+  - [2b46e4e3](https://github.com/flowglad/flowglad/commit/2b46e4e3): Refactor the React SDK to a hook-first architecture for billing and pricing
+    - `useBilling` now loads on mount and `FlowgladProvider` no longer accepts `loadBilling`
+    - Added `usePricingModel` and `usePricing` for public pricing model retrieval
+    - Expanded hook test coverage across billing and pricing utilities
+
+  ### Hybrid Pricing Model Retrieval
+
+  - [acae46d7](https://github.com/flowglad/flowglad/commit/acae46d7): Add `GetPricingModel` action with authenticated pricing + default fallback
+    - Hybrid routing for optional-auth pricing model fetches
+    - Shared types and validators for `{ pricingModel, source }` responses
+    - Next.js and server handlers updated to support the new pricing model endpoint
+
+  ### Default Usage Prices & Pricing Utilities
+
+  - [6e667596](https://github.com/flowglad/flowglad/commit/6e667596): Support default usage prices and unify pricing lookups
+    - Shared pricing utilities now resolve usage prices from products consistently
+    - Updated usage price behaviors to ensure a default is always active
+
+  ### Resource Claims Scope Update
+
+  - [a3e4ed7d](https://github.com/flowglad/flowglad/commit/a3e4ed7d): Remove `subscriptionItemFeatureId` from resource claims
+    - Resource claims now scope to `(subscriptionId, resourceId)` and support `expiredAt`
+    - Server resource-claim queries and tests updated for the new schema
+
+  ### Documentation Updates
+
+  - [cbf4efdb](https://github.com/flowglad/flowglad/commit/cbf4efdb): Refresh SDK docs to use `usePricing` and remove `loadBilling`
+
+### Patch Changes
+
+- Updated dependencies [6248889]
+  - @flowglad/shared@0.17.0
+
 ## 0.16.4
 
 ### Patch Changes
