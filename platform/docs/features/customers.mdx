@@ -1,0 +1,189 @@
+---
+title: 'Customers'
+description: 'Manage customer accounts, including creation, metadata, and archiving.'
+---
+
+Customers represent the people or organizations that purchase your products and subscriptions. Flowglad automatically creates customer records when users complete checkout, but you can also create and manage customers programmatically.
+
+## What is a Customer?
+
+A Customer in Flowglad tracks the identity and billing relationship with someone who uses your product. Each customer has:
+
+- **Identifiers**: A Flowglad-generated `id` and your own `externalId` for linking to your system
+- **Contact info**: Name and email address
+- **Billing data**: Associated subscriptions, invoices, and payment methods
+- **State**: Active or archived status
+
+## Customer Identifiers
+
+Customers have two key identifiers:
+
+| Identifier | Description | Example |
+|------------|-------------|---------|
+| `id` | Flowglad-generated UUID | `cust_a1b2c3d4...` |
+| `externalId` | Your system's identifier | `user_123`, `org_456` |
+
+The `externalId` is how you'll typically reference customers in your code. It must be unique among active customers, but can be reused after archiving a customer.
+
+## Creating Customers
+
+### Via Checkout
+
+Customers are automatically created when someone completes a checkout session. If you provide a `customerExternalId` when creating the checkout session, it will be used as the customer's `externalId`.
+
+```typescript
+const { checkoutSession } = await server.createCheckoutSession({
+  priceId: 'price_abc123',
+  customerExternalId: 'user_123', // Links to your user
+  customerEmail: 'user@example.com',
+  customerName: 'Jane Smith',
+})
+```
+
+### Via API
+
+Create customers directly using the API when you need to set up customer records before checkout:
+
+```typescript
+const customer = await flowglad.customers.create({
+  externalId: 'user_123',
+  email: 'user@example.com',
+  name: 'Jane Smith',
+})
+```
+
+### Via Dashboard
+
+1. Navigate to the [Customers](https://app.flowglad.com/customers) page
+2. Click "Create Customer"
+3. Fill in the customer details
+4. Click "Create"
+
+## Customer Metadata
+
+Store custom data on customer records using the `metadata` field. This is useful for syncing additional information from your system:
+
+```typescript
+const customer = await flowglad.customers.create({
+  externalId: 'user_123',
+  email: 'user@example.com',
+  name: 'Jane Smith',
+  metadata: {
+    plan: 'enterprise',
+    accountManager: 'john@company.com',
+    signupSource: 'webinar',
+  },
+})
+```
+
+Metadata is returned with customer records and can be updated at any time.
+
+## Archiving Customers
+
+Archiving removes a customer from active use while preserving their historical data. This is the recommended way to handle customer churn, duplicates, or test data cleanup.
+
+### Why Archive?
+
+- **Customer churned**: When a customer cancels and you want to clean up
+- **Duplicate cleanup**: Consolidate multiple customer records
+- **Test data**: Remove test customers from your active data
+- **Free up externalId**: Reuse the `externalId` for a new customer
+
+### What Happens When You Archive
+
+When you archive a customer:
+
+1. **All active subscriptions are canceled** - Any subscriptions in `active`, `trialing`, `past_due`, or `cancellation_scheduled` status are immediately canceled
+2. **The customer is marked as archived** - The `archived` field is set to `true`
+3. **The externalId becomes available** - You can create a new customer with the same `externalId`
+4. **API returns 404** - The `GET /customers/:externalId` endpoint returns 404 for archived customers
+
+<Warning>
+Archiving is a significant action that cancels all active subscriptions. Review the subscription count before confirming.
+</Warning>
+
+### How to Archive
+
+#### Via Dashboard
+
+1. Navigate to the [Customers](https://app.flowglad.com/customers) page
+2. Find the customer you want to archive
+3. Click the actions menu (⋮) on the customer row
+4. Select "Archive Customer"
+5. Review the confirmation modal (shows subscription cancellation warning)
+6. Click "Archive" to confirm
+
+#### Via API
+
+```bash
+curl -X POST https://api.flowglad.com/api/v1/customers/user_123/archive \
+  -H "Authorization: Bearer your_api_key"
+```
+
+#### Via SDK
+
+```typescript
+await flowglad.customers.archive({
+  externalId: 'user_123',
+})
+```
+
+<Note>
+The archive operation is idempotent. Calling it multiple times on the same customer has no additional effect.
+</Note>
+
+### Viewing Archived Customers
+
+Archived customers are intentionally not accessible via the API. This provides clean data isolation and matches the behavior of other billing platforms like Stripe.
+
+To view archived customers:
+
+1. Navigate to the [Customers](https://app.flowglad.com/customers) page
+2. Click the "Archived" tab
+3. Browse or search archived customer records
+
+<Info>
+The dashboard's "Archived" tab is the only way to access archived customer data. This is by design to keep your active customer data clean.
+</Info>
+
+### Restore
+
+Restore functionality is not currently supported. Once a customer is archived, they cannot be unarchived. If you need to work with a previously archived customer, create a new customer record.
+
+## Best Practices
+
+### Use externalId Consistently
+
+Always provide an `externalId` that maps to your user or organization ID. This makes it easy to look up customers and keeps your data synchronized.
+
+```typescript
+// Good: Use your system's user ID
+const customer = await flowglad.customers.create({
+  externalId: user.id, // e.g., 'user_123'
+  email: user.email,
+  name: user.name,
+})
+
+// Avoid: Letting Flowglad generate the only identifier
+const customer = await flowglad.customers.create({
+  email: user.email,
+  name: user.name,
+})
+```
+
+### Archive Instead of Ignoring
+
+When customers churn, archive them rather than leaving them in an ambiguous state. This:
+- Cancels subscriptions cleanly
+- Frees up the `externalId` for reuse
+- Keeps your active customer list accurate
+
+### Review Before Archiving
+
+Always check the subscription count before archiving a customer, especially for customers with multiple subscriptions. The dashboard modal shows this count, but if archiving via API, query the customer's subscriptions first.
+
+## Related
+
+- [Subscriptions](/features/subscriptions) - Customers are linked to subscriptions
+- [Checkout Sessions](/features/checkout-sessions) - Create customers during checkout
+- [Invoices](/features/invoices) - Customer billing history
