@@ -326,6 +326,7 @@ export const previewAdjustSubscriptionOutputSchema = z
       ),
     previewGeneratedAt: z
       .number()
+      .int()
       .describe(
         'Epoch milliseconds when this preview was generated. Useful for staleness detection.'
       ),
@@ -358,6 +359,7 @@ export const previewAdjustSubscriptionOutputSchema = z
       ),
     effectiveDate: z
       .number()
+      .int()
       .optional()
       .describe(
         'Epoch milliseconds when the adjustment will take effect.'
@@ -376,6 +378,7 @@ export const previewAdjustSubscriptionOutputSchema = z
       ),
     billingPeriodEnd: z
       .number()
+      .int()
       .optional()
       .describe(
         'Epoch milliseconds when the current billing period ends.'

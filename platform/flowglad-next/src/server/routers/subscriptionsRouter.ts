@@ -101,6 +101,7 @@ export const subscriptionsRouteConfigs = [
   }),
   trpcToRest('subscriptions.previewAdjust', {
     routeParams: ['id'],
+    routeSuffix: 'preview-adjust',
   }),
   trpcToRest('subscriptions.cancel', {
     routeParams: ['id'],
