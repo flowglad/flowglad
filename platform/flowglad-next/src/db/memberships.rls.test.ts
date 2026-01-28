@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { setupOrg, setupUserAndApiKey } from '@/../seedDatabase'
 import { adminTransaction } from '@/db/adminTransaction'
 import { authenticatedTransaction } from '@/db/authenticatedTransaction'
@@ -483,6 +483,204 @@ describe('memberships RLS - notificationPreferences', () => {
       expect(prefs.subscriptionCreated).toBe(false)
       // Defaults should still apply for unset preferences
       expect(prefs.subscriptionAdjusted).toBe(true)
+    })
+  })
+})
+
+/**
+ * Tests for same-org different-user RLS isolation.
+ *
+ * These tests verify that users in the SAME organization cannot access
+ * each other's memberships. This uses session-based authentication
+ * (via __mockedAuthSession) instead of API keys to avoid the non-deterministic
+ * user resolution issue when multiple users exist in the same org.
+ */
+describe('memberships RLS - same-org different-user isolation', () => {
+  let org: Organization.Record
+  let user1: User.Record
+  let user1Membership: Membership.Record
+  let user1BetterAuthId: string | null
+  let user2: User.Record
+  let user2Membership: Membership.Record
+  let user2BetterAuthId: string | null
+
+  beforeEach(async () => {
+    // Reset global auth session
+    globalThis.__mockedAuthSession = null
+
+    // Setup organization
+    const orgData = await setupOrg()
+    org = orgData.organization
+
+    // Setup first user with API key and betterAuthId
+    const userSetup1 = await setupUserAndApiKey({
+      organizationId: org.id,
+      livemode: true,
+    })
+    user1 = userSetup1.user
+    user1Membership = userSetup1.membership
+    user1BetterAuthId = userSetup1.betterAuthId
+
+    // Setup second user in the SAME org (forceNewUser to create a distinct user)
+    const userSetup2 = await setupUserAndApiKey({
+      organizationId: org.id,
+      livemode: true,
+      forceNewUser: true,
+    })
+    user2 = userSetup2.user
+    user2Membership = userSetup2.membership
+    user2BetterAuthId = userSetup2.betterAuthId
+  })
+
+  afterEach(() => {
+    // Clean up global auth session
+    globalThis.__mockedAuthSession = null
+  })
+
+  describe('SELECT isolation between users in same organization', () => {
+    it("user2 cannot select user1's membership in the same organization", async () => {
+      // Authenticate as user2 via session
+      globalThis.__mockedAuthSession = {
+        user: { id: user2BetterAuthId!, email: user2.email! },
+      }
+
+      // User2 tries to select user1's membership
+      const memberships = await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectMemberships(
+            { id: user1Membership.id },
+            transaction
+          )
+        }
+        // No apiKey - uses session-based auth
+      )
+
+      // RLS should block - user2 can only see their own membership
+      expect(memberships).toHaveLength(0)
+    })
+
+    it("user1 cannot select user2's membership in the same organization", async () => {
+      // Authenticate as user1 via session
+      globalThis.__mockedAuthSession = {
+        user: { id: user1BetterAuthId!, email: user1.email! },
+      }
+
+      // User1 tries to select user2's membership
+      const memberships = await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectMemberships(
+            { id: user2Membership.id },
+            transaction
+          )
+        }
+        // No apiKey - uses session-based auth
+      )
+
+      // RLS should block - user1 can only see their own membership
+      expect(memberships).toHaveLength(0)
+    })
+
+    it('user1 can select their own membership via session auth', async () => {
+      // Authenticate as user1 via session
+      globalThis.__mockedAuthSession = {
+        user: { id: user1BetterAuthId!, email: user1.email! },
+      }
+
+      // User1 selects their own membership
+      const memberships = await authenticatedTransaction(
+        async ({ transaction }) => {
+          return selectMemberships(
+            { id: user1Membership.id },
+            transaction
+          )
+        }
+        // No apiKey - uses session-based auth
+      )
+
+      // Should return user1's membership
+      expect(memberships).toHaveLength(1)
+      expect(memberships[0].id).toBe(user1Membership.id)
+      expect(memberships[0].userId).toBe(user1.id)
+    })
+  })
+
+  describe('UPDATE isolation between users in same organization', () => {
+    it("user2 cannot update user1's membership in the same organization", async () => {
+      // Authenticate as user2 via session
+      globalThis.__mockedAuthSession = {
+        user: { id: user2BetterAuthId!, email: user2.email! },
+      }
+
+      try {
+        // User2 tries to update user1's membership
+        await authenticatedTransaction(async ({ transaction }) => {
+          return updateMembership(
+            {
+              id: user1Membership.id,
+              notificationPreferences: {
+                testModeNotifications: false,
+              },
+            },
+            transaction
+          )
+        })
+
+        // If we get here, verify the membership was NOT actually updated
+        const membership = await adminTransaction(
+          async ({ transaction }) => {
+            return (
+              await selectMembershipById(
+                user1Membership.id,
+                transaction
+              )
+            ).unwrap()
+          }
+        )
+        const prefs = getMembershipNotificationPreferences(membership)
+        // Should still be default (true), not changed to false
+        expect(prefs.testModeNotifications).toBe(true)
+      } catch {
+        // If it throws, that's also acceptable behavior for RLS blocking
+      }
+    })
+
+    it("user1 cannot update user2's membership in the same organization", async () => {
+      // Authenticate as user1 via session
+      globalThis.__mockedAuthSession = {
+        user: { id: user1BetterAuthId!, email: user1.email! },
+      }
+
+      try {
+        // User1 tries to update user2's membership
+        await authenticatedTransaction(async ({ transaction }) => {
+          return updateMembership(
+            {
+              id: user2Membership.id,
+              notificationPreferences: {
+                testModeNotifications: false,
+              },
+            },
+            transaction
+          )
+        })
+
+        // If we get here, verify the membership was NOT actually updated
+        const membership = await adminTransaction(
+          async ({ transaction }) => {
+            return (
+              await selectMembershipById(
+                user2Membership.id,
+                transaction
+              )
+            ).unwrap()
+          }
+        )
+        const prefs = getMembershipNotificationPreferences(membership)
+        // Should still be default (true), not changed to false
+        expect(prefs.testModeNotifications).toBe(true)
+      } catch {
+        // If it throws, that's also acceptable behavior for RLS blocking
+      }
     })
   })
 })

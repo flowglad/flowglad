@@ -1699,19 +1699,25 @@ export const setupUserAndApiKey = async ({
     let user: typeof users.$inferSelect
     let membership: Membership.Record
 
+    let betterAuthId: string | null = null
+
     if (existingMemberships.length > 0) {
       // Reuse existing user and membership
       const existing = existingMemberships[0]
       user = existing.user
       membership = existing.membership
+      betterAuthId = user.betterAuthId ?? null
     } else {
       // Create new user and membership
+      // Generate betterAuthId for session-based authentication in tests
+      betterAuthId = `ba_test_${core.nanoid()}`
       const userInsertResult = await transaction
         .insert(users)
         .values({
           id: `usr_test_${core.nanoid()}`,
           email: `testuser-${core.nanoid()}@example.com`,
           name: 'Test User',
+          betterAuthId,
         })
         .returning()
         .then(R.head)
@@ -1761,6 +1767,12 @@ export const setupUserAndApiKey = async ({
       user,
       membership,
       apiKey: { ...apiKey, token: apiKeyTokenValue },
+      /**
+       * The betterAuthId for this user, used for session-based authentication.
+       * Set this in globalThis.__mockedAuthSession to authenticate as this user
+       * without using API keys (useful for same-org different-user RLS tests).
+       */
+      betterAuthId,
     }
   })
 }
