@@ -1,5 +1,5 @@
-import { getSession } from '@/utils/auth'
 import { redirect } from 'next/navigation'
+import { getSession } from '@/utils/auth'
 
 export default async function BillingPortalProtectedLayout({
   children,
@@ -18,7 +18,9 @@ export default async function BillingPortalProtectedLayout({
         `/billing-portal/${resolvedParams.organizationId}/${resolvedParams.customerId}/sign-in`
       )
     } else if (resolvedParams.organizationId) {
-      redirect(`/billing-portal/${resolvedParams.organizationId}/sign-in`)
+      redirect(
+        `/billing-portal/${resolvedParams.organizationId}/sign-in`
+      )
     } else {
       // Fallback to root if no params available
       redirect('/billing-portal')

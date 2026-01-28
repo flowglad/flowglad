@@ -1,5 +1,5 @@
-import { getSession } from '@/utils/auth'
 import { redirect } from 'next/navigation'
+import { getSession } from '@/utils/auth'
 
 export default async function MerchantLayout({
   children,
