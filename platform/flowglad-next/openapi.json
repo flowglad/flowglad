@@ -6373,7 +6373,8 @@
                               "payment.succeeded",
                               "subscription.created",
                               "subscription.updated",
-                              "subscription.canceled"
+                              "subscription.canceled",
+                              "sync.events_available"
                             ]
                           }
                         },
@@ -6512,7 +6513,8 @@
                             "payment.succeeded",
                             "subscription.created",
                             "subscription.updated",
-                            "subscription.canceled"
+                            "subscription.canceled",
+                            "sync.events_available"
                           ]
                         }
                       },
@@ -6577,7 +6579,8 @@
                               "payment.succeeded",
                               "subscription.created",
                               "subscription.updated",
-                              "subscription.canceled"
+                              "subscription.canceled",
+                              "sync.events_available"
                             ]
                           }
                         },
@@ -6706,7 +6709,8 @@
                             "payment.succeeded",
                             "subscription.created",
                             "subscription.updated",
-                            "subscription.canceled"
+                            "subscription.canceled",
+                            "sync.events_available"
                           ]
                         }
                       },
@@ -6779,7 +6783,8 @@
                               "payment.succeeded",
                               "subscription.created",
                               "subscription.updated",
-                              "subscription.canceled"
+                              "subscription.canceled",
+                              "sync.events_available"
                             ]
                           }
                         },
