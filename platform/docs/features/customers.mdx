@@ -66,25 +66,20 @@ For manual customer creation:
 3. Fill in the customer details
 4. Click "Create"
 
-## Customer Metadata
+## Updating Customers
 
-Store custom data on customer records using the `metadata` field. This is useful for syncing additional information from your system.
-
-Update customer metadata using `updateCustomer`:
+Update customer details like name and email using `updateCustomer`. This method updates the customer associated with the scoped `customerExternalId`:
 
 ```typescript
 await flowglad(userId).updateCustomer({
   customer: {
-    metadata: {
-      plan: 'enterprise',
-      accountManager: 'john@company.com',
-      signupSource: 'webinar',
-    },
+    name: 'Jane Smith',
+    email: 'jane.smith@example.com',
   },
 })
 ```
 
-Metadata is returned with customer records when you call `getBilling()` or other customer methods.
+Updated customer data is returned when you call `getBilling()` or other customer methods.
 
 ## Archiving Customers
 
@@ -133,6 +128,10 @@ curl -X POST https://app.flowglad.com/api/v1/customers/user_123/archive \
 ```typescript
 await flowglad(userId).archiveCustomer('user_123')
 ```
+
+<Note>
+Unlike `updateCustomer` which operates on the scoped customer, `archiveCustomer` requires an explicit `externalId` parameter. This archives the customer with `externalId` of `'user_123'`, not necessarily the scoped customer.
+</Note>
 
 <Note>
 The archive operation is idempotent. Calling it multiple times on the same customer has no additional effect.
