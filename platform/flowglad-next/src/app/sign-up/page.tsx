@@ -5,7 +5,6 @@ import type { ErrorContext } from 'better-auth/react'
 import { Eye, EyeOff, Loader2 } from 'lucide-react'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { toast } from 'sonner'
@@ -70,7 +69,6 @@ export default function SignUp() {
     mode: 'onSubmit',
   })
 
-  const router = useRouter()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -88,7 +86,8 @@ export default function SignUp() {
       toast.error(ctx.error.message)
     },
     onSuccess: async () => {
-      router.push('/')
+      // Full page redirect ensures cookie is sent (fixes race condition with RSC cache)
+      window.location.href = '/onboarding/business-details'
     },
   } as const
 
@@ -97,7 +96,7 @@ export default function SignUp() {
       email: values.email,
       password: values.password,
       name: `${values.firstName} ${values.lastName}`,
-      callbackURL: '/',
+      callbackURL: '/onboarding/business-details', // Required for OAuth flows
       fetchOptions: signupFetchOptions,
     })
   }
@@ -124,7 +123,7 @@ export default function SignUp() {
           await signIn.social(
             {
               provider: 'google',
-              callbackURL: '/',
+              callbackURL: '/onboarding/business-details', // Required for OAuth flows
             },
             signupFetchOptions
           )
