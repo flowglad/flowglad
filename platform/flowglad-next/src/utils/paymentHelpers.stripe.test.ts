@@ -2,6 +2,9 @@ import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
+  mockGetPaymentIntent,
+  mockGetStripeCharge,
+  mockListRefundsForCharge,
   mockRefundPayment,
   mockReverseStripeTaxTransaction,
 } from '@/../bun.stripe.mocks'
@@ -27,14 +30,6 @@ import {
   refundPaymentTransaction,
   sumNetTotalSettledPaymentsForPaymentSet,
 } from './paymentHelpers'
-
-// Use global mocks from bun.db.mocks.ts
-const mockRefundPayment = globalThis.__mockRefundPayment
-const mockGetPaymentIntent = globalThis.__mockGetPaymentIntent
-const mockGetStripeCharge = globalThis.__mockGetStripeCharge
-const mockListRefundsForCharge = globalThis.__mockListRefundsForCharge
-const mockReverseStripeTaxTransaction =
-  globalThis.__mockReverseStripeTaxTransaction
 
 const makeStripeRefundResponse = ({
   amount,
