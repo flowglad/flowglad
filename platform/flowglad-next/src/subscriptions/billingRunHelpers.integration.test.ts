@@ -259,7 +259,7 @@ describe('Billing Run Atomicity - Integration Tests', () => {
           )
       )
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-      expect(typeof updatedBillingRun.errorDetails).toBe('object')
+      expect(updatedBillingRun.errorDetails).toBeObject()
 
       // Verify no payment was created
       const payments = await adminTransaction(({ transaction }) =>
@@ -307,7 +307,7 @@ describe('Billing Run Atomicity - Integration Tests', () => {
           )
       )
       expect(updatedBillingRun.status).toBe(BillingRunStatus.Failed)
-      expect(typeof updatedBillingRun.errorDetails).toBe('object')
+      expect(updatedBillingRun.errorDetails).toBeObject()
 
       // Verify no payment was created
       const payments = await adminTransaction(({ transaction }) =>

@@ -430,7 +430,10 @@ export const stripe = (livemode: boolean) => {
   }
 
   // Use stripe-mock for testing (unless using real Stripe integration test mode)
-  if (core.IS_TEST && !process.env.STRIPE_INTEGRATION_TEST_MODE) {
+  if (
+    core.IS_TEST &&
+    process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
+  ) {
     config.host = process.env.STRIPE_MOCK_HOST || 'localhost'
     config.port = Number(process.env.STRIPE_MOCK_PORT || 12111)
     config.protocol = 'http'
