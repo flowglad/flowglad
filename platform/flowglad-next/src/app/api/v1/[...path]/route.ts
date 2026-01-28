@@ -142,6 +142,11 @@ const innerHandler = async (
             ? unkeyMeta.userId
             : undefined
         const apiKeyType = unkeyMeta.type || 'unknown'
+        // Extract pricingModelId from API key metadata for PM-scoped access
+        const pricingModelId =
+          unkeyMeta.type === FlowgladApiKeyType.Secret
+            ? unkeyMeta.pricingModelId
+            : undefined
 
         parentSpan.setAttributes({
           'http.method': req.method,
@@ -156,6 +161,7 @@ const innerHandler = async (
           'user.id': userId,
           'api.environment': apiEnvironment,
           'api.key_type': apiKeyType,
+          'api.pricing_model_id': pricingModelId,
           rest_sdk_version: sdkVersion,
         })
 
@@ -170,6 +176,7 @@ const innerHandler = async (
           user_id: userId,
           environment: apiEnvironment,
           api_key_type: apiKeyType,
+          pricing_model_id: pricingModelId,
           body_size_bytes: requestBodySize,
           rest_sdk_version: sdkVersion,
           span: parentSpan, // Pass span explicitly for trace correlation
@@ -513,6 +520,7 @@ const innerHandler = async (
             error_category: errorCategory,
             http_status: httpStatus,
             organization_id: organizationId,
+            pricing_model_id: pricingModelId,
             total_duration_ms: totalDuration,
             stack: responseJson.error.json.data.stack,
           })
@@ -570,6 +578,7 @@ const innerHandler = async (
           path,
           procedure: route.procedure,
           organization_id: organizationId,
+          pricing_model_id: pricingModelId,
           environment: apiEnvironment,
           total_duration_ms: totalDuration,
           response_size_bytes: responseSize,
