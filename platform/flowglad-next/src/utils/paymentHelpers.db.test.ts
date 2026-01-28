@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
@@ -270,7 +270,7 @@ describe('refundPaymentTransaction', () => {
         expect(typeof updatedPayment.refundedAt).toBe('number')
       })
 
-      expect(stripeUtils.refundPayment).toHaveBeenCalledWith(
+      expect(mockRefundPayment).toHaveBeenCalledWith(
         payment.stripePaymentIntentId,
         partialRefundAmount,
         payment.livemode
@@ -582,9 +582,7 @@ describe('refundPaymentTransaction', () => {
         )
       })
 
-      expect(
-        stripeUtils.reverseStripeTaxTransaction
-      ).toHaveBeenCalledWith(
+      expect(mockReverseStripeTaxTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
           stripeTaxTransactionId:
             morPaymentWithTax.stripeTaxTransactionId,
@@ -617,9 +615,7 @@ describe('refundPaymentTransaction', () => {
         )
       })
 
-      expect(
-        stripeUtils.reverseStripeTaxTransaction
-      ).toHaveBeenCalledWith(
+      expect(mockReverseStripeTaxTransaction).toHaveBeenCalledWith(
         expect.objectContaining({
           stripeTaxTransactionId:
             morPaymentWithTax.stripeTaxTransactionId,
@@ -694,9 +690,7 @@ describe('refundPaymentTransaction', () => {
         )
       })
 
-      expect(
-        stripeUtils.reverseStripeTaxTransaction
-      ).not.toHaveBeenCalled()
+      expect(mockReverseStripeTaxTransaction).not.toHaveBeenCalled()
     })
   })
 
@@ -737,9 +731,7 @@ describe('refundPaymentTransaction', () => {
       })
 
       // Should NOT be called because the org is Platform, not MOR
-      expect(
-        stripeUtils.reverseStripeTaxTransaction
-      ).not.toHaveBeenCalled()
+      expect(mockReverseStripeTaxTransaction).not.toHaveBeenCalled()
     })
   })
 })

@@ -88,8 +88,9 @@ import {
 } from '@/utils/stripe'
 import core from '../core'
 
-// Use global mock from bun.db.mocks.ts
+// Use global mocks from bun.db.mocks.ts
 const mockGetStripeCharge = globalThis.__mockGetStripeCharge
+const mockCreateStripeCustomer = globalThis.__mockCreateStripeCustomer
 
 describe('ledgerCommandForPaymentSucceeded', () => {
   // Shared globals for setup reused across tests
@@ -2838,6 +2839,19 @@ describe('Process payment intent status updated', async () => {
     })
 
     it('should include customer creation events when processing anonymous checkout', async () => {
+      // Mock createStripeCustomer to return a mock customer for anonymous checkout
+      mockCreateStripeCustomer.mockResolvedValue({
+        id: `cus_mock_${core.nanoid()}`,
+        object: 'customer',
+        email: 'anonymous@example.com',
+        name: 'Anonymous Customer',
+        livemode: true,
+        metadata: {
+          organizationId: organization.id,
+          createdBy: 'test',
+        },
+      } as unknown as import('stripe').default.Customer)
+
       // Create an anonymous checkout session (no customer ID)
       const anonymousCheckoutSession = await adminTransaction(
         async (ctx) => {
