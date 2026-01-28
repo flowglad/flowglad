@@ -143,7 +143,17 @@ const getFocusedMembership = protectedProcedure
             message: 'No focused membership found for user',
           })
         }
-        return focusedMembership
+        // Explicitly parse through client schemas to ensure output validation passes.
+        // selectFocusedMembershipAndOrganization returns server schemas which include
+        // hidden columns (position, createdByCommit, etc.) that must be stripped.
+        return {
+          membership: membershipsClientSelectSchema.parse(
+            focusedMembership.membership
+          ),
+          organization: organizationsClientSelectSchema.parse(
+            focusedMembership.organization
+          ),
+        }
       }
     )
   )

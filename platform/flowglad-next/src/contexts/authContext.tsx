@@ -89,12 +89,15 @@ const AuthProvider = ({
    * before the user is fetched when first logging in.
    * This gracefully recovers by refetching the focused membership
    * when the user is fetched.
+   *
+   * Note: We also check !isOnboarding because refetch() executes
+   * regardless of the query's `enabled` state.
    */
   useEffect(() => {
-    if (user) {
+    if (user && !isOnboarding) {
       refetchFocusedMembership()
     }
-  }, [user, refetchFocusedMembership])
+  }, [user, isOnboarding, refetchFocusedMembership])
 
   const focusedOrganization = focusedMembership?.organization
   useEffect(() => {

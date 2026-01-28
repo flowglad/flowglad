@@ -135,12 +135,13 @@ export const sliceIntoChunks = <T>(arr: T[], chunkSize: number) =>
     arr.slice(i * chunkSize, (i + 1) * chunkSize)
   )
 
-// Use VERCEL_ENV on server-side, NEXT_PUBLIC_IS_PROD on client-side
-// This ensures IS_PROD works correctly in both server and client components
+// Use NEXT_PUBLIC_IS_PROD for hydration-safe server/client consistency.
+// NEXT_PUBLIC_* vars are inlined at build time and identical on server and client.
+// This avoids the hydration mismatch antipattern of `typeof window === 'undefined'`.
+// Fallback to VERCEL_ENV for server-only contexts (API routes, scripts).
 export const IS_PROD =
-  typeof window === 'undefined'
-    ? process.env.VERCEL_ENV === 'production'
-    : process.env.NEXT_PUBLIC_IS_PROD === 'true'
+  process.env.NEXT_PUBLIC_IS_PROD === 'true' ||
+  process.env.VERCEL_ENV === 'production'
 export const IS_TEST =
   (process.env.NODE_ENV === 'test' || process.env.FORCE_TEST_MODE) &&
   process.env.VERCEL_ENV !== 'production'
