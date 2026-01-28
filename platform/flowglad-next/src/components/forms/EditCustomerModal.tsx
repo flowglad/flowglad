@@ -27,12 +27,12 @@ const EditCustomerModal = ({
       setIsOpen={setIsOpen}
       title="Edit Customer"
       formSchema={editCustomerInputSchema}
-      defaultValues={{
+      defaultValues={() => ({
         externalId: customer.externalId,
         customer: {
           ...customer,
         },
-      }}
+      })}
       onSubmit={async (data) => {
         await editCustomer.mutateAsync(data)
       }}

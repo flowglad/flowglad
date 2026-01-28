@@ -232,6 +232,109 @@ describe('customersRouter.archive', () => {
   })
 })
 
+describe('customersRouter.get', () => {
+  let organization: Organization.Record
+  let apiKeyToken: string
+
+  beforeEach(async () => {
+    // Setup organization with API key
+    const orgSetup = await setupOrg()
+    organization = orgSetup.organization
+
+    const userApiKeySetup = await setupUserAndApiKey({
+      organizationId: organization.id,
+      livemode: true,
+    })
+    if (!userApiKeySetup.apiKey.token) {
+      throw new Error('API key token not found after setup')
+    }
+    apiKeyToken = userApiKeySetup.apiKey.token
+  })
+
+  it('returns 404 for archived customers', async () => {
+    // Setup: create customer, archive it
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `customer+${Date.now()}@test.com`,
+      externalId: `ext-get-archived-${Date.now()}`,
+    })
+
+    const caller = createCaller(organization, apiKeyToken)
+
+    // Archive the customer
+    await caller.archive({ externalId: customer.externalId! })
+
+    // Action: call GET /customers/:externalId
+    const error = await caller
+      .get({ externalId: customer.externalId! })
+      .catch((e: unknown) => e)
+
+    // Assert: 404 NOT_FOUND error
+    if (!(error instanceof TRPCError)) {
+      throw new Error(`Expected TRPCError but got ${error}`)
+    }
+    expect(error.code).toBe('NOT_FOUND')
+    expect(error.message).toContain(customer.externalId)
+  })
+
+  it('returns active customers normally', async () => {
+    // Setup: create active customer
+    const customer = await setupCustomer({
+      organizationId: organization.id,
+      email: `customer+${Date.now()}@test.com`,
+      externalId: `ext-get-active-${Date.now()}`,
+    })
+
+    const caller = createCaller(organization, apiKeyToken)
+
+    // Action: call GET /customers/:externalId
+    const result = await caller.get({
+      externalId: customer.externalId!,
+    })
+
+    // Assert: customer data returned
+    expect(result.customer.id).toBe(customer.id)
+    expect(result.customer.externalId).toBe(customer.externalId)
+    expect(result.customer.archived).toBe(false)
+  })
+
+  it('returns the active customer when both archived and active exist with the same externalId', async () => {
+    // Setup: create customer with externalId, archive it
+    const sharedExternalId = `ext-reuse-get-${Date.now()}`
+
+    const archivedCustomer = await setupCustomer({
+      organizationId: organization.id,
+      email: `archived+${Date.now()}@test.com`,
+      externalId: sharedExternalId,
+    })
+
+    const caller = createCaller(organization, apiKeyToken)
+
+    // Archive the first customer
+    await caller.archive({ externalId: sharedExternalId })
+
+    // Create new customer with same externalId
+    const newCustomerResult = await caller.create({
+      customer: {
+        email: `newcustomer+${Date.now()}@test.com`,
+        name: 'New Customer',
+        externalId: sharedExternalId,
+      },
+    })
+
+    const newCustomer = newCustomerResult.data.customer
+
+    // Action: call GET /customers/:externalId
+    const result = await caller.get({ externalId: sharedExternalId })
+
+    // Assert: returns the NEW (active) customer, not the archived one
+    expect(result.customer.id).toBe(newCustomer.id)
+    expect(result.customer.id).not.toBe(archivedCustomer.id)
+    expect(result.customer.archived).toBe(false)
+    expect(result.customer.externalId).toBe(sharedExternalId)
+  })
+})
+
 describe('customersRouter.update', () => {
   let organization: Organization.Record
   let apiKeyToken: string

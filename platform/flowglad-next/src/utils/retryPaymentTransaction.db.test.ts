@@ -10,27 +10,12 @@ import { adminTransaction } from '@/db/adminTransaction'
 import { updatePayment } from '@/db/tableMethods/paymentMethods'
 import { PaymentStatus } from '@/types'
 import { nanoid } from '@/utils/core'
-
-// Import actual stripe module functions we want to keep
-import * as actualStripe from './stripe'
-
-// Create mocks for specific functions
-const mockGetPaymentIntent =
-  mock<typeof actualStripe.getPaymentIntent>()
-const mockConfirmPaymentIntent =
-  mock<typeof actualStripe.confirmPaymentIntent>()
-const mockGetStripeCharge =
-  mock<typeof actualStripe.getStripeCharge>()
-
-// Mock the stripe utils
-mock.module('./stripe', () => ({
-  ...actualStripe,
-  getPaymentIntent: mockGetPaymentIntent,
-  confirmPaymentIntent: mockConfirmPaymentIntent,
-  getStripeCharge: mockGetStripeCharge,
-}))
-
 import { retryPaymentTransaction } from './paymentHelpers'
+
+// Use global mocks from bun.db.mocks.ts
+const mockGetPaymentIntent = globalThis.__mockGetPaymentIntent
+const mockConfirmPaymentIntent = globalThis.__mockConfirmPaymentIntent
+const mockGetStripeCharge = globalThis.__mockGetStripeCharge
 
 describe('retryPaymentTransaction', () => {
   beforeEach(() => {

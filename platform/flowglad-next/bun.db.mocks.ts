@@ -21,3 +21,8 @@ import './mocks/db-blockers'
 import { unkeyUtilsMockExports } from './mocks/unkey-utils-mock'
 
 mock.module('@/utils/unkey', () => unkeyUtilsMockExports)
+
+// Import and register @/utils/stripe mock for db tests
+import { stripeUtilsMockExports } from './mocks/stripe-utils-mock'
+
+mock.module('@/utils/stripe', () => stripeUtilsMockExports)

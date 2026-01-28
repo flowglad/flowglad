@@ -1,12 +1,4 @@
-import type { Mock } from 'bun:test'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-} from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import {
   setupBillingPeriod,
@@ -57,34 +49,14 @@ import {
   SubscriptionStatus,
 } from '@/types'
 import core from '@/utils/core'
-
-// Import actual stripe module before mocking
-import * as actualStripe from '@/utils/stripe'
-
-// Create mock functions
-const mockCreatePaymentIntentForBillingRun =
-  mock<typeof actualStripe.createPaymentIntentForBillingRun>()
-const mockConfirmPaymentIntentForBillingRun =
-  mock<typeof actualStripe.confirmPaymentIntentForBillingRun>()
-const mockGetStripeCharge =
-  mock<typeof actualStripe.getStripeCharge>()
-
-// Mock Stripe functions
-mock.module('@/utils/stripe', () => ({
-  ...actualStripe,
-  createPaymentIntentForBillingRun:
-    mockCreatePaymentIntentForBillingRun,
-  confirmPaymentIntentForBillingRun:
-    mockConfirmPaymentIntentForBillingRun,
-  getStripeCharge: mockGetStripeCharge,
-}))
-
-import {
-  confirmPaymentIntentForBillingRun,
-  createPaymentIntentForBillingRun,
-  getStripeCharge,
-} from '@/utils/stripe'
 import { executeBillingRun } from './billingRunHelpers'
+
+// Use global mocks from bun.db.mocks.ts
+const mockCreatePaymentIntentForBillingRun =
+  globalThis.__mockCreatePaymentIntentForBillingRun
+const mockConfirmPaymentIntentForBillingRun =
+  globalThis.__mockConfirmPaymentIntentForBillingRun
+const mockGetStripeCharge = globalThis.__mockGetStripeCharge
 
 describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
   let organization: Organization.Record
@@ -107,9 +79,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
 
     // Set default mock implementations
     // Tests can override with mockResolvedValueOnce or mockImplementation
-    ;(
-      createPaymentIntentForBillingRun as Mock<any>
-    ).mockImplementation(
+    mockCreatePaymentIntentForBillingRun.mockImplementation(
       async (params: {
         amount: number
         stripeCustomerId: string
@@ -130,13 +100,13 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
       }
     )
 
-    ;(
-      confirmPaymentIntentForBillingRun as Mock<any>
-    ).mockImplementation(async (paymentIntentId: string) => {
-      return createMockConfirmationResult(paymentIntentId, {
-        status: 'succeeded',
-      })
-    })
+    mockConfirmPaymentIntentForBillingRun.mockImplementation(
+      async (paymentIntentId: string) => {
+        return createMockConfirmationResult(paymentIntentId, {
+          status: 'succeeded',
+        })
+      }
+    )
 
     const orgData = await setupOrg()
     organization = orgData.organization
@@ -193,7 +163,7 @@ describe('executeBillingRun - Adjustment Billing Run Tests', async () => {
     })
 
     // Configure getStripeCharge mock to return a succeeded charge
-    ;(getStripeCharge as Mock<any>).mockImplementation(
+    mockGetStripeCharge.mockImplementation(
       async (chargeId: string) => {
         return createMockStripeCharge({
           id: chargeId,

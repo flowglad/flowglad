@@ -313,11 +313,11 @@ export function CreateSubscriptionFormModal({
     },
   })
 
-  const defaultValues: CreateSubscriptionFormData = {
+  const getDefaultValues = (): CreateSubscriptionFormData => ({
     productId: '',
     defaultPaymentMethodId: 'none', // Will be updated by PaymentMethodSelector when payment methods load
     doNotCharge: false,
-  }
+  })
 
   const handleSubmit = async (data: CreateSubscriptionFormData) => {
     if (!pricingModelData?.pricingModel) {
@@ -362,7 +362,7 @@ export function CreateSubscriptionFormModal({
         setIsOpen={setIsOpen}
         title="Create Subscription"
         formSchema={createSubscriptionFormSchema}
-        defaultValues={defaultValues}
+        defaultValues={getDefaultValues}
         onSubmit={handleSubmit}
         autoClose={false}
       >
@@ -388,7 +388,7 @@ export function CreateSubscriptionFormModal({
         setIsOpen={setIsOpen}
         title="Create Subscription"
         formSchema={createSubscriptionFormSchema}
-        defaultValues={defaultValues}
+        defaultValues={getDefaultValues}
         onSubmit={handleSubmit}
         autoClose={false}
       >
@@ -413,7 +413,7 @@ export function CreateSubscriptionFormModal({
       setIsOpen={setIsOpen}
       title="Create Subscription"
       formSchema={createSubscriptionFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={handleSubmit}
       submitButtonText={
         createSubscription.isPending ? 'Creating...' : 'Create'

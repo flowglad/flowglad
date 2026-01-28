@@ -20,7 +20,7 @@ const DeleteProductModal = ({
     <FormModal
       title="Delete product"
       formSchema={deleteProductSchema}
-      defaultValues={{}}
+      defaultValues={() => ({})}
       onSubmit={onDelete}
       isOpen={isOpen}
       setIsOpen={setIsOpen}
