@@ -156,9 +156,10 @@ export const writePackageBaseline = (
   entries: BaselineEntry[]
 ): void => {
   const baselinePath = getBaselinePathForPackage(packagePath)
-  if (entries.length === 0) {
+  const validEntries = entries.filter((entry) => entry.count > 0)
+  if (validEntries.length === 0) {
     deleteBaseline(baselinePath)
   } else {
-    writeBaseline(baselinePath, entries)
+    writeBaseline(baselinePath, validEntries)
   }
 }
