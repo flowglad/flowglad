@@ -81,7 +81,6 @@ This project uses isolated-by-default test infrastructure. Tests are categorized
 |----------|--------------|----------|---------------|------------|
 | **Pure Unit** | `*.unit.test.ts` | BLOCKED | MSW strict | `bun.unit.setup.ts` |
 | **DB-Backed** | `*.db.test.ts` | Full access | MSW strict + stripe-mock | `bun.db.test.setup.ts` |
-| **Backend** (legacy) | `*.test.ts` | Full access | MSW warn | `bun.setup.ts` |
 | **Integration** | `*.integration.test.ts` | Full access | Real APIs | `bun.integration.setup.ts` |
 | **RLS** | `*.rls.test.ts` | Full access | MSW | `bun.rls.setup.ts` |
 
@@ -93,7 +92,7 @@ bun run test:unit
 # DB-backed tests (with database access)
 bun run test:db
 
-# Legacy backend tests (existing pattern)
+# All backend tests (unit + db)
 bun run test:backend
 
 # All tests (backend + frontend)
@@ -101,9 +100,6 @@ bun run test
 
 # Integration tests (real APIs)
 bun run test:integration
-
-# Everything
-bun run test:all
 ```
 
 **When to use which pattern:**
@@ -111,8 +107,6 @@ bun run test:all
 - **Pure Unit (`*.unit.test.ts`)**: Schema validation, utility functions, UI logic, pure business rules. Database imports will throw an error - if your test needs DB, use `*.db.test.ts`.
 
 - **DB-Backed (`*.db.test.ts`)**: Table methods, services with database access, business logic requiring real data. Use unique identifiers (nanoid) to avoid collisions between tests.
-
-- **Legacy Backend (`*.test.ts`)**: Existing tests. Migrate to `*.unit.test.ts` or `*.db.test.ts` for better isolation.
 
 - **Integration (`*.integration.test.ts`)**: Real API calls to Stripe, Redis, and other external services. Located in `src/` alongside other tests.
 
@@ -201,13 +195,13 @@ Tests run in parallel by default. Follow these patterns to ensure tests don't in
 Mock module registration order is critical in bun:test. All `mock.module()` calls are centralized in `bun.mocks.ts` and must be imported **before** any other imports that might load the mocked modules:
 
 ```typescript
-// bun.setup.ts (correct order)
+// bun.db.test.setup.ts (correct order)
 import './bun.mocks'  // MUST be first - registers mock.module() calls
 import { afterAll, afterEach, beforeAll } from 'bun:test'
 // ... other imports
 ```
 
-The setup files (`bun.unit.setup.ts`, `bun.db.test.setup.ts`, `bun.setup.ts`) already handle this correctly.
+The setup files (`bun.unit.setup.ts`, `bun.db.test.setup.ts`) already handle this correctly.
 
 #### 2. Spy Restoration with trackSpy
 
