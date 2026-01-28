@@ -124,16 +124,18 @@ const getFirstEntryIdFromXrangeResponse = (
  * We write: { data: JSON.stringify({foo: 1}) }
  * Standard Redis returns: { data: "{\"foo\":1}" }
  * Upstash returns: { data: {foo: 1} }
+ *
+ * Returns unknown - callers should use Zod validation to narrow types.
  */
-const parseUpstashJsonField = <T>(
+const parseUpstashJsonField = (
   value: unknown,
-  parser: (str: string) => T
-): T => {
+  parser: (str: string) => unknown
+): unknown => {
   if (typeof value === 'string') {
     return parser(value)
   }
-  // Already deserialized by Upstash
-  return value as T
+  // Already deserialized by Upstash - return as-is for Zod to validate
+  return value
 }
 
 /**

@@ -1,5 +1,4 @@
-import type { Mock } from 'bun:test'
-import { beforeEach, describe, expect, it, mock } from 'bun:test'
+import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
@@ -20,36 +19,18 @@ import {
   StripeConnectContractType,
 } from '@/types'
 import { nanoid } from '@/utils/core'
-
-// Import actual stripe module functions we want to keep
-import * as actualStripe from './stripe'
-
-// Create mocks for specific functions
-const mockRefundPayment = mock<typeof actualStripe.refundPayment>()
-const mockGetPaymentIntent =
-  mock<typeof actualStripe.getPaymentIntent>()
-const mockGetStripeCharge =
-  mock<typeof actualStripe.getStripeCharge>()
-const mockListRefundsForCharge =
-  mock<typeof actualStripe.listRefundsForCharge>()
-const mockReverseStripeTaxTransaction =
-  mock<typeof actualStripe.reverseStripeTaxTransaction>()
-
-// Mock the stripe utils
-mock.module('./stripe', () => ({
-  ...actualStripe,
-  refundPayment: mockRefundPayment,
-  getPaymentIntent: mockGetPaymentIntent,
-  getStripeCharge: mockGetStripeCharge,
-  listRefundsForCharge: mockListRefundsForCharge,
-  reverseStripeTaxTransaction: mockReverseStripeTaxTransaction,
-}))
-
 import {
   refundPaymentTransaction,
   sumNetTotalSettledPaymentsForPaymentSet,
 } from './paymentHelpers'
-import * as stripeUtils from './stripe'
+
+// Use global mocks from bun.db.mocks.ts
+const mockRefundPayment = globalThis.__mockRefundPayment
+const mockGetPaymentIntent = globalThis.__mockGetPaymentIntent
+const mockGetStripeCharge = globalThis.__mockGetStripeCharge
+const mockListRefundsForCharge = globalThis.__mockListRefundsForCharge
+const mockReverseStripeTaxTransaction =
+  globalThis.__mockReverseStripeTaxTransaction
 
 const makeStripeRefundResponse = ({
   amount,

@@ -2,7 +2,7 @@
  * Smoke test script for Redis Streams sync event infrastructure.
  *
  * Verifies that events can be pushed to Redis Streams and read back.
- * Run with: bun run smoke-test:sync-stream
+ * Run with: bun run sync:smoke-test
  *
  * Requires UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN env vars.
  */

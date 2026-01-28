@@ -1,12 +1,4 @@
-import type { Mock } from 'bun:test'
-import {
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-  spyOn,
-} from 'bun:test'
+import { beforeEach, describe, expect, it, mock } from 'bun:test'
 import { Result } from 'better-result'
 import type Stripe from 'stripe'
 import {
@@ -53,28 +45,16 @@ import {
 } from '@/types'
 import { confirmCheckoutSessionTransaction } from '@/utils/bookkeeping/confirmCheckoutSession'
 import core from '@/utils/core'
-import {
-  cancelPaymentIntent,
-  createStripeCustomer,
-  getSetupIntent,
-  updatePaymentIntent,
-  updateSetupIntent,
-} from '@/utils/stripe'
 import { createFeeCalculationForCheckoutSession } from './checkoutSessions'
 
-// Mock Stripe functions
-mock.module('@/utils/stripe', () => ({
-  cancelPaymentIntent: mock(),
-  createStripeCustomer: mock(),
-  getPaymentIntent: mock(async () => ({
-    id: 'pi_test',
-    object: 'payment_intent',
-    customer: null,
-  })),
-  getSetupIntent: mock(),
-  updatePaymentIntent: mock(),
-  updateSetupIntent: mock(),
-}))
+// Use global mocks from bun.db.mocks.ts
+// Configure default behaviors for this test file
+const mockCancelPaymentIntent = globalThis.__mockCancelPaymentIntent
+const mockCreateStripeCustomer = globalThis.__mockCreateStripeCustomer
+const mockGetPaymentIntent = globalThis.__mockGetPaymentIntent
+const mockGetSetupIntent = globalThis.__mockGetSetupIntent
+const mockUpdatePaymentIntent = globalThis.__mockUpdatePaymentIntent
+const mockUpdateSetupIntent = globalThis.__mockUpdateSetupIntent
 
 describe('confirmCheckoutSessionTransaction', () => {
   // Common variables for all tests

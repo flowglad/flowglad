@@ -1,12 +1,4 @@
-import type { Mock } from 'bun:test'
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  mock,
-} from 'bun:test'
+import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
 import {
   setupBillingPeriod,
@@ -96,6 +88,7 @@ import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItem
 import {
   createMockConfirmationResult,
   createMockPaymentIntentResponse,
+  createMockStripeCharge,
 } from '@/test/helpers/stripeMocks'
 import {
   BillingPeriodStatus,
@@ -119,30 +112,15 @@ import {
   UsageCreditType,
 } from '@/types'
 import core from '@/utils/core'
+import { stripeIdFromObjectOrId } from '@/utils/stripe'
 
-// Import actual stripe module before mocking
-import * as actualStripe from '@/utils/stripe'
-
-// Create mock functions
+// Use global mocks from bun.db.mocks.ts
 const mockCreatePaymentIntentForBillingRun =
-  mock<typeof actualStripe.createPaymentIntentForBillingRun>()
+  globalThis.__mockCreatePaymentIntentForBillingRun
 const mockConfirmPaymentIntentForBillingRun =
-  mock<typeof actualStripe.confirmPaymentIntentForBillingRun>()
+  globalThis.__mockConfirmPaymentIntentForBillingRun
+const mockGetStripeCharge = globalThis.__mockGetStripeCharge
 
-// Mock Stripe functions
-mock.module('@/utils/stripe', () => ({
-  ...actualStripe,
-  createPaymentIntentForBillingRun:
-    mockCreatePaymentIntentForBillingRun,
-  confirmPaymentIntentForBillingRun:
-    mockConfirmPaymentIntentForBillingRun,
-}))
-
-import {
-  confirmPaymentIntentForBillingRun,
-  createPaymentIntentForBillingRun,
-  stripeIdFromObjectOrId,
-} from '@/utils/stripe'
 import {
   billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts,
   calculateFeeAndTotalAmountDueForBillingPeriod,
@@ -177,6 +155,36 @@ describe('billingRunHelpers', async () => {
   let subscriptionItem: SubscriptionItem.Record
 
   beforeEach(async () => {
+    // Reset mocks
+    mockCreatePaymentIntentForBillingRun.mockReset()
+    mockConfirmPaymentIntentForBillingRun.mockReset()
+    mockGetStripeCharge.mockReset()
+
+    // Configure getStripeCharge mock to return a succeeded charge
+    mockGetStripeCharge.mockImplementation(
+      async (chargeId: string) => {
+        return createMockStripeCharge({
+          id: chargeId,
+          status: 'succeeded',
+          amount: 1000,
+          paid: true,
+          captured: true,
+          payment_method_details: {
+            type: 'card',
+            card: {
+              brand: 'visa',
+              last4: '4242',
+              exp_month: 12,
+              exp_year: 2025,
+              country: 'US',
+              fingerprint: 'fingerprint_test',
+              funding: 'credit',
+            },
+          } as any,
+        })
+      }
+    )
+
     const orgData = await setupOrg()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
