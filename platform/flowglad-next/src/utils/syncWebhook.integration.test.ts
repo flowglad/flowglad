@@ -554,7 +554,7 @@ describeIfRedisKey('syncWebhook integration', () => {
     // This verifies that Redis Streams are durable, NOT a queue.
     // Reading events does not remove them - they remain available for:
     // - Re-reading by the same merchant (e.g., after a crash/restart)
-    // - Reading by other merchants in the same scope
+    // - Multiple instances/workers of the merchant's application
     // - Auditing and debugging
     const scopeId = `${testKeyPrefix}_org_stream_durability:live`
     const streamKey = getSyncStreamKey(scopeId)
