@@ -1,0 +1,76 @@
+name: PR Review Slack Reply
+on:
+  pull_request_review:
+    types: [submitted]
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+    steps:
+      - name: Build Slack message
+        id: msg
+        env:
+          STATE: ${{ github.event.review.state }}
+          TITLE: ${{ github.event.pull_request.title }}
+          REVIEWER: ${{ github.event.review.user.login }}
+          URL: ${{ github.event.pull_request.html_url }}
+        run: |
+          case "$STATE" in
+            approved)
+              TEXT="✅ *$TITLE* approved by $REVIEWER\n<$URL|View PR>"
+              ;;
+            changes_requested)
+              TEXT="🔄 *$TITLE* needs changes ($REVIEWER)\n<$URL|View PR>"
+              ;;
+            commented)
+              TEXT="💬 $REVIEWER commented on *$TITLE*\n<$URL|View PR>"
+              ;;
+            *)
+              TEXT="ℹ️ $REVIEWER submitted a review ($STATE) on *$TITLE*\n<$URL|View PR>"
+              ;;
+          esac
+
+          {
+            echo "text<<EOF"
+            echo "$TEXT"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Post to Slack
+        if: steps.msg.outputs.text != ''
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          TEXT: ${{ steps.msg.outputs.text }}
+        run: |
+          if [ -z "$SLACK_WEBHOOK_URL" ]; then
+            echo "SLACK_WEBHOOK_URL not set; skipping Slack notification."
+            exit 0
+          fi
+
+          PAYLOAD=$(jq -n --arg text "$TEXT" '{text: $text}')
+          curl -sS -f -X POST "$SLACK_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "$PAYLOAD" \
+            || echo "Slack notification failed (non-blocking)"
+
+      - name: Remove needs-review label on approval
+        if: github.event.review.state == 'approved'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            try {
+              await github.rest.issues.removeLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                name: 'needs-review'
+              });
+              console.log('Removed needs-review label');
+            } catch (e) {
+              // Label might not exist on this PR, that's fine
+              console.log('Label removal skipped:', e.message);
+            }
