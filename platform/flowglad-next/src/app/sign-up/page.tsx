@@ -96,7 +96,7 @@ export default function SignUp() {
       email: values.email,
       password: values.password,
       name: `${values.firstName} ${values.lastName}`,
-      callbackURL: '/onboarding/business-details', // Required for OAuth flows
+      callbackURL: '/onboarding/business-details',
       fetchOptions: signupFetchOptions,
     })
   }
