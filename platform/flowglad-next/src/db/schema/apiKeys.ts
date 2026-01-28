@@ -186,6 +186,7 @@ export const secretApiKeyMetadataSchema = z.object({
   type: z.literal(FlowgladApiKeyType.Secret),
   userId: z.string(),
   organizationId: z.string().optional(),
+  pricingModelId: z.string(),
 })
 
 export const apiKeyMetadataSchema = secretApiKeyMetadataSchema

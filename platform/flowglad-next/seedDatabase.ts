@@ -1652,6 +1652,15 @@ export const setupUserAndApiKey = async ({
   livemode: boolean
 }) => {
   return adminTransaction(async ({ transaction }) => {
+    // Get the default pricing model for this org+livemode
+    const defaultPricingModel = await selectDefaultPricingModel(
+      { organizationId, livemode },
+      transaction
+    )
+    if (!defaultPricingModel) {
+      throw new Error('Default pricing model not found')
+    }
+
     const userInsertResult = await transaction
       .insert(users)
       .values({
@@ -1689,6 +1698,7 @@ export const setupUserAndApiKey = async ({
         id: `fk_test_${core.nanoid()}`,
         token: apiKeyTokenValue,
         organizationId,
+        pricingModelId: defaultPricingModel.id,
         type: FlowgladApiKeyType.Secret,
         livemode: livemode,
         name: 'Test API Key',

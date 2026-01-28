@@ -83,6 +83,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
     organizationId,
     apiKeyType,
     apiKeyLivemode,
+    pricingModelId,
   } = await adminTransaction(async ({ transaction }) => {
     const [apiKeyRecord] = await selectApiKeys(
       {
@@ -102,6 +103,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
       organizationId: apiKeyRecord.organizationId,
       apiKeyType: apiKeyRecord.type,
       apiKeyLivemode: apiKeyRecord.livemode,
+      pricingModelId: apiKeyRecord.pricingModelId,
     }
   })
   return {
@@ -113,6 +115,7 @@ async function keyVerify(key: string): Promise<KeyVerifyResult> {
       type: apiKeyType as FlowgladApiKeyType.Secret,
       userId: membershipAndUser.user.id,
       organizationId: organizationId,
+      pricingModelId: pricingModelId,
     },
   }
 }
