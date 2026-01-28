@@ -429,16 +429,19 @@ export const stripe = (livemode: boolean) => {
     apiVersion: '2024-09-30.acacia',
   }
 
-  // Use stripe-mock for testing (unless using real Stripe integration test mode)
+  // Use stripe-mock when STRIPE_MOCK_HOST is configured (via .env.test)
+  // unless STRIPE_INTEGRATION_TEST_MODE explicitly bypasses it
   if (
-    core.IS_TEST &&
+    process.env.STRIPE_MOCK_HOST &&
     process.env.STRIPE_INTEGRATION_TEST_MODE !== 'true'
   ) {
-    config.host = process.env.STRIPE_MOCK_HOST || 'localhost'
+    config.host = process.env.STRIPE_MOCK_HOST
     config.port = Number(process.env.STRIPE_MOCK_PORT || 12111)
-    config.protocol = 'http'
+    config.protocol =
+      (process.env.STRIPE_PROTOCOL as 'http' | 'https') || 'http'
   }
 
+  // Bun requires fetch-based HTTP client in test environment
   if (core.IS_TEST) {
     config.httpClient = Stripe.createFetchHttpClient()
   }
