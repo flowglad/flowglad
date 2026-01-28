@@ -491,11 +491,31 @@ export function MultiStepForm<T extends FieldValues>({
     currentStep,
   }
 
+  /**
+   * Handle form submission triggered by Enter key or submit button.
+   * Prevents default browser form submission and delegates to goToNext()
+   * which handles validation and step navigation.
+   */
+  const handleFormSubmit = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault()
+      // Only proceed if the current step is valid and not already submitting
+      if (currentStepValid && !form.formState.isSubmitting) {
+        goToNext()
+      }
+    },
+    [currentStepValid, form.formState.isSubmitting, goToNext]
+  )
+
   return (
     <MultiStepFormContext.Provider
       value={contextValue as MultiStepFormContextValue<FieldValues>}
     >
-      <FormProvider {...form}>{children}</FormProvider>
+      <FormProvider {...form}>
+        <form onSubmit={handleFormSubmit} className="contents">
+          {children}
+        </form>
+      </FormProvider>
     </MultiStepFormContext.Provider>
   )
 }

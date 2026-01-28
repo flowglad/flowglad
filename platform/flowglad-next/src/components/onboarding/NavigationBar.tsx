@@ -57,14 +57,8 @@ export function NavigationBar({
   fixed = 'responsive',
   className,
 }: NavigationBarProps) {
-  const {
-    goToNext,
-    goToPrevious,
-    isFirstStep,
-    isLastStep,
-    form,
-    canProceed,
-  } = useMultiStepForm()
+  const { goToPrevious, isFirstStep, isLastStep, form, canProceed } =
+    useMultiStepForm()
 
   const { isSubmitting } = form.formState
 
