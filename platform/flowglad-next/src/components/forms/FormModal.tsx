@@ -23,7 +23,7 @@ export interface ModalInterfaceProps {
 
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useId, useState } from 'react'
+import { useCallback, useEffect, useId, useRef, useState } from 'react'
 import type { z } from 'zod'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
@@ -139,7 +139,19 @@ export const NestedFormModal = <T extends FieldValues>({
   mode = 'modal',
   allowContentOverflow = false,
 }: NestedFormModalProps<T>) => {
-  const resolvedDefaultValues = defaultValues()
+  // Lazily compute default values only when the modal opens
+  // This prevents expensive computations (like schema.parse()) from running
+  // on every render when the modal is closed
+  const lastIsOpenRef = useRef(false)
+  const defaultValuesRef = useRef<DefaultValues<T> | undefined>(undefined)
+
+  if (isOpen && !lastIsOpenRef.current) {
+    // Modal is transitioning from closed to open - compute fresh default values
+    defaultValuesRef.current = defaultValues()
+  }
+  lastIsOpenRef.current = isOpen
+
+  const resolvedDefaultValues = defaultValuesRef.current!
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (
     <div className="flex flex-1 justify-end gap-2 w-full">
@@ -265,10 +277,19 @@ const FormModal = <T extends FieldValues>({
 }: FormModalProps<T>) => {
   const id = useId()
   const router = useRouter()
-  // Call the defaultValues function to get the actual values
-  // This is only evaluated when the component renders with isOpen=true
-  // due to the conditional rendering in useShouldRenderContent
-  const resolvedDefaultValues = defaultValues()
+  // Lazily compute default values only when the modal opens
+  // This prevents expensive computations (like schema.parse()) from running
+  // on every render when the modal is closed
+  const lastIsOpenRef = useRef(false)
+  const defaultValuesRef = useRef<DefaultValues<T> | undefined>(undefined)
+
+  if (isOpen && !lastIsOpenRef.current) {
+    // Modal is transitioning from closed to open - compute fresh default values
+    defaultValuesRef.current = defaultValues()
+  }
+  lastIsOpenRef.current = isOpen
+
+  const resolvedDefaultValues = defaultValuesRef.current!
   const form = useForm<T>({
     resolver: async (data, context, options) => {
       try {
