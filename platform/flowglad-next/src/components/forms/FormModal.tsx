@@ -1,6 +1,7 @@
 'use client'
 import {
   type DefaultValues,
+  type FieldError,
   type FieldValues,
   FormProvider,
   type UseFormReturn,
@@ -30,7 +31,7 @@ import {
   useRef,
   useState,
 } from 'react'
-import type { z } from 'zod'
+import { type ZodError, type z } from 'zod'
 import ErrorLabel from '@/components/ErrorLabel'
 import {
   Drawer,
@@ -159,7 +160,7 @@ export const NestedFormModal = <T extends FieldValues>({
   }
   lastIsOpenRef.current = isOpen
 
-  const resolvedDefaultValues = defaultValuesRef.current!
+  const resolvedDefaultValues = defaultValuesRef.current
 
   // Reset form with actual default values when modal opens
   // This is needed because the form may have been created before lazy default values were computed
@@ -176,7 +177,7 @@ export const NestedFormModal = <T extends FieldValues>({
         variant="secondary"
         size="default"
         onClick={() => {
-          if (form) {
+          if (form && resolvedDefaultValues) {
             form.reset(resolvedDefaultValues)
           }
           setIsOpen(false)
@@ -308,7 +309,7 @@ const FormModal = <T extends FieldValues>({
   }
   lastIsOpenRef.current = isOpen
 
-  const resolvedDefaultValues = defaultValuesRef.current!
+  const resolvedDefaultValues = defaultValuesRef.current
   const form = useForm<T>({
     resolver: async (data, context, options) => {
       try {
@@ -323,10 +324,10 @@ const FormModal = <T extends FieldValues>({
         // Catch any errors thrown by zodResolver
         // This prevents unhandled errors from escaping to React's error boundary
         console.error('Form validation error:', error)
-        const fieldErrors: Record<string, any> = {}
+        const fieldErrors: Record<string, FieldError> = {}
         if (error && typeof error === 'object' && 'issues' in error) {
-          const zodError = error as any
-          zodError.issues?.forEach((issue: any) => {
+          const zodError = error as ZodError
+          zodError.issues?.forEach((issue) => {
             const path = issue.path.join('.')
             if (path) {
               fieldErrors[path] = {
@@ -370,6 +371,7 @@ const FormModal = <T extends FieldValues>({
   }, [isOpen, form])
 
   const hardResetFormValues = useCallback(() => {
+    if (!resolvedDefaultValues) return
     form.reset(resolvedDefaultValues, {
       keepDefaultValues: true,
       keepIsSubmitted: false,
@@ -391,7 +393,9 @@ const FormModal = <T extends FieldValues>({
         variant="secondary"
         size="default"
         onClick={() => {
-          form.reset(resolvedDefaultValues)
+          if (resolvedDefaultValues) {
+            form.reset(resolvedDefaultValues)
+          }
           setIsOpen(false)
         }}
       >
