@@ -142,11 +142,14 @@ interface MultiStepFormProps<T extends FieldValues> {
  * This is a heuristic to detect if steps need reactive form data.
  *
  * @remarks
- * We use Function.length to check if shouldSkip declares any parameters.
- * If length > 0, the function expects at least one argument, which suggests
- * it may use form data. This is more robust than regex-based string matching
- * which would miss functions using parameter names other than "data"
- * (e.g., `(values) => values.type === 'enterprise'`).
+ * We inspect the function's string representation to detect if it declares
+ * any parameters. This is necessary because `Function.length` returns 0 for
+ * functions with default parameters (`(data = {}) => ...`) or rest parameters
+ * (`(...args) => ...`), which would incorrectly classify them as static.
+ *
+ * The heuristic: if the function is parameterless (e.g., `() => ...` or
+ * `function() { ... }`), it cannot depend on form data. Any other function
+ * signature suggests potential form data usage.
  *
  * Trade-off: This may trigger unnecessary form watching if a developer declares
  * a parameter but doesn't use it. However, this is preferable to missing
@@ -157,10 +160,19 @@ function stepsDependOnFormData(
 ): boolean {
   return steps.some((step) => {
     if (!step.shouldSkip) return false
-    // Check if the function expects any parameters
-    // length > 0 means the function declares at least one parameter,
-    // suggesting it may use form data
-    return step.shouldSkip.length > 0
+
+    const fnStr = step.shouldSkip.toString()
+
+    // Check if it's a parameterless function:
+    // - Arrow: () => ...
+    // - Regular: function() { ... } or function name() { ... }
+    // Note: We use string inspection instead of Function.length because
+    // length is 0 for default params `(data = {})` and rest params `(...args)`
+    const isParameterless =
+      /^\s*(?:\(\s*\)\s*=>|function\s*\w*\s*\(\s*\)\s*\{)/.test(fnStr)
+
+    // If the function takes no parameters, it can't depend on form data
+    return !isParameterless
   })
 }
 
