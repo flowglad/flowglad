@@ -81,6 +81,7 @@ This project uses isolated-by-default test infrastructure. Tests are categorized
 |----------|--------------|----------|---------------|------------|
 | **Pure Unit** | `*.unit.test.ts` | BLOCKED | MSW strict | `bun.unit.setup.ts` |
 | **DB-Backed** | `*.db.test.ts` | Full access | MSW strict + stripe-mock | `bun.db.test.setup.ts` |
+| **Stripe Mocked** | `*.stripe.test.ts` | Full access | Stripe functions mocked | `bun.stripe.test.setup.ts` |
 | **Integration** | `*.integration.test.ts` | Full access | Real APIs | `bun.integration.setup.ts` |
 | **RLS** | `*.rls.test.ts` | Full access | MSW | `bun.rls.setup.ts` |
 
@@ -92,7 +93,10 @@ bun run test:unit
 # DB-backed tests (with database access)
 bun run test:db
 
-# All backend tests (unit + db)
+# Stripe mocked tests (tests that mock Stripe SDK functions)
+bun run test:stripe
+
+# All backend tests (unit + db + stripe)
 bun run test:backend
 
 # All tests (backend + frontend)
@@ -106,7 +110,9 @@ bun run test:integration
 
 - **Pure Unit (`*.unit.test.ts`)**: Schema validation, utility functions, UI logic, pure business rules. Database imports will throw an error - if your test needs DB, use `*.db.test.ts`.
 
-- **DB-Backed (`*.db.test.ts`)**: Table methods, services with database access, business logic requiring real data. Use unique identifiers (nanoid) to avoid collisions between tests.
+- **DB-Backed (`*.db.test.ts`)**: Table methods, services with database access, business logic requiring real data. Stripe API calls go to stripe-mock. Use unique identifiers (nanoid) to avoid collisions between tests.
+
+- **Stripe Mocked (`*.stripe.test.ts`)**: Tests that need to verify Stripe SDK function call parameters, mock specific Stripe responses, or test conditional Stripe API call logic. Stripe functions are mocked centrally via `bun.stripe.mocks.ts`.
 
 - **Integration (`*.integration.test.ts`)**: Real API calls to Stripe, Redis, and other external services. Located in `src/` alongside other tests.
 
@@ -291,7 +297,8 @@ The test suite defaults to the `node` environment to ensure MSW (Mock Service Wo
 All tests live in `src/` with different file patterns:
 
 - **`*.unit.test.ts`** - Pure unit tests (no DB access)
-- **`*.db.test.ts`** - DB-backed tests (external services blocked)
+- **`*.db.test.ts`** - DB-backed tests (Stripe calls go to stripe-mock)
+- **`*.stripe.test.ts`** - Stripe mocked tests (Stripe SDK functions are mocked)
 - **`*.integration.test.ts`** - Integration tests (real external APIs)
 - **`*.rls.test.ts`** - Row Level Security tests (in `src/db/`)
 
