@@ -68,6 +68,7 @@ describe('customers.getUsageBalances', () => {
     const userApiKeySetup = await setupUserAndApiKey({
       organizationId: organization.id,
       livemode: true,
+      pricingModelId,
     })
     if (!userApiKeySetup.apiKey.token) {
       throw new Error('API key token not found after setup')
@@ -582,11 +583,11 @@ describe('customers.getUsageBalances', () => {
     })
 
     // Setup a canceled subscription for the same customer
-    const orgSetup = await setupOrg()
+    // Use the describe block's price to ensure PM scoping matches the API key
     const canceledSubscription = await setupSubscription({
       organizationId: organization.id,
       customerId: customer.id,
-      priceId: orgSetup.price.id,
+      priceId: price.id,
       status: SubscriptionStatus.Canceled,
       livemode: true,
       paymentMethodId: paymentMethod.id,

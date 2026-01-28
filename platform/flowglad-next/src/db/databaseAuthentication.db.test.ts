@@ -38,6 +38,8 @@ let secretOrg: Organization.Record
 let secretUser: User.Record
 let secretMembership: Membership.Record
 let secretClerkId: string
+let secretOrgLivePricingModelId: string
+let secretOrgTestPricingModelId: string
 
 let secretApiKeyOrg: Organization.Record
 let secretApiKeyTokenLive: string
@@ -101,6 +103,8 @@ beforeEach(async () => {
   // Secret API key user inside a dedicated org, with clerkId present
   const secretOrgSetup = await setupOrg()
   secretOrg = secretOrgSetup.organization
+  secretOrgLivePricingModelId = secretOrgSetup.pricingModel.id
+  secretOrgTestPricingModelId = secretOrgSetup.testmodePricingModel.id
   secretClerkId = `clerk_${core.nanoid()}`
   await adminTransaction(async ({ transaction }) => {
     const [insertedSecretUser] = await transaction
@@ -428,6 +432,7 @@ describe('dbAuthInfoForSecretApiKeyResult', () => {
         type: FlowgladApiKeyType.Secret,
         userId: secretUser.id,
         organizationId: secretOrg.id,
+        pricingModelId: secretOrgLivePricingModelId,
       },
     }
     const result = await dbAuthInfoForSecretApiKeyResult(
@@ -468,6 +473,7 @@ describe('dbAuthInfoForSecretApiKeyResult', () => {
         type: FlowgladApiKeyType.Secret,
         userId: (secretUser as any).clerkId,
         organizationId: secretOrg.id,
+        pricingModelId: secretOrgTestPricingModelId,
       },
     }
     const result = await dbAuthInfoForSecretApiKeyResult(
@@ -492,7 +498,8 @@ describe('dbAuthInfoForSecretApiKeyResult', () => {
     // expects:
     // - function currently attempts to access membershipsForOrganization[0].users.id and will throw when the array is empty
     // - assert that an error is thrown (document existing behavior; candidate for future fix)
-    const otherOrg = (await setupOrg()).organization
+    const otherOrgSetup = await setupOrg()
+    const otherOrg = otherOrgSetup.organization
     const verifyKeyResult = {
       keyType: FlowgladApiKeyType.Secret,
       userId: secretUser.id,
@@ -502,6 +509,7 @@ describe('dbAuthInfoForSecretApiKeyResult', () => {
         type: FlowgladApiKeyType.Secret,
         userId: secretUser.id,
         organizationId: otherOrg.id,
+        pricingModelId: otherOrgSetup.testmodePricingModel.id,
       },
     }
     await expect(
@@ -525,6 +533,7 @@ describe('dbAuthInfoForSecretApiKeyResult', () => {
         type: FlowgladApiKeyType.Secret,
         userId: secretUser.id,
         organizationId: secretOrg.id,
+        pricingModelId: secretOrgLivePricingModelId,
       },
     } as any)
     const testResult = await dbAuthInfoForSecretApiKeyResult({
@@ -536,6 +545,7 @@ describe('dbAuthInfoForSecretApiKeyResult', () => {
         type: FlowgladApiKeyType.Secret,
         userId: secretUser.id,
         organizationId: secretOrg.id,
+        pricingModelId: secretOrgTestPricingModelId,
       },
     } as any)
     expect(liveResult.livemode).toEqual(true)
@@ -560,6 +570,7 @@ describe('databaseAuthenticationInfoForApiKeyResult', () => {
         type: FlowgladApiKeyType.Secret,
         userId: secretUser.id,
         organizationId: secretOrg.id,
+        pricingModelId: secretOrgLivePricingModelId,
       },
     }
     const result = await databaseAuthenticationInfoForApiKeyResult(
@@ -657,6 +668,7 @@ describe('subtleties and invariants across flows', () => {
         type: FlowgladApiKeyType.Secret,
         userId: secretUser.id,
         organizationId: secretOrg.id,
+        pricingModelId: secretOrgLivePricingModelId,
       },
     } as any)
     expect(webappRes.jwtClaim.sub).toEqual(
@@ -682,6 +694,7 @@ describe('subtleties and invariants across flows', () => {
         type: FlowgladApiKeyType.Secret,
         userId: secretUser.id,
         organizationId: secretOrg.id,
+        pricingModelId: secretOrgLivePricingModelId,
       },
     }
     const res = await databaseAuthenticationInfoForApiKeyResult(
@@ -715,6 +728,7 @@ describe('subtleties and invariants across flows', () => {
         type: FlowgladApiKeyType.Secret,
         userId: secretUser.id,
         organizationId: secretOrg.id,
+        pricingModelId: secretOrgLivePricingModelId,
       },
     } as any)
     expect(webappRes.jwtClaim.app_metadata.provider).toEqual('webapp')
@@ -745,6 +759,7 @@ describe('subtleties and invariants across flows', () => {
         type: FlowgladApiKeyType.Secret,
         userId: secretUser.id,
         organizationId: secretOrg.id,
+        pricingModelId: secretOrgLivePricingModelId,
       },
     } as any)
     expect(typeof secretRes.jwtClaim.session_id).toBe('string')
