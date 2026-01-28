@@ -188,7 +188,7 @@ describeIfStripeKey(
           type: SubscriptionItemType.Static,
           livemode: subscription.livemode,
           addedDate: Date.now() + 1000, // Future date so it's not active yet
-        } as SubscriptionItem.Record,
+        } as SubscriptionItem.Insert,
       ]
 
       const adjustmentDate = new Date()
@@ -207,7 +207,7 @@ describeIfStripeKey(
 
       await executeBillingRun(adjustmentBillingRun.id, {
         newSubscriptionItems:
-          newSubscriptionItems as SubscriptionItem.Record[],
+          newSubscriptionItems as SubscriptionItem.Insert[],
         adjustmentDate,
       })
 
