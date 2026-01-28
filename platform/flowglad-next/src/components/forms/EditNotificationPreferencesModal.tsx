@@ -34,9 +34,9 @@ const EditNotificationPreferencesModal: React.FC<
       },
     })
 
-  const defaultValues: EditNotificationPreferencesInput = {
+  const getDefaultValues = (): EditNotificationPreferencesInput => ({
     preferences: currentPreferences,
-  }
+  })
 
   return (
     <FormModal<EditNotificationPreferencesInput>
@@ -44,7 +44,7 @@ const EditNotificationPreferencesModal: React.FC<
       setIsOpen={setIsOpen}
       title="Edit Notification Preferences"
       formSchema={editNotificationPreferencesSchema}
-      defaultValues={defaultValues}
+      defaultValues={getDefaultValues}
       onSubmit={async (data) => {
         await updateNotificationPreferencesMutation.mutateAsync(data)
       }}

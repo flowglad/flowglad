@@ -96,14 +96,13 @@ const CreatePriceModal: React.FC<CreatePriceModalProps> = ({
   const productQuery = trpc.products.get.useQuery({ id: productId })
   const isDefaultProduct = productQuery.data?.default === true
   const pricingModelId = productQuery.data?.pricingModelId
-  const defaultValues = getDefaultValues(previousPrice)
   return (
     <FormModal
       isOpen={isOpen}
       setIsOpen={setIsOpen}
       title="New Price"
       formSchema={createPriceFormSchema}
-      defaultValues={defaultValues}
+      defaultValues={() => getDefaultValues(previousPrice)}
       onSubmit={async (input) => {
         await createPrice.mutateAsync({
           ...input,

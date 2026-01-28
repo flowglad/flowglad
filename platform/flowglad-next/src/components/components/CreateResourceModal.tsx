@@ -37,14 +37,14 @@ const CreateResourceModal: React.FC<CreateResourceModalProps> = ({
       setIsOpen={setIsOpen}
       title="Create Resource"
       formSchema={createResourceSchema}
-      defaultValues={{
+      defaultValues={() => ({
         resource: {
           name: '',
           slug: '',
           pricingModelId: defaultPricingModelId || '',
           active: true,
         },
-      }}
+      })}
       onSubmit={async (input) => {
         await createResource.mutateAsync(input)
       }}
