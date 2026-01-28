@@ -82,21 +82,10 @@ interface ResponsiveBottomBarProps {
 
 /**
  * Layout primitive for a responsive bottom bar.
- * - Mobile (< sm): Fixed at viewport bottom, moves up with keyboard
- * - Desktop (>= sm): Static, flows with document content
- *
- * Mobile keyboard behavior:
- * - Requires viewport meta with `interactive-widget=resizes-content`
- * - The fixed positioning naturally moves up when keyboard appears
- *   because the visual viewport shrinks
+ * Static positioning on all breakpoints - flows with document content.
  *
  * Uses design tokens:
  * - border-border: Top border color (--border)
- *
- * IMPORTANT: Do NOT add bg-background to this component.
- * The parent container (e.g., OnboardingShell) handles the background.
- * Adding a background here would break the visual layering with
- * decorative border elements that extend beyond this container.
  *
  * Mobile considerations:
  * - Uses pb-[env(safe-area-inset-bottom)] for iOS notch/home indicator
@@ -108,15 +97,11 @@ export function ResponsiveBottomBar({
   return (
     <div
       className={cn(
-        // Mobile: fixed positioning at bottom with horizontal padding
-        // NOTE: Do NOT add bg-background here - parent handles background
-        'fixed left-0 bottom-0 right-0 z-50',
-        'border-t border-border',
-        'px-6 pb-[env(safe-area-inset-bottom)]',
-        // Desktop (sm+): reset to static positioning with full-bleed border, no padding
-        'sm:static sm:left-auto sm:bottom-auto sm:right-auto sm:z-auto',
-        'sm:w-full sm:relative sm:border-t-0 sm:px-0',
-        'sm:before:absolute sm:before:top-0 sm:before:left-1/2 sm:before:-translate-x-1/2 sm:before:w-screen sm:before:border-t sm:before:border-border',
+        // Static positioning - flows with document content on all breakpoints
+        'w-full relative',
+        // Full-width border-t using pseudo-element (extends beyond parent container)
+        'before:absolute before:top-0 before:left-1/2 before:-translate-x-1/2 before:w-screen before:border-t before:border-border',
+        'pb-[env(safe-area-inset-bottom)]',
         className
       )}
     >
@@ -126,27 +111,15 @@ export function ResponsiveBottomBar({
 }
 
 /**
- * Spacer component to prevent content from being hidden behind
- * the ResponsiveBottomBar on mobile (where it's fixed).
- * On desktop (sm+), this renders nothing since the bar is static.
+ * Spacer component - no longer needed since ResponsiveBottomBar is now static.
+ * Kept for backwards compatibility but renders nothing.
  *
- * Place this at the end of your content, before the ResponsiveBottomBar.
+ * @deprecated ResponsiveBottomBar is now static on all breakpoints, so no spacer is needed.
  */
 export function ResponsiveBottomBarSpacer({
-  className,
+  className: _className,
 }: {
   className?: string
 }) {
-  return (
-    <div
-      className={cn(
-        // Mobile: add space for the fixed bar (~60px typical height + safe area)
-        'h-20 pb-[env(safe-area-inset-bottom)]',
-        // Desktop (sm+): no spacer needed since bar is static
-        'sm:h-0 sm:pb-0',
-        className
-      )}
-      aria-hidden="true"
-    />
-  )
+  return null
 }

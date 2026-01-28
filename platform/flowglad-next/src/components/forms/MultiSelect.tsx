@@ -553,7 +553,7 @@ const MultipleSelector = React.forwardRef<
         >
           <div
             className={cn(
-              'flex items-center w-full rounded border border-input bg-card px-3 py-2 text-sm text-foreground shadow-xs transition-colors min-h-10 h-auto overflow-hidden',
+              'flex items-center w-full rounded border border-input bg-input-bg px-3 py-2 text-sm text-foreground shadow-xs transition-colors min-h-10 h-auto overflow-hidden',
               {
                 'focus-within:outline-none focus-within:ring-2 focus-within:ring-foreground/20 focus-within:border-foreground cursor-text':
                   !disabled && !resolvedError,

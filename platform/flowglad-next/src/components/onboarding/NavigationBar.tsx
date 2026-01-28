@@ -57,14 +57,8 @@ export function NavigationBar({
   fixed = 'responsive',
   className,
 }: NavigationBarProps) {
-  const {
-    goToNext,
-    goToPrevious,
-    isFirstStep,
-    isLastStep,
-    form,
-    canProceed,
-  } = useMultiStepForm()
+  const { goToPrevious, isFirstStep, isLastStep, form, canProceed } =
+    useMultiStepForm()
 
   const { isSubmitting } = form.formState
 
@@ -88,7 +82,6 @@ export function NavigationBar({
       <Button
         type="button"
         variant="secondary"
-        size="sm"
         onClick={handleBack}
         disabled={isSubmitting}
         className={cn(!showBackButton && 'invisible')}
@@ -106,15 +99,14 @@ export function NavigationBar({
         <div /> /* Placeholder to maintain layout */
       )}
 
-      {/* Continue/Submit button - uses existing Button component
-          Note: goToNext() handles form validation before proceeding.
-          On the last step, goToNext() triggers form submission via onComplete.
+      {/* Continue/Submit button - type="submit" enables Enter key navigation.
+          Form submission is handled by MultiStepForm's onSubmit handler,
+          which calls goToNext() to validate and navigate.
+          On the last step, goToNext() triggers form completion via onComplete.
       */}
       <Button
-        type="button"
+        type="submit"
         variant="default"
-        size="sm"
-        onClick={goToNext}
         disabled={isSubmitting || !canProceed}
       >
         {isSubmitting && <Loader2 className="size-4 animate-spin" />}
