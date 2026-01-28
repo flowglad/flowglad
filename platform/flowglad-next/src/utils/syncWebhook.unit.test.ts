@@ -18,6 +18,23 @@ describe('syncWebhook', () => {
       const scopeId = buildScopeId('org_456', false)
       expect(scopeId).toBe('org_456:test')
     })
+
+    it('throws error for empty organizationId', () => {
+      expect(() => buildScopeId('', true)).toThrow(
+        'organizationId cannot be empty'
+      )
+    })
+
+    it('throws error for whitespace-only organizationId', () => {
+      expect(() => buildScopeId('   ', false)).toThrow(
+        'organizationId cannot be empty'
+      )
+    })
+
+    it('trims whitespace from organizationId', () => {
+      const scopeId = buildScopeId('  org_123  ', true)
+      expect(scopeId).toBe('org_123:live')
+    })
   })
 
   describe('parseScopeId', () => {
@@ -60,6 +77,14 @@ describe('syncWebhook', () => {
     it('returns null for scope ID with whitespace-only organizationId', () => {
       const result = parseScopeId('   :test')
       expect(result).toBeNull()
+    })
+
+    it('trims whitespace from organizationId in parsed result', () => {
+      const result = parseScopeId('  org_123  :live')
+      expect(result).toEqual({
+        organizationId: 'org_123',
+        livemode: true,
+      })
     })
   })
 

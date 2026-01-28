@@ -34,12 +34,18 @@ export type SyncEventsAvailablePayload = z.infer<
 /**
  * Build a scope ID from organization ID and livemode.
  * Format: {organizationId}:{livemode ? 'live' : 'test'}
+ *
+ * @throws Error if organizationId is empty or whitespace-only
  */
 export const buildScopeId = (
   organizationId: string,
   livemode: boolean
 ): string => {
-  return `${organizationId}:${livemode ? 'live' : 'test'}`
+  const trimmedOrgId = organizationId.trim()
+  if (!trimmedOrgId) {
+    throw new Error('organizationId cannot be empty')
+  }
+  return `${trimmedOrgId}:${livemode ? 'live' : 'test'}`
 }
 
 /**
@@ -54,14 +60,15 @@ export const parseScopeId = (
   }
   const [organizationId, mode] = parts
   // Reject empty or whitespace-only organization IDs (e.g., ":live")
-  if (!organizationId || !organizationId.trim()) {
+  const trimmedOrgId = organizationId?.trim()
+  if (!trimmedOrgId) {
     return null
   }
   if (mode !== 'live' && mode !== 'test') {
     return null
   }
   return {
-    organizationId,
+    organizationId: trimmedOrgId,
     livemode: mode === 'live',
   }
 }
