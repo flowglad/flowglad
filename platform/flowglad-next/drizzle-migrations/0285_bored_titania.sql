@@ -1,1 +1,0 @@
-ALTER TABLE "subscriptions" ADD COLUMN "scheduled_adjustment_at" integer;

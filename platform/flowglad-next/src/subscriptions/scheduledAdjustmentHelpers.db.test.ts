@@ -85,6 +85,7 @@ describe('scheduledAdjustmentHelpers', async () => {
       intervalUnit: IntervalUnit.Month,
       intervalCount: 1,
       livemode: true,
+      isDefault: false,
     })) as Price.ProductPrice
   })
 

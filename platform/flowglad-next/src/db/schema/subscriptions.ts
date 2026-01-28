@@ -117,11 +117,13 @@ const columns = {
     pricingModels
   ),
   /**
-   * Epoch milliseconds when a scheduled adjustment will take effect.
+   * Timestamp when a scheduled adjustment will take effect.
    * Set when scheduling an end-of-period adjustment.
    * Cleared when the adjustment is canceled or takes effect.
    */
-  scheduledAdjustmentAt: integer('scheduled_adjustment_at'),
+  scheduledAdjustmentAt: timestampWithTimezoneColumn(
+    'scheduled_adjustment_at'
+  ),
 }
 
 export const subscriptions = pgTable(

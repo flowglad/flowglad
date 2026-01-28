@@ -1,5 +1,5 @@
 {
-  "id": "6c948d1e-6efc-4cce-a84e-2e80fa53aa45",
+  "id": "566ad5d8-9a55-432c-b3ce-01928eeb26fe",
   "prevId": "71394bc3-cd8f-4639-a93f-b53f27faa1c6",
   "version": "7",
   "dialect": "postgresql",
@@ -9871,7 +9871,7 @@
         },
         "scheduled_adjustment_at": {
           "name": "scheduled_adjustment_at",
-          "type": "integer",
+          "type": "timestamptz",
           "primaryKey": false,
           "notNull": false
         }

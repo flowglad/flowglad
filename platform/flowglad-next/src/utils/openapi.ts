@@ -374,10 +374,11 @@ export const trpcToRest = (
 
       // For other custom actions, create a POST endpoint
       const idParam = params?.routeParams?.[0] ?? 'id'
+      const actionPath = kebabCase(action)
       return {
-        [`POST /${entity}/:${idParam}/${action}`]: {
+        [`POST /${entity}/:${idParam}/${actionPath}`]: {
           procedure: procedureName,
-          pattern: new RegExp(`^${entity}/([^\\/]+)/${action}$`),
+          pattern: new RegExp(`^${entity}/([^\\/]+)/${actionPath}$`),
           mapParams: (matches, body) => ({
             ...body,
             [idParam]: matches[0],
