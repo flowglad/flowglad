@@ -36,8 +36,8 @@ const CreateDiscountModal: React.FC<CreateDiscountModalProps> = ({
         discount: {
           name: '',
           code: '',
-          amountType: DiscountAmountType.Fixed,
-          duration: DiscountDuration.Once,
+          amountType: DiscountAmountType.Fixed as const,
+          duration: DiscountDuration.Once as const,
           active: true,
           numberOfPayments: null,
           pricingModelId: undefined, // Will be set by PricingModelSelect

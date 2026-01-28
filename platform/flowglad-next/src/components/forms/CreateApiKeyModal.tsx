@@ -40,7 +40,7 @@ const CreateApiKeyModal = ({
       defaultValues={() => ({
         apiKey: {
           name: '',
-          type: FlowgladApiKeyType.Secret,
+          type: FlowgladApiKeyType.Secret as const,
         },
       })}
       onSubmit={async (data) => {

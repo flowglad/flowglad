@@ -366,7 +366,7 @@ const EditUsagePriceModal: React.FC<EditUsagePriceModalProps> = ({
       formSchema={editUsagePriceFormSchema}
       defaultValues={() => ({
         price: {
-          type: PriceType.Usage,
+          type: PriceType.Usage as const,
           id: price.id,
           isDefault: price.isDefault,
           active: price.active,
