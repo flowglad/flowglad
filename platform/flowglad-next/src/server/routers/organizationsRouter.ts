@@ -137,6 +137,12 @@ const getFocusedMembership = protectedProcedure
             userId,
             transaction
           )
+        if (!focusedMembership) {
+          throw new TRPCError({
+            code: 'NOT_FOUND',
+            message: 'No focused membership found for user',
+          })
+        }
         return focusedMembership
       }
     )

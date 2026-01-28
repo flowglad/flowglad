@@ -1,4 +1,5 @@
 'use client'
+import { usePathname } from 'next/navigation'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { trpc } from '@/app/_trpc/client'
 import type { Organization } from '@/db/schema/organizations'
@@ -72,12 +73,16 @@ const AuthProvider = ({
     Organization.ClientRecord | undefined
   >(values.organization)
   const session = useSession()
+  const pathname = usePathname()
   const authenticated = session.data?.user?.id !== undefined
+  // Don't call getFocusedMembership during onboarding - user has no membership yet
+  const isOnboarding = pathname?.startsWith('/onboarding')
   const {
     data: focusedMembership,
     refetch: refetchFocusedMembership,
   } = trpc.organizations.getFocusedMembership.useQuery(undefined, {
-    enabled: values.role === 'merchant' && authenticated,
+    enabled:
+      values.role === 'merchant' && authenticated && !isOnboarding,
   })
   /**
    * A race condition happens where sometimes the layout renders
