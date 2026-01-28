@@ -160,6 +160,15 @@ export const NestedFormModal = <T extends FieldValues>({
   lastIsOpenRef.current = isOpen
 
   const resolvedDefaultValues = defaultValuesRef.current!
+
+  // Reset form with actual default values when modal opens
+  // This is needed because the form may have been created before lazy default values were computed
+  useEffect(() => {
+    if (isOpen && form && defaultValuesRef.current) {
+      form.reset(defaultValuesRef.current)
+    }
+  }, [isOpen, form])
+
   const shouldRenderContent = useShouldRenderContent({ isOpen })
   const footer = (
     <div className="flex flex-1 justify-end gap-2 w-full">
@@ -351,6 +360,15 @@ const FormModal = <T extends FieldValues>({
     formState: { isSubmitting, errors },
     reset,
   } = form
+
+  // Reset form with actual default values when modal opens
+  // This is needed because useForm is called before lazy default values are computed
+  useEffect(() => {
+    if (isOpen && defaultValuesRef.current) {
+      form.reset(defaultValuesRef.current)
+    }
+  }, [isOpen, form])
+
   const hardResetFormValues = useCallback(() => {
     form.reset(resolvedDefaultValues, {
       keepDefaultValues: true,
