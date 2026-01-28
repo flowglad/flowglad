@@ -1,0 +1,308 @@
+import { beforeEach, describe, expect, it } from 'bun:test'
+import { Result } from 'better-result'
+import {
+  setupCustomer,
+  setupOrg,
+  setupPaymentMethod,
+  setupPrice,
+  setupProduct,
+  setupSubscription,
+  setupSubscriptionItem,
+} from '@/../seedDatabase'
+import { adminTransaction } from '@/db/adminTransaction'
+import type { Customer } from '@/db/schema/customers'
+import type { Organization } from '@/db/schema/organizations'
+import type { PaymentMethod } from '@/db/schema/paymentMethods'
+import type { Price } from '@/db/schema/prices'
+import type { Product } from '@/db/schema/products'
+import type { SubscriptionItem } from '@/db/schema/subscriptionItems'
+import type { Subscription } from '@/db/schema/subscriptions'
+import { selectSubscriptionItems } from '@/db/tableMethods/subscriptionItemMethods'
+import {
+  selectSubscriptionById,
+  updateSubscription,
+} from '@/db/tableMethods/subscriptionMethods'
+import { NotFoundError, ValidationError } from '@/errors'
+import {
+  cancelScheduledAdjustment,
+  hasScheduledAdjustment,
+} from '@/subscriptions/scheduledAdjustmentHelpers'
+import { createDiscardingEffectsContext } from '@/test-utils/transactionCallbacks'
+import { IntervalUnit, PriceType, SubscriptionStatus } from '@/types'
+
+describe('scheduledAdjustmentHelpers', async () => {
+  const {
+    organization,
+    price: basePrice,
+    product: baseProduct,
+    pricingModel,
+  } = await setupOrg()
+
+  let customer: Customer.Record
+  let paymentMethod: PaymentMethod.Record
+  let subscription: Subscription.Record
+  let downgradePrice: Price.ProductPrice
+  let downgradeProduct: Product.Record
+  let existingSubscriptionItem: SubscriptionItem.Record
+
+  beforeEach(async () => {
+    customer = await setupCustomer({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+    })
+    paymentMethod = await setupPaymentMethod({
+      organizationId: organization.id,
+      customerId: customer.id,
+    })
+
+    subscription = await setupSubscription({
+      organizationId: organization.id,
+      customerId: customer.id,
+      priceId: basePrice.id,
+      paymentMethodId: paymentMethod.id,
+      status: SubscriptionStatus.Active,
+    })
+
+    existingSubscriptionItem = await setupSubscriptionItem({
+      subscriptionId: subscription.id,
+      name: 'Existing Item',
+      quantity: 1,
+      unitPrice: basePrice.unitPrice,
+      priceId: basePrice.id,
+    })
+
+    downgradeProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Downgrade Plan',
+    })
+
+    downgradePrice = (await setupPrice({
+      productId: downgradeProduct.id,
+      name: 'Downgrade Price',
+      type: PriceType.Subscription,
+      unitPrice: 500,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      livemode: true,
+    })) as Price.ProductPrice
+  })
+
+  describe('hasScheduledAdjustment', () => {
+    it('returns false when subscription.scheduledAdjustmentAt is null', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const sub = (
+          await selectSubscriptionById(subscription.id, transaction)
+        ).unwrap()
+
+        expect(sub.scheduledAdjustmentAt).toBeNull()
+        expect(hasScheduledAdjustment(sub)).toBe(false)
+      })
+    })
+
+    it('returns true when subscription.scheduledAdjustmentAt is set to a future timestamp', async () => {
+      const futureTimestamp = Date.now() + 86400000
+      await adminTransaction(async ({ transaction }) => {
+        const updated = await updateSubscription(
+          {
+            id: subscription.id,
+            scheduledAdjustmentAt: futureTimestamp,
+            renews: subscription.renews,
+          },
+          transaction
+        )
+
+        expect(updated.scheduledAdjustmentAt).toBe(futureTimestamp)
+        expect(hasScheduledAdjustment(updated)).toBe(true)
+      })
+    })
+  })
+
+  describe('cancelScheduledAdjustment', () => {
+    it('returns NotFoundError when subscription does not exist', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await cancelScheduledAdjustment(
+          'non-existent-id',
+          createDiscardingEffectsContext(transaction)
+        )
+
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error).toBeInstanceOf(NotFoundError)
+        }
+      })
+    })
+
+    it('returns ValidationError when subscription has no scheduled adjustment', async () => {
+      await adminTransaction(async ({ transaction }) => {
+        const result = await cancelScheduledAdjustment(
+          subscription.id,
+          createDiscardingEffectsContext(transaction)
+        )
+
+        expect(Result.isError(result)).toBe(true)
+        if (Result.isError(result)) {
+          expect(result.error).toBeInstanceOf(ValidationError)
+          expect(result.error.message).toContain(
+            'does not have a scheduled adjustment'
+          )
+        }
+      })
+    })
+
+    it('clears scheduledAdjustmentAt and returns canceledItemCount of 0 when no future-dated items exist', async () => {
+      const scheduledAt = Date.now() + 86400000
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateSubscription(
+          {
+            id: subscription.id,
+            scheduledAdjustmentAt: scheduledAt,
+            renews: subscription.renews,
+          },
+          transaction
+        )
+
+        const result = await cancelScheduledAdjustment(
+          subscription.id,
+          createDiscardingEffectsContext(transaction)
+        )
+
+        expect(Result.isOk(result)).toBe(true)
+        if (Result.isOk(result)) {
+          expect(
+            result.value.subscription.scheduledAdjustmentAt
+          ).toBeNull()
+          expect(result.value.canceledItemCount).toBe(0)
+        }
+      })
+    })
+
+    it('expires future-dated subscription items and clears scheduledAdjustmentAt when scheduled items exist', async () => {
+      const now = Date.now()
+      const futureAddedDate = now + 86400000
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateSubscription(
+          {
+            id: subscription.id,
+            scheduledAdjustmentAt: futureAddedDate,
+            renews: subscription.renews,
+          },
+          transaction
+        )
+
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Future Item 1',
+          quantity: 1,
+          unitPrice: downgradePrice.unitPrice,
+          priceId: downgradePrice.id,
+          addedDate: futureAddedDate,
+        })
+
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Future Item 2',
+          quantity: 2,
+          unitPrice: downgradePrice.unitPrice,
+          priceId: downgradePrice.id,
+          addedDate: futureAddedDate,
+        })
+
+        const result = await cancelScheduledAdjustment(
+          subscription.id,
+          createDiscardingEffectsContext(transaction)
+        )
+
+        expect(Result.isOk(result)).toBe(true)
+        if (Result.isOk(result)) {
+          expect(
+            result.value.subscription.scheduledAdjustmentAt
+          ).toBeNull()
+          expect(result.value.canceledItemCount).toBe(2)
+        }
+
+        const allItems = await selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+        const activeItems = allItems.filter(
+          (item) => !item.expiredAt || item.expiredAt > Date.now()
+        )
+        const expiredFutureItems = allItems.filter(
+          (item) =>
+            item.name &&
+            item.name.startsWith('Future Item') &&
+            item.expiredAt !== null &&
+            item.expiredAt <= Date.now()
+        )
+
+        expect(activeItems.length).toBe(1)
+        expect(activeItems[0].name).toBe('Existing Item')
+        expect(expiredFutureItems.length).toBe(2)
+      })
+    })
+
+    it('does not expire currently active items even when they have addedDate in the past', async () => {
+      const now = Date.now()
+      const futureAddedDate = now + 86400000
+      const pastAddedDate = now - 86400000
+
+      await adminTransaction(async ({ transaction }) => {
+        await updateSubscription(
+          {
+            id: subscription.id,
+            scheduledAdjustmentAt: futureAddedDate,
+            renews: subscription.renews,
+          },
+          transaction
+        )
+
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Past Added Item',
+          quantity: 1,
+          unitPrice: basePrice.unitPrice,
+          priceId: basePrice.id,
+          addedDate: pastAddedDate,
+        })
+
+        await setupSubscriptionItem({
+          subscriptionId: subscription.id,
+          name: 'Future Item',
+          quantity: 1,
+          unitPrice: downgradePrice.unitPrice,
+          priceId: downgradePrice.id,
+          addedDate: futureAddedDate,
+        })
+
+        const result = await cancelScheduledAdjustment(
+          subscription.id,
+          createDiscardingEffectsContext(transaction)
+        )
+
+        expect(Result.isOk(result)).toBe(true)
+        if (Result.isOk(result)) {
+          expect(result.value.canceledItemCount).toBe(1)
+        }
+
+        const allItems = await selectSubscriptionItems(
+          { subscriptionId: subscription.id },
+          transaction
+        )
+        const activeItems = allItems.filter(
+          (item) => !item.expiredAt || item.expiredAt > Date.now()
+        )
+
+        expect(activeItems.length).toBe(2)
+        expect(
+          activeItems.some((item) => item.name === 'Existing Item')
+        ).toBe(true)
+        expect(
+          activeItems.some((item) => item.name === 'Past Added Item')
+        ).toBe(true)
+      })
+    })
+  })
+})

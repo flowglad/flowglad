@@ -69,8 +69,11 @@ import {
   uncancelSubscriptionProcedureTransaction,
 } from '@/subscriptions/cancelSubscription'
 import { createSubscriptionWorkflow } from '@/subscriptions/createSubscription/workflow'
+import { cancelScheduledAdjustmentProcedureTransaction } from '@/subscriptions/scheduledAdjustmentHelpers'
 import {
   adjustSubscriptionInputSchema,
+  cancelScheduledAdjustmentInputSchema,
+  cancelScheduledAdjustmentOutputSchema,
   scheduleSubscriptionCancellationSchema,
   uncancelSubscriptionSchema,
 } from '@/subscriptions/schemas'
@@ -99,6 +102,9 @@ export const subscriptionsRouteConfigs = [
     routeParams: ['id'],
   }),
   trpcToRest('subscriptions.uncancel', {
+    routeParams: ['id'],
+  }),
+  trpcToRest('subscriptions.cancelScheduledAdjustment', {
     routeParams: ['id'],
   }),
 ]
@@ -458,6 +464,26 @@ const uncancelSubscriptionProcedure = protectedProcedure
   .mutation(
     authenticatedProcedureComprehensiveTransaction(
       uncancelSubscriptionProcedureTransaction
+    )
+  )
+
+const cancelScheduledAdjustmentProcedure = protectedProcedure
+  .meta({
+    openapi: {
+      method: 'POST',
+      path: '/api/v1/subscriptions/{id}/cancel-scheduled-adjustment',
+      summary: 'Cancel Scheduled Adjustment',
+      description:
+        'Cancels a scheduled subscription adjustment. The subscription must have a pending scheduled adjustment (scheduledAdjustmentAt is not null). This will expire any subscription items that were scheduled to become active at the end of the billing period and clear the scheduledAdjustmentAt field.',
+      tags: ['Subscriptions'],
+      protect: true,
+    },
+  })
+  .input(cancelScheduledAdjustmentInputSchema)
+  .output(cancelScheduledAdjustmentOutputSchema)
+  .mutation(
+    authenticatedProcedureComprehensiveTransaction(
+      cancelScheduledAdjustmentProcedureTransaction
     )
   )
 
@@ -973,6 +999,7 @@ export const subscriptionsRouter = router({
   adjust: adjustSubscriptionProcedure,
   cancel: cancelSubscriptionProcedure,
   uncancel: uncancelSubscriptionProcedure,
+  cancelScheduledAdjustment: cancelScheduledAdjustmentProcedure,
   list: listSubscriptionsProcedure,
   get: getSubscriptionProcedure,
   create: createSubscriptionProcedure,
