@@ -10,12 +10,10 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { trpc } from '@/app/_trpc/client'
-import { CustomersDataTable } from '@/app/(merchant)/customers/data-table'
-import { ResourcesDataTable } from '@/app/resources/data-table'
-import { UsageMetersDataTable } from '@/app/(merchant)/usage-meters/data-table'
 import CreateResourceModal from '@/components/components/CreateResourceModal'
 import CreateUsageMeterModal from '@/components/components/CreateUsageMeterModal'
 import EditResourceModal from '@/components/components/EditResourceModal'
+import { CustomersDataTable } from '@/components/customers/data-table'
 import { ExpandSection } from '@/components/ExpandSection'
 import { FeaturesDataTable } from '@/components/features/data-table'
 import ClonePricingModelModal from '@/components/forms/ClonePricingModelModal'
@@ -31,6 +29,7 @@ import PopoverMenu, {
   type PopoverMenuItem,
 } from '@/components/PopoverMenu'
 import { ProductsGridSection } from '@/components/ProductsGridSection'
+import { ResourcesDataTable } from '@/components/resources/data-table'
 import { CopyableField } from '@/components/ui/copyable-field'
 import { PageHeaderNew } from '@/components/ui/page-header-new'
 import {
@@ -38,6 +37,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
+import { UsageMetersDataTable } from '@/components/usage-meters/data-table'
 import type { PricingModel } from '@/db/schema/pricingModels'
 import type { Resource } from '@/db/schema/resources'
 
@@ -310,7 +310,7 @@ function InnerPricingModelDetailsPage({
             onCreateResource={() =>
               setIsCreateResourceModalOpen(true)
             }
-            onEditResource={(resource) => {
+            onEditResource={(resource: Resource.ClientRecord) => {
               setResourceToEdit(resource)
               setIsEditResourceModalOpen(true)
             }}
