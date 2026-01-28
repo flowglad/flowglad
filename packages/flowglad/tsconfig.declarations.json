@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "skipLibCheck": true,
+    "noEmit": false,
+    "declaration": true,
+    "emitDeclarationOnly": true,
+    "declarationMap": false,
+    "sourceMap": false,
+    "outDir": "./dist/types",
+    "noImplicitReturns": false,
+    "strictNullChecks": true
+  },
+  "include": ["src/index.ts", "src/**/*.d.ts"]
+}
