@@ -138,22 +138,29 @@ interface MultiStepFormProps<T extends FieldValues> {
 }
 
 /**
- * Checks if any step's shouldSkip function references its parameter.
+ * Checks if any step's shouldSkip function expects form data as a parameter.
  * This is a heuristic to detect if steps need reactive form data.
  *
  * @remarks
- * We check the function's string representation for common patterns that
- * indicate the function uses its parameter. This avoids unnecessary
- * form subscriptions when shouldSkip only checks static conditions.
+ * We use Function.length to check if shouldSkip declares any parameters.
+ * If length > 0, the function expects at least one argument, which suggests
+ * it may use form data. This is more robust than regex-based string matching
+ * which would miss functions using parameter names other than "data"
+ * (e.g., `(values) => values.type === 'enterprise'`).
+ *
+ * Trade-off: This may trigger unnecessary form watching if a developer declares
+ * a parameter but doesn't use it. However, this is preferable to missing
+ * legitimate form data dependencies which would cause broken functionality.
  */
 function stepsDependOnFormData(
   steps: StepConfig<z.ZodType>[]
 ): boolean {
   return steps.some((step) => {
     if (!step.shouldSkip) return false
-    const fnStr = step.shouldSkip.toString()
-    // Check for common patterns: data.field, data?.field, data[key], or destructuring
-    return /\b(data\s*[.?[\[]|{\s*\w+\s*}|\(\s*{\s*\w+)/.test(fnStr)
+    // Check if the function expects any parameters
+    // length > 0 means the function declares at least one parameter,
+    // suggesting it may use form data
+    return step.shouldSkip.length > 0
   })
 }
 
