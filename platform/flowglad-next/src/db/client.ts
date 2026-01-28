@@ -3,10 +3,16 @@ import { drizzle } from 'drizzle-orm/postgres-js'
 import postgres from 'postgres'
 import { format } from 'sql-formatter'
 import core from '@/utils/core'
+import { validateDatabaseUrl } from './safety'
 
 const dbUrl = core.IS_TEST
   ? core.TEST_DB_URL
   : core.envVariable('DATABASE_URL')
+
+// Validate the database URL before creating the client
+if (dbUrl) {
+  validateDatabaseUrl(dbUrl)
+}
 /**
  * Very important to set prepare to false when connecting to a Supabase DB
  * via the connection pool URL in the "transaction" batch setting.

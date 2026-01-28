@@ -83,13 +83,22 @@ export const itIfStripeKey = (
  * This should be called in afterEach or afterAll hooks.
  *
  * @param params - Object containing Stripe resource IDs to clean up
+ * @param params.skipApiCalls - If true, skips actual Stripe API calls (useful for reducing API calls in CI)
  */
 export const cleanupStripeTestData = async (params: {
   stripeAccountId?: string
   stripeCustomerId?: string
   stripePaymentIntentId?: string
   stripeSetupIntentId?: string
+  /** Skip actual Stripe API calls (data remains in Stripe test mode but avoids rate limits) */
+  skipApiCalls?: boolean
 }): Promise<void> => {
+  // Skip cleanup API calls if requested (reduces Stripe API usage)
+  // Test mode data is auto-cleaned by Stripe periodically anyway
+  if (params.skipApiCalls) {
+    return
+  }
+
   const stripe = getStripeTestClient()
 
   // Cancel payment intent if exists

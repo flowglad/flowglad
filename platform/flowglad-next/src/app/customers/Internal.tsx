@@ -8,24 +8,8 @@ import { CustomersDataTable } from './data-table'
 
 function Internal() {
   const { organization } = useAuthenticatedContext()
-  const [activeTab, setActiveTab] = useState('all')
   const [isCreateCustomerOpen, setIsCreateCustomerOpen] =
     useState(false)
-
-  const getFiltersForTab = (tab: string) => {
-    const baseFilters = {
-      organizationId: organization?.id!,
-    }
-
-    if (tab === 'archived') {
-      return {
-        ...baseFilters,
-        archived: true,
-      }
-    }
-
-    return baseFilters
-  }
 
   return (
     <>
@@ -36,7 +20,7 @@ function Internal() {
           className="pb-2"
         />
         <CustomersDataTable
-          filters={getFiltersForTab(activeTab)}
+          externalFilters={{ organizationId: organization?.id! }}
           onCreateCustomer={() => setIsCreateCustomerOpen(true)}
           hiddenColumns={['payments', 'createdAt', 'customerId']}
         />

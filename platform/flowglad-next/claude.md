@@ -232,19 +232,10 @@ afterEach(() => {
 ### Test Environments
 The test suite defaults to the `node` environment to ensure MSW (Mock Service Worker) can properly intercept HTTP requests for mocking external APIs like Stripe.
 
-**Tests using React or DOM APIs** must include this directive at the top of the file:
-```typescript
-/**
- * @vitest-environment jsdom
- */
-```
-
-This includes:
-- React component tests (`.test.tsx` files)
+**Tests using React or DOM APIs** (`.test.tsx` files) are run via `test:frontend` which uses happy-dom for DOM emulation. This includes:
+- React component tests
 - React hook tests using `renderHook` from `@testing-library/react`
 - Any test that needs DOM APIs like `document` or `window`
-
-This tells Vitest to run that specific test file in a jsdom environment.
 
 ### Test Organization
 
@@ -337,6 +328,28 @@ import { cachedRecomputable } from '@/utils/cache-recomputable'
 export const selectSubscriptionItemsWithPricesBySubscriptionId = cachedRecomputable(...)
 export const selectRichSubscriptionsAndActiveItems = ...
 ```
+
+## Avoid Barrel Exports and Re-exports
+
+Do not create barrel files (`index.ts` that re-exports from other modules) or re-export imports from other modules. Instead:
+
+- **Import directly from the source module** - If you need `validateDatabaseUrl` from `db/safety.ts`, import from `@/db/safety`, not from a re-exporting `index.ts`
+- **Keep each module self-contained** - Each file should export its own functions/types, not re-export from others
+- **Don't create index.ts files** for the sole purpose of aggregating exports
+
+```typescript
+// BAD - barrel export pattern
+// db/index.ts
+export * from './safety'
+export * from './client'
+export { validateDatabaseUrl } from './safety'  // re-export
+
+// GOOD - import directly from source
+import { validateDatabaseUrl } from '@/db/safety'
+import { db } from '@/db/client'
+```
+
+This keeps imports explicit, makes dependencies traceable, and avoids circular import issues.
 
 ## Write Tests Coverage for Changes to Backend Business Logic
 
