@@ -20,7 +20,7 @@ Customers have two key identifiers:
 
 | Identifier | Description | Example |
 |------------|-------------|---------|
-| `id` | Flowglad-generated UUID | `cust_a1b2c3d4...` |
+| `id` | Flowglad-generated UUID | `a1b2c3d4-e5f6-7890-abcd-ef1234567890` |
 | `externalId` | Your system's identifier | `user_123`, `org_456` |
 
 The `externalId` is how you'll typically reference customers in your code. It must be unique among active customers, but can be reused after archiving a customer.
@@ -29,28 +29,34 @@ The `externalId` is how you'll typically reference customers in your code. It mu
 
 ### Via Checkout
 
-Customers are automatically created when someone completes a checkout session. If you provide a `customerExternalId` when creating the checkout session, it will be used as the customer's `externalId`.
+Customers are automatically created when someone completes a [checkout session](/features/checkout-sessions). The customer's `externalId` is automatically set based on the authenticated user.
 
 ```typescript
-const { checkoutSession } = await server.createCheckoutSession({
-  priceId: 'price_abc123',
-  customerExternalId: 'user_123', // Links to your user
-  customerEmail: 'user@example.com',
-  customerName: 'Jane Smith',
+// Server-side: Creates a checkout session for the authenticated user
+const checkoutSession = await flowglad(userId).createCheckoutSession({
+  priceSlug: 'pro_plan',
+  successUrl: 'https://example.com/success',
+  cancelUrl: 'https://example.com/cancel',
 })
 ```
 
-### Via API
+### Via SDK
 
-Create customers directly using the API when you need to set up customer records before checkout:
+Create customers directly when you need to set up customer records before checkout:
 
 ```typescript
-const customer = await flowglad.customers.create({
-  externalId: 'user_123',
-  email: 'user@example.com',
-  name: 'Jane Smith',
+const result = await flowglad(userId).createCustomer({
+  customer: {
+    externalId: 'user_123',
+    email: 'user@example.com',
+    name: 'Jane Smith',
+  },
 })
 ```
+
+<Note>
+When using `FlowgladServer` with a scoped `customerExternalId`, customers are automatically created via `findOrCreateCustomer()` when needed. Direct customer creation is typically only needed for admin operations.
+</Note>
 
 ### Via Dashboard
 
@@ -64,14 +70,16 @@ const customer = await flowglad.customers.create({
 Store custom data on customer records using the `metadata` field. This is useful for syncing additional information from your system:
 
 ```typescript
-const customer = await flowglad.customers.create({
-  externalId: 'user_123',
-  email: 'user@example.com',
-  name: 'Jane Smith',
-  metadata: {
-    plan: 'enterprise',
-    accountManager: 'john@company.com',
-    signupSource: 'webinar',
+const result = await flowglad(userId).createCustomer({
+  customer: {
+    externalId: 'user_123',
+    email: 'user@example.com',
+    name: 'Jane Smith',
+    metadata: {
+      plan: 'enterprise',
+      accountManager: 'john@company.com',
+      signupSource: 'webinar',
+    },
   },
 })
 ```
@@ -116,16 +124,14 @@ Archiving is a significant action that cancels all active subscriptions. Review 
 #### Via API
 
 ```bash
-curl -X POST https://api.flowglad.com/api/v1/customers/user_123/archive \
+curl -X POST https://app.flowglad.com/api/v1/customers/user_123/archive \
   -H "Authorization: Bearer your_api_key"
 ```
 
 #### Via SDK
 
 ```typescript
-await flowglad.customers.archive({
-  externalId: 'user_123',
-})
+await flowglad(userId).archiveCustomer('user_123')
 ```
 
 <Note>
@@ -157,18 +163,17 @@ Restore functionality is not currently supported. Once a customer is archived, t
 Always provide an `externalId` that maps to your user or organization ID. This makes it easy to look up customers and keeps your data synchronized.
 
 ```typescript
-// Good: Use your system's user ID
-const customer = await flowglad.customers.create({
-  externalId: user.id, // e.g., 'user_123'
-  email: user.email,
-  name: user.name,
+// Good: Use your system's user ID as the customerExternalId
+const flowgladServer = new FlowgladServer({
+  customerExternalId: user.id, // e.g., 'user_123'
+  getCustomerDetails: async (id) => {
+    const user = await db.users.findOne({ id })
+    return { name: user.name, email: user.email }
+  },
 })
 
-// Avoid: Letting Flowglad generate the only identifier
-const customer = await flowglad.customers.create({
-  email: user.email,
-  name: user.name,
-})
+// The customer is automatically created with externalId = user.id
+const billing = await flowgladServer.getBilling()
 ```
 
 ### Archive Instead of Ignoring
