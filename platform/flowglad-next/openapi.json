@@ -721,7 +721,73 @@
                 "type": "object",
                 "properties": {
                   "product": {
-                    "$ref": "#/components/schemas/ProductInsert"
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "description": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "imageURL": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "active": {
+                        "type": "boolean"
+                      },
+                      "singularQuantityLabel": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "pluralQuantityLabel": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      },
+                      "pricingModelId": {
+                        "type": "string"
+                      },
+                      "default": {
+                        "type": "boolean"
+                      },
+                      "slug": {
+                        "anyOf": [
+                          {
+                            "type": "string"
+                          },
+                          {
+                            "type": "null"
+                          }
+                        ]
+                      }
+                    },
+                    "required": ["name", "active", "pricingModelId"]
                   },
                   "price": {
                     "$ref": "#/components/schemas/CreateProductPriceInput"
@@ -9241,74 +9307,6 @@
           "cancelUrl",
           "type"
         ]
-      },
-      "ProductInsert": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "imageURL": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "active": {
-            "type": "boolean"
-          },
-          "singularQuantityLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "pluralQuantityLabel": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "pricingModelId": {
-            "type": "string"
-          },
-          "default": {
-            "type": "boolean"
-          },
-          "slug": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "required": ["name", "active", "pricingModelId"]
       },
       "CreateProductPriceInput": {
         "oneOf": [

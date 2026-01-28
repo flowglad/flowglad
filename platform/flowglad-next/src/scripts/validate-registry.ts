@@ -413,6 +413,8 @@ class RegistryValidator {
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name)
       const relPath = path.join(relativePath, entry.name)
+      // Normalize path separators to forward slashes for comparison
+      const normalizedRelPath = relPath.split(path.sep).join('/')
 
       if (entry.isDirectory()) {
         this.checkDirectoryForOrphans(
@@ -437,10 +439,10 @@ class RegistryValidator {
           continue
         }
 
-        if (!referencedFiles.has(relPath)) {
+        if (!referencedFiles.has(normalizedRelPath)) {
           this.errors.push({
             type: 'warning',
-            message: `Orphaned file not referenced in registry: ${relPath}`,
+            message: `Orphaned file not referenced in registry: ${normalizedRelPath}`,
           })
         }
       }
