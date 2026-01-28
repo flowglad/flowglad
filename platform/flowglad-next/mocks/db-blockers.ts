@@ -68,17 +68,16 @@ mock.module('@upstash/redis', () => {
 })
 
 /**
- * Block stripe - Stripe SDK
+ * Stripe SDK - NOT blocked
+ *
+ * Unlike other services, Stripe is not blocked because:
+ * 1. MSW intercepts HTTP calls, so real Stripe SDK code can run safely
+ * 2. Tests can use MSW handlers to mock specific Stripe API responses
+ * 3. Tests that need function-level mocking can configure globalThis.__mock* functions
+ *
+ * The @/utils/stripe module IS mocked (see stripe-utils-mock.ts) to provide
+ * configurable function-level mocks, but the underlying SDK is allowed to run.
  */
-mock.module('stripe', () => {
-  const StripeBlocked = function () {
-    throw createBlockedServiceError('Stripe')
-  }
-  return {
-    default: StripeBlocked,
-    Stripe: StripeBlocked,
-  }
-})
 
 /**
  * Block @unkey/api - Unkey SDK
