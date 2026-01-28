@@ -16,7 +16,7 @@ import type { Product } from '@/db/schema/products'
 import { CurrencyCode, IntervalUnit, PriceType } from '@/types'
 import { safelyUpdatePrice } from './priceMethods'
 import {
-  countNonUsageProductsByPricingModelIds,
+  countProductsWithPricesByPricingModelIds,
   safelyInsertPricingModel,
   safelyUpdatePricingModel,
   selectPricingModelById,
@@ -26,6 +26,7 @@ import {
   selectPricingModelsTableRows,
   selectPricingModelsWithProductsAndUsageMetersByPricingModelWhere,
 } from './pricingModelMethods'
+import { selectProductsCursorPaginated } from './productMethods'
 
 describe('safelyUpdatePricingModel', () => {
   let organization: Organization.Record
@@ -1675,7 +1676,7 @@ describe('selectPricingModelSlugResolutionData', () => {
   })
 })
 
-describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () => {
+describe('Pricing Model Table Rows - Products Count Alignment', () => {
   let organization: Organization.Record
   let pricingModel: PricingModel.Record
 
@@ -1685,7 +1686,7 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     pricingModel = orgData.pricingModel
   })
 
-  it('countNonUsageProductsByPricingModelIds counts all products (usage prices no longer have products)', async () => {
+  it('countProductsWithPricesByPricingModelIds counts products that have prices', async () => {
     // Create subscription products
     const subscriptionProduct1 = await setupProduct({
       organizationId: organization.id,
@@ -1747,7 +1748,7 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     // Query the count
     const countMap = await adminTransaction(async (ctx) => {
       const { transaction } = ctx
-      return countNonUsageProductsByPricingModelIds(
+      return countProductsWithPricesByPricingModelIds(
         [pricingModel.id],
         transaction
       )
@@ -1760,7 +1761,84 @@ describe('Pricing Model Table Rows - Usage Products Exclusion from Count', () =>
     expect(count).toBe(3)
   })
 
-  it('selectPricingModelsTableRows returns all product count (usage prices no longer have products)', async () => {
+  it('pricing model list count matches products grid total for a pricing model', async () => {
+    const subscriptionProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Subscription Product',
+    })
+
+    await setupPrice({
+      productId: subscriptionProduct.id,
+      name: 'Subscription Price',
+      type: PriceType.Subscription,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 1000,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+      trialPeriodDays: 0,
+    })
+
+    const usageProduct = await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Usage Product',
+    })
+
+    await setupPrice({
+      productId: usageProduct.id,
+      name: 'Usage Price',
+      type: PriceType.Usage,
+      intervalUnit: IntervalUnit.Month,
+      intervalCount: 1,
+      unitPrice: 10,
+      currency: CurrencyCode.USD,
+      livemode: true,
+      isDefault: true,
+    })
+
+    await setupProduct({
+      organizationId: organization.id,
+      pricingModelId: pricingModel.id,
+      name: 'Orphaned Product',
+    })
+
+    const pricingModelRows = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectPricingModelsTableRows({
+        input: {
+          filters: {
+            id: pricingModel.id,
+          },
+        },
+        transaction,
+      })
+    })
+
+    const pricingModelRow = pricingModelRows.items.find(
+      (row) => row.pricingModel.id === pricingModel.id
+    )
+
+    const productsGrid = await adminTransaction(async (ctx) => {
+      const { transaction } = ctx
+      return selectProductsCursorPaginated({
+        input: {
+          filters: {
+            pricingModelId: pricingModel.id,
+            excludeProductsWithNoPrices: true,
+          },
+          pageSize: 50,
+        },
+        transaction,
+      })
+    })
+
+    expect(pricingModelRow!.productsCount).toBe(productsGrid.total)
+  })
+
+  it('selectPricingModelsTableRows returns product count matching priced products', async () => {
     // Create subscription product
     const subscriptionProduct = await setupProduct({
       organizationId: organization.id,

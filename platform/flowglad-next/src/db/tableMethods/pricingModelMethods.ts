@@ -317,7 +317,7 @@ const pricingModelTableRowSchema = z.object({
  * @param transaction - Database transaction
  * @returns Map of pricingModelId -> count of non-usage products
  */
-export const countNonUsageProductsByPricingModelIds = async (
+export const countProductsWithPricesByPricingModelIds = async (
   pricingModelIds: string[],
   transaction: DbTransaction
 ): Promise<Map<string, number>> => {
@@ -328,7 +328,7 @@ export const countNonUsageProductsByPricingModelIds = async (
   // Query: SELECT pricing_model_id, COUNT(*) as count
   // FROM products p
   // WHERE p.pricing_model_id IN (...)
-  //   AND NOT EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = p.id AND pr.type = 'usage')
+  //   AND EXISTS (SELECT 1 FROM prices pr WHERE pr.product_id = p.id)
   // GROUP BY p.pricing_model_id
   const results = await transaction
     .select({
@@ -339,9 +339,7 @@ export const countNonUsageProductsByPricingModelIds = async (
     .where(
       and(
         inArray(products.pricingModelId, pricingModelIds),
-        notExists(
-          sql`(SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id} AND ${prices.type} = ${PriceType.Usage})`
-        )
+        sql`EXISTS (SELECT 1 FROM ${prices} WHERE ${prices.productId} = ${products.id})` // ignores usage meter prices since they dont' have product id
       )
     )
     .groupBy(products.pricingModelId)
@@ -360,7 +358,7 @@ export const selectPricingModelsTableRows =
     pricingModelTableRowSchema,
     async (pricingModelsResult, transaction) => {
       const productsByPricingModelId =
-        await countNonUsageProductsByPricingModelIds(
+        await countProductsWithPricesByPricingModelIds(
           pricingModelsResult.map((pricingModel) => pricingModel.id),
           transaction
         )
