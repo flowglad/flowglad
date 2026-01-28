@@ -1,6 +1,5 @@
 import { beforeEach, describe, expect, it } from 'bun:test'
 import { Result } from 'better-result'
-import type Stripe from 'stripe'
 import {
   setupCustomer,
   setupInvoice,
@@ -72,31 +71,8 @@ describe('createCustomerBookkeeping', () => {
   let defaultPrice: Price.Record
 
   beforeEach(async () => {
-    // Configure the global createStripeCustomer mock to return a fake customer
-    globalThis.__mockCreateStripeCustomer.mockReset()
-    globalThis.__mockCreateStripeCustomer.mockImplementation(
-      async (params: {
-        email: string
-        name: string
-        organizationId: string
-        livemode: boolean
-        createdBy: string
-      }): Promise<Stripe.Customer> => {
-        return {
-          id: `cus_test_${params.email.replace(/[^a-zA-Z0-9]/g, '')}`,
-          object: 'customer',
-          email: params.email,
-          name: params.name,
-          livemode: params.livemode,
-          metadata: {
-            organizationId: params.organizationId,
-            createdBy: params.createdBy,
-          },
-        } as Stripe.Customer
-      }
-    )
-
     // Set up organization with default product and pricing
+    // Stripe API calls go to stripe-mock which returns valid responses
     const orgData = await setupOrg()
     organization = orgData.organization
     defaultProduct = orgData.product

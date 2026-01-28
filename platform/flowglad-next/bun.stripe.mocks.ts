@@ -42,6 +42,14 @@ export const mockReverseStripeTaxTransaction =
   mock<typeof actualStripe.reverseStripeTaxTransaction>()
 export const mockConfirmPaymentIntent =
   mock<typeof actualStripe.confirmPaymentIntent>()
+export const mockCreatePaymentIntentForBillingRun =
+  mock<typeof actualStripe.createPaymentIntentForBillingRun>()
+export const mockConfirmPaymentIntentForBillingRun =
+  mock<typeof actualStripe.confirmPaymentIntentForBillingRun>()
+export const mockCreateAndConfirmPaymentIntentForBillingRun =
+  mock<
+    typeof actualStripe.createAndConfirmPaymentIntentForBillingRun
+  >()
 
 // Register the mock module
 mock.module('@/utils/stripe', () => ({
@@ -57,6 +65,12 @@ mock.module('@/utils/stripe', () => ({
   listRefundsForCharge: mockListRefundsForCharge,
   reverseStripeTaxTransaction: mockReverseStripeTaxTransaction,
   confirmPaymentIntent: mockConfirmPaymentIntent,
+  createPaymentIntentForBillingRun:
+    mockCreatePaymentIntentForBillingRun,
+  confirmPaymentIntentForBillingRun:
+    mockConfirmPaymentIntentForBillingRun,
+  createAndConfirmPaymentIntentForBillingRun:
+    mockCreateAndConfirmPaymentIntentForBillingRun,
 }))
 
 /**
@@ -75,4 +89,7 @@ export function resetAllStripeMocks() {
   mockListRefundsForCharge.mockReset()
   mockReverseStripeTaxTransaction.mockReset()
   mockConfirmPaymentIntent.mockReset()
+  mockCreatePaymentIntentForBillingRun.mockReset()
+  mockConfirmPaymentIntentForBillingRun.mockReset()
+  mockCreateAndConfirmPaymentIntentForBillingRun.mockReset()
 }

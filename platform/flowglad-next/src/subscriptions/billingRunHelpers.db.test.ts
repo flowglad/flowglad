@@ -84,11 +84,6 @@ import { selectUsageCredits } from '@/db/tableMethods/usageCreditMethods'
 import { ValidationError } from '@/errors'
 import { createSubscriptionFeatureItems } from '@/subscriptions/subscriptionItemFeatureHelpers'
 import {
-  createMockConfirmationResult,
-  createMockPaymentIntentResponse,
-  createMockStripeCharge,
-} from '@/test/helpers/stripeMocks'
-import {
   BillingPeriodStatus,
   BillingRunStatus,
   CountryCode,
@@ -111,14 +106,6 @@ import {
 } from '@/types'
 import core from '@/utils/core'
 import { stripeIdFromObjectOrId } from '@/utils/stripe'
-
-// Use global mocks from bun.db.mocks.ts
-const mockCreatePaymentIntentForBillingRun =
-  globalThis.__mockCreatePaymentIntentForBillingRun
-const mockConfirmPaymentIntentForBillingRun =
-  globalThis.__mockConfirmPaymentIntentForBillingRun
-const mockGetStripeCharge = globalThis.__mockGetStripeCharge
-
 import {
   billingPeriodItemsAndUsageOveragesToInvoiceLineItemInserts,
   calculateFeeAndTotalAmountDueForBillingPeriod,
@@ -153,36 +140,6 @@ describe('billingRunHelpers', async () => {
   let subscriptionItem: SubscriptionItem.Record
 
   beforeEach(async () => {
-    // Reset mocks
-    mockCreatePaymentIntentForBillingRun.mockReset()
-    mockConfirmPaymentIntentForBillingRun.mockReset()
-    mockGetStripeCharge.mockReset()
-
-    // Configure getStripeCharge mock to return a succeeded charge
-    mockGetStripeCharge.mockImplementation(
-      async (chargeId: string) => {
-        return createMockStripeCharge({
-          id: chargeId,
-          status: 'succeeded',
-          amount: 1000,
-          paid: true,
-          captured: true,
-          payment_method_details: {
-            type: 'card',
-            card: {
-              brand: 'visa',
-              last4: '4242',
-              exp_month: 12,
-              exp_year: 2025,
-              country: 'US',
-              fingerprint: 'fingerprint_test',
-              funding: 'credit',
-            },
-          } as any,
-        })
-      }
-    )
-
     const orgData = await setupOrg()
     organization = orgData.organization
     pricingModel = orgData.pricingModel
