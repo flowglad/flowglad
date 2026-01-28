@@ -65,6 +65,11 @@ jobs:
           --health-timeout 5s
           --health-retries 5
           --health-start-period 10s
+      stripe-mock:
+        image: stripe/stripe-mock:latest
+        ports:
+          - 12111:12111
+          - 12112:12112
 
     defaults:
       run:
