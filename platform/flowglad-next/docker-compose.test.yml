@@ -1,4 +1,9 @@
 # docker-compose.test.yml
+#
+# LOCAL DEVELOPMENT ONLY
+# CI uses GitHub Actions services (defined in workflow files) instead.
+# Keep service versions in sync with .github/workflows/flowglad-next-sharded-unit-tests.yml
+#
 version: '3.8'
 services:
   postgres:
